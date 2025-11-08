@@ -1,0 +1,15 @@
+# env
+.env*
+.env.local
+
+# node / build
+node_modules/
+.next/
+out/
+build/
+*.tsbuildinfo
+
+# misc
+.DS_Store
+*.log
+.vercel
