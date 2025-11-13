@@ -1,4 +1,6 @@
 // src/styles/GlobalStyles.ts
+
+'use client';
 import { createGlobalStyle } from 'styled-components';
 
 const GlobalStyle = createGlobalStyle`

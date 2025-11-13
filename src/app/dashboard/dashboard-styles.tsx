@@ -1,4 +1,7 @@
+'use client';
+
 import styled from "styled-components";
+
 export const Page = styled.div`
   min-height: 100vh;
   display: grid;
@@ -69,9 +72,11 @@ export const NavItem = styled.button<{ $active?: boolean }>`
   letter-spacing: 0.03em;
   text-transform: uppercase;
   cursor: pointer;
-  background: ${({ $active }) =>
-    $active ? "rgba(127, 90, 240, 0.18)" : "transparent"};
-  color: ${({ $active }) => ($active ? "#fff" : "rgba(245,245,245,0.75)")};
+ background: ({ $active }: { $active?: boolean }) =>
+    $active ? "rgba(127, 90, 240, 0.18)" : "transparent";
+
+  color: ({ $active }: { $active?: boolean }) =>
+    $active ? "#fff" : "rgba(245,245,245,0.75)";
   display: flex;
   align-items: center;
   gap: 0.5rem;
