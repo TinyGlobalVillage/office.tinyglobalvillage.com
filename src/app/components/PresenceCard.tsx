@@ -1,13 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-
-type UserPresence = {
-  sysUser: string;
-  displayName: string;
-  online: boolean;
-  lastSeen: string | null;
-};
+import type { UserPresence } from "./PresenceDots";
 
 const USER_COLOR: Record<string, string> = {
   admin:  "#ff4ecb",
@@ -21,9 +15,7 @@ export default function PresenceCard({ className = "" }: { className?: string })
   const poll = async () => {
     try {
       const res = await fetch("/api/presence");
-      if (res.ok) {
-        setPresence(await res.json());
-      }
+      if (res.ok) setPresence(await res.json());
     } finally {
       setLoading(false);
     }
@@ -38,31 +30,20 @@ export default function PresenceCard({ className = "" }: { className?: string })
   const onlineCount = presence.filter((u) => u.online).length;
 
   return (
-    <div
-      className={`card-tgv glow-pink p-6 flex flex-col gap-4 ${className}`}
-    >
+    <div className={`card-tgv glow-pink p-6 flex flex-col gap-4 ${className}`}>
       <div className="flex items-center justify-between">
-        <h3
-          className="text-sm font-bold uppercase tracking-widest"
-          style={{ color: "#ff4ecb" }}
-        >
+        <h3 className="text-sm font-bold uppercase tracking-widest" style={{ color: "#ff4ecb" }}>
           Who&apos;s Online
         </h3>
         {!loading && (
-          <span className="text-xs text-white/30">
-            {onlineCount}/{presence.length} active
-          </span>
+          <span className="text-xs text-white/30">{onlineCount}/{presence.length} active</span>
         )}
       </div>
 
       {loading ? (
         <div className="flex flex-col gap-3">
           {[0, 1].map((i) => (
-            <div
-              key={i}
-              className="h-10 rounded-lg animate-pulse"
-              style={{ background: "rgba(255,255,255,0.04)" }}
-            />
+            <div key={i} className="h-10 rounded-lg animate-pulse" style={{ background: "rgba(255,255,255,0.04)" }} />
           ))}
         </div>
       ) : (
@@ -78,10 +59,8 @@ export default function PresenceCard({ className = "" }: { className?: string })
 
 function UserRow({ user, color }: { user: UserPresence; color: string }) {
   const dotColor = user.online ? color : "#374151";
-
   return (
     <div className="flex items-center gap-3">
-      {/* Avatar */}
       <div
         className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold shrink-0"
         style={{
@@ -92,34 +71,18 @@ function UserRow({ user, color }: { user: UserPresence; color: string }) {
       >
         {user.displayName[0]}
       </div>
-
-      {/* Name + status */}
       <div className="flex flex-col flex-1 min-w-0">
         <span className="text-sm font-semibold text-white">{user.displayName}</span>
         <span className="text-xs text-white/35 truncate">
           {user.online
-            ? "Active SSH session"
-            : user.lastSeen
-            ? `Last seen ${user.lastSeen}`
-            : "Offline"}
+            ? `${user.sessions} active session${user.sessions !== 1 ? "s" : ""}`
+            : user.lastSeen ? `Last seen ${user.lastSeen}` : "Offline"}
         </span>
       </div>
-
-      {/* Status badge */}
       <div className="shrink-0">
         {user.online ? (
-          <span
-            className="flex items-center gap-1 text-xs font-semibold"
-            style={{ color: "#4ade80" }}
-          >
-            <span
-              className="w-1.5 h-1.5 rounded-full"
-              style={{
-                background: "#4ade80",
-                boxShadow: "0 0 5px #4ade80",
-                animation: "pulse-green 2s ease-in-out infinite",
-              }}
-            />
+          <span className="flex items-center gap-1 text-xs font-semibold" style={{ color: "#4ade80" }}>
+            <span className="w-1.5 h-1.5 rounded-full" style={{ background: "#4ade80", boxShadow: "0 0 5px #4ade80", animation: "pulse-green 2s ease-in-out infinite" }} />
             Online
           </span>
         ) : (

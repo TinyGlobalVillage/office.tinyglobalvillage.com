@@ -2,18 +2,18 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePreview } from "./PreviewDrawer";
 import PresenceDots from "./PresenceDots";
 
 const navLinks = [
   { label: "Dashboard", href: "/" },
+  { label: "Deploy", href: "/dashboard/deploy" },
   { label: "Processes", href: "/dashboard/processes" },
+  { label: "Database", href: "/dashboard/database" },
   { label: "Utils", href: "/dashboard/utils" },
 ];
 
 export default function TopNav() {
   const [scrolled, setScrolled] = useState(false);
-  const { togglePreview, isOpen: previewOpen } = usePreview();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 50);
@@ -47,28 +47,8 @@ export default function TopNav() {
           ))}
         </div>
 
-        {/* Right side: preview toggle + presence */}
-        <div className="flex items-center gap-3">
-          {/* Preview button */}
-          <button
-            onClick={togglePreview}
-            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border transition-all"
-            style={{
-              borderColor: previewOpen
-                ? "rgba(255,78,203,0.5)"
-                : "rgba(255,255,255,0.1)",
-              color: previewOpen ? "#ff4ecb" : "rgba(255,255,255,0.4)",
-              background: previewOpen ? "rgba(255,78,203,0.08)" : "transparent",
-            }}
-            title="Toggle site preview"
-          >
-            <span>🌐</span>
-            Preview
-          </button>
-
-          {/* Presence dots — live, polled every 30s */}
-          <PresenceDots />
-        </div>
+        {/* Right side: presence dots */}
+        <PresenceDots />
       </nav>
     </header>
   );
