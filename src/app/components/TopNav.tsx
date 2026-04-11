@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePreview } from "./PreviewDrawer";
+import PresenceDots from "./PresenceDots";
 
 const navLinks = [
   { label: "Dashboard", href: "/" },
@@ -65,9 +66,8 @@ export default function TopNav() {
             Preview
           </button>
 
-          {/* Presence dots */}
-          <PresenceDot name="You" color="#ff4ecb" />
-          <PresenceDot name="Marthe" color="#00bfff" />
+          {/* Presence dots — live, polled every 30s */}
+          <PresenceDots />
         </div>
       </nav>
     </header>
@@ -92,18 +92,3 @@ function NavLink({ href, label }: { href: string; label: string }) {
   );
 }
 
-function PresenceDot({ name, color }: { name: string; color: string }) {
-  return (
-    <div className="flex items-center gap-1.5">
-      <span
-        className="w-2 h-2 rounded-full"
-        style={{
-          background: color,
-          boxShadow: `0 0 5px ${color}`,
-          animation: "pulse-green 2.5s ease-in-out infinite",
-        }}
-      />
-      <span className="text-xs text-white/50 hidden sm:inline">{name}</span>
-    </div>
-  );
-}

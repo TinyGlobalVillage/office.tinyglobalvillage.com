@@ -1,5 +1,6 @@
 import TopNav from "./components/TopNav";
 import DashCard from "./components/DashCard";
+import PresenceCard from "./components/PresenceCard";
 import Link from "next/link";
 
 const panels = [
@@ -108,13 +109,8 @@ export default function Home() {
         {/* ── Bottom row: presence + activity ──────────────────────── */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
 
-          {/* Presence */}
-          <DashCard title="Who's Online" glow="pink" className="lg:col-span-1">
-            <div className="flex flex-col gap-4 mt-2">
-              <PresenceRow name="You" role="Admin" color="#ff4ecb" online />
-              <PresenceRow name="Marthe" role="Admin" color="#00bfff" online />
-            </div>
-          </DashCard>
+          {/* Presence — live */}
+          <PresenceCard className="lg:col-span-1" />
 
           {/* Activity feed */}
           <DashCard title="Recent Activity" subtitle="Latest server events" glow="cyan" className="lg:col-span-2">
@@ -144,41 +140,3 @@ export default function Home() {
   );
 }
 
-function PresenceRow({
-  name,
-  role,
-  color,
-  online,
-}: {
-  name: string;
-  role: string;
-  color: string;
-  online: boolean;
-}) {
-  return (
-    <div className="flex items-center gap-3">
-      {/* Avatar placeholder */}
-      <div
-        className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold shrink-0"
-        style={{
-          background: `linear-gradient(135deg, ${color}33, ${color}11)`,
-          border: `1.5px solid ${color}66`,
-          color,
-        }}
-      >
-        {name[0]}
-      </div>
-      <div className="flex flex-col">
-        <span className="text-sm font-semibold text-white">{name}</span>
-        <span className="text-xs text-white/40">{role}</span>
-      </div>
-      <div className="ml-auto">
-        {online ? (
-          <span className="badge-online text-xs">Online</span>
-        ) : (
-          <span className="text-xs text-white/30">Away</span>
-        )}
-      </div>
-    </div>
-  );
-}
