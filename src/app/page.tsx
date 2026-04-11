@@ -1,65 +1,184 @@
-import Image from "next/image";
+import TopNav from "./components/TopNav";
+import DashCard from "./components/DashCard";
+import Link from "next/link";
+
+const panels = [
+  {
+    title: "Processes",
+    subtitle: "PM2 process manager",
+    glow: "cyan" as const,
+    href: "/dashboard/processes",
+    description: "Monitor running apps, restart or stop services, view logs in real time.",
+    icon: "⚡",
+  },
+  {
+    title: "Deploy",
+    subtitle: "GitHub → server",
+    glow: "pink" as const,
+    href: "/dashboard/deploy",
+    description: "Trigger deploys, view recent commits, manage environments.",
+    icon: "🚀",
+  },
+  {
+    title: "Database",
+    subtitle: "Drizzle + PostgreSQL",
+    glow: "gold" as const,
+    href: "/dashboard/database",
+    description: "Run migrations, inspect tables, manage schemas across all projects.",
+    icon: "🗄️",
+  },
+  {
+    title: "Utils",
+    subtitle: "Server tooling",
+    glow: "cyan" as const,
+    href: "/dashboard/utils",
+    description: "Run scripts, manage SSL certs, configure NGINX, and more.",
+    icon: "🔧",
+  },
+];
+
+const recentActivity = [
+  { time: "09:42", actor: "System", event: "PM2 auto-restart: refusionist.com", color: "#f7b700" },
+  { time: "09:15", actor: "You", event: "Deploy pushed: office.tinyglobalvillage.com", color: "#ff4ecb" },
+  { time: "08:53", actor: "Marthe", event: "Updated content on tinyglobalvillage.com", color: "#00bfff" },
+  { time: "08:30", actor: "System", event: "SSL renewed: refusionist.com", color: "#4ade80" },
+];
 
 export default function Home() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+    <>
+      <TopNav />
+
+      <main className="flex flex-col min-h-screen pt-28 pb-16 px-4 max-w-7xl mx-auto w-full">
+
+        {/* ── Hero heading ──────────────────────────────────────────── */}
+        <section className="mb-12">
+          <p className="text-xs uppercase tracking-[0.3em] text-white/40 mb-2">
+            Tiny Global Village LLC
           </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+          <h1
+            className="text-4xl md:text-5xl font-bold leading-tight mb-3"
+            style={{
+              color: "#ff4ecb",
+              textShadow: "0 0 8px #ff66cc, 0 0 20px #ff4ecb",
+            }}
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+            TGV Office
+          </h1>
+          <p className="text-white/50 text-base max-w-lg">
+            Internal operations hub. Manage processes, deploys, and infrastructure
+            for all TGV &amp; Refusionist projects.
+          </p>
+        </section>
+
+        {/* ── Main panels grid ──────────────────────────────────────── */}
+        <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
+          {panels.map((panel) => (
+            <Link key={panel.href} href={panel.href} className="no-underline">
+              <DashCard
+                title={panel.title}
+                subtitle={panel.subtitle}
+                glow={panel.glow}
+                className="h-full"
+              >
+                <div className="flex flex-col gap-3">
+                  <span className="text-3xl">{panel.icon}</span>
+                  <p className="text-sm text-white/60 leading-relaxed">
+                    {panel.description}
+                  </p>
+                  <span
+                    className="text-xs font-bold uppercase tracking-wider mt-auto"
+                    style={{
+                      color:
+                        panel.glow === "pink"
+                          ? "#ff4ecb"
+                          : panel.glow === "gold"
+                          ? "#f7b700"
+                          : "#00bfff",
+                    }}
+                  >
+                    Open →
+                  </span>
+                </div>
+              </DashCard>
+            </Link>
+          ))}
+        </section>
+
+        {/* ── Bottom row: presence + activity ──────────────────────── */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+
+          {/* Presence */}
+          <DashCard title="Who's Online" glow="pink" className="lg:col-span-1">
+            <div className="flex flex-col gap-4 mt-2">
+              <PresenceRow name="You" role="Admin" color="#ff4ecb" online />
+              <PresenceRow name="Marthe" role="Admin" color="#00bfff" online />
+            </div>
+          </DashCard>
+
+          {/* Activity feed */}
+          <DashCard title="Recent Activity" subtitle="Latest server events" glow="cyan" className="lg:col-span-2">
+            <div className="flex flex-col divide-y divide-white/10 mt-2">
+              {recentActivity.map((item, i) => (
+                <div key={i} className="flex items-center gap-3 py-2.5">
+                  <span className="text-xs font-mono text-white/30 w-10 shrink-0">
+                    {item.time}
+                  </span>
+                  <span
+                    className="text-xs font-bold shrink-0 w-14"
+                    style={{ color: item.color }}
+                  >
+                    {item.actor}
+                  </span>
+                  <span className="text-xs text-white/60 truncate">
+                    {item.event}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </DashCard>
+
         </div>
       </main>
+    </>
+  );
+}
+
+function PresenceRow({
+  name,
+  role,
+  color,
+  online,
+}: {
+  name: string;
+  role: string;
+  color: string;
+  online: boolean;
+}) {
+  return (
+    <div className="flex items-center gap-3">
+      {/* Avatar placeholder */}
+      <div
+        className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold shrink-0"
+        style={{
+          background: `linear-gradient(135deg, ${color}33, ${color}11)`,
+          border: `1.5px solid ${color}66`,
+          color,
+        }}
+      >
+        {name[0]}
+      </div>
+      <div className="flex flex-col">
+        <span className="text-sm font-semibold text-white">{name}</span>
+        <span className="text-xs text-white/40">{role}</span>
+      </div>
+      <div className="ml-auto">
+        {online ? (
+          <span className="badge-online text-xs">Online</span>
+        ) : (
+          <span className="text-xs text-white/30">Away</span>
+        )}
+      </div>
     </div>
   );
 }
