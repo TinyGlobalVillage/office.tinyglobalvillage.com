@@ -75,7 +75,11 @@ function UserRow({ user, color }: { user: UserPresence; color: string }) {
         <span className="text-sm font-semibold text-white">{user.displayName}</span>
         <span className="text-xs text-white/35 truncate">
           {user.online
-            ? `${user.sessions} active session${user.sessions !== 1 ? "s" : ""}`
+            ? user.via === "ssh+web"
+              ? `${user.sessions} ssh session${user.sessions !== 1 ? "s" : ""} + browser`
+              : user.via === "ssh"
+              ? `${user.sessions} ssh session${user.sessions !== 1 ? "s" : ""}`
+              : "browser"
             : user.lastSeen ? `Last seen ${user.lastSeen}` : "Offline"}
         </span>
       </div>

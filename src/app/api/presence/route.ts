@@ -1,5 +1,6 @@
 import { exec } from "child_process";
 import { promisify } from "util";
+import { isWebOnline, lastWebSeen } from "@/lib/presence-store";
 
 const execAsync = promisify(exec);
 
@@ -37,20 +38,35 @@ async function getSessionCount(sysUser: string): Promise<number> {
   }
 }
 
-// Last seen from `last`
-async function getLastSeen(sysUser: string): Promise<string | null> {
+// Last seen from SSH login history via journalctl (more reliable than `last`/wtmp,
+// which gets corrupted when sshd is OOM-killed before it can write exit records)
+async function getSshLastSeen(sysUser: string): Promise<number | null> {
   try {
     const { stdout } = await execAsync(
-      `last -n 1 ${sysUser} 2>/dev/null || true`
+      `journalctl -u ssh --since "365 days ago" -r --no-pager -q 2>/dev/null | grep "Accepted publickey for ${sysUser} " | head -1`
     );
-    const line = stdout.split("\n").find((l) => l.startsWith(sysUser));
+    const line = stdout.trim();
     if (!line) return null;
-    // "marmar   pts/10   75.111.7.250   Sun Jan 25 17:10 - 17:12  (00:02)"
-    const match = line.match(/\w+\s+\S+\s+\S+\s+([\w]+ [\w]+ +\d+ \d+:\d+)/);
-    return match?.[1] ?? null;
+    // "Apr 11 01:43:53 server sshd[...]: Accepted publickey for marmar from ..."
+    const match = line.match(/^(\w+ +\d+ \d+:\d+:\d+)/);
+    if (!match) return null;
+    const parsed = Date.parse(`${match[1]} ${new Date().getFullYear()}`);
+    return isNaN(parsed) ? null : parsed;
   } catch {
     return null;
   }
+}
+
+function formatLastSeen(ms: number): string {
+  const diff = Date.now() - ms;
+  const mins  = Math.floor(diff / 60_000);
+  const hours = Math.floor(diff / 3_600_000);
+  const days  = Math.floor(diff / 86_400_000);
+  if (mins  < 2)   return "just now";
+  if (mins  < 60)  return `${mins}m ago`;
+  if (hours < 24)  return `${hours}h ago`;
+  if (days  < 7)   return `${days}d ago`;
+  return new Date(ms).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
 export async function GET() {
@@ -58,10 +74,23 @@ export async function GET() {
 
   const presence = await Promise.all(
     USERS.map(async ({ sysUser, displayName }) => {
-      const online = active.has(sysUser);
-      const sessions = online ? await getSessionCount(sysUser) : 0;
-      const lastSeen = online ? null : await getLastSeen(sysUser);
-      return { sysUser, displayName, online, sessions, lastSeen };
+      const sshOnline = active.has(sysUser);
+      const webOnline = isWebOnline(sysUser);
+      const online = sshOnline || webOnline;
+      const sessions = sshOnline ? await getSessionCount(sysUser) : 0;
+      const via = sshOnline && webOnline ? "ssh+web" : sshOnline ? "ssh" : webOnline ? "web" : null;
+
+      let lastSeen: string | null = null;
+      if (!online) {
+        const webMs  = lastWebSeen(sysUser);
+        const sshMs  = await getSshLastSeen(sysUser);
+        // Use whichever is more recent
+        const bestMs = webMs && sshMs ? Math.max(webMs, sshMs) : (webMs ?? sshMs);
+        lastSeen = bestMs ? formatLastSeen(bestMs) : null;
+      }
+
+      const onlineSinceMs = online ? lastWebSeen(sysUser) : null;
+      return { sysUser, displayName, online, sessions, lastSeen, via, onlineSinceMs };
     })
   );
 

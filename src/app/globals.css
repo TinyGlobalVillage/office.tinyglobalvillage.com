@@ -18,6 +18,28 @@
   --font-mono: var(--font-geist-mono);
 }
 
+/* ── Nav hide/show page shift ──────────────────────────────────── */
+:root {
+  --nav-h: 0px;
+  --nav-offset: 0px;
+}
+
+/* All pages use <main> for their content area — slide it up/down with the nav.
+   Left padding clears the two 28px side drawer tabs. */
+main {
+  padding-top: var(--nav-offset, 7rem) !important;
+  padding-left: 2.75rem !important; /* clears 28px drawer tabs + breathing room */
+  transition: padding-top 0.3s cubic-bezier(0.4,0,0.2,1);
+}
+
+/* Editor uses a fixed div with inline top — override via class */
+.nav-hidden .editor-frame {
+  top: 0 !important;
+}
+.editor-frame {
+  transition: top 0.3s cubic-bezier(0.4,0,0.2,1);
+}
+
 /* ── Base ──────────────────────────────────────────────────────── */
 html, body {
   min-height: 100%;
@@ -192,3 +214,8 @@ body {
 ::-webkit-scrollbar-track { background: #0a0a0a; }
 ::-webkit-scrollbar-thumb { background: hsla(190, 100%, 30%, 0.5); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: #ff4ecb; }
+
+@keyframes typingBounce {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+  30% { transform: translateY(-4px); opacity: 1; }
+}

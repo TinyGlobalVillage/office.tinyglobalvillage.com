@@ -1,0 +1,26 @@
+{
+    "admin": {
+        "displayName": "Gio",
+        "email": "gio@tinyglobalvillage.com",
+        "role": "admin",
+        "avatarUrl": "/avatars/admin.png?t=1776294707217",
+        "accentColor": "#ff4ecb",
+        "title": "CEO, Founder",
+        "bio": "",
+        "totpSecret": "OVX5O2DSKI7BKYPF5NJSYTYJV53WIEXS",
+        "totpEnabled": true,
+        "webauthnCredentials": []
+    },
+    "marmar": {
+        "displayName": "Marthe",
+        "email": "marthe@tinyglobalvillage.com",
+        "role": "admin",
+        "avatarUrl": "",
+        "accentColor": "#00bfff",
+        "title": "",
+        "bio": "",
+        "totpSecret": "JTRU4XMEM2PLS4CGGLVS3YUSCZDITSBN",
+        "totpEnabled": true,
+        "webauthnCredentials": []
+    }
+}

@@ -1,0 +1,21 @@
+<svg width="32" height="43" viewBox="0 0 30 41" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Balloon body -->
+  <ellipse cx="15" cy="14" rx="13" ry="13.5" fill="#ff4ecb"/>
+  <!-- Panel shading left -->
+  <path d="M2 14 Q6 0 15 1 Q6 6 2 14Z" fill="rgba(255,255,255,0.12)"/>
+  <!-- Panel shading right -->
+  <path d="M28 14 Q24 0 15 1 Q24 6 28 14Z" fill="rgba(0,0,0,0.12)"/>
+  <!-- Vertical centre stripe -->
+  <path d="M15 1 Q18 14 15 27.5 Q12 14 15 1Z" fill="rgba(255,255,255,0.10)"/>
+  <!-- Equator band -->
+  <ellipse cx="15" cy="14" rx="13" ry="2" fill="rgba(247,183,0,0.55)"/>
+  <!-- Highlight -->
+  <ellipse cx="11" cy="9" rx="3.5" ry="4" fill="rgba(255,255,255,0.22)"/>
+  <!-- Neck ropes -->
+  <path d="M11.5 27 L13 31.5 M18.5 27 L17 31.5" stroke="rgba(247,183,0,0.8)" stroke-width="1.2" stroke-linecap="round"/>
+  <!-- Basket -->
+  <rect x="11.5" y="31.5" width="7" height="5.5" rx="1.5" fill="rgba(247,183,0,0.85)" stroke="rgba(180,120,0,0.5)" stroke-width="0.5"/>
+  <!-- Basket weave -->
+  <line x1="15" y1="31.5" x2="15" y2="37" stroke="rgba(0,0,0,0.2)" stroke-width="0.6"/>
+  <line x1="11.5" y1="34" x2="18.5" y2="34" stroke="rgba(0,0,0,0.2)" stroke-width="0.6"/>
+</svg>

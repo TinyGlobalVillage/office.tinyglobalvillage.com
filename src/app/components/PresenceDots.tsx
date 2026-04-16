@@ -8,6 +8,8 @@ export type UserPresence = {
   online: boolean;
   sessions: number;
   lastSeen: string | null;
+  via: "ssh" | "web" | "ssh+web" | null;
+  onlineSinceMs: number | null;
 };
 
 const USER_COLOR: Record<string, string> = {
@@ -45,7 +47,11 @@ export default function PresenceDots() {
 function PresenceDot({ user, color }: { user: UserPresence; color: string }) {
   const dotColor = user.online ? color : "#4b5563";
   const label = user.online
-    ? `${user.sessions} session${user.sessions !== 1 ? "s" : ""}`
+    ? user.via === "ssh+web"
+      ? `${user.sessions} ssh + browser`
+      : user.via === "ssh"
+      ? `${user.sessions} ssh session${user.sessions !== 1 ? "s" : ""}`
+      : "browser"
     : user.lastSeen
     ? `Last seen ${user.lastSeen}`
     : "Offline";

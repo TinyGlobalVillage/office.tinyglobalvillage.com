@@ -86,6 +86,7 @@ export default function ProcessesPage() {
           <div className="flex gap-2">
             <button
               onClick={refresh}
+              title="Manually refresh PM2 process list"
               className="px-4 py-2 rounded-xl text-xs font-bold border border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10 transition-colors"
             >
               ↺ Refresh
@@ -93,6 +94,7 @@ export default function ProcessesPage() {
             <button
               onClick={() => runCommand("pm2-save", [])}
               disabled={isRunning}
+              title="Save PM2 process list so it survives reboots"
               className="px-4 py-2 rounded-xl text-xs font-bold border border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/10 transition-colors disabled:opacity-40"
             >
               💾 Save List
@@ -243,6 +245,7 @@ function ProcessRow({
         {isWebProject && (
           <ActionBtn
             label="Preview"
+            title={`Open ${proc.name} in preview pane`}
             color="#ff4ecb"
             onClick={() => onAction("preview")}
             disabled={false}
@@ -250,6 +253,7 @@ function ProcessRow({
         )}
         <ActionBtn
           label="Logs"
+          title={`View last 80 lines of ${proc.name} logs`}
           color="#00bfff"
           onClick={() => onAction("logs")}
           disabled={isRunning}
@@ -257,6 +261,7 @@ function ProcessRow({
         {proc.status === "online" ? (
           <ActionBtn
             label="Restart"
+            title={`Restart ${proc.name} (with --update-env)`}
             color="#f7b700"
             onClick={() => onAction("restart")}
             disabled={isRunning}
@@ -264,6 +269,7 @@ function ProcessRow({
         ) : (
           <ActionBtn
             label="Start"
+            title={`Start ${proc.name}`}
             color="#4ade80"
             onClick={() => onAction("restart")}
             disabled={isRunning}
@@ -272,6 +278,7 @@ function ProcessRow({
         {proc.status === "online" && (
           <ActionBtn
             label="Stop"
+            title={`Stop ${proc.name}`}
             color="#ff6b6b"
             onClick={() => onAction("stop")}
             disabled={isRunning}
@@ -284,11 +291,13 @@ function ProcessRow({
 
 function ActionBtn({
   label,
+  title,
   color,
   onClick,
   disabled,
 }: {
   label: string;
+  title?: string;
   color: string;
   onClick: () => void;
   disabled: boolean;
@@ -297,6 +306,7 @@ function ActionBtn({
     <button
       onClick={onClick}
       disabled={disabled}
+      title={title}
       className="px-2.5 py-1 rounded-lg text-xs font-bold transition-all duration-150 disabled:opacity-30 disabled:cursor-not-allowed"
       style={{
         background: `${color}18`,

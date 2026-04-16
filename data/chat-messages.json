@@ -1,0 +1,65 @@
+{
+  "messages": [
+    {
+      "id": "c_1776328480581_qxkg1",
+      "from": "marmar",
+      "content": "checking out",
+      "createdAt": "2026-04-16T08:34:40.581Z"
+    },
+    {
+      "id": "c_1776328656473_a5rwi",
+      "from": "admin",
+      "content": "Yay!",
+      "createdAt": "2026-04-16T08:37:36.473Z"
+    },
+    {
+      "id": "c_1776328686736_546x8",
+      "from": "admin",
+      "content": "Dude! We dreamed of this moment in 2017!",
+      "createdAt": "2026-04-16T08:38:06.736Z"
+    },
+    {
+      "id": "c_1776328690844_rxb4m",
+      "from": "marmar",
+      "content": "amazing",
+      "createdAt": "2026-04-16T08:38:10.844Z"
+    },
+    {
+      "id": "c_1776328696080_oxe5e",
+      "from": "marmar",
+      "content": "We did!!",
+      "createdAt": "2026-04-16T08:38:16.080Z"
+    },
+    {
+      "id": "c_1776328732285_kc05p",
+      "from": "marmar",
+      "content": "It's taken almost 10 years. What cycle are we following on this? And.. I'm getting notifications about my own chat messages.",
+      "createdAt": "2026-04-16T08:38:52.285Z"
+    },
+    {
+      "id": "c_1776328796909_euz3a",
+      "from": "admin",
+      "content": "lol",
+      "createdAt": "2026-04-16T08:39:56.909Z"
+    },
+    {
+      "id": "c_1776328805570_7atjb",
+      "from": "admin",
+      "content": "all hallucinations of Claude that I'll fix",
+      "createdAt": "2026-04-16T08:40:05.570Z"
+    },
+    {
+      "id": "c_1776328837831_hu7or",
+      "from": "admin",
+      "content": "these chat messages should persist though, so I can look back on them.",
+      "createdAt": "2026-04-16T08:40:37.831Z"
+    },
+    {
+      "id": "c_1776328849542_ntbjj",
+      "from": "admin",
+      "content": "Do a hard-refresh on the page, and you should see yourself here you expect to",
+      "createdAt": "2026-04-16T08:40:49.542Z"
+    }
+  ],
+  "storageBytes": 0
+}

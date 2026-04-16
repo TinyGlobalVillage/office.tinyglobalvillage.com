@@ -1,0 +1,29 @@
+{
+  "memos": [
+    {
+      "id": "m_1776328953274_m9qz",
+      "from": "admin",
+      "to": "marmar",
+      "content": "DOING THINGS and did A LOT on the OFFICE today ;)",
+      "createdAt": "2026-04-16T08:42:33.274Z"
+    }
+  ],
+  "pings": [
+    {
+      "id": "p_1776362531633_znqs",
+      "from": "admin",
+      "to": "marmar",
+      "message": "Hiiiii",
+      "read": false,
+      "createdAt": "2026-04-16T18:02:11.633Z"
+    },
+    {
+      "id": "p_demo_marmar_001",
+      "from": "marmar",
+      "to": "admin",
+      "message": "Hey Gio 👋 can you check the Tallis Fabric order invoices? I left some notes in the folder but need your sign-off before end of week.",
+      "read": true,
+      "createdAt": "2026-04-15T18:32:00.000Z"
+    }
+  ]
+}

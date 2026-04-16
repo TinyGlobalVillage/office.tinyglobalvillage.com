@@ -16,16 +16,21 @@ export function isAllowedDb(db: string): boolean {
   return db in DB_REGISTRY;
 }
 
+// Collapse whitespace so multiline queries don't break the shell -c argument
+function normalize(query: string) {
+  return query.replace(/\s+/g, " ").trim();
+}
+
 export async function psql(db: string, query: string): Promise<string> {
   const { stdout } = await execAsync(
-    `sudo -u postgres psql -d ${db} -c ${JSON.stringify(query)} --no-align --tuples-only -F '|'`
+    `sudo -u postgres psql -d ${db} -c ${JSON.stringify(normalize(query))} --no-align --tuples-only -F '|'`
   );
   return stdout;
 }
 
 export async function psqlCsv(db: string, query: string): Promise<string> {
   const { stdout } = await execAsync(
-    `sudo -u postgres psql -d ${db} -c ${JSON.stringify(query)} --csv`
+    `sudo -u postgres psql -d ${db} -c ${JSON.stringify(normalize(query))} --csv`
   );
   return stdout;
 }
