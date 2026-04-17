@@ -435,10 +435,10 @@ export default function EmailClient({ zoom }: Props) {
   useEffect(() => {
     fetch("/api/email/session")
       .then((r) => r.json())
-      .then((d: { accounts?: AccountMeta[] }) => {
+      .then((d: { accounts?: AccountMeta[]; defaultAccount?: string }) => {
         if (d.accounts?.length) {
           setAccounts(d.accounts);
-          setSelected(d.accounts[0].key);
+          setSelected(d.defaultAccount ?? d.accounts[0].key);
         }
       })
       .catch(() => {});

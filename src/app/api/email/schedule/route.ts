@@ -49,6 +49,9 @@ export async function POST(req: NextRequest) {
     if (check !== "ok") return NextResponse.json({ error: check }, { status: 403 });
   }
 
+  if (!acc.personal && token.username !== "admin")
+    return NextResponse.json({ error: "access_denied" }, { status: 403 });
+
   const sendAt = new Date(body.sendAt);
   if (isNaN(sendAt.getTime()) || sendAt <= new Date())
     return NextResponse.json({ error: "sendAt must be a future date" }, { status: 400 });

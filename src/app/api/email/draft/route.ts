@@ -17,6 +17,9 @@ export async function POST(req: NextRequest) {
     if (check !== "ok") return NextResponse.json({ error: check }, { status: 403 });
   }
 
+  if (!acc.personal && token.username !== "admin")
+    return NextResponse.json({ error: "access_denied" }, { status: 403 });
+
   try {
     const mailboxes = await listMailboxes(acc.token);
     const draftsId = mailboxes.find((m) => m.role === "drafts")?.id;

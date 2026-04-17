@@ -18,6 +18,9 @@ export async function GET(req: NextRequest) {
     if (check === "2fa_required") return NextResponse.json({ error: "2fa_required" }, { status: 403 });
   }
 
+  if (!acc.personal && token.username !== "admin")
+    return NextResponse.json({ error: "access_denied" }, { status: 403 });
+
   try {
     const mailboxes = await listMailboxes(acc.token);
     return NextResponse.json({ mailboxes });

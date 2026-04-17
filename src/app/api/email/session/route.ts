@@ -11,18 +11,23 @@ export async function GET(req: NextRequest) {
 
   if (!key) {
     const accounts = getAccounts()
-      .filter((a) => !a.personal || a.ownerUsername === loggedInUser)
+      .filter((a) => {
+        if (a.personal) return a.ownerUsername === loggedInUser;
+        return loggedInUser === "admin";
+      })
       .map(({ key, email, label, personal, token: t }) => ({
         key, email, label, personal,
         configured: Boolean(t),
       }));
-    return NextResponse.json({ accounts });
+    return NextResponse.json({ accounts, defaultAccount: accounts.find((a) => a.personal)?.key ?? accounts[0]?.key ?? null });
   }
 
   const acc = getAccount(key);
   if (!acc.token) return NextResponse.json({ error: "Account not configured" }, { status: 503 });
 
-  if (acc.personal && loggedInUser !== acc.ownerUsername)
+  if (acc.personal && acc.ownerUsername !== loggedInUser)
+    return NextResponse.json({ error: "access_denied" }, { status: 403 });
+  if (!acc.personal && loggedInUser !== "admin")
     return NextResponse.json({ error: "access_denied" }, { status: 403 });
 
   try {

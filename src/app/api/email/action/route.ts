@@ -18,6 +18,9 @@ export async function POST(req: NextRequest) {
     if (check !== "ok") return NextResponse.json({ error: check }, { status: 403 });
   }
 
+  if (!acc.personal && token.username !== "admin")
+    return NextResponse.json({ error: "access_denied" }, { status: 403 });
+
   try {
     switch (body.action as string) {
       case "markRead":   await markRead(acc.token, body.emailId, true); break;
