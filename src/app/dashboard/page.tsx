@@ -12,6 +12,7 @@ import SandboxIcon from "../components/sandbox/SandboxIcon";
 import SandboxModal from "../components/sandbox/SandboxModal";
 import LibraryIcon from "../components/LibraryIcon";
 import LibraryModal from "../components/LibraryModal";
+import SuggestionBoxModal from "../components/suggestion/SuggestionBoxModal";
 import Link from "next/link";
 
 type DashTile = {
@@ -53,7 +54,7 @@ const GLOW_HEX: Record<string, string> = {
   violet: "#a78bfa",
 };
 
-const TILE_LIMIT = 9; // GPG only kicks in when filtered tiles exceed this
+const TILE_LIMIT = 10; // GPG only kicks in when filtered tiles exceed this
 
 export default function Home() {
   const [activity, setActivity] = useState<ActivityEvent[]>([]);
@@ -61,6 +62,7 @@ export default function Home() {
   const [claudeOpen, setClaudeOpen] = useState(false);
   const [sandboxOpen, setSandboxOpen] = useState(false);
   const [libraryOpen, setLibraryOpen] = useState(false);
+  const [suggestionOpen, setSuggestionOpen] = useState(false);
 
   // SBDM state for dash
   const [filter, setFilter] = useState("");
@@ -105,6 +107,7 @@ export default function Home() {
     { key: "Claude",    title: "Claude",    subtitle: "AI Assistant", glow: "orange", icon: <ClaudeIcon size={28} color="#d97757" />, onClick: () => setClaudeOpen(true) },
     { key: "Sandbox",   title: "Sandbox",   subtitle: "Component Lab", glow: "pink", icon: <SandboxIcon size={28} color="#ff4ecb" />, onClick: () => setSandboxOpen(true) },
     { key: "Library",   title: "Library",   subtitle: "Catalog",    glow: "violet", icon: <LibraryIcon size={28} color="#a78bfa" />, onClick: () => setLibraryOpen(true) },
+    { key: "Suggest", title: "Suggest", subtitle: "Feature ideas", glow: "pink", icon: <span className="text-2xl">💡</span>, onClick: () => setSuggestionOpen(true) },
   ], []);
 
   const filteredTiles = useMemo(
@@ -132,6 +135,7 @@ export default function Home() {
       {claudeOpen && <ClaudeMenuModal onClose={() => setClaudeOpen(false)} />}
       {sandboxOpen && <SandboxModal onClose={() => setSandboxOpen(false)} />}
       {libraryOpen && <LibraryModal onClose={() => setLibraryOpen(false)} />}
+      {suggestionOpen && <SuggestionBoxModal onClose={() => setSuggestionOpen(false)} />}
       <TopNav />
       <main className="flex flex-col min-h-screen pt-28 pb-16 px-4 max-w-7xl mx-auto w-full">
 
@@ -231,12 +235,13 @@ export default function Home() {
           ) : pageTiles.map((tile) => {
             const accent = GLOW_HEX[tile.glow];
             const glowRgb = GLOW_RGB[tile.glow];
+            const isSuggest = tile.key === "Suggest";
             const tileInner = (
               <div
                 className="flex flex-col items-center justify-center gap-2 rounded-2xl py-5 px-3 transition-all h-full"
                 style={{
-                  background: `rgba(${glowRgb},0.06)`,
-                  border: `1px solid rgba(${glowRgb},0.18)`,
+                  background: isSuggest ? "transparent" : `rgba(${glowRgb},0.06)`,
+                  border: isSuggest ? `2px dashed rgba(${glowRgb},0.35)` : `1px solid rgba(${glowRgb},0.18)`,
                   boxShadow: `0 0 0 0 rgba(${glowRgb},0)`,
                 }}
                 onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.boxShadow = `0 0 18px rgba(${glowRgb},0.18)`; (e.currentTarget as HTMLElement).style.background = `rgba(${glowRgb},0.10)`; }}
