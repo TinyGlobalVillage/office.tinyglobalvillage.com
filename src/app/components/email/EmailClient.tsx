@@ -475,10 +475,10 @@ export default function EmailClient({ zoom }: Props) {
     if (!selected || !selectedMailbox) return;
     setLoadingMsgs(true);
     setMsgsError(null);
-    fetch(`/api/email/messages?account=${selected}&mailbox=${selectedMailbox}`)
+    fetch(`/api/email/messages?account=${selected}&mailboxId=${selectedMailbox}`)
       .then((r) => r.json())
-      .then((d: { messages?: EmailSummary[]; total?: number }) => {
-        setMessages(d.messages ?? []);
+      .then((d: { emails?: EmailSummary[]; total?: number }) => {
+        setMessages(d.emails ?? []);
         setTotalMessages(d.total ?? 0);
       })
       .catch(() => setMsgsError("Failed to load messages."))
@@ -498,7 +498,7 @@ export default function EmailClient({ zoom }: Props) {
     setLoadingDetail(true);
     fetch(`/api/email/messages?account=${selected}&id=${selectedMessage}`)
       .then((r) => r.json())
-      .then((d: EmailDetail) => setEmailDetail(d))
+      .then((d: { email?: EmailDetail }) => setEmailDetail(d.email ?? null))
       .catch(() => setEmailDetail(null))
       .finally(() => setLoadingDetail(false));
   }, [selected, selectedMessage]);
