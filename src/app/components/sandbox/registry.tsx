@@ -856,7 +856,7 @@ const showPager = items.length > pageSize;
 const visible = items.slice(page * pageSize, (page + 1) * pageSize);
 
 <>
-  <div className="grid grid-cols-1 min-[600px]:grid-cols-2 min-[900px]:grid-cols-3 min-[1200px]:grid-cols-5 gap-3">
+  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: "0.75rem" }}>
     {visible.map(renderCard)}
   </div>
   {showPager && (

@@ -57,9 +57,10 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable}`}
+      style={{ minHeight: "100%", WebkitFontSmoothing: "antialiased" }}
     >
-      <body className="min-h-full flex flex-col bg-[#0a0a0a] text-[#ededed]">
+      <body style={{ minHeight: "100%", display: "flex", flexDirection: "column" }}>
         <StyledRegistry><SessionWrapper><ThemeProvider>{children}</ThemeProvider></SessionWrapper></StyledRegistry>
       </body>
     </html>

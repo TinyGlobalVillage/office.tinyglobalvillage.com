@@ -566,7 +566,7 @@ export default function Home() {
           </PagerRow>
         )}
 
-        <AnnouncementsPanel className="mb-4" />
+        <div style={{ marginBottom: "1rem" }}><AnnouncementsPanel /></div>
 
         <BottomGrid>
           <UsersCard />

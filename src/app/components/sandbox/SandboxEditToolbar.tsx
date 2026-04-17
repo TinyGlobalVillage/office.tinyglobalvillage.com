@@ -124,6 +124,7 @@ const DDMItem = styled.button`
   border: none;
   cursor: pointer;
   transition: background 0.15s;
+  color: var(--t-text);
 
   &:hover {
     background: var(--t-inputBg);

@@ -66,6 +66,12 @@ const ToggleBtn = styled.button<{ $active?: boolean; $color?: string }>`
   background: ${(p) => (p.$active ? `rgba(${p.$color || PINK_RGB}, 0.14)` : "rgba(255,255,255,0.04)")};
   border: 1px solid ${(p) => (p.$active ? `rgba(${p.$color || PINK_RGB}, 0.45)` : "rgba(255,255,255,0.15)")};
   color: ${(p) => (p.$active ? (p.$color ? `rgb(${p.$color})` : PINK) : "rgba(255,255,255,0.55)")};
+
+  [data-theme="light"] & {
+    background: ${(p) => (p.$active ? `rgba(${p.$color || PINK_RGB}, 0.1)` : "var(--t-inputBg)")};
+    border-color: ${(p) => (p.$active ? `rgba(${p.$color || PINK_RGB}, 0.35)` : "var(--t-border)")};
+    color: ${(p) => (p.$active ? (p.$color ? `rgb(${p.$color})` : PINK) : "var(--t-textMuted)")};
+  }
 `;
 
 const DraftTrigger = styled.button`

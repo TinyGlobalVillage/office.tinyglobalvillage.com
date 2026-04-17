@@ -5,7 +5,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   return (
     <ClientShell>
       {/* px-9 = 36px clearance on each side so content never sits under the 28px drawer tab pills */}
-      <div className="px-9">{children}</div>
+      <div style={{ paddingLeft: "2.25rem", paddingRight: "2.25rem" }}>{children}</div>
     </ClientShell>
   );
 }
