@@ -285,7 +285,7 @@ export default function Setup2FAPage() {
     if (data.ok) {
       setStep("done");
     } else {
-      setError(data.error ?? "Code mismatch \u2014 try again.");
+      setError(data.error ?? "Code mismatch — try again.");
     }
   }
 

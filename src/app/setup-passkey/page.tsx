@@ -334,7 +334,7 @@ export default function SetupPasskeyPage() {
               >
                 {status === "registering"
                   ? "Follow browser prompt…"
-                  : "Register Passkey \ud83d\udd11"}
+                  : "Register Passkey 🔑"}
               </GradientBtn>
 
               <BackLink onClick={() => router.back()}>

@@ -577,7 +577,7 @@ export default function EmailSettings({ accounts = [], onClose, onSaved }: Props
             onClick={save}
             disabled={saving || !settings}
           >
-            {saved ? "\u2713 Saved" : saving ? "Saving…" : "Save"}
+            {saved ? "✓ Saved" : saving ? "Saving…" : "Save"}
           </SaveBtn>
         </Footer>
       </Container>

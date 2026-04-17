@@ -408,7 +408,7 @@ function LoginForm() {
         setError(data.error);
       } else {
         setInfo(
-          `Check your inbox at ${magicEmail} \u2014 link expires in 15 minutes.`
+          `Check your inbox at ${magicEmail} — link expires in 15 minutes.`
         );
       }
     } catch {
@@ -489,7 +489,7 @@ function LoginForm() {
           </HintText>
           {error && <ErrMsg msg={error} />}
           <PasskeyBtn onClick={handlePasskey} disabled={loading}>
-            {loading ? "Waiting for browser…" : "\ud83d\udd11 Sign In with Passkey"}
+            {loading ? "Waiting for browser…" : "🔑 Sign In with Passkey"}
           </PasskeyBtn>
           <HintText>
             Don&apos;t have a passkey yet?{" "}
@@ -510,7 +510,7 @@ function LoginForm() {
           />
           {error && <ErrMsg msg={error} />}
           {info && <InfoText>{info}</InfoText>}
-          <SubmitBtn loading={loading} label="Send Magic Link \u2709" />
+          <SubmitBtn loading={loading} label="Send Magic Link ✉" />
         </FormInner>
       )}
     </FormCol>

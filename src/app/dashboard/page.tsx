@@ -224,7 +224,7 @@ const SBDMSub = styled.span`
 const TileGrid = styled.section`
   display: grid;
   grid-template-columns: 1fr;
-  gap: 0.75rem;
+  gap: 1rem;
   margin-bottom: 0.75rem;
 
   @media (min-width: 600px) { grid-template-columns: repeat(2, 1fr); }
@@ -287,7 +287,7 @@ const PagerRow = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.75rem;
+  gap: 1rem;
   margin-bottom: 1.5rem;
 `;
 
@@ -342,7 +342,7 @@ const ActivityDivider = styled.div`
 const ActivityRow = styled.div`
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 1rem;
   padding: 0.375rem 0;
 `;
 

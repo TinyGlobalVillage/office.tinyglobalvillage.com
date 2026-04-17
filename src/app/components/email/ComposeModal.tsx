@@ -836,7 +836,7 @@ export default function ComposeModal({
               </ScheduleLabel>
             </ScheduleBtn>
             <SendBtn onClick={send} disabled={sending || savingDraft || scheduling}>
-              {sending ? "Sending…" : "Send \u2191"}
+              {sending ? "Sending…" : "Send ↑"}
             </SendBtn>
             <CloseButton onClick={onClose} title="Discard (Esc)">
               ✕

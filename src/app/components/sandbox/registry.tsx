@@ -830,43 +830,7 @@ export const REGISTRY: SandboxEntry[] = [
     category: "Navigation",
     summary: "Responsive paginated grid: columns scale 1 → 2 → 3 → 5 across the 600/900/1200px breakpoints, page size always equals column count. Pager (28px circle ‹ ›  + `N / M` counter) only renders when `total > pageSize` — small datasets show as a static grid with no pager.",
     usage: "Wrap any repeated-card collection. Use the canonical Tailwind grid `grid-cols-1 min-[600px]:grid-cols-2 min-[900px]:grid-cols-3 min-[1200px]:grid-cols-5`. Track current column count via `matchMedia` for slicing. Reset page to 0 when filter or column count changes.",
-    code: `// Hook (mirrors refusionist AnnouncementsWidget)
-function useGPGColumns() {
-  const [cols, setCols] = useState(3);
-  useEffect(() => {
-    const update = () => {
-      const w = window.innerWidth;
-      if (w < 600) setCols(1);
-      else if (w < 900) setCols(2);
-      else if (w < 1200) setCols(3);
-      else setCols(5);
-    };
-    update();
-    window.addEventListener("resize", update);
-    return () => window.removeEventListener("resize", update);
-  }, []);
-  return cols;
-}
-
-// Render
-const cols = useGPGColumns();
-const pageSize = cols;
-const totalPages = Math.max(1, Math.ceil(items.length / pageSize));
-const showPager = items.length > pageSize;
-const visible = items.slice(page * pageSize, (page + 1) * pageSize);
-
-<>
-  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: "0.75rem" }}>
-    {visible.map(renderCard)}
-  </div>
-  {showPager && (
-    <PagerRow>
-      <PagerBtn disabled={page === 0} onClick={() => setPage(p => p - 1)}>‹</PagerBtn>
-      <PagerInfo>{page + 1} / {totalPages}</PagerInfo>
-      <PagerBtn disabled={page === totalPages - 1} onClick={() => setPage(p => p + 1)}>›</PagerBtn>
-    </PagerRow>
-  )}
-</>`,
+    code: "// Hook (mirrors refusionist AnnouncementsWidget)\nfunction useGPGColumns() {\n  const [cols, setCols] = useState(3);\n  useEffect(() => {\n    const update = () => {\n      const w = window.innerWidth;\n      if (w < 600) setCols(1);\n      else if (w < 900) setCols(2);\n      else if (w < 1200) setCols(3);\n      else setCols(5);\n    };\n    update();\n    window.addEventListener(\"resize\", update);\n    return () => window.removeEventListener(\"resize\", update);\n  }, []);\n  return cols;\n}\n\n// Render\nconst cols = useGPGColumns();\nconst pageSize = cols;\nconst totalPages = Math.max(1, Math.ceil(items.length / pageSize));\nconst showPager = items.length > pageSize;\nconst visible = items.slice(page * pageSize, (page + 1) * pageSize);\n\n<>\n  <div style={{ display: \"grid\", gridTemplateColumns: \"repeat(auto-fill, minmax(180px, 1fr))\", gap: \"0.75rem\" }}>\n    {visible.map(renderCard)}\n  </div>\n  {showPager && (\n    <PagerRow>\n      <PagerBtn disabled={page === 0} onClick={() => setPage(p => p - 1)}>‹</PagerBtn>\n      <PagerInfo>{page + 1} / {totalPages}</PagerInfo>\n      <PagerBtn disabled={page === totalPages - 1} onClick={() => setPage(p => p + 1)}>›</PagerBtn>\n    </PagerRow>\n  )}\n</>",
     Demo: GPGDemo,
   },
   {
@@ -1076,21 +1040,7 @@ import LDM from "./LDM";
     category: "Navigation",
     summary: "Dashed-border dashboard tile that opens a feature-request modal. Users describe an idea, Claude AI generates a structured implementation plan, GPG paginates responses. A 'Send to admin team' button emails the full conversation via Fastmail JMAP with an 'Implement immediately' CTA that routes to Sandbox staging.",
     usage: "Add as the final dashboard tile. Tile has transparent background with dashed pink border. Modal has three phases: form (name + description), chat (Claude conversation with GPG), sent (confirmation). The API route handles both Claude chat and email sending via action parameter.",
-    code: `// Tile (in dashboard page.tsx tiles array)
-{ key: "Suggest", title: "Suggest", subtitle: "Feature ideas",
-  glow: "pink", icon: <span>\u{1F4A1}</span>,
-  onClick: () => setSuggestionOpen(true) }
-
-// Special dashed border in tile renderer
-const isSuggest = tile.key === "Suggest";
-style={{
-  background: isSuggest ? "transparent" : \u0060rgba(...)\u0060,
-  border: isSuggest ? \u0060dashed...\u0060 : \u0060solid...\u0060,
-}}
-
-// Modal import
-import SuggestionBoxModal from "./suggestion/SuggestionBoxModal";
-{suggestionOpen && <SuggestionBoxModal onClose={() => setSuggestionOpen(false)} />}`,
+    code: `// Tile (in dashboard page.tsx tiles array)\n{ key: "Suggest", title: "Suggest", subtitle: "Feature ideas",\n  glow: "pink", icon: <span>💡</span>,\n  onClick: () => setSuggestionOpen(true) }\n\n// Special dashed border in tile renderer\nconst isSuggest = tile.key === "Suggest";\nstyle={{ background: isSuggest ? "transparent" : "rgba(...)",\n  border: isSuggest ? "dashed..." : "solid..." }}\n\n// Modal import\nimport SuggestionBoxModal from "./suggestion/SuggestionBoxModal";\n{suggestionOpen && <SuggestionBoxModal onClose={() => setSuggestionOpen(false)} />}`,
     Demo: SuggestionBoxDemo,
   },
 ];

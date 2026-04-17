@@ -41,14 +41,14 @@ function fmtBytes(b: number) {
 function getFileIcon(name: string): string {
   const ext = name.split(".").pop()?.toLowerCase() ?? "";
   const icons: Record<string, string> = {
-    tsx: "\u269B", ts: "\uD835\uDC61\uD835\uDC60", jsx: "\u269B", js: "\uD835\uDC57\uD835\uDC60",
-    json: "{}", css: "\u2301", scss: "\u2301", md: "\u270E",
+    tsx: "⚛", ts: "𝑡𝑠", jsx: "⚛", js: "𝑗𝑠",
+    json: "{}", css: "⌁", scss: "⌁", md: "✎",
     html: "<>", sh: "$", env: "⚙", sql: "⊞",
-    png: "\uD83D\uDDBC", jpg: "\uD83D\uDDBC", jpeg: "\uD83D\uDDBC", svg: "\u2B21", gif: "\uD83D\uDDBC",
-    mp4: "\uD83C\uDFAC", webm: "\uD83C\uDFAC", pdf: "\uD83D\uDCC4",
-    lock: "\uD83D\uDD12", gitignore: "\u25CC",
+    png: "🖼", jpg: "🖼", jpeg: "🖼", svg: "⬡", gif: "🖼",
+    mp4: "🎬", webm: "🎬", pdf: "📄",
+    lock: "🔒", gitignore: "◌",
   };
-  return icons[ext] ?? "\u00B7";
+  return icons[ext] ?? "·";
 }
 
 /* ── Styled Components ─────────────────────────────────────────── */
@@ -491,7 +491,7 @@ function TreeItem({
   onToggle: (node: TreeNode) => void;
 }) {
   const isSelected = !node.isDir && selectedPath === node.path;
-  const icon = node.isDir ? (node.expanded ? "\u25BE" : "\u25B8") : getFileIcon(node.name);
+  const icon = node.isDir ? (node.expanded ? "▾" : "▸") : getFileIcon(node.name);
 
   return (
     <>
@@ -595,8 +595,8 @@ function BuildPanel({
             <BuildTitle $color={titleColor}>
               {done
                 ? success
-                  ? "\u2713 Build & deploy complete"
-                  : "\u2717 Build failed"
+                  ? "✓ Build & deploy complete"
+                  : "✗ Build failed"
                 : `Building ${project}2026`}
             </BuildTitle>
           </div>
@@ -604,8 +604,8 @@ function BuildPanel({
         </BuildHeader>
         <BuildLog>
           {lines.map((l, i) => {
-            const isErr = l.includes("\u2717") || l.includes("[stderr]") || l.includes("error");
-            const isOk = l.includes("\u2713");
+            const isErr = l.includes("✗") || l.includes("[stderr]") || l.includes("error");
+            const isOk = l.includes("✓");
             return <BuildLine key={i} $isErr={isErr} $isOk={isOk}>{l}</BuildLine>;
           })}
           <div ref={endRef} />
@@ -855,7 +855,7 @@ function EditorPageInner() {
               </ProjectSelect>
               {activeProject && (
                 <BuildBtn onClick={() => setShowBuild(true)}>
-                  \u25B6 Rebuild &amp; Deploy
+                  ▶ Rebuild &amp; Deploy
                 </BuildBtn>
               )}
               <SandboxBtn
@@ -893,9 +893,9 @@ function EditorPageInner() {
                     <Tab key={fp} $active={isActive} onClick={() => setSelectedFile(fp)}>
                       <TabIcon>{getFileIcon(name)}</TabIcon>
                       <TabName>{name}</TabName>
-                      {isDirty && <TabDirty>\u25CF</TabDirty>}
+                      {isDirty && <TabDirty>●</TabDirty>}
                       <TabClose onClick={(e) => closeTab(fp, e)} title="Close tab">
-                        \u00D7
+                        ×
                       </TabClose>
                     </Tab>
                   );
@@ -913,11 +913,11 @@ function EditorPageInner() {
                     disabled={formatting}
                     title="Format with Prettier (Shift+Alt+F)"
                   >
-                    {formatting ? "\u21BB" : "\u2726"} Prettier
+                    {formatting ? "↻" : "✦"} Prettier
                   </PrettierBtn>
                 )}
                 <SaveStatus $status={saveStatus}>
-                  {saveStatus === "saved" ? "\u2713 Saved" : saveStatus === "saving" ? "\u21BB Saving2026" : "\u25CF Unsaved"}
+                  {saveStatus === "saved" ? "✓ Saved" : saveStatus === "saving" ? "↻ Saving2026" : "● Unsaved"}
                 </SaveStatus>
               </StatusBar>
             )}
@@ -959,7 +959,7 @@ function EditorPageInner() {
                 />
               ) : (
                 <EditorEmpty>
-                  <EditorEmptyIcon>\u270E</EditorEmptyIcon>
+                  <EditorEmptyIcon>✎</EditorEmptyIcon>
                   <EditorEmptyLabel>Select a file to edit</EditorEmptyLabel>
                   <EditorEmptyHint>Changes auto-save after 1.2s of inactivity</EditorEmptyHint>
                 </EditorEmpty>

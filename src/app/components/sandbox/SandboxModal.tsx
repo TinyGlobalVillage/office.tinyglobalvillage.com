@@ -344,6 +344,12 @@ const DemoArea = styled.div`
   display: flex;
   align-items: flex-start;
   justify-content: center;
+
+  [data-theme="light"] & {
+    background: #1a1028;
+    border-radius: 0.75rem;
+    margin: 0.5rem;
+  }
 `;
 
 const DemoWrap = styled.div`

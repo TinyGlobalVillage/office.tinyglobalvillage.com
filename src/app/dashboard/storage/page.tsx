@@ -38,12 +38,12 @@ function isImage(type: string) { return type.startsWith("image/"); }
 function isVideo(type: string) { return type.startsWith("video/"); }
 
 function fileIcon(type: string) {
-  if (isImage(type)) return "\uD83D\uDDBC";
-  if (isVideo(type)) return "\uD83C\uDFAC";
-  if (type.startsWith("audio/")) return "\uD83C\uDFB5";
-  if (type === "application/pdf") return "\uD83D\uDCC4";
-  if (type.startsWith("font/")) return "\uD83D\uDD24";
-  return "\uD83D\uDCC1";
+  if (isImage(type)) return "🖼";
+  if (isVideo(type)) return "🎬";
+  if (type.startsWith("audio/")) return "🎵";
+  if (type === "application/pdf") return "📄";
+  if (type.startsWith("font/")) return "🔤";
+  return "📁";
 }
 
 /* ── Styled Components ─────────────────────────────────────────── */
@@ -667,7 +667,7 @@ function UploadZone({
         onDragLeave={() => setDragging(false)}
         onDrop={onDrop}
       >
-        <DropIcon>{uploading.length ? "\u23F3" : "\u2601\uFE0F"}</DropIcon>
+        <DropIcon>{uploading.length ? "⏳" : "☁️"}</DropIcon>
         {uploading.length ? (
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0.25rem" }}>
             <DropLabel>Uploading…</DropLabel>
@@ -690,7 +690,7 @@ function UploadZone({
 
       {lastUrl && (
         <UploadedBar>
-          <UploadedLabel>\u2713 Uploaded</UploadedLabel>
+          <UploadedLabel>✓ Uploaded</UploadedLabel>
           <UploadedUrl>{lastUrl}</UploadedUrl>
           <CopyBtn $copied={copied} onClick={copy}>
             {copied ? "Copied!" : "Copy Link"}
@@ -736,7 +736,7 @@ function FileCard({ file, onDelete }: { file: CdnFile; onDelete: () => void }) {
 
       <CardInfo>
         <CardName title={file.name}>{file.name}</CardName>
-        <CardMeta>{fmtBytes(file.size)} \u00B7 {fmtDate(file.modifiedAt)}</CardMeta>
+        <CardMeta>{fmtBytes(file.size)} · {fmtDate(file.modifiedAt)}</CardMeta>
       </CardInfo>
 
       <CardActions>
@@ -744,7 +744,7 @@ function FileCard({ file, onDelete }: { file: CdnFile; onDelete: () => void }) {
           {copied ? "Copied!" : "Copy Link"}
         </CardCopyBtn>
         <CardOpenBtn href={file.url} target="_blank" rel="noopener noreferrer" title="Open in new tab">
-          \u2197
+          ↗
         </CardOpenBtn>
         {confirmDel ? (
           <CardDeleteBtn $confirm onClick={del} disabled={deleting} title="Confirm delete">
@@ -829,13 +829,13 @@ function ProjectDropdown({
             <DDMFileCount>{count(value)} files</DDMFileCount>
           )}
         </DDMTriggerLeft>
-        <DDMArrow $open={open}>\u25BC</DDMArrow>
+        <DDMArrow $open={open}>▼</DDMArrow>
       </DDMTrigger>
 
       {open && (
         <DDMPanel>
           <DDMSearchRow>
-            <DDMSearchIcon>\u2315</DDMSearchIcon>
+            <DDMSearchIcon>⌕</DDMSearchIcon>
             <DDMSearchInput
               ref={inputRef}
               type="text"
@@ -845,7 +845,7 @@ function ProjectDropdown({
               placeholder="Search projects…"
             />
             {search && (
-              <DDMClearBtn onClick={() => setSearch("")}>\u00D7</DDMClearBtn>
+              <DDMClearBtn onClick={() => setSearch("")}>×</DDMClearBtn>
             )}
           </DDMSearchRow>
 
@@ -866,7 +866,7 @@ function ProjectDropdown({
                     <DDMItemName>{p}</DDMItemName>
                     <DDMItemRight>
                       {n !== undefined && <DDMItemCount>{n} files</DDMItemCount>}
-                      {isActive && <DDMItemCheck>\u2713</DDMItemCheck>}
+                      {isActive && <DDMItemCheck>✓</DDMItemCheck>}
                     </DDMItemRight>
                   </DDMItem>
                 );
@@ -969,7 +969,7 @@ function StoragePageInner() {
             <PageSubtitle>
               Files are served at{" "}
               <CdnPath>{CDN_BASE}/&#123;project&#125;/&#123;file&#125;</CdnPath>
-              {" "}\u2014 publicly accessible, immutable cache
+              {" "}— publicly accessible, immutable cache
             </PageSubtitle>
           </div>
         </HeaderRow>
@@ -1003,7 +1003,7 @@ function StoragePageInner() {
           </FileGrid>
         ) : filteredFiles.length === 0 ? (
           <EmptyState>
-            <EmptyIcon>\u2601\uFE0F</EmptyIcon>
+            <EmptyIcon>☁️</EmptyIcon>
             <EmptyLabel>No files yet</EmptyLabel>
             <EmptyHint>
               Drop files above to upload to the <EmptyBucket>{activeProject}</EmptyBucket> bucket
@@ -1023,14 +1023,14 @@ function StoragePageInner() {
               onClick={() => loadFiles(activeProject, page - 1)}
               disabled={page <= 1}
             >
-              \u2190 Prev
+              ← Prev
             </PaginationBtn>
             <PaginationLabel>{page} / {totalPages}</PaginationLabel>
             <PaginationBtn
               onClick={() => loadFiles(activeProject, page + 1)}
               disabled={page >= totalPages}
             >
-              Next \u2192
+              Next →
             </PaginationBtn>
           </PaginationRow>
         )}

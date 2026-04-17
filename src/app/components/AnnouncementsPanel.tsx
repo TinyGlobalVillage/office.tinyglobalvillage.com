@@ -317,7 +317,7 @@ export default function AnnouncementsPanel({
                               <Pill
                                 key={u.package}
                                 $isMajor={isMajor}
-                                title={`${u.package}: ${u.current} \u2192 ${u.latest}`}
+                                title={`${u.package}: ${u.current} → ${u.latest}`}
                               >
                                 {u.package}{" "}
                                 <Arrow>

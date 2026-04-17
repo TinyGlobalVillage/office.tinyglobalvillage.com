@@ -509,7 +509,7 @@ export default function DatabasePage() {
                 >
                   <TableBtnName>{t.name}</TableBtnName>
                   <TableBtnMeta>
-                    ~{t.rowEstimate.toLocaleString()} rows \u00B7 {t.size}
+                    ~{t.rowEstimate.toLocaleString()} rows · {t.size}
                   </TableBtnMeta>
                 </TableButton>
               ))}
@@ -526,7 +526,7 @@ export default function DatabasePage() {
             </ContentHeader>
           ) : (
             <Placeholder>
-              {selectedDb ? "\u2190 Select a table" : "\u2190 Select a database"}
+              {selectedDb ? "← Select a table" : "← Select a database"}
             </Placeholder>
           )}
 
@@ -622,8 +622,8 @@ function SqlEditorComponent({
       <SqlHeader>
         <SqlLabel>SQL Editor</SqlLabel>
         <SqlRunBtn $color={color} onClick={onRun} disabled={running || !value.trim()}>
-          {running ? "\u27F3 Running…" : "\u25B6 Run"}
-          <SqlShortcut>\u2318\u21B5</SqlShortcut>
+          {running ? "⟳ Running…" : "▶ Run"}
+          <SqlShortcut>⌘↵</SqlShortcut>
         </SqlRunBtn>
       </SqlHeader>
 

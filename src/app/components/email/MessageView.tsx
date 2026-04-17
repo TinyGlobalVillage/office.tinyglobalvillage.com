@@ -593,7 +593,7 @@ export default function MessageView({
     return (
       <CenteredMsg>
         <EmptyWrap>
-          <EmptyIcon>{"\u2709"}</EmptyIcon>
+          <EmptyIcon>{"✉"}</EmptyIcon>
           <EmptyText>Select an email to read</EmptyText>
         </EmptyWrap>
       </CenteredMsg>
@@ -601,37 +601,37 @@ export default function MessageView({
 
   type ActionDef = { label: string; icon: string; onClick: () => void; danger?: boolean } | "divider";
   const actionItems: ActionDef[] = [
-    { label: "Reply", icon: "\u21a9", onClick: () => { onReply(email); setActionsOpen(false); } },
-    { label: "Reply All", icon: "\u21a9\u21a9", onClick: () => { onReplyAll(email); setActionsOpen(false); } },
-    { label: "Forward", icon: "\u2192", onClick: () => { onForward(email); setActionsOpen(false); } },
+    { label: "Reply", icon: "↩", onClick: () => { onReply(email); setActionsOpen(false); } },
+    { label: "Reply All", icon: "↩↩", onClick: () => { onReplyAll(email); setActionsOpen(false); } },
+    { label: "Forward", icon: "→", onClick: () => { onForward(email); setActionsOpen(false); } },
     "divider",
     { label: "Edit as new", icon: "✎", onClick: () => { onEditAsNew(email); setActionsOpen(false); } },
-    { label: "Send a copy", icon: "\u2295", onClick: () => { onSendCopy(email); setActionsOpen(false); } },
+    { label: "Send a copy", icon: "⊕", onClick: () => { onSendCopy(email); setActionsOpen(false); } },
     "divider",
-    { label: "Print", icon: "\u2399", onClick: handlePrint },
-    { label: "Download .eml", icon: "\u2b07", onClick: handleDownload },
+    { label: "Print", icon: "⎙", onClick: handlePrint },
+    { label: "Download .eml", icon: "⬇", onClick: handleDownload },
     "divider",
     {
       label: viewMode === "text" ? "View as HTML" : "View as text",
       icon: "</>",
       onClick: () => { setViewMode((v) => (v === "text" ? "html" : "text")); setActionsOpen(false); },
     },
-    { label: "Show raw message", icon: "\u229e", onClick: () => { setShowRawModal(true); setActionsOpen(false); } },
+    { label: "Show raw message", icon: "⊞", onClick: () => { setShowRawModal(true); setActionsOpen(false); } },
     "divider",
     {
       label: email.flagged ? "Remove flag" : "Flag",
-      icon: email.flagged ? "\u2605" : "\u2606",
+      icon: email.flagged ? "★" : "☆",
       onClick: () => { onAction(email.id, email.flagged ? "unflag" : "flag"); setActionsOpen(false); },
     },
     {
       label: email.unread ? "Mark as read" : "Mark as unread",
-      icon: email.unread ? "\u2713" : "\u25cf",
+      icon: email.unread ? "✓" : "●",
       onClick: () => { onAction(email.id, email.unread ? "markRead" : "markUnread"); setActionsOpen(false); },
     },
     "divider",
     {
       label: "Delete",
-      icon: "\ud83d\uddd1",
+      icon: "🗑",
       danger: true,
       onClick: () => { onAction(email.id, "trash"); setActionsOpen(false); },
     },
@@ -667,7 +667,7 @@ export default function MessageView({
             <AttachmentRow>
               {email.attachments.map((att, i) => (
                 <AttachmentChip key={i}>
-                  {"\ud83d\udcce"} {att.name}{" "}
+                  {"📎"} {att.name}{" "}
                   <AttachmentSize>({humanSize(att.size)})</AttachmentSize>
                 </AttachmentChip>
               ))}
@@ -676,7 +676,7 @@ export default function MessageView({
 
           <ActionBar>
             <ReplyBtn onClick={() => onReply(email)}>
-              {"\u21a9"} Reply
+              {"↩"} Reply
             </ReplyBtn>
             <ActionsWrap ref={actionsRef}>
               <ActionsBtn $open={actionsOpen} onClick={() => setActionsOpen((p) => !p)}>

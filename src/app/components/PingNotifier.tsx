@@ -388,7 +388,7 @@ function fireOsNotification(item: NotifItem) {
   if (typeof window === "undefined" || Notification.permission !== "granted") return;
   try {
     const n = new Notification(
-      item.type === "chat" ? `\uD83D\uDCAC ${item.senderName}` : `\uD83D\uDCDD Memo from ${item.senderName}`,
+      item.type === "chat" ? `💬 ${item.senderName}` : `📝 Memo from ${item.senderName}`,
       { body: item.body, icon: "/favicon.ico", tag: item.id, silent: false }
     );
     n.onclick = () => { window.focus(); n.close(); };
@@ -446,7 +446,7 @@ function MemoGallery({
         <GalleryHeader>
           <GalleryHeaderLeft>
             <GalleryTag>
-              \uD83D\uDCDD Memo
+              📝 Memo
             </GalleryTag>
             <GallerySender>
               from {memo.senderName}
@@ -781,7 +781,7 @@ export default function PingNotifier() {
                 onClick={isMemo ? () => openGallery(item) : undefined}
               >
                 <ToastSender $color={color}>
-                  {item.type === "chat" ? "\uD83D\uDCAC" : "\uD83D\uDCDD"} {item.senderName}
+                  {item.type === "chat" ? "💬" : "📝"} {item.senderName}
                 </ToastSender>
                 <ToastBody>{item.body}</ToastBody>
                 {isMemo && (

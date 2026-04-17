@@ -263,7 +263,7 @@ export default function UsersCard({ className = "" }: { className?: string }) {
               <MemoDate>
                 {new Date(m.createdAt).toLocaleDateString()}
               </MemoDate>
-              {" \u00b7 "}
+              {" · "}
               {m.content}
             </MemoLine>
           ))}

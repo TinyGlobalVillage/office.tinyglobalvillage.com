@@ -530,15 +530,15 @@ export default function DeployPage() {
             </PageSubtitle>
           </div>
           <HeaderActions>
-            <EditorLink href="/dashboard/editor">\u270E Editor</EditorLink>
-            <RefreshBtn onClick={load}>\u21BA Refresh</RefreshBtn>
+            <EditorLink href="/dashboard/editor">✎ Editor</EditorLink>
+            <RefreshBtn onClick={load}>↺ Refresh</RefreshBtn>
           </HeaderActions>
         </HeaderRow>
 
         {/* SBDM */}
         <SbdmContainer ref={sbdmRef}>
           <SearchBar>
-            <SearchIcon>\uD83D\uDD0D</SearchIcon>
+            <SearchIcon>🔍</SearchIcon>
             <SearchInput
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
@@ -548,7 +548,7 @@ export default function DeployPage() {
               onClick={() => setOpen((v) => !v)}
               aria-label="Open project list"
             >
-              \u25BE
+              ▾
             </DropdownToggle>
           </SearchBar>
 
@@ -611,7 +611,7 @@ export default function DeployPage() {
               onClick={() => setPage((p) => Math.max(0, p - 1))}
               disabled={safePage === 0}
             >
-              \u2039
+              ‹
             </PaginationBtn>
             <PaginationLabel>
               {safePage + 1} / {totalPages}
@@ -620,7 +620,7 @@ export default function DeployPage() {
               onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
               disabled={safePage === totalPages - 1}
             >
-              \u203A
+              ›
             </PaginationBtn>
           </PaginationRow>
         )}
@@ -643,13 +643,13 @@ function ProjectTile({ project: p, onClick }: { project: Project; onClick: () =>
       <TileMetaRow>
         {p.port && <TilePort>:{p.port}</TilePort>}
         {p.pm2Status && <TileStatus $color={statusColor}>{p.pm2Status}</TileStatus>}
-        {p.pm2Restarts > 0 && <TileRestarts>\u21BA {p.pm2Restarts}</TileRestarts>}
+        {p.pm2Restarts > 0 && <TileRestarts>↺ {p.pm2Restarts}</TileRestarts>}
       </TileMetaRow>
 
       {p.lastCommit ? (
         <TileCommitInfo>
           <TileCommitTime>{p.lastCommit.timeAgo}</TileCommitTime>
-          {" \u00B7 "}
+          {" · "}
           <span>{p.lastCommit.subject}</span>
         </TileCommitInfo>
       ) : (
@@ -657,7 +657,7 @@ function ProjectTile({ project: p, onClick }: { project: Project; onClick: () =>
       )}
 
       <TileBottom>
-        <TilePreviewLabel>\uD83C\uDF10 Open Preview \u2192</TilePreviewLabel>
+        <TilePreviewLabel>🌐 Open Preview →</TilePreviewLabel>
         <TileActions>
           <TileActionLink
             href={`/dashboard/editor?project=${encodeURIComponent(p.name)}`}
@@ -667,7 +667,7 @@ function ProjectTile({ project: p, onClick }: { project: Project; onClick: () =>
             $border={`rgba(${rgb.gold}, 0.3)`}
             $color={colors.gold}
           >
-            \u270E Editor
+            ✎ Editor
           </TileActionLink>
           <TileActionLink
             href={`/dashboard/storage?project=${encodeURIComponent(p.name)}`}
@@ -677,7 +677,7 @@ function ProjectTile({ project: p, onClick }: { project: Project; onClick: () =>
             $border={`rgba(${rgb.cyan}, 0.3)`}
             $color={colors.cyan}
           >
-            \uD83D\uDCC1 Upload
+            📁 Upload
           </TileActionLink>
         </TileActions>
       </TileBottom>

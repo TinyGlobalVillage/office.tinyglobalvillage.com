@@ -879,10 +879,10 @@ function ClaudeMarkdown({ text }: { text: string }) {
 }
 
 const POS_META: Record<PanelPos, { icon: string; title: string }> = {
-  bottom: { icon: "\u2B07", title: "Dock bottom" },
-  right:  { icon: "\u25B6", title: "Dock right"  },
-  left:   { icon: "\u25C0", title: "Dock left"   },
-  float:  { icon: "\u29C9", title: "Float"       },
+  bottom: { icon: "⬇", title: "Dock bottom" },
+  right:  { icon: "▶", title: "Dock right"  },
+  left:   { icon: "◀", title: "Dock left"   },
+  float:  { icon: "⧉", title: "Float"       },
 };
 
 // ── Live server-stream hook ───────────────────────────────────────────────────
@@ -1284,7 +1284,7 @@ export default function CliTerminal({ standalone = false }: { standalone?: boole
       {/* Floating toggle button */}
       {!standalone && (
         <ToggleButton onClick={toggleTerminal} title="Toggle Terminal" $running={isRunning}>
-          <ToggleIcon>{isRunning ? "\u25CF" : ">_"}</ToggleIcon>
+          <ToggleIcon>{isRunning ? "●" : ">_"}</ToggleIcon>
           {isRunning ? `${currentScript?.slice(0, 18) ?? "running"}…` : isOpen ? "Hide" : "Terminal"}
           {!isOpen && lines.length > 0 && !isRunning && (
             <LineBadge>{lines.length}</LineBadge>
@@ -1372,9 +1372,9 @@ export default function CliTerminal({ standalone = false }: { standalone?: boole
           {/* Mode buttons */}
           {([
             { id: "shell",  label: ">_ shell",   title: "Interactive shell" },
-            { id: "stream", label: "\uD83D\uDCE1 stream",  title: "Live server feed"  },
-            { id: "logs",   label: "\uD83D\uDCCB logs",    title: "Browse saved logs" },
-            { id: "claude", label: "\u2726 claude",   title: "Chat with Claude"  },
+            { id: "stream", label: "📡 stream",  title: "Live server feed"  },
+            { id: "logs",   label: "📋 logs",    title: "Browse saved logs" },
+            { id: "claude", label: "✦ claude",   title: "Chat with Claude"  },
           ] as { id: PanelMode; label: string; title: string }[]).map(({ id, label, title }) => (
             <ModeButton
               key={id}
@@ -1515,7 +1515,7 @@ export default function CliTerminal({ standalone = false }: { standalone?: boole
             <>
               {displayLines.length === 0 && (
                 <EmptyHint>
-                  {mode === "stream" ? "Waiting for server events…" : "Type a command. \u2191\u2193 for history."}
+                  {mode === "stream" ? "Waiting for server events…" : "Type a command. ↑↓ for history."}
                 </EmptyHint>
               )}
               {displayLines.map((line, i) => (

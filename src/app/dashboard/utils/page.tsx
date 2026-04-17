@@ -45,13 +45,13 @@ const GROUPS: Group[] = [
     id: "project",
     title: "New Project",
     subtitle: "Scaffold and deploy a complete new project",
-    icon: "\uD83D\uDE80",
+    icon: "🚀",
     glow: "pink",
     actions: [
       {
         id: "new-nextjs",
         label: "Launch Next.js Project",
-        description: "Full pipeline: port \u2192 repo \u2192 scaffold \u2192 SSL \u2192 webhook",
+        description: "Full pipeline: port → repo → scaffold → SSL → webhook",
         script: "newclientproject",
         buildArgs: (v) => [v.org === "tgv" ? "-tgv" : "-refusionist", v.domain],
         fields: [
@@ -78,7 +78,7 @@ const GROUPS: Group[] = [
     id: "project-mgmt",
     title: "Project Management",
     subtitle: "Start, stop, or remove deployed projects",
-    icon: "⚙\uFE0F",
+    icon: "⚙️",
     glow: "cyan",
     actions: [
       {
@@ -106,14 +106,14 @@ const GROUPS: Group[] = [
   {
     id: "pm2",
     title: "PM2",
-    subtitle: "Process manager \u2014 restart, stop, and configure aliases",
-    icon: "\u26A1",
+    subtitle: "Process manager — restart, stop, and configure aliases",
+    icon: "⚡",
     glow: "gold",
     actions: [
       { id: "pm2-restart", label: "Restart Process", description: "Restart a named PM2 process with updated env", script: "pm2-restart", buildArgs: (v) => ["--update-env", v.name], fields: [{ key: "name", label: "Process name", placeholder: "refusionist.com", required: true }], glow: "cyan" },
       { id: "pm2-stop", label: "Stop Process", description: "Stop a running PM2 process", script: "pm2-stop", buildArgs: (v) => [v.name], fields: [{ key: "name", label: "Process name", placeholder: "refusionist.com", required: true }], glow: "gold" },
       { id: "pm2-logs", label: "View Logs", description: "Tail the last 80 lines of a PM2 process log", script: "pm2-logs", buildArgs: (v) => [v.name], fields: [{ key: "name", label: "Process name", placeholder: "refusionist.com", required: true }], glow: "cyan" },
-      { id: "pm2-harden", label: "Harden PM2", description: "Install log rotation (10 MB \u00D7 5) + enable startup on reboot", script: "pm2-harden", buildArgs: () => [], glow: "gold" },
+      { id: "pm2-harden", label: "Harden PM2", description: "Install log rotation (10 MB × 5) + enable startup on reboot", script: "pm2-harden", buildArgs: () => [], glow: "gold" },
       { id: "pm2-newpm2", label: "Add PM2 Alias", description: "Append a pm2-restart shortcut alias to ~/.bashrc", script: "pm2-newpm2", buildArgs: (v) => [v.project, v.shortcut], fields: [{ key: "project", label: "PM2 process name", placeholder: "refusionist.com", required: true }, { key: "shortcut", label: "Alias shortcut", placeholder: "rr", required: true }], glow: "gold" },
       { id: "pm2-editpm2", label: "Edit PM2 Alias", description: "Rename an existing PM2 alias shortcut in ~/.bashrc", script: "pm2-editpm2", buildArgs: (v) => [v.old, v.newName], fields: [{ key: "old", label: "Current shortcut", placeholder: "rr", required: true }, { key: "newName", label: "New shortcut", placeholder: "rrs", required: true }], glow: "gold" },
     ],
@@ -122,7 +122,7 @@ const GROUPS: Group[] = [
     id: "git",
     title: "Git & GitHub",
     subtitle: "Create or remove GitHub repositories",
-    icon: "\uD83D\uDC19",
+    icon: "🐙",
     glow: "cyan",
     actions: [
       { id: "gitrepo", label: "Create GitHub Repo", description: "Create a new repo in an org and push initial commit", script: "gitrepo", buildArgs: (v) => [v.org === "tgv" ? "-tgv" : "-u tinygvillage", v.repoName], fields: [{ key: "org", label: "Organisation", type: "select", options: [{ value: "tgv", label: "TinyGlobalVillage" }, { value: "refusionist", label: "tinygvillage" }], required: true }, { key: "repoName", label: "Repository name", placeholder: "my-project", required: true }], glow: "cyan" },
@@ -133,7 +133,7 @@ const GROUPS: Group[] = [
     id: "system",
     title: "System",
     subtitle: "Server health, disk, and maintenance",
-    icon: "\uD83D\uDDA5\uFE0F",
+    icon: "🖥️",
     glow: "gold",
     actions: [
       { id: "diskusage", label: "Disk Usage", description: "Show disk usage for all key RCS directories", script: "diskusage", buildArgs: () => [], glow: "gold" },
@@ -494,7 +494,7 @@ function GroupPanel({ group }: { group: Group }) {
           <GroupTitle $color={color}>{group.title}</GroupTitle>
           <GroupSubtitle>{group.subtitle}</GroupSubtitle>
         </div>
-        <GroupToggle $open={open}>\u25BC</GroupToggle>
+        <GroupToggle $open={open}>▼</GroupToggle>
       </GroupHeader>
 
       {open && (
@@ -568,7 +568,7 @@ function ActionCard({ action }: { action: Action }) {
           onClick={handleTrigger}
           disabled={isRunning}
         >
-          {isRunning ? "Busy…" : action.fields?.length ? "Configure \u2192" : "Run \u2192"}
+          {isRunning ? "Busy…" : action.fields?.length ? "Configure →" : "Run →"}
         </ActionTriggerBtn>
       </ActionCardWrap>
 
@@ -658,7 +658,7 @@ function FormModal({
         <ModalButtons>
           <CancelBtn onClick={onClose}>Cancel</CancelBtn>
           <RunBtn $danger={action.danger} $color={color} onClick={onRun} disabled={!canRun}>
-            {action.danger ? "\u26A0 Run Anyway" : "\u25B6 Run"}
+            {action.danger ? "⚠ Run Anyway" : "▶ Run"}
           </RunBtn>
         </ModalButtons>
       </ModalContent>
@@ -679,12 +679,12 @@ export default function UtilsPage() {
           <div>
             <PageTitle>Utils</PageTitle>
             <PageSubtitle>
-              Server scripts \u2014 grouped, configured, and streamed to your terminal
+              Server scripts — grouped, configured, and streamed to your terminal
             </PageSubtitle>
           </div>
 
           <TerminalShortcut $running={isRunning} onClick={toggleTerminal}>
-            {isRunning ? "\u25CF running" : ">_ terminal"}
+            {isRunning ? "● running" : ">_ terminal"}
             {lines.length > 0 && (
               <TerminalLineCount>({lines.length} lines)</TerminalLineCount>
             )}

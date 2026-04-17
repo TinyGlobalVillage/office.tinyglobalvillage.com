@@ -25,7 +25,7 @@ const STATUS_COLOR: Record<string, string> = {
 };
 
 function formatUptime(ms: number | null) {
-  if (!ms) return "\u2014";
+  if (!ms) return "—";
   const s = Math.floor((Date.now() - ms) / 1000);
   if (s < 60) return `${s}s`;
   if (s < 3600) return `${Math.floor(s / 60)}m`;
@@ -363,14 +363,14 @@ export default function ProcessesPage() {
 
           <ButtonGroup>
             <RefreshBtn onClick={refresh} title="Manually refresh PM2 process list">
-              \u21BA Refresh
+              ↺ Refresh
             </RefreshBtn>
             <SaveListBtn
               onClick={() => runCommand("pm2-save", [])}
               disabled={isRunning}
               title="Save PM2 process list so it survives reboots"
             >
-              \uD83D\uDCBE Save List
+              💾 Save List
             </SaveListBtn>
           </ButtonGroup>
         </HeaderRow>
@@ -442,7 +442,7 @@ function ProcessRow({
         <ProcMetaRow>
           <ProcStatus $color={statusColor}>{proc.status}</ProcStatus>
           <ProcUptime>up {formatUptime(proc.uptime)}</ProcUptime>
-          {proc.restarts > 0 && <ProcRestarts>\u21BA {proc.restarts}</ProcRestarts>}
+          {proc.restarts > 0 && <ProcRestarts>↺ {proc.restarts}</ProcRestarts>}
         </ProcMetaRow>
       </ProcNameWrap>
 
