@@ -1,14 +1,128 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-
-const ACCENT = "#ff4ecb";
-const ACCENT_RGB = "255,78,203";
-const CYAN = "#00bfff";
+import styled from "styled-components";
+import { colors, rgb, glowRgba } from "../../theme";
+import {
+  ModalBackdrop, ModalContainer, ModalHeader, ModalHeaderLeft,
+  ModalTitle, ModalSubtitle, ModalBody, CloseBtn, GlowButton,
+  SubtleButton, Input, TextArea, GlassCard, AccentLabel, PulseText,
+} from "../../styled";
 
 type Message = { role: "user" | "assistant"; content: string };
-
 type Phase = "form" | "chat" | "sent";
+
+const FeatureBadge = styled.div`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  align-self: flex-start;
+  padding: 0.375rem 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: ${colors.pink};
+  background: ${glowRgba("pink", 0.08)};
+  border: 1px solid ${glowRgba("pink", 0.2)};
+`;
+
+const ResponseCard = styled(GlassCard).attrs({ $accent: "cyan" as const })`
+  white-space: pre-wrap;
+`;
+
+const ResponseHeader = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+`;
+
+const ResponseBody = styled.div`
+  font-size: 0.875rem;
+  color: var(--t-textMuted);
+  line-height: 1.6;
+`;
+
+const PageNav = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+`;
+
+const PageCircle = styled.button`
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.875rem;
+  background: var(--t-inputBg);
+  border: 1px solid var(--t-borderStrong);
+  color: var(--t-textMuted);
+  cursor: pointer;
+  transition: all 0.15s;
+
+  &:disabled { opacity: 0.3; cursor: default; }
+`;
+
+const ChatRow = styled.div`
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-end;
+`;
+
+const SendBtn = styled.button`
+  padding: 0.75rem;
+  border-radius: 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: ${colors.pink};
+  background: ${glowRgba("pink", 0.15)};
+  border: 1px solid ${glowRgba("pink", 0.3)};
+  cursor: pointer;
+  transition: opacity 0.15s;
+
+  &:disabled { opacity: 0.3; }
+`;
+
+const UserBubble = styled.div`
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  background: ${glowRgba("pink", 0.04)};
+  border-left: 2px solid ${glowRgba("pink", 0.3)};
+
+  [data-theme="light"] & {
+    background: ${glowRgba("pink", 0.03)};
+  }
+`;
+
+const ErrorBox = styled.div`
+  margin-top: 0.75rem;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.75rem;
+  color: ${colors.red};
+  background: rgba(${rgb.red}, 0.1);
+  border: 1px solid rgba(${rgb.red}, 0.2);
+`;
+
+const SentWrap = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 2rem 0;
+`;
+
+const FormStack = styled.div`display: flex; flex-direction: column; gap: 1rem;`;
+const ChatStack = styled.div`display: flex; flex-direction: column; gap: 1rem;`;
+const FormLabel = styled(AccentLabel).attrs({ $accent: "pink" as const })`
+  display: block;
+  margin-bottom: 0.5rem;
+  font-size: 0.6875rem;
+`;
 
 export default function SuggestionBoxModal({ onClose }: { onClose: () => void }) {
   const [phase, setPhase] = useState<Phase>("form");
@@ -23,103 +137,62 @@ export default function SuggestionBoxModal({ onClose }: { onClose: () => void })
   const chatEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  const PAGE_SIZE = 1;
-
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") { e.stopPropagation(); onClose(); }
-    };
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") { e.stopPropagation(); onClose(); } };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
-
-  useEffect(() => {
-    if (phase === "chat" && !loading) inputRef.current?.focus();
-  }, [phase, loading]);
+  useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
+  useEffect(() => { if (phase === "chat" && !loading) inputRef.current?.focus(); }, [phase, loading]);
 
   async function handleSubmitForm() {
     if (!featureName.trim() || !description.trim()) return;
-    setLoading(true);
-    setError("");
-    setPhase("chat");
+    setLoading(true); setError(""); setPhase("chat");
     const userMsg: Message = { role: "user", content: description };
     setMessages([userMsg]);
-
     try {
       const res = await fetch("/api/suggestion", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "chat",
-          featureName,
-          messages: [userMsg],
-        }),
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "chat", featureName, messages: [userMsg] }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Request failed");
       setMessages((prev) => [...prev, { role: "assistant", content: data.reply }]);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error");
-    } finally {
-      setLoading(false);
-    }
+    } catch (err) { setError(err instanceof Error ? err.message : "Unknown error"); }
+    finally { setLoading(false); }
   }
 
   async function handleSendMessage() {
     const text = input.trim();
     if (!text || loading) return;
-    setInput("");
-    setLoading(true);
-    setError("");
+    setInput(""); setLoading(true); setError("");
     const newMessages = [...messages, { role: "user" as const, content: text }];
     setMessages(newMessages);
-
     try {
       const res = await fetch("/api/suggestion", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "chat",
-          featureName,
-          messages: newMessages,
-        }),
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "chat", featureName, messages: newMessages }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Request failed");
       setMessages((prev) => [...prev, { role: "assistant", content: data.reply }]);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error");
-    } finally {
-      setLoading(false);
-    }
+    } catch (err) { setError(err instanceof Error ? err.message : "Unknown error"); }
+    finally { setLoading(false); }
   }
 
   async function handleSendToAdmin() {
-    setSending(true);
-    setError("");
+    setSending(true); setError("");
     try {
       const res = await fetch("/api/suggestion", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "send",
-          featureName,
-          description,
-          conversation: messages,
-        }),
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "send", featureName, description, conversation: messages }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Send failed");
       setPhase("sent");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error");
-    } finally {
-      setSending(false);
-    }
+    } catch (err) { setError(err instanceof Error ? err.message : "Unknown error"); }
+    finally { setSending(false); }
   }
 
   const assistantMessages = messages.filter((m) => m.role === "assistant");
@@ -128,322 +201,114 @@ export default function SuggestionBoxModal({ onClose }: { onClose: () => void })
   const visibleAssistant = totalPages > 0 ? assistantMessages[totalPages - 1 - safePage] : null;
 
   return (
-    <div
-      className="fixed inset-0 z-[100] flex items-center justify-center p-4"
-      style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(8px)" }}
-      onClick={onClose}
-    >
-      <div
-        className="relative w-full max-w-2xl rounded-2xl overflow-hidden flex flex-col"
-        style={{
-          background: "linear-gradient(180deg, rgba(20,15,35,0.98), rgba(8,6,16,0.98))",
-          border: `1px solid rgba(${ACCENT_RGB},0.25)`,
-          boxShadow: `0 24px 80px rgba(0,0,0,0.7), 0 0 40px rgba(${ACCENT_RGB},0.15)`,
-          maxHeight: "85vh",
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div
-          className="flex items-center justify-between px-6 py-4 shrink-0"
-          style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
-        >
-          <div className="flex items-center gap-3">
-            <span className="text-2xl">💡</span>
+    <ModalBackdrop onClick={onClose}>
+      <ModalContainer $accent="pink" $maxWidth="42rem" onClick={(e) => e.stopPropagation()}>
+        <ModalHeader>
+          <ModalHeaderLeft>
+            <span style={{ fontSize: "1.5rem" }}>💡</span>
             <div>
-              <h2
-                className="text-xl font-bold"
-                style={{ color: ACCENT, textShadow: `0 0 12px rgba(${ACCENT_RGB},0.5)` }}
-              >
-                SuggestionBox
-              </h2>
-              <p className="text-xs text-white/40">
+              <ModalTitle>SuggestionBox</ModalTitle>
+              <ModalSubtitle>
                 {phase === "form" && "Describe your feature idea"}
                 {phase === "chat" && "Refine your idea with Claude"}
                 {phase === "sent" && "Suggestion sent!"}
-              </p>
+              </ModalSubtitle>
             </div>
-          </div>
-          <button
-            onClick={onClose}
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-white/50 hover:text-white hover:bg-white/10 transition-colors"
-            aria-label="Close"
-          >
-            ✕
-          </button>
-        </div>
-
-        {/* Body */}
-        <div className="flex-1 overflow-y-auto p-6">
-          {/* Phase: Form */}
+          </ModalHeaderLeft>
+          <CloseBtn onClick={onClose} aria-label="Close">✕</CloseBtn>
+        </ModalHeader>
+        <ModalBody>
           {phase === "form" && (
-            <div className="flex flex-col gap-4">
+            <FormStack>
               <div>
-                <label
-                  className="block text-xs font-bold uppercase tracking-widest mb-2"
-                  style={{ color: ACCENT }}
-                >
-                  Proposed name of feature
-                </label>
-                <input
-                  value={featureName}
-                  onChange={(e) => setFeatureName(e.target.value)}
-                  placeholder="e.g. Client Dashboard Analytics"
-                  autoFocus
-                  className="w-full rounded-xl px-4 py-3 text-sm text-white outline-none placeholder:text-white/25 transition-colors"
-                  style={{
-                    background: "rgba(255,255,255,0.04)",
-                    border: `1px solid rgba(${ACCENT_RGB},0.2)`,
-                  }}
-                  onFocus={(e) => (e.currentTarget.style.borderColor = `rgba(${ACCENT_RGB},0.5)`)}
-                  onBlur={(e) => (e.currentTarget.style.borderColor = `rgba(${ACCENT_RGB},0.2)`)}
-                />
+                <FormLabel>Proposed name of feature</FormLabel>
+                <Input $accent="pink" value={featureName} onChange={(e) => setFeatureName(e.target.value)} placeholder="e.g. Client Dashboard Analytics" autoFocus />
               </div>
               <div>
-                <label
-                  className="block text-xs font-bold uppercase tracking-widest mb-2"
-                  style={{ color: ACCENT }}
-                >
-                  Describe your feature
-                </label>
-                <textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="What should this feature do? Who is it for? What problem does it solve?"
-                  rows={5}
-                  className="w-full rounded-xl px-4 py-3 text-sm text-white outline-none placeholder:text-white/25 resize-none transition-colors"
-                  style={{
-                    background: "rgba(255,255,255,0.04)",
-                    border: `1px solid rgba(${ACCENT_RGB},0.2)`,
-                  }}
-                  onFocus={(e) => (e.currentTarget.style.borderColor = `rgba(${ACCENT_RGB},0.5)`)}
-                  onBlur={(e) => (e.currentTarget.style.borderColor = `rgba(${ACCENT_RGB},0.2)`)}
-                />
+                <FormLabel>Describe your feature</FormLabel>
+                <TextArea $accent="pink" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="What should this feature do? Who is it for?" rows={5} />
               </div>
-              <button
-                onClick={handleSubmitForm}
-                disabled={!featureName.trim() || !description.trim()}
-                className="self-end px-6 py-2.5 rounded-xl text-sm font-bold transition-all disabled:opacity-30 disabled:cursor-not-allowed"
-                style={{
-                  background: `linear-gradient(135deg, ${ACCENT}, #a855f7)`,
-                  color: "#fff",
-                  boxShadow: `0 4px 20px rgba(${ACCENT_RGB},0.3)`,
-                }}
-              >
+              <GlowButton onClick={handleSubmitForm} disabled={!featureName.trim() || !description.trim()} style={{ alignSelf: "flex-end" }}>
                 Generate Plan with Claude
-              </button>
-            </div>
+              </GlowButton>
+            </FormStack>
           )}
 
-          {/* Phase: Chat */}
           {phase === "chat" && (
-            <div className="flex flex-col gap-4">
-              {/* Feature name badge */}
-              <div
-                className="inline-flex items-center gap-2 self-start px-3 py-1.5 rounded-lg text-xs font-bold"
-                style={{
-                  background: `rgba(${ACCENT_RGB},0.08)`,
-                  border: `1px solid rgba(${ACCENT_RGB},0.2)`,
-                  color: ACCENT,
-                }}
-              >
-                💡 {featureName}
-              </div>
+            <ChatStack>
+              <FeatureBadge>💡 {featureName}</FeatureBadge>
 
-              {/* Claude response area — GPG (most recent first) */}
               {visibleAssistant && (
-                <div
-                  className="rounded-xl p-4"
-                  style={{
-                    background: "rgba(0,191,255,0.04)",
-                    border: `1px solid rgba(0,191,255,0.15)`,
-                  }}
-                >
-                  <div className="flex items-center gap-2 mb-3">
-                    <span
-                      className="text-[10px] font-bold uppercase tracking-widest"
-                      style={{ color: CYAN }}
-                    >
-                      Claude AI
-                    </span>
+                <ResponseCard>
+                  <ResponseHeader>
+                    <AccentLabel $accent="cyan">Claude AI</AccentLabel>
                     {totalPages > 1 && (
-                      <span className="text-[10px] text-white/30 ml-auto">
+                      <span style={{ fontSize: "0.625rem", color: "var(--t-textGhost)", marginLeft: "auto" }}>
                         Response {totalPages - safePage} of {totalPages}
                       </span>
                     )}
-                  </div>
-                  <div
-                    className="text-sm text-white/80 leading-relaxed prose prose-invert prose-sm max-w-none"
-                    style={{ whiteSpace: "pre-wrap" }}
-                  >
-                    {visibleAssistant.content}
-                  </div>
-                </div>
+                  </ResponseHeader>
+                  <ResponseBody>{visibleAssistant.content}</ResponseBody>
+                </ResponseCard>
               )}
 
-              {/* GPG paginator for assistant messages */}
               {totalPages > 1 && (
-                <div className="flex items-center justify-center gap-3">
-                  <button
-                    onClick={() => setPage((p) => Math.max(0, p - 1))}
-                    disabled={safePage === 0}
-                    className="w-7 h-7 rounded-full flex items-center justify-center text-sm transition-all disabled:opacity-30"
-                    style={{
-                      background: "rgba(255,255,255,0.04)",
-                      border: "1px solid rgba(255,255,255,0.12)",
-                      color: "rgba(255,255,255,0.6)",
-                    }}
-                  >
-                    ‹
-                  </button>
-                  <span className="text-xs font-mono text-white/60 tabular-nums">
-                    {safePage + 1} / {totalPages}
-                  </span>
-                  <button
-                    onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
-                    disabled={safePage === totalPages - 1}
-                    className="w-7 h-7 rounded-full flex items-center justify-center text-sm transition-all disabled:opacity-30"
-                    style={{
-                      background: "rgba(255,255,255,0.04)",
-                      border: "1px solid rgba(255,255,255,0.12)",
-                      color: "rgba(255,255,255,0.6)",
-                    }}
-                  >
-                    ›
-                  </button>
-                </div>
+                <PageNav>
+                  <PageCircle onClick={() => setPage((p) => Math.max(0, p - 1))} disabled={safePage === 0}>‹</PageCircle>
+                  <span style={{ fontSize: "0.75rem", fontFamily: "var(--font-geist-mono)", color: "var(--t-textMuted)" }}>{safePage + 1} / {totalPages}</span>
+                  <PageCircle onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))} disabled={safePage === totalPages - 1}>›</PageCircle>
+                </PageNav>
               )}
 
-              {/* Loading indicator */}
-              {loading && (
-                <div className="flex items-center gap-2 text-xs" style={{ color: CYAN }}>
-                  <span className="animate-pulse">●</span> Claude is thinking…
-                </div>
-              )}
+              {loading && <PulseText $color={colors.cyan}>● Claude is thinking…</PulseText>}
 
-              {/* User messages history (collapsed) */}
               {messages.filter((m) => m.role === "user").length > 1 && (
-                <details className="text-xs text-white/30">
-                  <summary className="cursor-pointer hover:text-white/50 transition-colors">
-                    Your messages ({messages.filter((m) => m.role === "user").length})
-                  </summary>
-                  <div className="mt-2 flex flex-col gap-2">
-                    {messages
-                      .filter((m) => m.role === "user")
-                      .reverse()
-                      .map((m, i) => (
-                        <div
-                          key={i}
-                          className="rounded-lg p-3"
-                          style={{
-                            background: "rgba(255,78,203,0.04)",
-                            borderLeft: `2px solid rgba(${ACCENT_RGB},0.3)`,
-                          }}
-                        >
-                          <p className="text-white/50 text-xs">{m.content}</p>
-                        </div>
-                      ))}
+                <details style={{ fontSize: "0.75rem", color: "var(--t-textGhost)" }}>
+                  <summary style={{ cursor: "pointer" }}>Your messages ({messages.filter((m) => m.role === "user").length})</summary>
+                  <div style={{ marginTop: "0.5rem", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                    {messages.filter((m) => m.role === "user").reverse().map((m, i) => (
+                      <UserBubble key={i}><p style={{ fontSize: "0.75rem", color: "var(--t-textMuted)", margin: 0 }}>{m.content}</p></UserBubble>
+                    ))}
                   </div>
                 </details>
               )}
 
-              {/* Follow-up input */}
               {!loading && (
-                <div className="flex gap-2 items-end">
-                  <textarea
-                    ref={inputRef}
-                    value={input}
+                <ChatRow>
+                  <TextArea
+                    ref={inputRef} $accent="pink" value={input}
                     onChange={(e) => setInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && !e.shiftKey) {
-                        e.preventDefault();
-                        handleSendMessage();
-                      }
-                    }}
-                    placeholder="Ask a follow-up or refine the plan…"
-                    rows={2}
-                    className="flex-1 rounded-xl px-4 py-3 text-sm text-white outline-none placeholder:text-white/25 resize-none"
-                    style={{
-                      background: "rgba(255,255,255,0.04)",
-                      border: `1px solid rgba(${ACCENT_RGB},0.2)`,
-                    }}
+                    onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSendMessage(); } }}
+                    placeholder="Ask a follow-up or refine the plan…" rows={2}
+                    style={{ flex: 1 }}
                   />
-                  <button
-                    onClick={handleSendMessage}
-                    disabled={!input.trim()}
-                    className="px-4 py-3 rounded-xl text-sm font-bold transition-all disabled:opacity-30"
-                    style={{
-                      background: `rgba(${ACCENT_RGB},0.15)`,
-                      border: `1px solid rgba(${ACCENT_RGB},0.3)`,
-                      color: ACCENT,
-                    }}
-                  >
-                    ↑
-                  </button>
-                </div>
+                  <SendBtn onClick={handleSendMessage} disabled={!input.trim()}>↑</SendBtn>
+                </ChatRow>
               )}
 
-              {/* Send to admin button */}
               {assistantMessages.length > 0 && !loading && (
-                <button
-                  onClick={handleSendToAdmin}
-                  disabled={sending}
-                  className="self-center px-6 py-2.5 rounded-xl text-sm font-bold transition-all mt-2"
-                  style={{
-                    background: `linear-gradient(135deg, ${ACCENT}, #a855f7)`,
-                    color: "#fff",
-                    boxShadow: `0 4px 20px rgba(${ACCENT_RGB},0.3)`,
-                    opacity: sending ? 0.5 : 1,
-                  }}
-                >
+                <GlowButton onClick={handleSendToAdmin} disabled={sending} style={{ alignSelf: "center", marginTop: "0.5rem" }}>
                   {sending ? "Sending…" : "Send to admin team"}
-                </button>
+                </GlowButton>
               )}
-            </div>
+            </ChatStack>
           )}
 
-          {/* Phase: Sent */}
           {phase === "sent" && (
-            <div className="flex flex-col items-center gap-4 py-8">
-              <span className="text-5xl">✅</span>
-              <h3 className="text-lg font-bold" style={{ color: ACCENT }}>
-                Suggestion sent!
-              </h3>
-              <p className="text-sm text-white/50 text-center max-w-sm">
-                Your feature suggestion for <strong style={{ color: ACCENT }}>{featureName}</strong> has
-                been emailed to the admin team with the full conversation and implementation plan.
+            <SentWrap>
+              <span style={{ fontSize: "3rem" }}>✅</span>
+              <ModalTitle>Suggestion sent!</ModalTitle>
+              <p style={{ fontSize: "0.875rem", color: "var(--t-textMuted)", textAlign: "center", maxWidth: "24rem" }}>
+                Your feature suggestion for <strong style={{ color: colors.pink }}>{featureName}</strong> has been emailed to the admin team.
               </p>
-              <button
-                onClick={onClose}
-                className="px-6 py-2.5 rounded-xl text-sm font-bold mt-4 transition-colors"
-                style={{
-                  background: "rgba(255,255,255,0.06)",
-                  border: "1px solid rgba(255,255,255,0.12)",
-                  color: "rgba(255,255,255,0.6)",
-                }}
-              >
-                Close
-              </button>
-            </div>
+              <SubtleButton onClick={onClose} style={{ marginTop: "1rem" }}>Close</SubtleButton>
+            </SentWrap>
           )}
 
-          {/* Error */}
-          {error && (
-            <div
-              className="mt-3 rounded-lg px-4 py-2 text-xs"
-              style={{
-                background: "rgba(239,68,68,0.1)",
-                border: "1px solid rgba(239,68,68,0.2)",
-                color: "#ef4444",
-              }}
-            >
-              {error}
-            </div>
-          )}
-
+          {error && <ErrorBox>{error}</ErrorBox>}
           <div ref={chatEndRef} />
-        </div>
-      </div>
-    </div>
+        </ModalBody>
+      </ModalContainer>
+    </ModalBackdrop>
   );
 }
