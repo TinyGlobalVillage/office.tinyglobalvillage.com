@@ -1,6 +1,18 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import styled from "styled-components";
+import { colors, rgb } from "@/app/theme";
+import {
+  PanelBackdrop,
+  Panel,
+  PanelHeader,
+  PanelIconBtn,
+  PanelActionBtn,
+  PanelEmptyState,
+  PanelTitle,
+  Spacer,
+} from "@/app/styled";
 
 type LiveDate = { date: string; bytes: number; archived: false };
 type ArchiveDate = { date: string; bytes: number; archived: true; decompressed: boolean };
@@ -13,6 +25,211 @@ function fmtBytes(b: number) {
 }
 
 export type TabMode = "logs" | "archive";
+
+/* ── Local styled ──────────────────────────────────────────────── */
+
+const TabPill = styled.button<{ $active?: boolean }>`
+  padding: 0.25rem 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  transition: all 0.15s;
+  background: ${(p) => (p.$active ? `rgba(${rgb.pink}, 0.15)` : "transparent")};
+  border: 1px solid ${(p) => (p.$active ? `rgba(${rgb.pink}, 0.4)` : "var(--t-borderStrong)")};
+  color: ${(p) => (p.$active ? colors.pink : "var(--t-textFaint)")};
+`;
+
+const SidebarWrap = styled.div`
+  display: flex;
+  flex-direction: column;
+  width: 13rem;
+  flex-shrink: 0;
+  overflow-y: auto;
+  padding: 0.5rem 0;
+  border-right: 1px solid var(--t-border);
+  scrollbar-width: thin;
+`;
+
+const DateBtn = styled.button<{ $active?: boolean }>`
+  display: flex;
+  flex-direction: column;
+  padding: 0.625rem 1rem;
+  text-align: left;
+  transition: all 0.15s;
+  cursor: pointer;
+  border: none;
+  border-left: 2px solid ${(p) => (p.$active ? colors.pink : "transparent")};
+  background: ${(p) => (p.$active ? `rgba(${rgb.pink}, 0.12)` : "transparent")};
+
+  &:hover {
+    background: ${(p) => (p.$active ? `rgba(${rgb.pink}, 0.12)` : "var(--t-inputBg)")};
+  }
+`;
+
+const DateLabel = styled.span<{ $active?: boolean }>`
+  font-size: 0.75rem;
+  font-family: var(--font-geist-mono), monospace;
+  font-weight: 700;
+  color: ${(p) => (p.$active ? colors.pink : "var(--t-textMuted)")};
+`;
+
+const DateMeta = styled.span`
+  font-size: 0.5625rem;
+  color: var(--t-textGhost);
+  margin-top: 0.125rem;
+`;
+
+const SidebarPager = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.5rem 0.75rem;
+  margin-top: auto;
+  border-top: 1px solid var(--t-border);
+`;
+
+const PagerBtn = styled.button`
+  font-size: 0.5625rem;
+  color: var(--t-textFaint);
+  padding: 0 0.25rem;
+  border: none;
+  background: none;
+  cursor: pointer;
+
+  &:hover { color: var(--t-textMuted); }
+  &:disabled { opacity: 0.3; cursor: not-allowed; }
+`;
+
+const PagerLabel = styled.span`
+  font-size: 0.5625rem;
+  color: var(--t-textGhost);
+  flex: 1;
+  text-align: center;
+`;
+
+const ViewerWrap = styled.div`
+  flex: 1;
+  overflow: hidden;
+  padding: 1rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+`;
+
+const ViewerControls = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+`;
+
+const InfoText = styled.span`
+  font-size: 0.75rem;
+  color: var(--t-textFaint);
+`;
+
+const LoadingText = styled.span`
+  font-size: 0.625rem;
+  color: ${colors.gold};
+  opacity: 0.7;
+`;
+
+const NavBtn = styled.button`
+  font-size: 0.625rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  color: var(--t-textFaint);
+  border: 1px solid var(--t-borderStrong);
+  background: none;
+  cursor: pointer;
+
+  &:hover { color: ${colors.cyan}; }
+  &:disabled { opacity: 0.3; cursor: not-allowed; }
+`;
+
+const LogPane = styled.div`
+  flex: 1;
+  overflow-y: auto;
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 0.6875rem;
+  line-height: 1.55;
+  border-radius: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: rgba(0, 0, 0, 0.5);
+  min-height: 0;
+  scrollbar-width: thin;
+
+  [data-theme="light"] & {
+    background: rgba(0, 0, 0, 0.03);
+  }
+`;
+
+const LogLine = styled.div<{ $err?: boolean }>`
+  color: ${(p) => (p.$err ? colors.red : "var(--t-textMuted)")};
+`;
+
+const CompressedWrap = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 16rem;
+  gap: 1rem;
+`;
+
+const CompressedIcon = styled.span`
+  font-size: 1.875rem;
+`;
+
+const CompressedLabel = styled.p`
+  font-size: 0.875rem;
+  color: var(--t-textMuted);
+`;
+
+const DateTitle = styled.h3`
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--t-textMuted);
+`;
+
+const ArchiveBadge = styled.span`
+  font-size: 0.5625rem;
+  font-weight: 700;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  background: rgba(${rgb.gold}, 0.12);
+  border: 1px solid rgba(${rgb.gold}, 0.3);
+  color: ${colors.gold};
+`;
+
+const CountLabel = styled.span`
+  font-size: 0.625rem;
+  color: var(--t-textGhost);
+`;
+
+const BodySplit = styled.div`
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+`;
+
+const EmptyCenter = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  gap: 0.75rem;
+  color: var(--t-textGhost);
+`;
+
+/* ── LogViewer ─────────────────────────────────────────────────── */
 
 function LogViewer({
   date,
@@ -35,26 +252,32 @@ function LogViewer({
   const [decompressing, setDecompressing] = useState(false);
   const [isDecompressed, setIsDecompressed] = useState(decompressed);
 
-  const load = useCallback(async (p: number) => {
-    setLoading(true);
-    try {
-      const qs = isArchive && isDecompressed
-        ? `date=${date}&page=${p}&tmp=1`
-        : `date=${date}&page=${p}`;
-      const res = await fetch(`/api/logs?${qs}`);
-      if (res.ok) {
-        const d = await res.json();
-        setLines(d.lines ?? []);
-        setTotal(d.total ?? 0);
-        setTotalPages(d.totalPages ?? 1);
-        setPage(d.page ?? 1);
+  const load = useCallback(
+    async (p: number) => {
+      setLoading(true);
+      try {
+        const qs =
+          isArchive && isDecompressed
+            ? `date=${date}&page=${p}&tmp=1`
+            : `date=${date}&page=${p}`;
+        const res = await fetch(`/api/logs?${qs}`);
+        if (res.ok) {
+          const d = await res.json();
+          setLines(d.lines ?? []);
+          setTotal(d.total ?? 0);
+          setTotalPages(d.totalPages ?? 1);
+          setPage(d.page ?? 1);
+        }
+      } finally {
+        setLoading(false);
       }
-    } finally {
-      setLoading(false);
-    }
-  }, [date, isArchive, isDecompressed]);
+    },
+    [date, isArchive, isDecompressed]
+  );
 
-  useEffect(() => { load(1); }, [load]);
+  useEffect(() => {
+    load(1);
+  }, [load]);
 
   const handleDecompress = async () => {
     setDecompressing(true);
@@ -71,96 +294,75 @@ function LogViewer({
 
   if (isArchive && !isDecompressed) {
     return (
-      <div className="flex flex-col items-center justify-center h-64 gap-4">
-        <span className="text-3xl">🗜</span>
-        <p className="text-sm text-white/50">This log is compressed</p>
-        <button
-          onClick={handleDecompress}
-          disabled={decompressing}
-          className="px-5 py-2 rounded-xl text-xs font-bold transition-all"
-          style={{
-            background: "rgba(0,191,255,0.15)",
-            border: "1px solid rgba(0,191,255,0.4)",
-            color: "#00bfff",
-          }}
-        >
+      <CompressedWrap>
+        <CompressedIcon>🗜</CompressedIcon>
+        <CompressedLabel>This log is compressed</CompressedLabel>
+        <PanelActionBtn $color="cyan" onClick={handleDecompress} disabled={decompressing}>
           {decompressing ? "Decompressing…" : "🗃 Decompress to View"}
-        </button>
-      </div>
+        </PanelActionBtn>
+      </CompressedWrap>
     );
   }
 
   return (
-    <div className="flex flex-col h-full gap-3">
-      {/* Controls */}
-      <div className="flex items-center gap-3 flex-wrap">
-        <span className="text-xs text-white/40">
+    <>
+      <ViewerControls>
+        <InfoText>
           {total.toLocaleString()} lines · page {page}/{totalPages}
-        </span>
-        {loading && <span className="text-[10px] text-yellow-400/70 animate-pulse">Loading…</span>}
+        </InfoText>
+        {loading && <LoadingText>Loading…</LoadingText>}
         {isArchive && isDecompressed && (
-          <button
-            onClick={handleClose}
-            title="Delete decompressed preview"
-            className="ml-auto text-[10px] font-bold px-3 py-1 rounded-lg transition-all"
-            style={{
-              background: "rgba(255,107,107,0.1)",
-              border: "1px solid rgba(255,107,107,0.3)",
-              color: "#ff6b6b",
-            }}
-          >
+          <PanelActionBtn $color="red" onClick={handleClose} style={{ marginLeft: "auto" }}>
             ✕ Close Preview
-          </button>
+          </PanelActionBtn>
         )}
         {totalPages > 1 && (
-          <div className="flex items-center gap-1 ml-auto">
-            <button
-              disabled={page >= totalPages}
-              onClick={() => load(page + 1)}
-              className="text-[10px] px-2 py-1 rounded disabled:opacity-30 text-white/40 hover:text-cyan-400 border border-white/08"
-            >
+          <div style={{ display: "flex", alignItems: "center", gap: "0.25rem", marginLeft: "auto" }}>
+            <NavBtn disabled={page >= totalPages} onClick={() => load(page + 1)}>
               ← Older
-            </button>
-            <button
-              disabled={page <= 1}
-              onClick={() => load(page - 1)}
-              className="text-[10px] px-2 py-1 rounded disabled:opacity-30 text-white/40 hover:text-cyan-400 border border-white/08"
-            >
+            </NavBtn>
+            <NavBtn disabled={page <= 1} onClick={() => load(page - 1)}>
               Newer →
-            </button>
+            </NavBtn>
           </div>
         )}
-      </div>
-
-      {/* Lines */}
-      <div
-        className="flex-1 overflow-y-auto font-mono text-[11px] leading-[1.55] rounded-xl px-4 py-3"
-        style={{ background: "rgba(0,0,0,0.5)", minHeight: 0, scrollbarWidth: "thin" }}
-      >
+      </ViewerControls>
+      <LogPane>
         {lines.length === 0 && !loading && (
-          <span className="text-white/25">No log entries for this date.</span>
+          <span style={{ color: "var(--t-textGhost)" }}>No log entries for this date.</span>
         )}
         {lines.map((line, i) => {
           const isErr = line.includes("error") || line.includes("Error") || line.includes("✗");
           return (
-            <div key={i} style={{ color: isErr ? "#ff6b6b" : "rgba(200,220,220,0.7)" }}>
+            <LogLine key={i} $err={isErr}>
               {line}
-            </div>
+            </LogLine>
           );
         })}
-      </div>
-    </div>
+      </LogPane>
+    </>
   );
 }
 
-export default function LogsModal({ onClose, initialTab = "logs" }: { onClose: () => void; initialTab?: TabMode }) {
+/* ── Main ──────────────────────────────────────────────────────── */
+
+export default function LogsModal({
+  onClose,
+  initialTab = "logs",
+}: {
+  onClose: () => void;
+  initialTab?: TabMode;
+}) {
   const [tab, setTab] = useState<TabMode>(initialTab);
 
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
+
   const [liveDates, setLiveDates] = useState<LiveDate[]>([]);
   const [archiveDates, setArchiveDates] = useState<ArchiveDate[]>([]);
   const [selectedDate, setSelectedDate] = useState<AnyDate | null>(null);
@@ -177,12 +379,15 @@ export default function LogsModal({ onClose, initialTab = "logs" }: { onClose: (
         setLiveDates(d.dates ?? []);
         setArchiveDates(d.archives ?? []);
       }
-    } catch { /* skip */ }
+    } catch {
+      /* skip */
+    }
   }, []);
 
-  useEffect(() => { loadMeta(); }, [loadMeta]);
+  useEffect(() => {
+    loadMeta();
+  }, [loadMeta]);
 
-  // Auto-select newest date
   useEffect(() => {
     const all = [...liveDates, ...archiveDates].sort((a, b) => b.date.localeCompare(a.date));
     if (all.length && !selectedDate) setSelectedDate(all[0]);
@@ -195,7 +400,11 @@ export default function LogsModal({ onClose, initialTab = "logs" }: { onClose: (
       const res = await fetch("/api/logs/archive", { method: "POST" });
       const d = await res.json();
       const n = d.archived?.length ?? 0;
-      setArchiveResult(n === 0 ? "No logs ready to archive (< 30 days old)." : `Archived ${n} log${n !== 1 ? "s" : ""}.`);
+      setArchiveResult(
+        n === 0
+          ? "No logs ready to archive (< 30 days old)."
+          : `Archived ${n} log${n !== 1 ? "s" : ""}.`
+      );
       await loadMeta();
     } finally {
       setArchiving(false);
@@ -205,214 +414,118 @@ export default function LogsModal({ onClose, initialTab = "logs" }: { onClose: (
   const handleDecompress = async (date: string) => {
     await fetch(`/api/logs/archive?decompress=${date}`, { method: "POST" });
     await loadMeta();
-    // Update archive date state to show decompressed
     setArchiveDates((prev) =>
-      prev.map((d) => d.date === date ? { ...d, decompressed: true } : d)
+      prev.map((d) => (d.date === date ? { ...d, decompressed: true } : d))
     );
   };
 
   const handleCloseArchive = async (date: string) => {
     await fetch(`/api/logs/archive?date=${date}`, { method: "DELETE" });
     setArchiveDates((prev) =>
-      prev.map((d) => d.date === date ? { ...d, decompressed: false } : d)
+      prev.map((d) => (d.date === date ? { ...d, decompressed: false } : d))
     );
   };
 
-  // Paginated live dates (30 per page, newest first)
   const pagedLive = liveDates.slice(livePage * DATES_PER_PAGE, (livePage + 1) * DATES_PER_PAGE);
   const livePageTotal = Math.ceil(liveDates.length / DATES_PER_PAGE);
-
   const sidebarDates: AnyDate[] = tab === "logs" ? pagedLive : archiveDates;
 
   return (
     <>
-      {/* Backdrop */}
-      <div
-        className="fixed inset-0 z-50"
-        style={{ background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)" }}
-        onClick={onClose}
-      />
-
-      {/* Modal */}
-      <div
-        className="fixed z-50 flex flex-col"
-        style={{
-          top: 72,
-          left: "3%",
-          right: "3%",
-          bottom: "3%",
-          background: "rgba(6,8,12,0.98)",
-          border: "1px solid rgba(255,78,203,0.2)",
-          borderRadius: 20,
-          boxShadow: "0 24px 80px rgba(0,0,0,0.8)",
-        }}
-      >
-        {/* Header */}
-        <div
-          className="flex items-center gap-4 px-6 py-4 flex-shrink-0"
-          style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}
-        >
-          <h2 className="text-base font-bold" style={{ color: "#ff4ecb" }}>
-            Activity Logs
-          </h2>
-
-          {/* Tabs */}
-          <div className="flex items-center gap-1">
+      <PanelBackdrop onClick={onClose} />
+      <Panel $accent="pink">
+        <PanelHeader $accent="pink">
+          <PanelTitle $color={colors.pink}>Activity Logs</PanelTitle>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
             {(["logs", "archive"] as TabMode[]).map((t) => (
-              <button
-                key={t}
-                onClick={() => setTab(t)}
-                className="px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wider transition-all"
-                style={{
-                  background: tab === t ? "rgba(255,78,203,0.15)" : "transparent",
-                  border: `1px solid ${tab === t ? "rgba(255,78,203,0.4)" : "rgba(255,255,255,0.08)"}`,
-                  color: tab === t ? "#ff4ecb" : "rgba(255,255,255,0.35)",
-                }}
-              >
+              <TabPill key={t} $active={tab === t} onClick={() => setTab(t)}>
                 {t === "logs" ? "📋 Logs" : "🗜 Archive"}
-              </button>
+              </TabPill>
             ))}
           </div>
-
-          {/* Archive action */}
           {tab === "archive" && (
-            <div className="flex items-center gap-3 ml-2">
-              <button
-                onClick={handleArchive}
-                disabled={archiving}
-                title="Compress logs older than 30 days"
-                className="text-xs font-bold px-3 py-1 rounded-lg transition-all disabled:opacity-40"
-                style={{
-                  background: "rgba(247,183,0,0.12)",
-                  border: "1px solid rgba(247,183,0,0.35)",
-                  color: "#f7b700",
-                }}
-              >
+            <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginLeft: "0.5rem" }}>
+              <PanelActionBtn $color="gold" onClick={handleArchive} disabled={archiving}>
                 {archiving ? "Archiving…" : "⚡ Archive Old Logs"}
-              </button>
-              {archiveResult && (
-                <span className="text-[10px] text-white/40">{archiveResult}</span>
-              )}
+              </PanelActionBtn>
+              {archiveResult && <CountLabel>{archiveResult}</CountLabel>}
             </div>
           )}
+          <Spacer />
+          <CountLabel>
+            {tab === "logs"
+              ? `${liveDates.length} day${liveDates.length !== 1 ? "s" : ""} · LA time`
+              : `${archiveDates.length} archive${archiveDates.length !== 1 ? "s" : ""}`}
+          </CountLabel>
+          <PanelIconBtn onClick={onClose} title="Close">
+            ✕
+          </PanelIconBtn>
+        </PanelHeader>
 
-          <div className="ml-auto flex items-center gap-3">
-            <span className="text-[10px] text-white/25">
-              {tab === "logs"
-                ? `${liveDates.length} day${liveDates.length !== 1 ? "s" : ""} · LA time`
-                : `${archiveDates.length} archive${archiveDates.length !== 1 ? "s" : ""}`}
-            </span>
-            <button
-              onClick={onClose}
-              title="Close"
-              className="text-white/30 hover:text-white/70 transition-colors text-sm font-bold"
-            >
-              ✕
-            </button>
-          </div>
-        </div>
-
-        {/* Body */}
-        <div className="flex flex-1 overflow-hidden">
-          {/* Sidebar: date list */}
-          <div
-            className="flex flex-col w-52 flex-shrink-0 overflow-y-auto py-2"
-            style={{ borderRight: "1px solid rgba(255,255,255,0.06)", scrollbarWidth: "thin" }}
-          >
+        <BodySplit>
+          <SidebarWrap>
             {sidebarDates.length === 0 ? (
-              <p className="text-[10px] text-white/25 px-4 py-3">
-                {tab === "logs" ? "No logs yet." : "No archives. Run 'Archive Old Logs' after 30 days."}
-              </p>
+              <PanelEmptyState style={{ fontSize: "0.625rem", padding: "0.75rem 1rem" }}>
+                {tab === "logs"
+                  ? "No logs yet."
+                  : "No archives. Run 'Archive Old Logs' after 30 days."}
+              </PanelEmptyState>
             ) : (
               sidebarDates.map((d) => {
                 const isSelected = selectedDate?.date === d.date;
                 return (
-                  <button
-                    key={d.date}
-                    onClick={() => setSelectedDate(d)}
-                    className="flex flex-col px-4 py-2.5 text-left transition-all"
-                    style={{
-                      background: isSelected ? "rgba(255,78,203,0.12)" : "transparent",
-                      borderLeft: `2px solid ${isSelected ? "#ff4ecb" : "transparent"}`,
-                    }}
-                  >
-                    <span
-                      className="text-xs font-mono font-bold"
-                      style={{ color: isSelected ? "#ff4ecb" : "rgba(255,255,255,0.5)" }}
-                    >
-                      {d.date}
-                    </span>
-                    <span className="text-[9px] text-white/25 mt-0.5">
+                  <DateBtn key={d.date} $active={isSelected} onClick={() => setSelectedDate(d)}>
+                    <DateLabel $active={isSelected}>{d.date}</DateLabel>
+                    <DateMeta>
                       {d.archived
                         ? `🗜 ${fmtBytes(d.bytes)}${d.decompressed ? " · open" : ""}`
                         : fmtBytes(d.bytes)}
-                    </span>
-                  </button>
+                    </DateMeta>
+                  </DateBtn>
                 );
               })
             )}
-
-            {/* Pagination for live dates */}
             {tab === "logs" && livePageTotal > 1 && (
-              <div className="flex items-center gap-1 px-3 py-2 mt-auto border-t border-white/05">
-                <button
-                  disabled={livePage <= 0}
-                  onClick={() => setLivePage((p) => p - 1)}
-                  className="text-[9px] text-white/30 hover:text-white disabled:opacity-30 px-1"
-                >
+              <SidebarPager>
+                <PagerBtn disabled={livePage <= 0} onClick={() => setLivePage((p) => p - 1)}>
                   ↑ Newer
-                </button>
-                <span className="text-[9px] text-white/20 flex-1 text-center">
+                </PagerBtn>
+                <PagerLabel>
                   {livePage + 1}/{livePageTotal}
-                </span>
-                <button
+                </PagerLabel>
+                <PagerBtn
                   disabled={livePage >= livePageTotal - 1}
                   onClick={() => setLivePage((p) => p + 1)}
-                  className="text-[9px] text-white/30 hover:text-white disabled:opacity-30 px-1"
                 >
                   Older ↓
-                </button>
-              </div>
+                </PagerBtn>
+              </SidebarPager>
             )}
-          </div>
+          </SidebarWrap>
 
-          {/* Log viewer */}
-          <div className="flex-1 overflow-hidden px-6 py-4">
-            {selectedDate ? (
-              <div className="h-full flex flex-col gap-3">
-                <div className="flex items-center gap-3 flex-shrink-0">
-                  <h3 className="text-sm font-bold text-white/70">
-                    {selectedDate.date}
-                  </h3>
-                  {selectedDate.archived && (
-                    <span
-                      className="text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider"
-                      style={{ background: "rgba(247,183,0,0.12)", border: "1px solid rgba(247,183,0,0.3)", color: "#f7b700" }}
-                    >
-                      Archived
-                    </span>
-                  )}
-                </div>
-                <div className="flex-1 overflow-hidden">
-                  <LogViewer
-                    key={selectedDate.date}
-                    date={selectedDate.date}
-                    isArchive={selectedDate.archived}
-                    decompressed={selectedDate.archived ? selectedDate.decompressed : false}
-                    onDecompressRequest={handleDecompress}
-                    onCloseArchive={handleCloseArchive}
-                  />
-                </div>
+          {selectedDate ? (
+            <ViewerWrap>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexShrink: 0 }}>
+                <DateTitle>{selectedDate.date}</DateTitle>
+                {selectedDate.archived && <ArchiveBadge>Archived</ArchiveBadge>}
               </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center h-full gap-3 text-white/25">
-                <span className="text-4xl">📋</span>
-                <p className="text-sm">Select a date to view logs</p>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
+              <LogViewer
+                key={selectedDate.date}
+                date={selectedDate.date}
+                isArchive={selectedDate.archived}
+                decompressed={selectedDate.archived ? selectedDate.decompressed : false}
+                onDecompressRequest={handleDecompress}
+                onCloseArchive={handleCloseArchive}
+              />
+            </ViewerWrap>
+          ) : (
+            <EmptyCenter>
+              <span style={{ fontSize: "2.5rem" }}>📋</span>
+              <p style={{ fontSize: "0.875rem" }}>Select a date to view logs</p>
+            </EmptyCenter>
+          )}
+        </BodySplit>
+      </Panel>
     </>
   );
 }

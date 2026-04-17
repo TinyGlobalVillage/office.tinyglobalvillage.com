@@ -1,8 +1,12 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback, ChangeEvent } from "react";
+import styled from "styled-components";
+import { colors, rgb } from "@/app/theme";
+import { ModalBackdrop, CloseBtn, PillButton } from "@/app/styled";
+import { hexToRgb } from "./ProfileModal";
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+/* ── Types ─────────────────────────────────────────────────────── */
 
 export type UserRole = "admin" | "employee";
 
@@ -26,28 +30,447 @@ export type ChatSettings = {
 
 const TS_FORMATS: { label: string; value: ChatSettings["timestampFormat"] }[] = [
   { label: "Relative (just now)", value: "relative" },
-  { label: "Time (3:42 PM)",      value: "time"     },
+  { label: "Time (3:42 PM)", value: "time" },
   { label: "Full (Apr 15, 3:42)", value: "datetime" },
 ];
 const FONT_SIZES: { label: string; value: ChatSettings["fontSize"] }[] = [
-  { label: "Small",  value: "xs"   },
-  { label: "Normal", value: "sm"   },
-  { label: "Large",  value: "base" },
+  { label: "Small", value: "xs" },
+  { label: "Normal", value: "sm" },
+  { label: "Large", value: "base" },
 ];
 const FONTS = [
-  { label: "Sans",  value: "sans",  css: "font-sans"  },
-  { label: "Mono",  value: "mono",  css: "font-mono"  },
-  { label: "Serif", value: "serif", css: "font-serif" },
+  { label: "Sans", value: "sans", css: "sans-serif" },
+  { label: "Mono", value: "mono", css: "monospace" },
+  { label: "Serif", value: "serif", css: "serif" },
 ];
 
 const MEMBERS_PER_PAGE = 5;
 
-function hexToRgb(hex: string) {
-  const c = hex.replace("#", "");
-  return `${parseInt(c.slice(0,2),16)},${parseInt(c.slice(2,4),16)},${parseInt(c.slice(4,6),16)}`;
-}
+/* ── Styled ────────────────────────────────────────────────────── */
 
-// ── Avatar component ──────────────────────────────────────────────────────────
+const Backdrop = styled(ModalBackdrop)`
+  z-index: 80;
+  padding: 0;
+`;
+
+const Modal = styled.div`
+  position: fixed;
+  z-index: 81;
+  display: flex;
+  flex-direction: column;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(96vw, 520px);
+  max-height: 85vh;
+  background: var(--t-surface);
+  border: 1px solid rgba(${rgb.pink}, 0.2);
+  border-radius: 20px;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.85), 0 0 40px rgba(${rgb.pink}, 0.08);
+
+  [data-theme="light"] & {
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.12), 0 0 40px rgba(${rgb.pink}, 0.04);
+  }
+`;
+
+const Header = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--t-border);
+`;
+
+const TabGroup = styled.div`
+  display: flex;
+  align-items: center;
+  border-radius: 9999px;
+  padding: 0.125rem;
+  background: var(--t-inputBg);
+  border: 1px solid var(--t-borderStrong);
+`;
+
+const TabBtn = styled.button<{ $active?: boolean }>`
+  font-size: 0.625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  border: 1px solid ${(p) => (p.$active ? `rgba(${rgb.pink}, 0.4)` : "transparent")};
+  background: ${(p) => (p.$active ? `rgba(${rgb.pink}, 0.2)` : "transparent")};
+  color: ${(p) => (p.$active ? colors.pink : "var(--t-textFaint)")};
+  cursor: pointer;
+  transition: all 0.15s;
+`;
+
+const CountBadge = styled.span`
+  font-size: 0.5625rem;
+  font-weight: 700;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  background: rgba(${rgb.pink}, 0.12);
+  border: 1px solid rgba(${rgb.pink}, 0.3);
+  color: ${colors.pink};
+`;
+
+const Body = styled.div`
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.25rem;
+  scrollbar-width: thin;
+`;
+
+const Section = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+`;
+
+const SectionLabel = styled.p`
+  font-size: 0.5625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--t-textFaint);
+  margin: 0 0 0.75rem;
+`;
+
+const Divider = styled.div`
+  width: 100%;
+  height: 1px;
+  background: var(--t-border);
+`;
+
+const ToggleRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+`;
+
+const ToggleLabel = styled.span`
+  font-size: 0.6875rem;
+  color: var(--t-textMuted);
+`;
+
+const Toggle = styled.button<{ $on?: boolean }>`
+  width: 2.5rem;
+  height: 1.25rem;
+  border-radius: 9999px;
+  border: none;
+  position: relative;
+  cursor: pointer;
+  transition: all 0.15s;
+  background: ${(p) => (p.$on ? `rgba(${rgb.pink}, 0.7)` : "var(--t-inputBg)")};
+`;
+
+const ToggleThumb = styled.span<{ $on?: boolean }>`
+  position: absolute;
+  top: 0.125rem;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 50%;
+  transition: all 0.15s;
+  left: ${(p) => (p.$on ? "calc(100% - 1.125rem)" : "0.125rem")};
+  background: ${(p) => (p.$on ? "#fff" : "var(--t-textFaint)")};
+`;
+
+const RadioBtn = styled.button<{ $active?: boolean }>`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.6875rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.5rem;
+  border: none;
+  transition: all 0.15s;
+  text-align: left;
+  cursor: pointer;
+  background: ${(p) => (p.$active ? `rgba(${rgb.pink}, 0.1)` : "transparent")};
+  color: ${(p) => (p.$active ? colors.pink : "var(--t-textFaint)")};
+`;
+
+const RadioCircle = styled.span<{ $active?: boolean }>`
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 50%;
+  border: 1px solid ${(p) => (p.$active ? colors.pink : "var(--t-textGhost)")};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+`;
+
+const RadioDot = styled.span`
+  width: 0.375rem;
+  height: 0.375rem;
+  border-radius: 50%;
+  background: ${colors.pink};
+`;
+
+const OptionGrid = styled.div`
+  display: flex;
+  gap: 0.25rem;
+`;
+
+const OptionBtn = styled.button<{ $active?: boolean }>`
+  flex: 1;
+  padding: 0.25rem;
+  border-radius: 0.5rem;
+  font-size: 0.625rem;
+  transition: all 0.15s;
+  cursor: pointer;
+  background: ${(p) => (p.$active ? `rgba(${rgb.pink}, 0.15)` : "var(--t-inputBg)")};
+  border: 1px solid ${(p) => (p.$active ? `rgba(${rgb.pink}, 0.5)` : "var(--t-borderStrong)")};
+  color: ${(p) => (p.$active ? colors.pink : "var(--t-textFaint)")};
+`;
+
+const SubLabel = styled.p`
+  font-size: 0.625rem;
+  color: var(--t-textFaint);
+  margin: 0 0 0.25rem;
+`;
+
+const AvatarWrap = styled.div`
+  position: relative;
+  flex-shrink: 0;
+`;
+
+const AvatarOverlay = styled.div`
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.55);
+  opacity: 0;
+  transition: opacity 0.15s;
+
+  ${AvatarWrap}:hover & {
+    opacity: 1;
+  }
+`;
+
+const ProfileInput = styled.input<{ $accent?: string }>`
+  background: transparent;
+  outline: none;
+  font-size: 0.75rem;
+  color: var(--t-text);
+  border-radius: 0.5rem;
+  padding: 0.375rem 0.75rem;
+  width: 100%;
+  border: 1px solid ${(p) => (p.$accent ? `${p.$accent}44` : "var(--t-borderStrong)")};
+`;
+
+const ProfileTextarea = styled.textarea`
+  background: transparent;
+  outline: none;
+  font-size: 0.75rem;
+  color: var(--t-textMuted);
+  border-radius: 0.5rem;
+  padding: 0.375rem 0.75rem;
+  width: 100%;
+  resize: none;
+  border: 1px solid var(--t-borderStrong);
+`;
+
+const SaveBtn = styled.button<{ $accent: string }>`
+  font-size: 0.625rem;
+  padding: 0.375rem 0.75rem;
+  border-radius: 0.5rem;
+  transition: all 0.15s;
+  cursor: pointer;
+  background: rgba(${(p) => hexToRgb(p.$accent)}, 0.18);
+  border: 1px solid ${(p) => p.$accent}55;
+  color: ${(p) => p.$accent};
+
+  &:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+`;
+
+const StorageBar = styled.div`
+  width: 100%;
+  height: 0.375rem;
+  border-radius: 9999px;
+  overflow: hidden;
+  margin-bottom: 0.75rem;
+  background: var(--t-inputBg);
+`;
+
+const StorageFill = styled.div<{ $pct: number }>`
+  height: 100%;
+  border-radius: 9999px;
+  transition: all 0.3s;
+  width: ${(p) => Math.min(100, p.$pct)}%;
+  background: ${(p) => (p.$pct > 80 ? colors.red : p.$pct > 60 ? colors.gold : colors.green)};
+`;
+
+const ClearBtn = styled.button`
+  width: 100%;
+  font-size: 0.625rem;
+  font-weight: 700;
+  padding: 0.375rem;
+  border-radius: 0.5rem;
+  transition: all 0.15s;
+  cursor: pointer;
+  background: rgba(${rgb.red}, 0.1);
+  border: 1px solid rgba(${rgb.red}, 0.3);
+  color: ${colors.red};
+`;
+
+const SearchWrap = styled.div`
+  position: relative;
+`;
+
+const SearchIcon = styled.span`
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.75rem;
+  color: var(--t-textGhost);
+`;
+
+const SearchInput = styled.input`
+  width: 100%;
+  background: transparent;
+  outline: none;
+  font-size: 0.75rem;
+  color: var(--t-textMuted);
+  border-radius: 0.75rem;
+  padding: 0.5rem 0.75rem 0.5rem 2rem;
+  border: 1px solid var(--t-borderStrong);
+`;
+
+const SearchClear = styled.button`
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.75rem;
+  color: var(--t-textGhost);
+  border: none;
+  background: none;
+  cursor: pointer;
+
+  &:hover {
+    color: var(--t-textMuted);
+  }
+`;
+
+const MemberCard = styled.div<{ $accent?: string; $self?: boolean }>`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  border-radius: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: ${(p) =>
+    p.$self ? `rgba(${hexToRgb(p.$accent || colors.pink)}, 0.08)` : "var(--t-inputBg)"};
+  border: 1px solid ${(p) => (p.$self ? `${p.$accent || colors.pink}33` : "var(--t-border)")};
+`;
+
+const MemberName = styled.span`
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--t-text);
+  line-height: 1.2;
+`;
+
+const MemberYou = styled.span`
+  font-size: 0.5rem;
+  color: var(--t-textFaint);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+`;
+
+const MemberEmail = styled.p`
+  font-size: 0.625rem;
+  color: var(--t-textFaint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin: 0.125rem 0 0;
+`;
+
+const RoleBadge = styled.span<{ $admin?: boolean }>`
+  font-size: 0.5rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 0.125rem 0.375rem;
+  border-radius: 9999px;
+  background: ${(p) => (p.$admin ? `rgba(${rgb.gold}, 0.15)` : "var(--t-inputBg)")};
+  border: 1px solid ${(p) => (p.$admin ? `rgba(${rgb.gold}, 0.4)` : "var(--t-borderStrong)")};
+  color: ${(p) => (p.$admin ? colors.gold : "var(--t-textFaint)")};
+`;
+
+const RoleSelect = styled.select`
+  font-size: 0.625rem;
+  border-radius: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  outline: none;
+  cursor: pointer;
+  background: var(--t-inputBg);
+  border: 1px solid var(--t-borderStrong);
+  color: var(--t-textMuted);
+`;
+
+const PagerRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 0.25rem;
+`;
+
+const PagerBtn = styled.button`
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  transition: all 0.15s;
+  cursor: pointer;
+  background: rgba(${rgb.pink}, 0.1);
+  border: 1px solid rgba(${rgb.pink}, 0.3);
+  color: ${colors.pink};
+
+  &:disabled {
+    opacity: 0.25;
+    cursor: not-allowed;
+  }
+`;
+
+const PagerInfo = styled.span`
+  font-size: 0.625rem;
+  color: var(--t-textFaint);
+  font-variant-numeric: tabular-nums;
+`;
+
+const ErrorText = styled.p`
+  font-size: 0.5625rem;
+  color: ${colors.red};
+  margin: 0;
+`;
+
+const HintText = styled.p`
+  font-size: 0.625rem;
+  color: var(--t-textGhost);
+  margin: 0;
+`;
+
+const SavingText = styled.span`
+  font-size: 0.5625rem;
+  color: var(--t-textFaint);
+`;
+
+/* ── Avatar component ──────────────────────────────────────────── */
 
 export function UserAvatar({
   profile,
@@ -99,24 +522,7 @@ export function UserAvatar({
   );
 }
 
-// ── Role badge ────────────────────────────────────────────────────────────────
-
-function RoleBadge({ role }: { role: UserRole }) {
-  return (
-    <span
-      className="text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full"
-      style={{
-        background: role === "admin" ? "rgba(247,183,0,0.15)" : "rgba(255,255,255,0.07)",
-        border: `1px solid ${role === "admin" ? "rgba(247,183,0,0.4)" : "rgba(255,255,255,0.15)"}`,
-        color: role === "admin" ? "#f7b700" : "rgba(255,255,255,0.4)",
-      }}
-    >
-      {role}
-    </span>
-  );
-}
-
-// ── Settings tab ──────────────────────────────────────────────────────────────
+/* ── Settings tab ──────────────────────────────────────────────── */
 
 function SettingsTab({
   settings,
@@ -139,17 +545,15 @@ function SettingsTab({
 }) {
   const set = (patch: Partial<ChatSettings>) => onChange({ ...settings, ...patch });
 
-  // Avatar upload
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [avatarError, setAvatarError] = useState("");
 
-  // Profile fields
-  const [editName,  setEditName]  = useState(myProfile?.displayName ?? "");
+  const [editName, setEditName] = useState(myProfile?.displayName ?? "");
   const [editEmail, setEditEmail] = useState(myProfile?.email ?? "");
   const [editTitle, setEditTitle] = useState(myProfile?.title ?? "");
-  const [editBio,   setEditBio]   = useState(myProfile?.bio ?? "");
-  const [saving,    setSaving]    = useState(false);
+  const [editBio, setEditBio] = useState(myProfile?.bio ?? "");
+  const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
 
   useEffect(() => {
@@ -206,221 +610,169 @@ function SettingsTab({
     }
   };
 
-  const accent = myProfile?.accentColor ?? "#ff4ecb";
+  const accent = myProfile?.accentColor ?? colors.pink;
 
   return (
-    <div className="flex flex-col gap-5">
-      {/* ── Identity section ────────────────────────────────────────────── */}
+    <Section>
       <div>
-        <p className="text-[9px] font-bold uppercase tracking-wider text-white/30 mb-3">Identity</p>
-
-        <div className="flex items-center gap-4">
-          {/* Avatar */}
-          <div className="relative shrink-0">
+        <SectionLabel>Identity</SectionLabel>
+        <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+          <AvatarWrap>
             <button
               onClick={() => avatarInputRef.current?.click()}
               disabled={uploadingAvatar}
-              className="relative group"
+              style={{ border: "none", background: "none", cursor: "pointer", position: "relative" }}
               title="Click to change avatar"
             >
               {myProfile && <UserAvatar profile={myProfile} size={56} />}
-              <div
-                className="absolute inset-0 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                style={{ background: "rgba(0,0,0,0.55)" }}
-              >
-                <span className="text-white text-xs">📷</span>
-              </div>
+              <AvatarOverlay>
+                <span style={{ color: "#fff", fontSize: "0.75rem" }}>📷</span>
+              </AvatarOverlay>
             </button>
             <input
               ref={avatarInputRef}
               type="file"
               accept="image/*"
-              className="hidden"
+              style={{ display: "none" }}
               onChange={handleAvatarChange}
             />
             {uploadingAvatar && (
-              <div className="absolute inset-0 rounded-full flex items-center justify-center" style={{ background: "rgba(0,0,0,0.6)" }}>
-                <span className="text-[9px] text-white animate-pulse">…</span>
+              <div
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  borderRadius: "50%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  background: "rgba(0,0,0,0.6)",
+                }}
+              >
+                <span style={{ fontSize: "0.5625rem", color: "#fff" }}>…</span>
               </div>
             )}
-          </div>
+          </AvatarWrap>
 
-          {/* Profile fields */}
-          <div className="flex-1 min-w-0 flex flex-col gap-2">
-            <input
+          <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+            <ProfileInput
+              $accent={accent}
               value={editName}
               onChange={(e) => setEditName(e.target.value)}
               placeholder="Display name"
-              className="bg-transparent outline-none text-sm font-bold text-white rounded-lg px-3 py-1.5 w-full"
-              style={{ border: `1px solid ${accent}44` }}
+              style={{ fontWeight: 700, fontSize: "0.875rem" }}
             />
-            <input
+            <ProfileInput
               value={editEmail}
               onChange={(e) => setEditEmail(e.target.value)}
               placeholder="Email address"
               type="email"
-              className="bg-transparent outline-none text-xs text-white/70 rounded-lg px-3 py-1.5 w-full"
-              style={{ border: "1px solid rgba(255,255,255,0.1)" }}
             />
-            <input
+            <ProfileInput
               value={editTitle}
               onChange={(e) => setEditTitle(e.target.value)}
               placeholder="Title / role"
-              className="bg-transparent outline-none text-xs text-white/70 rounded-lg px-3 py-1.5 w-full"
-              style={{ border: "1px solid rgba(255,255,255,0.1)" }}
             />
-            <textarea
+            <ProfileTextarea
               value={editBio}
               onChange={(e) => setEditBio(e.target.value)}
               placeholder="Bio…"
               rows={2}
-              className="bg-transparent outline-none text-xs text-white/70 rounded-lg px-3 py-1.5 w-full resize-none"
-              style={{ border: "1px solid rgba(255,255,255,0.1)" }}
             />
-            {avatarError && <p className="text-[9px] text-red-400">{avatarError}</p>}
-            {saveError && <p className="text-[9px] text-red-400">{saveError}</p>}
-            <div className="flex items-center justify-between">
-              <p className="text-[10px] text-white/25">Click avatar to change photo</p>
-              <button
-                onClick={saveProfile}
-                disabled={saving}
-                className="text-[10px] px-3 py-1.5 rounded-lg transition-all disabled:opacity-30"
-                style={{ background: `rgba(${hexToRgb(accent)},0.18)`, border: `1px solid ${accent}55`, color: accent }}
-              >
+            {avatarError && <ErrorText>{avatarError}</ErrorText>}
+            {saveError && <ErrorText>{saveError}</ErrorText>}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <HintText>Click avatar to change photo</HintText>
+              <SaveBtn $accent={accent} onClick={saveProfile} disabled={saving}>
                 {saving ? "Saving…" : "Save"}
-              </button>
+              </SaveBtn>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="w-full h-px" style={{ background: "rgba(255,255,255,0.07)" }} />
+      <Divider />
 
-      {/* ── Timestamps ──────────────────────────────────────────────────── */}
       <div>
-        <p className="text-[9px] font-bold uppercase tracking-wider text-white/30 mb-3">Timestamps</p>
-        <div className="flex items-center justify-between mb-3">
-          <span className="text-[11px] text-white/60">Show timestamps</span>
-          <button
-            onClick={() => set({ showTimestamps: !settings.showTimestamps })}
-            className="w-10 h-5 rounded-full relative transition-all"
-            style={{ background: settings.showTimestamps ? "rgba(255,78,203,0.7)" : "rgba(255,255,255,0.1)" }}
-          >
-            <span
-              className="absolute top-0.5 w-4 h-4 rounded-full transition-all"
-              style={{
-                left: settings.showTimestamps ? "calc(100% - 18px)" : "2px",
-                background: settings.showTimestamps ? "#fff" : "rgba(255,255,255,0.4)",
-              }}
-            />
-          </button>
-        </div>
-
+        <SectionLabel>Timestamps</SectionLabel>
+        <ToggleRow>
+          <ToggleLabel>Show timestamps</ToggleLabel>
+          <Toggle $on={settings.showTimestamps} onClick={() => set({ showTimestamps: !settings.showTimestamps })}>
+            <ToggleThumb $on={settings.showTimestamps} />
+          </Toggle>
+        </ToggleRow>
         {settings.showTimestamps && (
-          <div className="flex flex-col gap-1 pl-1">
+          <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem", paddingLeft: "0.25rem" }}>
             {TS_FORMATS.map((f) => (
-              <button
+              <RadioBtn
                 key={f.value}
+                $active={settings.timestampFormat === f.value}
                 onClick={() => set({ timestampFormat: f.value })}
-                className="flex items-center gap-2 text-[11px] px-2 py-1 rounded-lg transition-all text-left"
-                style={{
-                  background: settings.timestampFormat === f.value ? "rgba(255,78,203,0.1)" : "transparent",
-                  color: settings.timestampFormat === f.value ? "#ff4ecb" : "rgba(255,255,255,0.45)",
-                }}
               >
-                <span
-                  className="w-3 h-3 rounded-full border flex items-center justify-center shrink-0"
-                  style={{ borderColor: settings.timestampFormat === f.value ? "#ff4ecb" : "rgba(255,255,255,0.2)" }}
-                >
-                  {settings.timestampFormat === f.value && (
-                    <span className="w-1.5 h-1.5 rounded-full bg-pink-400" />
-                  )}
-                </span>
+                <RadioCircle $active={settings.timestampFormat === f.value}>
+                  {settings.timestampFormat === f.value && <RadioDot />}
+                </RadioCircle>
                 {f.label}
-              </button>
+              </RadioBtn>
             ))}
           </div>
         )}
       </div>
 
-      {/* ── Font ────────────────────────────────────────────────────────── */}
       <div>
-        <p className="text-[9px] font-bold uppercase tracking-wider text-white/30 mb-2">Appearance</p>
-        <div className="flex flex-col gap-2">
+        <SectionLabel>Appearance</SectionLabel>
+        <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
           <div>
-            <p className="text-[10px] text-white/40 mb-1">Font size</p>
-            <div className="flex gap-1">
+            <SubLabel>Font size</SubLabel>
+            <OptionGrid>
               {FONT_SIZES.map((f) => (
-                <button
+                <OptionBtn
                   key={f.value}
+                  $active={settings.fontSize === f.value}
                   onClick={() => set({ fontSize: f.value })}
-                  className="flex-1 py-1 rounded-lg text-[10px] transition-all"
-                  style={{
-                    background: settings.fontSize === f.value ? "rgba(255,78,203,0.15)" : "rgba(255,255,255,0.05)",
-                    border: `1px solid ${settings.fontSize === f.value ? "rgba(255,78,203,0.5)" : "rgba(255,255,255,0.08)"}`,
-                    color: settings.fontSize === f.value ? "#ff4ecb" : "rgba(255,255,255,0.45)",
-                  }}
                 >
                   {f.label}
-                </button>
+                </OptionBtn>
               ))}
-            </div>
+            </OptionGrid>
           </div>
           <div>
-            <p className="text-[10px] text-white/40 mb-1">Font family</p>
-            <div className="flex gap-1">
+            <SubLabel>Font family</SubLabel>
+            <OptionGrid>
               {FONTS.map((f) => (
-                <button
+                <OptionBtn
                   key={f.value}
+                  $active={settings.myFont === f.value}
                   onClick={() => set({ myFont: f.value })}
-                  className={`flex-1 py-1 rounded-lg text-[10px] transition-all ${f.css}`}
-                  style={{
-                    background: settings.myFont === f.value ? "rgba(255,78,203,0.15)" : "rgba(255,255,255,0.05)",
-                    border: `1px solid ${settings.myFont === f.value ? "rgba(255,78,203,0.5)" : "rgba(255,255,255,0.08)"}`,
-                    color: settings.myFont === f.value ? "#ff4ecb" : "rgba(255,255,255,0.45)",
-                  }}
+                  style={{ fontFamily: f.css }}
                 >
                   {f.label}
-                </button>
+                </OptionBtn>
               ))}
-            </div>
+            </OptionGrid>
           </div>
         </div>
       </div>
 
-      {/* ── Storage (admin only) ─────────────────────────────────────────── */}
       {isAdmin && (
         <>
-          <div className="w-full h-px" style={{ background: "rgba(255,255,255,0.07)" }} />
+          <Divider />
           <div>
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-[9px] font-bold uppercase tracking-wider text-white/30">Chat storage</p>
-              <span className="text-[9px] text-white/40">{storagePercent}%</span>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.5rem" }}>
+              <SectionLabel style={{ margin: 0 }}>Chat storage</SectionLabel>
+              <span style={{ fontSize: "0.5625rem", color: "var(--t-textFaint)" }}>{storagePercent}%</span>
             </div>
-            <div className="w-full h-1.5 rounded-full overflow-hidden mb-3" style={{ background: "rgba(255,255,255,0.08)" }}>
-              <div
-                className="h-full rounded-full transition-all"
-                style={{
-                  width: `${Math.min(100, storagePercent)}%`,
-                  background: storagePercent > 80 ? "#ff6b6b" : storagePercent > 60 ? "#f7b700" : "#4ade80",
-                }}
-              />
-            </div>
-            <button
-              onClick={onClearChat}
-              className="w-full text-[10px] font-bold py-1.5 rounded-lg transition-all"
-              style={{ background: "rgba(255,107,107,0.1)", border: "1px solid rgba(255,107,107,0.3)", color: "#ff6b6b" }}
-            >
-              🗑 Clear All Chat &amp; Files
-            </button>
+            <StorageBar>
+              <StorageFill $pct={storagePercent} />
+            </StorageBar>
+            <ClearBtn onClick={onClearChat}>🗑 Clear All Chat &amp; Files</ClearBtn>
           </div>
         </>
       )}
-    </div>
+    </Section>
   );
 }
 
-// ── Members tab ───────────────────────────────────────────────────────────────
+/* ── Members tab ───────────────────────────────────────────────── */
 
 function MembersTab({
   profiles,
@@ -450,8 +802,9 @@ function MembersTab({
   const totalPages = Math.max(1, Math.ceil(filtered.length / MEMBERS_PER_PAGE));
   const pageItems = filtered.slice(page * MEMBERS_PER_PAGE, (page + 1) * MEMBERS_PER_PAGE);
 
-  // Reset page when search changes
-  useEffect(() => { setPage(0); }, [query]);
+  useEffect(() => {
+    setPage(0);
+  }, [query]);
 
   const handleRoleChange = async (username: string, role: UserRole) => {
     setChanging(username);
@@ -460,117 +813,84 @@ function MembersTab({
   };
 
   return (
-    <div className="flex flex-col gap-4">
-      {/* Search bar */}
-      <div className="relative">
-        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/25 text-xs">🔍</span>
-        <input
+    <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+      <SearchWrap>
+        <SearchIcon>🔍</SearchIcon>
+        <SearchInput
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search members…"
-          className="w-full bg-transparent outline-none text-xs text-white/70 rounded-xl pl-8 pr-3 py-2"
-          style={{ border: "1px solid rgba(255,255,255,0.1)" }}
         />
-        {query && (
-          <button
-            onClick={() => setQuery("")}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-white/25 hover:text-white/60 text-xs"
-          >✕</button>
-        )}
-      </div>
+        {query && <SearchClear onClick={() => setQuery("")}>✕</SearchClear>}
+      </SearchWrap>
 
-      {/* Member cards */}
-      <div className="flex flex-col gap-2">
+      <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
         {pageItems.length === 0 ? (
-          <p className="text-xs text-white/25 text-center py-6">No members found.</p>
+          <p style={{ fontSize: "0.75rem", color: "var(--t-textGhost)", textAlign: "center", padding: "1.5rem 0" }}>
+            No members found.
+          </p>
         ) : (
           pageItems.map((p) => {
             const isSelf = p.username === currentUser;
             const canChangeRole = isAdmin && !isSelf;
             return (
-              <div
-                key={p.username}
-                className="flex items-center gap-3 rounded-xl px-4 py-3"
-                style={{
-                  background: isSelf
-                    ? `rgba(${hexToRgb(p.accentColor)},0.08)`
-                    : "rgba(255,255,255,0.04)",
-                  border: `1px solid ${isSelf ? `${p.accentColor}33` : "rgba(255,255,255,0.07)"}`,
-                }}
-              >
+              <MemberCard key={p.username} $accent={p.accentColor} $self={isSelf}>
                 <UserAvatar profile={p} size={36} />
-
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-sm font-semibold text-white leading-tight">
-                      {p.displayName}
-                    </span>
-                    {isSelf && (
-                      <span className="text-[8px] text-white/30 font-bold uppercase tracking-wider">(you)</span>
-                    )}
-                    <RoleBadge role={p.role} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
+                    <MemberName>{p.displayName}</MemberName>
+                    {isSelf && <MemberYou>(you)</MemberYou>}
+                    <RoleBadge $admin={p.role === "admin"}>{p.role}</RoleBadge>
                   </div>
-                  <p className="text-[10px] text-white/35 truncate mt-0.5">{p.email}</p>
+                  <MemberEmail>{p.email}</MemberEmail>
                 </div>
-
-                {/* Role changer (admins only, not self) */}
                 {canChangeRole ? (
-                  <div className="shrink-0">
+                  <div style={{ flexShrink: 0 }}>
                     {changing === p.username ? (
-                      <span className="text-[9px] text-white/30 animate-pulse">Saving…</span>
+                      <SavingText>Saving…</SavingText>
                     ) : (
-                      <select
+                      <RoleSelect
                         value={p.role}
                         onChange={(e) => handleRoleChange(p.username, e.target.value as UserRole)}
-                        className="text-[10px] rounded-lg px-2 py-1 outline-none cursor-pointer"
-                        style={{
-                          background: "rgba(255,255,255,0.07)",
-                          border: "1px solid rgba(255,255,255,0.15)",
-                          color: "rgba(255,255,255,0.6)",
-                        }}
                       >
                         <option value="admin">Admin</option>
                         <option value="employee">Employee</option>
-                      </select>
+                      </RoleSelect>
                     )}
                   </div>
                 ) : (
-                  <div className="shrink-0 w-[72px]" /> /* placeholder for alignment */
+                  <div style={{ flexShrink: 0, width: 72 }} />
                 )}
-              </div>
+              </MemberCard>
             );
           })
         )}
       </div>
 
-      {/* Pagination (GPG) */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between pt-1">
-          <button
-            onClick={() => setPage((p) => Math.max(0, p - 1))}
-            disabled={page === 0}
-            className="w-7 h-7 rounded-lg flex items-center justify-center text-xs transition-all disabled:opacity-25"
-            style={{ background: "rgba(255,78,203,0.1)", border: "1px solid rgba(255,78,203,0.3)", color: "#ff4ecb" }}
-          >←</button>
-
-          <span className="text-[10px] text-white/30 tabular-nums">
+        <PagerRow>
+          <PagerBtn disabled={page === 0} onClick={() => setPage((p) => Math.max(0, p - 1))}>
+            ←
+          </PagerBtn>
+          <PagerInfo>
             {page + 1} / {totalPages}
-            <span className="text-white/20 ml-1.5">({filtered.length} member{filtered.length !== 1 ? "s" : ""})</span>
-          </span>
-
-          <button
-            onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+            <span style={{ color: "var(--t-textGhost)", marginLeft: "0.375rem" }}>
+              ({filtered.length} member{filtered.length !== 1 ? "s" : ""})
+            </span>
+          </PagerInfo>
+          <PagerBtn
             disabled={page >= totalPages - 1}
-            className="w-7 h-7 rounded-lg flex items-center justify-center text-xs transition-all disabled:opacity-25"
-            style={{ background: "rgba(255,78,203,0.1)", border: "1px solid rgba(255,78,203,0.3)", color: "#ff4ecb" }}
-          >→</button>
-        </div>
+            onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+          >
+            →
+          </PagerBtn>
+        </PagerRow>
       )}
     </div>
   );
 }
 
-// ── Main modal ────────────────────────────────────────────────────────────────
+/* ── Main modal ────────────────────────────────────────────────── */
 
 type ModalTab = "settings" | "members";
 
@@ -598,19 +918,24 @@ export default function ChatSettingsModal({
   const myProfile = profiles.find((p) => p.username === currentUser);
   const isAdmin = myProfile?.role === "admin";
 
-  const handleRoleChange = useCallback(async (username: string, role: UserRole) => {
-    await fetch("/api/users/role", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, role }),
-    });
-    onProfileRefresh();
-  }, [onProfileRefresh]);
+  const handleRoleChange = useCallback(
+    async (username: string, role: UserRole) => {
+      await fetch("/api/users/role", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, role }),
+      });
+      onProfileRefresh();
+    },
+    [onProfileRefresh]
+  );
 
-  // ESC to close
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") { e.stopPropagation(); onClose(); }
+      if (e.key === "Escape") {
+        e.stopPropagation();
+        onClose();
+      }
     };
     document.addEventListener("keydown", handler, { capture: true });
     return () => document.removeEventListener("keydown", handler, { capture: true });
@@ -618,78 +943,28 @@ export default function ChatSettingsModal({
 
   return (
     <>
-      {/* Backdrop */}
-      <div
-        className="fixed inset-0 z-[80]"
-        style={{ background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)" }}
-        onClick={onClose}
-      />
-
-      {/* Modal */}
-      <div
-        className="fixed z-[81] flex flex-col"
-        style={{
-          top: "50%",
-          left: "50%",
-          transform: "translate(-50%, -50%)",
-          width: "min(96vw, 520px)",
-          maxHeight: "85vh",
-          background: "rgba(7,9,13,0.99)",
-          border: "1px solid rgba(255,78,203,0.2)",
-          borderRadius: 20,
-          boxShadow: "0 24px 80px rgba(0,0,0,0.85), 0 0 40px rgba(255,78,203,0.08)",
-        }}
-      >
-        {/* Header */}
-        <div
-          className="flex items-center gap-3 px-5 py-4 flex-shrink-0"
-          style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}
-        >
-          {/* Tab pills */}
-          <div
-            className="flex items-center rounded-full p-0.5"
-            style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)" }}
-          >
-            {([
-              { id: "settings", label: "⚙ Settings" },
-              { id: "members",  label: "👥 Members"  },
-            ] as { id: ModalTab; label: string }[]).map((t) => (
-              <button
-                key={t.id}
-                onClick={() => setTab(t.id)}
-                className="text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full transition-all"
-                style={{
-                  background: tab === t.id ? "rgba(255,78,203,0.2)" : "transparent",
-                  border: tab === t.id ? "1px solid rgba(255,78,203,0.4)" : "1px solid transparent",
-                  color: tab === t.id ? "#ff4ecb" : "rgba(255,255,255,0.3)",
-                }}
-              >
+      <Backdrop onClick={onClose} />
+      <Modal>
+        <Header>
+          <TabGroup>
+            {(
+              [
+                { id: "settings", label: "⚙ Settings" },
+                { id: "members", label: "👥 Members" },
+              ] as { id: ModalTab; label: string }[]
+            ).map((t) => (
+              <TabBtn key={t.id} $active={tab === t.id} onClick={() => setTab(t.id)}>
                 {t.label}
-              </button>
+              </TabBtn>
             ))}
+          </TabGroup>
+          {tab === "members" && <CountBadge>{profiles.length}</CountBadge>}
+          <div style={{ marginLeft: "auto" }}>
+            <CloseBtn onClick={onClose}>✕</CloseBtn>
           </div>
+        </Header>
 
-          {/* Member count badge */}
-          {tab === "members" && (
-            <span
-              className="text-[9px] font-bold px-2 py-0.5 rounded-full"
-              style={{ background: "rgba(255,78,203,0.12)", border: "1px solid rgba(255,78,203,0.3)", color: "#ff4ecb" }}
-            >
-              {profiles.length}
-            </span>
-          )}
-
-          <button
-            onClick={onClose}
-            className="ml-auto w-7 h-7 rounded-md flex items-center justify-center text-xs hover:bg-white/10 transition-all"
-            style={{ color: "rgba(255,255,255,0.35)" }}
-          >
-            ✕
-          </button>
-        </div>
-
-        {/* Body */}
-        <div className="flex-1 overflow-y-auto px-5 py-5" style={{ scrollbarWidth: "thin" }}>
+        <Body>
           {tab === "settings" && (
             <SettingsTab
               settings={settings}
@@ -710,8 +985,8 @@ export default function ChatSettingsModal({
               onRoleChange={handleRoleChange}
             />
           )}
-        </div>
-      </div>
+        </Body>
+      </Modal>
     </>
   );
 }
