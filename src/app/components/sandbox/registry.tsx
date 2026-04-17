@@ -684,6 +684,75 @@ function SBDMDemo() {
   );
 }
 
+
+// ── SuggestionBox demo ──────────────────────────────────────────────────
+function SuggestionBoxDemo() {
+  const [open, setOpen] = useState(false);
+  return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
+      <div
+        style={{
+          width: 140,
+          height: 100,
+          borderRadius: 16,
+          border: open ? "2px dashed " + PINK : "2px dashed " + MUTED,
+          background: "transparent",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 8,
+          transition: "border-color 0.2s",
+        }}
+      >
+        <Highlight label="tile">
+          <button
+            onClick={() => setOpen((v) => !v)}
+            style={{
+              padding: "6px 16px",
+              borderRadius: 10,
+              background: "linear-gradient(135deg, #ff4ecb, #a855f7)",
+              color: "#fff",
+              fontSize: 11,
+              fontWeight: 700,
+              border: "none",
+              cursor: "pointer",
+              boxShadow: "0 4px 16px rgba(255,78,203,0.3)",
+            }}
+          >
+            {open ? "Close" : "Make a suggestion"}
+          </button>
+        </Highlight>
+      </div>
+      {open && (
+        <div
+          style={{
+            width: 220,
+            padding: 16,
+            borderRadius: 12,
+            background: "rgba(255,78,203,0.04)",
+            border: "1px solid rgba(255,78,203,0.2)",
+          }}
+        >
+          <div style={{ fontSize: 10, color: PINK, fontWeight: 700, textTransform: "uppercase", letterSpacing: "1px", marginBottom: 8 }}>
+            SuggestionBox Modal
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <div style={{ height: 6, borderRadius: 3, background: "rgba(255,78,203,0.15)", width: "80%" }} />
+            <div style={{ height: 6, borderRadius: 3, background: "rgba(0,191,255,0.15)", width: "100%" }} />
+            <div style={{ height: 6, borderRadius: 3, background: "rgba(0,191,255,0.1)", width: "60%" }} />
+          </div>
+          <div style={{ marginTop: 10, display: "flex", justifyContent: "center" }}>
+            <span style={{ fontSize: 9, padding: "3px 10px", borderRadius: 6, background: "linear-gradient(135deg, #ff4ecb, #a855f7)", color: "#fff", fontWeight: 700 }}>
+              Send to admin
+            </span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Registry ────────────────────────────────────────────────────────────
 export const REGISTRY: SandboxEntry[] = [
   {
@@ -913,6 +982,29 @@ const ResetBtn = styled.button\`
   <Label>{allExpanded ? "Collapse all" : "Expand all"}</Label>
 </TSG>`,
     Demo: TSGDemo,
+  },
+  {
+    key: "SB",
+    name: "SuggestionBox",
+    category: "Navigation",
+    summary: "Dashed-border dashboard tile that opens a feature-request modal. Users describe an idea, Claude AI generates a structured implementation plan, GPG paginates responses. A 'Send to admin team' button emails the full conversation via Fastmail JMAP with an 'Implement immediately' CTA that routes to Sandbox staging.",
+    usage: "Add as the final dashboard tile. Tile has transparent background with dashed pink border. Modal has three phases: form (name + description), chat (Claude conversation with GPG), sent (confirmation). The API route handles both Claude chat and email sending via action parameter.",
+    code: `// Tile (in dashboard page.tsx tiles array)
+{ key: "Suggest", title: "Suggest", subtitle: "Feature ideas",
+  glow: "pink", icon: <span>\u{1F4A1}</span>,
+  onClick: () => setSuggestionOpen(true) }
+
+// Special dashed border in tile renderer
+const isSuggest = tile.key === "Suggest";
+style={{
+  background: isSuggest ? "transparent" : \u0060rgba(...)\u0060,
+  border: isSuggest ? \u0060dashed...\u0060 : \u0060solid...\u0060,
+}}
+
+// Modal import
+import SuggestionBoxModal from "./suggestion/SuggestionBoxModal";
+{suggestionOpen && <SuggestionBoxModal onClose={() => setSuggestionOpen(false)} />}`,
+    Demo: SuggestionBoxDemo,
   },
 ];
 
