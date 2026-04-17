@@ -1,14 +1,17 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import styled from "styled-components";
+import { colors, rgb } from "../../theme";
+import { PanelIconBtn, PanelActionBtn, Spacer } from "../../styled";
 import type { Draft } from "./useDraftStore";
 
-const PINK = "#ff4ecb";
-const PINK_RGB = "255,78,203";
-const GOLD = "#f7b700";
-const GOLD_RGB = "247,183,0";
-const CYAN = "#00bfff";
-const CYAN_RGB = "0,191,255";
+const GOLD = colors.gold;
+const GOLD_RGB = rgb.gold;
+const CYAN = colors.cyan;
+const CYAN_RGB = rgb.cyan;
+const PINK = colors.pink;
+const PINK_RGB = rgb.pink;
 
 type Props = {
   active: Draft | null;
@@ -26,6 +29,194 @@ type Props = {
   onDeploy: (opts: { targets?: string[]; preview?: boolean }) => Promise<void>;
 };
 
+// ── Styled ───────────────────────────────────────────────────────
+
+const Bar = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid rgba(${GOLD_RGB}, 0.22);
+  background: rgba(${GOLD_RGB}, 0.04);
+
+  [data-theme="light"] & {
+    background: rgba(${GOLD_RGB}, 0.03);
+    border-bottom-color: rgba(${GOLD_RGB}, 0.12);
+  }
+`;
+
+const ModeLabel = styled.span`
+  font-size: 0.625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: ${GOLD};
+`;
+
+const InfoTag = styled.span`
+  font-size: 0.625rem;
+  font-family: var(--font-geist-mono), monospace;
+  color: var(--t-textMuted);
+`;
+
+const AutoSaveLabel = styled.label`
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.625rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--t-textMuted);
+  cursor: pointer;
+
+  input {
+    accent-color: ${PINK};
+  }
+`;
+
+const UndoBtn = styled(PanelIconBtn)`
+  width: 1.75rem;
+  height: 1.75rem;
+  font-size: 0.875rem;
+  background: var(--t-inputBg);
+  border: 1px solid var(--t-borderStrong);
+
+  &:disabled {
+    opacity: 0.25;
+    cursor: not-allowed;
+  }
+`;
+
+const DDMWrap = styled.div`
+  position: relative;
+`;
+
+const DDMMenu = styled.div`
+  position: absolute;
+  right: 0;
+  top: 100%;
+  margin-top: 0.5rem;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  z-index: 80;
+  min-width: 200px;
+  background: rgba(8, 10, 16, 0.98);
+  border: 1px solid rgba(${GOLD_RGB}, 0.35);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7),
+    0 0 24px rgba(${GOLD_RGB}, 0.15);
+
+  [data-theme="light"] & {
+    background: var(--t-surface);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08);
+  }
+`;
+
+const DDMItem = styled.button`
+  width: 100%;
+  text-align: left;
+  padding: 0.625rem 1rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s;
+
+  &:hover {
+    background: var(--t-inputBg);
+  }
+`;
+
+const PickerPanel = styled.div`
+  position: absolute;
+  right: 1rem;
+  top: 100%;
+  margin-top: 0.5rem;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  z-index: 81;
+  min-width: 280px;
+  background: rgba(8, 10, 16, 0.98);
+  border: 1px solid rgba(${GOLD_RGB}, 0.35);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7),
+    0 0 24px rgba(${GOLD_RGB}, 0.15);
+
+  [data-theme="light"] & {
+    background: var(--t-surface);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08);
+  }
+`;
+
+const PickerSearchBar = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  border-bottom: 1px solid var(--t-border);
+`;
+
+const PickerInput = styled.input`
+  flex: 1;
+  background: var(--t-inputBg);
+  border-radius: 0.375rem;
+  padding: 0.375rem 0.5rem;
+  font-size: 0.75rem;
+  color: var(--t-text);
+  outline: none;
+  border: none;
+
+  &::placeholder { color: var(--t-textGhost); }
+`;
+
+const PickerSortBtn = styled.button`
+  padding: 0.375rem 0.5rem;
+  border-radius: 0.375rem;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  background: rgba(${CYAN_RGB}, 0.08);
+  border: 1px solid rgba(${CYAN_RGB}, 0.3);
+  color: ${CYAN};
+  cursor: pointer;
+`;
+
+const PickerList = styled.div`
+  max-height: 256px;
+  overflow-y: auto;
+`;
+
+const PickerItem = styled.button`
+  width: 100%;
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.75rem;
+  color: var(--t-textMuted);
+  background: none;
+  border: none;
+  cursor: pointer;
+
+  &:hover { background: var(--t-inputBg); }
+`;
+
+const PickerEmpty = styled.div`
+  padding: 1rem 0.75rem;
+  font-size: 0.75rem;
+  color: var(--t-textGhost);
+  text-align: center;
+`;
+
+const StatusMsg = styled.span`
+  font-size: 0.625rem;
+  font-family: var(--font-geist-mono), monospace;
+  margin-left: 0.5rem;
+  color: var(--t-textMuted);
+`;
+
+// ── Component ────────────────────────────────────────────────────
+
 export default function SandboxEditToolbar(p: Props) {
   const [deployOpen, setDeployOpen] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -36,7 +227,6 @@ export default function SandboxEditToolbar(p: Props) {
   const ddmRef = useRef<HTMLDivElement>(null);
   const sbdmRef = useRef<HTMLDivElement>(null);
 
-  // Close DDM/SBDM on outside click + Esc
   useEffect(() => {
     const onDown = (e: MouseEvent) => {
       if (ddmRef.current && !ddmRef.current.contains(e.target as Node)) setDeployOpen(false);
@@ -77,156 +267,89 @@ export default function SandboxEditToolbar(p: Props) {
     .sort((a, b) => pickerAsc ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name));
 
   return (
-    <div
-      className="flex items-center gap-2 flex-wrap px-4 py-2"
-      style={{ borderBottom: `1px solid rgba(${GOLD_RGB},0.22)`, background: `rgba(${GOLD_RGB},0.04)` }}
-    >
-      <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: GOLD }}>
-        Edit Mode
-      </span>
+    <Bar>
+      <ModeLabel>Edit Mode</ModeLabel>
       {p.active && (
-        <span className="text-[10px] font-mono" style={{ color: "rgba(255,255,255,0.55)" }}>
-          · Draft #{p.active.number} · {p.componentKey} · {p.isSaved ? "saved" : "unsaved"}
-        </span>
+        <InfoTag>· Draft #{p.active.number} · {p.componentKey} · {p.isSaved ? "saved" : "unsaved"}</InfoTag>
       )}
 
-      <div className="flex-1" />
+      <Spacer />
 
-      {/* Auto-save toggle */}
-      <label className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider cursor-pointer" style={{ color: "rgba(255,255,255,0.6)" }}>
-        <input type="checkbox" checked={p.autoSave} onChange={(e) => p.setAutoSave(e.target.checked)} className="accent-pink-500" />
+      <AutoSaveLabel>
+        <input type="checkbox" checked={p.autoSave} onChange={(e) => p.setAutoSave(e.target.checked)} />
         Auto-save
-      </label>
+      </AutoSaveLabel>
 
-      {/* Save */}
-      <button
+      <PanelActionBtn
+        $color="pink"
         onClick={p.onSave}
         disabled={p.autoSave || p.isSaved}
-        className="px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider disabled:opacity-30"
-        style={{ background: `rgba(${PINK_RGB},0.12)`, border: `1px solid rgba(${PINK_RGB},0.45)`, color: PINK }}
         title={p.autoSave ? "Auto-save is on" : p.isSaved ? "Already saved" : "Save"}
       >
         💾 Save
-      </button>
+      </PanelActionBtn>
 
-      {/* Undo / Redo */}
-      <button
-        onClick={p.onUndo}
-        disabled={!p.canUndo}
-        className="w-7 h-7 rounded-md text-sm disabled:opacity-25"
-        style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.7)" }}
-        title="Undo"
-      >↶</button>
-      <button
-        onClick={p.onRedo}
-        disabled={!p.canRedo}
-        className="w-7 h-7 rounded-md text-sm disabled:opacity-25"
-        style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.7)" }}
-        title="Redo"
-      >↷</button>
+      <UndoBtn onClick={p.onUndo} disabled={!p.canUndo} title="Undo">↶</UndoBtn>
+      <UndoBtn onClick={p.onRedo} disabled={!p.canRedo} title="Redo">↷</UndoBtn>
 
-      {/* Reset to last deployment */}
-      <button
-        onClick={p.onResetToDeployed}
-        disabled={!p.active}
-        className="px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider disabled:opacity-25"
-        style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.7)" }}
-        title="Reset draft to last-deployed code"
-      >↺ Reset</button>
+      <PanelActionBtn $variant="ghost" onClick={p.onResetToDeployed} disabled={!p.active} title="Reset draft to last-deployed code">
+        ↺ Reset
+      </PanelActionBtn>
 
-      {/* Preview */}
-      <button
-        onClick={() => runDeploy({ preview: true })}
-        disabled={!canDeploy || deploying !== "none"}
-        className="px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider disabled:opacity-25"
-        style={{ background: `rgba(${CYAN_RGB},0.12)`, border: `1px solid rgba(${CYAN_RGB},0.45)`, color: CYAN }}
-        title={canDeploy ? "Preview deploy" : "Save first"}
-      >👁 Preview</button>
+      <PanelActionBtn $color="cyan" onClick={() => runDeploy({ preview: true })} disabled={!canDeploy || deploying !== "none"} title={canDeploy ? "Preview deploy" : "Save first"}>
+        👁 Preview
+      </PanelActionBtn>
 
-      {/* Deploy DDM */}
-      <div ref={ddmRef} className="relative">
-        <button
+      <DDMWrap ref={ddmRef}>
+        <PanelActionBtn
+          $color="gold"
           onClick={() => setDeployOpen((v) => !v)}
           disabled={!canDeploy || deploying !== "none"}
-          className="px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider disabled:opacity-25 flex items-center gap-1"
-          style={{ background: `rgba(${GOLD_RGB},0.14)`, border: `1px solid rgba(${GOLD_RGB},0.5)`, color: GOLD }}
           title={canDeploy ? "Deploy" : "Save first"}
+          style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}
         >
           🚀 {deploying === "deploy" ? "Deploying…" : "Deploy"}
           <span style={{ fontSize: 8 }}>▾</span>
-        </button>
+        </PanelActionBtn>
 
         {deployOpen && (
-          <div
-            className="absolute right-0 top-full mt-2 rounded-xl overflow-hidden z-[80]"
-            style={{
-              minWidth: 200,
-              background: "rgba(8,10,16,0.98)",
-              border: `1px solid rgba(${GOLD_RGB},0.35)`,
-              boxShadow: `0 12px 40px rgba(0,0,0,0.7), 0 0 24px rgba(${GOLD_RGB},0.15)`,
-            }}
-          >
-            <button
-              onClick={() => runDeploy({})}
-              className="w-full text-left px-4 py-2.5 text-[11px] font-bold uppercase tracking-wider hover:bg-white/5"
-              style={{ color: GOLD, borderBottom: "1px solid rgba(255,255,255,0.06)" }}
-            >🌍 Deploy for All</button>
-            <button
-              onClick={() => { setPickerOpen(true); setDeployOpen(false); }}
-              className="w-full text-left px-4 py-2.5 text-[11px] font-bold uppercase tracking-wider hover:bg-white/5"
-              style={{ color: "rgba(255,255,255,0.7)" }}
-            >🎯 Deploy to…</button>
-          </div>
+          <DDMMenu>
+            <DDMItem onClick={() => runDeploy({})} style={{ color: GOLD, borderBottom: "1px solid var(--t-border)" }}>
+              🌍 Deploy for All
+            </DDMItem>
+            <DDMItem onClick={() => { setPickerOpen(true); setDeployOpen(false); }} style={{ color: "var(--t-textMuted)" }}>
+              🎯 Deploy to…
+            </DDMItem>
+          </DDMMenu>
         )}
-      </div>
+      </DDMWrap>
 
-      {/* Project picker SBDM */}
       {pickerOpen && (
-        <div
-          ref={sbdmRef}
-          className="absolute right-4 top-full mt-2 rounded-xl overflow-hidden z-[81]"
-          style={{
-            minWidth: 280,
-            background: "rgba(8,10,16,0.98)",
-            border: `1px solid rgba(${GOLD_RGB},0.35)`,
-            boxShadow: `0 12px 40px rgba(0,0,0,0.7), 0 0 24px rgba(${GOLD_RGB},0.15)`,
-          }}
-        >
-          <div className="flex items-center gap-2 p-2 border-b border-white/5">
-            <input
+        <PickerPanel ref={sbdmRef}>
+          <PickerSearchBar>
+            <PickerInput
               autoFocus
               value={pickerSearch}
               onChange={(e) => setPickerSearch(e.target.value)}
               placeholder="Search projects…"
-              className="flex-1 bg-white/5 rounded-md px-2 py-1.5 text-xs text-white outline-none placeholder:text-white/30"
             />
-            <button
-              onClick={() => setPickerAsc((v) => !v)}
-              className="px-2 py-1.5 rounded-md text-[10px] font-bold tracking-wider"
-              style={{ background: `rgba(${CYAN_RGB},0.08)`, border: `1px solid rgba(${CYAN_RGB},0.3)`, color: CYAN }}
-            >{pickerAsc ? "Z-A" : "A-Z"}</button>
-          </div>
-          <div className="max-h-64 overflow-y-auto">
+            <PickerSortBtn onClick={() => setPickerAsc((v) => !v)}>
+              {pickerAsc ? "Z-A" : "A-Z"}
+            </PickerSortBtn>
+          </PickerSearchBar>
+          <PickerList>
             {filteredProjects.length === 0 ? (
-              <div className="px-3 py-4 text-xs text-white/30 text-center">No matches</div>
+              <PickerEmpty>No matches</PickerEmpty>
             ) : filteredProjects.map((pr) => (
-              <button
-                key={pr.name}
-                onClick={() => runDeploy({ targets: [pr.name] })}
-                className="w-full text-left px-3 py-2 text-xs text-white/70 hover:bg-white/5"
-              >
+              <PickerItem key={pr.name} onClick={() => runDeploy({ targets: [pr.name] })}>
                 {pr.name}
-              </button>
+              </PickerItem>
             ))}
-          </div>
-        </div>
+          </PickerList>
+        </PickerPanel>
       )}
 
-      {statusMsg && (
-        <span className="text-[10px] font-mono ml-2" style={{ color: "rgba(255,255,255,0.6)" }}>
-          {statusMsg}
-        </span>
-      )}
-    </div>
+      {statusMsg && <StatusMsg>{statusMsg}</StatusMsg>}
+    </Bar>
   );
 }
