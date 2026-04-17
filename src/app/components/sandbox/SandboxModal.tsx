@@ -427,6 +427,31 @@ const CodeEditor = styled.textarea`
   border: none;
 `;
 
+const CodeTabBar = styled.div`
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--t-border);
+`;
+
+const CodeTabBtn = styled.button<{ $active?: boolean }>`
+  flex: 1;
+  padding: 0.375rem 0.75rem;
+  font-size: 0.625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  background: ${(p) => (p.$active ? "var(--t-inputBg)" : "transparent")};
+  border: none;
+  border-bottom: 2px solid ${(p) => (p.$active ? PINK : "transparent")};
+  color: ${(p) => (p.$active ? PINK : "var(--t-textFaint)")};
+  cursor: pointer;
+  transition: all 0.15s;
+
+  &:hover {
+    color: ${PINK};
+  }
+`;
+
 const CodeFooter = styled.div`
   padding: 0.5rem 1rem;
   font-size: 0.5625rem;
@@ -444,6 +469,7 @@ export default function SandboxModal({ onClose }: { onClose: () => void }) {
   const [fsOpen, setFsOpen] = useState(true);
   const [summaryOpen, setSummaryOpen] = useState(true);
   const [codeOpen, setCodeOpen] = useState(false);
+  const [codeTab, setCodeTab] = useState<"component" | "style">("component");
   const [fullscreen, setFullscreen] = useState(false);
   const [codeDraft, setCodeDraft] = useState<string>("");
 
@@ -514,6 +540,8 @@ export default function SandboxModal({ onClose }: { onClose: () => void }) {
   }, []);
 
   const Demo = active?.Demo;
+
+  useEffect(() => { setCodeTab("component"); }, [activeKey]);
 
   const editorCode = editMode && drafts.active
     ? (unsavedCode ?? drafts.active.code)
@@ -730,18 +758,28 @@ export default function SandboxModal({ onClose }: { onClose: () => void }) {
             <CodePane>
               <CodeHeader>
                 <CodeLabel $edit={editMode}>Code</CodeLabel>
-                <CodeTag>{active.key}.tsx</CodeTag>
+                <CodeTag>{active.key}{codeTab === "style" ? ".styled.ts" : ".tsx"}</CodeTag>
                 <Spacer />
                 <PanelActionBtn
                   $variant="ghost"
-                  onClick={() => editMode ? drafts.resetToDeployed() : setCodeDraft(active.code)}
+                  onClick={() => editMode ? drafts.resetToDeployed() : setCodeDraft(codeTab === "style" ? (active.style ?? "// No styles defined") : active.code)}
                   title="Restore canonical / deployed code"
                 >
                   Reset
                 </PanelActionBtn>
               </CodeHeader>
+              {active.style && (
+                <CodeTabBar>
+                  <CodeTabBtn $active={codeTab === "component"} onClick={() => setCodeTab("component")}>
+                    Component
+                  </CodeTabBtn>
+                  <CodeTabBtn $active={codeTab === "style"} onClick={() => setCodeTab("style")}>
+                    Styles
+                  </CodeTabBtn>
+                </CodeTabBar>
+              )}
               <CodeEditor
-                value={editorCode}
+                value={codeTab === "style" ? (editMode && drafts.active ? editorCode : (active.style ?? "// No styles defined")) : editorCode}
                 onChange={(e) => handleCodeChange(e.target.value)}
                 spellCheck={false}
               />

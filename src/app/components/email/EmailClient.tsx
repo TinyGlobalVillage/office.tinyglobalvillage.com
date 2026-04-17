@@ -513,7 +513,7 @@ export default function EmailClient({ zoom }: Props) {
       fetch("/api/email/action", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ account: selected, id, action }),
+        body: JSON.stringify({ account: selected, emailId: id, action }),
       })
         .then((r) => r.json())
         .then((d: { ok?: boolean }) => {

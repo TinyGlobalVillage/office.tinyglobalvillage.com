@@ -16,6 +16,7 @@ export type SandboxEntry = {
   summary: string;
   usage: string;
   code: string;
+  style?: string;
   Demo: React.FC;
 };
 
@@ -831,6 +832,7 @@ export const REGISTRY: SandboxEntry[] = [
     summary: "Responsive paginated grid: columns scale 1 → 2 → 3 → 5 across the 600/900/1200px breakpoints, page size always equals column count. Pager (28px circle ‹ ›  + `N / M` counter) only renders when `total > pageSize` — small datasets show as a static grid with no pager.",
     usage: "Wrap any repeated-card collection. Use the canonical Tailwind grid `grid-cols-1 min-[600px]:grid-cols-2 min-[900px]:grid-cols-3 min-[1200px]:grid-cols-5`. Track current column count via `matchMedia` for slicing. Reset page to 0 when filter or column count changes.",
     code: "// Hook (mirrors refusionist AnnouncementsWidget)\nfunction useGPGColumns() {\n  const [cols, setCols] = useState(3);\n  useEffect(() => {\n    const update = () => {\n      const w = window.innerWidth;\n      if (w < 600) setCols(1);\n      else if (w < 900) setCols(2);\n      else if (w < 1200) setCols(3);\n      else setCols(5);\n    };\n    update();\n    window.addEventListener(\"resize\", update);\n    return () => window.removeEventListener(\"resize\", update);\n  }, []);\n  return cols;\n}\n\n// Render\nconst cols = useGPGColumns();\nconst pageSize = cols;\nconst totalPages = Math.max(1, Math.ceil(items.length / pageSize));\nconst showPager = items.length > pageSize;\nconst visible = items.slice(page * pageSize, (page + 1) * pageSize);\n\n<>\n  <div style={{ display: \"grid\", gridTemplateColumns: \"repeat(auto-fill, minmax(180px, 1fr))\", gap: \"0.75rem\" }}>\n    {visible.map(renderCard)}\n  </div>\n  {showPager && (\n    <PagerRow>\n      <PagerBtn disabled={page === 0} onClick={() => setPage(p => p - 1)}>‹</PagerBtn>\n      <PagerInfo>{page + 1} / {totalPages}</PagerInfo>\n      <PagerBtn disabled={page === totalPages - 1} onClick={() => setPage(p => p + 1)}>›</PagerBtn>\n    </PagerRow>\n  )}\n</>",
+    style: "const TileGrid = styled.section`\ndisplay: grid;\ngrid-template-columns: 1fr;\ngap: 0.75rem;\n\n@media (min-width: 600px) { grid-template-columns: repeat(2, 1fr); }\n@media (min-width: 900px) { grid-template-columns: repeat(3, 1fr); }\n@media (min-width: 1200px) { grid-template-columns: repeat(5, 1fr); }\n`;\n\nconst PagerRow = styled.div`\ndisplay: flex;\nalign-items: center;\njustify-content: center;\ngap: 0.75rem;\nmargin-top: 0.75rem;\n`;\n\nconst PagerBtn = styled.button`\nwidth: 28px; height: 28px;\nborder-radius: 50%;\nborder: 1px solid rgba(${rgb.pink}, 0.3);\nbackground: rgba(${rgb.pink}, 0.06);\ncolor: ${colors.pink};\ncursor: pointer;\n&:disabled { opacity: 0.3; cursor: not-allowed; }\n`;",
     Demo: GPGDemo,
   },
   {
@@ -876,6 +878,7 @@ export const REGISTRY: SandboxEntry[] = [
   onChange={setExpanded}
   disabled={!hasContent}
 />`,
+    style: "const Track = styled.div<{ $on: boolean; $glow: GlowColor }>`\nwidth: 32px; height: 18px;\nborder-radius: 999px;\nbackground: ${(p) => p.$on ? `rgba(${rgb[p.$glow]}, 0.35)` : \"rgba(255,255,255,0.08)\"};\nborder: 1px solid ${(p) => p.$on ? `rgba(${rgb[p.$glow]}, 0.6)` : \"rgba(255,255,255,0.15)\"};\nposition: relative;\ncursor: pointer;\ntransition: all 0.2s;\n`;\n\nconst Thumb = styled.div<{ $on: boolean; $glow: GlowColor }>`\nwidth: 12px; height: 12px;\nborder-radius: 50%;\nposition: absolute;\ntop: 2px;\nleft: ${(p) => p.$on ? \"17px\" : \"2px\"};\nbackground: ${(p) => p.$on ? colors[p.$glow] : \"rgba(255,255,255,0.4)\"};\nbox-shadow: ${(p) => p.$on ? `0 0 8px ${colors[p.$glow]}` : \"none\"};\ntransition: all 0.2s;\n`;",
     Demo: LightswitchDemo,
   },
   {
@@ -901,6 +904,7 @@ export const REGISTRY: SandboxEntry[] = [
     code: `<EyeBtn visible={visible} onClick={() => setVisible(v => !v)}>
   {visible ? <IconEye /> : <IconEyeOff />}
 </EyeBtn>`,
+    style: "const EyeBtn = styled.button<{ $visible: boolean }>`\nwidth: 22px; height: 22px;\nborder-radius: 4px;\nborder: 1px solid rgba(${rgb.cyan}, 0.4);\nbackground: ${(p) => p.$visible ? `rgba(${rgb.cyan}, 0.12)` : \"rgba(255,255,255,0.04)\"};\ncolor: ${(p) => p.$visible ? colors.cyan : \"rgba(255,255,255,0.3)\"};\nfont-size: 12px;\ncursor: pointer;\ndisplay: flex;\nalign-items: center;\njustify-content: center;\n`;",
     Demo: EyeIconDemo,
   },
   {
@@ -915,6 +919,7 @@ export const REGISTRY: SandboxEntry[] = [
   title="Webhook secret"
   body="Used to sign outbound payloads…"
 />`,
+    style: "const Bubble = styled.button`\nwidth: 20px; height: 20px;\nborder-radius: 50%;\nborder: 1px solid rgba(${rgb.pink}, 0.4);\nbackground: rgba(${rgb.pink}, 0.08);\ncolor: ${colors.pink};\nfont-size: 10px;\nfont-weight: 700;\ncursor: pointer;\ndisplay: flex;\nalign-items: center;\njustify-content: center;\n`;\n\nconst InfoCard = styled.div`\nposition: fixed;\nz-index: 9999;\nwidth: 280px;\nborder-radius: 0.75rem;\npadding: 1rem;\nbackground: rgba(8, 10, 16, 0.98);\nborder: 1px solid rgba(${rgb.pink}, 0.3);\nbox-shadow: 0 12px 40px rgba(0,0,0,0.6);\n`;",
     Demo: QMBMDemo,
   },
   {
@@ -933,6 +938,7 @@ export const REGISTRY: SandboxEntry[] = [
     </DDMMenu>
   )}
 </DDMWrapper>`,
+    style: "const DDMTrigger = styled.button`\ndisplay: flex;\nalign-items: center;\ngap: 0.5rem;\npadding: 0.375rem 0.75rem;\nborder-radius: 999px;\nfont-size: 0.6875rem;\nfont-weight: 700;\ntext-transform: uppercase;\nletter-spacing: 0.1em;\nborder: 1px solid rgba(${rgb.pink}, 0.3);\nbackground: rgba(${rgb.pink}, 0.06);\ncolor: ${colors.pink};\ncursor: pointer;\n`;\n\nconst DDMMenu = styled.div`\nposition: absolute;\ntop: 100%;\nright: 0;\nmargin-top: 0.5rem;\nborder-radius: 0.75rem;\nmin-width: 180px;\nbackground: rgba(8, 10, 16, 0.98);\nborder: 1px solid rgba(${rgb.pink}, 0.25);\nbox-shadow: 0 12px 40px rgba(0,0,0,0.7);\nz-index: 80;\noverflow: hidden;\n`;\n\nconst DDMItem = styled.button`\nwidth: 100%;\ntext-align: left;\npadding: 0.5rem 1rem;\nfont-size: 0.6875rem;\nbackground: none;\nborder: none;\ncolor: var(--t-textMuted);\ncursor: pointer;\n&:hover { background: var(--t-inputBg); }\n`;",
     Demo: DDMDemo,
   },
   {
@@ -981,6 +987,7 @@ export const REGISTRY: SandboxEntry[] = [
   resetValue={1}
   value={v} onChange={setV}
 />`,
+    style: "const SliderTrack = styled.div`\nflex: 1; height: 6px;\nborder-radius: 999px;\nbackground: rgba(255,255,255,0.06);\nposition: relative;\n`;\n\nconst SliderFill = styled.div<{ $pct: number }>`\nheight: 100%;\nborder-radius: 999px;\nbackground: linear-gradient(90deg, rgba(${rgb.cyan}, 0.4), ${colors.cyan});\nwidth: ${(p) => p.$pct}%;\n`;\n\nconst SliderThumb = styled.div`\nwidth: 16px; height: 16px;\nborder-radius: 50%;\nbackground: radial-gradient(circle at 40% 40%, ${colors.cyan}, rgba(${rgb.cyan}, 0.6));\nbox-shadow: 0 0 8px ${colors.cyan};\nposition: absolute;\ntop: -5px;\ncursor: grab;\n`;\n\nconst ValueInput = styled.input`\nwidth: 48px;\ntext-align: center;\nborder-radius: 4px;\nfont-size: 12px;\npadding: 2px 4px;\nbackground: rgba(255,255,255,0.05);\nborder: 1px solid rgba(${rgb.cyan}, 0.35);\ncolor: ${colors.cyan};\nfont-variant-numeric: tabular-nums;\n`;",
     Demo: SRTDemo,
   },
   {
@@ -1032,6 +1039,7 @@ import LDM from "./LDM";
 
 // CSS: [data-theme="light"] body { background: #f8f6f3; color: #1a1a2e; }
 // [data-theme="light"] .nav-tgv { ... }`,
+    style: "const LDMBtn = styled.button`\nwidth: var(--ldm-size, 28px);\nheight: var(--ldm-size, 28px);\nborder-radius: 50%;\nborder: 1px solid var(--t-border);\nbackground: var(--t-inputBg);\ncolor: var(--t-textMuted);\nfont-size: calc(var(--ldm-size, 28px) * 0.5);\ncursor: pointer;\ndisplay: flex;\nalign-items: center;\njustify-content: center;\ntransition: all 0.2s;\n&:hover {\nborder-color: var(--t-borderStrong);\ncolor: var(--t-text);\n}\n`;\n\nconst Popup = styled.div`\nposition: fixed;\ntop: 50%; left: 50%;\ntransform: translate(-50%, -50%);\nz-index: 9999;\npadding: 1.5rem;\nborder-radius: 1rem;\nbackground: var(--t-surface);\nborder: 1px solid var(--t-border);\nbox-shadow: 0 24px 80px rgba(0,0,0,0.4);\nmax-width: 320px;\ntext-align: center;\n`;",
     Demo: LDMDemo,
   },
   {
