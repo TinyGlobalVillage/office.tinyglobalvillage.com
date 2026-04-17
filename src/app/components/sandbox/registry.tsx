@@ -685,6 +685,85 @@ function SBDMDemo() {
 }
 
 
+
+// ── LDM demo ────────────────────────────────────────────────────
+function LDMDemo() {
+  const [dark, setDark] = useState(true);
+  const [alert, setAlert] = useState(false);
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
+      <div
+        style={{
+          padding: 24,
+          borderRadius: 16,
+          background: dark ? "rgba(10,10,10,0.95)" : "rgba(248,246,243,0.95)",
+          border: dark ? "1px solid rgba(255,255,255,0.08)" : "1px solid rgba(0,0,0,0.08)",
+          transition: "all 0.3s",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: 12,
+        }}
+      >
+        <span style={{ fontSize: 10, color: dark ? MUTED_TEXT : "rgba(0,0,0,0.4)", textTransform: "uppercase", letterSpacing: "0.15em", fontWeight: 700 }}>
+          {dark ? "Dark Mode" : "Light Mode"}
+        </span>
+        <Highlight label="LDM">
+          <button
+            onClick={() => {
+              if (dark) setAlert(true);
+              else setDark(true);
+            }}
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: 10,
+              background: dark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.06)",
+              border: dark ? "1px solid rgba(255,255,255,0.12)" : "1px solid rgba(0,0,0,0.12)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: "pointer",
+              fontSize: 16,
+            }}
+          >
+            {dark ? "\u{1F319}" : "\u{2600}\u{FE0F}"}
+          </button>
+        </Highlight>
+      </div>
+      {alert && (
+        <div
+          style={{
+            padding: 16,
+            borderRadius: 12,
+            background: "rgba(255,78,203,0.04)",
+            border: "1px solid rgba(255,78,203,0.2)",
+            textAlign: "center",
+            maxWidth: 220,
+          }}
+        >
+          <div style={{ fontSize: 10, color: PINK, fontWeight: 700, marginBottom: 8 }}>Dark mode is greener</div>
+          <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
+            <button
+              onClick={() => setAlert(false)}
+              style={{ fontSize: 9, padding: "4px 10px", borderRadius: 6, background: "linear-gradient(135deg, #ff4ecb, #a855f7)", color: "#fff", fontWeight: 700, border: "none", cursor: "pointer" }}
+            >
+              Stay dark
+            </button>
+            <button
+              onClick={() => { setDark(false); setAlert(false); }}
+              style={{ fontSize: 9, padding: "4px 10px", borderRadius: 6, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.5)", cursor: "pointer" }}
+            >
+              Switch anyway
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── SuggestionBox demo ──────────────────────────────────────────────────
 function SuggestionBoxDemo() {
   const [open, setOpen] = useState(false);
@@ -982,6 +1061,24 @@ const ResetBtn = styled.button\`
   <Label>{allExpanded ? "Collapse all" : "Expand all"}</Label>
 </TSG>`,
     Demo: TSGDemo,
+  },
+  {
+    key: "LDM",
+    name: "Light-Dark Mode Toggle",
+    category: "Toggles",
+    summary: "Moon/sun icon button that toggles between dark (default) and light themes. On first switch to light, a popup explains dark mode uses less power and is better for the environment, with 'Stay dark', 'Switch anyway', and 'Do not show again' options. Persists choice to localStorage. Theme applied via data-theme attribute on <html>.",
+    usage: "Place in the top nav bar next to user controls. Wrap the app with ThemeProvider. Add [data-theme=\"light\"] CSS overrides in globals.css. The accentColor prop lets each project set its own brand accent. Size prop controls the icon button dimensions.",
+    code: `// ThemeProvider wraps the app
+import ThemeProvider from "./ThemeProvider";
+<ThemeProvider>{children}</ThemeProvider>
+
+// LDM in the nav
+import LDM from "./LDM";
+<LDM size={28} accentColor="#ff4ecb" />
+
+// CSS: [data-theme="light"] body { background: #f8f6f3; color: #1a1a2e; }
+// [data-theme="light"] .nav-tgv { ... }`,
+    Demo: LDMDemo,
   },
   {
     key: "SB",

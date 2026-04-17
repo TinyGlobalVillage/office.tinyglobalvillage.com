@@ -7,6 +7,7 @@ import ProfileModal, { type Profile, type Memo, type Ping } from "./ProfileModal
 import { UserAvatar } from "./ChatSettingsModal";
 import { signOut } from "next-auth/react";
 import { useNavHistory } from "./useNavHistory";
+import LDM from "./LDM";
 
 const navLinks = [
   { label: "Dashboard", href: "/dashboard" },
@@ -376,6 +377,8 @@ export default function TopNav() {
                 </>
               );
             })()}
+
+            <LDM size={28} />
 
             <button
               onClick={() => signOut({ callbackUrl: "/login" })}

@@ -219,3 +219,83 @@ body {
   0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
   30% { transform: translateY(-4px); opacity: 1; }
 }
+
+/* ── Light mode (LDM) ─────────────────────────────────────────── */
+[data-theme="light"] {
+  --color-background: #f8f6f3;
+  --color-surface: #ffffff;
+}
+
+[data-theme="light"] body {
+  background: #f8f6f3;
+  color: #1a1a2e;
+}
+
+[data-theme="light"] .nav-tgv {
+  background: linear-gradient(44deg, rgba(255,255,255,0.85), rgba(248,246,243,0.95));
+  border: 1px solid rgba(255,78,203,0.15);
+  box-shadow: 0 2px 16px rgba(0,0,0,0.06);
+}
+
+[data-theme="light"] .card-tgv {
+  background: linear-gradient(44deg, rgba(255,255,255,0.9), rgba(248,246,243,0.8));
+  border-top: 1px solid rgba(0,0,0,0.06);
+  border-bottom: 1px solid rgba(0,0,0,0.04);
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+}
+
+[data-theme="light"] .card-tgv.glow-pink:hover {
+  box-shadow: 0 6px 24px rgba(255,78,203,0.2), 0 2px 12px rgba(0,0,0,0.06);
+}
+
+[data-theme="light"] .card-tgv.glow-cyan:hover {
+  box-shadow: 0 6px 24px rgba(0,191,255,0.2), 0 2px 12px rgba(0,0,0,0.06);
+}
+
+[data-theme="light"] .card-tgv.glow-gold:hover {
+  box-shadow: 0 6px 24px rgba(247,183,0,0.2), 0 2px 12px rgba(0,0,0,0.06);
+}
+
+[data-theme="light"] .section-tgv {
+  background: radial-gradient(circle at top left, rgba(0,191,255,0.04), rgba(248,246,243,1));
+  border-top: 1px solid rgba(0,0,0,0.06);
+  color: #1a1a2e;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+}
+
+[data-theme="light"] .neon-pink {
+  color: #d4389e;
+  text-shadow: none;
+}
+
+[data-theme="light"] .neon-cyan {
+  color: #0099cc;
+  text-shadow: none;
+}
+
+[data-theme="light"] ::-webkit-scrollbar-track {
+  background: #f8f6f3;
+}
+
+[data-theme="light"] ::-webkit-scrollbar-thumb {
+  background: rgba(255,78,203,0.25);
+}
+
+[data-theme="light"] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255,78,203,0.5);
+}
+
+/* Light mode overrides for common inline styles */
+[data-theme="light"] .text-white\/50,
+[data-theme="light"] .text-white\/40,
+[data-theme="light"] .text-white\/35,
+[data-theme="light"] .text-white\/30,
+[data-theme="light"] .text-white\/25 {
+  color: rgba(26,26,46,0.55) !important;
+}
+
+[data-theme="light"] .text-white\/70,
+[data-theme="light"] .text-white\/60,
+[data-theme="light"] .text-white\/55 {
+  color: rgba(26,26,46,0.7) !important;
+}
