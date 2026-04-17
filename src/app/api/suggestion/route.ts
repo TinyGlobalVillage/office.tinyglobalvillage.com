@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { requireAuth } from "@/lib/api-auth";
 import { getAccount, sendEmail } from "@/lib/fastmail";
+import { loadTGVContext } from "@/lib/claude-context";
 
 export const runtime = "nodejs";
 
@@ -54,7 +55,7 @@ export async function POST(req: NextRequest) {
       const response = await client.messages.create({
         model: "claude-sonnet-4-20250514",
         max_tokens: 4096,
-        system: SYSTEM_PROMPT,
+        system: SYSTEM_PROMPT + "\n\n---\n\n" + loadTGVContext(),
         messages: enrichedMessages,
       });
 

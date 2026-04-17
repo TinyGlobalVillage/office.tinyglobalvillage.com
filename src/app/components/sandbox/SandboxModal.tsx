@@ -5,6 +5,7 @@ import SandboxIcon from "./SandboxIcon";
 import { REGISTRY, CATEGORIES, type SandboxEntry } from "./registry";
 import { useDraftStore } from "./useDraftStore";
 import SandboxEditToolbar from "./SandboxEditToolbar";
+import SandboxClaudeDrawer from "./SandboxClaudeDrawer";
 
 const PINK = "#ff4ecb";
 const PINK_RGB = "255,78,203";
@@ -364,14 +365,26 @@ export default function SandboxModal({ onClose }: { onClose: () => void }) {
                   )}
                 </div>
 
-                {/* Viewport */}
+                {/* Viewport + Claude drawer */}
                 <div
-                  className="flex-1 overflow-auto p-8 flex items-start justify-center"
+                  className="flex-1 flex flex-col overflow-hidden"
                   style={{ background: "rgba(0,0,0,0.25)" }}
                 >
-                  <div className="w-full max-w-2xl flex flex-col items-center justify-center" style={{ minHeight: "100%" }}>
-                    {Demo && <Demo />}
+                  <div className="flex-1 overflow-auto p-8 flex items-start justify-center">
+                    <div className="w-full max-w-2xl flex flex-col items-center justify-center" style={{ minHeight: "100%" }}>
+                      {Demo && <Demo />}
+                    </div>
                   </div>
+                  {isAdmin && editMode && active && (
+                    <div className="shrink-0">
+                      <SandboxClaudeDrawer
+                        componentKey={activeKey}
+                        currentCode={editorCode}
+                        onCodeUpdate={(code) => handleCodeChange(code)}
+                        onDeploy={(targets) => handleDeploy({ targets: targets[0] === "all" ? undefined : targets })}
+                      />
+                    </div>
+                  )}
                 </div>
               </>
             ) : (
