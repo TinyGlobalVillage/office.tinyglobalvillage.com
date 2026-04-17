@@ -462,13 +462,13 @@ export default function EmailSettings({ accounts = [], onClose, onSaved }: Props
     <Backdrop>
       <Container>
         <Header>
-          <HeaderTitle>\u2699 Email Settings</HeaderTitle>
-          <CloseButton onClick={onClose}>\u2715</CloseButton>
+          <HeaderTitle>⚙ Email Settings</HeaderTitle>
+          <CloseButton onClick={onClose}>✕</CloseButton>
         </Header>
 
         <ScrollBody>
           {!settings ? (
-            <LoadingText>Loading settings\u2026</LoadingText>
+            <LoadingText>Loading settings…</LoadingText>
           ) : (
             <>
               <section>
@@ -577,7 +577,7 @@ export default function EmailSettings({ accounts = [], onClose, onSaved }: Props
             onClick={save}
             disabled={saving || !settings}
           >
-            {saved ? "\u2713 Saved" : saving ? "Saving\u2026" : "Save"}
+            {saved ? "\u2713 Saved" : saving ? "Saving…" : "Save"}
           </SaveBtn>
         </Footer>
       </Container>

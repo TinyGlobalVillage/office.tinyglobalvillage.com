@@ -1,10 +1,13 @@
 "use client";
 
 import { useState, useEffect, ReactNode } from "react";
+import styled from "styled-components";
+import { colors, rgb } from "../../theme";
 import TopNav from "../../components/TopNav";
 import { useTerminal } from "../../components/TerminalProvider";
 
-// ── Types ────────────────────────────────────────────────────────
+/* ── Types ────────────────────────────────────────────────────── */
+
 type Field = {
   key: string;
   label: string;
@@ -35,41 +38,25 @@ type Group = {
   actions: Action[];
 };
 
-// ── Command registry (mirrors /api/exec REGISTRY) ────────────────
+/* ── Command registry ─────────────────────────────────────────── */
+
 const GROUPS: Group[] = [
   {
     id: "project",
     title: "New Project",
     subtitle: "Scaffold and deploy a complete new project",
-    icon: "🚀",
+    icon: "\uD83D\uDE80",
     glow: "pink",
     actions: [
       {
         id: "new-nextjs",
         label: "Launch Next.js Project",
-        description: "Full pipeline: port → repo → scaffold → SSL → webhook",
+        description: "Full pipeline: port \u2192 repo \u2192 scaffold \u2192 SSL \u2192 webhook",
         script: "newclientproject",
-        buildArgs: (v) => [
-          v.org === "tgv" ? "-tgv" : "-refusionist",
-          v.domain,
-        ],
+        buildArgs: (v) => [v.org === "tgv" ? "-tgv" : "-refusionist", v.domain],
         fields: [
-          {
-            key: "org",
-            label: "Organisation",
-            type: "select",
-            options: [
-              { value: "tgv", label: "TinyGlobalVillage" },
-              { value: "refusionist", label: "Refusionist" },
-            ],
-            required: true,
-          },
-          {
-            key: "domain",
-            label: "Domain",
-            placeholder: "example.tinyglobalvillage.com",
-            required: true,
-          },
+          { key: "org", label: "Organisation", type: "select", options: [{ value: "tgv", label: "TinyGlobalVillage" }, { value: "refusionist", label: "Refusionist" }], required: true },
+          { key: "domain", label: "Domain", placeholder: "example.tinyglobalvillage.com", required: true },
         ],
         glow: "pink",
       },
@@ -78,27 +65,10 @@ const GROUPS: Group[] = [
         label: "Launch Static Site",
         description: "NGINX + SSL for a static HTML/CSS/JS site",
         script: "newclientproject-static",
-        buildArgs: (v) => [
-          v.org === "tgv" ? "-tgv" : "-refusionist",
-          v.domain,
-        ],
+        buildArgs: (v) => [v.org === "tgv" ? "-tgv" : "-refusionist", v.domain],
         fields: [
-          {
-            key: "org",
-            label: "Organisation",
-            type: "select",
-            options: [
-              { value: "tgv", label: "TinyGlobalVillage" },
-              { value: "refusionist", label: "Refusionist" },
-            ],
-            required: true,
-          },
-          {
-            key: "domain",
-            label: "Domain",
-            placeholder: "static.tinyglobalvillage.com",
-            required: true,
-          },
+          { key: "org", label: "Organisation", type: "select", options: [{ value: "tgv", label: "TinyGlobalVillage" }, { value: "refusionist", label: "Refusionist" }], required: true },
+          { key: "domain", label: "Domain", placeholder: "static.tinyglobalvillage.com", required: true },
         ],
         glow: "cyan",
       },
@@ -108,7 +78,7 @@ const GROUPS: Group[] = [
     id: "project-mgmt",
     title: "Project Management",
     subtitle: "Start, stop, or remove deployed projects",
-    icon: "⚙️",
+    icon: "⚙\uFE0F",
     glow: "cyan",
     actions: [
       {
@@ -117,31 +87,16 @@ const GROUPS: Group[] = [
         description: "Start a project via PM2 on its registered port",
         script: "start-client",
         buildArgs: (v) => [v.domain],
-        fields: [
-          {
-            key: "domain",
-            label: "Domain",
-            placeholder: "project.tinyglobalvillage.com",
-            required: true,
-          },
-        ],
+        fields: [{ key: "domain", label: "Domain", placeholder: "project.tinyglobalvillage.com", required: true }],
         glow: "cyan",
       },
       {
         id: "erase-project",
         label: "Erase Project",
-        description:
-          "Permanently delete: PM2, NGINX, SSL, GitHub repo, local files",
+        description: "Permanently delete: PM2, NGINX, SSL, GitHub repo, local files",
         script: "erase-project",
         buildArgs: (v) => [v.domain],
-        fields: [
-          {
-            key: "domain",
-            label: "Domain to erase",
-            placeholder: "project.tinyglobalvillage.com",
-            required: true,
-          },
-        ],
+        fields: [{ key: "domain", label: "Domain to erase", placeholder: "project.tinyglobalvillage.com", required: true }],
         danger: true,
         confirm: "Type the domain name again to confirm permanent deletion:",
         glow: "red",
@@ -151,264 +106,410 @@ const GROUPS: Group[] = [
   {
     id: "pm2",
     title: "PM2",
-    subtitle: "Process manager — restart, stop, and configure aliases",
-    icon: "⚡",
+    subtitle: "Process manager \u2014 restart, stop, and configure aliases",
+    icon: "\u26A1",
     glow: "gold",
     actions: [
-      {
-        id: "pm2-restart",
-        label: "Restart Process",
-        description: "Restart a named PM2 process with updated env",
-        script: "pm2-restart",
-        buildArgs: (v) => ["--update-env", v.name],
-        fields: [
-          {
-            key: "name",
-            label: "Process name",
-            placeholder: "refusionist.com",
-            required: true,
-          },
-        ],
-        glow: "cyan",
-      },
-      {
-        id: "pm2-stop",
-        label: "Stop Process",
-        description: "Stop a running PM2 process",
-        script: "pm2-stop",
-        buildArgs: (v) => [v.name],
-        fields: [
-          {
-            key: "name",
-            label: "Process name",
-            placeholder: "refusionist.com",
-            required: true,
-          },
-        ],
-        glow: "gold",
-      },
-      {
-        id: "pm2-logs",
-        label: "View Logs",
-        description: "Tail the last 80 lines of a PM2 process log",
-        script: "pm2-logs",
-        buildArgs: (v) => [v.name],
-        fields: [
-          {
-            key: "name",
-            label: "Process name",
-            placeholder: "refusionist.com",
-            required: true,
-          },
-        ],
-        glow: "cyan",
-      },
-      {
-        id: "pm2-harden",
-        label: "Harden PM2",
-        description:
-          "Install log rotation (10 MB × 5) + enable startup on reboot",
-        script: "pm2-harden",
-        buildArgs: () => [],
-        glow: "gold",
-      },
-      {
-        id: "pm2-newpm2",
-        label: "Add PM2 Alias",
-        description: "Append a pm2-restart shortcut alias to ~/.bashrc",
-        script: "pm2-newpm2",
-        buildArgs: (v) => [v.project, v.shortcut],
-        fields: [
-          {
-            key: "project",
-            label: "PM2 process name",
-            placeholder: "refusionist.com",
-            required: true,
-          },
-          {
-            key: "shortcut",
-            label: "Alias shortcut",
-            placeholder: "rr",
-            required: true,
-          },
-        ],
-        glow: "gold",
-      },
-      {
-        id: "pm2-editpm2",
-        label: "Edit PM2 Alias",
-        description: "Rename an existing PM2 alias shortcut in ~/.bashrc",
-        script: "pm2-editpm2",
-        buildArgs: (v) => [v.old, v.newName],
-        fields: [
-          {
-            key: "old",
-            label: "Current shortcut",
-            placeholder: "rr",
-            required: true,
-          },
-          {
-            key: "newName",
-            label: "New shortcut",
-            placeholder: "rrs",
-            required: true,
-          },
-        ],
-        glow: "gold",
-      },
+      { id: "pm2-restart", label: "Restart Process", description: "Restart a named PM2 process with updated env", script: "pm2-restart", buildArgs: (v) => ["--update-env", v.name], fields: [{ key: "name", label: "Process name", placeholder: "refusionist.com", required: true }], glow: "cyan" },
+      { id: "pm2-stop", label: "Stop Process", description: "Stop a running PM2 process", script: "pm2-stop", buildArgs: (v) => [v.name], fields: [{ key: "name", label: "Process name", placeholder: "refusionist.com", required: true }], glow: "gold" },
+      { id: "pm2-logs", label: "View Logs", description: "Tail the last 80 lines of a PM2 process log", script: "pm2-logs", buildArgs: (v) => [v.name], fields: [{ key: "name", label: "Process name", placeholder: "refusionist.com", required: true }], glow: "cyan" },
+      { id: "pm2-harden", label: "Harden PM2", description: "Install log rotation (10 MB \u00D7 5) + enable startup on reboot", script: "pm2-harden", buildArgs: () => [], glow: "gold" },
+      { id: "pm2-newpm2", label: "Add PM2 Alias", description: "Append a pm2-restart shortcut alias to ~/.bashrc", script: "pm2-newpm2", buildArgs: (v) => [v.project, v.shortcut], fields: [{ key: "project", label: "PM2 process name", placeholder: "refusionist.com", required: true }, { key: "shortcut", label: "Alias shortcut", placeholder: "rr", required: true }], glow: "gold" },
+      { id: "pm2-editpm2", label: "Edit PM2 Alias", description: "Rename an existing PM2 alias shortcut in ~/.bashrc", script: "pm2-editpm2", buildArgs: (v) => [v.old, v.newName], fields: [{ key: "old", label: "Current shortcut", placeholder: "rr", required: true }, { key: "newName", label: "New shortcut", placeholder: "rrs", required: true }], glow: "gold" },
     ],
   },
   {
     id: "git",
     title: "Git & GitHub",
     subtitle: "Create or remove GitHub repositories",
-    icon: "🐙",
+    icon: "\uD83D\uDC19",
     glow: "cyan",
     actions: [
-      {
-        id: "gitrepo",
-        label: "Create GitHub Repo",
-        description: "Create a new repo in an org and push initial commit",
-        script: "gitrepo",
-        buildArgs: (v) => [
-          v.org === "tgv" ? "-tgv" : "-u tinygvillage",
-          v.repoName,
-        ],
-        fields: [
-          {
-            key: "org",
-            label: "Organisation",
-            type: "select",
-            options: [
-              { value: "tgv", label: "TinyGlobalVillage" },
-              { value: "refusionist", label: "tinygvillage" },
-            ],
-            required: true,
-          },
-          {
-            key: "repoName",
-            label: "Repository name",
-            placeholder: "my-project",
-            required: true,
-          },
-        ],
-        glow: "cyan",
-      },
-      {
-        id: "gitdelrepo",
-        label: "Delete GitHub Repo",
-        description: "Permanently delete a repository from GitHub",
-        script: "gitdelrepo",
-        buildArgs: (v) => [
-          v.org === "tgv" ? "-TGV" : "-tgv",
-          v.repoName,
-        ],
-        fields: [
-          {
-            key: "org",
-            label: "Organisation",
-            type: "select",
-            options: [
-              { value: "tgv", label: "TinyGlobalVillage" },
-              { value: "refusionist", label: "tinygvillage" },
-            ],
-            required: true,
-          },
-          {
-            key: "repoName",
-            label: "Repository name",
-            placeholder: "my-project",
-            required: true,
-          },
-        ],
-        danger: true,
-        confirm: "Type the repository name to confirm deletion:",
-        glow: "red",
-      },
+      { id: "gitrepo", label: "Create GitHub Repo", description: "Create a new repo in an org and push initial commit", script: "gitrepo", buildArgs: (v) => [v.org === "tgv" ? "-tgv" : "-u tinygvillage", v.repoName], fields: [{ key: "org", label: "Organisation", type: "select", options: [{ value: "tgv", label: "TinyGlobalVillage" }, { value: "refusionist", label: "tinygvillage" }], required: true }, { key: "repoName", label: "Repository name", placeholder: "my-project", required: true }], glow: "cyan" },
+      { id: "gitdelrepo", label: "Delete GitHub Repo", description: "Permanently delete a repository from GitHub", script: "gitdelrepo", buildArgs: (v) => [v.org === "tgv" ? "-TGV" : "-tgv", v.repoName], fields: [{ key: "org", label: "Organisation", type: "select", options: [{ value: "tgv", label: "TinyGlobalVillage" }, { value: "refusionist", label: "tinygvillage" }], required: true }, { key: "repoName", label: "Repository name", placeholder: "my-project", required: true }], danger: true, confirm: "Type the repository name to confirm deletion:", glow: "red" },
     ],
   },
   {
     id: "system",
     title: "System",
     subtitle: "Server health, disk, and maintenance",
-    icon: "🖥️",
+    icon: "\uD83D\uDDA5\uFE0F",
     glow: "gold",
     actions: [
-      {
-        id: "diskusage",
-        label: "Disk Usage",
-        description: "Show disk usage for all key RCS directories",
-        script: "diskusage",
-        buildArgs: () => [],
-        glow: "gold",
-      },
+      { id: "diskusage", label: "Disk Usage", description: "Show disk usage for all key RCS directories", script: "diskusage", buildArgs: () => [], glow: "gold" },
     ],
   },
 ];
 
-// ── Glow colors map ───────────────────────────────────────────────
 const GLOW_COLOR: Record<string, string> = {
-  pink: "#ff4ecb",
-  cyan: "#00bfff",
-  gold: "#f7b700",
-  red: "#ff4444",
+  pink: colors.pink,
+  cyan: colors.cyan,
+  gold: colors.gold,
+  red: colors.red,
 };
 
-// ── Group panel ───────────────────────────────────────────────────
+/* ── Styled Components ─────────────────────────────────────────── */
+
+const PageMain = styled.main`
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  padding: 7rem 1rem 8rem;
+  max-width: 72rem;
+  margin: 0 auto;
+  width: 100%;
+  gap: 1.25rem;
+`;
+
+const HeaderRow = styled.div`
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+`;
+
+const PageTitle = styled.h1`
+  font-size: 1.875rem;
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+  color: ${colors.pink};
+  text-shadow: 0 0 8px #ff66cc, 0 0 20px ${colors.pink};
+
+  [data-theme="light"] & {
+    text-shadow: none;
+  }
+`;
+
+const PageSubtitle = styled.p`
+  font-size: 0.875rem;
+  color: var(--t-textGhost);
+
+  [data-theme="light"] & {
+    color: var(--t-textFaint);
+  }
+`;
+
+const TerminalShortcut = styled.button<{ $running: boolean }>`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 0.75rem;
+  font-size: 0.75rem;
+  font-family: monospace;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+  background: var(--t-inputBg);
+  border: 1px solid ${(p) => (p.$running ? `${colors.gold}` : `rgba(${rgb.pink}, 0.3)`)};
+  color: ${(p) => (p.$running ? colors.gold : colors.pink)};
+
+  [data-theme="light"] & {
+    background: var(--t-surface);
+  }
+`;
+
+const TerminalLineCount = styled.span`
+  color: var(--t-textGhost);
+`;
+
+const GroupsColumn = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+`;
+
+const GroupWrap = styled.div<{ $color: string }>`
+  border-radius: 1rem;
+  overflow: hidden;
+  background: linear-gradient(44deg, hsla(190, 100%, 12%, 0.4), rgba(0, 0, 0, 0.8));
+  border: 1px solid ${(p) => p.$color}22;
+
+  [data-theme="light"] & {
+    background: var(--t-surface);
+    border-color: ${(p) => p.$color}33;
+  }
+`;
+
+const GroupHeader = styled.button<{ $color: string }>`
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  text-align: left;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+`;
+
+const GroupIcon = styled.span`
+  font-size: 1.5rem;
+`;
+
+const GroupTitle = styled.div<{ $color: string }>`
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: ${(p) => p.$color};
+`;
+
+const GroupSubtitle = styled.div`
+  font-size: 0.75rem;
+  color: var(--t-textGhost);
+  margin-top: 0.125rem;
+`;
+
+const GroupToggle = styled.span<{ $open: boolean }>`
+  font-size: 0.75rem;
+  color: var(--t-textGhost);
+  transition: transform 0.2s;
+  transform: ${(p) => (p.$open ? "rotate(180deg)" : "rotate(0deg)")};
+`;
+
+const GroupBody = styled.div<{ $color: string }>`
+  padding: 0 1rem 1rem;
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  border-top: 1px solid ${(p) => p.$color}18;
+`;
+
+const ActionCardWrap = styled.div<{ $danger?: boolean; $color: string }>`
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  border-radius: 0.75rem;
+  padding: 1rem;
+  margin-top: 0.75rem;
+  transition: all 0.2s;
+  background: ${(p) => (p.$danger ? `rgba(${rgb.red}, 0.06)` : "var(--t-inputBg)")};
+  border: 1px solid ${(p) => (p.$danger ? `${colors.red}22` : `${p.$color}22`)};
+
+  [data-theme="light"] & {
+    background: ${(p) => (p.$danger ? `rgba(${rgb.red}, 0.04)` : "var(--t-surface)")};
+  }
+`;
+
+const ActionLabel = styled.div<{ $danger?: boolean; $color: string }>`
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.25rem;
+  color: ${(p) => (p.$danger ? colors.red : p.$color)};
+`;
+
+const ActionDesc = styled.p`
+  font-size: 0.75rem;
+  color: var(--t-textMuted);
+  line-height: 1.625;
+`;
+
+const ActionTriggerBtn = styled.button<{ $danger?: boolean; $color: string }>`
+  align-self: flex-start;
+  padding: 0.375rem 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  transition: all 0.15s;
+  cursor: pointer;
+  border: none;
+  background: ${(p) =>
+    p.$danger
+      ? `linear-gradient(to right, ${colors.red}, #cc0000)`
+      : `linear-gradient(to right, ${p.$color}cc, ${p.$color}88)`};
+  color: ${(p) => (p.$danger ? "#fff" : "#0a0a0a")};
+  box-shadow: ${(p) => `0 0 10px ${p.$color}44`};
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    box-shadow: none;
+  }
+`;
+
+/* Form modal */
+
+const ModalOverlay = styled.div`
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: var(--t-overlay, rgba(0, 0, 0, 0.75));
+`;
+
+const ModalContent = styled.div<{ $color: string }>`
+  width: 100%;
+  max-width: 28rem;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  background: linear-gradient(44deg, hsl(190, 100%, 10%), #0a0a0a);
+  border: 1px solid ${(p) => p.$color}44;
+  box-shadow: 0 0 40px ${(p) => p.$color}22;
+
+  [data-theme="light"] & {
+    background: var(--t-surface);
+    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.15);
+  }
+`;
+
+const ModalTitle = styled.h3<{ $color: string }>`
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 0.25rem;
+  color: ${(p) => p.$color};
+`;
+
+const ModalDesc = styled.p`
+  font-size: 0.75rem;
+  color: var(--t-textMuted);
+`;
+
+const FieldLabel = styled.label`
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--t-textMuted);
+`;
+
+const FieldGroup = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+`;
+
+const StyledInput = styled.input<{ $color: string }>`
+  width: 100%;
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.75rem;
+  outline: none;
+  background: var(--t-inputBg);
+  border: 1px solid ${(p) => p.$color}33;
+  color: var(--t-text);
+
+  &::placeholder {
+    color: var(--t-textGhost);
+  }
+`;
+
+const StyledSelect = styled.select<{ $color: string }>`
+  width: 100%;
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.75rem;
+  outline: none;
+  background: var(--t-inputBg);
+  border: 1px solid ${(p) => p.$color}33;
+  color: var(--t-text);
+`;
+
+const ConfirmLabel = styled.label`
+  font-size: 0.75rem;
+  color: ${colors.red};
+`;
+
+const ConfirmInput = styled.input`
+  width: 100%;
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.75rem;
+  font-family: monospace;
+  outline: none;
+  background: rgba(${rgb.red}, 0.08);
+  border: 1px solid rgba(${rgb.red}, 0.3);
+  color: var(--t-text);
+
+  &::placeholder {
+    color: var(--t-textGhost);
+  }
+`;
+
+const ModalButtons = styled.div`
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 0.25rem;
+`;
+
+const CancelBtn = styled.button`
+  flex: 1;
+  padding: 0.5rem 0;
+  border-radius: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--t-textMuted);
+  border: 1px solid var(--t-borderStrong);
+  background: transparent;
+  cursor: pointer;
+  transition: color 0.15s;
+
+  &:hover {
+    color: var(--t-text);
+  }
+`;
+
+const RunBtn = styled.button<{ $danger?: boolean; $color: string }>`
+  flex: 1;
+  padding: 0.5rem 0;
+  border-radius: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s;
+  background: ${(p) =>
+    p.$danger
+      ? `linear-gradient(to right, ${colors.red}, #cc0000)`
+      : `linear-gradient(to right, ${p.$color}dd, ${p.$color}99)`};
+  color: ${(p) => (p.$danger ? "#fff" : "#0a0a0a")};
+  box-shadow: ${(p) => `0 0 12px ${p.$color}44`};
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    box-shadow: none;
+  }
+`;
+
+/* ── Group panel component ─────────────────────────────────────── */
+
 function GroupPanel({ group }: { group: Group }) {
   const [open, setOpen] = useState(true);
   const color = GLOW_COLOR[group.glow];
 
   return (
-    <div
-      className="rounded-2xl overflow-hidden"
-      style={{
-        background: "linear-gradient(44deg, hsla(190,100%,12%,0.4), rgba(0,0,0,0.8))",
-        border: `1px solid ${color}22`,
-      }}
-    >
-      {/* Group header */}
-      <button
-        onClick={() => setOpen((p) => !p)}
-        className="w-full flex items-center gap-3 px-5 py-4 text-left"
-      >
-        <span className="text-2xl">{group.icon}</span>
-        <div className="flex-1">
-          <div
-            className="text-sm font-bold uppercase tracking-widest"
-            style={{ color }}
-          >
-            {group.title}
-          </div>
-          <div className="text-xs text-white/40 mt-0.5">{group.subtitle}</div>
+    <GroupWrap $color={color}>
+      <GroupHeader $color={color} onClick={() => setOpen((p) => !p)}>
+        <GroupIcon>{group.icon}</GroupIcon>
+        <div style={{ flex: 1 }}>
+          <GroupTitle $color={color}>{group.title}</GroupTitle>
+          <GroupSubtitle>{group.subtitle}</GroupSubtitle>
         </div>
-        <span
-          className="text-xs text-white/30 transition-transform duration-200"
-          style={{ transform: open ? "rotate(180deg)" : "rotate(0deg)" }}
-        >
-          ▼
-        </span>
-      </button>
+        <GroupToggle $open={open}>\u25BC</GroupToggle>
+      </GroupHeader>
 
-      {/* Actions */}
       {open && (
-        <div
-          className="px-4 pb-4 grid gap-3"
-          style={{
-            gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
-            borderTop: `1px solid ${color}18`,
-          }}
-        >
+        <GroupBody $color={color}>
           {group.actions.map((action) => (
             <ActionCard key={action.id} action={action} />
           ))}
-        </div>
+        </GroupBody>
       )}
-    </div>
+    </GroupWrap>
   );
 }
 
-// ── Action card ───────────────────────────────────────────────────
+/* ── Action card component ─────────────────────────────────────── */
+
 function ActionCard({ action }: { action: Action }) {
   const { runCommand, isRunning } = useTerminal();
   const [showForm, setShowForm] = useState(false);
@@ -434,7 +535,6 @@ function ActionCard({ action }: { action: Action }) {
       initDefaults();
       setShowForm(true);
     } else {
-      // No args — run directly
       runCommand(action.script, action.buildArgs?.({}) ?? []);
     }
   };
@@ -457,44 +557,21 @@ function ActionCard({ action }: { action: Action }) {
 
   return (
     <>
-      <div
-        className="flex flex-col gap-3 rounded-xl p-4 mt-3 transition-all duration-200"
-        style={{
-          background: action.danger
-            ? "rgba(255,50,50,0.06)"
-            : "rgba(255,255,255,0.03)",
-          border: `1px solid ${action.danger ? "#ff444422" : color + "22"}`,
-        }}
-      >
+      <ActionCardWrap $danger={action.danger} $color={color}>
         <div>
-          <div
-            className="text-xs font-bold uppercase tracking-wide mb-1"
-            style={{ color: action.danger ? "#ff6b6b" : color }}
-          >
-            {action.label}
-          </div>
-          <p className="text-xs text-white/50 leading-relaxed">
-            {action.description}
-          </p>
+          <ActionLabel $danger={action.danger} $color={color}>{action.label}</ActionLabel>
+          <ActionDesc>{action.description}</ActionDesc>
         </div>
-
-        <button
+        <ActionTriggerBtn
+          $danger={action.danger}
+          $color={color}
           onClick={handleTrigger}
           disabled={isRunning}
-          className="self-start px-4 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed"
-          style={{
-            background: action.danger
-              ? "linear-gradient(to right, #ff4444, #cc0000)"
-              : `linear-gradient(to right, ${color}cc, ${color}88)`,
-            color: action.danger ? "#fff" : "#0a0a0a",
-            boxShadow: isRunning ? "none" : `0 0 10px ${color}44`,
-          }}
         >
-          {isRunning ? "Busy…" : action.fields?.length ? "Configure →" : "Run →"}
-        </button>
-      </div>
+          {isRunning ? "Busy…" : action.fields?.length ? "Configure \u2192" : "Run \u2192"}
+        </ActionTriggerBtn>
+      </ActionCardWrap>
 
-      {/* Inline form modal */}
       {showForm && (
         <FormModal
           action={action}
@@ -511,16 +588,10 @@ function ActionCard({ action }: { action: Action }) {
   );
 }
 
-// ── Form modal ────────────────────────────────────────────────────
+/* ── Form modal component ──────────────────────────────────────── */
+
 function FormModal({
-  action,
-  values,
-  confirmValue,
-  canRun,
-  onChange,
-  onConfirmChange,
-  onRun,
-  onClose,
+  action, values, confirmValue, canRun, onChange, onConfirmChange, onRun, onClose,
 }: {
   action: Action;
   values: Record<string, string>;
@@ -540,184 +611,92 @@ function FormModal({
   }, [onClose]);
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: "rgba(0,0,0,0.75)" }}
-      onClick={(e) => e.target === e.currentTarget && onClose()}
-    >
-      <div
-        className="w-full max-w-md rounded-2xl p-6 flex flex-col gap-4"
-        style={{
-          background: "linear-gradient(44deg, hsl(190,100%,10%), #0a0a0a)",
-          border: `1px solid ${color}44`,
-          boxShadow: `0 0 40px ${color}22`,
-        }}
-      >
+    <ModalOverlay onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <ModalContent $color={color}>
         <div>
-          <h3
-            className="text-sm font-bold uppercase tracking-widest mb-1"
-            style={{ color }}
-          >
-            {action.label}
-          </h3>
-          <p className="text-xs text-white/50">{action.description}</p>
+          <ModalTitle $color={color}>{action.label}</ModalTitle>
+          <ModalDesc>{action.description}</ModalDesc>
         </div>
 
-        {/* Fields */}
         {(action.fields ?? []).map((field) => (
-          <FieldInput
-            key={field.key}
-            field={field}
-            value={values[field.key] ?? ""}
-            onChange={(v) => onChange(field.key, v)}
-            color={color}
-          />
+          <FieldGroup key={field.key}>
+            <FieldLabel>{field.label}</FieldLabel>
+            {field.type === "select" ? (
+              <StyledSelect
+                $color={color}
+                value={values[field.key] ?? ""}
+                onChange={(e) => onChange(field.key, e.target.value)}
+              >
+                {field.options?.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </StyledSelect>
+            ) : (
+              <StyledInput
+                $color={color}
+                type="text"
+                value={values[field.key] ?? ""}
+                onChange={(e) => onChange(field.key, e.target.value)}
+                placeholder={field.placeholder}
+              />
+            )}
+          </FieldGroup>
         ))}
 
-        {/* Danger confirmation */}
         {action.confirm && (
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs text-red-400">{action.confirm}</label>
-            <input
+          <FieldGroup>
+            <ConfirmLabel>{action.confirm}</ConfirmLabel>
+            <ConfirmInput
               type="text"
               value={confirmValue}
               onChange={(e) => onConfirmChange(e.target.value)}
-              className="w-full rounded-lg px-3 py-2 text-xs font-mono outline-none"
-              style={{
-                background: "rgba(255,50,50,0.08)",
-                border: "1px solid rgba(255,80,80,0.3)",
-                color: "#ededed",
-              }}
               placeholder="Type to confirm…"
             />
-          </div>
+          </FieldGroup>
         )}
 
-        {/* Buttons */}
-        <div className="flex gap-3 mt-1">
-          <button
-            onClick={onClose}
-            className="flex-1 py-2 rounded-lg text-xs font-bold text-white/50 hover:text-white border border-white/10 transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={onRun}
-            disabled={!canRun}
-            className="flex-1 py-2 rounded-lg text-xs font-bold disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-            style={{
-              background: action.danger
-                ? "linear-gradient(to right, #ff4444, #cc0000)"
-                : `linear-gradient(to right, ${color}dd, ${color}99)`,
-              color: action.danger ? "#fff" : "#0a0a0a",
-              boxShadow: canRun ? `0 0 12px ${color}44` : "none",
-            }}
-          >
-            {action.danger ? "⚠ Run Anyway" : "▶ Run"}
-          </button>
-        </div>
-      </div>
-    </div>
+        <ModalButtons>
+          <CancelBtn onClick={onClose}>Cancel</CancelBtn>
+          <RunBtn $danger={action.danger} $color={color} onClick={onRun} disabled={!canRun}>
+            {action.danger ? "\u26A0 Run Anyway" : "\u25B6 Run"}
+          </RunBtn>
+        </ModalButtons>
+      </ModalContent>
+    </ModalOverlay>
   );
 }
 
-// ── Field input ───────────────────────────────────────────────────
-function FieldInput({
-  field,
-  value,
-  onChange,
-  color,
-}: {
-  field: Field;
-  value: string;
-  onChange: (v: string) => void;
-  color: string;
-}) {
-  const inputStyle = {
-    background: "rgba(255,255,255,0.05)",
-    border: `1px solid ${color}33`,
-    color: "#ededed",
-  };
+/* ── Page ──────────────────────────────────────────────────────── */
 
-  return (
-    <div className="flex flex-col gap-1.5">
-      <label className="text-xs font-semibold text-white/60">{field.label}</label>
-      {field.type === "select" ? (
-        <select
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          className="w-full rounded-lg px-3 py-2 text-xs outline-none"
-          style={inputStyle}
-        >
-          {field.options?.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
-      ) : (
-        <input
-          type="text"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={field.placeholder}
-          className="w-full rounded-lg px-3 py-2 text-xs outline-none"
-          style={inputStyle}
-        />
-      )}
-    </div>
-  );
-}
-
-// ── Page ──────────────────────────────────────────────────────────
 export default function UtilsPage() {
   const { isRunning, lines, toggleTerminal } = useTerminal();
 
   return (
     <>
       <TopNav />
-      <main className="flex flex-col min-h-screen pt-28 pb-32 px-4 max-w-6xl mx-auto w-full gap-5">
-        {/* Header */}
-        <div className="flex items-end justify-between">
+      <PageMain>
+        <HeaderRow>
           <div>
-            <h1
-              className="text-3xl font-bold mb-1"
-              style={{
-                color: "#ff4ecb",
-                textShadow: "0 0 8px #ff66cc, 0 0 20px #ff4ecb",
-              }}
-            >
-              Utils
-            </h1>
-            <p className="text-sm text-white/40">
-              Server scripts — grouped, configured, and streamed to your terminal
-            </p>
+            <PageTitle>Utils</PageTitle>
+            <PageSubtitle>
+              Server scripts \u2014 grouped, configured, and streamed to your terminal
+            </PageSubtitle>
           </div>
 
-          {/* Terminal shortcut */}
-          <button
-            onClick={toggleTerminal}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-mono border transition-colors"
-            style={{
-              borderColor: isRunning ? "#f7b700" : "rgba(255,78,203,0.3)",
-              color: isRunning ? "#f7b700" : "#ff4ecb",
-              background: "rgba(255,255,255,0.03)",
-            }}
-          >
-            {isRunning ? "● running" : `>_ terminal`}
+          <TerminalShortcut $running={isRunning} onClick={toggleTerminal}>
+            {isRunning ? "\u25CF running" : ">_ terminal"}
             {lines.length > 0 && (
-              <span className="text-white/30">({lines.length} lines)</span>
+              <TerminalLineCount>({lines.length} lines)</TerminalLineCount>
             )}
-          </button>
-        </div>
+          </TerminalShortcut>
+        </HeaderRow>
 
-        {/* Groups */}
-        <div className="flex flex-col gap-4">
+        <GroupsColumn>
           {GROUPS.map((group) => (
             <GroupPanel key={group.id} group={group} />
           ))}
-        </div>
-      </main>
+        </GroupsColumn>
+      </PageMain>
     </>
   );
 }

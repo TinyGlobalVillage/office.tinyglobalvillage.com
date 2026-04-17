@@ -810,7 +810,7 @@ export default function ComposeModal({
               onClick={saveDraft}
               disabled={savingDraft || sending || scheduling}
             >
-              {savingDraft ? "Saving\u2026" : "Save Draft"}
+              {savingDraft ? "Saving…" : "Save Draft"}
             </SaveDraftDesktop>
             <ScheduleBtn
               $active={showScheduler}
@@ -832,14 +832,14 @@ export default function ComposeModal({
                 <polyline points="12 6 12 12 16 14" />
               </svg>
               <ScheduleLabel>
-                {scheduling ? "Scheduling\u2026" : "Schedule"}
+                {scheduling ? "Scheduling…" : "Schedule"}
               </ScheduleLabel>
             </ScheduleBtn>
             <SendBtn onClick={send} disabled={sending || savingDraft || scheduling}>
-              {sending ? "Sending\u2026" : "Send \u2191"}
+              {sending ? "Sending…" : "Send \u2191"}
             </SendBtn>
             <CloseButton onClick={onClose} title="Discard (Esc)">
-              \u2715
+              ✕
             </CloseButton>
           </ChromeActions>
         </Chrome>
@@ -916,7 +916,7 @@ export default function ComposeModal({
         <BodyArea
           value={body}
           onChange={(e) => setBody(e.target.value)}
-          placeholder="Write your message\u2026"
+          placeholder="Write your message…"
         />
 
         {showScheduler && (
@@ -946,14 +946,14 @@ export default function ComposeModal({
               onClick={scheduleEmail}
               disabled={!scheduleAt || scheduling}
             >
-              {scheduling ? "Scheduling\u2026" : "Confirm"}
+              {scheduling ? "Scheduling…" : "Confirm"}
             </SchedulerConfirm>
           </SchedulerBar>
         )}
 
         <MobileDraftBar>
           <MobileDraftBtn onClick={saveDraft} disabled={savingDraft || sending}>
-            {savingDraft ? "Saving\u2026" : "Save Draft"}
+            {savingDraft ? "Saving…" : "Save Draft"}
           </MobileDraftBtn>
         </MobileDraftBar>
 

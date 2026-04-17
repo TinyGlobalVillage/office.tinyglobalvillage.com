@@ -1,9 +1,12 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import styled from "styled-components";
+import { colors, rgb } from "../../theme";
 import TopNav from "../../components/TopNav";
 
-// ── Types ─────────────────────────────────────────────────────────
+/* ── Types ─────────────────────────────────────────────────────── */
+
 type DbInfo = {
   name: string;
   displayName: string;
@@ -33,12 +36,342 @@ type TableData = {
 };
 
 const STATUS_COLOR: Record<string, string> = {
-  refusionist_db: "#ff4ecb",
-  giocoelho_db:   "#00bfff",
-  tgv_db:         "#f7b700",
+  refusionist_db: colors.pink,
+  giocoelho_db: colors.cyan,
+  tgv_db: colors.gold,
 };
 
-// ── Main page ─────────────────────────────────────────────────────
+/* ── Styled Components ─────────────────────────────────────────── */
+
+const PageMain = styled.main`
+  display: flex;
+  min-height: 100vh;
+  padding: 6rem 1rem 2rem;
+  max-width: 87.5rem;
+  margin: 0 auto;
+  width: 100%;
+  gap: 1rem;
+`;
+
+const Sidebar = styled.aside<{ $width: number; $borderLeft?: boolean }>`
+  width: ${(p) => p.$width}px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: ${(p) => (p.$borderLeft ? "0.5rem" : "0.75rem")};
+  padding-top: 1rem;
+  ${(p) =>
+    p.$borderLeft &&
+    `border-left: 1px solid var(--t-border); padding-left: 1rem;`}
+`;
+
+const SidebarTitle = styled.h2`
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--t-textGhost);
+  padding: 0 0.25rem;
+`;
+
+const DbButton = styled.button<{ $active: boolean; $color: string }>`
+  text-align: left;
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  transition: all 0.15s;
+  cursor: pointer;
+  background: ${(p) =>
+    p.$active
+      ? `linear-gradient(135deg, ${p.$color}22, ${p.$color}08)`
+      : "var(--t-inputBg)"};
+  border: 1px solid
+    ${(p) => (p.$active ? `${p.$color}55` : "var(--t-border)")};
+
+  [data-theme="light"] & {
+    background: ${(p) => (p.$active ? `${p.$color}10` : "var(--t-surface)")};
+  }
+`;
+
+const DbName = styled.div<{ $color: string }>`
+  font-weight: 700;
+  font-size: 0.875rem;
+  color: ${(p) => p.$color};
+`;
+
+const DbTableCount = styled.div`
+  font-size: 0.75rem;
+  color: var(--t-textGhost);
+  margin-top: 0.125rem;
+`;
+
+const DbSlug = styled.div`
+  font-size: 10px;
+  color: var(--t-textGhost);
+  font-family: monospace;
+  margin-top: 0.125rem;
+`;
+
+const TableButton = styled.button<{ $active: boolean; $color: string }>`
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.75rem;
+  transition: all 0.15s;
+  cursor: pointer;
+  background: ${(p) => (p.$active ? `${p.$color}18` : "var(--t-inputBg)")};
+  border: 1px solid ${(p) => (p.$active ? `${p.$color}44` : "transparent")};
+  color: ${(p) => (p.$active ? p.$color : "var(--t-textMuted)")};
+
+  [data-theme="light"] & {
+    background: ${(p) => (p.$active ? `${p.$color}12` : "var(--t-surface)")};
+  }
+`;
+
+const TableBtnName = styled.div`
+  font-family: monospace;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+const TableBtnMeta = styled.div`
+  color: var(--t-textGhost);
+  font-size: 10px;
+  margin-top: 0.125rem;
+`;
+
+const ContentArea = styled.div`
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding-top: 1rem;
+  min-width: 0;
+  border-left: 1px solid var(--t-border);
+  padding-left: 1rem;
+`;
+
+const ContentHeader = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+`;
+
+const ContentTitle = styled.h1<{ $color: string }>`
+  font-size: 1.125rem;
+  font-weight: 700;
+  font-family: monospace;
+  color: ${(p) => p.$color};
+`;
+
+const RowCount = styled.span`
+  font-size: 0.75rem;
+  color: var(--t-textGhost);
+`;
+
+const Placeholder = styled.div`
+  color: var(--t-textGhost);
+  font-size: 0.875rem;
+  padding-top: 1rem;
+`;
+
+const ChipRow = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+`;
+
+const ColumnChip = styled.span<{ $color: string }>`
+  padding: 0.125rem 0.5rem;
+  border-radius: 0.375rem;
+  font-size: 10px;
+  font-family: monospace;
+  background: ${(p) => p.$color}12;
+  border: 1px solid ${(p) => p.$color}22;
+  color: var(--t-textMuted);
+`;
+
+const ChipName = styled.span<{ $color: string }>`
+  color: ${(p) => p.$color};
+`;
+
+const ChipType = styled.span`
+  color: var(--t-textGhost);
+  margin-left: 0.25rem;
+`;
+
+const SkeletonBlock = styled.div<{ $h: number }>`
+  border-radius: 0.75rem;
+  width: 100%;
+  height: ${(p) => p.$h}px;
+  background: var(--t-inputBg);
+  animation: pulse 2s ease-in-out infinite;
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+`;
+
+/* Data table */
+
+const DataTableWrap = styled.div<{ $color: string }>`
+  overflow: auto;
+  border-radius: 0.75rem;
+  max-height: 40vh;
+  border: 1px solid ${(p) => p.$color}22;
+`;
+
+const StyledTable = styled.table`
+  width: 100%;
+  font-size: 0.75rem;
+  font-family: monospace;
+  border-collapse: collapse;
+`;
+
+const TableHead = styled.thead<{ $color: string }>`
+  tr {
+    background: ${(p) => p.$color}12;
+    border-bottom: 1px solid ${(p) => p.$color}22;
+  }
+`;
+
+const Th = styled.th<{ $color: string }>`
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+  color: ${(p) => p.$color};
+`;
+
+const Tr = styled.tr`
+  border-bottom: 1px solid var(--t-border);
+  transition: background 0.1s;
+
+  &:hover {
+    background: var(--t-inputBg);
+  }
+`;
+
+const Td = styled.td`
+  padding: 0.375rem 0.75rem;
+  color: var(--t-textMuted);
+  white-space: nowrap;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
+
+const NullCell = styled.span`
+  color: var(--t-textGhost);
+  font-style: italic;
+`;
+
+/* SQL Editor */
+
+const SqlEditorWrap = styled.div<{ $color: string }>`
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  border-radius: 0.75rem;
+  padding: 0.75rem;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid ${(p) => p.$color}22;
+
+  [data-theme="light"] & {
+    background: var(--t-inputBg);
+  }
+`;
+
+const SqlHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+`;
+
+const SqlLabel = styled.span`
+  font-size: 0.75rem;
+  font-family: monospace;
+  color: var(--t-textGhost);
+`;
+
+const SqlRunBtn = styled.button<{ $color: string }>`
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s;
+  background: linear-gradient(to right, ${(p) => p.$color}cc, ${(p) => p.$color}88);
+  color: #0a0a0a;
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+`;
+
+const SqlShortcut = styled.span`
+  font-size: 10px;
+  opacity: 0.6;
+  margin-left: 0.25rem;
+`;
+
+const SqlTextarea = styled.textarea<{ $color: string }>`
+  width: 100%;
+  resize: vertical;
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.75rem;
+  font-family: monospace;
+  outline: none;
+  min-height: 80px;
+  background: var(--t-inputBg);
+  border: 1px solid ${(p) => p.$color}33;
+  color: var(--t-text);
+
+  &::placeholder {
+    color: var(--t-textGhost);
+  }
+`;
+
+const SqlError = styled.pre`
+  font-size: 0.75rem;
+  color: ${colors.red};
+  font-family: monospace;
+  white-space: pre-wrap;
+  background: rgba(${rgb.red}, 0.08);
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+`;
+
+/* SQL result table */
+
+const SqlResultWrap = styled.div<{ $color: string }>`
+  overflow: auto;
+  border-radius: 0.5rem;
+  max-height: 16rem;
+  border: 1px solid ${(p) => p.$color}22;
+`;
+
+const SqlResultFooter = styled.div`
+  padding: 0.25rem 0.5rem;
+  font-size: 10px;
+  color: var(--t-textGhost);
+  border-top: 1px solid var(--t-border);
+`;
+
+const SqlOk = styled.span`
+  font-size: 0.75rem;
+  color: #00dc64;
+`;
+
+/* ── Components ────────────────────────────────────────────────── */
+
 export default function DatabasePage() {
   const [databases, setDatabases] = useState<DbInfo[]>([]);
   const [selectedDb, setSelectedDb] = useState<string | null>(null);
@@ -49,7 +382,6 @@ export default function DatabasePage() {
   const [loadingTables, setLoadingTables] = useState(false);
   const [loadingData, setLoadingData] = useState(false);
 
-  // SQL editor
   const [sql, setSql] = useState("");
   const [sqlResult, setSqlResult] = useState<string | null>(null);
   const [sqlError, setSqlError] = useState<string | null>(null);
@@ -138,125 +470,89 @@ export default function DatabasePage() {
     }
   }, [selectedDb, sql, sqlRunning]);
 
-  const color = selectedDb ? (STATUS_COLOR[selectedDb] ?? "#00bfff") : "#00bfff";
+  const color = selectedDb ? (STATUS_COLOR[selectedDb] ?? colors.cyan) : colors.cyan;
 
   return (
     <>
       <TopNav />
-      <main className="flex min-h-screen pt-24 pb-8 px-4 max-w-[1400px] mx-auto w-full gap-4">
+      <PageMain>
+        {/* Left: DB list */}
+        <Sidebar $width={224}>
+          <SidebarTitle>Databases</SidebarTitle>
+          {loadingDbs
+            ? [0, 1, 2].map((i) => <SkeletonBlock key={i} $h={64} />)
+            : databases.map((db) => (
+                <DbButton
+                  key={db.name}
+                  $active={selectedDb === db.name}
+                  $color={db.color}
+                  onClick={() => selectDb(db.name)}
+                >
+                  <DbName $color={db.color}>{db.displayName}</DbName>
+                  <DbTableCount>{db.tableCount} tables</DbTableCount>
+                  <DbSlug>{db.name}</DbSlug>
+                </DbButton>
+              ))}
+        </Sidebar>
 
-        {/* ── Left: DB list ────────────────────────────────────── */}
-        <aside className="w-56 shrink-0 flex flex-col gap-3 pt-4">
-          <h2 className="text-xs font-bold uppercase tracking-widest text-white/40 px-1">
-            Databases
-          </h2>
-          {loadingDbs ? (
-            [0,1,2].map(i => <Skeleton key={i} h={64} />)
-          ) : (
-            databases.map((db) => (
-              <button
-                key={db.name}
-                onClick={() => selectDb(db.name)}
-                className="text-left px-4 py-3 rounded-xl transition-all duration-150"
-                style={{
-                  background: selectedDb === db.name
-                    ? `linear-gradient(135deg, ${db.color}22, ${db.color}08)`
-                    : "rgba(255,255,255,0.03)",
-                  border: `1px solid ${selectedDb === db.name ? db.color + "55" : "rgba(255,255,255,0.08)"}`,
-                }}
-              >
-                <div className="font-bold text-sm" style={{ color: db.color }}>
-                  {db.displayName}
-                </div>
-                <div className="text-xs text-white/40 mt-0.5">{db.tableCount} tables</div>
-                <div className="text-[10px] text-white/25 font-mono mt-0.5">{db.name}</div>
-              </button>
-            ))
-          )}
-        </aside>
+        {/* Middle: Table list */}
+        <Sidebar $width={208} $borderLeft>
+          <SidebarTitle>{selectedDb ? "Tables" : "Select a DB"}</SidebarTitle>
+          {loadingTables
+            ? Array.from({ length: 8 }).map((_, i) => <SkeletonBlock key={i} $h={32} />)
+            : tables.map((t) => (
+                <TableButton
+                  key={t.name}
+                  $active={selectedTable === t.name}
+                  $color={color}
+                  onClick={() => selectedDb && selectTable(selectedDb, t.name)}
+                >
+                  <TableBtnName>{t.name}</TableBtnName>
+                  <TableBtnMeta>
+                    ~{t.rowEstimate.toLocaleString()} rows \u00B7 {t.size}
+                  </TableBtnMeta>
+                </TableButton>
+              ))}
+        </Sidebar>
 
-        {/* ── Middle: Table list ───────────────────────────────── */}
-        <aside className="w-52 shrink-0 flex flex-col gap-2 pt-4 border-l border-white/5 pl-4">
-          <h2 className="text-xs font-bold uppercase tracking-widest text-white/40 px-1">
-            {selectedDb ? "Tables" : "Select a DB"}
-          </h2>
-          {loadingTables ? (
-            Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} h={32} />)
-          ) : (
-            tables.map((t) => (
-              <button
-                key={t.name}
-                onClick={() => selectedDb && selectTable(selectedDb, t.name)}
-                className="text-left px-3 py-2 rounded-lg text-xs transition-all"
-                style={{
-                  background: selectedTable === t.name
-                    ? `${color}18`
-                    : "rgba(255,255,255,0.02)",
-                  border: `1px solid ${selectedTable === t.name ? color + "44" : "transparent"}`,
-                  color: selectedTable === t.name ? color : "rgba(255,255,255,0.6)",
-                }}
-              >
-                <div className="font-mono truncate">{t.name}</div>
-                <div className="text-white/30 text-[10px] mt-0.5">
-                  ~{t.rowEstimate.toLocaleString()} rows · {t.size}
-                </div>
-              </button>
-            ))
-          )}
-        </aside>
-
-        {/* ── Right: Data + SQL editor ─────────────────────────── */}
-        <div className="flex-1 flex flex-col gap-4 pt-4 min-w-0 border-l border-white/5 pl-4">
-
-          {/* Header */}
+        {/* Right: Data + SQL */}
+        <ContentArea>
           {selectedTable ? (
-            <div className="flex items-center gap-3">
-              <h1 className="text-lg font-bold font-mono" style={{ color }}>
-                {selectedTable}
-              </h1>
+            <ContentHeader>
+              <ContentTitle $color={color}>{selectedTable}</ContentTitle>
               {tableData && (
-                <span className="text-xs text-white/40">
-                  {tableData.totalRows.toLocaleString()} total rows
-                </span>
+                <RowCount>{tableData.totalRows.toLocaleString()} total rows</RowCount>
               )}
-            </div>
+            </ContentHeader>
           ) : (
-            <div className="text-white/25 text-sm pt-4">
-              {selectedDb ? "← Select a table" : "← Select a database"}
-            </div>
+            <Placeholder>
+              {selectedDb ? "\u2190 Select a table" : "\u2190 Select a database"}
+            </Placeholder>
           )}
 
-          {/* Column chips */}
           {tableData && (
-            <div className="flex flex-wrap gap-1.5">
+            <ChipRow>
               {tableData.columns.map((col) => (
-                <span
+                <ColumnChip
                   key={col.name}
-                  className="px-2 py-0.5 rounded-md text-[10px] font-mono"
-                  style={{
-                    background: `${color}12`,
-                    border: `1px solid ${color}22`,
-                    color: "rgba(255,255,255,0.6)",
-                  }}
+                  $color={color}
                   title={`${col.type}${col.nullable ? " | nullable" : ""}${col.default ? ` | default: ${col.default}` : ""}`}
                 >
-                  <span style={{ color }}>{col.name}</span>
-                  <span className="text-white/30 ml-1">{col.type}</span>
-                </span>
+                  <ChipName $color={color}>{col.name}</ChipName>
+                  <ChipType>{col.type}</ChipType>
+                </ColumnChip>
               ))}
-            </div>
+            </ChipRow>
           )}
 
-          {/* Data table */}
           {loadingData ? (
-            <Skeleton h={200} />
+            <SkeletonBlock $h={200} />
           ) : tableData?.rows.length ? (
-            <DataTable data={tableData} color={color} />
+            <DataTableComponent data={tableData} color={color} />
           ) : null}
 
-          {/* SQL Editor */}
           {selectedDb && (
-            <SqlEditor
+            <SqlEditorComponent
               value={sql}
               onChange={setSql}
               onRun={runSql}
@@ -266,55 +562,42 @@ export default function DatabasePage() {
               color={color}
             />
           )}
-        </div>
-      </main>
+        </ContentArea>
+      </PageMain>
     </>
   );
 }
 
-// ── Data table ────────────────────────────────────────────────────
-function DataTable({ data, color }: { data: TableData; color: string }) {
+function DataTableComponent({ data, color }: { data: TableData; color: string }) {
   const cols = data.columns.map((c) => c.name);
 
   return (
-    <div className="overflow-auto rounded-xl border border-white/8 max-h-[40vh]" style={{ borderColor: `${color}22` }}>
-      <table className="w-full text-xs font-mono border-collapse">
-        <thead>
-          <tr style={{ background: `${color}12`, borderBottom: `1px solid ${color}22` }}>
+    <DataTableWrap $color={color}>
+      <StyledTable>
+        <TableHead $color={color}>
+          <tr>
             {cols.map((c) => (
-              <th key={c} className="text-left px-3 py-2 font-bold whitespace-nowrap" style={{ color }}>
-                {c}
-              </th>
+              <Th key={c} $color={color}>{c}</Th>
             ))}
           </tr>
-        </thead>
+        </TableHead>
         <tbody>
           {data.rows.map((row, i) => (
-            <tr
-              key={i}
-              className="border-b border-white/4 hover:bg-white/3 transition-colors"
-            >
+            <Tr key={i}>
               {cols.map((c) => (
-                <td
-                  key={c}
-                  className="px-3 py-1.5 text-white/70 whitespace-nowrap max-w-[200px] truncate"
-                  title={row[c]}
-                >
-                  {row[c] === "" ? (
-                    <span className="text-white/20 italic">null</span>
-                  ) : row[c]}
-                </td>
+                <Td key={c} title={row[c]}>
+                  {row[c] === "" ? <NullCell>null</NullCell> : row[c]}
+                </Td>
               ))}
-            </tr>
+            </Tr>
           ))}
         </tbody>
-      </table>
-    </div>
+      </StyledTable>
+    </DataTableWrap>
   );
 }
 
-// ── SQL editor ────────────────────────────────────────────────────
-function SqlEditor({
+function SqlEditorComponent({
   value, onChange, onRun, running, result, error, color,
 }: {
   value: string;
@@ -327,7 +610,6 @@ function SqlEditor({
 }) {
   const taRef = useRef<HTMLTextAreaElement>(null);
 
-  // Cmd/Ctrl+Enter to run
   const onKey = (e: React.KeyboardEvent) => {
     if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
       e.preventDefault();
@@ -336,58 +618,35 @@ function SqlEditor({
   };
 
   return (
-    <div
-      className="flex flex-col gap-2 rounded-xl p-3"
-      style={{ background: "rgba(0,0,0,0.4)", border: `1px solid ${color}22` }}
-    >
-      <div className="flex items-center justify-between">
-        <span className="text-xs font-mono text-white/40">SQL Editor</span>
-        <button
-          onClick={onRun}
-          disabled={running || !value.trim()}
-          className="flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold disabled:opacity-40 transition-all"
-          style={{
-            background: `linear-gradient(to right, ${color}cc, ${color}88)`,
-            color: "#0a0a0a",
-          }}
-        >
-          {running ? "⟳ Running…" : "▶ Run"}
-          <span className="text-[10px] opacity-60 ml-1">⌘↵</span>
-        </button>
-      </div>
+    <SqlEditorWrap $color={color}>
+      <SqlHeader>
+        <SqlLabel>SQL Editor</SqlLabel>
+        <SqlRunBtn $color={color} onClick={onRun} disabled={running || !value.trim()}>
+          {running ? "\u27F3 Running…" : "\u25B6 Run"}
+          <SqlShortcut>\u2318\u21B5</SqlShortcut>
+        </SqlRunBtn>
+      </SqlHeader>
 
-      <textarea
+      <SqlTextarea
         ref={taRef}
+        $color={color}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={onKey}
         rows={4}
         spellCheck={false}
-        className="w-full resize-y rounded-lg px-3 py-2 text-xs font-mono outline-none"
-        style={{
-          background: "rgba(255,255,255,0.04)",
-          border: `1px solid ${color}33`,
-          color: "#e2e8f0",
-          minHeight: "80px",
-        }}
-        placeholder="SELECT * FROM users LIMIT 10;"
+        placeholder='SELECT * FROM users LIMIT 10;'
       />
 
-      {/* Result */}
-      {result && <SqlResultTable csv={result} color={color} />}
-      {error && (
-        <pre className="text-xs text-red-400 font-mono whitespace-pre-wrap bg-red-500/8 rounded-lg p-3">
-          {error}
-        </pre>
-      )}
-    </div>
+      {result && <SqlResultTableComponent csv={result} color={color} />}
+      {error && <SqlError>{error}</SqlError>}
+    </SqlEditorWrap>
   );
 }
 
-// Parse CSV result and render as table
-function SqlResultTable({ csv, color }: { csv: string; color: string }) {
+function SqlResultTableComponent({ csv, color }: { csv: string; color: string }) {
   const lines = csv.split("\n").filter((l) => l.trim());
-  if (!lines.length) return <span className="text-xs text-green-400">Query OK (no rows returned)</span>;
+  if (!lines.length) return <SqlOk>Query OK (no rows returned)</SqlOk>;
 
   const headers = lines[0].split(",").map((h) => h.replace(/^"|"$/g, ""));
   const rows = lines.slice(1).map((line) => {
@@ -404,41 +663,30 @@ function SqlResultTable({ csv, color }: { csv: string; color: string }) {
   });
 
   return (
-    <div className="overflow-auto rounded-lg max-h-64" style={{ border: `1px solid ${color}22` }}>
-      <table className="w-full text-xs font-mono border-collapse">
-        <thead>
-          <tr style={{ background: `${color}12` }}>
+    <SqlResultWrap $color={color}>
+      <StyledTable>
+        <TableHead $color={color}>
+          <tr>
             {headers.map((h) => (
-              <th key={h} className="text-left px-2 py-1.5 font-bold whitespace-nowrap" style={{ color }}>
-                {h}
-              </th>
+              <Th key={h} $color={color}>{h}</Th>
             ))}
           </tr>
-        </thead>
+        </TableHead>
         <tbody>
           {rows.map((row, i) => (
-            <tr key={i} className="border-t border-white/5 hover:bg-white/3">
+            <Tr key={i}>
               {row.map((cell, j) => (
-                <td key={j} className="px-2 py-1 text-white/70 whitespace-nowrap max-w-[180px] truncate" title={cell}>
-                  {cell || <span className="text-white/20 italic">null</span>}
-                </td>
+                <Td key={j} title={cell}>
+                  {cell || <NullCell>null</NullCell>}
+                </Td>
               ))}
-            </tr>
+            </Tr>
           ))}
         </tbody>
-      </table>
-      <div className="px-2 py-1 text-[10px] text-white/30 border-t border-white/5">
+      </StyledTable>
+      <SqlResultFooter>
         {rows.length} row{rows.length !== 1 ? "s" : ""}
-      </div>
-    </div>
-  );
-}
-
-function Skeleton({ h }: { h: number }) {
-  return (
-    <div
-      className="rounded-xl animate-pulse w-full"
-      style={{ height: h, background: "rgba(255,255,255,0.04)" }}
-    />
+      </SqlResultFooter>
+    </SqlResultWrap>
   );
 }

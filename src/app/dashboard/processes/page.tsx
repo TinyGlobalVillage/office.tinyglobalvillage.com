@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import styled, { css } from "styled-components";
+import { colors, rgb } from "../../theme";
 import TopNav from "../../components/TopNav";
 import { useTerminal } from "../../components/TerminalProvider";
 import { usePreview } from "../../components/PreviewDrawer";
@@ -17,19 +19,303 @@ type Proc = {
 };
 
 const STATUS_COLOR: Record<string, string> = {
-  online: "#4ade80",
+  online: "#00dc64",
   stopped: "#6b7280",
-  errored: "#ff6b6b",
+  errored: colors.red,
 };
 
 function formatUptime(ms: number | null) {
-  if (!ms) return "—";
+  if (!ms) return "\u2014";
   const s = Math.floor((Date.now() - ms) / 1000);
   if (s < 60) return `${s}s`;
   if (s < 3600) return `${Math.floor(s / 60)}m`;
   if (s < 86400) return `${Math.floor(s / 3600)}h ${Math.floor((s % 3600) / 60)}m`;
   return `${Math.floor(s / 86400)}d`;
 }
+
+/* ── Styled Components ─────────────────────────────────────────── */
+
+const PageMain = styled.main`
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  padding: 7rem 1rem 8rem;
+  max-width: 72rem;
+  margin: 0 auto;
+  width: 100%;
+  gap: 1.25rem;
+`;
+
+const HeaderRow = styled.div`
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+`;
+
+const PageTitle = styled.h1`
+  font-size: 1.875rem;
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+  color: ${colors.cyan};
+  text-shadow: 0 0 8px ${colors.cyan}, 0 0 20px ${colors.cyan};
+
+  [data-theme="light"] & {
+    color: ${colors.cyan};
+    text-shadow: none;
+  }
+`;
+
+const PageSubtitle = styled.p`
+  font-size: 0.75rem;
+  color: var(--t-textGhost);
+
+  [data-theme="light"] & {
+    color: var(--t-textFaint);
+  }
+`;
+
+const LastRefreshSpan = styled.span`
+  margin-left: 0.5rem;
+  color: rgba(255, 255, 255, 0.15);
+
+  [data-theme="light"] & {
+    color: var(--t-textGhost);
+  }
+`;
+
+const ButtonGroup = styled.div`
+  display: flex;
+  gap: 0.5rem;
+`;
+
+const RefreshBtn = styled.button`
+  padding: 0.5rem 1rem;
+  border-radius: 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border: 1px solid rgba(${rgb.cyan}, 0.3);
+  color: ${colors.cyan};
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.15s;
+
+  &:hover {
+    background: rgba(${rgb.cyan}, 0.1);
+  }
+
+  [data-theme="light"] & {
+    border-color: rgba(${rgb.cyan}, 0.4);
+  }
+`;
+
+const SaveListBtn = styled.button`
+  padding: 0.5rem 1rem;
+  border-radius: 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border: 1px solid rgba(${rgb.gold}, 0.3);
+  color: ${colors.gold};
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.15s;
+
+  &:hover {
+    background: rgba(${rgb.gold}, 0.1);
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  [data-theme="light"] & {
+    border-color: rgba(${rgb.gold}, 0.4);
+  }
+`;
+
+const SummaryGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+`;
+
+const SummaryCard = styled.div<{ $color: string }>`
+  border-radius: 0.75rem;
+  padding: 0.75rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--t-inputBg);
+  border: 1px solid ${(p) => p.$color}22;
+
+  [data-theme="light"] & {
+    background: var(--t-surface);
+    border-color: ${(p) => p.$color}33;
+  }
+`;
+
+const SummaryLabel = styled.span`
+  font-size: 0.75rem;
+  color: var(--t-textGhost);
+
+  [data-theme="light"] & {
+    color: var(--t-textFaint);
+  }
+`;
+
+const SummaryCount = styled.span<{ $color: string }>`
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: ${(p) => p.$color};
+`;
+
+const ProcessList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+`;
+
+const SkeletonRow = styled.div`
+  height: 4rem;
+  border-radius: 0.75rem;
+  background: var(--t-inputBg);
+  animation: pulse 2s ease-in-out infinite;
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+`;
+
+const ProcessRowWrapper = styled.div<{ $statusColor: string }>`
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  border-radius: 0.75rem;
+  transition: all 0.15s;
+  background: linear-gradient(44deg, hsla(190, 100%, 12%, 0.35), rgba(0, 0, 0, 0.7));
+  border: 1px solid ${(p) => p.$statusColor}18;
+
+  [data-theme="light"] & {
+    background: var(--t-surface);
+    border-color: ${(p) => p.$statusColor}33;
+  }
+`;
+
+const StatusDot = styled.div<{ $color: string; $glow: boolean }>`
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 9999px;
+  flex-shrink: 0;
+  background: ${(p) => p.$color};
+  box-shadow: ${(p) => (p.$glow ? `0 0 6px ${p.$color}` : "none")};
+`;
+
+const ProcNameWrap = styled.div`
+  flex: 1;
+  min-width: 0;
+`;
+
+const ProcNameRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+`;
+
+const ProcName = styled.span`
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--t-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+const ProcId = styled.span`
+  font-size: 0.75rem;
+  color: var(--t-textGhost);
+  font-family: monospace;
+`;
+
+const ProcPort = styled.span`
+  font-size: 0.75rem;
+  font-family: monospace;
+  color: ${colors.cyan};
+`;
+
+const ProcMetaRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.125rem;
+`;
+
+const ProcStatus = styled.span<{ $color: string }>`
+  font-size: 0.75rem;
+  color: ${(p) => p.$color};
+`;
+
+const ProcUptime = styled.span`
+  font-size: 0.75rem;
+  color: var(--t-textGhost);
+`;
+
+const ProcRestarts = styled.span`
+  font-size: 0.75rem;
+  color: rgba(${rgb.gold}, 0.7);
+`;
+
+const StatsWrap = styled.div`
+  display: none;
+  align-items: center;
+  gap: 1.5rem;
+  font-size: 0.75rem;
+  font-family: monospace;
+  color: var(--t-textGhost);
+
+  @media (min-width: 640px) {
+    display: flex;
+  }
+`;
+
+const ActionsWrap = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  flex-shrink: 0;
+`;
+
+const ActionButton = styled.button<{ $color: string }>`
+  padding: 0.25rem 0.625rem;
+  border-radius: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  transition: all 0.15s;
+  cursor: pointer;
+  background: ${(p) => p.$color}18;
+  border: 1px solid ${(p) => p.$color}33;
+  color: ${(p) => p.$color};
+
+  &:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+
+  &:not(:disabled):hover {
+    background: ${(p) => p.$color}30;
+  }
+
+  [data-theme="light"] & {
+    background: ${(p) => p.$color}12;
+    border-color: ${(p) => p.$color}44;
+  }
+`;
+
+/* ── Components ─────────────────────────────────────────────────── */
 
 export default function ProcessesPage() {
   const [processes, setProcesses] = useState<Proc[]>([]);
@@ -60,118 +346,74 @@ export default function ProcessesPage() {
   return (
     <>
       <TopNav />
-      <main className="flex flex-col min-h-screen pt-28 pb-32 px-4 max-w-6xl mx-auto w-full gap-5">
+      <PageMain>
         {/* Header */}
-        <div className="flex items-end justify-between flex-wrap gap-3">
+        <HeaderRow>
           <div>
-            <h1
-              className="text-3xl font-bold mb-1"
-              style={{
-                color: "#00bfff",
-                textShadow: "0 0 8px #00bfff, 0 0 20px #00bfff",
-              }}
-            >
-              Processes
-            </h1>
-            <p className="text-xs text-white/40">
+            <PageTitle>Processes</PageTitle>
+            <PageSubtitle>
               PM2 — auto-refreshes every 10s
               {lastRefresh && (
-                <span className="ml-2 text-white/25">
+                <LastRefreshSpan>
                   last: {lastRefresh.toLocaleTimeString()}
-                </span>
+                </LastRefreshSpan>
               )}
-            </p>
+            </PageSubtitle>
           </div>
 
-          <div className="flex gap-2">
-            <button
-              onClick={refresh}
-              title="Manually refresh PM2 process list"
-              className="px-4 py-2 rounded-xl text-xs font-bold border border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10 transition-colors"
-            >
-              ↺ Refresh
-            </button>
-            <button
+          <ButtonGroup>
+            <RefreshBtn onClick={refresh} title="Manually refresh PM2 process list">
+              \u21BA Refresh
+            </RefreshBtn>
+            <SaveListBtn
               onClick={() => runCommand("pm2-save", [])}
               disabled={isRunning}
               title="Save PM2 process list so it survives reboots"
-              className="px-4 py-2 rounded-xl text-xs font-bold border border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/10 transition-colors disabled:opacity-40"
             >
-              💾 Save List
-            </button>
-          </div>
-        </div>
+              \uD83D\uDCBE Save List
+            </SaveListBtn>
+          </ButtonGroup>
+        </HeaderRow>
 
         {/* Summary bar */}
         {!loading && (
-          <div className="grid grid-cols-3 gap-3">
-            {(
-              [
-                {
-                  label: "Online",
-                  count: processes.filter((p) => p.status === "online").length,
-                  color: "#4ade80",
-                },
-                {
-                  label: "Stopped",
-                  count: processes.filter((p) => p.status === "stopped").length,
-                  color: "#6b7280",
-                },
-                {
-                  label: "Errored",
-                  count: processes.filter((p) => p.status === "errored").length,
-                  color: "#ff6b6b",
-                },
-              ] as const
-            ).map(({ label, count, color }) => (
-              <div
-                key={label}
-                className="rounded-xl px-4 py-3 flex items-center justify-between"
-                style={{
-                  background: "rgba(255,255,255,0.03)",
-                  border: `1px solid ${color}22`,
-                }}
-              >
-                <span className="text-xs text-white/40">{label}</span>
-                <span className="text-lg font-bold" style={{ color }}>
-                  {count}
-                </span>
-              </div>
+          <SummaryGrid>
+            {([
+              { label: "Online", count: processes.filter((p) => p.status === "online").length, color: "#00dc64" },
+              { label: "Stopped", count: processes.filter((p) => p.status === "stopped").length, color: "#6b7280" },
+              { label: "Errored", count: processes.filter((p) => p.status === "errored").length, color: colors.red },
+            ] as const).map(({ label, count, color }) => (
+              <SummaryCard key={label} $color={color}>
+                <SummaryLabel>{label}</SummaryLabel>
+                <SummaryCount $color={color}>{count}</SummaryCount>
+              </SummaryCard>
             ))}
-          </div>
+          </SummaryGrid>
         )}
 
         {/* Process list */}
-        <div className="flex flex-col gap-2">
-          {loading ? (
-            Array.from({ length: 4 }).map((_, i) => (
-              <div
-                key={i}
-                className="h-16 rounded-xl animate-pulse"
-                style={{ background: "rgba(255,255,255,0.04)" }}
-              />
-            ))
-          ) : (
-            processes.map((proc) => (
-              <ProcessRow
-                key={proc.id}
-                proc={proc}
-                onAction={(action) => {
-                  if (action === "preview" && proc.port) {
-                    openPreview(proc.name);
-                  } else if (action === "restart") {
-                    runCommand("pm2-restart", ["--update-env", proc.name]);
-                  } else if (action === "stop") {
-                    runCommand("pm2-stop", [proc.name]);
-                  } else if (action === "logs") {
-                    runCommand("pm2-logs", [proc.name]);
-                  }
-                }}
-              />
-            ))
-          )}
-        </div>
-      </main>
+        <ProcessList>
+          {loading
+            ? Array.from({ length: 4 }).map((_, i) => <SkeletonRow key={i} />)
+            : processes.map((proc) => (
+                <ProcessRow
+                  key={proc.id}
+                  proc={proc}
+                  onAction={(action) => {
+                    if (action === "preview" && proc.port) {
+                      openPreview(proc.name);
+                    } else if (action === "restart") {
+                      runCommand("pm2-restart", ["--update-env", proc.name]);
+                    } else if (action === "stop") {
+                      runCommand("pm2-stop", [proc.name]);
+                    } else if (action === "logs") {
+                      runCommand("pm2-logs", [proc.name]);
+                    }
+                  }}
+                />
+              ))}
+        </ProcessList>
+      </PageMain>
     </>
   );
 }
@@ -188,141 +430,76 @@ function ProcessRow({
   const isWebProject = proc.port !== null;
 
   return (
-    <div
-      className="flex items-center gap-4 px-5 py-4 rounded-xl transition-all duration-150"
-      style={{
-        background: "linear-gradient(44deg, hsla(190,100%,12%,0.35), rgba(0,0,0,0.7))",
-        border: `1px solid ${statusColor}18`,
-      }}
-    >
-      {/* Status dot */}
-      <div
-        className="w-2 h-2 rounded-full flex-shrink-0"
-        style={{
-          background: statusColor,
-          boxShadow: proc.status === "online" ? `0 0 6px ${statusColor}` : "none",
-        }}
-      />
+    <ProcessRowWrapper $statusColor={statusColor}>
+      <StatusDot $color={statusColor} $glow={proc.status === "online"} />
 
-      {/* Name + id */}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-sm font-bold text-white truncate">{proc.name}</span>
-          <span className="text-xs text-white/30 font-mono">#{proc.id}</span>
-          {proc.port && (
-            <span className="text-xs font-mono" style={{ color: "#00bfff" }}>
-              :{proc.port}
-            </span>
-          )}
-        </div>
-        <div className="flex items-center gap-3 mt-0.5">
-          <span className="text-xs" style={{ color: statusColor }}>
-            {proc.status}
-          </span>
-          <span className="text-xs text-white/30">
-            up {formatUptime(proc.uptime)}
-          </span>
-          {proc.restarts > 0 && (
-            <span className="text-xs text-yellow-500/70">
-              ↺ {proc.restarts}
-            </span>
-          )}
-        </div>
-      </div>
+      <ProcNameWrap>
+        <ProcNameRow>
+          <ProcName>{proc.name}</ProcName>
+          <ProcId>#{proc.id}</ProcId>
+          {proc.port && <ProcPort>:{proc.port}</ProcPort>}
+        </ProcNameRow>
+        <ProcMetaRow>
+          <ProcStatus $color={statusColor}>{proc.status}</ProcStatus>
+          <ProcUptime>up {formatUptime(proc.uptime)}</ProcUptime>
+          {proc.restarts > 0 && <ProcRestarts>\u21BA {proc.restarts}</ProcRestarts>}
+        </ProcMetaRow>
+      </ProcNameWrap>
 
-      {/* Stats */}
-      <div className="hidden sm:flex items-center gap-6 text-xs font-mono text-white/40">
-        {proc.memoryMb !== null && (
-          <span>{proc.memoryMb} MB</span>
-        )}
-        {proc.cpu !== null && (
-          <span>{proc.cpu}% CPU</span>
-        )}
-      </div>
+      <StatsWrap>
+        {proc.memoryMb !== null && <span>{proc.memoryMb} MB</span>}
+        {proc.cpu !== null && <span>{proc.cpu}% CPU</span>}
+      </StatsWrap>
 
-      {/* Actions */}
-      <div className="flex items-center gap-1.5 flex-shrink-0">
+      <ActionsWrap>
         {isWebProject && (
-          <ActionBtn
-            label="Preview"
-            title={`Open ${proc.name} in preview pane`}
-            color="#ff4ecb"
+          <ActionButton
+            $color={colors.pink}
             onClick={() => onAction("preview")}
             disabled={false}
-          />
+            title={`Open ${proc.name} in preview pane`}
+          >
+            Preview
+          </ActionButton>
         )}
-        <ActionBtn
-          label="Logs"
-          title={`View last 80 lines of ${proc.name} logs`}
-          color="#00bfff"
+        <ActionButton
+          $color={colors.cyan}
           onClick={() => onAction("logs")}
           disabled={isRunning}
-        />
+          title={`View last 80 lines of ${proc.name} logs`}
+        >
+          Logs
+        </ActionButton>
         {proc.status === "online" ? (
-          <ActionBtn
-            label="Restart"
+          <ActionButton
+            $color={colors.gold}
+            onClick={() => onAction("restart")}
+            disabled={isRunning}
             title={`Restart ${proc.name} (with --update-env)`}
-            color="#f7b700"
-            onClick={() => onAction("restart")}
-            disabled={isRunning}
-          />
+          >
+            Restart
+          </ActionButton>
         ) : (
-          <ActionBtn
-            label="Start"
-            title={`Start ${proc.name}`}
-            color="#4ade80"
+          <ActionButton
+            $color="#00dc64"
             onClick={() => onAction("restart")}
             disabled={isRunning}
-          />
+            title={`Start ${proc.name}`}
+          >
+            Start
+          </ActionButton>
         )}
         {proc.status === "online" && (
-          <ActionBtn
-            label="Stop"
-            title={`Stop ${proc.name}`}
-            color="#ff6b6b"
+          <ActionButton
+            $color={colors.red}
             onClick={() => onAction("stop")}
             disabled={isRunning}
-          />
+            title={`Stop ${proc.name}`}
+          >
+            Stop
+          </ActionButton>
         )}
-      </div>
-    </div>
-  );
-}
-
-function ActionBtn({
-  label,
-  title,
-  color,
-  onClick,
-  disabled,
-}: {
-  label: string;
-  title?: string;
-  color: string;
-  onClick: () => void;
-  disabled: boolean;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      title={title}
-      className="px-2.5 py-1 rounded-lg text-xs font-bold transition-all duration-150 disabled:opacity-30 disabled:cursor-not-allowed"
-      style={{
-        background: `${color}18`,
-        border: `1px solid ${color}33`,
-        color,
-      }}
-      onMouseEnter={(e) => {
-        if (!disabled) {
-          (e.currentTarget as HTMLButtonElement).style.background = `${color}30`;
-        }
-      }}
-      onMouseLeave={(e) => {
-        (e.currentTarget as HTMLButtonElement).style.background = `${color}18`;
-      }}
-    >
-      {label}
-    </button>
+      </ActionsWrap>
+    </ProcessRowWrapper>
   );
 }

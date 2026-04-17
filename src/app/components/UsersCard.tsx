@@ -2,9 +2,168 @@
 
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import styled from "styled-components";
+import { colors, rgb } from "../theme";
 import ProfileModal, { type Profile, type Memo, type Ping, hexToRgb } from "./ProfileModal";
 import { UserAvatar } from "./ChatSettingsModal";
 import type { UserPresence } from "./PresenceDots";
+
+/* ── Styled ────────────────────────────────────────────────── */
+
+const Card = styled.div`
+  background: var(--t-surface);
+  border: 1px solid rgba(${rgb.violet}, 0.25);
+  border-radius: 16px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 0 24px rgba(${rgb.violet}, 0.06);
+
+  [data-theme="light"] & {
+    background: var(--t-surface);
+    border-color: rgba(${rgb.violet}, 0.3);
+    box-shadow: 0 0 16px rgba(${rgb.violet}, 0.04);
+  }
+`;
+
+const HeaderRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+`;
+
+const Title = styled.h3`
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: ${colors.violet};
+`;
+
+const PingBadge = styled.span`
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  background: rgba(${rgb.violet}, 0.18);
+  border: 1px solid rgba(${rgb.violet}, 0.45);
+  color: ${colors.violet};
+`;
+
+const UserList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+`;
+
+const UserBtn = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-radius: 12px;
+  padding: 8px;
+  transition: all 0.15s;
+  text-align: left;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.03);
+  border: none;
+  cursor: pointer;
+
+  [data-theme="light"] & {
+    background: rgba(0, 0, 0, 0.02);
+  }
+`;
+
+const AvatarWrap = styled.div`
+  position: relative;
+  flex-shrink: 0;
+`;
+
+const StatusDot = styled.span<{ $online: boolean }>`
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 10px;
+  height: 10px;
+  border-radius: 9999px;
+  border: 2px solid var(--t-bg);
+  background: ${({ $online }) => ($online ? "#4ade80" : "#374151")};
+  box-shadow: ${({ $online }) => ($online ? "0 0 5px #4ade80" : "none")};
+`;
+
+const InfoCol = styled.div`
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+`;
+
+const DisplayName = styled.span`
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--t-text);
+  line-height: 1.2;
+`;
+
+const SubText = styled.span`
+  font-size: 10px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--t-textGhost);
+`;
+
+const UnreadBadge = styled.span<{ $accent: string }>`
+  flex-shrink: 0;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 9999px;
+  background: ${({ $accent }) => `rgba(${hexToRgb($accent)}, 0.2)`};
+  border: ${({ $accent }) => `1px solid ${$accent}66`};
+  color: ${({ $accent }) => $accent};
+`;
+
+const ArrowHint = styled.span`
+  font-size: 10px;
+  color: var(--t-textGhost);
+  flex-shrink: 0;
+  transition: color 0.15s;
+
+  ${UserBtn}:hover & {
+    color: var(--t-textMuted);
+  }
+`;
+
+const MemoDivider = styled.div`
+  border-top: 1px solid var(--t-border);
+  padding-top: 8px;
+`;
+
+const MemoLabel = styled.p`
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--t-textGhost);
+  margin-bottom: 6px;
+`;
+
+const MemoLine = styled.div`
+  font-size: 10px;
+  color: var(--t-textMuted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 2px 0;
+`;
+
+const MemoDate = styled.span`
+  color: var(--t-textGhost);
+`;
+
+/* ── Component ─────────────────────────────────────────────── */
 
 export default function UsersCard({ className = "" }: { className?: string }) {
   const [profiles, setProfiles] = useState<Profile[]>([]);
@@ -37,7 +196,6 @@ export default function UsersCard({ className = "" }: { className?: string }) {
     return () => clearInterval(id);
   }, []);
 
-  // When openProfile data changes (after refresh), keep it in sync
   useEffect(() => {
     if (openProfile) {
       const updated = profiles.find((p) => p.username === openProfile.username);
@@ -46,39 +204,28 @@ export default function UsersCard({ className = "" }: { className?: string }) {
   }, [profiles]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <div className={`card-tgv p-5 flex flex-col gap-3 ${className}`} style={{ borderColor: "rgba(162,89,255,0.25)", boxShadow: "0 0 24px rgba(162,89,255,0.06)" }}>
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-bold uppercase tracking-widest" style={{ color: "#a259ff" }}>
-          Team
-        </h3>
+    <Card className={className}>
+      <HeaderRow>
+        <Title>Team</Title>
         {unreadPings > 0 && (
-          <span
-            className="text-[9px] font-bold px-2 py-0.5 rounded-full"
-            style={{
-              background: "rgba(162,89,255,0.18)",
-              border: "1px solid rgba(162,89,255,0.45)",
-              color: "#a259ff",
-            }}
-          >
+          <PingBadge>
             {unreadPings} ping{unreadPings !== 1 ? "s" : ""}
-          </span>
+          </PingBadge>
         )}
-      </div>
+      </HeaderRow>
 
-      <div className="flex flex-col gap-2">
+      <UserList>
         {profiles.map((p) => {
           const pres = presence.find((u) => u.sysUser === p.username);
           const online = pres?.online ?? false;
           const accent = p.accentColor;
-          // Show ping badge on the RECIPIENT's own card (current user), not the sender's
-          const myUnreadPings = p.username === currentUser ? pings.filter((pg) => !pg.read) : [];
+          const myUnreadPings =
+            p.username === currentUser ? pings.filter((pg) => !pg.read) : [];
 
           return (
-            <button
+            <UserBtn
               key={p.username}
               onClick={() => setOpenProfile(p)}
-              className="flex items-center gap-3 rounded-xl p-2 transition-all text-left w-full group"
-              style={{ background: "rgba(255,255,255,0.03)" }}
               onMouseEnter={(e) =>
                 (e.currentTarget.style.background = `rgba(${hexToRgb(accent)},0.08)`)
               }
@@ -86,80 +233,56 @@ export default function UsersCard({ className = "" }: { className?: string }) {
                 (e.currentTarget.style.background = "rgba(255,255,255,0.03)")
               }
             >
-              {/* Avatar */}
-              <div className="relative shrink-0">
+              <AvatarWrap>
                 <UserAvatar profile={p} size={36} />
-                <span
-                  className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2"
-                  style={{
-                    background: online ? "#4ade80" : "#374151",
-                    borderColor: "#060810",
-                    boxShadow: online ? "0 0 5px #4ade80" : "none",
-                  }}
-                />
-              </div>
+                <StatusDot $online={online} />
+              </AvatarWrap>
 
-              <div className="flex flex-col flex-1 min-w-0">
-                <span className="text-sm font-semibold text-white leading-tight">{p.displayName}</span>
-                <span className="text-[10px] truncate" style={{ color: "rgba(255,255,255,0.35)" }}>
-                  {p.title || p.email}
-                </span>
-              </div>
+              <InfoCol>
+                <DisplayName>{p.displayName}</DisplayName>
+                <SubText>{p.title || p.email}</SubText>
+              </InfoCol>
 
-              {/* Unread ping badge — only on current user's card */}
               {myUnreadPings.length > 0 && (
-                <span
-                  className="shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded-full"
-                  style={{
-                    background: `rgba(${hexToRgb(accent)},0.2)`,
-                    border: `1px solid ${accent}66`,
-                    color: accent,
-                  }}
-                >
+                <UnreadBadge $accent={accent}>
                   {myUnreadPings.length}
-                </span>
+                </UnreadBadge>
               )}
 
-              <span className="text-[10px] text-white/20 group-hover:text-white/40 transition-colors shrink-0">
-                →
-              </span>
-            </button>
+              <ArrowHint>&rarr;</ArrowHint>
+            </UserBtn>
           );
         })}
-      </div>
+      </UserList>
 
-      {/* Recent memos preview */}
       {memos.length > 0 && (
-        <div className="border-t pt-2" style={{ borderColor: "rgba(255,255,255,0.06)" }}>
-          <p className="text-[9px] font-bold uppercase tracking-wider text-white/25 mb-1.5">
-            Recent Memos
-          </p>
+        <MemoDivider>
+          <MemoLabel>Recent Memos</MemoLabel>
           {memos.slice(0, 2).map((m) => (
-            <div key={m.id} className="text-[10px] text-white/40 truncate py-0.5">
-              <span style={{ color: "rgba(255,255,255,0.25)" }}>
+            <MemoLine key={m.id}>
+              <MemoDate>
                 {new Date(m.createdAt).toLocaleDateString()}
-              </span>
-              {" · "}
+              </MemoDate>
+              {" \u00b7 "}
               {m.content}
-            </div>
+            </MemoLine>
           ))}
-        </div>
+        </MemoDivider>
       )}
 
-      {/* Profile modal — portaled to body so card's hover transform doesn't break fixed positioning */}
-      {openProfile && createPortal(
-        <ProfileModal
-          profile={openProfile}
-          profiles={profiles}
-          memos={memos}
-          pings={pings}
-          currentUser={currentUser}
-          onClose={() => setOpenProfile(null)}
-          onRefresh={load}
-        />,
-        document.body
-      )}
-
-    </div>
+      {openProfile &&
+        createPortal(
+          <ProfileModal
+            profile={openProfile}
+            profiles={profiles}
+            memos={memos}
+            pings={pings}
+            currentUser={currentUser}
+            onClose={() => setOpenProfile(null)}
+            onRefresh={load}
+          />,
+          document.body
+        )}
+    </Card>
   );
 }

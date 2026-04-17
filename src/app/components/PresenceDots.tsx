@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import styled, { keyframes } from "styled-components";
 
 export type UserPresence = {
   sysUser: string;
@@ -13,9 +14,93 @@ export type UserPresence = {
 };
 
 const USER_COLOR: Record<string, string> = {
-  admin:  "#ff4ecb",
+  admin: "#ff4ecb",
   marmar: "#00bfff",
 };
+
+/* ── Animations ────────────────────────────────────────────── */
+
+const pulseGreen = keyframes`
+  0%, 100% { box-shadow: 0 0 5px currentColor; }
+  50%      { box-shadow: 0 0 2px currentColor; }
+`;
+
+/* ── Styled ────────────────────────────────────────────────── */
+
+const Wrapper = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+`;
+
+const DotGroup = styled.div`
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: default;
+  user-select: none;
+
+  &:hover > [data-tooltip] {
+    opacity: 1;
+  }
+`;
+
+const Dot = styled.span<{ $color: string; $online: boolean }>`
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  flex-shrink: 0;
+  background: ${({ $color }) => $color};
+  box-shadow: ${({ $online, $color }) => ($online ? `0 0 5px ${$color}` : "none")};
+  color: ${({ $color }) => $color};
+  animation: ${({ $online }) => ($online ? pulseGreen : "none")} 2.5s ease-in-out infinite;
+`;
+
+const NameLabel = styled.span<{ $online: boolean }>`
+  font-size: 12px;
+  display: none;
+  color: ${({ $online }) =>
+    $online ? "var(--t-textMuted)" : "var(--t-textGhost)"};
+
+  @media (min-width: 640px) {
+    display: inline;
+  }
+`;
+
+const Tooltip = styled.div<{ $dotColor: string }>`
+  position: absolute;
+  bottom: 100%;
+  right: 0;
+  margin-bottom: 8px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+  z-index: 50;
+  background: rgba(10, 10, 15, 0.96);
+  border: 1px solid ${({ $dotColor }) => $dotColor}44;
+
+  [data-theme="light"] & {
+    background: rgba(255, 255, 255, 0.96);
+    border-color: ${({ $dotColor }) => $dotColor}44;
+  }
+`;
+
+const TooltipName = styled.span<{ $color: string }>`
+  font-weight: 700;
+  color: ${({ $color }) => $color};
+`;
+
+const TooltipLabel = styled.span`
+  color: var(--t-textMuted);
+  margin-left: 6px;
+`;
+
+/* ── Component ─────────────────────────────────────────────── */
 
 export default function PresenceDots() {
   const [presence, setPresence] = useState<UserPresence[]>([]);
@@ -24,7 +109,9 @@ export default function PresenceDots() {
     try {
       const res = await fetch("/api/presence");
       if (res.ok) setPresence(await res.json());
-    } catch { /* stale data stays */ }
+    } catch {
+      /* stale data stays */
+    }
   };
 
   useEffect(() => {
@@ -36,15 +123,15 @@ export default function PresenceDots() {
   if (presence.length === 0) return null;
 
   return (
-    <div className="flex items-center gap-3">
+    <Wrapper>
       {presence.map((u) => (
-        <PresenceDot key={u.sysUser} user={u} color={USER_COLOR[u.sysUser] ?? "#fff"} />
+        <PresenceDotItem key={u.sysUser} user={u} color={USER_COLOR[u.sysUser] ?? "#fff"} />
       ))}
-    </div>
+    </Wrapper>
   );
 }
 
-function PresenceDot({ user, color }: { user: UserPresence; color: string }) {
+function PresenceDotItem({ user, color }: { user: UserPresence; color: string }) {
   const dotColor = user.online ? color : "#4b5563";
   const label = user.online
     ? user.via === "ssh+web"
@@ -57,33 +144,14 @@ function PresenceDot({ user, color }: { user: UserPresence; color: string }) {
     : "Offline";
 
   return (
-    <div className="group relative flex items-center gap-1.5 cursor-default select-none">
-      <span
-        className="w-2 h-2 rounded-full flex-shrink-0"
-        style={{
-          background: dotColor,
-          boxShadow: user.online ? `0 0 5px ${dotColor}` : "none",
-          animation: user.online ? "pulse-green 2.5s ease-in-out infinite" : "none",
-        }}
-      />
-      <span
-        className="text-xs hidden sm:inline"
-        style={{ color: user.online ? "rgba(255,255,255,0.6)" : "rgba(255,255,255,0.25)" }}
-      >
-        {user.displayName}
-      </span>
+    <DotGroup>
+      <Dot $color={dotColor} $online={user.online} />
+      <NameLabel $online={user.online}>{user.displayName}</NameLabel>
 
-      {/* Tooltip */}
-      <div
-        className="absolute bottom-full right-0 mb-2 px-2.5 py-1.5 rounded-lg text-xs whitespace-nowrap pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-150 z-50"
-        style={{
-          background: "rgba(10,10,15,0.96)",
-          border: `1px solid ${dotColor}44`,
-        }}
-      >
-        <span className="font-bold" style={{ color: dotColor }}>{user.displayName}</span>
-        <span className="text-white/50 ml-1.5">{label}</span>
-      </div>
-    </div>
+      <Tooltip data-tooltip $dotColor={dotColor}>
+        <TooltipName $color={dotColor}>{user.displayName}</TooltipName>
+        <TooltipLabel>{label}</TooltipLabel>
+      </Tooltip>
+    </DotGroup>
   );
 }

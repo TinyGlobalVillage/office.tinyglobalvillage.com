@@ -486,7 +486,7 @@ function RawMessageModal({ email, onClose }: { email: EmailDetail; onClose: () =
       <RawContainer onClick={(e) => e.stopPropagation()}>
         <RawHeader>
           <RawTitle>Raw Message</RawTitle>
-          <RawCloseBtn onClick={onClose}>{"\u2715"}</RawCloseBtn>
+          <RawCloseBtn onClick={onClose}>{"✕"}</RawCloseBtn>
         </RawHeader>
         <RawBody>{raw}</RawBody>
       </RawContainer>
@@ -585,7 +585,7 @@ export default function MessageView({
   if (loading)
     return (
       <CenteredMsg>
-        <LoadingLabel>Loading\u2026</LoadingLabel>
+        <LoadingLabel>Loading…</LoadingLabel>
       </CenteredMsg>
     );
 
@@ -605,7 +605,7 @@ export default function MessageView({
     { label: "Reply All", icon: "\u21a9\u21a9", onClick: () => { onReplyAll(email); setActionsOpen(false); } },
     { label: "Forward", icon: "\u2192", onClick: () => { onForward(email); setActionsOpen(false); } },
     "divider",
-    { label: "Edit as new", icon: "\u270e", onClick: () => { onEditAsNew(email); setActionsOpen(false); } },
+    { label: "Edit as new", icon: "✎", onClick: () => { onEditAsNew(email); setActionsOpen(false); } },
     { label: "Send a copy", icon: "\u2295", onClick: () => { onSendCopy(email); setActionsOpen(false); } },
     "divider",
     { label: "Print", icon: "\u2399", onClick: handlePrint },

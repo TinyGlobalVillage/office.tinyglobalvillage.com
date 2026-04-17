@@ -3,21 +3,24 @@
 import { useState, useEffect, useCallback, useRef, Suspense } from "react";
 import dynamic from "next/dynamic";
 import { useSearchParams } from "next/navigation";
+import styled from "styled-components";
+import { colors, rgb } from "../../theme";
 import TopNav from "../../components/TopNav";
 import SandboxIcon from "../../components/sandbox/SandboxIcon";
 import SandboxModal from "../../components/sandbox/SandboxModal";
 
-// Monaco must be loaded client-side only
 const MonacoEditor = dynamic(() => import("@monaco-editor/react"), { ssr: false });
 
 const CLIENT_ROOT = "/srv/refusion-core/client";
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+/* ── Types ─────────────────────────────────────────────────────── */
+
 type DirEntry = { name: string; path: string; isDir: boolean; size: number };
 type TreeNode = DirEntry & { children?: TreeNode[]; expanded?: boolean };
 type Project = { name: string; pm2Status?: string };
 
-// ── Language detection ────────────────────────────────────────────────────────
+/* ── Helpers ────────────────────────────────────────────────────── */
+
 function extToLang(ext: string): string {
   const map: Record<string, string> = {
     ts: "typescript", tsx: "typescript", js: "javascript", jsx: "javascript",
@@ -35,7 +38,445 @@ function fmtBytes(b: number) {
   return `${(b / 1048576).toFixed(1)}MB`;
 }
 
-// ── File tree node ────────────────────────────────────────────────────────────
+function getFileIcon(name: string): string {
+  const ext = name.split(".").pop()?.toLowerCase() ?? "";
+  const icons: Record<string, string> = {
+    tsx: "\u269B", ts: "\uD835\uDC61\uD835\uDC60", jsx: "\u269B", js: "\uD835\uDC57\uD835\uDC60",
+    json: "{}", css: "\u2301", scss: "\u2301", md: "\u270E",
+    html: "<>", sh: "$", env: "⚙", sql: "⊞",
+    png: "\uD83D\uDDBC", jpg: "\uD83D\uDDBC", jpeg: "\uD83D\uDDBC", svg: "\u2B21", gif: "\uD83D\uDDBC",
+    mp4: "\uD83C\uDFAC", webm: "\uD83C\uDFAC", pdf: "\uD83D\uDCC4",
+    lock: "\uD83D\uDD12", gitignore: "\u25CC",
+  };
+  return icons[ext] ?? "\u00B7";
+}
+
+/* ── Styled Components ─────────────────────────────────────────── */
+
+const EditorFrame = styled.div`
+  position: fixed;
+  display: flex;
+  flex-direction: column;
+  top: var(--nav-offset, 68px);
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(4, 6, 10, 1);
+
+  [data-theme="light"] & {
+    background: var(--t-bg);
+  }
+`;
+
+const EditorRow = styled.div`
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+`;
+
+/* Sidebar */
+
+const SidebarWrap = styled.div`
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  overflow: hidden;
+  width: 240px;
+  border-right: 1px solid var(--t-border);
+  background: rgba(6, 8, 12, 1);
+
+  [data-theme="light"] & {
+    background: var(--t-surface);
+  }
+`;
+
+const SidebarHeader = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  padding: 0.75rem;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--t-border);
+`;
+
+const SidebarLabel = styled.label`
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: var(--t-textGhost);
+  font-weight: 700;
+`;
+
+const ProjectSelect = styled.select`
+  width: 100%;
+  font-size: 0.75rem;
+  padding: 0.375rem 0.625rem;
+  border-radius: 0.5rem;
+  outline: none;
+  font-family: monospace;
+  background: var(--t-inputBg);
+  border: 1px solid rgba(${rgb.pink}, 0.25);
+  color: ${colors.pink};
+
+  option {
+    background: #0a0c12;
+  }
+
+  [data-theme="light"] & option {
+    background: var(--t-surface);
+  }
+`;
+
+const BuildBtn = styled.button`
+  width: 100%;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.375rem 0;
+  border-radius: 0.5rem;
+  transition: all 0.15s;
+  cursor: pointer;
+  background: rgba(${rgb.green}, 0.1);
+  border: 1px solid rgba(${rgb.green}, 0.3);
+  color: #00dc64;
+
+  [data-theme="light"] & {
+    background: rgba(${rgb.green}, 0.08);
+  }
+`;
+
+const SandboxBtn = styled.button`
+  width: 100%;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.375rem 0;
+  border-radius: 0.5rem;
+  transition: all 0.15s;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: rgba(${rgb.pink}, 0.1);
+  border: 1px solid rgba(${rgb.pink}, 0.3);
+  color: ${colors.pink};
+`;
+
+const TreeScroll = styled.div`
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.5rem 0;
+  scrollbar-width: thin;
+`;
+
+/* Tree item */
+
+const TreeItemBtn = styled.button<{ $depth: number; $selected: boolean; $isDir: boolean }>`
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.125rem 0.5rem;
+  padding-left: ${(p) => 8 + p.$depth * 14}px;
+  text-align: left;
+  transition: background 0.1s;
+  border-radius: 0.25rem;
+  font-size: 12px;
+  cursor: pointer;
+  border: none;
+  background: ${(p) => (p.$selected ? `rgba(${rgb.cyan}, 0.15)` : "transparent")};
+  color: ${(p) => (p.$selected ? colors.cyan : p.$isDir ? "var(--t-textMuted)" : "var(--t-textFaint)")};
+
+  &:hover {
+    background: ${(p) => (p.$selected ? `rgba(${rgb.cyan}, 0.15)` : "var(--t-inputBg)")};
+  }
+`;
+
+const TreeIcon = styled.span<{ $isDir: boolean }>`
+  flex-shrink: 0;
+  font-family: monospace;
+  font-size: 11px;
+  color: ${(p) => (p.$isDir ? colors.gold : "var(--t-textGhost)")};
+`;
+
+const TreeName = styled.span`
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+const TreeSize = styled.span`
+  margin-left: auto;
+  font-size: 9px;
+  color: var(--t-textGhost);
+  flex-shrink: 0;
+`;
+
+/* Editor area */
+
+const EditorArea = styled.div`
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+`;
+
+const TabBar = styled.div`
+  display: flex;
+  align-items: center;
+  overflow-x: auto;
+  flex-shrink: 0;
+  min-height: 36px;
+  border-bottom: 1px solid var(--t-border);
+  background: rgba(4, 6, 10, 1);
+  scrollbar-width: thin;
+
+  [data-theme="light"] & {
+    background: var(--t-bg);
+  }
+`;
+
+const Tab = styled.div<{ $active: boolean }>`
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.1s;
+  font-size: 12px;
+  background: ${(p) => (p.$active ? "var(--t-inputBg)" : "transparent")};
+  border-right: 1px solid var(--t-border);
+  border-bottom: ${(p) => (p.$active ? `1px solid ${colors.cyan}` : "1px solid transparent")};
+  color: ${(p) => (p.$active ? "var(--t-text)" : "var(--t-textFaint)")};
+`;
+
+const TabIcon = styled.span`
+  font-family: monospace;
+`;
+
+const TabName = styled.span`
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+const TabDirty = styled.span`
+  color: ${colors.gold};
+  font-size: 8px;
+`;
+
+const TabClose = styled.button`
+  margin-left: 0.125rem;
+  font-size: 10px;
+  color: var(--t-textGhost);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  line-height: 1;
+  transition: color 0.1s;
+
+  &:hover {
+    color: var(--t-textMuted);
+  }
+`;
+
+/* Status bar */
+
+const StatusBar = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0 1rem;
+  flex-shrink: 0;
+  height: 24px;
+  font-size: 10px;
+  border-bottom: 1px solid var(--t-border);
+  background: rgba(${rgb.cyan}, 0.06);
+
+  [data-theme="light"] & {
+    background: rgba(${rgb.cyan}, 0.04);
+  }
+`;
+
+const StatusPath = styled.span`
+  color: var(--t-textGhost);
+  font-family: monospace;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+`;
+
+const StatusLang = styled.span`
+  color: var(--t-textGhost);
+`;
+
+const PrettierBtn = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: 0.25rem;
+  transition: all 0.15s;
+  font-size: 9px;
+  font-weight: 700;
+  cursor: pointer;
+  background: rgba(${rgb.gold}, 0.1);
+  border: 1px solid rgba(${rgb.gold}, 0.25);
+  color: rgba(${rgb.gold}, 0.7);
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    color: ${colors.gold};
+  }
+`;
+
+const SaveStatus = styled.span<{ $status: "saved" | "saving" | "unsaved" }>`
+  font-weight: 700;
+  color: ${(p) =>
+    p.$status === "saved" ? "#00dc64" : p.$status === "saving" ? colors.gold : colors.red};
+`;
+
+/* Editor empty & loading */
+
+const EditorEmpty = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 1rem;
+  color: var(--t-textGhost);
+`;
+
+const EditorEmptyIcon = styled.span`
+  font-size: 3.125rem;
+`;
+
+const EditorEmptyLabel = styled.p`
+  font-size: 0.875rem;
+  font-weight: 700;
+`;
+
+const EditorEmptyHint = styled.p`
+  font-size: 0.75rem;
+`;
+
+const EditorLoading = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--t-textGhost);
+  font-size: 0.875rem;
+`;
+
+/* Build panel */
+
+const BuildOverlay = styled.div`
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background: rgba(0, 0, 0, 0.8);
+
+  [data-theme="light"] & {
+    background: rgba(255, 255, 255, 0.6);
+  }
+`;
+
+const BuildWrap = styled.div<{ $done: boolean; $success: boolean | null }>`
+  width: 100%;
+  max-width: 42rem;
+  display: flex;
+  flex-direction: column;
+  border-radius: 1rem;
+  overflow: hidden;
+  max-height: 80vh;
+  background: rgba(6, 8, 12, 0.99);
+  border: 1px solid
+    ${(p) =>
+      p.$done
+        ? p.$success
+          ? `rgba(${rgb.green}, 0.4)`
+          : `rgba(${rgb.red}, 0.4)`
+        : `rgba(${rgb.gold}, 0.3)`};
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.8);
+
+  [data-theme="light"] & {
+    background: var(--t-surface);
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.15);
+  }
+`;
+
+const BuildHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1.25rem;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--t-border);
+`;
+
+const BuildDot = styled.span<{ $color: string; $pulse?: boolean }>`
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 9999px;
+  background: ${(p) => p.$color};
+  ${(p) =>
+    p.$pulse &&
+    `animation: pulse 2s ease-in-out infinite;
+     @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }`}
+`;
+
+const BuildTitle = styled.span<{ $color: string }>`
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: ${(p) => p.$color};
+`;
+
+const BuildCloseBtn = styled.button`
+  color: var(--t-textGhost);
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: color 0.15s;
+
+  &:hover {
+    color: var(--t-text);
+  }
+`;
+
+const BuildLog = styled.div`
+  flex: 1;
+  overflow-y: auto;
+  font-family: monospace;
+  font-size: 11px;
+  line-height: 1.625;
+  padding: 1rem 1.25rem;
+  scrollbar-width: thin;
+`;
+
+const BuildLine = styled.div<{ $isErr?: boolean; $isOk?: boolean }>`
+  margin-bottom: 1px;
+  color: ${(p) =>
+    p.$isErr ? colors.red : p.$isOk ? "#00dc64" : "rgba(200, 220, 200, 0.7)"};
+
+  [data-theme="light"] & {
+    color: ${(p) =>
+      p.$isErr ? colors.red : p.$isOk ? "#00dc64" : "var(--t-textMuted)"};
+  }
+`;
+
+/* ── Tree item component ───────────────────────────────────────── */
+
 function TreeItem({
   node,
   depth,
@@ -50,64 +491,38 @@ function TreeItem({
   onToggle: (node: TreeNode) => void;
 }) {
   const isSelected = !node.isDir && selectedPath === node.path;
-  const icon = node.isDir
-    ? (node.expanded ? "▾" : "▸")
-    : getFileIcon(node.name);
+  const icon = node.isDir ? (node.expanded ? "\u25BE" : "\u25B8") : getFileIcon(node.name);
 
   return (
     <>
-      <button
-        onClick={() => node.isDir ? onToggle(node) : onSelect(node)}
-        className="w-full flex items-center gap-1.5 px-2 py-0.5 text-left transition-colors rounded"
-        style={{
-          paddingLeft: `${8 + depth * 14}px`,
-          background: isSelected ? "rgba(0,191,255,0.15)" : "transparent",
-          color: isSelected ? "#00bfff" : node.isDir ? "rgba(255,255,255,0.65)" : "rgba(255,255,255,0.45)",
-          fontSize: 12,
-        }}
-        onMouseEnter={(e) => {
-          if (!isSelected) (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.04)";
-        }}
-        onMouseLeave={(e) => {
-          if (!isSelected) (e.currentTarget as HTMLElement).style.background = "transparent";
-        }}
+      <TreeItemBtn
+        $depth={depth}
+        $selected={isSelected}
+        $isDir={node.isDir}
+        onClick={() => (node.isDir ? onToggle(node) : onSelect(node))}
       >
-        <span className="shrink-0 font-mono text-[11px]" style={{ color: node.isDir ? "#f7b700" : "rgba(255,255,255,0.25)" }}>
-          {icon}
-        </span>
-        <span className="truncate">{node.name}</span>
-        {!node.isDir && node.size > 0 && (
-          <span className="ml-auto text-[9px] text-white/20 shrink-0">{fmtBytes(node.size)}</span>
-        )}
-      </button>
-      {node.isDir && node.expanded && node.children?.map((child) => (
-        <TreeItem
-          key={child.path}
-          node={child}
-          depth={depth + 1}
-          selectedPath={selectedPath}
-          onSelect={onSelect}
-          onToggle={onToggle}
-        />
-      ))}
+        <TreeIcon $isDir={node.isDir}>{icon}</TreeIcon>
+        <TreeName>{node.name}</TreeName>
+        {!node.isDir && node.size > 0 && <TreeSize>{fmtBytes(node.size)}</TreeSize>}
+      </TreeItemBtn>
+      {node.isDir &&
+        node.expanded &&
+        node.children?.map((child) => (
+          <TreeItem
+            key={child.path}
+            node={child}
+            depth={depth + 1}
+            selectedPath={selectedPath}
+            onSelect={onSelect}
+            onToggle={onToggle}
+          />
+        ))}
     </>
   );
 }
 
-function getFileIcon(name: string): string {
-  const ext = name.split(".").pop()?.toLowerCase() ?? "";
-  const icons: Record<string, string> = {
-    tsx: "⚛", ts: "𝑡𝑠", jsx: "⚛", js: "𝑗𝑠",
-    json: "{}", css: "⌁", scss: "⌁", md: "✎",
-    html: "<>", sh: "$", env: "⚙", sql: "⊞",
-    png: "🖼", jpg: "🖼", jpeg: "🖼", svg: "⬡", gif: "🖼",
-    mp4: "🎬", webm: "🎬", pdf: "📄",
-    lock: "🔒", gitignore: "◌",
-  };
-  return icons[ext] ?? "·";
-}
+/* ── Build panel component ─────────────────────────────────────── */
 
-// ── Build panel ───────────────────────────────────────────────────────────────
 function BuildPanel({
   project,
   onClose,
@@ -115,7 +530,7 @@ function BuildPanel({
   project: string;
   onClose: () => void;
 }) {
-  const [lines, setLines] = useState<string[]>([`[build] Connecting to build stream for ${project}…`]);
+  const [lines, setLines] = useState<string[]>([`[build] Connecting to build stream for ${project}2026`]);
   const [done, setDone] = useState(false);
   const [success, setSuccess] = useState<boolean | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
@@ -167,70 +582,41 @@ function BuildPanel({
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [lines]);
 
+  const titleColor = done ? (success ? "#00dc64" : colors.red) : colors.gold;
+
   return (
-    <div
-      className="fixed inset-0 z-[60] flex items-center justify-center p-6"
-      style={{ background: "rgba(0,0,0,0.8)" }}
-    >
-      <div
-        className="w-full max-w-2xl flex flex-col rounded-2xl overflow-hidden"
-        style={{
-          background: "rgba(6,8,12,0.99)",
-          border: `1px solid ${done ? (success ? "rgba(74,222,128,0.4)" : "rgba(255,107,107,0.4)") : "rgba(247,183,0,0.3)"}`,
-          boxShadow: "0 24px 80px rgba(0,0,0,0.8)",
-          maxHeight: "80vh",
-        }}
-      >
-        {/* Header */}
-        <div
-          className="flex items-center justify-between px-5 py-3 flex-shrink-0"
-          style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}
-        >
-          <div className="flex items-center gap-2">
-            {!done && <span className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse" />}
-            {done && success && <span className="w-2 h-2 rounded-full bg-green-400" />}
-            {done && !success && <span className="w-2 h-2 rounded-full bg-red-400" />}
-            <span className="text-sm font-bold" style={{ color: done ? (success ? "#4ade80" : "#ff6b6b") : "#f7b700" }}>
-              {done ? (success ? "✓ Build & deploy complete" : "✗ Build failed") : `Building ${project}…`}
-            </span>
+    <BuildOverlay>
+      <BuildWrap $done={done} $success={success}>
+        <BuildHeader>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+            {!done && <BuildDot $color={colors.gold} $pulse />}
+            {done && success && <BuildDot $color="#00dc64" />}
+            {done && !success && <BuildDot $color={colors.red} />}
+            <BuildTitle $color={titleColor}>
+              {done
+                ? success
+                  ? "\u2713 Build & deploy complete"
+                  : "\u2717 Build failed"
+                : `Building ${project}2026`}
+            </BuildTitle>
           </div>
-          {done && (
-            <button
-              onClick={onClose}
-              className="text-white/40 hover:text-white transition-colors text-xs font-bold"
-            >
-              ✕ Close
-            </button>
-          )}
-        </div>
-        {/* Log output */}
-        <div
-          className="flex-1 overflow-y-auto font-mono text-[11px] leading-relaxed px-5 py-4"
-          style={{ scrollbarWidth: "thin" }}
-        >
+          {done && <BuildCloseBtn onClick={onClose}>✕ Close</BuildCloseBtn>}
+        </BuildHeader>
+        <BuildLog>
           {lines.map((l, i) => {
-            const isErr = l.includes("✗") || l.includes("[stderr]") || l.includes("error");
-            const isOk = l.includes("✓");
-            return (
-              <div
-                key={i}
-                style={{
-                  color: isErr ? "#ff6b6b" : isOk ? "#4ade80" : "rgba(200,220,200,0.7)",
-                  marginBottom: 1,
-                }}
-              >
-                {l}
-              </div>
-            );
+            const isErr = l.includes("\u2717") || l.includes("[stderr]") || l.includes("error");
+            const isOk = l.includes("\u2713");
+            return <BuildLine key={i} $isErr={isErr} $isOk={isOk}>{l}</BuildLine>;
           })}
           <div ref={endRef} />
-        </div>
-      </div>
-    </div>
+        </BuildLog>
+      </BuildWrap>
+    </BuildOverlay>
   );
 }
 
-// ── Main editor page ──────────────────────────────────────────────────────────
+/* ── Main editor page ──────────────────────────────────────────── */
+
 export default function EditorPage() {
   return (
     <Suspense fallback={null}>
@@ -258,7 +644,6 @@ function EditorPageInner() {
   const searchParams = useSearchParams();
   const requestedProject = searchParams?.get("project") ?? null;
 
-  // Load project list
   useEffect(() => {
     fetch("/api/projects")
       .then((r) => r.json())
@@ -272,7 +657,6 @@ function EditorPageInner() {
       .catch(() => {});
   }, [requestedProject]);
 
-  // Load top-level tree when project changes
   useEffect(() => {
     if (!activeProject) return;
     const dir = `${CLIENT_ROOT}/${activeProject}`;
@@ -282,14 +666,12 @@ function EditorPageInner() {
         setTree(d.entries.map((e) => ({ ...e, expanded: false, children: undefined })));
       })
       .catch(() => {});
-    // Reset open state when switching projects
     setSelectedFile(null);
     setOpenTabs([]);
     setTabContents({});
     setDirtyTabs(new Set());
   }, [activeProject]);
 
-  // Expand/collapse directory
   const toggleDir = useCallback(async (node: TreeNode) => {
     if (!node.isDir) return;
 
@@ -297,13 +679,12 @@ function EditorPageInner() {
       nodes.map((n) => {
         if (n.path === targetPath) {
           if (n.expanded) return { ...n, expanded: false };
-          return { ...n, expanded: true }; // children loaded below
+          return { ...n, expanded: true };
         }
         if (n.children) return { ...n, children: updateNode(n.children, targetPath) };
         return n;
       });
 
-    // If no children loaded yet, fetch them
     const hasChildren = (nodes: TreeNode[], p: string): boolean => {
       for (const n of nodes) {
         if (n.path === p) return !!n.children;
@@ -328,11 +709,10 @@ function EditorPageInner() {
     }
   }, [tree]);
 
-  // Open file in editor
   const openFile = useCallback(async (node: TreeNode) => {
     if (node.isDir) return;
     setSelectedFile(node.path);
-    if (tabContents[node.path] !== undefined) return; // already loaded
+    if (tabContents[node.path] !== undefined) return;
 
     setLoadingFile(true);
     try {
@@ -347,7 +727,6 @@ function EditorPageInner() {
     }
   }, [tabContents]);
 
-  // Auto-save with debounce
   const handleEditorChange = useCallback((value: string | undefined) => {
     if (!selectedFile || value === undefined) return;
     setTabContents((prev) => ({ ...prev, [selectedFile]: value }));
@@ -375,7 +754,6 @@ function EditorPageInner() {
     }, 1200);
   }, [selectedFile]);
 
-  // Prettier format current file
   const formatWithPrettier = useCallback(async () => {
     if (!selectedFile || !tabContents[selectedFile] || formatting) return;
     setFormatting(true);
@@ -416,7 +794,6 @@ function EditorPageInner() {
         tabWidth: 2,
       });
 
-      // Apply through Monaco so undo history is preserved
       if (editorRef.current) {
         const model = editorRef.current.getModel();
         if (model) {
@@ -436,7 +813,6 @@ function EditorPageInner() {
     }
   }, [selectedFile, tabContents, formatting, handleEditorChange]);
 
-  // Close tab
   const closeTab = useCallback((fp: string, e: React.MouseEvent) => {
     e.stopPropagation();
     setOpenTabs((prev) => {
@@ -461,78 +837,37 @@ function EditorPageInner() {
       )}
       {sandboxOpen && <SandboxModal onClose={() => setSandboxOpen(false)} />}
 
-      <div
-        className="fixed flex flex-col editor-frame"
-        style={{
-          top: "var(--nav-offset, 68px)",
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: "rgba(4,6,10,1)",
-        }}
-      >
-        <div className="flex flex-1 overflow-hidden">
-          {/* ── Sidebar ──────────────────────────────────── */}
-          <div
-            className="flex flex-col flex-shrink-0 overflow-hidden"
-            style={{
-              width: 240,
-              borderRight: "1px solid rgba(255,255,255,0.06)",
-              background: "rgba(6,8,12,1)",
-            }}
-          >
-            {/* Project selector */}
-            <div
-              className="flex flex-col gap-1.5 px-3 py-3 flex-shrink-0"
-              style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
-            >
-              <label className="text-[9px] uppercase tracking-[0.2em] text-white/25 font-bold">Project</label>
-              <select
+      <EditorFrame>
+        <EditorRow>
+          {/* Sidebar */}
+          <SidebarWrap>
+            <SidebarHeader>
+              <SidebarLabel>Project</SidebarLabel>
+              <ProjectSelect
                 value={activeProject ?? ""}
                 onChange={(e) => setActiveProject(e.target.value)}
-                className="w-full text-xs px-2.5 py-1.5 rounded-lg outline-none font-mono"
-                style={{
-                  background: "rgba(255,255,255,0.06)",
-                  border: "1px solid rgba(255,78,203,0.25)",
-                  color: "#ff4ecb",
-                }}
               >
                 {projects.map((p) => (
-                  <option key={p.name} value={p.name} style={{ background: "#0a0c12" }}>
+                  <option key={p.name} value={p.name}>
                     {p.name}
                   </option>
                 ))}
-              </select>
+              </ProjectSelect>
               {activeProject && (
-                <button
-                  onClick={() => setShowBuild(true)}
-                  className="w-full text-xs font-bold py-1.5 rounded-lg transition-all"
-                  style={{
-                    background: "rgba(74,222,128,0.1)",
-                    border: "1px solid rgba(74,222,128,0.3)",
-                    color: "#4ade80",
-                  }}
-                >
-                  ▶ Rebuild &amp; Deploy
-                </button>
+                <BuildBtn onClick={() => setShowBuild(true)}>
+                  \u25B6 Rebuild &amp; Deploy
+                </BuildBtn>
               )}
-              <button
+              <SandboxBtn
                 onClick={() => setSandboxOpen(true)}
-                className="w-full text-xs font-bold py-1.5 rounded-lg transition-all flex items-center justify-center gap-2"
-                style={{
-                  background: "rgba(255,78,203,0.1)",
-                  border: "1px solid rgba(255,78,203,0.3)",
-                  color: "#ff4ecb",
-                }}
                 title="Component reference library"
               >
-                <SandboxIcon size={14} color="#ff4ecb" />
+                <SandboxIcon size={14} color={colors.pink} />
                 Sandbox
-              </button>
-            </div>
+              </SandboxBtn>
+            </SidebarHeader>
 
-            {/* File tree */}
-            <div className="flex-1 overflow-y-auto py-2" style={{ scrollbarWidth: "thin" }}>
+            <TreeScroll>
               {tree.map((node) => (
                 <TreeItem
                   key={node.path}
@@ -543,102 +878,53 @@ function EditorPageInner() {
                   onToggle={toggleDir}
                 />
               ))}
-            </div>
-          </div>
+            </TreeScroll>
+          </SidebarWrap>
 
-          {/* ── Editor area ──────────────────────────────── */}
-          <div className="flex-1 flex flex-col overflow-hidden">
-            {/* Tab bar */}
+          {/* Editor area */}
+          <EditorArea>
             {openTabs.length > 0 && (
-              <div
-                className="flex items-center overflow-x-auto flex-shrink-0"
-                style={{
-                  borderBottom: "1px solid rgba(255,255,255,0.06)",
-                  background: "rgba(4,6,10,1)",
-                  scrollbarWidth: "thin",
-                  minHeight: 36,
-                }}
-              >
+              <TabBar>
                 {openTabs.map((fp) => {
                   const name = fp.split("/").pop() ?? fp;
                   const isActive = fp === selectedFile;
                   const isDirty = dirtyTabs.has(fp);
                   return (
-                    <div
-                      key={fp}
-                      onClick={() => setSelectedFile(fp)}
-                      className="flex items-center gap-1.5 px-3 py-2 cursor-pointer shrink-0 transition-colors"
-                      style={{
-                        background: isActive ? "rgba(255,255,255,0.04)" : "transparent",
-                        borderRight: "1px solid rgba(255,255,255,0.05)",
-                        borderBottom: isActive ? "1px solid #00bfff" : "1px solid transparent",
-                        color: isActive ? "#e4e4e4" : "rgba(255,255,255,0.35)",
-                        fontSize: 12,
-                      }}
-                    >
-                      <span className="font-mono">{getFileIcon(name)}</span>
-                      <span className="max-w-[120px] truncate">{name}</span>
-                      {isDirty && <span style={{ color: "#f7b700", fontSize: 8 }}>●</span>}
-                      <button
-                        onClick={(e) => closeTab(fp, e)}
-                        className="ml-0.5 text-[10px] text-white/25 hover:text-white/70 transition-colors leading-none"
-                        title="Close tab"
-                      >
-                        ×
-                      </button>
-                    </div>
+                    <Tab key={fp} $active={isActive} onClick={() => setSelectedFile(fp)}>
+                      <TabIcon>{getFileIcon(name)}</TabIcon>
+                      <TabName>{name}</TabName>
+                      {isDirty && <TabDirty>\u25CF</TabDirty>}
+                      <TabClose onClick={(e) => closeTab(fp, e)} title="Close tab">
+                        \u00D7
+                      </TabClose>
+                    </Tab>
                   );
                 })}
-              </div>
+              </TabBar>
             )}
 
-            {/* Status bar */}
             {selectedFile && (
-              <div
-                className="flex items-center gap-3 px-4 flex-shrink-0"
-                style={{
-                  height: 24,
-                  borderBottom: "1px solid rgba(255,255,255,0.04)",
-                  background: "rgba(0,191,255,0.06)",
-                  fontSize: 10,
-                }}
-              >
-                <span className="text-white/40 font-mono truncate flex-1">{selectedFile.replace(CLIENT_ROOT + "/", "")}</span>
-                <span className="text-white/30">{currentLang}</span>
-                {["ts","tsx","js","jsx","json","css","scss","html","md"].includes(currentExt) && (
-                  <button
+              <StatusBar>
+                <StatusPath>{selectedFile.replace(CLIENT_ROOT + "/", "")}</StatusPath>
+                <StatusLang>{currentLang}</StatusLang>
+                {["ts", "tsx", "js", "jsx", "json", "css", "scss", "html", "md"].includes(currentExt) && (
+                  <PrettierBtn
                     onClick={formatWithPrettier}
                     disabled={formatting}
                     title="Format with Prettier (Shift+Alt+F)"
-                    className="flex items-center gap-1 px-2 py-0.5 rounded transition-all disabled:opacity-40"
-                    style={{
-                      background: "rgba(251,191,36,0.1)",
-                      border: "1px solid rgba(251,191,36,0.25)",
-                      color: formatting ? "#fbbf24" : "rgba(251,191,36,0.7)",
-                      fontSize: 9,
-                      fontWeight: 700,
-                    }}
                   >
-                    {formatting ? "↻" : "✦"} Prettier
-                  </button>
+                    {formatting ? "\u21BB" : "\u2726"} Prettier
+                  </PrettierBtn>
                 )}
-                <span
-                  style={{
-                    color: saveStatus === "saved" ? "#4ade80" : saveStatus === "saving" ? "#f7b700" : "#ff6b6b",
-                    fontWeight: 700,
-                  }}
-                >
-                  {saveStatus === "saved" ? "✓ Saved" : saveStatus === "saving" ? "↻ Saving…" : "● Unsaved"}
-                </span>
-              </div>
+                <SaveStatus $status={saveStatus}>
+                  {saveStatus === "saved" ? "\u2713 Saved" : saveStatus === "saving" ? "\u21BB Saving2026" : "\u25CF Unsaved"}
+                </SaveStatus>
+              </StatusBar>
             )}
 
-            {/* Monaco editor */}
-            <div className="flex-1 overflow-hidden">
+            <div style={{ flex: 1, overflow: "hidden" }}>
               {loadingFile ? (
-                <div className="flex items-center justify-center h-full text-white/20 text-sm">
-                  Loading…
-                </div>
+                <EditorLoading>Loading2026</EditorLoading>
               ) : selectedFile ? (
                 <MonacoEditor
                   key={selectedFile}
@@ -648,7 +934,6 @@ function EditorPageInner() {
                   onChange={handleEditorChange}
                   onMount={(editor, monaco) => {
                     editorRef.current = editor;
-                    // Shift+Alt+F → Prettier (mirrors VS Code)
                     editor.addCommand(
                       monaco.KeyMod.Shift | monaco.KeyMod.Alt | monaco.KeyCode.KeyF,
                       () => formatWithPrettier()
@@ -673,16 +958,16 @@ function EditorPageInner() {
                   }}
                 />
               ) : (
-                <div className="flex flex-col items-center justify-center h-full gap-4 text-white/20">
-                  <span className="text-5xl">✎</span>
-                  <p className="text-sm font-bold">Select a file to edit</p>
-                  <p className="text-xs">Changes auto-save after 1.2s of inactivity</p>
-                </div>
+                <EditorEmpty>
+                  <EditorEmptyIcon>\u270E</EditorEmptyIcon>
+                  <EditorEmptyLabel>Select a file to edit</EditorEmptyLabel>
+                  <EditorEmptyHint>Changes auto-save after 1.2s of inactivity</EditorEmptyHint>
+                </EditorEmpty>
               )}
             </div>
-          </div>
-        </div>
-      </div>
+          </EditorArea>
+        </EditorRow>
+      </EditorFrame>
     </>
   );
 }

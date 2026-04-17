@@ -734,7 +734,7 @@ export default function EmailClient({ zoom }: Props) {
           </MobileTab>
         </MobileTabBar>
         <ComposeFloatBtn onClick={() => openCompose({ mode: "new" })}>
-          {"\u270e"}
+          {"✎"}
         </ComposeFloatBtn>
       </MobileWrap>
 
@@ -777,7 +777,7 @@ export default function EmailClient({ zoom }: Props) {
                 </DesktopComposeBtn>
                 <div style={{ flex: 1 }} />
                 <SettingsBtn onClick={() => setShowSettings(true)}>
-                  {"\u2699"}
+                  {"⚙"}
                 </SettingsBtn>
               </TopActions>
               {msgsError ? (
@@ -830,7 +830,7 @@ export default function EmailClient({ zoom }: Props) {
               </DesktopComposeBtn>
               <div style={{ flex: 1 }} />
               <SettingsBtn onClick={() => setShowSettings(true)}>
-                {"\u2699"}
+                {"⚙"}
               </SettingsBtn>
             </TopActions>
             <HorizontalTop style={{ height: `${splitRatio * 100}%` }}>

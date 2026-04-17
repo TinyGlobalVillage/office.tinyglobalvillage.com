@@ -1,6 +1,10 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import styled, { keyframes } from "styled-components";
+import { colors, rgb } from "../theme";
+
+/* ── Types ─────────────────────────────────────────────────── */
 
 type DepUpdate = {
   package: string;
@@ -28,6 +32,188 @@ type Announcement = {
     total_updates: number;
   };
 };
+
+/* ── Animations ────────────────────────────────────────────── */
+
+const pulse = keyframes`
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.5; }
+`;
+
+/* ── Styled ────────────────────────────────────────────────── */
+
+const Card = styled.div`
+  background: var(--t-surface);
+  border: 1px solid rgba(${rgb.gold}, 0.25);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 0 24px rgba(${rgb.gold}, 0.08),
+              0 0 60px rgba(${rgb.gold}, 0.04);
+
+  [data-theme="light"] & {
+    background: var(--t-surface);
+    border-color: rgba(${rgb.gold}, 0.35);
+    box-shadow: 0 0 16px rgba(${rgb.gold}, 0.06);
+  }
+`;
+
+const Header = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+`;
+
+const HeaderLeft = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
+
+const Emoji = styled.span`
+  font-size: 16px;
+`;
+
+const Title = styled.h3`
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: ${colors.gold};
+`;
+
+const CountLabel = styled.span`
+  font-size: 12px;
+  color: var(--t-textGhost);
+`;
+
+const SkeletonBar = styled.div`
+  height: 40px;
+  border-radius: 8px;
+  background: rgba(${rgb.gold}, 0.04);
+  animation: ${pulse} 2s ease-in-out infinite;
+
+  [data-theme="light"] & {
+    background: rgba(${rgb.gold}, 0.08);
+  }
+`;
+
+const ItemList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+`;
+
+const AnnouncementCard = styled.div`
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: rgba(${rgb.gold}, 0.05);
+  border: 1px solid rgba(${rgb.gold}, 0.2);
+
+  [data-theme="light"] & {
+    background: rgba(${rgb.gold}, 0.06);
+    border-color: rgba(${rgb.gold}, 0.25);
+  }
+`;
+
+const HeaderRow = styled.div`
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+`;
+
+const InfoCol = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+`;
+
+const AnnTitle = styled.p`
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--t-text);
+  line-height: 1.4;
+`;
+
+const AnnDate = styled.p`
+  font-size: 10px;
+  color: var(--t-textGhost);
+  font-family: monospace;
+`;
+
+const DismissBtn = styled.button`
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 6px 12px;
+  border-radius: 8px;
+  flex-shrink: 0;
+  transition: all 0.15s;
+  background: rgba(${rgb.gold}, 0.12);
+  border: 1px solid rgba(${rgb.gold}, 0.35);
+  color: ${colors.gold};
+  cursor: pointer;
+
+  &:disabled {
+    opacity: 0.4;
+  }
+
+  &:hover:not(:disabled) {
+    filter: brightness(1.25);
+  }
+`;
+
+const ProjectName = styled.p`
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--t-textMuted);
+  margin-bottom: 6px;
+`;
+
+const ProjectGroup = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+`;
+
+const PillWrap = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+`;
+
+const Pill = styled.span<{ $isMajor: boolean }>`
+  font-size: 10px;
+  font-family: monospace;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: ${({ $isMajor }) =>
+    $isMajor ? `rgba(${rgb.pink}, 0.1)` : `rgba(${rgb.cyan}, 0.08)`};
+  border: 1px solid
+    ${({ $isMajor }) =>
+      $isMajor ? `rgba(${rgb.pink}, 0.3)` : `rgba(${rgb.cyan}, 0.2)`};
+  color: ${({ $isMajor }) => ($isMajor ? colors.pink : colors.cyan)};
+`;
+
+const Arrow = styled.span`
+  color: var(--t-textGhost);
+`;
+
+const MajorTag = styled.span`
+  margin-left: 4px;
+  font-size: 9px;
+  font-weight: 700;
+  color: ${colors.pink};
+`;
+
+/* ── Component ─────────────────────────────────────────────── */
 
 export default function AnnouncementsPanel({
   className = "",
@@ -75,51 +261,32 @@ export default function AnnouncementsPanel({
     }
   };
 
-  // Don't render anything when loaded and empty
   if (!loading && pending.length === 0) return null;
 
   return (
-    <div className={`card-tgv glow-gold p-6 ${className}`}>
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <span className="text-base">📦</span>
-          <h3
-            className="text-sm font-bold uppercase tracking-widest"
-            style={{ color: "#f7b700" }}
-          >
-            Pending Updates
-          </h3>
-        </div>
+    <Card className={className}>
+      <Header>
+        <HeaderLeft>
+          <Emoji>&#x1f4e6;</Emoji>
+          <Title>Pending Updates</Title>
+        </HeaderLeft>
         {!loading && (
-          <span className="text-xs text-white/30">
+          <CountLabel>
             {pending.length} announcement{pending.length !== 1 ? "s" : ""}
-          </span>
+          </CountLabel>
         )}
-      </div>
+      </Header>
 
       {loading ? (
-        <div
-          className="h-10 rounded-lg animate-pulse"
-          style={{ background: "rgba(255,255,255,0.04)" }}
-        />
+        <SkeletonBar />
       ) : (
-        <div className="flex flex-col gap-4">
+        <ItemList>
           {pending.map((ann) => (
-            <div
-              key={ann.id}
-              className="rounded-xl p-4 flex flex-col gap-3"
-              style={{
-                background: "rgba(247,183,0,0.05)",
-                border: "1px solid rgba(247,183,0,0.2)",
-              }}
-            >
-              {/* Header row */}
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex flex-col gap-0.5">
-                  <p className="text-sm font-semibold text-white leading-snug">
-                    {ann.title}
-                  </p>
-                  <p className="text-[10px] text-white/30 font-mono">
+            <AnnouncementCard key={ann.id}>
+              <HeaderRow>
+                <InfoCol>
+                  <AnnTitle>{ann.title}</AnnTitle>
+                  <AnnDate>
                     {new Date(ann.created_at).toLocaleDateString("en-US", {
                       month: "short",
                       day: "numeric",
@@ -127,76 +294,49 @@ export default function AnnouncementsPanel({
                       hour: "2-digit",
                       minute: "2-digit",
                     })}
-                  </p>
-                </div>
-                <button
+                  </AnnDate>
+                </InfoCol>
+                <DismissBtn
                   onClick={() => dismiss(ann.id)}
                   disabled={dismissing === ann.id}
-                  className="text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-lg shrink-0 transition-all disabled:opacity-40 hover:brightness-125"
-                  style={{
-                    background: "rgba(247,183,0,0.12)",
-                    border: "1px solid rgba(247,183,0,0.35)",
-                    color: "#f7b700",
-                  }}
                 >
                   {dismissing === ann.id ? "…" : "Dismiss"}
-                </button>
-              </div>
+                </DismissBtn>
+              </HeaderRow>
 
-              {/* Per-project update pills */}
               {ann.type === "dep-update" &&
                 ann.data?.projects?.length > 0 && (
-                  <div className="flex flex-col gap-3">
+                  <ProjectGroup>
                     {ann.data.projects.map((proj) => (
                       <div key={proj.name}>
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-white/50 mb-1.5">
-                          {proj.name}
-                        </p>
-                        <div className="flex flex-wrap gap-1.5">
+                        <ProjectName>{proj.name}</ProjectName>
+                        <PillWrap>
                           {proj.updates.map((u) => {
                             const isMajor = u.type === "major";
                             return (
-                              <span
+                              <Pill
                                 key={u.package}
-                                title={`${u.package}: ${u.current} → ${u.latest}`}
-                                className="text-[10px] font-mono px-2 py-0.5 rounded-md"
-                                style={{
-                                  background: isMajor
-                                    ? "rgba(255,78,203,0.1)"
-                                    : "rgba(0,191,255,0.08)",
-                                  border: `1px solid ${
-                                    isMajor
-                                      ? "rgba(255,78,203,0.3)"
-                                      : "rgba(0,191,255,0.2)"
-                                  }`,
-                                  color: isMajor ? "#ff4ecb" : "#00bfff",
-                                }}
+                                $isMajor={isMajor}
+                                title={`${u.package}: ${u.current} \u2192 ${u.latest}`}
                               >
                                 {u.package}{" "}
-                                <span style={{ color: "rgba(255,255,255,0.35)" }}>
-                                  {u.current} →
-                                </span>{" "}
+                                <Arrow>
+                                  {u.current} &rarr;
+                                </Arrow>{" "}
                                 {u.latest}
-                                {isMajor && (
-                                  <span
-                                    className="ml-1 text-[9px] font-bold"
-                                    style={{ color: "#ff4ecb" }}
-                                  >
-                                    MAJOR
-                                  </span>
-                                )}
-                              </span>
+                                {isMajor && <MajorTag>MAJOR</MajorTag>}
+                              </Pill>
                             );
                           })}
-                        </div>
+                        </PillWrap>
                       </div>
                     ))}
-                  </div>
+                  </ProjectGroup>
                 )}
-            </div>
+            </AnnouncementCard>
           ))}
-        </div>
+        </ItemList>
       )}
-    </div>
+    </Card>
   );
 }

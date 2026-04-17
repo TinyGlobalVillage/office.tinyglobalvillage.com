@@ -1,6 +1,67 @@
 "use client";
 
 import { useEffect } from "react";
+import styled from "styled-components";
+import { colors, rgb } from "../theme";
+
+/* ── Styled ────────────────────────────────────────────────── */
+
+const Overlay = styled.div`
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--t-bg);
+`;
+
+const Box = styled.div`
+  text-align: center;
+  padding: 0 32px;
+  max-width: 384px;
+`;
+
+const Icon = styled.div`
+  font-size: 30px;
+  margin-bottom: 16px;
+`;
+
+const Heading = styled.div`
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: rgba(${rgb.pink}, 0.8);
+`;
+
+const Message = styled.div`
+  font-size: 11px;
+  margin-bottom: 24px;
+  font-family: monospace;
+  color: var(--t-textGhost);
+`;
+
+const RetryBtn = styled.button`
+  padding: 8px 20px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  transition: all 0.15s;
+  cursor: pointer;
+  background: rgba(${rgb.pink}, 0.12);
+  border: 1px solid rgba(${rgb.pink}, 0.35);
+  color: ${colors.pink};
+
+  &:hover {
+    filter: brightness(1.25);
+  }
+
+  [data-theme="light"] & {
+    background: rgba(${rgb.pink}, 0.08);
+    border-color: rgba(${rgb.pink}, 0.3);
+  }
+`;
+
+/* ── Component ─────────────────────────────────────────────── */
 
 export default function DashboardError({
   error,
@@ -14,27 +75,13 @@ export default function DashboardError({
   }, [error]);
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center" style={{ background: "rgba(7,9,13,1)" }}>
-      <div className="text-center px-8 max-w-sm">
-        <div className="text-3xl mb-4">⚠</div>
-        <div className="text-sm font-semibold mb-2" style={{ color: "rgba(255,78,203,0.8)" }}>
-          Something went wrong
-        </div>
-        <div className="text-[11px] mb-6 font-mono" style={{ color: "rgba(255,255,255,0.3)" }}>
-          {error.message || "An unexpected error occurred."}
-        </div>
-        <button
-          onClick={reset}
-          className="px-5 py-2 rounded-lg text-xs font-bold transition-all"
-          style={{
-            background: "rgba(255,78,203,0.12)",
-            border: "1px solid rgba(255,78,203,0.35)",
-            color: "#ff4ecb",
-          }}
-        >
-          ↺ Try again
-        </button>
-      </div>
-    </div>
+    <Overlay>
+      <Box>
+        <Icon>&#x26a0;</Icon>
+        <Heading>Something went wrong</Heading>
+        <Message>{error.message || "An unexpected error occurred."}</Message>
+        <RetryBtn onClick={reset}>&#x21ba; Try again</RetryBtn>
+      </Box>
+    </Overlay>
   );
 }

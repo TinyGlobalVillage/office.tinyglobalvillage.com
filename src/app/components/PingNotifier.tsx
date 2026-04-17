@@ -4,25 +4,27 @@
  * NotificationToaster
  *
  * Bottom-left carousel of notifications.
- * - Chat  → neon pink  (#ff4ecb)
- * - Memo  → neon violet (#a259ff)
- * - Ping  → neon violet (#a259ff)
+ * - Chat  -> neon pink  (#ff4ecb)
+ * - Memo  -> neon violet (#a259ff)
+ * - Ping  -> neon violet (#a259ff)
  *
  * Queue behaviour:
- *   • Up to 3 cards fanned left→right, never overlapping
- *   • New cards stagger in 1 s apart
- *   • Front card (leftmost) auto-dismisses after 2 s when page is active
- *   • As front dismisses, next slides left (carousel)
- *   • OS-level notification fires when page is hidden
+ *   - Up to 3 cards fanned left->right, never overlapping
+ *   - New cards stagger in 1 s apart
+ *   - Front card (leftmost) auto-dismisses after 2 s when page is active
+ *   - As front dismisses, next slides left (carousel)
+ *   - OS-level notification fires when page is hidden
  *
- * Memo click → MemoGallery modal with pagination
+ * Memo click -> MemoGallery modal with pagination
  */
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
+import styled, { keyframes } from "styled-components";
+import { colors, rgb } from "../theme";
 
 // ── colours ──────────────────────────────────────────────────────────────────
-const COLOR_CHAT = "#ff4ecb";
+const COLOR_CHAT = colors.pink;
 const COLOR_MEMO = "#a259ff";
 
 // ── types ────────────────────────────────────────────────────────────────────
@@ -72,12 +74,321 @@ type Memo = {
 
 type Profile = { username: string; displayName: string; accentColor: string };
 
+// ── animations ───────────────────────────────────────────────────────────────
+const pulse = keyframes`
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+`;
+
+// ── styled components: MemoGallery ───────────────────────────────────────────
+
+const GalleryBackdrop = styled.div`
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(6px);
+
+  [data-theme="light"] & {
+    background: rgba(0, 0, 0, 0.4);
+  }
+`;
+
+const GalleryModal = styled.div`
+  position: fixed;
+  z-index: 301;
+  display: flex;
+  flex-direction: column;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(94vw, 480px);
+  max-height: 80vh;
+  background: rgba(8, 6, 20, 0.98);
+  border: 1px solid ${COLOR_MEMO}44;
+  border-radius: 20px;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.85), 0 0 60px ${COLOR_MEMO}18;
+
+  [data-theme="light"] & {
+    background: var(--t-bg);
+    border-color: ${COLOR_MEMO}66;
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.15), 0 0 40px ${COLOR_MEMO}10;
+  }
+`;
+
+const GalleryHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  flex-shrink: 0;
+  border-bottom: 1px solid ${COLOR_MEMO}22;
+
+  [data-theme="light"] & {
+    border-bottom-color: var(--t-border);
+  }
+`;
+
+const GalleryHeaderLeft = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
+
+const GalleryHeaderRight = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
+
+const GalleryTag = styled.span`
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: ${COLOR_MEMO};
+`;
+
+const GallerySender = styled.span`
+  font-size: 10px;
+  font-weight: 600;
+  color: ${COLOR_MEMO};
+`;
+
+const PaginationDots = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+`;
+
+const PaginationDot = styled.button<{ $active: boolean }>`
+  border-radius: 9999px;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.2s;
+  width: ${({ $active }) => ($active ? "18px" : "7px")};
+  height: 7px;
+  background: ${({ $active }) => ($active ? COLOR_MEMO : `${COLOR_MEMO}50`)};
+  box-shadow: ${({ $active }) => ($active ? `0 0 8px ${COLOR_MEMO}` : "none")};
+`;
+
+const GalleryCloseBtn = styled.button`
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: ${COLOR_MEMO};
+  background: ${COLOR_MEMO}18;
+
+  [data-theme="light"] & {
+    background: ${COLOR_MEMO}10;
+  }
+`;
+
+const GalleryBody = styled.div`
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+`;
+
+const GalleryContent = styled.p`
+  font-size: 14px;
+  line-height: 1.625;
+  white-space: pre-wrap;
+  color: ${COLOR_MEMO};
+
+  [data-theme="light"] & {
+    color: var(--t-text);
+  }
+`;
+
+const GalleryDate = styled.p`
+  font-size: 10px;
+  margin-top: 16px;
+  font-weight: 600;
+  color: ${COLOR_MEMO}90;
+`;
+
+const GalleryActions = styled.div`
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+`;
+
+const GalleryActionBtn = styled.button<{ $danger?: boolean }>`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 6px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: ${COLOR_MEMO};
+  background: ${COLOR_MEMO}18;
+  border: 1px solid ${COLOR_MEMO}40;
+
+  ${({ $danger }) =>
+    $danger &&
+    `
+    &:hover {
+      background: rgba(${rgb.red}, 0.2);
+      border-color: rgba(${rgb.red}, 0.4);
+      color: ${colors.red};
+    }
+  `}
+
+  [data-theme="light"] & {
+    background: ${COLOR_MEMO}08;
+    border-color: ${COLOR_MEMO}30;
+  }
+`;
+
+const GalleryFooter = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  flex-shrink: 0;
+  border-top: 1px solid ${COLOR_MEMO}30;
+
+  [data-theme="light"] & {
+    border-top-color: var(--t-border);
+  }
+`;
+
+const GalleryNavBtn = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 6px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: ${COLOR_MEMO};
+  background: ${COLOR_MEMO}22;
+  border: 1px solid ${COLOR_MEMO}44;
+
+  &:disabled {
+    opacity: 0.3;
+    cursor: default;
+  }
+
+  [data-theme="light"] & {
+    background: ${COLOR_MEMO}0A;
+    border-color: ${COLOR_MEMO}30;
+  }
+`;
+
+const GalleryPageInfo = styled.span`
+  font-size: 11px;
+  font-weight: 700;
+  color: ${COLOR_MEMO};
+`;
+
+// ── styled components: Toast cards ───────────────────────────────────────────
+
+const ToastCard = styled.div<{ $color: string }>`
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  border-radius: 16px;
+  padding: 12px 16px;
+  background: rgba(6, 5, 16, 0.97);
+  border: 1px solid ${({ $color }) => $color}44;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.75),
+    0 0 24px ${({ $color }) => $color}16;
+  backdrop-filter: blur(14px);
+
+  [data-theme="light"] & {
+    background: var(--t-bg);
+    border-color: ${({ $color }) => $color}66;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1),
+      0 0 16px ${({ $color }) => $color}10;
+  }
+`;
+
+const AccentBar = styled.div<{ $color: string }>`
+  width: 2px;
+  align-self: stretch;
+  border-radius: 9999px;
+  flex-shrink: 0;
+  background: linear-gradient(
+    to bottom,
+    ${({ $color }) => $color},
+    ${({ $color }) => $color}44
+  );
+`;
+
+const ToastContent = styled.div<{ $clickable: boolean }>`
+  flex: 1;
+  min-width: 0;
+  cursor: ${({ $clickable }) => ($clickable ? "pointer" : "default")};
+`;
+
+const ToastSender = styled.p<{ $color: string }>`
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+  color: ${({ $color }) => $color};
+`;
+
+const ToastBody = styled.p`
+  font-size: 11px;
+  line-height: 1.625;
+  color: rgba(255, 255, 255, 0.65);
+
+  [data-theme="light"] & {
+    color: var(--t-textMuted);
+  }
+`;
+
+const ToastMemoHint = styled.p<{ $color: string }>`
+  font-size: 9px;
+  margin-top: 6px;
+  font-weight: 600;
+  color: ${({ $color }) => $color}88;
+`;
+
+const DismissBtn = styled.button`
+  color: rgba(255, 255, 255, 0.2);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 12px;
+  flex-shrink: 0;
+  margin-top: 2px;
+  transition: color 0.15s;
+
+  &:hover {
+    color: rgba(255, 255, 255, 0.5);
+  }
+
+  [data-theme="light"] & {
+    color: var(--t-textGhost);
+    &:hover {
+      color: var(--t-textMuted);
+    }
+  }
+`;
+
 // ── OS notification helper ───────────────────────────────────────────────────
 function fireOsNotification(item: NotifItem) {
   if (typeof window === "undefined" || Notification.permission !== "granted") return;
   try {
     const n = new Notification(
-      item.type === "chat" ? `💬 ${item.senderName}` : `📝 Memo from ${item.senderName}`,
+      item.type === "chat" ? `\uD83D\uDCAC ${item.senderName}` : `\uD83D\uDCDD Memo from ${item.senderName}`,
       { body: item.body, icon: "/favicon.ico", tag: item.id, silent: false }
     );
     n.onclick = () => { window.focus(); n.close(); };
@@ -129,127 +440,70 @@ function MemoGallery({
 
   return createPortal(
     <>
-      {/* Backdrop */}
-      <div
-        className="fixed inset-0 z-[300]"
-        style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(6px)" }}
-        onClick={onClose}
-      />
-      {/* Modal */}
-      <div
-        className="fixed z-[301] flex flex-col"
-        style={{
-          top: "50%",
-          left: "50%",
-          transform: "translate(-50%,-50%)",
-          width: "min(94vw, 480px)",
-          maxHeight: "80vh",
-          background: "rgba(8,6,20,0.98)",
-          border: `1px solid ${COLOR_MEMO}44`,
-          borderRadius: 20,
-          boxShadow: `0 24px 80px rgba(0,0,0,0.85), 0 0 60px ${COLOR_MEMO}18`,
-        }}
-      >
+      <GalleryBackdrop onClick={onClose} />
+      <GalleryModal>
         {/* Header */}
-        <div
-          className="flex items-center justify-between px-5 py-3 flex-shrink-0"
-          style={{ borderBottom: `1px solid ${COLOR_MEMO}22` }}
-        >
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-bold uppercase tracking-widest" style={{ color: COLOR_MEMO }}>
-              📝 Memo
-            </span>
-            <span className="text-[10px] font-semibold" style={{ color: COLOR_MEMO }}>
+        <GalleryHeader>
+          <GalleryHeaderLeft>
+            <GalleryTag>
+              \uD83D\uDCDD Memo
+            </GalleryTag>
+            <GallerySender>
               from {memo.senderName}
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            {/* Pagination dots */}
+            </GallerySender>
+          </GalleryHeaderLeft>
+          <GalleryHeaderRight>
             {memos.length > 1 && (
-              <div className="flex items-center gap-1.5">
+              <PaginationDots>
                 {memos.map((_, i) => (
-                  <button
+                  <PaginationDot
                     key={i}
                     onClick={() => setIdx(i)}
-                    className="rounded-full transition-all"
-                    style={{
-                      width: i === idx ? 18 : 7,
-                      height: 7,
-                      background: i === idx ? COLOR_MEMO : `${COLOR_MEMO}50`,
-                      boxShadow: i === idx ? `0 0 8px ${COLOR_MEMO}` : "none",
-                    }}
+                    $active={i === idx}
                   />
                 ))}
-              </div>
+              </PaginationDots>
             )}
-            <button
-              onClick={onClose}
-              className="w-7 h-7 flex items-center justify-center rounded-md transition-all"
-              style={{ color: COLOR_MEMO, background: `${COLOR_MEMO}18` }}
-            >
-              ✕
-            </button>
-          </div>
-        </div>
+            <GalleryCloseBtn onClick={onClose}>
+              &#x2715;
+            </GalleryCloseBtn>
+          </GalleryHeaderRight>
+        </GalleryHeader>
 
         {/* Body */}
-        <div className="flex-1 overflow-y-auto px-5 py-5">
-          <p className="text-sm leading-relaxed whitespace-pre-wrap" style={{ color: COLOR_MEMO }}>
-            {memo.content}
-          </p>
-          <p className="text-[10px] mt-4 font-semibold" style={{ color: `${COLOR_MEMO}90` }}>
+        <GalleryBody>
+          <GalleryContent>{memo.content}</GalleryContent>
+          <GalleryDate>
             {new Date(memo.createdAt).toLocaleString(undefined, {
               month: "short", day: "numeric",
               hour: "2-digit", minute: "2-digit",
             })}
-          </p>
-          {/* Actions */}
-          <div className="flex gap-2 mt-4">
-            <button
-              onClick={archiveMemo}
-              className="flex items-center gap-1.5 text-[10px] font-bold px-3 py-1.5 rounded-lg transition-all"
-              style={{ color: COLOR_MEMO, background: `${COLOR_MEMO}18`, border: `1px solid ${COLOR_MEMO}40` }}
-            >
-              ⬇ Archive
-            </button>
-            <button
-              onClick={deleteMemo}
-              className="flex items-center gap-1.5 text-[10px] font-bold px-3 py-1.5 rounded-lg transition-all hover:bg-red-500/20 hover:border-red-400/40 hover:text-red-400"
-              style={{ color: COLOR_MEMO, background: `${COLOR_MEMO}18`, border: `1px solid ${COLOR_MEMO}40` }}
-            >
-              ✕ Delete
-            </button>
-          </div>
-        </div>
+          </GalleryDate>
+          <GalleryActions>
+            <GalleryActionBtn onClick={archiveMemo}>
+              &#x2B07; Archive
+            </GalleryActionBtn>
+            <GalleryActionBtn $danger onClick={deleteMemo}>
+              &#x2715; Delete
+            </GalleryActionBtn>
+          </GalleryActions>
+        </GalleryBody>
 
         {/* Pagination arrows */}
         {localMemos.length > 1 && (
-          <div
-            className="flex items-center justify-between px-5 py-3 flex-shrink-0"
-            style={{ borderTop: `1px solid ${COLOR_MEMO}30` }}
-          >
-            <button
-              onClick={prev}
-              disabled={idx === 0}
-              className="flex items-center gap-1.5 text-[11px] font-bold px-3 py-1.5 rounded-lg transition-all disabled:opacity-30"
-              style={{ color: COLOR_MEMO, background: `${COLOR_MEMO}22`, border: `1px solid ${COLOR_MEMO}44` }}
-            >
-              ← Prev
-            </button>
-            <span className="text-[11px] font-bold" style={{ color: COLOR_MEMO }}>
+          <GalleryFooter>
+            <GalleryNavBtn onClick={prev} disabled={idx === 0}>
+              &larr; Prev
+            </GalleryNavBtn>
+            <GalleryPageInfo>
               {idx + 1} / {localMemos.length}
-            </span>
-            <button
-              onClick={next}
-              disabled={idx === localMemos.length - 1}
-              className="flex items-center gap-1.5 text-[11px] font-bold px-3 py-1.5 rounded-lg transition-all disabled:opacity-30"
-              style={{ color: COLOR_MEMO, background: `${COLOR_MEMO}22`, border: `1px solid ${COLOR_MEMO}44` }}
-            >
-              Next →
-            </button>
-          </div>
+            </GalleryPageInfo>
+            <GalleryNavBtn onClick={next} disabled={idx === localMemos.length - 1}>
+              Next &rarr;
+            </GalleryNavBtn>
+          </GalleryFooter>
         )}
-      </div>
+      </GalleryModal>
     </>,
     document.body
   );
@@ -272,9 +526,8 @@ export default function PingNotifier() {
   const releaseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastChatIdRef = useRef<string | null>(null);
   const chatInitialized = useRef(false);
-  // Persist seen memo IDs in localStorage so reloads don't re-fire old memos
   const memoSeenRef = useRef<Set<string>>(new Set());
-  const allMemosRef = useRef<MemoData[]>([]);  // gallery history
+  const allMemosRef = useRef<MemoData[]>([]);
 
   // Load persisted seen memo IDs once on mount
   useEffect(() => {
@@ -318,7 +571,6 @@ export default function PingNotifier() {
         if (prev.length >= MAX_VISIBLE || queueRef.current.length === 0) return prev;
         const next = queueRef.current.shift()!;
         const updated = [...prev, next];
-        // Schedule more if queue still has items
         if (queueRef.current.length > 0 && updated.length < MAX_VISIBLE) {
           scheduleRelease();
         }
@@ -350,7 +602,6 @@ export default function PingNotifier() {
     setVisible((prev) => {
       if (prev.length === 0) return prev;
       const [, ...rest] = prev;
-      // Pull next from queue after 1 s
       if (queueRef.current.length > 0 && rest.length < MAX_VISIBLE) {
         scheduleRelease();
       }
@@ -372,7 +623,7 @@ export default function PingNotifier() {
   useEffect(() => {
     const onActive = () => {
       if (isActive() && visible.length > 0) {
-        // restart dismiss timer — handled by frontId effect re-running on focus
+        // restart dismiss timer -- handled by frontId effect re-running on focus
       }
     };
     document.addEventListener("visibilitychange", onActive);
@@ -463,7 +714,6 @@ export default function PingNotifier() {
         const s = profiles.find((pr) => pr.username === m.from);
         const senderName = s?.displayName ?? m.from;
         const memoData: MemoData = { ...m, senderName };
-        // Add to gallery history (prepend newest first for display, but keep order)
         allMemosRef.current = [memoData, ...allMemosRef.current];
         return {
           id: m.id,
@@ -511,8 +761,8 @@ export default function PingNotifier() {
         return (
           <div
             key={item.id}
-            className="fixed"
             style={{
+              position: "fixed",
               bottom: 24,
               left: leftPx,
               width: CARD_W,
@@ -524,50 +774,28 @@ export default function PingNotifier() {
               pointerEvents: i === 0 ? "all" : "none",
             }}
           >
-            <div
-              className="flex items-start gap-3 rounded-2xl px-4 py-3"
-              style={{
-                background: "rgba(6,5,16,0.97)",
-                border: `1px solid ${color}44`,
-                boxShadow: `0 8px 32px rgba(0,0,0,0.75), 0 0 24px ${color}16`,
-                backdropFilter: "blur(14px)",
-              }}
-            >
-              {/* Left accent bar */}
-              <div
-                className="w-0.5 self-stretch rounded-full flex-shrink-0"
-                style={{ background: `linear-gradient(to bottom, ${color}, ${color}44)` }}
-              />
-
-              {/* Content */}
-              <div
-                className="flex-1 min-w-0"
-                style={{ cursor: isMemo ? "pointer" : "default" }}
+            <ToastCard $color={color}>
+              <AccentBar $color={color} />
+              <ToastContent
+                $clickable={isMemo}
                 onClick={isMemo ? () => openGallery(item) : undefined}
               >
-                <p className="text-[10px] font-bold uppercase tracking-wider mb-1" style={{ color }}>
-                  {item.type === "chat" ? "💬" : "📝"} {item.senderName}
-                </p>
-                <p className="text-[11px] leading-relaxed" style={{ color: "rgba(255,255,255,0.65)" }}>
-                  {item.body}
-                </p>
+                <ToastSender $color={color}>
+                  {item.type === "chat" ? "\uD83D\uDCAC" : "\uD83D\uDCDD"} {item.senderName}
+                </ToastSender>
+                <ToastBody>{item.body}</ToastBody>
                 {isMemo && (
-                  <p className="text-[9px] mt-1.5 font-semibold" style={{ color: `${color}88` }}>
-                    tap to view memo →
-                  </p>
+                  <ToastMemoHint $color={color}>
+                    tap to view memo &rarr;
+                  </ToastMemoHint>
                 )}
-              </div>
-
-              {/* Dismiss (front card only) */}
+              </ToastContent>
               {i === 0 && (
-                <button
-                  onClick={dismissFront}
-                  className="text-white/20 hover:text-white/50 transition-colors text-xs flex-shrink-0 mt-0.5"
-                >
-                  ✕
-                </button>
+                <DismissBtn onClick={dismissFront}>
+                  &#x2715;
+                </DismissBtn>
               )}
-            </div>
+            </ToastCard>
           </div>
         );
       })}
