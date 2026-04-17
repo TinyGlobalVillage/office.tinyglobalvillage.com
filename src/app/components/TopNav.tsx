@@ -3,11 +3,13 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import styled from "styled-components";
 import ProfileModal, { type Profile, type Memo, type Ping } from "./ProfileModal";
 import { UserAvatar } from "./ChatSettingsModal";
 import { signOut } from "next-auth/react";
 import { useNavHistory } from "./useNavHistory";
 import LDM from "./LDM";
+import { colors, rgb } from "@/app/theme";
 
 const navLinks = [
   { label: "Dashboard", href: "/dashboard" },
@@ -36,6 +38,297 @@ function BalloonSVG({ size = 30 }: { size?: number }) {
   );
 }
 
+/* ── Styled ────────────────────────────────────────────────────── */
+
+const HeaderWrap = styled.header<{ $scrolled?: boolean; $hidden?: boolean }>`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  padding: 0.75rem 1rem 0.5rem;
+  background: ${(p) => (p.$scrolled ? "rgba(0,0,0,0.92)" : "transparent")};
+  transform: ${(p) => (p.$hidden ? "translateY(-110%)" : "translateY(0)")};
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), background 0.3s;
+
+  [data-theme="light"] & {
+    background: ${(p) => (p.$scrolled ? "rgba(248,246,243,0.92)" : "transparent")};
+  }
+`;
+
+const Nav = styled.nav`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.625rem 1.25rem;
+  max-width: 80rem;
+  margin: 0 auto;
+  border-radius: 1rem;
+  background: rgba(${rgb.pink}, 0.03);
+  border: 1px solid rgba(${rgb.pink}, 0.12);
+
+  [data-theme="light"] & {
+    background: rgba(${rgb.pink}, 0.02);
+    border-color: rgba(${rgb.pink}, 0.08);
+  }
+`;
+
+const LeftGroup = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+`;
+
+const ArrowBtn = styled.button`
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.15s;
+  background: rgba(${rgb.pink}, 0.06);
+  border: 1px solid rgba(${rgb.pink}, 0.22);
+  color: ${colors.pink};
+
+  &:hover {
+    background: rgba(${rgb.pink}, 0.18);
+  }
+
+  &:disabled {
+    opacity: 0.25;
+    cursor: not-allowed;
+  }
+`;
+
+const DDMTrigger = styled.button<{ $open?: boolean }>`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  cursor: pointer;
+  transition: all 0.15s;
+  background: ${(p) => (p.$open ? `rgba(${rgb.pink}, 0.25)` : `rgba(${rgb.pink}, 0.08)`)};
+  border: 1px solid rgba(${rgb.pink}, 0.35);
+  color: ${colors.pink};
+
+  &:hover {
+    background: rgba(${rgb.pink}, 0.22);
+  }
+`;
+
+const DDMMenu = styled.div`
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 0.5rem;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  z-index: 50;
+  min-width: 180px;
+  background: var(--t-surface);
+  border: 1px solid rgba(${rgb.pink}, 0.25);
+  box-shadow: 0 8px 40px rgba(${rgb.pink}, 0.12), 0 4px 20px rgba(0, 0, 0, 0.7);
+
+  [data-theme="light"] & {
+    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.08);
+  }
+`;
+
+const DDMLink = styled(Link)<{ $active?: boolean }>`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.625rem 1rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  text-decoration: none;
+  transition: all 0.15s;
+  color: ${(p) => (p.$active ? colors.pink : "var(--t-textFaint)")};
+  background: ${(p) => (p.$active ? `rgba(${rgb.pink}, 0.1)` : "transparent")};
+  border-bottom: 1px solid rgba(${rgb.pink}, 0.08);
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  &:hover {
+    color: ${colors.pink};
+    background: rgba(${rgb.pink}, 0.07);
+  }
+`;
+
+const RightGroup = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+`;
+
+const ChipBtn = styled.button<{ $accent: string; $isMe?: boolean }>`
+  position: relative;
+  padding: 0.125rem;
+  border-radius: 50%;
+  border: none;
+  background: none;
+  cursor: pointer;
+  transition: all 0.15s;
+  outline: 2px solid ${(p) => (p.$isMe ? `${p.$accent}66` : "transparent")};
+`;
+
+const PresenceDot = styled.span<{ $online?: boolean }>`
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  border: 1px solid var(--t-bg);
+  background: ${(p) => (p.$online ? colors.green : "#374151")};
+  box-shadow: ${(p) => (p.$online ? `0 0 4px ${colors.green}` : "none")};
+`;
+
+const PingBadge = styled.span<{ $accent: string }>`
+  position: absolute;
+  top: -0.375rem;
+  right: -0.375rem;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.5rem;
+  font-weight: 700;
+  background: ${(p) => p.$accent};
+  color: var(--t-bg);
+  box-shadow: 0 0 6px ${(p) => p.$accent};
+`;
+
+const OverflowBtn = styled.button<{ $open?: boolean }>`
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.5625rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+  background: ${(p) => (p.$open ? `rgba(${rgb.pink}, 0.25)` : "var(--t-inputBg)")};
+  border: 1px solid rgba(${rgb.pink}, 0.4);
+  color: ${colors.pink};
+`;
+
+const OverflowMenu = styled.div`
+  position: absolute;
+  right: 0;
+  top: 100%;
+  margin-top: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  border-radius: 0.75rem;
+  padding: 0.5rem;
+  z-index: 200;
+  min-width: 160px;
+  background: var(--t-surface);
+  border: 1px solid rgba(${rgb.pink}, 0.2);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+
+  [data-theme="light"] & {
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.1);
+  }
+`;
+
+const OverflowItem = styled.button<{ $accent: string; $isMe?: boolean }>`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.5rem;
+  border-radius: 0.5rem;
+  transition: all 0.15s;
+  text-align: left;
+  width: 100%;
+  border: none;
+  cursor: pointer;
+  background: ${(p) => (p.$isMe ? `rgba(${hexToRgb(p.$accent)}, 0.1)` : "transparent")};
+
+  &:hover {
+    background: rgba(${(p) => hexToRgb(p.$accent)}, 0.12);
+  }
+`;
+
+const OverflowName = styled.span<{ $accent: string }>`
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: ${(p) => p.$accent};
+`;
+
+const SignOutBtn = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 0.25rem 0.625rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: all 0.15s;
+  color: rgba(${rgb.pink}, 0.6);
+  border: 1px solid rgba(${rgb.pink}, 0.2);
+  background: transparent;
+
+  &:hover {
+    color: ${colors.pink};
+    background: rgba(${rgb.pink}, 0.1);
+  }
+`;
+
+const DrawerTab = styled.button<{ $hidden?: boolean; $navH: number }>`
+  position: fixed;
+  left: 50%;
+  z-index: 49;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  transform: translateX(-50%);
+  top: ${(p) => (p.$hidden ? "0px" : `${p.$navH}px`)};
+  padding: 4px 14px;
+  border-radius: 0 0 10px 10px;
+  border: 1px solid rgba(${rgb.pink}, 0.35);
+  border-top: ${(p) => (p.$hidden ? `1px solid rgba(${rgb.pink}, 0.35)` : "none")};
+  background: rgba(${rgb.pink}, 0.12);
+  color: ${colors.pink};
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  backdrop-filter: blur(8px);
+  cursor: pointer;
+  transition: top 0.3s cubic-bezier(0.4, 0, 0.2, 1), background 0.2s;
+  box-shadow: 0 4px 20px rgba(${rgb.pink}, 0.15);
+
+  &:hover {
+    background: rgba(${rgb.pink}, 0.22);
+  }
+`;
+
+/* ── Component ───────────��─────────────────────────────────────── */
+
 export default function TopNav() {
   const [scrolled, setScrolled] = useState(false);
   const [hidden, setHidden] = useState(false);
@@ -46,7 +339,6 @@ export default function TopNav() {
   const headerRef = useRef<HTMLElement>(null);
   const { canBack, canForward, back, forward } = useNavHistory();
 
-  // User data for profile chips
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [memos, setMemos] = useState<Memo[]>([]);
   const [pings, setPings] = useState<Ping[]>([]);
@@ -72,9 +364,7 @@ export default function TopNav() {
       setPresence(Array.isArray(presRes) ? presRes : []);
       setUnreadPings(pingRes.unread ?? 0);
       setCurrentUser(meRes?.username ?? "admin");
-    } catch {
-      // ignore
-    }
+    } catch { /* ignore */ }
   };
 
   useEffect(() => {
@@ -83,7 +373,6 @@ export default function TopNav() {
     return () => clearInterval(id);
   }, []);
 
-  // Close overflow dropdown on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (overflowRef.current && !overflowRef.current.contains(e.target as Node)) setOverflowOpen(false);
@@ -98,7 +387,6 @@ export default function TopNav() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // Measure real header height and sync to CSS custom property
   useEffect(() => {
     const measure = () => {
       if (headerRef.current) {
@@ -113,18 +401,14 @@ export default function TopNav() {
     return () => ro.disconnect();
   }, []);
 
-  // Sync hidden state to CSS so pages can shift up/down
   useEffect(() => {
     document.documentElement.style.setProperty("--nav-offset", hidden ? "0px" : `${navH}px`);
     document.documentElement.classList.toggle("nav-hidden", hidden);
   }, [hidden, navH]);
 
-  // Close dropdown on outside click or route change
   useEffect(() => {
     const onDown = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setMenuOpen(false);
-      }
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
     };
     document.addEventListener("mousedown", onDown);
     return () => document.removeEventListener("mousedown", onDown);
@@ -135,321 +419,144 @@ export default function TopNav() {
   const currentPage = navLinks.find((l) => l.href === pathname)?.label ?? "Navigate";
   const myProfile = profiles.find((p) => p.username === currentUser);
 
+  const sorted = [...profiles].sort((a, b) => {
+    const pa = presence.find((pr) => pr.sysUser === a.username);
+    const pb = presence.find((pr) => pr.sysUser === b.username);
+    if (pa?.online && !pb?.online) return -1;
+    if (!pa?.online && pb?.online) return 1;
+    return (pa?.onlineSinceMs ?? 0) - (pb?.onlineSinceMs ?? 0);
+  });
+
+  const onlineCount = presence.filter((pr) => pr.online).length;
+  const showOverflow = onlineCount > 3;
+  const visibleChips = showOverflow ? sorted.slice(0, 3) : sorted;
+  const overflowUsers = showOverflow ? sorted.slice(3) : [];
+
+  const renderChip = (p: Profile) => {
+    const isMe = p.username === currentUser;
+    const myPingCount = isMe ? unreadPings : 0;
+    const pres = presence.find((pr) => pr.sysUser === p.username);
+    const online = pres?.online ?? false;
+    return (
+      <ChipBtn
+        key={p.username}
+        $accent={p.accentColor}
+        $isMe={isMe}
+        onClick={() => setOpenProfile(p)}
+        title={`${p.displayName}${myPingCount > 0 ? ` · ${myPingCount} unread ping${myPingCount !== 1 ? "s" : ""}` : ""}`}
+      >
+        <span style={{ position: "relative", display: "block", flexShrink: 0 }}>
+          <UserAvatar profile={p} size={20} />
+          <PresenceDot $online={online} />
+        </span>
+        {myPingCount > 0 && (
+          <PingBadge $accent={p.accentColor}>
+            {myPingCount > 9 ? "9+" : myPingCount}
+          </PingBadge>
+        )}
+      </ChipBtn>
+    );
+  };
+
   return (
     <>
-      {/* ── Main nav header ───────────────────────────────────────────────── */}
-      <header
-        ref={headerRef}
-        className="fixed top-0 left-0 right-0 z-50 px-4 pt-3 pb-2"
-        style={{
-          background: scrolled ? "rgba(0,0,0,0.92)" : "transparent",
-          transform: hidden ? "translateY(-110%)" : "translateY(0)",
-          transition: "transform 0.3s cubic-bezier(0.4,0,0.2,1), background 0.3s",
-        }}
-      >
-        <nav className="nav-tgv flex items-center justify-between px-5 py-2.5 max-w-7xl mx-auto">
-
-          {/* Brand + Dropdown — grouped left */}
-          <div className="flex items-center gap-2 shrink-0">
-            <Link href="/dashboard" className="flex items-center gap-2 group shrink-0">
+      <HeaderWrap ref={headerRef} $scrolled={scrolled} $hidden={hidden}>
+        <Nav>
+          <LeftGroup>
+            <Link href="/dashboard" style={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
               <BalloonSVG size={28} />
             </Link>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
+              <ArrowBtn onClick={back} disabled={!canBack} title="Back (⌘[ / Alt+←)">‹</ArrowBtn>
+              <ArrowBtn onClick={forward} disabled={!canForward} title="Forward (⌘] / Alt+→)">›</ArrowBtn>
+            </div>
+            <div ref={menuRef} style={{ position: "relative" }}>
+              <DDMTrigger $open={menuOpen} onClick={() => setMenuOpen((p) => !p)}>
+                <span>{currentPage}</span>
+                <svg
+                  width="8" height="8" viewBox="0 0 8 8" fill="currentColor"
+                  style={{ transform: menuOpen ? "rotate(180deg)" : "none", transition: "transform 0.2s" }}
+                >
+                  <path d="M4 6L0.5 1.5h7L4 6z" />
+                </svg>
+              </DDMTrigger>
+              {menuOpen && (
+                <DDMMenu>
+                  {navLinks.map((link) => {
+                    const active = pathname === link.href;
+                    return (
+                      <DDMLink key={link.href} href={link.href} $active={active}>
+                        {active && <span style={{ color: colors.pink, fontSize: 7 }}>●</span>}
+                        {link.label}
+                      </DDMLink>
+                    );
+                  })}
+                </DDMMenu>
+              )}
+            </div>
+          </LeftGroup>
 
-          {/* ── Back / Forward arrows ─────────────────────────────────────── */}
-          <div className="flex items-center gap-1">
-            <button
-              onClick={back}
-              disabled={!canBack}
-              title="Back (⌘[ / Alt+←)"
-              className="w-7 h-7 rounded-lg flex items-center justify-center text-sm transition-all disabled:opacity-25 disabled:cursor-not-allowed"
-              style={{
-                background: "rgba(255,78,203,0.06)",
-                border: "1px solid rgba(255,78,203,0.22)",
-                color: "#ff4ecb",
-              }}
-              onMouseEnter={(e) => { if (!e.currentTarget.disabled) (e.currentTarget as HTMLElement).style.background = "rgba(255,78,203,0.18)"; }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(255,78,203,0.06)"; }}
-            >
-              ‹
-            </button>
-            <button
-              onClick={forward}
-              disabled={!canForward}
-              title="Forward (⌘] / Alt+→)"
-              className="w-7 h-7 rounded-lg flex items-center justify-center text-sm transition-all disabled:opacity-25 disabled:cursor-not-allowed"
-              style={{
-                background: "rgba(255,78,203,0.06)",
-                border: "1px solid rgba(255,78,203,0.22)",
-                color: "#ff4ecb",
-              }}
-              onMouseEnter={(e) => { if (!e.currentTarget.disabled) (e.currentTarget as HTMLElement).style.background = "rgba(255,78,203,0.18)"; }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(255,78,203,0.06)"; }}
-            >
-              ›
-            </button>
-          </div>
-
-          {/* ── Dropdown menu ─────────────────────────────────────────────── */}
-          <div ref={menuRef} className="relative">
-            <button
-              onClick={() => setMenuOpen((p) => !p)}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-[11px] font-bold uppercase tracking-widest transition-all"
-              style={{
-                background: menuOpen ? "rgba(255,78,203,0.25)" : "rgba(255,78,203,0.08)",
-                border: "1px solid rgba(255,78,203,0.35)",
-                color: "#ff4ecb",
-              }}
-              onMouseEnter={(e) => {
-                (e.currentTarget as HTMLElement).style.background = "rgba(255,78,203,0.22)";
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLElement).style.background = menuOpen
-                  ? "rgba(255,78,203,0.25)"
-                  : "rgba(255,78,203,0.08)";
-              }}
-            >
-              <span>{currentPage}</span>
-              <svg
-                width="8" height="8" viewBox="0 0 8 8" fill="currentColor"
-                style={{ transform: menuOpen ? "rotate(180deg)" : "none", transition: "transform 0.2s" }}
-              >
-                <path d="M4 6L0.5 1.5h7L4 6z" />
-              </svg>
-            </button>
-
-            {menuOpen && (
-              <div
-                className="absolute top-full left-0 mt-2 rounded-xl overflow-hidden z-50"
-                style={{
-                  minWidth: 180,
-                  background: "rgba(10,12,18,0.98)",
-                  border: "1px solid rgba(255,78,203,0.25)",
-                  boxShadow: "0 8px 40px rgba(255,78,203,0.12), 0 4px 20px rgba(0,0,0,0.7)",
-                }}
-              >
-                {navLinks.map((link, i) => {
-                  const active = pathname === link.href;
-                  return (
-                    <Link
-                      key={link.href}
-                      href={link.href}
-                      className="flex items-center gap-3 px-4 py-2.5 text-[11px] font-bold uppercase tracking-widest transition-all"
-                      style={{
-                        color: active ? "#ff4ecb" : "rgba(255,255,255,0.45)",
-                        background: active ? "rgba(255,78,203,0.1)" : "transparent",
-                        borderBottom: i < navLinks.length - 1 ? "1px solid rgba(255,78,203,0.08)" : "none",
-                      }}
-                      onMouseEnter={(e) => {
-                        if (!active) {
-                          (e.currentTarget as HTMLElement).style.color = "#ff4ecb";
-                          (e.currentTarget as HTMLElement).style.background = "rgba(255,78,203,0.07)";
-                        }
-                      }}
-                      onMouseLeave={(e) => {
-                        if (!active) {
-                          (e.currentTarget as HTMLElement).style.color = "rgba(255,255,255,0.45)";
-                          (e.currentTarget as HTMLElement).style.background = "transparent";
-                        }
-                      }}
-                    >
-                      {active && <span style={{ color: "#ff4ecb", fontSize: 7 }}>●</span>}
-                      {link.label}
-                    </Link>
-                  );
-                })}
+          <RightGroup>
+            {visibleChips.map(renderChip)}
+            {showOverflow && (
+              <div ref={overflowRef} style={{ position: "relative" }}>
+                <OverflowBtn
+                  $open={overflowOpen}
+                  onClick={() => setOverflowOpen((p) => !p)}
+                  title={`${overflowUsers.length} more user${overflowUsers.length !== 1 ? "s" : ""} online`}
+                >
+                  +{overflowUsers.length}
+                </OverflowBtn>
+                {overflowOpen && (
+                  <OverflowMenu>
+                    {overflowUsers.map((p) => {
+                      const isMe = p.username === currentUser;
+                      const pres = presence.find((pr) => pr.sysUser === p.username);
+                      const online = pres?.online ?? false;
+                      return (
+                        <OverflowItem
+                          key={p.username}
+                          $accent={p.accentColor}
+                          $isMe={isMe}
+                          onClick={() => { setOpenProfile(p); setOverflowOpen(false); }}
+                        >
+                          <span style={{ position: "relative", display: "block", flexShrink: 0 }}>
+                            <UserAvatar profile={p} size={22} />
+                            <PresenceDot $online={online} />
+                          </span>
+                          <OverflowName $accent={p.accentColor}>{p.displayName}</OverflowName>
+                        </OverflowItem>
+                      );
+                    })}
+                  </OverflowMenu>
+                )}
               </div>
             )}
-          </div>
-          </div>{/* end brand+dropdown group */}
-
-          {/* Right: user chips + presence + sign out */}
-          <div className="flex items-center gap-2 shrink-0">
-            {/* User avatar chips — show max 3, overflow goes to dropdown */}
-            {(() => {
-              // Sort online users by onlineSinceMs asc (oldest first), offline last
-              const sorted = [...profiles].sort((a, b) => {
-                const pa = presence.find((pr) => pr.sysUser === a.username);
-                const pb = presence.find((pr) => pr.sysUser === b.username);
-                if (pa?.online && !pb?.online) return -1;
-                if (!pa?.online && pb?.online) return 1;
-                return (pa?.onlineSinceMs ?? 0) - (pb?.onlineSinceMs ?? 0);
-              });
-
-              const onlineCount = presence.filter((pr) => pr.online).length;
-              const showDropdown = onlineCount > 3;
-              const visibleChips = showDropdown ? sorted.slice(0, 3) : sorted;
-              const overflowUsers = showDropdown ? sorted.slice(3) : [];
-
-              const renderChip = (p: Profile) => {
-                const isMe = p.username === currentUser;
-                const myPingCount = isMe ? unreadPings : 0;
-                const pres = presence.find((pr) => pr.sysUser === p.username);
-                const online = pres?.online ?? false;
-                return (
-                  <button
-                    key={p.username}
-                    onClick={() => setOpenProfile(p)}
-                    title={`${p.displayName}${myPingCount > 0 ? ` · ${myPingCount} unread ping${myPingCount !== 1 ? "s" : ""}` : ""}`}
-                    className="relative p-0.5 rounded-full transition-all"
-                    style={{ outline: `2px solid ${isMe ? `${p.accentColor}66` : "transparent"}` }}
-                  >
-                    <span className="relative shrink-0 block">
-                      <UserAvatar profile={p} size={20} />
-                      <span
-                        className="absolute bottom-0 right-0 w-2 h-2 rounded-full border"
-                        style={{
-                          background: online ? "#4ade80" : "#374151",
-                          borderColor: "#060810",
-                          boxShadow: online ? "0 0 4px #4ade80" : "none",
-                        }}
-                      />
-                    </span>
-                    {myPingCount > 0 && (
-                      <span
-                        className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-bold"
-                        style={{ background: p.accentColor, color: "#060810", boxShadow: `0 0 6px ${p.accentColor}` }}
-                      >
-                        {myPingCount > 9 ? "9+" : myPingCount}
-                      </span>
-                    )}
-                  </button>
-                );
-              };
-
-              return (
-                <>
-                  {visibleChips.map(renderChip)}
-                  {showDropdown && (
-                    <div ref={overflowRef} className="relative">
-                      <button
-                        onClick={() => setOverflowOpen((p) => !p)}
-                        className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold transition-all"
-                        style={{
-                          background: overflowOpen ? "rgba(255,78,203,0.25)" : "rgba(255,255,255,0.08)",
-                          border: "1px solid rgba(255,78,203,0.4)",
-                          color: "#ff4ecb",
-                        }}
-                        title={`${overflowUsers.length} more user${overflowUsers.length !== 1 ? "s" : ""} online`}
-                      >
-                        +{overflowUsers.length}
-                      </button>
-                      {overflowOpen && (
-                        <div
-                          className="absolute right-0 top-full mt-2 flex flex-col gap-1 rounded-xl p-2 z-[200]"
-                          style={{
-                            background: "rgba(7,9,13,0.98)",
-                            border: "1px solid rgba(255,78,203,0.2)",
-                            boxShadow: "0 12px 40px rgba(0,0,0,0.6)",
-                            minWidth: 160,
-                          }}
-                        >
-                          {/* Most recent sign-in at bottom — slice already sorted asc */}
-                          {overflowUsers.map((p) => {
-                            const isMe = p.username === currentUser;
-                            const pres = presence.find((pr) => pr.sysUser === p.username);
-                            const online = pres?.online ?? false;
-                            return (
-                              <button
-                                key={p.username}
-                                onClick={() => { setOpenProfile(p); setOverflowOpen(false); }}
-                                className="flex items-center gap-2 px-2 py-1.5 rounded-lg transition-all text-left w-full"
-                                style={{ background: isMe ? `rgba(${hexToRgb(p.accentColor)},0.1)` : "transparent" }}
-                                onMouseEnter={(e) => (e.currentTarget.style.background = `rgba(${hexToRgb(p.accentColor)},0.12)`)}
-                                onMouseLeave={(e) => (e.currentTarget.style.background = isMe ? `rgba(${hexToRgb(p.accentColor)},0.1)` : "transparent")}
-                              >
-                                <span className="relative shrink-0 block">
-                                  <UserAvatar profile={p} size={22} />
-                                  <span
-                                    className="absolute bottom-0 right-0 w-2 h-2 rounded-full border"
-                                    style={{ background: online ? "#4ade80" : "#374151", borderColor: "#060810" }}
-                                  />
-                                </span>
-                                <span className="text-[11px] font-semibold" style={{ color: p.accentColor }}>
-                                  {p.displayName}
-                                </span>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </>
-              );
-            })()}
-
             <LDM size={28} />
-
-            <button
-              onClick={() => signOut({ callbackUrl: "/login" })}
-              title="Sign out of TGV Office"
-              className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-lg transition-all"
-              style={{
-                color: "rgba(255,78,203,0.6)",
-                border: "1px solid rgba(255,78,203,0.2)",
-                background: "transparent",
-              }}
-              onMouseEnter={(e) => {
-                (e.currentTarget as HTMLElement).style.color = "#ff4ecb";
-                (e.currentTarget as HTMLElement).style.background = "rgba(255,78,203,0.1)";
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLElement).style.color = "rgba(255,78,203,0.6)";
-                (e.currentTarget as HTMLElement).style.background = "transparent";
-              }}
-            >
+            <SignOutBtn onClick={() => signOut({ callbackUrl: "/login" })} title="Sign out of TGV Office">
               <span>⏏</span>
               <span>Sign out</span>
-            </button>
-          </div>
-        </nav>
-      </header>
+            </SignOutBtn>
+          </RightGroup>
+        </Nav>
+      </HeaderWrap>
 
-      {/* ── Center drawer tab — hides / restores nav ──────────────────────── */}
-      <button
-        onClick={() => setHidden((p) => !p)}
-        title={hidden ? "Show navigation" : "Hide navigation"}
-        className="fixed left-1/2 z-[49] flex items-center gap-1.5 transition-all"
-        style={{
-          top: hidden ? 0 : navH,
-          transform: "translateX(-50%)",
-          background: "rgba(255,78,203,0.12)",
-          border: "1px solid rgba(255,78,203,0.35)",
-          borderTop: hidden ? "1px solid rgba(255,78,203,0.35)" : "none",
-          borderRadius: hidden ? "0 0 10px 10px" : "0 0 10px 10px",
-          padding: "4px 14px",
-          color: "#ff4ecb",
-          fontSize: 9,
-          fontWeight: 800,
-          letterSpacing: "0.15em",
-          textTransform: "uppercase",
-          backdropFilter: "blur(8px)",
-          transition: "top 0.3s cubic-bezier(0.4,0,0.2,1), background 0.2s",
-          boxShadow: "0 4px 20px rgba(255,78,203,0.15)",
-        }}
-        onMouseEnter={(e) => {
-          (e.currentTarget as HTMLElement).style.background = "rgba(255,78,203,0.22)";
-        }}
-        onMouseLeave={(e) => {
-          (e.currentTarget as HTMLElement).style.background = "rgba(255,78,203,0.12)";
-        }}
-      >
+      <DrawerTab $hidden={hidden} $navH={navH} onClick={() => setHidden((p) => !p)} title={hidden ? "Show navigation" : "Hide navigation"}>
         <svg
-          width="8" height="8" viewBox="0 0 8 8" fill="#ff4ecb"
+          width="8" height="8" viewBox="0 0 8 8" fill={colors.pink}
           style={{ transform: hidden ? "rotate(180deg)" : "none", transition: "transform 0.3s" }}
         >
           <path d="M4 2L7.5 6.5H0.5L4 2Z" />
         </svg>
         <span>{hidden ? "TGV Office" : "Hide"}</span>
         <svg
-          width="8" height="8" viewBox="0 0 8 8" fill="#ff4ecb"
+          width="8" height="8" viewBox="0 0 8 8" fill={colors.pink}
           style={{ transform: hidden ? "rotate(180deg)" : "none", transition: "transform 0.3s" }}
         >
           <path d="M4 2L7.5 6.5H0.5L4 2Z" />
         </svg>
-      </button>
+      </DrawerTab>
 
-      {/* Profile modal opened from nav chip */}
       {openProfile && myProfile && (
         <ProfileModal
           profile={openProfile}
@@ -461,7 +568,6 @@ export default function TopNav() {
           onRefresh={loadUserData}
         />
       )}
-
     </>
   );
 }

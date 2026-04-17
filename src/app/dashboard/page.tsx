@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef } from "react";
+import styled from "styled-components";
 import TopNav from "../components/TopNav";
 import DashCard from "../components/DashCard";
 import UsersCard from "../components/UsersCard";
@@ -14,12 +15,13 @@ import LibraryIcon from "../components/LibraryIcon";
 import LibraryModal from "../components/LibraryModal";
 import SuggestionBoxModal from "../components/suggestion/SuggestionBoxModal";
 import Link from "next/link";
+import { colors, rgb, type GlowColor } from "@/app/theme";
 
 type DashTile = {
   key: string;
   title: string;
   subtitle: string;
-  glow: "cyan" | "pink" | "gold" | "orange" | "violet";
+  glow: GlowColor;
   icon: React.ReactNode;
   href?: string;
   onClick?: () => void;
@@ -33,28 +35,351 @@ type ActivityEvent = {
 };
 
 const TYPE_COLOR: Record<string, string> = {
-  pm2:    "#f7b700",
-  git:    "#ff4ecb",
-  system: "#4ade80",
+  pm2: colors.gold,
+  git: colors.pink,
+  system: colors.green,
 };
 
-const GLOW_RGB: Record<string, string> = {
-  cyan:   "0,191,255",
-  pink:   "255,78,203",
-  gold:   "247,183,0",
-  orange: "217,119,87",
-  violet: "167,139,250",
-};
+const TILE_LIMIT = 10;
 
-const GLOW_HEX: Record<string, string> = {
-  cyan:   "#00bfff",
-  pink:   "#ff4ecb",
-  gold:   "#f7b700",
-  orange: "#d97757",
-  violet: "#a78bfa",
-};
+/* ── Styled ────────────────────────────────────────────────────── */
 
-const TILE_LIMIT = 10; // GPG only kicks in when filtered tiles exceed this
+const Main = styled.main`
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  padding: 7rem 1rem 4rem;
+  max-width: 80rem;
+  margin: 0 auto;
+  width: 100%;
+`;
+
+const Hero = styled.section`
+  margin-bottom: 1.5rem;
+`;
+
+const HeroTitle = styled.h1`
+  font-size: 2.5rem;
+  font-weight: 700;
+  line-height: 1.15;
+  margin: 1.25rem 0 0.75rem;
+  color: ${colors.pink};
+  text-shadow: 0 0 8px #ff66cc, 0 0 20px ${colors.pink};
+
+  @media (min-width: 768px) {
+    font-size: 3rem;
+  }
+
+  [data-theme="light"] & {
+    text-shadow: none;
+  }
+`;
+
+const HeroSub = styled.p`
+  color: var(--t-textMuted);
+  font-size: 1rem;
+  max-width: 32rem;
+  margin: 0;
+`;
+
+const SBDMWrap = styled.section`
+  position: relative;
+  margin-bottom: 0.75rem;
+`;
+
+const SBDMBar = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--t-inputBg);
+  border: 1px solid rgba(${rgb.pink}, 0.22);
+`;
+
+const SBDMIcon = styled.span`
+  font-size: 0.875rem;
+  color: rgba(${rgb.pink}, 0.7);
+`;
+
+const SBDMInput = styled.input`
+  flex: 1;
+  background: transparent;
+  outline: none;
+  font-size: 0.875rem;
+  color: var(--t-text);
+  border: none;
+
+  &::placeholder {
+    color: var(--t-textGhost);
+  }
+`;
+
+const SBDMArrow = styled.button`
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.375rem;
+  border: none;
+  background: none;
+  color: ${colors.pink};
+  cursor: pointer;
+  transition: background 0.15s;
+
+  &:hover {
+    background: rgba(${rgb.pink}, 0.1);
+  }
+`;
+
+const SBDMPanel = styled.div`
+  position: absolute;
+  left: 0;
+  right: 0;
+  margin-top: 0.5rem;
+  border-radius: 0.75rem;
+  z-index: 30;
+  overflow: hidden;
+  background: var(--t-surface);
+  border: 1px solid rgba(${rgb.pink}, 0.28);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6), 0 0 24px rgba(${rgb.pink}, 0.12);
+  backdrop-filter: blur(8px);
+
+  [data-theme="light"] & {
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
+  }
+`;
+
+const SBDMInnerBar = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  border-bottom: 1px solid var(--t-border);
+`;
+
+const SBDMInnerInput = styled.input`
+  flex: 1;
+  background: var(--t-inputBg);
+  border-radius: 0.375rem;
+  padding: 0.375rem 0.5rem;
+  font-size: 0.75rem;
+  color: var(--t-text);
+  outline: none;
+  border: none;
+
+  &::placeholder {
+    color: var(--t-textGhost);
+  }
+`;
+
+const SBDMSortBtn = styled.button`
+  padding: 0.375rem 0.5rem;
+  border-radius: 0.375rem;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  background: rgba(${rgb.cyan}, 0.08);
+  border: 1px solid rgba(${rgb.cyan}, 0.3);
+  color: ${colors.cyan};
+  cursor: pointer;
+`;
+
+const SBDMList = styled.div`
+  max-height: 18rem;
+  overflow-y: auto;
+`;
+
+const SBDMItem = styled.button`
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  font-size: 0.75rem;
+  color: var(--t-textMuted);
+  border: none;
+  background: none;
+  cursor: pointer;
+  transition: background 0.15s;
+
+  &:hover {
+    background: var(--t-inputBg);
+  }
+`;
+
+const SBDMDot = styled.span<{ $glow: GlowColor }>`
+  width: 0.375rem;
+  height: 0.375rem;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: ${(p) => colors[p.$glow]};
+`;
+
+const SBDMSub = styled.span`
+  margin-left: auto;
+  font-size: 0.625rem;
+  color: var(--t-textFaint);
+`;
+
+const TileGrid = styled.section`
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+
+  @media (min-width: 600px) { grid-template-columns: repeat(2, 1fr); }
+  @media (min-width: 900px) { grid-template-columns: repeat(3, 1fr); }
+  @media (min-width: 1200px) { grid-template-columns: repeat(5, 1fr); }
+`;
+
+const TileOuter = styled.div<{ $glow: GlowColor; $isSuggest?: boolean }>`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 1rem;
+  padding: 1.25rem 0.75rem;
+  transition: all 0.2s;
+  height: 100%;
+  cursor: pointer;
+  background: ${(p) => (p.$isSuggest ? "transparent" : `rgba(${rgb[p.$glow]}, 0.06)`)};
+  border: ${(p) => (p.$isSuggest ? `2px dashed rgba(${rgb[p.$glow]}, 0.35)` : `1px solid rgba(${rgb[p.$glow]}, 0.18)`)};
+
+  &:hover {
+    background: rgba(${(p) => rgb[p.$glow]}, 0.1);
+    box-shadow: 0 0 18px rgba(${(p) => rgb[p.$glow]}, 0.18);
+  }
+
+  [data-theme="light"] & {
+    background: ${(p) => (p.$isSuggest ? "transparent" : `rgba(${rgb[p.$glow]}, 0.03)`)};
+    border-color: ${(p) => (p.$isSuggest ? `rgba(${rgb[p.$glow]}, 0.25)` : `rgba(${rgb[p.$glow]}, 0.1)`)};
+
+    &:hover {
+      background: rgba(${(p) => rgb[p.$glow]}, 0.06);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+    }
+  }
+`;
+
+const TileLabel = styled.span<{ $glow: GlowColor }>`
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: ${(p) => colors[p.$glow]};
+`;
+
+const TileSub = styled.span`
+  font-size: 0.625rem;
+  color: var(--t-textFaint);
+`;
+
+const EmptyTiles = styled.div`
+  grid-column: 1 / -1;
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--t-textFaint);
+  padding: 2rem 0;
+`;
+
+const PagerRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+`;
+
+const PagerBtn = styled.button`
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.875rem;
+  transition: all 0.15s;
+  cursor: pointer;
+  background: var(--t-inputBg);
+  border: 1px solid var(--t-borderStrong);
+  color: var(--t-textMuted);
+
+  &:hover {
+    border-color: rgba(${rgb.cyan}, 0.5);
+    color: ${colors.cyan};
+  }
+
+  &:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+`;
+
+const PagerInfo = styled.span`
+  font-size: 0.75rem;
+  font-family: var(--font-geist-mono), monospace;
+  color: var(--t-textMuted);
+  font-variant-numeric: tabular-nums;
+`;
+
+const BottomGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+
+  @media (min-width: 1024px) {
+    grid-template-columns: 1fr 2fr;
+  }
+`;
+
+const ActivityDivider = styled.div`
+  display: flex;
+  flex-direction: column;
+  border-color: var(--t-border);
+`;
+
+const ActivityRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.375rem 0;
+`;
+
+const ActivityTime = styled.span`
+  font-size: 0.625rem;
+  font-family: var(--font-geist-mono), monospace;
+  color: var(--t-textGhost);
+  width: 3rem;
+  flex-shrink: 0;
+  text-align: right;
+`;
+
+const ActivityType = styled.span<{ $type: string }>`
+  font-size: 0.625rem;
+  font-weight: 700;
+  flex-shrink: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  width: 2rem;
+  color: ${(p) => TYPE_COLOR[p.$type] ?? "var(--t-text)"};
+`;
+
+const ActivityText = styled.span`
+  font-size: 0.75rem;
+  color: var(--t-textMuted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+const MoreLabel = styled.p`
+  font-size: 0.625rem;
+  color: var(--t-textGhost);
+  margin: 0.5rem 0 0;
+`;
+
+/* ── Component ─────────────────────────────────────────────────── */
 
 export default function Home() {
   const [activity, setActivity] = useState<ActivityEvent[]>([]);
@@ -64,14 +389,11 @@ export default function Home() {
   const [libraryOpen, setLibraryOpen] = useState(false);
   const [suggestionOpen, setSuggestionOpen] = useState(false);
 
-  // SBDM state for dash
   const [filter, setFilter] = useState("");
   const [open, setOpen] = useState(false);
   const [inner, setInner] = useState("");
   const [asc, setAsc] = useState(true);
   const sbdmRef = useRef<HTMLDivElement | null>(null);
-
-  // GPG state for dash
   const [page, setPage] = useState(0);
 
   useEffect(() => {
@@ -98,16 +420,16 @@ export default function Home() {
   useEffect(() => { setPage(0); }, [filter]);
 
   const tiles: DashTile[] = useMemo(() => [
-    { key: "Processes", title: "Processes", subtitle: "PM2",        glow: "cyan",   icon: <span className="text-2xl">⚡</span>, href: "/dashboard/processes" },
-    { key: "Deploy",    title: "Deploy",    subtitle: "Projects",   glow: "pink",   icon: <span className="text-2xl">🚀</span>, href: "/dashboard/deploy" },
-    { key: "Database",  title: "Database",  subtitle: "PostgreSQL", glow: "gold",   icon: <span className="text-2xl">🗄️</span>, href: "/dashboard/database" },
-    { key: "Storage",   title: "Storage",   subtitle: "Files",      glow: "pink",   icon: <span className="text-2xl">📦</span>, href: "/dashboard/storage" },
-    { key: "Editor",    title: "Editor",    subtitle: "Code",       glow: "gold",   icon: <span className="text-2xl">✎</span>,  href: "/dashboard/editor" },
-    { key: "Utils",     title: "Utils",     subtitle: "Tooling",    glow: "cyan",   icon: <span className="text-2xl">🔧</span>, href: "/dashboard/utils" },
-    { key: "Claude",    title: "Claude",    subtitle: "AI Assistant", glow: "orange", icon: <ClaudeIcon size={28} color="#d97757" />, onClick: () => setClaudeOpen(true) },
-    { key: "Sandbox",   title: "Sandbox",   subtitle: "Component Lab", glow: "pink", icon: <SandboxIcon size={28} color="#ff4ecb" />, onClick: () => setSandboxOpen(true) },
-    { key: "Library",   title: "Library",   subtitle: "Catalog",    glow: "violet", icon: <LibraryIcon size={28} color="#a78bfa" />, onClick: () => setLibraryOpen(true) },
-    { key: "Suggest", title: "Suggest", subtitle: "Feature ideas", glow: "pink", icon: <span className="text-2xl">💡</span>, onClick: () => setSuggestionOpen(true) },
+    { key: "Processes", title: "Processes", subtitle: "PM2", glow: "cyan", icon: <span style={{ fontSize: "1.5rem" }}>⚡</span>, href: "/dashboard/processes" },
+    { key: "Deploy", title: "Deploy", subtitle: "Projects", glow: "pink", icon: <span style={{ fontSize: "1.5rem" }}>🚀</span>, href: "/dashboard/deploy" },
+    { key: "Database", title: "Database", subtitle: "PostgreSQL", glow: "gold", icon: <span style={{ fontSize: "1.5rem" }}>🗄️</span>, href: "/dashboard/database" },
+    { key: "Storage", title: "Storage", subtitle: "Files", glow: "pink", icon: <span style={{ fontSize: "1.5rem" }}>📦</span>, href: "/dashboard/storage" },
+    { key: "Editor", title: "Editor", subtitle: "Code", glow: "gold", icon: <span style={{ fontSize: "1.5rem" }}>✎</span>, href: "/dashboard/editor" },
+    { key: "Utils", title: "Utils", subtitle: "Tooling", glow: "cyan", icon: <span style={{ fontSize: "1.5rem" }}>🔧</span>, href: "/dashboard/utils" },
+    { key: "Claude", title: "Claude", subtitle: "AI Assistant", glow: "orange", icon: <ClaudeIcon size={28} color={colors.orange} />, onClick: () => setClaudeOpen(true) },
+    { key: "Sandbox", title: "Sandbox", subtitle: "Component Lab", glow: "pink", icon: <SandboxIcon size={28} color={colors.pink} />, onClick: () => setSandboxOpen(true) },
+    { key: "Library", title: "Library", subtitle: "Catalog", glow: "violet", icon: <LibraryIcon size={28} color={colors.violet} />, onClick: () => setLibraryOpen(true) },
+    { key: "Suggest", title: "Suggest", subtitle: "Feature ideas", glow: "pink", icon: <span style={{ fontSize: "1.5rem" }}>💡</span>, onClick: () => setSuggestionOpen(true) },
   ], []);
 
   const filteredTiles = useMemo(
@@ -119,7 +441,7 @@ export default function Home() {
     return tiles
       .filter((t) => t.title.toLowerCase().includes(inner.toLowerCase()))
       .slice()
-      .sort((a, b) => asc ? a.title.localeCompare(b.title) : b.title.localeCompare(a.title));
+      .sort((a, b) => (asc ? a.title.localeCompare(b.title) : b.title.localeCompare(a.title)));
   }, [tiles, inner, asc]);
 
   const paginationActive = filteredTiles.length > TILE_LIMIT;
@@ -137,210 +459,144 @@ export default function Home() {
       {libraryOpen && <LibraryModal onClose={() => setLibraryOpen(false)} />}
       {suggestionOpen && <SuggestionBoxModal onClose={() => setSuggestionOpen(false)} />}
       <TopNav />
-      <main className="flex flex-col min-h-screen pt-28 pb-16 px-4 max-w-7xl mx-auto w-full">
-
-        {/* Hero */}
-        <section className="mb-6">
-          <div className="mb-2" style={{ height: "1.25rem" }} />
-          <h1
-            className="text-4xl md:text-5xl font-bold leading-tight mb-3"
-            style={{ color: "#ff4ecb", textShadow: "0 0 8px #ff66cc, 0 0 20px #ff4ecb" }}
-          >
-            TGV Office
-          </h1>
-          <p className="text-white/50 text-base max-w-lg">
+      <Main>
+        <Hero>
+          <div style={{ height: "1.25rem" }} />
+          <HeroTitle>TGV Office</HeroTitle>
+          <HeroSub>
             Internal operations hub. Manage processes, deploys, and infrastructure
             for all TGV &amp; Refusionist projects.
-          </p>
-        </section>
+          </HeroSub>
+        </Hero>
 
-        {/* Dash — SBDM */}
-        <section ref={sbdmRef} className="relative mb-3">
-          <div
-            className="flex items-center gap-2 rounded-xl px-3 py-2"
-            style={{
-              background: "rgba(255,255,255,0.04)",
-              border: "1px solid rgba(255,78,203,0.22)",
-            }}
-          >
-            <span className="text-pink-400/70 text-sm">🔍</span>
-            <input
+        <SBDMWrap ref={sbdmRef}>
+          <SBDMBar>
+            <SBDMIcon>🔍</SBDMIcon>
+            <SBDMInput
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
               placeholder="Filter dash…"
-              className="flex-1 bg-transparent outline-none text-sm text-white placeholder:text-white/30"
             />
-            <button
-              onClick={() => setOpen((v) => !v)}
-              className="text-pink-400 text-xs px-2 py-1 rounded-md hover:bg-pink-500/10 transition-colors"
-              aria-label="Open tile list"
-            >
+            <SBDMArrow onClick={() => setOpen((v) => !v)} aria-label="Open tile list">
               ▾
-            </button>
-          </div>
-
+            </SBDMArrow>
+          </SBDMBar>
           {open && (
-            <div
-              className="absolute left-0 right-0 mt-2 rounded-xl z-30 overflow-hidden"
-              style={{
-                background: "rgba(10,8,20,0.96)",
-                border: "1px solid rgba(255,78,203,0.28)",
-                boxShadow: "0 12px 32px rgba(0,0,0,0.6), 0 0 24px rgba(255,78,203,0.12)",
-                backdropFilter: "blur(8px)",
-              }}
-            >
-              <div className="flex items-center gap-2 p-2 border-b border-white/5">
-                <input
+            <SBDMPanel>
+              <SBDMInnerBar>
+                <SBDMInnerInput
                   value={inner}
                   onChange={(e) => setInner(e.target.value)}
                   placeholder="Search…"
                   autoFocus
-                  className="flex-1 bg-white/5 rounded-md px-2 py-1.5 text-xs text-white outline-none placeholder:text-white/30"
                 />
-                <button
-                  onClick={() => setAsc((v) => !v)}
-                  className="px-2 py-1.5 rounded-md text-[10px] font-bold tracking-wider"
-                  style={{
-                    background: "rgba(0,191,255,0.08)",
-                    border: "1px solid rgba(0,191,255,0.3)",
-                    color: "#00bfff",
-                  }}
-                >
+                <SBDMSortBtn onClick={() => setAsc((v) => !v)}>
                   {asc ? "Z-A" : "A-Z"}
-                </button>
-              </div>
-              <div className="max-h-72 overflow-y-auto">
+                </SBDMSortBtn>
+              </SBDMInnerBar>
+              <SBDMList>
                 {panelList.length === 0 ? (
-                  <div className="px-3 py-4 text-xs text-white/30 text-center">No matches</div>
-                ) : panelList.map((t) => (
-                  <button
-                    key={t.key}
-                    onClick={() => { setFilter(t.title); setOpen(false); }}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-left text-xs text-white/70 hover:bg-white/5 transition-colors"
-                  >
-                    <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: GLOW_HEX[t.glow] }} />
-                    <span className="truncate">{t.title}</span>
-                    <span className="ml-auto text-[10px] text-white/30">{t.subtitle}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-        </section>
-
-        {/* Dash — tile grid (responsive 1 → 2 → 3 → 5 cols) */}
-        <section className="grid grid-cols-1 min-[600px]:grid-cols-2 min-[900px]:grid-cols-3 min-[1200px]:grid-cols-5 gap-3 mb-3">
-          {pageTiles.length === 0 ? (
-            <div className="col-span-full text-center text-xs text-white/30 py-8">No tiles match "{filter}"</div>
-          ) : pageTiles.map((tile) => {
-            const accent = GLOW_HEX[tile.glow];
-            const glowRgb = GLOW_RGB[tile.glow];
-            const isSuggest = tile.key === "Suggest";
-            const tileInner = (
-              <div
-                className="flex flex-col items-center justify-center gap-2 rounded-2xl py-5 px-3 transition-all h-full"
-                style={{
-                  background: isSuggest ? "transparent" : `rgba(${glowRgb},0.06)`,
-                  border: isSuggest ? `2px dashed rgba(${glowRgb},0.35)` : `1px solid rgba(${glowRgb},0.18)`,
-                  boxShadow: `0 0 0 0 rgba(${glowRgb},0)`,
-                }}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.boxShadow = `0 0 18px rgba(${glowRgb},0.18)`; (e.currentTarget as HTMLElement).style.background = `rgba(${glowRgb},0.10)`; }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.boxShadow = `0 0 0 0 rgba(${glowRgb},0)`; (e.currentTarget as HTMLElement).style.background = `rgba(${glowRgb},0.06)`; }}
-              >
-                {tile.icon}
-                <span className="text-[11px] font-bold uppercase tracking-widest" style={{ color: accent }}>{tile.title}</span>
-                <span className="text-[10px] text-white/35">{tile.subtitle}</span>
-              </div>
-            );
-            if (tile.href) {
-              return <Link key={tile.key} href={tile.href} className="no-underline group">{tileInner}</Link>;
-            }
-            return (
-              <button
-                key={tile.key}
-                onClick={tile.onClick}
-                className="no-underline group text-left"
-                style={{ padding: 0, background: "none", border: "none" }}
-              >
-                {tileInner}
-              </button>
-            );
-          })}
-        </section>
-
-        {/* Dash — GPG paginator */}
-        {totalPages > 1 && (
-          <div className="flex items-center justify-center gap-3 mb-6">
-            <button
-              onClick={() => setPage((p) => Math.max(0, p - 1))}
-              disabled={safePage === 0}
-              className="w-7 h-7 rounded-full flex items-center justify-center text-sm transition-all disabled:opacity-30"
-              style={{
-                background: "rgba(255,255,255,0.04)",
-                border: "1px solid rgba(255,255,255,0.12)",
-                color: "rgba(255,255,255,0.6)",
-              }}
-              onMouseEnter={(e) => { if (!e.currentTarget.disabled) { e.currentTarget.style.borderColor = "rgba(0,191,255,0.5)"; e.currentTarget.style.color = "#00bfff"; }}}
-              onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.12)"; e.currentTarget.style.color = "rgba(255,255,255,0.6)"; }}
-            >
-              ‹
-            </button>
-            <span className="text-xs font-mono text-white/60 tabular-nums">
-              {safePage + 1} / {totalPages}
-            </span>
-            <button
-              onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
-              disabled={safePage === totalPages - 1}
-              className="w-7 h-7 rounded-full flex items-center justify-center text-sm transition-all disabled:opacity-30"
-              style={{
-                background: "rgba(255,255,255,0.04)",
-                border: "1px solid rgba(255,255,255,0.12)",
-                color: "rgba(255,255,255,0.6)",
-              }}
-              onMouseEnter={(e) => { if (!e.currentTarget.disabled) { e.currentTarget.style.borderColor = "rgba(0,191,255,0.5)"; e.currentTarget.style.color = "#00bfff"; }}}
-              onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.12)"; e.currentTarget.style.color = "rgba(255,255,255,0.6)"; }}
-            >
-              ›
-            </button>
-          </div>
-        )}
-
-        {/* Announcements — renders only when there are pending items */}
-        <AnnouncementsPanel className="mb-4" />
-
-        {/* Bottom: team + activity */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <UsersCard className="lg:col-span-1" />
-
-          {/* Activity card — click to open modal */}
-          <button
-            onClick={() => setActivityOpen(true)}
-            className="lg:col-span-2 text-left w-full"
-          >
-            <DashCard title="Recent Activity" subtitle="Click to expand · PM2 + git" glow="cyan" className="h-full">
-              <div className="flex flex-col divide-y" style={{ borderColor: "rgba(255,255,255,0.05)" }}>
-                {activity.length === 0 ? (
-                  <div className="py-3 text-xs text-white/25">Loading activity…</div>
+                  <div style={{ padding: "0.75rem 1rem", fontSize: "0.75rem", color: "var(--t-textFaint)", textAlign: "center" }}>
+                    No matches
+                  </div>
                 ) : (
-                  activity.slice(0, 5).map((item, i) => (
-                    <div key={i} className="flex items-center gap-3 py-1.5">
-                      <span className="text-[10px] font-mono text-white/25 w-12 shrink-0 text-right">{item.timeLabel}</span>
-                      <span
-                        className="text-[10px] font-bold shrink-0 uppercase tracking-wide w-8"
-                        style={{ color: TYPE_COLOR[item.type] ?? "#fff" }}
-                      >{item.type}</span>
-                      <span className="text-xs text-white/55 truncate">{item.event}</span>
-                    </div>
+                  panelList.map((t) => (
+                    <SBDMItem key={t.key} onClick={() => { setFilter(t.title); setOpen(false); }}>
+                      <SBDMDot $glow={t.glow} />
+                      <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{t.title}</span>
+                      <SBDMSub>{t.subtitle}</SBDMSub>
+                    </SBDMItem>
                   ))
                 )}
-              </div>
+              </SBDMList>
+            </SBDMPanel>
+          )}
+        </SBDMWrap>
+
+        <TileGrid>
+          {pageTiles.length === 0 ? (
+            <EmptyTiles>No tiles match &ldquo;{filter}&rdquo;</EmptyTiles>
+          ) : (
+            pageTiles.map((tile) => {
+              const isSuggest = tile.key === "Suggest";
+              const inner = (
+                <TileOuter $glow={tile.glow} $isSuggest={isSuggest}>
+                  {tile.icon}
+                  <TileLabel $glow={tile.glow}>{tile.title}</TileLabel>
+                  <TileSub>{tile.subtitle}</TileSub>
+                </TileOuter>
+              );
+              if (tile.href) {
+                return (
+                  <Link key={tile.key} href={tile.href} style={{ textDecoration: "none" }}>
+                    {inner}
+                  </Link>
+                );
+              }
+              return (
+                <button
+                  key={tile.key}
+                  onClick={tile.onClick}
+                  style={{ padding: 0, background: "none", border: "none", textAlign: "left" }}
+                >
+                  {inner}
+                </button>
+              );
+            })
+          )}
+        </TileGrid>
+
+        {totalPages > 1 && (
+          <PagerRow>
+            <PagerBtn
+              onClick={() => setPage((p) => Math.max(0, p - 1))}
+              disabled={safePage === 0}
+            >
+              ‹
+            </PagerBtn>
+            <PagerInfo>
+              {safePage + 1} / {totalPages}
+            </PagerInfo>
+            <PagerBtn
+              onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+              disabled={safePage === totalPages - 1}
+            >
+              ›
+            </PagerBtn>
+          </PagerRow>
+        )}
+
+        <AnnouncementsPanel className="mb-4" />
+
+        <BottomGrid>
+          <UsersCard />
+          <button
+            onClick={() => setActivityOpen(true)}
+            style={{ textAlign: "left", width: "100%", padding: 0, background: "none", border: "none" }}
+          >
+            <DashCard title="Recent Activity" subtitle="Click to expand · PM2 + git" glow="cyan" >
+              <ActivityDivider>
+                {activity.length === 0 ? (
+                  <div style={{ padding: "0.75rem 0", fontSize: "0.75rem", color: "var(--t-textGhost)" }}>
+                    Loading activity…
+                  </div>
+                ) : (
+                  activity.slice(0, 5).map((item, i) => (
+                    <ActivityRow key={i}>
+                      <ActivityTime>{item.timeLabel}</ActivityTime>
+                      <ActivityType $type={item.type}>{item.type}</ActivityType>
+                      <ActivityText>{item.event}</ActivityText>
+                    </ActivityRow>
+                  ))
+                )}
+              </ActivityDivider>
               {activity.length > 5 && (
-                <p className="text-[10px] text-white/25 mt-2">+{activity.length - 5} more · click to view all</p>
+                <MoreLabel>+{activity.length - 5} more · click to view all</MoreLabel>
               )}
             </DashCard>
           </button>
-        </div>
-      </main>
+        </BottomGrid>
+      </Main>
     </>
   );
 }
