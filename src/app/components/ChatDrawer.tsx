@@ -8,6 +8,18 @@ import {
   ChangeEvent,
   KeyboardEvent as ReactKeyboardEvent,
 } from "react";
+import styled from "styled-components";
+import { colors, rgb } from "../theme";
+import {
+  DrawerBackdrop,
+  DrawerPanel,
+  DrawerHeader,
+  DrawerTab,
+  DrawerTabLabel,
+  DrawerResizeHandle,
+  PanelIconBtn,
+  Input,
+} from "../styled";
 import ChatSettingsModal, { UserAvatar, type MemberProfile, type ChatSettings as ModalChatSettings } from "./ChatSettingsModal";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -56,7 +68,8 @@ const MIN_W           = 300;
 const MAX_W           = 700;
 const PAGE_SIZES      = [5, 10, 25, 50];
 
-const VIOLET = "#a259ff";
+const VIOLET = colors.violet;
+const VIOLET_RGB = rgb.violet;
 
 function getDefaultTabY() {
   if (typeof window === "undefined") return 480;
@@ -101,31 +114,625 @@ function loadSettings(): ChatSettings {
   return { ...DEFAULT_SETTINGS };
 }
 
+// ── Styled: shared across sub-components ──────────────────────────────────────
+
+const SideTab = styled(DrawerTab).attrs({ $side: "left", $accent: "pink" })`
+  left: 0;
+  z-index: 63;
+  border-left: none;
+`;
+
+const UnreadBadge = styled.span`
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 7px;
+  font-weight: 700;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  top: -6px;
+  right: -6px;
+  background: ${colors.cyan};
+  color: #060810;
+`;
+
+const Backdrop = styled(DrawerBackdrop)`
+  z-index: 58;
+  backdrop-filter: blur(1px);
+`;
+
+const Panel = styled(DrawerPanel)`
+  left: 0;
+  z-index: 62;
+  border-right: 1px solid rgba(${rgb.pink}, 0.18);
+
+  [data-theme="light"] & {
+    border-right-color: rgba(${rgb.pink}, 0.1);
+  }
+`;
+
+const Header = styled(DrawerHeader)`
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+`;
+
+const BackBtn = styled(PanelIconBtn)`
+  color: ${VIOLET};
+  flex-shrink: 0;
+`;
+
+const TitleWrap = styled.div`
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+`;
+
+const TitleText = styled.span<{ $color?: string }>`
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: ${(p) => p.$color || colors.cyan};
+`;
+
+const DmTag = styled.span`
+  font-size: 0.5625rem;
+  color: var(--t-textGhost);
+`;
+
+const AvatarChips = styled.div`
+  display: flex;
+  gap: 0.25rem;
+  flex-shrink: 0;
+`;
+
+const Resize = styled(DrawerResizeHandle).attrs({ $accent: "pink" })``;
+
+const MsgScroll = styled.div`
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.75rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  scrollbar-width: thin;
+`;
+
+const EmptyChat = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 0.75rem;
+  color: var(--t-textGhost);
+`;
+
+const EmptyIcon = styled.span`
+  font-size: 2.5rem;
+`;
+
+const EmptyText = styled.p`
+  font-size: 0.75rem;
+`;
+
+const InputArea = styled.div`
+  flex-shrink: 0;
+  padding: 0.75rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  border-top: 1px solid var(--t-border);
+`;
+
+const FilePreview = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.75rem;
+  border-radius: 0.75rem;
+  background: rgba(${rgb.cyan}, 0.08);
+  border: 1px solid rgba(${rgb.cyan}, 0.25);
+
+  [data-theme="light"] & {
+    background: rgba(${rgb.cyan}, 0.04);
+    border-color: rgba(${rgb.cyan}, 0.15);
+  }
+`;
+
+const FilePreviewName = styled.span`
+  font-size: 0.75rem;
+  color: ${colors.cyan};
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+const FilePreviewSize = styled.span`
+  font-size: 0.5625rem;
+  color: var(--t-textGhost);
+`;
+
+const FilePreviewClose = styled.button`
+  font-size: 0.5625rem;
+  background: none;
+  border: none;
+  color: var(--t-textGhost);
+  cursor: pointer;
+  &:hover { color: #f87171; }
+`;
+
+const TypingRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0 0.25rem;
+  min-height: 16px;
+`;
+
+const TypingDot = styled.span<{ $delay: number }>`
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--t-textFaint);
+  animation: typingBounce 1.2s ease-in-out ${(p) => p.$delay}s infinite;
+
+  @keyframes typingBounce {
+    0%, 80%, 100% { transform: translateY(0); }
+    40% { transform: translateY(-3px); }
+  }
+`;
+
+const TypingText = styled.span`
+  font-size: 0.625rem;
+  color: var(--t-textGhost);
+`;
+
+const InputRow = styled.div`
+  display: flex;
+  align-items: flex-end;
+  gap: 0.5rem;
+`;
+
+const AttachBtn = styled.button`
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: rgba(${rgb.cyan}, 0.08);
+  border: 1px solid rgba(${rgb.cyan}, 0.3);
+  color: ${colors.cyan};
+  cursor: pointer;
+  transition: all 0.15s;
+
+  &:hover {
+    background: rgba(${rgb.cyan}, 0.14);
+  }
+
+  [data-theme="light"] & {
+    background: rgba(${rgb.cyan}, 0.05);
+    border-color: rgba(${rgb.cyan}, 0.2);
+  }
+`;
+
+const ChatTextarea = styled.textarea<{ $accent?: string }>`
+  flex: 1;
+  background: transparent;
+  outline: none;
+  color: var(--t-text);
+  opacity: 0.8;
+  resize: none;
+  border-radius: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid ${(p) => p.$accent ? `${p.$accent}44` : "var(--t-borderStrong)"};
+  max-height: 80px;
+
+  &::placeholder {
+    color: var(--t-textGhost);
+  }
+`;
+
+const SendBtn = styled.button<{ $color?: string }>`
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: all 0.15s;
+  background: ${(p) => p.$color ? `${p.$color}22` : `rgba(${rgb.cyan}, 0.2)`};
+  border: 1px solid ${(p) => p.$color ? `${p.$color}55` : `rgba(${rgb.cyan}, 0.4)`};
+  color: ${(p) => p.$color || colors.cyan};
+
+  &:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+`;
+
+// ── Styled: Bubble ────────────────────────────────────────────────────────────
+
+const BubbleRow = styled.div<{ $isMe?: boolean }>`
+  display: flex;
+  gap: 0.5rem;
+  flex-direction: ${(p) => (p.$isMe ? "row-reverse" : "row")};
+`;
+
+const BubbleCol = styled.div<{ $isMe?: boolean }>`
+  display: flex;
+  flex-direction: column;
+  max-width: 75%;
+  align-items: ${(p) => (p.$isMe ? "flex-end" : "flex-start")};
+`;
+
+const BubbleMeta = styled.div<{ $isMe?: boolean }>`
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin-bottom: 0.125rem;
+  flex-direction: ${(p) => (p.$isMe ? "row-reverse" : "row")};
+`;
+
+const BubbleName = styled.span<{ $color?: string }>`
+  font-size: 0.625rem;
+  font-weight: 700;
+  color: ${(p) => p.$color || colors.pink};
+`;
+
+const BubbleTime = styled.span`
+  font-size: 0.5625rem;
+  color: var(--t-textGhost);
+`;
+
+const BubbleCard = styled.div<{ $isMe?: boolean; $accent?: string }>`
+  position: relative;
+  border-radius: ${(p) => (p.$isMe ? "18px 4px 18px 18px" : "4px 18px 18px 18px")};
+  padding: 0.5rem 0.75rem;
+  background: ${(p) =>
+    p.$isMe
+      ? `rgba(${p.$accent ? hexToRgb(p.$accent) : rgb.pink}, 0.18)`
+      : "var(--t-inputBg)"};
+  border: 1px solid
+    ${(p) =>
+      p.$isMe
+        ? `${p.$accent || colors.pink}44`
+        : "var(--t-borderStrong)"};
+  color: ${(p) => (p.$isMe ? "#fff" : "var(--t-text)")};
+  opacity: ${(p) => (p.$isMe ? 1 : 0.8)};
+
+  [data-theme="light"] & {
+    background: ${(p) =>
+      p.$isMe
+        ? `rgba(${p.$accent ? hexToRgb(p.$accent) : rgb.pink}, 0.1)`
+        : "rgba(0, 0, 0, 0.03)"};
+    color: var(--t-text);
+  }
+`;
+
+const BubbleActions = styled.div<{ $isMe?: boolean }>`
+  position: absolute;
+  top: 0;
+  ${(p) => (p.$isMe ? "left: 0; transform: translateX(-100%); padding-right: 0.25rem;" : "right: 0; transform: translateX(100%); padding-left: 0.25rem;")}
+  display: flex;
+  gap: 0.125rem;
+  opacity: 0;
+  transition: opacity 0.15s;
+
+  ${BubbleRow}:hover & {
+    opacity: 1;
+  }
+`;
+
+const BubbleActionBtn = styled.button<{ $danger?: boolean }>`
+  font-size: 0.5625rem;
+  padding: 0 0.25rem;
+  background: none;
+  border: none;
+  color: var(--t-textGhost);
+  cursor: pointer;
+  transition: color 0.15s;
+
+  &:hover {
+    color: ${(p) => (p.$danger ? "#f87171" : "var(--t-textMuted)")};
+  }
+`;
+
+const EditInput = styled.input`
+  flex: 1;
+  background: transparent;
+  outline: none;
+  color: inherit;
+  border: none;
+`;
+
+const EditSave = styled.button`
+  font-size: 0.5625rem;
+  background: none;
+  border: none;
+  color: var(--t-textMuted);
+  cursor: pointer;
+  &:hover { color: var(--t-text); }
+`;
+
+const EditCancel = styled.button`
+  font-size: 0.5625rem;
+  background: none;
+  border: none;
+  color: var(--t-textGhost);
+  cursor: pointer;
+`;
+
+// ── Styled: File attachment ───────────────────────────────────────────────────
+
+const AttachImage = styled.img`
+  max-width: 180px;
+  max-height: 140px;
+  border-radius: 0.75rem;
+  object-fit: cover;
+  border: 1px solid var(--t-borderStrong);
+  margin-top: 0.375rem;
+  display: block;
+`;
+
+const AttachFile = styled.a`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.375rem;
+  border-radius: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--t-inputBg);
+  border: 1px solid var(--t-borderStrong);
+  text-decoration: none;
+  transition: background 0.15s;
+
+  &:hover {
+    background: var(--t-border);
+  }
+`;
+
+const AttachIcon = styled.span`
+  font-size: 1rem;
+  flex-shrink: 0;
+`;
+
+const AttachName = styled.span`
+  font-size: 0.6875rem;
+  color: var(--t-textMuted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 140px;
+`;
+
+const AttachSize = styled.span`
+  font-size: 0.5625rem;
+  color: var(--t-textGhost);
+`;
+
+const AttachDl = styled.span`
+  font-size: 0.5625rem;
+  color: var(--t-textGhost);
+  flex-shrink: 0;
+  margin-left: auto;
+`;
+
+// ── Styled: Members panel ─────────────────────────────────────────────────────
+
+const MemberSearch = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--t-inputBg);
+  border: 1px solid var(--t-borderStrong);
+`;
+
+const MemberSearchInput = styled.input`
+  flex: 1;
+  background: transparent;
+  outline: none;
+  font-size: 0.6875rem;
+  color: var(--t-textMuted);
+  border: none;
+
+  &::placeholder { color: var(--t-textGhost); }
+`;
+
+const MemberSearchClear = styled.button`
+  font-size: 0.5625rem;
+  background: none;
+  border: none;
+  color: var(--t-textGhost);
+  cursor: pointer;
+  &:hover { color: var(--t-textMuted); }
+`;
+
+const MemberCountRow = styled.div`
+  padding: 0 0.75rem 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+`;
+
+const MemberCount = styled.span`
+  font-size: 0.5625rem;
+  color: var(--t-textGhost);
+`;
+
+const PageSizeRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+`;
+
+const PageSizeLabel = styled.span`
+  font-size: 0.5625rem;
+  color: var(--t-textGhost);
+`;
+
+const PageSizeBtn = styled.button<{ $active?: boolean }>`
+  font-size: 0.5625rem;
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.25rem;
+  cursor: pointer;
+  transition: all 0.15s;
+  background: ${(p) => (p.$active ? `${VIOLET}22` : "transparent")};
+  color: ${(p) => (p.$active ? VIOLET : "var(--t-textGhost)")};
+  border: 1px solid ${(p) => (p.$active ? `${VIOLET}44` : "transparent")};
+`;
+
+const CustomSizeInput = styled.input`
+  width: 2.5rem;
+  font-size: 0.5625rem;
+  background: transparent;
+  outline: none;
+  text-align: center;
+  border-radius: 0.25rem;
+  padding: 0.125rem 0.25rem;
+  border: 1px solid ${VIOLET}44;
+  color: ${VIOLET};
+`;
+
+const MemberList = styled.div`
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  scrollbar-width: thin;
+`;
+
+const MemberCard = styled.button<{ $disabled?: boolean }>`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  border-radius: 0.75rem;
+  padding: 0.625rem 0.75rem;
+  text-align: left;
+  width: 100%;
+  background: var(--t-inputBg);
+  border: none;
+  cursor: ${(p) => (p.$disabled ? "default" : "pointer")};
+  opacity: ${(p) => (p.$disabled ? 0.5 : 1)};
+  transition: background 0.15s;
+
+  &:hover {
+    background: ${(p) => (p.$disabled ? "var(--t-inputBg)" : "var(--t-border)")};
+  }
+`;
+
+const PresenceDot = styled.span<{ $online?: boolean }>`
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 1.5px solid #060810;
+  background: ${(p) => (p.$online ? "#4ade80" : "#374151")};
+  box-shadow: ${(p) => (p.$online ? "0 0 4px #4ade80" : "none")};
+
+  [data-theme="light"] & {
+    border-color: var(--t-surface);
+  }
+`;
+
+const MemberName = styled.p`
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--t-text);
+  margin: 0;
+  line-height: 1.3;
+`;
+
+const MemberStatus = styled.p<{ $online?: boolean }>`
+  font-size: 0.5625rem;
+  margin: 0;
+  color: ${(p) => (p.$online ? "#4ade8099" : "var(--t-textGhost)")};
+`;
+
+const DmLabel = styled.span`
+  font-size: 0.5625rem;
+  color: var(--t-textGhost);
+  flex-shrink: 0;
+  transition: color 0.15s;
+
+  ${MemberCard}:hover & {
+    color: var(--t-textMuted);
+  }
+`;
+
+const PagerRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  padding: 0.5rem 0.75rem;
+  flex-shrink: 0;
+  border-top: 1px solid var(--t-border);
+`;
+
+const PagerBtn = styled.button<{ $active?: boolean }>`
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.625rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border: 1px solid ${(p) => (p.$active ? `${VIOLET}44` : "transparent")};
+  background: ${(p) => (p.$active ? `${VIOLET}25` : "transparent")};
+  color: ${(p) => (p.$active ? VIOLET : "var(--t-textGhost)")};
+  transition: all 0.15s;
+
+  &:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+`;
+
+const MemberEmpty = styled.p`
+  font-size: 0.6875rem;
+  color: var(--t-textGhost);
+  text-align: center;
+  padding: 2rem 0;
+`;
+
 // ── File attachment ────────────────────────────────────────────────────────────
 
 function FileAttachment({ url, name, size, mime }: { url: string; name?: string; size?: number; mime?: string }) {
   if (isImage(mime)) {
     return (
-      <a href={url} target="_blank" rel="noreferrer" className="block mt-1.5">
+      <a href={url} target="_blank" rel="noreferrer" style={{ display: "block" }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={url} alt={name ?? "image"} className="max-w-[180px] max-h-[140px] rounded-xl object-cover"
-          style={{ border: "1px solid rgba(255,255,255,0.1)" }} />
+        <AttachImage src={url} alt={name ?? "image"} />
       </a>
     );
   }
   return (
-    <a href={url} target="_blank" rel="noreferrer" download={name}
-      className="flex items-center gap-2 mt-1.5 rounded-xl px-3 py-2 transition-all"
-      style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", textDecoration: "none" }}>
-      <span className="text-base shrink-0">
+    <AttachFile href={url} target="_blank" rel="noreferrer" download={name}>
+      <AttachIcon>
         {mime?.startsWith("video/") ? "🎥" : mime?.startsWith("audio/") ? "🎵" : "📎"}
-      </span>
-      <div className="flex flex-col min-w-0">
-        <span className="text-[11px] text-white/70 truncate max-w-[140px]">{name ?? "file"}</span>
-        {size && <span className="text-[9px] text-white/30">{fmtBytes(size)}</span>}
+      </AttachIcon>
+      <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
+        <AttachName>{name ?? "file"}</AttachName>
+        {size && <AttachSize>{fmtBytes(size)}</AttachSize>}
       </div>
-      <span className="text-[9px] text-white/30 shrink-0 ml-auto">↓</span>
-    </a>
+      <AttachDl>↓</AttachDl>
+    </AttachFile>
   );
 }
 
@@ -147,71 +754,60 @@ function MessageBubble({
   const [editing, setEditing] = useState(false);
   const [editVal, setEditVal] = useState(content);
 
-  const fontClass = { sans: "font-sans", mono: "font-mono", serif: "font-serif" }[settings.myFont] ?? "font-sans";
-  const sizeClass = { xs: "text-xs", sm: "text-sm", base: "text-base" }[settings.fontSize] ?? "text-sm";
-
   const saveEdit = () => {
     if (editVal.trim()) onEdit(editVal.trim());
     setEditing(false);
   };
 
   return (
-    <div className={`flex gap-2 group ${isMe ? "flex-row-reverse" : "flex-row"}`}>
+    <BubbleRow $isMe={isMe}>
       <UserAvatar
         profile={profile ?? { displayName: from, accentColor: "#ff4ecb", avatarUrl: "" }}
         size={28}
       />
-      <div className={`flex flex-col max-w-[75%] ${isMe ? "items-end" : "items-start"}`}>
-        <div className={`flex items-baseline gap-2 mb-0.5 ${isMe ? "flex-row-reverse" : ""}`}>
-          <span className="text-[10px] font-bold" style={{ color: accent }}>
+      <BubbleCol $isMe={isMe}>
+        <BubbleMeta $isMe={isMe}>
+          <BubbleName $color={accent}>
             {isMe ? "You" : (profile?.displayName ?? from)}
-          </span>
+          </BubbleName>
           {settings.showTimestamps && (
-            <span className="text-[9px] text-white/25">
+            <BubbleTime>
               {fmtTimestamp(createdAt, settings.timestampFormat)}
               {editedAt && " · edited"}
-            </span>
+            </BubbleTime>
           )}
-        </div>
-        <div className={`relative rounded-2xl px-3 py-2 ${fontClass} ${sizeClass}`}
-          style={{
-            background: isMe ? `rgba(${hexToRgb(accent)},0.18)` : "rgba(255,255,255,0.06)",
-            border: isMe ? `1px solid ${accent}44` : "1px solid rgba(255,255,255,0.08)",
-            color: isMe ? "#fff" : "rgba(255,255,255,0.8)",
-            borderRadius: isMe ? "18px 4px 18px 18px" : "4px 18px 18px 18px",
-          }}>
+        </BubbleMeta>
+        <BubbleCard $isMe={isMe} $accent={accent}>
           {editing ? (
-            <div className="flex gap-2">
-              <input value={editVal} onChange={(e) => setEditVal(e.target.value)}
+            <div style={{ display: "flex", gap: "0.5rem" }}>
+              <EditInput value={editVal} onChange={(e) => setEditVal(e.target.value)}
                 onKeyDown={(e: ReactKeyboardEvent<HTMLInputElement>) => {
                   if (e.key === "Enter") saveEdit();
                   if (e.key === "Escape") setEditing(false);
                 }}
-                className="flex-1 bg-transparent outline-none" autoFocus />
-              <button onClick={saveEdit} className="text-[9px] text-white/60 hover:text-white">Save</button>
-              <button onClick={() => setEditing(false)} className="text-[9px] text-white/30">✕</button>
+                autoFocus />
+              <EditSave onClick={saveEdit}>Save</EditSave>
+              <EditCancel onClick={() => setEditing(false)}>✕</EditCancel>
             </div>
           ) : (
             <>
-              {content && <p style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{content}</p>}
+              {content && <p style={{ whiteSpace: "pre-wrap", wordBreak: "break-word", margin: 0 }}>{content}</p>}
               {fileUrl && <FileAttachment url={fileUrl} name={fileName} size={fileSize} mime={fileMime} />}
             </>
           )}
           {!editing && (
-            <div className={`absolute top-0 ${isMe ? "left-0 -translate-x-full pr-1" : "right-0 translate-x-full pl-1"} flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity`}>
+            <BubbleActions $isMe={isMe}>
               {isMe && (
-                <button onClick={() => { setEditing(true); setEditVal(content); }}
-                  className="text-[9px] text-white/30 hover:text-white/70 px-1" title="Edit">✎</button>
+                <BubbleActionBtn onClick={() => { setEditing(true); setEditVal(content); }} title="Edit">✎</BubbleActionBtn>
               )}
               {canDelete && (
-                <button onClick={onDelete}
-                  className="text-[9px] text-white/30 hover:text-red-400 px-1" title="Delete">✕</button>
+                <BubbleActionBtn $danger onClick={onDelete} title="Delete">✕</BubbleActionBtn>
               )}
-            </div>
+            </BubbleActions>
           )}
-        </div>
-      </div>
-    </div>
+        </BubbleCard>
+      </BubbleCol>
+    </BubbleRow>
   );
 }
 
@@ -250,61 +846,38 @@ function MembersPanel({
   };
 
   return (
-    <div className="flex flex-col flex-1 overflow-hidden">
-      {/* Search */}
-      <div className="px-3 pt-3 pb-2 flex-shrink-0">
-        <div className="flex items-center gap-2 rounded-xl px-3 py-2"
-          style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }}>
+    <div style={{ display: "flex", flexDirection: "column", flex: 1, overflow: "hidden" }}>
+      <div style={{ padding: "0.75rem 0.75rem 0.5rem", flexShrink: 0 }}>
+        <MemberSearch>
           <svg width="11" height="11" viewBox="0 0 11 11" fill="none">
-            <circle cx="4.5" cy="4.5" r="3.5" stroke="rgba(255,255,255,0.3)" strokeWidth="1.2"/>
-            <path d="M7.5 7.5l2 2" stroke="rgba(255,255,255,0.3)" strokeWidth="1.2" strokeLinecap="round"/>
+            <circle cx="4.5" cy="4.5" r="3.5" stroke="var(--t-textGhost)" strokeWidth="1.2"/>
+            <path d="M7.5 7.5l2 2" stroke="var(--t-textGhost)" strokeWidth="1.2" strokeLinecap="round"/>
           </svg>
-          <input
+          <MemberSearchInput
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(0); }}
             placeholder="Search members…"
-            className="flex-1 bg-transparent outline-none text-[11px] text-white/70"
           />
           {search && (
-            <button onClick={() => { setSearch(""); setPage(0); }} className="text-[9px] text-white/30 hover:text-white/60">✕</button>
+            <MemberSearchClear onClick={() => { setSearch(""); setPage(0); }}>✕</MemberSearchClear>
           )}
-        </div>
+        </MemberSearch>
       </div>
 
-      {/* Per-page + count */}
-      <div className="px-3 pb-2 flex items-center justify-between flex-shrink-0">
-        <span className="text-[9px] text-white/30">{filtered.length} member{filtered.length !== 1 ? "s" : ""}</span>
-        <div className="flex items-center gap-1">
-          <span className="text-[9px] text-white/25">Show:</span>
-          <div className="flex items-center gap-0.5">
-            {PAGE_SIZES.map((n) => (
-              <button
-                key={n}
-                onClick={() => setSize(n)}
-                className="text-[9px] px-1.5 py-0.5 rounded transition-all"
-                style={{
-                  background: pageSize === n && !showCustom ? `${VIOLET}22` : "transparent",
-                  color: pageSize === n && !showCustom ? VIOLET : "rgba(255,255,255,0.3)",
-                  border: pageSize === n && !showCustom ? `1px solid ${VIOLET}44` : "1px solid transparent",
-                }}
-              >
-                {n}
-              </button>
-            ))}
-            <button
-              onClick={() => setShowCustom((p) => !p)}
-              className="text-[9px] px-1.5 py-0.5 rounded transition-all"
-              style={{
-                background: showCustom ? `${VIOLET}22` : "transparent",
-                color: showCustom ? VIOLET : "rgba(255,255,255,0.3)",
-                border: showCustom ? `1px solid ${VIOLET}44` : "1px solid transparent",
-              }}
-            >
-              Custom
-            </button>
-          </div>
+      <MemberCountRow>
+        <MemberCount>{filtered.length} member{filtered.length !== 1 ? "s" : ""}</MemberCount>
+        <PageSizeRow>
+          <PageSizeLabel>Show:</PageSizeLabel>
+          {PAGE_SIZES.map((n) => (
+            <PageSizeBtn key={n} $active={pageSize === n && !showCustom} onClick={() => setSize(n)}>
+              {n}
+            </PageSizeBtn>
+          ))}
+          <PageSizeBtn $active={showCustom} onClick={() => setShowCustom((p) => !p)}>
+            Custom
+          </PageSizeBtn>
           {showCustom && (
-            <input
+            <CustomSizeInput
               value={customSize}
               onChange={(e) => setCustomSize(e.target.value.replace(/\D/g, ""))}
               onKeyDown={(e) => {
@@ -314,98 +887,49 @@ function MembersPanel({
                 }
               }}
               placeholder="n"
-              className="w-10 text-[9px] bg-transparent outline-none text-center rounded px-1 py-0.5"
-              style={{ border: `1px solid ${VIOLET}44`, color: VIOLET }}
               autoFocus
             />
           )}
-        </div>
-      </div>
+        </PageSizeRow>
+      </MemberCountRow>
 
-      {/* Member list */}
-      <div className="flex-1 overflow-y-auto px-3 flex flex-col gap-1" style={{ scrollbarWidth: "thin" }}>
+      <MemberList>
         {paged.length === 0 ? (
-          <p className="text-[11px] text-white/25 text-center py-8">No members found</p>
+          <MemberEmpty>No members found</MemberEmpty>
         ) : (
           paged.map((p) => {
             const pres = presence.find((pr) => pr.sysUser === p.username);
             const online = pres?.online ?? false;
             const isMe = p.username === currentUser;
             return (
-              <button
-                key={p.username}
-                onClick={() => !isMe && onSelectUser(p)}
-                disabled={isMe}
-                className="flex items-center gap-3 rounded-xl px-3 py-2.5 transition-all text-left w-full group"
-                style={{
-                  background: "rgba(255,255,255,0.03)",
-                  cursor: isMe ? "default" : "pointer",
-                  opacity: isMe ? 0.5 : 1,
-                }}
-                onMouseEnter={(e) => {
-                  if (!isMe) (e.currentTarget as HTMLElement).style.background = `rgba(${hexToRgb(p.accentColor)},0.1)`;
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.03)";
-                }}
-              >
-                <div className="relative shrink-0">
+              <MemberCard key={p.username} onClick={() => !isMe && onSelectUser(p)} $disabled={isMe}>
+                <div style={{ position: "relative", flexShrink: 0 }}>
                   <UserAvatar profile={p} size={32} />
-                  <span
-                    className="absolute bottom-0 right-0 w-2 h-2 rounded-full border"
-                    style={{ background: online ? "#4ade80" : "#374151", borderColor: "#060810", boxShadow: online ? "0 0 4px #4ade80" : "none" }}
-                  />
+                  <PresenceDot $online={online} />
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-[12px] font-semibold text-white leading-tight">{p.displayName}</p>
-                  <p className="text-[9px]" style={{ color: online ? "#4ade8099" : "rgba(255,255,255,0.25)" }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <MemberName>{p.displayName}</MemberName>
+                  <MemberStatus $online={online}>
                     {online ? "● Online" : "○ Offline"}
-                  </p>
+                  </MemberStatus>
                 </div>
-                {!isMe && (
-                  <span className="text-[9px] text-white/20 group-hover:text-white/50 shrink-0 transition-colors">
-                    DM →
-                  </span>
-                )}
-              </button>
+                {!isMe && <DmLabel>DM →</DmLabel>}
+              </MemberCard>
             );
           })
         )}
-      </div>
+      </MemberList>
 
-      {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-1 px-3 py-2 flex-shrink-0" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
-          <button
-            onClick={() => setPage((p) => Math.max(0, p - 1))}
-            disabled={safePage === 0}
-            className="w-6 h-6 rounded flex items-center justify-center text-[10px] disabled:opacity-30 transition-all"
-            style={{ color: VIOLET }}
-          >‹</button>
-          {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
-            const pageNum = totalPages <= 7 ? i : i; // simplify for now
-            return (
-              <button
-                key={i}
-                onClick={() => setPage(i)}
-                className="w-6 h-6 rounded text-[10px] transition-all"
-                style={{
-                  background: safePage === i ? `${VIOLET}25` : "transparent",
-                  color: safePage === i ? VIOLET : "rgba(255,255,255,0.3)",
-                  border: safePage === i ? `1px solid ${VIOLET}44` : "1px solid transparent",
-                }}
-              >
-                {i + 1}
-              </button>
-            );
-          })}
-          <button
-            onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
-            disabled={safePage === totalPages - 1}
-            className="w-6 h-6 rounded flex items-center justify-center text-[10px] disabled:opacity-30 transition-all"
-            style={{ color: VIOLET }}
-          >›</button>
-        </div>
+        <PagerRow>
+          <PagerBtn onClick={() => setPage((p) => Math.max(0, p - 1))} disabled={safePage === 0}>‹</PagerBtn>
+          {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => (
+            <PagerBtn key={i} $active={safePage === i} onClick={() => setPage(i)}>
+              {i + 1}
+            </PagerBtn>
+          ))}
+          <PagerBtn onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))} disabled={safePage === totalPages - 1}>›</PagerBtn>
+        </PagerRow>
       )}
     </div>
   );
@@ -419,7 +943,6 @@ export default function ChatDrawer() {
   const [tabY, setTabY]           = useState<number>(480);
   const [mode, setMode]           = useState<DrawerMode>({ view: "chat" });
 
-  // Chat state
   const [messages, setMessages]   = useState<ChatMessage[]>([]);
   const [profiles, setProfiles]   = useState<Profile[]>([]);
   const [presence, setPresence]   = useState<{ sysUser: string; online: boolean }[]>([]);
@@ -433,12 +956,10 @@ export default function ChatDrawer() {
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [uploadFile, setUploadFile] = useState<File | null>(null);
 
-  // DM state
   const [dmMessages, setDmMessages] = useState<DmMessage[]>([]);
   const [dmInput, setDmInput]     = useState("");
   const [dmSending, setDmSending] = useState(false);
 
-  // Typing indicator state
   const [typers, setTypers]       = useState<string[]>([]);
   const lastTypingSentRef         = useRef(0);
 
@@ -456,7 +977,6 @@ export default function ChatDrawer() {
 
   const isAdmin = profiles.find((p) => p.username === currentUser)?.role === "admin";
 
-  // Init
   useEffect(() => {
     setSettings(loadSettings());
     const saved = localStorage.getItem(TAB_STORAGE_KEY);
@@ -481,7 +1001,6 @@ export default function ChatDrawer() {
     return () => window.removeEventListener("keydown", onKey);
   }, [open]);
 
-  // Load session + profiles + presence
   const loadProfiles = useCallback(async () => {
     const [profRes, presRes] = await Promise.all([
       fetch("/api/users/profile").then((r) => r.json()).catch(() => ({ profiles: [] })),
@@ -503,7 +1022,6 @@ export default function ChatDrawer() {
     });
   }, []);
 
-  // Poll messages
   const loadMessages = useCallback(async () => {
     try {
       const res = await fetch("/api/chat?limit=100");
@@ -541,7 +1059,6 @@ export default function ChatDrawer() {
     }
   }, [messages, open]);
 
-  // Load DM thread when in DM mode
   const loadDmMessages = useCallback(async (peerUsername: string) => {
     const res = await fetch(`/api/chat/dm?with=${peerUsername}`).then((r) => r.json()).catch(() => ({ messages: [] }));
     setDmMessages(res.messages ?? []);
@@ -561,7 +1078,6 @@ export default function ChatDrawer() {
     }
   }, [dmMessages, mode]);
 
-  // Poll typing indicators (2s when drawer is open)
   useEffect(() => {
     if (!open || (mode.view !== "chat" && mode.view !== "dm")) return;
     const context = mode.view === "dm"
@@ -578,7 +1094,6 @@ export default function ChatDrawer() {
     return () => clearInterval(id);
   }, [open, mode]);
 
-  // Send typing signal (debounced — at most once per 2s)
   const signalTyping = useCallback(() => {
     const now = Date.now();
     if (now - lastTypingSentRef.current < 2000) return;
@@ -598,7 +1113,6 @@ export default function ChatDrawer() {
     try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(s)); } catch { /* ignore */ }
   };
 
-  // ── Tab pill drag ──────────────────────────────────────────────────────────
   const onTabMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     startTabY.current = e.clientY;
@@ -631,7 +1145,6 @@ export default function ChatDrawer() {
     document.addEventListener("mouseup", onUp);
   }, [tabY]);
 
-  // ── Resize drawer ──────────────────────────────────────────────────────────
   const onResizeStart = useCallback((e: React.MouseEvent) => {
     resizing.current = true;
     startX.current = e.clientX;
@@ -657,7 +1170,6 @@ export default function ChatDrawer() {
     window.addEventListener("mouseup", onUp);
   }, [width]);
 
-  // ── Chat actions ────────────────────────────────────────────────────────────
   const sendMessage = async () => {
     if ((!input.trim() && !uploadFile) || sending) return;
     setSending(true);
@@ -697,7 +1209,6 @@ export default function ChatDrawer() {
     await loadMessages();
   };
 
-  // ── DM actions ──────────────────────────────────────────────────────────────
   const sendDm = async () => {
     if (!dmInput.trim() || dmSending || mode.view !== "dm") return;
     const peer = (mode as { view: "dm"; peer: Profile }).peer;
@@ -737,32 +1248,27 @@ export default function ChatDrawer() {
     e.target.value = "";
   };
 
-  const fontClass = { sans: "font-sans", mono: "font-mono", serif: "font-serif" }[settings.myFont] ?? "font-sans";
-
   const peer = mode.view === "dm" ? (mode as { view: "dm"; peer: Profile }).peer : null;
 
   return (
     <>
-      {/* ── Side tab pill ────────────────────────────────────────────────────── */}
-      <button
+      {/* ── Side tab pill ────────────────────────────────────────────── */}
+      <SideTab
         onMouseDown={onTabMouseDown}
         title={open ? "Close chat" : "Open chat"}
-        className="fixed left-0 z-[63] flex flex-col items-center justify-center gap-2 select-none"
         style={{
-          top: tabY, transform: "translateY(-50%)",
-          width: 28, paddingTop: 12, paddingBottom: 12,
-          background: open ? "rgba(255,78,203,0.25)" : unread > 0 ? "rgba(255,78,203,0.22)" : "rgba(255,78,203,0.12)",
-          border: "1px solid rgba(255,78,203,0.45)", borderLeft: "none",
-          borderRadius: "0 10px 10px 0", color: "#ff4ecb",
-          boxShadow: unread > 0 ? "2px 0 14px rgba(255,78,203,0.35)" : "2px 0 10px rgba(255,78,203,0.18)",
-          backdropFilter: "blur(8px)", transition: "background 0.2s", cursor: "grab",
-        }}
-        onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(255,78,203,0.3)"; }}
-        onMouseLeave={(e) => {
-          (e.currentTarget as HTMLElement).style.background = open ? "rgba(255,78,203,0.25)" : unread > 0 ? "rgba(255,78,203,0.22)" : "rgba(255,78,203,0.12)";
+          top: tabY,
+          background: open
+            ? `rgba(${rgb.pink}, 0.25)`
+            : unread > 0
+            ? `rgba(${rgb.pink}, 0.22)`
+            : `rgba(${rgb.pink}, 0.12)`,
+          boxShadow: unread > 0
+            ? `2px 0 14px rgba(${rgb.pink}, 0.35)`
+            : `2px 0 10px rgba(${rgb.pink}, 0.18)`,
         }}
       >
-        <span className="relative flex items-center justify-center">
+        <span style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center" }}>
           {open ? (
             <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
               <path d="M1 1l8 8M9 1l-8 8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
@@ -776,130 +1282,94 @@ export default function ChatDrawer() {
             </svg>
           )}
           {unread > 0 && !open && (
-            <span className="absolute flex items-center justify-center text-[7px] font-bold"
-              style={{ background: "#00bfff", color: "#060810", borderRadius: "50%", width: 13, height: 13, top: -6, right: -6 }}>
-              {unread > 9 ? "9+" : unread}
-            </span>
+            <UnreadBadge>{unread > 9 ? "9+" : unread}</UnreadBadge>
           )}
         </span>
-        <span style={{ writingMode: "vertical-rl", fontSize: 9, fontWeight: 800, letterSpacing: "0.15em", textTransform: "uppercase" }}>
-          Chat
-        </span>
-      </button>
+        <DrawerTabLabel>Chat</DrawerTabLabel>
+      </SideTab>
 
-      {/* ── Backdrop ─────────────────────────────────────────────────────────── */}
-      {open && (
-        <div className="fixed inset-0 z-[58]" style={{ backdropFilter: "blur(1px)" }} onClick={() => setOpen(false)} />
-      )}
+      {/* ── Backdrop ──────────────────────────────────────────────── */}
+      {open && <Backdrop onClick={() => setOpen(false)} />}
 
-      {/* ── Drawer ───────────────────────────────────────────────────────────── */}
-      <div
-        className={`fixed top-0 left-0 h-full z-[62] flex flex-col overflow-hidden ${fontClass}`}
+      {/* ── Drawer ────────────────────────────────────────────────── */}
+      <Panel
         style={{
           width,
           transform: open ? "translateX(0)" : "translateX(-100%)",
           transition: resizing.current ? "none" : "transform 0.25s cubic-bezier(0.4,0,0.2,1)",
-          background: "rgba(6,8,12,0.99)",
-          borderRight: "1px solid rgba(255,78,203,0.18)",
           boxShadow: open ? "12px 0 60px rgba(0,0,0,0.7)" : "none",
         }}
       >
-        {/* ── Header ─────────────────────────────────────────────────────────── */}
-        <div className="flex items-center gap-2 px-3 py-2.5 flex-shrink-0"
-          style={{ borderBottom: "1px solid rgba(255,255,255,0.07)", minHeight: 44 }}>
-
-          {/* Back button (members / dm mode) */}
+        {/* ── Header ──────────────────────────────────────────────── */}
+        <Header>
           {mode.view !== "chat" && (
-            <button
-              onClick={() => setMode(mode.view === "dm" ? { view: "members" } : { view: "chat" })}
-              className="w-7 h-7 rounded-md flex items-center justify-center transition-all hover:bg-white/10 flex-shrink-0"
-              style={{ color: VIOLET }}
-            >
+            <BackBtn onClick={() => setMode(mode.view === "dm" ? { view: "members" } : { view: "chat" })}>
               ‹
-            </button>
+            </BackBtn>
           )}
 
-          {/* Title */}
-          <div className="flex-1 min-w-0 flex items-center gap-2">
+          <TitleWrap>
             {mode.view === "chat" && (
               <>
-                <span className="text-sm">💬</span>
-                <span className="text-sm font-bold" style={{ color: "#00bfff" }}>TGV Chat</span>
+                <span style={{ fontSize: "0.875rem" }}>💬</span>
+                <TitleText>TGV Chat</TitleText>
               </>
             )}
             {mode.view === "members" && (
-              <>
-                <span className="text-sm font-bold" style={{ color: VIOLET }}>Members</span>
-              </>
+              <TitleText $color={VIOLET}>Members</TitleText>
             )}
             {mode.view === "dm" && peer && (
               <>
                 <UserAvatar profile={peer} size={20} />
-                <span className="text-sm font-bold truncate" style={{ color: peer.accentColor }}>{peer.displayName}</span>
-                <span className="text-[9px] text-white/30">DM</span>
+                <TitleText $color={peer.accentColor} style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {peer.displayName}
+                </TitleText>
+                <DmTag>DM</DmTag>
               </>
             )}
-          </div>
+          </TitleWrap>
 
-          {/* Member avatar chips (chat mode only) */}
           {mode.view === "chat" && (
-            <div className="flex gap-1 shrink-0">
+            <AvatarChips>
               {profiles.map((p) => (
-                <span key={p.username} title={p.displayName} className="shrink-0">
+                <span key={p.username} title={p.displayName} style={{ flexShrink: 0 }}>
                   <UserAvatar profile={p} size={20} />
                 </span>
               ))}
-            </div>
+            </AvatarChips>
           )}
 
-          {/* Members toggle button */}
           {mode.view === "chat" && (
-            <button
-              onClick={() => setMode({ view: "members" })}
-              className="w-7 h-7 rounded-md flex items-center justify-center transition-all hover:bg-white/10 flex-shrink-0"
-              style={{ color: VIOLET }}
-              title="Members"
-            >
+            <PanelIconBtn onClick={() => setMode({ view: "members" })} title="Members" style={{ color: VIOLET }}>
               <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor">
                 <circle cx="5" cy="5" r="2.5"/>
                 <circle cx="11" cy="5" r="2.5"/>
                 <path d="M0 14c0-2.5 2.2-4 5-4s5 1.5 5 4"/>
                 <path d="M11 10c2.2.5 4 1.8 4 4" strokeLinecap="round"/>
               </svg>
-            </button>
+            </PanelIconBtn>
           )}
 
-          {/* Clear chat (chat mode, admin or everyone) */}
           {mode.view === "chat" && (
-            <button
-              onClick={clearChat}
-              className="w-7 h-7 rounded-md flex items-center justify-center transition-all hover:bg-red-500/15"
-              style={{ color: "rgba(255,255,255,0.2)" }}
-              title="Clear all messages"
-            >
+            <PanelIconBtn onClick={clearChat} title="Clear all messages" style={{ color: "var(--t-textGhost)" }}>
               <svg width="12" height="12" viewBox="0 0 14 14" fill="currentColor">
                 <path d="M2 4h10M5 4V2.5A.5.5 0 0 1 5.5 2h3a.5.5 0 0 1 .5.5V4M3 4l.7 7.5A1 1 0 0 0 4.7 12.5h4.6a1 1 0 0 0 1-.9L11 4H3z"/>
               </svg>
-            </button>
+            </PanelIconBtn>
           )}
 
-          {/* Gear (chat mode) */}
           {mode.view === "chat" && (
-            <button onClick={() => setShowSettingsModal(true)}
-              className="w-9 h-9 rounded-lg flex items-center justify-center transition-all hover:bg-white/10"
-              style={{ color: "rgba(255,255,255,0.5)" }} title="Settings">
+            <PanelIconBtn onClick={() => setShowSettingsModal(true)} title="Settings" style={{ width: 36, height: 36, color: "var(--t-textMuted)" }}>
               <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor">
                 <path d="M8 10.5A2.5 2.5 0 1 1 8 5.5a2.5 2.5 0 0 1 0 5zm5.29-2.77a5.07 5.07 0 0 0 .04-.73 5 5 0 0 0-.04-.73l1.57-1.23a.38.38 0 0 0 .09-.48l-1.49-2.57a.37.37 0 0 0-.45-.16l-1.85.74a5.4 5.4 0 0 0-1.26-.73L9.67.37A.36.36 0 0 0 9.31 0H6.69a.36.36 0 0 0-.36.37l-.27 1.97a5.4 5.4 0 0 0-1.26.73l-1.85-.74a.37.37 0 0 0-.45.16L1.05 4.86a.37.37 0 0 0 .09.48l1.57 1.23c-.03.24-.04.48-.04.73s.01.49.04.73L1.14 9.26a.37.37 0 0 0-.09.48l1.49 2.57c.09.16.28.22.45.16l1.85-.74c.39.28.82.52 1.26.73l.27 1.97c.05.2.24.37.45.37H9.3c.21 0 .4-.17.45-.37l.27-1.97a5.4 5.4 0 0 0 1.26-.73l1.85.74c.17.06.36 0 .45-.16l1.49-2.57a.37.37 0 0 0-.09-.48l-1.69-1.27z"/>
               </svg>
-            </button>
+            </PanelIconBtn>
           )}
 
-          <button onClick={() => setOpen(false)}
-            className="w-7 h-7 rounded-md flex items-center justify-center text-xs hover:bg-white/10 transition-all flex-shrink-0"
-            style={{ color: "rgba(255,255,255,0.3)" }}>✕</button>
-        </div>
+          <PanelIconBtn onClick={() => setOpen(false)}>✕</PanelIconBtn>
+        </Header>
 
-        {/* ── Members panel ────────────────────────────────────────────────────── */}
+        {/* ── Members panel ────────────────────────────────────────── */}
         {mode.view === "members" && (
           <MembersPanel
             profiles={profiles}
@@ -909,15 +1379,14 @@ export default function ChatDrawer() {
           />
         )}
 
-        {/* ── Chat messages ─────────────────────────────────────────────────────  */}
+        {/* ── Chat messages ────────────────────────────────────────── */}
         {mode.view === "chat" && (
-          <div className={`flex-1 overflow-y-auto px-4 py-3 flex flex-col gap-3 text-${settings.fontSize}`}
-            style={{ scrollbarWidth: "thin" }}>
+          <MsgScroll>
             {messages.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full gap-3 text-white/20">
-                <span className="text-4xl">💬</span>
-                <p className="text-xs">No messages yet. Say hi!</p>
-              </div>
+              <EmptyChat>
+                <EmptyIcon>💬</EmptyIcon>
+                <EmptyText>No messages yet. Say hi!</EmptyText>
+              </EmptyChat>
             ) : (
               messages.map((msg) => {
                 const profile = profiles.find((p) => p.username === msg.from);
@@ -936,18 +1405,17 @@ export default function ChatDrawer() {
               })
             )}
             <div ref={bottomRef} />
-          </div>
+          </MsgScroll>
         )}
 
-        {/* ── DM thread ─────────────────────────────────────────────────────────── */}
+        {/* ── DM thread ────────────────────────────────────────────── */}
         {mode.view === "dm" && peer && (
-          <div className={`flex-1 overflow-y-auto px-4 py-3 flex flex-col gap-3 text-${settings.fontSize}`}
-            style={{ scrollbarWidth: "thin" }}>
+          <MsgScroll>
             {dmMessages.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full gap-2 text-white/20">
+              <EmptyChat>
                 <UserAvatar profile={peer} size={40} />
-                <p className="text-xs mt-1">Start a conversation with {peer.displayName}</p>
-              </div>
+                <EmptyText style={{ marginTop: "0.25rem" }}>Start a conversation with {peer.displayName}</EmptyText>
+              </EmptyChat>
             ) : (
               dmMessages.map((msg) => {
                 const profile = profiles.find((p) => p.username === msg.from);
@@ -965,61 +1433,50 @@ export default function ChatDrawer() {
               })
             )}
             <div ref={dmBottomRef} />
-          </div>
+          </MsgScroll>
         )}
 
-        {/* ── Input (chat + DM) ─────────────────────────────────────────────────── */}
+        {/* ── Input (chat + DM) ────────────────────────────────────── */}
         {(mode.view === "chat" || mode.view === "dm") && (
-          <div className="flex-shrink-0 px-4 py-3 flex flex-col gap-2"
-            style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }}>
-
+          <InputArea>
             {mode.view === "chat" && uploadFile && (
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl"
-                style={{ background: "rgba(0,191,255,0.08)", border: "1px solid rgba(0,191,255,0.25)" }}>
-                <span className="text-xs text-cyan-400 flex-1 truncate">📎 {uploadFile.name}</span>
-                <span className="text-[9px] text-white/30">{fmtBytes(uploadFile.size)}</span>
-                <button onClick={() => setUploadFile(null)} className="text-[9px] text-white/30 hover:text-red-400">✕</button>
-              </div>
+              <FilePreview>
+                <FilePreviewName>📎 {uploadFile.name}</FilePreviewName>
+                <FilePreviewSize>{fmtBytes(uploadFile.size)}</FilePreviewSize>
+                <FilePreviewClose onClick={() => setUploadFile(null)}>✕</FilePreviewClose>
+              </FilePreview>
             )}
 
             {typers.length > 0 && (
-              <div className="flex items-center gap-1.5 px-1" style={{ minHeight: 16 }}>
-                <span className="flex gap-0.5 items-end">
+              <TypingRow>
+                <span style={{ display: "flex", gap: "2px", alignItems: "flex-end" }}>
                   {[0, 1, 2].map((i) => (
-                    <span key={i} className="w-1 h-1 rounded-full"
-                      style={{
-                        background: "rgba(255,255,255,0.4)",
-                        animation: `typingBounce 1.2s ease-in-out ${i * 0.2}s infinite`,
-                      }}
-                    />
+                    <TypingDot key={i} $delay={i * 0.2} />
                   ))}
                 </span>
-                <span className="text-[10px]" style={{ color: "rgba(255,255,255,0.35)" }}>
+                <TypingText>
                   {typers.length === 1
                     ? `${typers[0]} is typing…`
                     : typers.length === 2
                     ? `${typers[0]} and ${typers[1]} are typing…`
                     : "Several people are typing…"}
-                </span>
-              </div>
+                </TypingText>
+              </TypingRow>
             )}
 
-            <div className="flex items-end gap-2">
+            <InputRow>
               {mode.view === "chat" && (
                 <>
-                  <button onClick={() => fileRef.current?.click()}
-                    className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 transition-all"
-                    style={{ background: "rgba(0,191,255,0.08)", border: "1px solid rgba(0,191,255,0.3)", color: "#00bfff" }}
-                    title="Attach file">
+                  <AttachBtn onClick={() => fileRef.current?.click()} title="Attach file">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
                     </svg>
-                  </button>
-                  <input ref={fileRef} type="file" className="hidden" onChange={handleFileChange} />
+                  </AttachBtn>
+                  <input ref={fileRef} type="file" style={{ display: "none" }} onChange={handleFileChange} />
                 </>
               )}
 
-              <textarea
+              <ChatTextarea
                 value={mode.view === "dm" ? dmInput : input}
                 onChange={(e) => {
                   if (mode.view === "dm") setDmInput(e.target.value);
@@ -1034,44 +1491,32 @@ export default function ChatDrawer() {
                 }}
                 placeholder={mode.view === "dm" && peer ? `Message ${peer.displayName}…` : "Enter to send · Shift+Enter for newline"}
                 rows={1}
-                className={`flex-1 bg-transparent outline-none text-white/80 resize-none rounded-xl px-3 py-2 ${fontClass}`}
+                $accent={mode.view === "dm" ? (peer?.accentColor ?? VIOLET) : undefined}
                 style={{
-                  border: `1px solid ${mode.view === "dm" ? `${peer?.accentColor ?? VIOLET}44` : "rgba(255,255,255,0.1)"}`,
                   fontSize: settings.fontSize === "xs" ? 11 : settings.fontSize === "sm" ? 13 : 15,
-                  maxHeight: 80,
                 }}
               />
 
-              <button
+              <SendBtn
                 onClick={mode.view === "dm" ? sendDm : sendMessage}
                 disabled={mode.view === "dm" ? (!dmInput.trim() || dmSending) : ((sending || uploading) || (!input.trim() && !uploadFile))}
-                className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 transition-all disabled:opacity-30"
-                style={{
-                  background: mode.view === "dm" ? `${peer?.accentColor ?? VIOLET}22` : "rgba(0,191,255,0.2)",
-                  border: `1px solid ${mode.view === "dm" ? `${peer?.accentColor ?? VIOLET}55` : "rgba(0,191,255,0.4)"}`,
-                  color: mode.view === "dm" ? (peer?.accentColor ?? VIOLET) : "#00bfff",
-                }}
-                title="Send (Enter)">
+                $color={mode.view === "dm" ? (peer?.accentColor ?? VIOLET) : undefined}
+                title="Send (Enter)"
+              >
                 {(sending || uploading || dmSending) ? (
-                  <span className="text-[9px]">…</span>
+                  <span style={{ fontSize: "0.5625rem" }}>…</span>
                 ) : (
                   <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
                     <path d="M0 12L12 6 0 0v4.5l8.57 1.5L0 7.5z"/>
                   </svg>
                 )}
-              </button>
-            </div>
-          </div>
+              </SendBtn>
+            </InputRow>
+          </InputArea>
         )}
 
-        {/* Resize handle */}
-        <div onMouseDown={onResizeStart}
-          className="absolute top-0 right-0 h-full w-1.5 cursor-ew-resize z-10 group"
-          style={{ background: "transparent" }}>
-          <div className="absolute inset-y-0 right-0 w-px group-hover:w-1 transition-all"
-            style={{ background: "rgba(255,78,203,0.15)" }} />
-        </div>
-      </div>
+        <Resize onMouseDown={onResizeStart} />
+      </Panel>
 
       {showSettingsModal && (
         <ChatSettingsModal

@@ -1,10 +1,12 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import styled from "styled-components";
+import { colors, rgb } from "../../theme";
+import { PanelIconBtn } from "../../styled";
 
-const ORANGE = "#d97757";
-const ORANGE_RGB = "217,119,87";
-const CYAN = "#00bfff";
+const ORANGE = colors.orange;
+const ORANGE_RGB = rgb.orange;
 
 type Message = { role: "user" | "assistant"; content: string };
 
@@ -14,6 +16,227 @@ type Props = {
   onCodeUpdate: (code: string) => void;
   onDeploy: (targets: string[]) => void;
 };
+
+// ── Styled ───────────────────────────────────────────────────────
+
+const OpenBtn = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 0.75rem 0.75rem 0 0;
+  border: 1px solid rgba(${ORANGE_RGB}, 0.25);
+  border-bottom: none;
+  background: rgba(${ORANGE_RGB}, 0.08);
+  color: ${ORANGE};
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.15s;
+
+  &:hover {
+    background: rgba(${ORANGE_RGB}, 0.14);
+  }
+
+  [data-theme="light"] & {
+    background: rgba(${ORANGE_RGB}, 0.05);
+    border-color: rgba(${ORANGE_RGB}, 0.2);
+
+    &:hover {
+      background: rgba(${ORANGE_RGB}, 0.1);
+    }
+  }
+`;
+
+const Container = styled.div`
+  display: flex;
+  flex-direction: column;
+  height: 320px;
+  border-radius: 0.75rem 0.75rem 0 0;
+  overflow: hidden;
+  background: rgba(6, 8, 12, 0.98);
+  border: 1px solid rgba(${ORANGE_RGB}, 0.3);
+  border-bottom: none;
+  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.5),
+    0 0 24px rgba(${ORANGE_RGB}, 0.08);
+
+  [data-theme="light"] & {
+    background: var(--t-surface);
+    border-color: rgba(${ORANGE_RGB}, 0.2);
+    box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.06);
+  }
+`;
+
+const Header = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  flex-shrink: 0;
+  border-bottom: 1px solid rgba(${ORANGE_RGB}, 0.2);
+
+  [data-theme="light"] & {
+    border-bottom-color: rgba(${ORANGE_RGB}, 0.12);
+  }
+`;
+
+const HeaderTitle = styled.span`
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: ${ORANGE};
+`;
+
+const HeaderTag = styled.span`
+  font-size: 0.625rem;
+  color: var(--t-textGhost);
+  font-family: var(--font-geist-mono), monospace;
+`;
+
+const ClearBtn = styled.button`
+  font-size: 0.625rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  border: none;
+  background: none;
+  color: var(--t-textFaint);
+  cursor: pointer;
+  transition: color 0.15s;
+
+  &:hover {
+    color: var(--t-textMuted);
+  }
+`;
+
+const MsgArea = styled.div`
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.75rem 1rem;
+  scrollbar-width: thin;
+`;
+
+const EmptyHint = styled.div`
+  font-size: 0.75rem;
+  color: var(--t-textGhost);
+  text-align: center;
+  padding: 1rem 0;
+`;
+
+const MsgWrap = styled.div`
+  margin-bottom: 0.75rem;
+`;
+
+const MsgRole = styled.div<{ $isUser?: boolean }>`
+  font-size: 0.5625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  margin-bottom: 0.25rem;
+  color: ${(p) => (p.$isUser ? colors.pink : ORANGE)};
+`;
+
+const MsgBubble = styled.div<{ $isUser?: boolean }>`
+  font-size: 0.75rem;
+  line-height: 1.6;
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  white-space: pre-wrap;
+  color: var(--t-text);
+  opacity: 0.75;
+  background: ${(p) =>
+    p.$isUser ? `rgba(${rgb.pink}, 0.04)` : `rgba(${ORANGE_RGB}, 0.04)`};
+  border-left: 2px solid
+    ${(p) =>
+      p.$isUser ? `rgba(${rgb.pink}, 0.3)` : `rgba(${ORANGE_RGB}, 0.3)`};
+
+  [data-theme="light"] & {
+    background: ${(p) =>
+      p.$isUser ? `rgba(${rgb.pink}, 0.03)` : `rgba(${ORANGE_RGB}, 0.03)`};
+  }
+`;
+
+const ThinkRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  color: ${ORANGE};
+`;
+
+const ThinkDot = styled.span`
+  animation: pulse 1.5s ease-in-out infinite;
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+`;
+
+const ErrorText = styled.div`
+  font-size: 0.75rem;
+  color: #f87171;
+  margin-top: 0.5rem;
+`;
+
+const InputBar = styled.div`
+  flex-shrink: 0;
+  padding: 0.5rem 0.75rem;
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-end;
+  border-top: 1px solid var(--t-border);
+`;
+
+const ChatInput = styled.textarea`
+  flex: 1;
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.75rem;
+  color: var(--t-text);
+  outline: none;
+  resize: none;
+  background: var(--t-inputBg);
+  border: 1px solid rgba(${ORANGE_RGB}, 0.2);
+
+  &::placeholder {
+    color: var(--t-textGhost);
+  }
+
+  &:focus {
+    border-color: rgba(${ORANGE_RGB}, 0.4);
+  }
+`;
+
+const SendBtn = styled.button`
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: rgba(${ORANGE_RGB}, 0.15);
+  border: 1px solid rgba(${ORANGE_RGB}, 0.3);
+  color: ${ORANGE};
+  cursor: pointer;
+  transition: all 0.15s;
+
+  &:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+
+  &:not(:disabled):hover {
+    background: rgba(${ORANGE_RGB}, 0.22);
+  }
+
+  [data-theme="light"] & {
+    background: rgba(${ORANGE_RGB}, 0.08);
+    border-color: rgba(${ORANGE_RGB}, 0.2);
+  }
+`;
+
+// ── Component ────────────────────────────────────────────────────
 
 export default function SandboxClaudeDrawer({ componentKey, currentCode, onCodeUpdate, onDeploy }: Props) {
   const [open, setOpen] = useState(false);
@@ -83,108 +306,54 @@ export default function SandboxClaudeDrawer({ componentKey, currentCode, onCodeU
 
   if (!open) {
     return (
-      <button
-        onClick={() => setOpen(true)}
-        className="flex items-center gap-2 px-4 py-2 rounded-t-xl transition-all"
-        style={{
-          background: `rgba(${ORANGE_RGB},0.08)`,
-          border: `1px solid rgba(${ORANGE_RGB},0.25)`,
-          borderBottom: "none",
-          color: ORANGE,
-          fontSize: 11,
-          fontWeight: 700,
-          letterSpacing: "0.05em",
-          textTransform: "uppercase",
-        }}
-      >
+      <OpenBtn onClick={() => setOpen(true)}>
         <span style={{ fontSize: 14 }}>🤖</span> Claude
-      </button>
+      </OpenBtn>
     );
   }
 
   return (
-    <div
-      className="flex flex-col rounded-t-xl overflow-hidden"
-      style={{
-        height: 320,
-        background: "rgba(6,8,12,0.98)",
-        border: `1px solid rgba(${ORANGE_RGB},0.3)`,
-        borderBottom: "none",
-        boxShadow: `0 -8px 32px rgba(0,0,0,0.5), 0 0 24px rgba(${ORANGE_RGB},0.08)`,
-      }}
-    >
-      {/* Header */}
-      <div
-        className="flex items-center gap-2 px-4 py-2 shrink-0"
-        style={{ borderBottom: `1px solid rgba(${ORANGE_RGB},0.2)` }}
-      >
+    <Container>
+      <Header>
         <span style={{ fontSize: 14 }}>🤖</span>
-        <span className="text-[11px] font-bold uppercase tracking-widest" style={{ color: ORANGE }}>
-          Sandbox Claude
-        </span>
-        <span className="text-[10px] text-white/30 font-mono">{componentKey}</span>
-        <div className="flex-1" />
-        <button
-          onClick={() => { setMessages([]); setError(""); }}
-          className="text-[10px] text-white/40 hover:text-white/70 px-2 py-1 rounded"
-          title="Clear chat"
-        >
+        <HeaderTitle>Sandbox Claude</HeaderTitle>
+        <HeaderTag>{componentKey}</HeaderTag>
+        <div style={{ flex: 1 }} />
+        <ClearBtn onClick={() => { setMessages([]); setError(""); }} title="Clear chat">
           Clear
-        </button>
-        <button
-          onClick={() => setOpen(false)}
-          className="w-6 h-6 rounded flex items-center justify-center text-white/40 hover:text-white/70 hover:bg-white/5"
-          title="Minimize"
-        >
+        </ClearBtn>
+        <PanelIconBtn onClick={() => setOpen(false)} title="Minimize" style={{ width: 24, height: 24 }}>
           ▾
-        </button>
-      </div>
+        </PanelIconBtn>
+      </Header>
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-3" style={{ scrollbarWidth: "thin" }}>
+      <MsgArea>
         {messages.length === 0 && !loading && (
-          <div className="text-xs text-white/25 text-center py-4">
+          <EmptyHint>
             Ask me to change colors, adjust spacing, add features, or deploy this component.
-          </div>
+          </EmptyHint>
         )}
-        {messages.map((m, i) => {
-          const isUser = m.role === "user";
-          return (
-            <div key={i} className="mb-3">
-              <div
-                className="text-[9px] font-bold uppercase tracking-widest mb-1"
-                style={{ color: isUser ? "#ff4ecb" : ORANGE }}
-              >
-                {isUser ? "You" : "Claude"}
-              </div>
-              <div
-                className="text-xs leading-relaxed rounded-lg px-3 py-2"
-                style={{
-                  background: isUser ? "rgba(255,78,203,0.04)" : `rgba(${ORANGE_RGB},0.04)`,
-                  borderLeft: `2px solid ${isUser ? "rgba(255,78,203,0.3)" : `rgba(${ORANGE_RGB},0.3)`}`,
-                  color: "rgba(255,255,255,0.75)",
-                  whiteSpace: "pre-wrap",
-                }}
-              >
-                {m.content}
-              </div>
-            </div>
-          );
-        })}
+        {messages.map((m, i) => (
+          <MsgWrap key={i}>
+            <MsgRole $isUser={m.role === "user"}>
+              {m.role === "user" ? "You" : "Claude"}
+            </MsgRole>
+            <MsgBubble $isUser={m.role === "user"}>
+              {m.content}
+            </MsgBubble>
+          </MsgWrap>
+        ))}
         {loading && (
-          <div className="flex items-center gap-2 text-xs" style={{ color: ORANGE }}>
-            <span className="animate-pulse">●</span> Thinking…
-          </div>
+          <ThinkRow>
+            <ThinkDot>●</ThinkDot> Thinking…
+          </ThinkRow>
         )}
-        {error && (
-          <div className="text-xs text-red-400 mt-2">{error}</div>
-        )}
+        {error && <ErrorText>{error}</ErrorText>}
         <div ref={chatEndRef} />
-      </div>
+      </MsgArea>
 
-      {/* Input */}
-      <div className="shrink-0 px-3 py-2 flex gap-2 items-end" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
-        <textarea
+      <InputBar>
+        <ChatInput
           ref={inputRef}
           value={input}
           onChange={(e) => setInput(e.target.value)}
@@ -197,25 +366,11 @@ export default function SandboxClaudeDrawer({ componentKey, currentCode, onCodeU
           }}
           placeholder="Change the border to cyan, make the text bigger…"
           rows={1}
-          className="flex-1 rounded-lg px-3 py-2 text-xs text-white outline-none resize-none placeholder:text-white/25"
-          style={{
-            background: "rgba(255,255,255,0.04)",
-            border: `1px solid rgba(${ORANGE_RGB},0.2)`,
-          }}
         />
-        <button
-          onClick={handleSend}
-          disabled={!input.trim() || loading}
-          className="px-3 py-2 rounded-lg text-xs font-bold transition-all disabled:opacity-30"
-          style={{
-            background: `rgba(${ORANGE_RGB},0.15)`,
-            border: `1px solid rgba(${ORANGE_RGB},0.3)`,
-            color: ORANGE,
-          }}
-        >
+        <SendBtn onClick={handleSend} disabled={!input.trim() || loading}>
           ↑
-        </button>
-      </div>
-    </div>
+        </SendBtn>
+      </InputBar>
+    </Container>
   );
 }

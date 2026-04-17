@@ -478,3 +478,107 @@ export const PanelToolbar = styled.div`
 export const Spacer = styled.div`
   flex: 1;
 `;
+
+
+/* ── Drawer primitives ──────────────────────────────────────────── */
+
+export const DrawerBackdrop = styled.div<{ $z?: number }>`
+  position: fixed;
+  inset: 0;
+  z-index: ${(p) => p.$z ?? 30};
+
+  [data-theme="light"] & {
+    background: rgba(0, 0, 0, 0.06);
+  }
+`;
+
+export const DrawerPanel = styled.div`
+  position: fixed;
+  top: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: rgba(7, 9, 13, 0.99);
+
+  [data-theme="light"] & {
+    background: var(--t-surface);
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.08);
+  }
+`;
+
+export const DrawerHeader = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1rem;
+  flex-shrink: 0;
+  min-height: 44px;
+  border-bottom: 1px solid var(--t-border);
+`;
+
+export const DrawerTab = styled.button<{ $side?: "left" | "right"; $accent?: GlowColor }>`
+  position: fixed;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  user-select: none;
+  width: 28px;
+  padding: 12px 0;
+  transform: translateY(-50%);
+  border: 1px solid rgba(${(p) => rgb[p.$accent || "pink"]}, 0.45);
+  border-radius: ${(p) => (p.$side === "right" ? "10px 0 0 10px" : "0 10px 10px 0")};
+  color: ${(p) => colors[p.$accent || "pink"]};
+  backdrop-filter: blur(8px);
+  transition: background 0.2s;
+  cursor: grab;
+
+  [data-theme="light"] & {
+    border-color: rgba(${(p) => rgb[p.$accent || "pink"]}, 0.3);
+  }
+`;
+
+export const DrawerTabLabel = styled.span`
+  writing-mode: vertical-rl;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+`;
+
+export const DrawerResizeHandle = styled.div<{ $accent?: GlowColor }>`
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 100%;
+  width: 6px;
+  cursor: ew-resize;
+  z-index: 10;
+  background: transparent;
+
+  &::after {
+    content: "";
+    position: absolute;
+    inset-block: 0;
+    right: 0;
+    width: 1px;
+    background: rgba(${(p) => rgb[p.$accent || "cyan"]}, 0.15);
+    transition: width 0.15s;
+  }
+
+  &:hover::after {
+    width: 4px;
+  }
+`;
+
+export const DrawerFooter = styled.div`
+  flex-shrink: 0;
+  padding: 0.75rem 1.25rem;
+  border-top: 1px solid var(--t-border);
+  font-size: 0.5625rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--t-textGhost);
+`;
