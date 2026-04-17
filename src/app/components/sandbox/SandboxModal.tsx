@@ -470,6 +470,9 @@ export default function SandboxModal({ onClose }: { onClose: () => void }) {
   const [summaryOpen, setSummaryOpen] = useState(true);
   const [codeOpen, setCodeOpen] = useState(false);
   const [codeTab, setCodeTab] = useState<"component" | "style">("component");
+  const [liveStyle, setLiveStyle] = useState<string | null>(null);
+  const [styleLoading, setStyleLoading] = useState(false);
+  const [styleDirty, setStyleDirty] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
   const [codeDraft, setCodeDraft] = useState<string>("");
 
@@ -541,7 +544,28 @@ export default function SandboxModal({ onClose }: { onClose: () => void }) {
 
   const Demo = active?.Demo;
 
-  useEffect(() => { setCodeTab("component"); }, [activeKey]);
+  useEffect(() => { setCodeTab("component"); setLiveStyle(null); setStyleDirty(false); }, [activeKey]);
+
+  useEffect(() => {
+    if (codeTab !== "style" || !active?.stylePath) return;
+    setStyleLoading(true);
+    fetch(`/api/sandbox/styles?path=${encodeURIComponent(active.stylePath)}`)
+      .then((r) => r.json())
+      .then((d: { styles?: string }) => { setLiveStyle(d.styles ?? "// No styled blocks found"); setStyleDirty(false); })
+      .catch(() => setLiveStyle("// Failed to load styles"))
+      .finally(() => setStyleLoading(false));
+  }, [codeTab, active?.stylePath]);
+
+  const saveStyle = async () => {
+    if (!active?.stylePath || !liveStyle) return;
+    const res = await fetch("/api/sandbox/styles", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ path: active.stylePath, styles: liveStyle }),
+    });
+    const d = await res.json();
+    if (d.ok) setStyleDirty(false);
+  };
 
   const editorCode = editMode && drafts.active
     ? (unsavedCode ?? drafts.active.code)
@@ -762,13 +786,13 @@ export default function SandboxModal({ onClose }: { onClose: () => void }) {
                 <Spacer />
                 <PanelActionBtn
                   $variant="ghost"
-                  onClick={() => editMode ? drafts.resetToDeployed() : setCodeDraft(codeTab === "style" ? (active.style ?? "// No styles defined") : active.code)}
+                  onClick={() => { if (codeTab === "style") { setLiveStyle(null); setStyleLoading(true); fetch(`/api/sandbox/styles?path=${encodeURIComponent(active.stylePath ?? "")}`).then(r => r.json()).then(d => { setLiveStyle(d.styles ?? ""); setStyleDirty(false); }).finally(() => setStyleLoading(false)); } else if (editMode) { drafts.resetToDeployed(); } else { setCodeDraft(active.code); } }}
                   title="Restore canonical / deployed code"
                 >
                   Reset
                 </PanelActionBtn>
               </CodeHeader>
-              {active.style && (
+              {active.stylePath && (
                 <CodeTabBar>
                   <CodeTabBtn $active={codeTab === "component"} onClick={() => setCodeTab("component")}>
                     Component
@@ -779,12 +803,23 @@ export default function SandboxModal({ onClose }: { onClose: () => void }) {
                 </CodeTabBar>
               )}
               <CodeEditor
-                value={codeTab === "style" ? (editMode && drafts.active ? editorCode : (active.style ?? "// No styles defined")) : editorCode}
-                onChange={(e) => handleCodeChange(e.target.value)}
+                value={codeTab === "style" ? (liveStyle ?? "// Loading...") : editorCode}
+                onChange={(e) => { if (codeTab === "style") { setLiveStyle(e.target.value); setStyleDirty(true); } else { handleCodeChange(e.target.value); } }}
                 spellCheck={false}
               />
               <CodeFooter>
-                {editMode && drafts.active
+                {codeTab === "style" ? (
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", width: "100%" }}>
+                    <span>{active.stylePath}</span>
+                    <Spacer />
+                    {styleDirty && (
+                      <PanelActionBtn $color="gold" onClick={saveStyle} style={{ padding: "0.125rem 0.5rem" }}>
+                        Save Styles
+                      </PanelActionBtn>
+                    )}
+                    <span>{styleLoading ? "loading…" : styleDirty ? "unsaved" : "synced"}</span>
+                  </div>
+                ) : editMode && drafts.active
                   ? `Draft #${drafts.active.number} · ${isSaved ? "saved" : "unsaved"} · auto-save ${autoSave ? "on" : "off"}`
                   : "Edits reset on file switch · not saved"}
               </CodeFooter>
