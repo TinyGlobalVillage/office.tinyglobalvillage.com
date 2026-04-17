@@ -433,7 +433,7 @@ export default function EmailClient({ zoom }: Props) {
 
   // Fetch accounts
   useEffect(() => {
-    fetch("/api/email/accounts")
+    fetch("/api/email/session")
       .then((r) => r.json())
       .then((d: { accounts?: AccountMeta[] }) => {
         if (d.accounts?.length) {
@@ -496,7 +496,7 @@ export default function EmailClient({ zoom }: Props) {
       return;
     }
     setLoadingDetail(true);
-    fetch(`/api/email/message?account=${selected}&id=${selectedMessage}`)
+    fetch(`/api/email/messages?account=${selected}&id=${selectedMessage}`)
       .then((r) => r.json())
       .then((d: EmailDetail) => setEmailDetail(d))
       .catch(() => setEmailDetail(null))

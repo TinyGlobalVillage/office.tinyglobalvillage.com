@@ -404,6 +404,17 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
+    const handlers: Record<string, () => void> = {
+      "open-claude": () => setClaudeOpen(true),
+      "open-sandbox": () => setSandboxOpen(true),
+      "open-library": () => setLibraryOpen(true),
+    };
+    const entries = Object.entries(handlers);
+    entries.forEach(([ev, fn]) => window.addEventListener(ev, fn));
+    return () => entries.forEach(([ev, fn]) => window.removeEventListener(ev, fn));
+  }, []);
+
+  useEffect(() => {
     if (!open) return;
     const onClick = (e: MouseEvent) => {
       if (sbdmRef.current && !sbdmRef.current.contains(e.target as Node)) setOpen(false);

@@ -1,3 +1,25 @@
+/* ── Reset (replaces Tailwind preflight) ───────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+img, picture, video, canvas, svg {
+  display: block;
+  max-width: 100%;
+}
+
+input, button, textarea, select {
+  font: inherit;
+  color: inherit;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
 /* ── Nav hide/show page shift ──────────────────────────────────── */
 :root {
   --nav-h: 0px;
@@ -26,6 +48,8 @@ body {
   background: #0a0a0a;
   color: #ededed;
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
 }
 
 /* ── Scrollbar ─────────────────────────────────────────────────── */

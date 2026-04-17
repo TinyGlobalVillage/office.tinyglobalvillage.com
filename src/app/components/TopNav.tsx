@@ -18,7 +18,14 @@ const navLinks = [
   { label: "Storage", href: "/dashboard/storage" },
   { label: "Editor", href: "/dashboard/editor" },
   { label: "Database", href: "/dashboard/database" },
+  { label: "Email", href: "/dashboard/email" },
   { label: "Utils", href: "/dashboard/utils" },
+];
+
+const modalLinks = [
+  { label: "Claude", event: "open-claude", glow: "orange" },
+  { label: "Sandbox", event: "open-sandbox", glow: "pink" },
+  { label: "Library", event: "open-library", glow: "violet" },
 ];
 
 function BalloonSVG({ size = 30 }: { size?: number }) {
@@ -165,6 +172,33 @@ const DDMLink = styled(Link)<{ $active?: boolean }>`
   &:hover {
     color: ${colors.pink};
     background: rgba(${rgb.pink}, 0.07);
+  }
+`;
+
+const DDMDivider = styled.div`
+  height: 1px;
+  margin: 0.25rem 0;
+  background: var(--t-border);
+`;
+
+const DDMBtn = styled.button<{ $glow?: string }>`
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  width: 100%;
+  padding: 0.375rem 0.75rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s;
+  color: ${(p) => p.$glow || "var(--t-textMuted)"};
+
+  &:hover {
+    background: var(--t-inputBg);
   }
 `;
 
@@ -491,6 +525,19 @@ export default function TopNav() {
                       </DDMLink>
                     );
                   })}
+                  <DDMDivider />
+                  {modalLinks.map((ml) => (
+                    <DDMBtn
+                      key={ml.event}
+                      $glow={colors[ml.glow as keyof typeof colors]}
+                      onClick={() => {
+                        window.dispatchEvent(new CustomEvent(ml.event));
+                        setMenuOpen(false);
+                      }}
+                    >
+                      {ml.label}
+                    </DDMBtn>
+                  ))}
                 </DDMMenu>
               )}
             </div>
