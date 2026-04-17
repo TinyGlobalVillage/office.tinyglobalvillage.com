@@ -1,10 +1,166 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import styled from "styled-components";
+import { colors, rgb } from "../../theme";
+
+/* ------------------------------------------------------------------ */
+/*  Styled                                                            */
+/* ------------------------------------------------------------------ */
+
+const Wrapper = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 3rem 2rem;
+`;
+
+const Card = styled.div`
+  width: 100%;
+  max-width: 24rem;
+  border-radius: 1rem;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  background: var(--t-surface);
+  border: 1px solid rgba(${rgb.cyan}, 0.15);
+  box-shadow: 0 8px 40px var(--t-overlay);
+
+  [data-theme="light"] & {
+    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.12);
+  }
+`;
+
+const Header = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+`;
+
+const IconBox = styled.div`
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  background: rgba(${rgb.cyan}, 0.1);
+  border: 1px solid rgba(${rgb.cyan}, 0.2);
+`;
+
+const TitleBlock = styled.div`
+  text-align: center;
+`;
+
+const Title = styled.div`
+  color: var(--t-text);
+  font-weight: 600;
+  font-size: 0.875rem;
+`;
+
+const Subtitle = styled.div`
+  font-size: 0.6875rem;
+  margin-top: 0.125rem;
+  color: var(--t-textGhost);
+`;
+
+const FieldGroup = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+`;
+
+const Label = styled.label`
+  font-size: 0.625rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 700;
+  color: var(--t-textFaint);
+`;
+
+const PinInput = styled.input<{ $hasError: boolean }>`
+  width: 100%;
+  border-radius: 0.5rem;
+  padding: 0.625rem 0.75rem;
+  font-size: 0.875rem;
+  font-family: monospace;
+  letter-spacing: 0.2em;
+  outline: none;
+  transition: all 0.15s ease;
+  background: var(--t-inputBg);
+  border: 1px solid ${(p) => (p.$hasError ? `rgba(${rgb.red}, 0.5)` : "var(--t-border)")};
+  color: var(--t-text);
+
+  &::placeholder {
+    color: var(--t-textGhost);
+  }
+
+  &:focus {
+    border-color: rgba(${rgb.cyan}, 0.4);
+  }
+`;
+
+const ErrorText = styled.div`
+  font-size: 0.6875rem;
+  color: rgba(${rgb.red}, 0.8);
+`;
+
+const ButtonRow = styled.div`
+  display: flex;
+  gap: 0.5rem;
+`;
+
+const CancelBtn = styled.button`
+  flex: 1;
+  padding: 0.5rem 0;
+  border-radius: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  transition: all 0.15s ease;
+  background: var(--t-surface);
+  border: 1px solid var(--t-border);
+  color: var(--t-textMuted);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--t-inputBg);
+  }
+`;
+
+const UnlockBtn = styled.button`
+  flex: 1;
+  padding: 0.5rem 0;
+  border-radius: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  transition: all 0.15s ease;
+  background: rgba(${rgb.cyan}, 0.15);
+  border: 1px solid rgba(${rgb.cyan}, 0.35);
+  color: ${colors.cyan};
+  cursor: pointer;
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+
+  &:not(:disabled):hover {
+    background: rgba(${rgb.cyan}, 0.25);
+  }
+`;
+
+/* ------------------------------------------------------------------ */
+/*  Component                                                         */
+/* ------------------------------------------------------------------ */
 
 type Props = {
-  account: string;       // "gio" | "marmar"
-  email: string;         // display email
+  account: string;
+  email: string;
   onVerified: () => void;
   onCancel: () => void;
 };
@@ -45,36 +201,19 @@ export default function AccessGate({ account, email, onVerified, onCancel }: Pro
   };
 
   return (
-    <div className="flex flex-col items-center justify-center h-full px-8 py-12">
-      <div
-        className="w-full max-w-sm rounded-2xl p-8 flex flex-col gap-6"
-        style={{
-          background: "rgba(255,255,255,0.04)",
-          border: "1px solid rgba(0,191,255,0.15)",
-          boxShadow: "0 8px 40px rgba(0,0,0,0.5)",
-        }}
-      >
-        {/* Lock icon */}
-        <div className="flex flex-col items-center gap-3">
-          <div
-            className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl"
-            style={{ background: "rgba(0,191,255,0.1)", border: "1px solid rgba(0,191,255,0.2)" }}
-          >
-            🔒
-          </div>
-          <div className="text-center">
-            <div className="text-white font-semibold text-sm">Personal Inbox</div>
-            <div className="text-[11px] mt-0.5" style={{ color: "rgba(255,255,255,0.4)" }}>
-              {email}
-            </div>
-          </div>
-        </div>
+    <Wrapper>
+      <Card>
+        <Header>
+          <IconBox>🔒</IconBox>
+          <TitleBlock>
+            <Title>Personal Inbox</Title>
+            <Subtitle>{email}</Subtitle>
+          </TitleBlock>
+        </Header>
 
-        <div className="flex flex-col gap-2">
-          <label className="text-[10px] uppercase tracking-widest font-bold" style={{ color: "rgba(255,255,255,0.3)" }}>
-            Enter PIN
-          </label>
-          <input
+        <FieldGroup>
+          <Label>Enter PIN</Label>
+          <PinInput
             ref={inputRef}
             type="password"
             inputMode="numeric"
@@ -83,47 +222,18 @@ export default function AccessGate({ account, email, onVerified, onCancel }: Pro
             onChange={(e) => setPin(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && submit()}
             placeholder="••••••••"
-            className="w-full rounded-lg px-3 py-2.5 text-sm font-mono outline-none transition-all"
-            style={{
-              background: "rgba(255,255,255,0.06)",
-              border: `1px solid ${error ? "rgba(255,80,80,0.5)" : "rgba(255,255,255,0.12)"}`,
-              color: "#fff",
-              letterSpacing: "0.2em",
-            }}
+            $hasError={!!error}
           />
-          {error && (
-            <div className="text-[11px]" style={{ color: "rgba(255,80,80,0.8)" }}>
-              {error}
-            </div>
-          )}
-        </div>
+          {error && <ErrorText>{error}</ErrorText>}
+        </FieldGroup>
 
-        <div className="flex gap-2">
-          <button
-            onClick={onCancel}
-            className="flex-1 py-2 rounded-lg text-xs font-semibold transition-all"
-            style={{
-              background: "rgba(255,255,255,0.05)",
-              border: "1px solid rgba(255,255,255,0.1)",
-              color: "rgba(255,255,255,0.4)",
-            }}
-          >
-            Cancel
-          </button>
-          <button
-            onClick={submit}
-            disabled={loading || !pin.trim()}
-            className="flex-1 py-2 rounded-lg text-xs font-semibold transition-all disabled:opacity-40"
-            style={{
-              background: "rgba(0,191,255,0.15)",
-              border: "1px solid rgba(0,191,255,0.35)",
-              color: "#00bfff",
-            }}
-          >
+        <ButtonRow>
+          <CancelBtn onClick={onCancel}>Cancel</CancelBtn>
+          <UnlockBtn onClick={submit} disabled={loading || !pin.trim()}>
             {loading ? "Verifying…" : "Unlock"}
-          </button>
-        </div>
-      </div>
-    </div>
+          </UnlockBtn>
+        </ButtonRow>
+      </Card>
+    </Wrapper>
   );
 }

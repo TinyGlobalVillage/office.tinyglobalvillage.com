@@ -1,6 +1,190 @@
 "use client";
 
 import { useRef, useState, useEffect } from "react";
+import styled from "styled-components";
+import { colors, rgb } from "../../theme";
+
+/* ------------------------------------------------------------------ */
+/*  Styled                                                            */
+/* ------------------------------------------------------------------ */
+
+const Bar = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.5rem 0.75rem;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--t-border);
+`;
+
+const SwitcherWrap = styled.div`
+  position: relative;
+  flex: 1;
+  min-width: 0;
+`;
+
+const TriggerBtn = styled.button<{ $open: boolean }>`
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.625rem;
+  border-radius: 0.5rem;
+  text-align: left;
+  transition: all 0.15s ease;
+  background: ${(p) =>
+    p.$open ? `rgba(${rgb.cyan}, 0.1)` : "var(--t-surface)"};
+  border: 1px solid var(--t-border);
+  cursor: pointer;
+
+  &:hover {
+    background: ${(p) =>
+      p.$open ? `rgba(${rgb.cyan}, 0.1)` : "var(--t-inputBg)"};
+  }
+`;
+
+const Avatar = styled.span`
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 9999px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.625rem;
+  font-weight: 700;
+  background: rgba(${rgb.cyan}, 0.2);
+  color: ${colors.cyan};
+`;
+
+const AvatarLg = styled(Avatar)`
+  width: 1.5rem;
+  height: 1.5rem;
+  font-size: 0.6875rem;
+  background: rgba(${rgb.cyan}, 0.15);
+`;
+
+const InfoBlock = styled.div`
+  flex: 1;
+  min-width: 0;
+`;
+
+const AccountName = styled.div<{ $highlight?: boolean }>`
+  font-size: 0.75rem;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: ${(p) => (p.$highlight ? colors.cyan : "var(--t-text)")};
+`;
+
+const AccountEmail = styled.div`
+  font-size: 0.625rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--t-textFaint);
+`;
+
+const LockBadge = styled.span<{ $unlocked: boolean }>`
+  font-size: 0.5625rem;
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.25rem;
+  flex-shrink: 0;
+  background: ${(p) =>
+    p.$unlocked
+      ? `rgba(${rgb.green}, 0.15)`
+      : `rgba(${rgb.gold}, 0.15)`};
+  color: ${(p) =>
+    p.$unlocked
+      ? `rgba(${rgb.green}, 0.8)`
+      : `rgba(${rgb.gold}, 0.8)`};
+  border: 1px solid
+    ${(p) =>
+      p.$unlocked
+        ? `rgba(${rgb.green}, 0.3)`
+        : `rgba(${rgb.gold}, 0.3)`};
+`;
+
+const LockIcon = styled.span<{ $unlocked: boolean }>`
+  font-size: 0.5625rem;
+  color: ${(p) =>
+    p.$unlocked
+      ? `rgba(${rgb.green}, 0.6)`
+      : `rgba(${rgb.gold}, 0.6)`};
+`;
+
+const Chevron = styled.span`
+  font-size: 0.625rem;
+  color: var(--t-textGhost);
+`;
+
+const Dropdown = styled.div`
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 0.25rem;
+  width: 100%;
+  z-index: 50;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  background: var(--t-bg);
+  border: 1px solid rgba(${rgb.cyan}, 0.15);
+  box-shadow: 0 8px 40px var(--t-overlay);
+
+  [data-theme="light"] & {
+    background: var(--t-bg);
+    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.15);
+  }
+`;
+
+const DropdownItem = styled.button<{ $selected: boolean }>`
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 0.75rem;
+  text-align: left;
+  transition: all 0.15s ease;
+  background: ${(p) =>
+    p.$selected ? `rgba(${rgb.cyan}, 0.08)` : "transparent"};
+  border: none;
+  border-bottom: 1px solid var(--t-border);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--t-surface);
+  }
+`;
+
+const CheckMark = styled.span`
+  font-size: 0.625rem;
+  color: rgba(${rgb.cyan}, 0.6);
+`;
+
+const SettingsBtn = styled.button`
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+  color: var(--t-textMuted);
+  font-size: 1.375rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--t-surface);
+  }
+`;
+
+/* ------------------------------------------------------------------ */
+/*  Component                                                         */
+/* ------------------------------------------------------------------ */
 
 export type AccountMeta = {
   key: string;
@@ -17,14 +201,20 @@ type Props = {
   onSettings: () => void;
 };
 
-export default function AccountSwitcher({ accounts, selected, onSelect, onSettings }: Props) {
+export default function AccountSwitcher({
+  accounts,
+  selected,
+  onSelect,
+  onSettings,
+}: Props) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
     const onClick = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      if (ref.current && !ref.current.contains(e.target as Node))
+        setOpen(false);
     };
     document.addEventListener("keydown", onKey);
     document.addEventListener("mousedown", onClick);
@@ -37,101 +227,55 @@ export default function AccountSwitcher({ accounts, selected, onSelect, onSettin
   const current = accounts.find((a) => a.key === selected);
 
   return (
-    <div className="flex items-center gap-1 px-3 py-2 flex-shrink-0" style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-      {/* Account dropdown */}
-      <div ref={ref} className="relative flex-1 min-w-0">
-        <button
-          onClick={() => setOpen((p) => !p)}
-          className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left transition-all"
-          style={{
-            background: open ? "rgba(0,191,255,0.1)" : "rgba(255,255,255,0.04)",
-            border: "1px solid rgba(255,255,255,0.08)",
-          }}
-        >
-          <span
-            className="w-5 h-5 rounded-full flex-shrink-0 flex items-center justify-center text-[10px] font-bold"
-            style={{ background: "rgba(0,191,255,0.2)", color: "#00bfff" }}
-          >
-            {current?.label?.[0] ?? "?"}
-          </span>
-          <div className="flex-1 min-w-0">
-            <div className="text-xs font-semibold truncate" style={{ color: "rgba(255,255,255,0.85)" }}>
-              {current?.label ?? "—"}
-            </div>
-            <div className="text-[10px] truncate" style={{ color: "rgba(255,255,255,0.35)" }}>
-              {current?.email ?? ""}
-            </div>
-          </div>
+    <Bar>
+      <SwitcherWrap ref={ref}>
+        <TriggerBtn onClick={() => setOpen((p) => !p)} $open={open}>
+          <Avatar>{current?.label?.[0] ?? "?"}</Avatar>
+          <InfoBlock>
+            <AccountName>{current?.label ?? "—"}</AccountName>
+            <AccountEmail>{current?.email ?? ""}</AccountEmail>
+          </InfoBlock>
           {current?.personal && (
-            <span className="text-[9px] px-1.5 py-0.5 rounded flex-shrink-0"
-              style={{
-                background: current.unlocked ? "rgba(0,220,100,0.15)" : "rgba(255,200,0,0.15)",
-                color: current.unlocked ? "rgba(0,220,100,0.8)" : "rgba(255,200,0,0.8)",
-                border: `1px solid ${current.unlocked ? "rgba(0,220,100,0.3)" : "rgba(255,200,0,0.3)"}`,
-              }}
-            >
+            <LockBadge $unlocked={current.unlocked}>
               {current.unlocked ? "🔓" : "🔒"}
-            </span>
+            </LockBadge>
           )}
-          <span className="text-[10px]" style={{ color: "rgba(255,255,255,0.2)" }}>▾</span>
-        </button>
+          <Chevron>▾</Chevron>
+        </TriggerBtn>
 
         {open && (
-          <div
-            className="absolute top-full left-0 mt-1 w-full z-50 rounded-xl overflow-hidden"
-            style={{
-              background: "rgba(14,17,23,0.98)",
-              border: "1px solid rgba(0,191,255,0.15)",
-              boxShadow: "0 8px 40px rgba(0,0,0,0.6)",
-            }}
-          >
+          <Dropdown>
             {accounts.map((acc) => (
-              <button
+              <DropdownItem
                 key={acc.key}
-                onClick={() => { onSelect(acc.key); setOpen(false); }}
-                className="w-full flex items-center gap-2 px-3 py-2.5 text-left transition-all hover:bg-white/5"
-                style={{
-                  background: acc.key === selected ? "rgba(0,191,255,0.08)" : "transparent",
-                  borderBottom: "1px solid rgba(255,255,255,0.04)",
+                onClick={() => {
+                  onSelect(acc.key);
+                  setOpen(false);
                 }}
+                $selected={acc.key === selected}
               >
-                <span
-                  className="w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center text-[11px] font-bold"
-                  style={{ background: "rgba(0,191,255,0.15)", color: "#00bfff" }}
-                >
-                  {acc.label[0]}
-                </span>
-                <div className="flex-1 min-w-0">
-                  <div className="text-xs font-semibold truncate" style={{ color: acc.key === selected ? "#00bfff" : "rgba(255,255,255,0.8)" }}>
+                <AvatarLg>{acc.label[0]}</AvatarLg>
+                <InfoBlock>
+                  <AccountName $highlight={acc.key === selected}>
                     {acc.label}
-                  </div>
-                  <div className="text-[10px] truncate" style={{ color: "rgba(255,255,255,0.3)" }}>
-                    {acc.email}
-                  </div>
-                </div>
+                  </AccountName>
+                  <AccountEmail>{acc.email}</AccountEmail>
+                </InfoBlock>
                 {acc.personal && (
-                  <span className="text-[9px]" style={{ color: acc.unlocked ? "rgba(0,220,100,0.6)" : "rgba(255,200,0,0.6)" }}>
+                  <LockIcon $unlocked={acc.unlocked}>
                     {acc.unlocked ? "🔓" : "🔒"}
-                  </span>
+                  </LockIcon>
                 )}
-                {acc.key === selected && (
-                  <span className="text-[10px]" style={{ color: "rgba(0,191,255,0.6)" }}>✓</span>
-                )}
-              </button>
+                {acc.key === selected && <CheckMark>✓</CheckMark>}
+              </DropdownItem>
             ))}
-          </div>
+          </Dropdown>
         )}
-      </div>
+      </SwitcherWrap>
 
-      {/* Settings gear */}
-      <button
-        onClick={onSettings}
-        title="Email settings"
-        className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-all hover:bg-white/10"
-        style={{ color: "rgba(255,255,255,0.55)", fontSize: 22 }}
-      >
+      <SettingsBtn onClick={onSettings} title="Email settings">
         ⚙
-      </button>
-    </div>
+      </SettingsBtn>
+    </Bar>
   );
 }

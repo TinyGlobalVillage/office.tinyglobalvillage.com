@@ -1,6 +1,63 @@
 "use client";
 
 import { Component, type ReactNode } from "react";
+import styled from "styled-components";
+import { colors, rgb } from "../../theme";
+
+/* ------------------------------------------------------------------ */
+/*  Styled                                                            */
+/* ------------------------------------------------------------------ */
+
+const Wrapper = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 1rem;
+  padding: 0 1.5rem;
+`;
+
+const Icon = styled.div`
+  font-size: 1.5rem;
+`;
+
+const TextBlock = styled.div`
+  text-align: center;
+`;
+
+const ErrorTitle = styled.div`
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+  color: rgba(${rgb.pink}, 0.8);
+`;
+
+const ErrorMessage = styled.div`
+  font-size: 0.625rem;
+  margin-bottom: 0.75rem;
+  color: var(--t-textFaint);
+`;
+
+const RetryBtn = styled.button`
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  transition: all 0.15s ease;
+  background: rgba(${rgb.pink}, 0.12);
+  border: 1px solid rgba(${rgb.pink}, 0.35);
+  color: ${colors.pink};
+  cursor: pointer;
+
+  &:hover {
+    background: rgba(${rgb.pink}, 0.22);
+  }
+`;
+
+/* ------------------------------------------------------------------ */
+/*  Component                                                         */
+/* ------------------------------------------------------------------ */
 
 type Props = { children: ReactNode };
 type State = { error: Error | null };
@@ -22,28 +79,16 @@ export default class EmailErrorBoundary extends Component<Props, State> {
   render() {
     if (this.state.error) {
       return (
-        <div className="flex flex-col items-center justify-center h-full gap-4 px-6">
-          <div className="text-2xl">⚠</div>
-          <div className="text-center">
-            <div className="text-xs font-semibold mb-1" style={{ color: "rgba(255,78,203,0.8)" }}>
-              Mail client error
-            </div>
-            <div className="text-[10px] mb-3" style={{ color: "rgba(255,255,255,0.3)" }}>
-              {this.state.error.message}
-            </div>
-          </div>
-          <button
-            onClick={() => this.setState({ error: null })}
-            className="px-4 py-2 rounded-lg text-xs font-bold transition-all"
-            style={{
-              background: "rgba(255,78,203,0.12)",
-              border: "1px solid rgba(255,78,203,0.35)",
-              color: "#ff4ecb",
-            }}
-          >
+        <Wrapper>
+          <Icon>⚠</Icon>
+          <TextBlock>
+            <ErrorTitle>Mail client error</ErrorTitle>
+            <ErrorMessage>{this.state.error.message}</ErrorMessage>
+          </TextBlock>
+          <RetryBtn onClick={() => this.setState({ error: null })}>
             ↺ Retry
-          </button>
-        </div>
+          </RetryBtn>
+        </Wrapper>
       );
     }
     return this.props.children;

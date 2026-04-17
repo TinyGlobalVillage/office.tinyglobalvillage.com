@@ -1,5 +1,204 @@
 "use client";
 
+import styled, { keyframes } from "styled-components";
+import { colors, rgb } from "../../theme";
+
+/* ------------------------------------------------------------------ */
+/*  Styled                                                            */
+/* ------------------------------------------------------------------ */
+
+const pulse = keyframes`
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+`;
+
+const Container = styled.div`
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+`;
+
+const StatusBar = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.375rem 0.75rem;
+  flex-shrink: 0;
+  font-size: 0.625rem;
+  border-bottom: 1px solid var(--t-border);
+  color: var(--t-textFaint);
+`;
+
+const PulseText = styled.span`
+  animation: ${pulse} 1.5s ease-in-out infinite;
+`;
+
+const ScrollArea = styled.div`
+  flex: 1;
+  overflow-y: auto;
+`;
+
+const EmptyState = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 6rem;
+  font-size: 0.6875rem;
+  color: var(--t-textGhost);
+`;
+
+const MessageRow = styled.button<{ $selected: boolean }>`
+  width: 100%;
+  text-align: left;
+  transition: all 0.15s ease;
+  background: ${(p) => (p.$selected ? `rgba(${rgb.cyan}, 0.08)` : "transparent")};
+  border: none;
+  border-bottom: 1px solid var(--t-border);
+  border-left: 2px solid ${(p) => (p.$selected ? colors.cyan : "transparent")};
+  cursor: pointer;
+
+  &:hover {
+    background: ${(p) =>
+      p.$selected ? `rgba(${rgb.cyan}, 0.08)` : "var(--t-surface)"};
+  }
+
+  [data-theme="light"] & {
+    border-bottom-color: var(--t-border);
+  }
+`;
+
+const RowInner = styled.div`
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.625rem 0.75rem;
+`;
+
+const DotWrap = styled.div`
+  flex-shrink: 0;
+  margin-top: 0.375rem;
+`;
+
+const UnreadDot = styled.div<{ $visible: boolean }>`
+  width: 0.375rem;
+  height: 0.375rem;
+  border-radius: 9999px;
+  background: ${(p) => (p.$visible ? colors.cyan : "transparent")};
+`;
+
+const Content = styled.div`
+  flex: 1;
+  min-width: 0;
+`;
+
+const TopLine = styled.div`
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.25rem;
+  margin-bottom: 0.125rem;
+`;
+
+const FromName = styled.span<{ $unread: boolean }>`
+  font-size: 0.6875rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: ${(p) => (p.$unread ? 700 : 400)};
+  color: ${(p) => (p.$unread ? "var(--t-text)" : "var(--t-textMuted)")};
+`;
+
+const DateLabel = styled.span`
+  font-size: 0.5625rem;
+  flex-shrink: 0;
+  margin-left: 0.25rem;
+  color: var(--t-textGhost);
+`;
+
+const Subject = styled.div<{ $unread: boolean }>`
+  font-size: 0.6875rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-bottom: 0.125rem;
+  font-weight: ${(p) => (p.$unread ? 600 : 400)};
+  color: ${(p) => (p.$unread ? "var(--t-textMuted)" : "var(--t-textFaint)")};
+`;
+
+const PreviewRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+`;
+
+const Preview = styled.span`
+  font-size: 0.625rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  color: var(--t-textGhost);
+`;
+
+const ActionGroup = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.125rem;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+
+  ${MessageRow}:hover & {
+    opacity: 1;
+  }
+`;
+
+const MetaIcon = styled.span`
+  font-size: 0.5625rem;
+  color: var(--t-textFaint);
+`;
+
+const ActionBtn = styled.button`
+  padding: 0 0.25rem;
+  font-size: 0.5625rem;
+  border-radius: 0.25rem;
+  transition: all 0.15s ease;
+  color: var(--t-textFaint);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--t-surface);
+  }
+`;
+
+const LoadMoreBtn = styled.button`
+  width: 100%;
+  padding: 0.75rem 0;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  transition: all 0.15s ease;
+  color: rgba(${rgb.cyan}, 0.6);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--t-surface);
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+`;
+
+/* ------------------------------------------------------------------ */
+/*  Component                                                         */
+/* ------------------------------------------------------------------ */
+
 type EmailSummary = {
   id: string;
   subject: string | null;
@@ -18,10 +217,15 @@ type Props = {
   loading: boolean;
   onSelect: (id: string) => void;
   onLoadMore: () => void;
-  onAction: (id: string, action: "markRead" | "markUnread" | "flag" | "unflag" | "trash") => void;
+  onAction: (
+    id: string,
+    action: "markRead" | "markUnread" | "flag" | "unflag" | "trash",
+  ) => void;
 };
 
-function fromLabel(from: { name?: string; email: string }[] | null | undefined): string {
+function fromLabel(
+  from: { name?: string; email: string }[] | null | undefined,
+): string {
   if (!from || !from.length) return "(no sender)";
   const f = from[0];
   return f?.name || f?.email || "(no sender)";
@@ -36,7 +240,6 @@ function relativeDate(iso: string | null | undefined): string {
   const mins = diff / 60000;
   const hours = mins / 60;
   const days = hours / 24;
-
   if (mins < 1) return "just now";
   if (mins < 60) return `${Math.floor(mins)}m`;
   if (hours < 24) return `${Math.floor(hours)}h`;
@@ -45,127 +248,101 @@ function relativeDate(iso: string | null | undefined): string {
 }
 
 export default function MessageList({
-  messages, selected, total, loading, onSelect, onLoadMore, onAction,
+  messages,
+  selected,
+  total,
+  loading,
+  onSelect,
+  onLoadMore,
+  onAction,
 }: Props) {
   return (
-    <div className="flex flex-col h-full overflow-hidden">
-      {/* Header */}
-      <div
-        className="flex items-center justify-between px-3 py-1.5 flex-shrink-0 text-[10px]"
-        style={{ borderBottom: "1px solid rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.3)" }}
-      >
-        <span>{messages.length} of {total}</span>
-        {loading && <span className="animate-pulse">loading…</span>}
-      </div>
+    <Container>
+      <StatusBar>
+        <span>
+          {messages.length} of {total}
+        </span>
+        {loading && <PulseText>loading…</PulseText>}
+      </StatusBar>
 
-      {/* List */}
-      <div className="flex-1 overflow-y-auto">
+      <ScrollArea>
         {messages.length === 0 && !loading && (
-          <div className="flex items-center justify-center h-24 text-[11px]" style={{ color: "rgba(255,255,255,0.2)" }}>
-            No messages
-          </div>
+          <EmptyState>No messages</EmptyState>
         )}
 
         {messages.map((msg) => (
-          <button
+          <MessageRow
             key={msg.id}
             onClick={() => onSelect(msg.id)}
-            className="w-full text-left transition-all group"
-            style={{
-              background: selected === msg.id ? "rgba(0,191,255,0.08)" : "transparent",
-              borderBottom: "1px solid rgba(255,255,255,0.04)",
-              borderLeft: `2px solid ${selected === msg.id ? "#00bfff" : "transparent"}`,
-            }}
+            $selected={selected === msg.id}
           >
-            <div className="flex items-start gap-2 px-3 py-2.5">
-              {/* Unread dot */}
-              <div className="flex-shrink-0 mt-1.5">
-                {msg.unread
-                  ? <div className="w-1.5 h-1.5 rounded-full" style={{ background: "#00bfff" }} />
-                  : <div className="w-1.5 h-1.5 rounded-full" style={{ background: "transparent" }} />
-                }
-              </div>
+            <RowInner>
+              <DotWrap>
+                <UnreadDot $visible={msg.unread} />
+              </DotWrap>
 
-              <div className="flex-1 min-w-0">
-                {/* From + date row */}
-                <div className="flex items-baseline justify-between gap-1 mb-0.5">
-                  <span
-                    className="text-[11px] truncate"
-                    style={{
-                      fontWeight: msg.unread ? 700 : 400,
-                      color: msg.unread ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.55)",
-                    }}
-                  >
+              <Content>
+                <TopLine>
+                  <FromName $unread={msg.unread}>
                     {fromLabel(msg.from)}
-                  </span>
-                  <span className="text-[9px] flex-shrink-0 ml-1" style={{ color: "rgba(255,255,255,0.25)" }}>
-                    {relativeDate(msg.receivedAt)}
-                  </span>
-                </div>
+                  </FromName>
+                  <DateLabel>{relativeDate(msg.receivedAt)}</DateLabel>
+                </TopLine>
 
-                {/* Subject */}
-                <div
-                  className="text-[11px] truncate mb-0.5"
-                  style={{
-                    fontWeight: msg.unread ? 600 : 400,
-                    color: msg.unread ? "rgba(255,255,255,0.75)" : "rgba(255,255,255,0.4)",
-                  }}
-                >
+                <Subject $unread={msg.unread}>
                   {msg.subject ?? "(no subject)"}
-                </div>
+                </Subject>
 
-                {/* Preview + icons */}
-                <div className="flex items-center gap-1">
-                  <span className="text-[10px] truncate flex-1" style={{ color: "rgba(255,255,255,0.2)" }}>
-                    {msg.preview}
-                  </span>
-                  <div className="flex items-center gap-0.5 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                    {msg.hasAttachment && <span className="text-[9px]" style={{ color: "rgba(255,255,255,0.3)" }}>📎</span>}
-                    {msg.flagged && <span className="text-[9px]">⭐</span>}
-                    {/* Quick actions */}
-                    <button
-                      onClick={(e) => { e.stopPropagation(); onAction(msg.id, msg.unread ? "markRead" : "markUnread"); }}
+                <PreviewRow>
+                  <Preview>{msg.preview}</Preview>
+                  <ActionGroup>
+                    {msg.hasAttachment && <MetaIcon>📎</MetaIcon>}
+                    {msg.flagged && <MetaIcon>⭐</MetaIcon>}
+                    <ActionBtn
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onAction(
+                          msg.id,
+                          msg.unread ? "markRead" : "markUnread",
+                        );
+                      }}
                       title={msg.unread ? "Mark read" : "Mark unread"}
-                      className="px-1 text-[9px] rounded transition-all hover:bg-white/10"
-                      style={{ color: "rgba(255,255,255,0.3)" }}
                     >
                       {msg.unread ? "✓" : "●"}
-                    </button>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); onAction(msg.id, msg.flagged ? "unflag" : "flag"); }}
+                    </ActionBtn>
+                    <ActionBtn
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onAction(msg.id, msg.flagged ? "unflag" : "flag");
+                      }}
                       title={msg.flagged ? "Unflag" : "Flag"}
-                      className="px-1 text-[9px] rounded transition-all hover:bg-white/10"
-                      style={{ color: "rgba(255,255,255,0.3)" }}
                     >
                       {msg.flagged ? "★" : "☆"}
-                    </button>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); onAction(msg.id, "trash"); }}
+                    </ActionBtn>
+                    <ActionBtn
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onAction(msg.id, "trash");
+                      }}
                       title="Move to trash"
-                      className="px-1 text-[9px] rounded transition-all hover:bg-white/10"
-                      style={{ color: "rgba(255,255,255,0.3)" }}
                     >
                       🗑
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </button>
+                    </ActionBtn>
+                  </ActionGroup>
+                </PreviewRow>
+              </Content>
+            </RowInner>
+          </MessageRow>
         ))}
 
-        {/* Load more */}
         {messages.length < total && (
-          <button
-            onClick={onLoadMore}
-            disabled={loading}
-            className="w-full py-3 text-[11px] font-semibold transition-all hover:bg-white/5 disabled:opacity-40"
-            style={{ color: "rgba(0,191,255,0.6)" }}
-          >
-            {loading ? "Loading…" : `Load more (${total - messages.length} remaining)`}
-          </button>
+          <LoadMoreBtn onClick={onLoadMore} disabled={loading}>
+            {loading
+              ? "Loading…"
+              : `Load more (${total - messages.length} remaining)`}
+          </LoadMoreBtn>
         )}
-      </div>
-    </div>
+      </ScrollArea>
+    </Container>
   );
 }

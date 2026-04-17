@@ -1,5 +1,114 @@
 "use client";
 
+import styled from "styled-components";
+import { colors, rgb } from "../../theme";
+
+/* ------------------------------------------------------------------ */
+/*  Styled                                                            */
+/* ------------------------------------------------------------------ */
+
+const Panel = styled.div`
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.2);
+  border-right: 1px solid var(--t-border);
+
+  [data-theme="light"] & {
+    background: rgba(0, 0, 0, 0.03);
+  }
+`;
+
+const ComposeArea = styled.div`
+  padding: 0.5rem;
+  flex-shrink: 0;
+`;
+
+const ComposeBtn = styled.button`
+  width: 100%;
+  padding: 0.5rem 0;
+  border-radius: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  background: rgba(${rgb.cyan}, 0.15);
+  border: 1px solid rgba(${rgb.cyan}, 0.3);
+  color: ${colors.cyan};
+  cursor: pointer;
+
+  &:hover {
+    background: rgba(${rgb.cyan}, 0.25);
+  }
+`;
+
+const ListArea = styled.div`
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 0.25rem 0.5rem;
+`;
+
+const EmptyText = styled.div`
+  text-align: center;
+  padding: 2rem 0;
+  font-size: 0.6875rem;
+  color: var(--t-textGhost);
+`;
+
+const MailboxBtn = styled.button<{ $selected: boolean; $indent: number }>`
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 0.5rem;
+  transition: all 0.15s ease;
+  text-align: left;
+  padding: 5px ${(p) => 8 + p.$indent * 16}px 5px ${(p) => 8 + p.$indent * 12}px;
+  background: ${(p) => (p.$selected ? `rgba(${rgb.cyan}, 0.12)` : "transparent")};
+  color: ${(p) => (p.$selected ? colors.cyan : "var(--t-textMuted)")};
+  border: none;
+  cursor: pointer;
+
+  &:hover {
+    background: ${(p) =>
+      p.$selected ? `rgba(${rgb.cyan}, 0.12)` : "var(--t-surface)"};
+  }
+`;
+
+const MailboxIcon = styled.span`
+  font-size: 0.75rem;
+  flex-shrink: 0;
+  width: 1rem;
+  text-align: center;
+`;
+
+const MailboxName = styled.span`
+  flex: 1;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+const UnreadBadge = styled.span`
+  font-size: 0.5625rem;
+  font-weight: 700;
+  padding: 0.125rem 0.375rem;
+  border-radius: 9999px;
+  flex-shrink: 0;
+  background: rgba(${rgb.cyan}, 0.2);
+  color: ${colors.cyan};
+`;
+
+/* ------------------------------------------------------------------ */
+/*  Component                                                         */
+/* ------------------------------------------------------------------ */
+
 type Mailbox = {
   id: string;
   name: string;
@@ -44,7 +153,6 @@ export default function MailboxPanel({ mailboxes, selected, onSelect, onCompose 
     return a.sortOrder - b.sortOrder;
   });
 
-  // Separate top-level from sub-folders
   const topLevel = sorted.filter((m) => !m.parentId);
   const children = sorted.filter((m) => !!m.parentId);
 
@@ -55,60 +163,35 @@ export default function MailboxPanel({ mailboxes, selected, onSelect, onCompose 
 
     return (
       <div key={m.id}>
-        <button
+        <MailboxBtn
           onClick={() => onSelect(m.id)}
-          className="w-full flex items-center gap-2 rounded-lg transition-all text-left"
-          style={{
-            padding: `5px ${8 + indent * 16}px 5px ${8 + indent * 12}px`,
-            background: isSelected ? "rgba(0,191,255,0.12)" : "transparent",
-            color: isSelected ? "#00bfff" : "rgba(255,255,255,0.65)",
-          }}
+          $selected={isSelected}
+          $indent={indent}
         >
-          <span className="text-xs flex-shrink-0 w-4 text-center">{icon}</span>
-          <span className="flex-1 text-[11px] font-medium truncate">{m.name}</span>
+          <MailboxIcon>{icon}</MailboxIcon>
+          <MailboxName>{m.name}</MailboxName>
           {m.unreadEmails > 0 && (
-            <span
-              className="text-[9px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0"
-              style={{ background: "rgba(0,191,255,0.2)", color: "#00bfff" }}
-            >
+            <UnreadBadge>
               {m.unreadEmails > 99 ? "99+" : m.unreadEmails}
-            </span>
+            </UnreadBadge>
           )}
-        </button>
+        </MailboxBtn>
         {subs.map((s) => renderMailbox(s, indent + 1))}
       </div>
     );
   };
 
   return (
-    <div
-      className="flex flex-col h-full overflow-hidden"
-      style={{ background: "rgba(0,0,0,0.2)", borderRight: "1px solid rgba(255,255,255,0.06)" }}
-    >
-      {/* Compose button */}
-      <div className="p-2 flex-shrink-0">
-        <button
-          onClick={onCompose}
-          className="w-full py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5"
-          style={{
-            background: "rgba(0,191,255,0.15)",
-            border: "1px solid rgba(0,191,255,0.3)",
-            color: "#00bfff",
-          }}
-        >
+    <Panel>
+      <ComposeArea>
+        <ComposeBtn onClick={onCompose}>
           <span>✏</span> Compose
-        </button>
-      </div>
-
-      {/* Mailbox list */}
-      <div className="flex-1 overflow-y-auto px-1 pb-2">
-        {topLevel.length === 0 && (
-          <div className="text-center py-8 text-[11px]" style={{ color: "rgba(255,255,255,0.2)" }}>
-            Loading…
-          </div>
-        )}
+        </ComposeBtn>
+      </ComposeArea>
+      <ListArea>
+        {topLevel.length === 0 && <EmptyText>Loading…</EmptyText>}
         {topLevel.map((m) => renderMailbox(m))}
-      </div>
-    </div>
+      </ListArea>
+    </Panel>
   );
 }

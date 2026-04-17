@@ -1,6 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import styled from "styled-components";
+import { colors, rgb } from "../../theme";
+import { ModalBackdrop, CloseBtn } from "../../styled";
+
+/* ------------------------------------------------------------------ */
+/*  Types                                                              */
+/* ------------------------------------------------------------------ */
 
 type Sections = {
   mailboxPanel: boolean;
@@ -55,6 +62,359 @@ const SPLIT_MODES: { value: Display["splitMode"]; label: string }[] = [
   { value: "fullList", label: "List only" },
 ];
 
+/* ------------------------------------------------------------------ */
+/*  Styled                                                             */
+/* ------------------------------------------------------------------ */
+
+const Backdrop = styled(ModalBackdrop)`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+
+const Container = styled.div`
+  width: 100%;
+  max-width: 28rem;
+  margin: 0 16px;
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  max-height: 80vh;
+  background: rgba(10, 13, 18, 0.99);
+  border: 1px solid rgba(${rgb.cyan}, 0.18);
+  box-shadow: 0 20px 80px rgba(0, 0, 0, 0.8);
+
+  [data-theme="light"] & {
+    background: rgba(255, 255, 255, 0.99);
+    border-color: var(--t-border);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+  }
+`;
+
+const Header = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  flex-shrink: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+
+  [data-theme="light"] & {
+    border-bottom-color: var(--t-border);
+  }
+`;
+
+const HeaderTitle = styled.span`
+  font-size: 14px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.85);
+
+  [data-theme="light"] & {
+    color: var(--t-text);
+  }
+`;
+
+const CloseButton = styled(CloseBtn)`
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.3);
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  [data-theme="light"] & {
+    color: var(--t-textFaint);
+    &:hover {
+      background: rgba(0, 0, 0, 0.06);
+    }
+  }
+`;
+
+const ScrollBody = styled.div`
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+`;
+
+const LoadingText = styled.div`
+  text-align: center;
+  padding: 32px 0;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.3);
+
+  [data-theme="light"] & {
+    color: var(--t-textFaint);
+  }
+`;
+
+const SectionTitle = styled.h3`
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 700;
+  margin: 0 0 12px;
+  color: rgba(255, 255, 255, 0.3);
+
+  [data-theme="light"] & {
+    color: var(--t-textFaint);
+  }
+`;
+
+const ToggleList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+`;
+
+const ToggleRow = styled.label`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  [data-theme="light"] & {
+    &:hover {
+      background: rgba(0, 0, 0, 0.03);
+    }
+  }
+`;
+
+const ToggleInfo = styled.div`
+  flex: 1;
+  min-width: 0;
+`;
+
+const ToggleName = styled.div`
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.8);
+
+  [data-theme="light"] & {
+    color: var(--t-text);
+  }
+`;
+
+const ToggleDesc = styled.div`
+  font-size: 10px;
+  margin-top: 2px;
+  color: rgba(255, 255, 255, 0.3);
+
+  [data-theme="light"] & {
+    color: var(--t-textFaint);
+  }
+`;
+
+const SwitchTrack = styled.div<{ $on: boolean }>`
+  width: 36px;
+  height: 20px;
+  border-radius: 10px;
+  position: relative;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.15s;
+  background: ${(p) => (p.$on ? `rgba(${rgb.cyan}, 0.4)` : "rgba(255, 255, 255, 0.1)")};
+  border: 1px solid ${(p) => (p.$on ? `rgba(${rgb.cyan}, 0.6)` : "rgba(255, 255, 255, 0.15)")};
+
+  [data-theme="light"] & {
+    background: ${(p) => (p.$on ? `rgba(${rgb.cyan}, 0.3)` : "rgba(0, 0, 0, 0.1)")};
+    border-color: ${(p) => (p.$on ? `rgba(${rgb.cyan}, 0.5)` : "rgba(0, 0, 0, 0.15)")};
+  }
+`;
+
+const SwitchThumb = styled.div<{ $on: boolean }>`
+  position: absolute;
+  top: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  transition: all 0.15s;
+  left: ${(p) => (p.$on ? "calc(100% - 16px)" : "2px")};
+  background: ${(p) => (p.$on ? colors.cyan : "rgba(255, 255, 255, 0.3)")};
+
+  [data-theme="light"] & {
+    background: ${(p) => (p.$on ? colors.cyan : "rgba(0, 0, 0, 0.25)")};
+  }
+`;
+
+const SubLabel = styled.div`
+  font-size: 11px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: var(--t-textMuted, rgba(255, 255, 255, 0.6));
+`;
+
+const AccountList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+`;
+
+const AccountBtn = styled.button<{ $active: boolean }>`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  text-align: left;
+  transition: all 0.15s;
+  cursor: pointer;
+  background: ${(p) => (p.$active ? `rgba(${rgb.cyan}, 0.12)` : "rgba(255, 255, 255, 0.04)")};
+  border: 1px solid ${(p) => (p.$active ? `rgba(${rgb.cyan}, 0.35)` : "rgba(255, 255, 255, 0.08)")};
+
+  [data-theme="light"] & {
+    background: ${(p) => (p.$active ? `rgba(${rgb.cyan}, 0.08)` : "var(--t-surface)")};
+    border-color: ${(p) => (p.$active ? `rgba(${rgb.cyan}, 0.3)` : "var(--t-border)")};
+  }
+`;
+
+const RadioDot = styled.div<{ $active: boolean }>`
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: ${(p) => (p.$active ? colors.cyan : "rgba(255, 255, 255, 0.2)")};
+
+  [data-theme="light"] & {
+    background: ${(p) => (p.$active ? colors.cyan : "rgba(0, 0, 0, 0.15)")};
+  }
+`;
+
+const AccountLabel = styled.span<{ $active: boolean }>`
+  font-size: 11px;
+  font-weight: 600;
+  color: ${(p) => (p.$active ? colors.cyan : "rgba(255, 255, 255, 0.6)")};
+
+  [data-theme="light"] & {
+    color: ${(p) => (p.$active ? colors.cyan : "var(--t-textMuted)")};
+  }
+`;
+
+const AccountEmail = styled.span`
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.3);
+
+  [data-theme="light"] & {
+    color: var(--t-textFaint);
+  }
+`;
+
+const ChipRow = styled.div`
+  display: flex;
+  gap: 6px;
+`;
+
+const Chip = styled.button<{ $active: boolean }>`
+  flex: 1;
+  padding: 6px;
+  font-size: 10px;
+  font-weight: 600;
+  border-radius: 8px;
+  transition: all 0.15s;
+  cursor: pointer;
+  background: ${(p) => (p.$active ? `rgba(${rgb.cyan}, 0.15)` : "rgba(255, 255, 255, 0.04)")};
+  border: 1px solid ${(p) => (p.$active ? `rgba(${rgb.cyan}, 0.35)` : "rgba(255, 255, 255, 0.08)")};
+  color: ${(p) => (p.$active ? colors.cyan : "rgba(255, 255, 255, 0.4)")};
+
+  [data-theme="light"] & {
+    background: ${(p) => (p.$active ? `rgba(${rgb.cyan}, 0.1)` : "var(--t-surface)")};
+    border-color: ${(p) => (p.$active ? `rgba(${rgb.cyan}, 0.3)` : "var(--t-border)")};
+    color: ${(p) => (p.$active ? colors.cyan : "var(--t-textMuted)")};
+  }
+`;
+
+const ZoomChip = styled(Chip)`
+  font-family: monospace;
+  font-weight: 700;
+`;
+
+const Footer = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 20px;
+  flex-shrink: 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+
+  [data-theme="light"] & {
+    border-top-color: var(--t-border);
+  }
+`;
+
+const CancelBtn = styled.button`
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  transition: all 0.15s;
+  color: rgba(255, 255, 255, 0.4);
+  background: none;
+  border: none;
+  cursor: pointer;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  [data-theme="light"] & {
+    color: var(--t-textMuted);
+    &:hover {
+      background: rgba(0, 0, 0, 0.06);
+    }
+  }
+`;
+
+const SaveBtn = styled.button<{ $saved: boolean }>`
+  padding: 8px 20px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  transition: all 0.15s;
+  cursor: pointer;
+  background: ${(p) =>
+    p.$saved ? `rgba(${rgb.green}, 0.15)` : `rgba(${rgb.cyan}, 0.15)`};
+  border: 1px solid
+    ${(p) =>
+      p.$saved ? `rgba(${rgb.green}, 0.35)` : `rgba(${rgb.cyan}, 0.35)`};
+  color: ${(p) => (p.$saved ? `rgba(${rgb.green}, 0.9)` : colors.cyan)};
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+
+  [data-theme="light"] & {
+    background: ${(p) =>
+      p.$saved ? `rgba(${rgb.green}, 0.1)` : `rgba(${rgb.cyan}, 0.1)`};
+  }
+`;
+
+/* ------------------------------------------------------------------ */
+/*  Component                                                          */
+/* ------------------------------------------------------------------ */
+
 export default function EmailSettings({ accounts = [], onClose, onSaved }: Props) {
   const [settings, setSettings] = useState<Settings | null>(null);
   const [saving, setSaving] = useState(false);
@@ -63,7 +423,9 @@ export default function EmailSettings({ accounts = [], onClose, onSaved }: Props
   useEffect(() => {
     fetch("/api/email/settings")
       .then((r) => r.json())
-      .then((d: Settings) => { if (d?.sections && d?.display) setSettings(d); })
+      .then((d: Settings) => {
+        if (d?.sections && d?.display) setSettings(d);
+      })
       .catch(() => {});
   }, []);
 
@@ -91,200 +453,134 @@ export default function EmailSettings({ accounts = [], onClose, onSaved }: Props
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     } catch {
-      // ignore
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center"
-      style={{ background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)" }}
-    >
-      <div
-        className="w-full max-w-md mx-4 rounded-2xl flex flex-col overflow-hidden"
-        style={{
-          background: "rgba(10,13,18,0.99)",
-          border: "1px solid rgba(0,191,255,0.18)",
-          boxShadow: "0 20px 80px rgba(0,0,0,0.8)",
-          maxHeight: "80vh",
-        }}
-      >
-        {/* Header */}
-        <div
-          className="flex items-center justify-between px-5 py-3 flex-shrink-0"
-          style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}
-        >
-          <span className="text-sm font-bold" style={{ color: "rgba(255,255,255,0.85)" }}>
-            ⚙ Email Settings
-          </span>
-          <button
-            onClick={onClose}
-            className="w-7 h-7 rounded-md flex items-center justify-center text-xs hover:bg-white/10 transition-all"
-            style={{ color: "rgba(255,255,255,0.3)" }}
-          >
-            ✕
-          </button>
-        </div>
+    <Backdrop>
+      <Container>
+        <Header>
+          <HeaderTitle>\u2699 Email Settings</HeaderTitle>
+          <CloseButton onClick={onClose}>\u2715</CloseButton>
+        </Header>
 
-        {/* Scrollable content */}
-        <div className="flex-1 overflow-y-auto px-5 py-4 flex flex-col gap-6">
+        <ScrollBody>
           {!settings ? (
-            <div className="text-center py-8 text-[12px]" style={{ color: "rgba(255,255,255,0.3)" }}>
-              Loading settings…
-            </div>
+            <LoadingText>Loading settings\u2026</LoadingText>
           ) : (
             <>
-              {/* ── Sections ─────────────────────────────────────────────── */}
               <section>
-                <h3 className="text-[10px] uppercase tracking-widest font-bold mb-3" style={{ color: "rgba(255,255,255,0.3)" }}>
-                  Interface Sections
-                </h3>
-                <div className="flex flex-col gap-1">
-                  {(Object.keys(settings.sections) as (keyof Sections)[]).map((key) => (
-                    <label
-                      key={key}
-                      className="flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-all hover:bg-white/5"
-                    >
-                      <div className="flex-1 min-w-0">
-                        <div className="text-[12px] font-medium" style={{ color: "rgba(255,255,255,0.8)" }}>
-                          {SECTION_LABELS[key]}
-                        </div>
-                        <div className="text-[10px] mt-0.5" style={{ color: "rgba(255,255,255,0.3)" }}>
-                          {SECTION_DESCRIPTIONS[key]}
-                        </div>
-                      </div>
-                      <div
-                        onClick={() => patchSection(key, !settings.sections[key])}
-                        className="w-9 h-5 rounded-full relative cursor-pointer flex-shrink-0 transition-all"
-                        style={{
-                          background: settings.sections[key] ? "rgba(0,191,255,0.4)" : "rgba(255,255,255,0.1)",
-                          border: `1px solid ${settings.sections[key] ? "rgba(0,191,255,0.6)" : "rgba(255,255,255,0.15)"}`,
-                        }}
-                      >
-                        <div
-                          className="absolute top-0.5 w-3.5 h-3.5 rounded-full transition-all"
-                          style={{
-                            left: settings.sections[key] ? "calc(100% - 16px)" : 2,
-                            background: settings.sections[key] ? "#00bfff" : "rgba(255,255,255,0.3)",
-                          }}
-                        />
-                      </div>
-                    </label>
-                  ))}
-                </div>
+                <SectionTitle>Interface Sections</SectionTitle>
+                <ToggleList>
+                  {(Object.keys(settings.sections) as (keyof Sections)[]).map(
+                    (key) => (
+                      <ToggleRow key={key}>
+                        <ToggleInfo>
+                          <ToggleName>{SECTION_LABELS[key]}</ToggleName>
+                          <ToggleDesc>{SECTION_DESCRIPTIONS[key]}</ToggleDesc>
+                        </ToggleInfo>
+                        <SwitchTrack
+                          $on={settings.sections[key]}
+                          onClick={() =>
+                            patchSection(key, !settings.sections[key])
+                          }
+                        >
+                          <SwitchThumb $on={settings.sections[key]} />
+                        </SwitchTrack>
+                      </ToggleRow>
+                    ),
+                  )}
+                </ToggleList>
               </section>
 
-              {/* ── Display ───────────────────────────────────────────────── */}
               <section>
-                <h3 className="text-[10px] uppercase tracking-widest font-bold mb-3" style={{ color: "rgba(255,255,255,0.3)" }}>
-                  Display
-                </h3>
+                <SectionTitle>Display</SectionTitle>
 
-                {/* Default compose account */}
                 {accounts.length > 1 && (
-                  <div className="mb-3">
-                    <div className="text-[11px] font-semibold mb-1.5" style={{ color: "rgba(255,255,255,0.6)" }}>Default compose account</div>
-                    <div className="flex flex-col gap-1">
+                  <div style={{ marginBottom: 12 }}>
+                    <SubLabel>Default compose account</SubLabel>
+                    <AccountList>
                       {accounts.map((a) => (
-                        <button
+                        <AccountBtn
                           key={a.key}
-                          onClick={() => patchDisplay("defaultAccount", a.key)}
-                          className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-left transition-all"
-                          style={{
-                            background: settings!.display.defaultAccount === a.key ? "rgba(0,191,255,0.12)" : "rgba(255,255,255,0.04)",
-                            border: `1px solid ${settings!.display.defaultAccount === a.key ? "rgba(0,191,255,0.35)" : "rgba(255,255,255,0.08)"}`,
-                          }}
+                          $active={settings!.display.defaultAccount === a.key}
+                          onClick={() =>
+                            patchDisplay("defaultAccount", a.key)
+                          }
                         >
-                          <div
-                            className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                            style={{ background: settings!.display.defaultAccount === a.key ? "#00bfff" : "rgba(255,255,255,0.2)" }}
+                          <RadioDot
+                            $active={
+                              settings!.display.defaultAccount === a.key
+                            }
                           />
-                          <div className="flex flex-col">
-                            <span className="text-[11px] font-semibold" style={{ color: settings!.display.defaultAccount === a.key ? "#00bfff" : "rgba(255,255,255,0.6)" }}>
+                          <div
+                            style={{
+                              display: "flex",
+                              flexDirection: "column",
+                            }}
+                          >
+                            <AccountLabel
+                              $active={
+                                settings!.display.defaultAccount === a.key
+                              }
+                            >
                               {a.label}
-                            </span>
-                            <span className="text-[10px]" style={{ color: "rgba(255,255,255,0.3)" }}>{a.email}</span>
+                            </AccountLabel>
+                            <AccountEmail>{a.email}</AccountEmail>
                           </div>
-                        </button>
+                        </AccountBtn>
                       ))}
-                    </div>
+                    </AccountList>
                   </div>
                 )}
 
-                {/* Split mode */}
-                <div className="mb-3">
-                  <div className="text-[11px] font-semibold mb-1.5" style={{ color: "rgba(255,255,255,0.6)" }}>Reading pane</div>
-                  <div className="flex gap-1.5">
+                <div style={{ marginBottom: 12 }}>
+                  <SubLabel>Reading pane</SubLabel>
+                  <ChipRow>
                     {SPLIT_MODES.map(({ value, label }) => (
-                      <button
+                      <Chip
                         key={value}
+                        $active={settings.display.splitMode === value}
                         onClick={() => patchDisplay("splitMode", value)}
-                        className="flex-1 py-1.5 text-[10px] font-semibold rounded-lg transition-all"
-                        style={{
-                          background: settings.display.splitMode === value ? "rgba(0,191,255,0.15)" : "rgba(255,255,255,0.04)",
-                          border: `1px solid ${settings.display.splitMode === value ? "rgba(0,191,255,0.35)" : "rgba(255,255,255,0.08)"}`,
-                          color: settings.display.splitMode === value ? "#00bfff" : "rgba(255,255,255,0.4)",
-                        }}
                       >
                         {label}
-                      </button>
+                      </Chip>
                     ))}
-                  </div>
+                  </ChipRow>
                 </div>
 
-                {/* Zoom */}
                 <div>
-                  <div className="text-[11px] font-semibold mb-1.5" style={{ color: "rgba(255,255,255,0.6)" }}>Zoom</div>
-                  <div className="flex gap-1.5">
+                  <SubLabel>Zoom</SubLabel>
+                  <ChipRow>
                     {ZOOM_STEPS.map((z) => (
-                      <button
+                      <ZoomChip
                         key={z}
+                        $active={settings.display.zoom === z}
                         onClick={() => patchDisplay("zoom", z)}
-                        className="flex-1 py-1.5 text-[10px] font-mono font-bold rounded-lg transition-all"
-                        style={{
-                          background: settings.display.zoom === z ? "rgba(0,191,255,0.15)" : "rgba(255,255,255,0.04)",
-                          border: `1px solid ${settings.display.zoom === z ? "rgba(0,191,255,0.35)" : "rgba(255,255,255,0.08)"}`,
-                          color: settings.display.zoom === z ? "#00bfff" : "rgba(255,255,255,0.4)",
-                        }}
                       >
                         {Math.round(z * 100)}%
-                      </button>
+                      </ZoomChip>
                     ))}
-                  </div>
+                  </ChipRow>
                 </div>
               </section>
             </>
           )}
-        </div>
+        </ScrollBody>
 
-        {/* Footer */}
-        <div
-          className="flex items-center justify-end gap-2 px-5 py-3 flex-shrink-0"
-          style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }}
-        >
-          <button
-            onClick={onClose}
-            className="px-4 py-2 rounded-lg text-xs font-semibold transition-all hover:bg-white/10"
-            style={{ color: "rgba(255,255,255,0.4)" }}
-          >
-            Cancel
-          </button>
-          <button
+        <Footer>
+          <CancelBtn onClick={onClose}>Cancel</CancelBtn>
+          <SaveBtn
+            $saved={saved}
             onClick={save}
             disabled={saving || !settings}
-            className="px-5 py-2 rounded-lg text-xs font-bold transition-all disabled:opacity-40"
-            style={{
-              background: saved ? "rgba(0,220,100,0.15)" : "rgba(0,191,255,0.15)",
-              border: `1px solid ${saved ? "rgba(0,220,100,0.35)" : "rgba(0,191,255,0.35)"}`,
-              color: saved ? "rgba(0,220,100,0.9)" : "#00bfff",
-            }}
           >
-            {saved ? "✓ Saved" : saving ? "Saving…" : "Save"}
-          </button>
-        </div>
-      </div>
-    </div>
+            {saved ? "\u2713 Saved" : saving ? "Saving\u2026" : "Save"}
+          </SaveBtn>
+        </Footer>
+      </Container>
+    </Backdrop>
   );
 }
