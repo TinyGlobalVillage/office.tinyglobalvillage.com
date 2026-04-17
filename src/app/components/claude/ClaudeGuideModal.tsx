@@ -1,11 +1,35 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import styled from "styled-components";
 import ClaudeIcon from "./ClaudeIcon";
 import { renderMarkdown } from "@/lib/markdown";
+import { colors } from "@/app/theme";
+import {
+  PanelBackdrop,
+  Panel,
+  PanelHeader,
+  PanelIconBtn,
+  PanelActionBtn,
+  PanelError,
+  PanelEditor,
+  PanelMarkdown,
+  PanelTitle,
+  PanelTag,
+  PanelEmptyState,
+  Spacer,
+} from "@/app/styled";
 
-const ORANGE = "#d97757";
-const ORANGE_RGB = "217,119,87";
+/* ── Local styled ──────────────────────────────────────────────── */
+
+const Body = styled.div`
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.25rem 1.5rem;
+  scrollbar-width: thin;
+`;
+
+/* ── Component ─────────────────────────────────────────────────── */
 
 export default function ClaudeGuideModal({ onClose }: { onClose: () => void }) {
   const [content, setContent] = useState<string>("");
@@ -61,93 +85,66 @@ export default function ClaudeGuideModal({ onClose }: { onClose: () => void }) {
     }
   }
 
-  const modalStyle: React.CSSProperties = fullscreen
-    ? { top: 0, left: 0, right: 0, bottom: 0, borderRadius: 0 }
-    : { top: 60, left: "4%", right: "4%", bottom: "4%", borderRadius: 20 };
-
   return (
     <>
-      <div
-        className="fixed inset-0 z-[65]"
-        style={{ background: "rgba(0,0,0,0.78)", backdropFilter: "blur(4px)" }}
-        onClick={onClose}
-      />
-
-      <div
-        className="fixed z-[66] flex flex-col overflow-hidden"
-        style={{
-          ...modalStyle,
-          background: "rgba(6,8,12,0.99)",
-          border: `1px solid rgba(${ORANGE_RGB},0.32)`,
-          boxShadow: `0 24px 80px rgba(0,0,0,0.85), 0 0 32px rgba(${ORANGE_RGB},0.12)`,
-          transition: "all 0.2s cubic-bezier(0.4,0,0.2,1)",
-        }}
-      >
-        <div className="flex items-center gap-3 px-5 py-3 flex-shrink-0" style={{ borderBottom: `1px solid rgba(${ORANGE_RGB},0.18)` }}>
-          <ClaudeIcon size={20} color={ORANGE} />
-          <h2 className="text-sm font-bold" style={{ color: ORANGE }}>Learn Claude Guide</h2>
-          <span className="text-[10px] text-white/30 font-mono">CLAUDE-GUIDE.md</span>
-          <div className="flex-1" />
+      <PanelBackdrop onClick={onClose} />
+      <Panel $fs={fullscreen} $accent="orange">
+        <PanelHeader $accent="orange">
+          <ClaudeIcon size={20} color={colors.orange} />
+          <PanelTitle>Learn Claude Guide</PanelTitle>
+          <PanelTag>CLAUDE-GUIDE.md</PanelTag>
+          <Spacer />
           {editing ? (
             <>
-              <button
+              <PanelActionBtn
+                $variant="ghost"
                 onClick={() => { setEditing(false); setDraft(content); }}
                 disabled={saving}
-                className="px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all"
-                style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.6)" }}
-              >Cancel</button>
-              <button
+              >
+                Cancel
+              </PanelActionBtn>
+              <PanelActionBtn
                 onClick={save}
                 disabled={saving || draft === content}
-                className="px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all disabled:opacity-40"
-                style={{ background: `rgba(${ORANGE_RGB},0.2)`, border: `1px solid rgba(${ORANGE_RGB},0.5)`, color: ORANGE }}
-              >{saving ? "Saving…" : "Save"}</button>
+              >
+                {saving ? "Saving…" : "Save"}
+              </PanelActionBtn>
             </>
           ) : (
-            <button
-              onClick={() => setEditing(true)}
-              disabled={loading}
-              className="px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all"
-              style={{ background: `rgba(${ORANGE_RGB},0.1)`, border: `1px solid rgba(${ORANGE_RGB},0.3)`, color: ORANGE }}
-            >Edit</button>
+            <PanelActionBtn onClick={() => setEditing(true)} disabled={loading}>
+              Edit
+            </PanelActionBtn>
           )}
-          <button
+          <PanelIconBtn
             onClick={() => setFullscreen((p) => !p)}
             title={fullscreen ? "Exit fullscreen" : "Fullscreen"}
-            className="w-7 h-7 rounded-md flex items-center justify-center text-xs hover:bg-white/10 transition-all"
-            style={{ color: "rgba(255,255,255,0.4)" }}
-          >{fullscreen ? "⊡" : "⊞"}</button>
-          <button
-            onClick={onClose}
-            title="Close (Esc)"
-            className="w-7 h-7 rounded-md flex items-center justify-center text-xs hover:bg-white/10 transition-all"
-            style={{ color: "rgba(255,255,255,0.4)" }}
-          >✕</button>
-        </div>
+          >
+            {fullscreen ? "⊑" : "⊞"}
+          </PanelIconBtn>
+          <PanelIconBtn onClick={onClose} title="Close (Esc)">
+            ✕
+          </PanelIconBtn>
+        </PanelHeader>
 
-        <div className="flex-1 overflow-y-auto px-6 py-5" style={{ scrollbarWidth: "thin" }}>
+        <Body>
           {loading ? (
-            <div className="text-center text-white/30 text-sm pt-12">Loading guide…</div>
+            <PanelEmptyState>Loading guide…</PanelEmptyState>
           ) : error ? (
-            <div className="text-xs px-3 py-2 rounded-lg" style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", color: "#fca5a5" }}>
-              {error}
-            </div>
+            <PanelError>{error}</PanelError>
           ) : editing ? (
-            <textarea
+            <PanelEditor
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
               spellCheck={false}
-              className="w-full h-full bg-transparent outline-none text-xs text-white/85 font-mono resize-none rounded-lg px-3 py-2"
-              style={{ border: "1px solid rgba(255,255,255,0.12)", minHeight: 400 }}
             />
           ) : (
-            <div
-              className="md-content text-sm text-white/85 leading-relaxed max-w-3xl"
+            <PanelMarkdown
+              className="md-content"
               dangerouslySetInnerHTML={{ __html: renderMarkdown(content) }}
             />
           )}
-        </div>
-      </div>
+        </Body>
+      </Panel>
     </>
   );
 }

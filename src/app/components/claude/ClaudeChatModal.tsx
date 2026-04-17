@@ -1,13 +1,142 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import styled from "styled-components";
 import ClaudeIcon from "./ClaudeIcon";
 import { renderMarkdown } from "@/lib/markdown";
+import { colors, rgb } from "@/app/theme";
+import {
+  PanelBackdrop,
+  Panel,
+  PanelHeader,
+  PanelIconBtn,
+  PanelActionBtn,
+  PanelError,
+  PanelTitle,
+  PanelTag,
+  Spacer,
+} from "@/app/styled";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
-const ORANGE = "#d97757";
-const ORANGE_RGB = "217,119,87";
+/* ── Local styled ──────────────────────────────────────────────── */
+
+const MsgArea = styled.div`
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  scrollbar-width: thin;
+`;
+
+const MsgRole = styled.span<{ $user?: boolean }>`
+  font-size: 0.625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: ${(p) => (p.$user ? colors.cyan : colors.orange)};
+`;
+
+const MsgText = styled.div`
+  font-size: 0.875rem;
+  color: var(--t-text);
+  opacity: 0.85;
+  line-height: 1.625;
+  white-space: pre-wrap;
+`;
+
+const ThinkDot = styled.span`
+  display: inline-block;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: ${colors.orange};
+  animation: pulse 1.5s ease-in-out infinite;
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+`;
+
+const ThinkRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--t-textFaint);
+`;
+
+const InputBar = styled.div`
+  flex-shrink: 0;
+  padding: 0.75rem 1.25rem;
+  border-top: 1px solid var(--t-border);
+  display: flex;
+  align-items: flex-end;
+  gap: 0.5rem;
+`;
+
+const ChatInput = styled.textarea`
+  flex: 1;
+  background: transparent;
+  outline: none;
+  font-size: 0.875rem;
+  color: var(--t-text);
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  resize: none;
+  border: 1px solid var(--t-borderStrong);
+
+  &::placeholder {
+    color: var(--t-textGhost);
+  }
+
+  &:focus {
+    border-color: rgba(${rgb.orange}, 0.45);
+  }
+`;
+
+const SendBtn = styled.button`
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  transition: all 0.15s;
+  background: rgba(${rgb.orange}, 0.18);
+  border: 1px solid rgba(${rgb.orange}, 0.45);
+  color: ${colors.orange};
+
+  &:hover {
+    background: rgba(${rgb.orange}, 0.28);
+  }
+
+  &:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+`;
+
+const Hint = styled.div`
+  color: var(--t-textFaint);
+  font-size: 0.875rem;
+  padding-top: 3rem;
+  text-align: center;
+`;
+
+const Kbd = styled.kbd`
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.25rem;
+  background: var(--t-inputBg);
+  border: 1px solid var(--t-borderStrong);
+  font-size: 0.625rem;
+`;
+
+/* ── Component ─────────────────────────────────────────────────── */
 
 export default function ClaudeChatModal({ onClose }: { onClose: () => void }) {
   const [messages, setMessages] = useState<Msg[]>([]);
@@ -72,118 +201,77 @@ export default function ClaudeChatModal({ onClose }: { onClose: () => void }) {
     }
   }
 
-  const modalStyle: React.CSSProperties = fullscreen
-    ? { top: 0, left: 0, right: 0, bottom: 0, borderRadius: 0 }
-    : { top: 60, left: "4%", right: "4%", bottom: "4%", borderRadius: 20 };
-
   return (
     <>
-      <div
-        className="fixed inset-0 z-[65]"
-        style={{ background: "rgba(0,0,0,0.78)", backdropFilter: "blur(4px)" }}
-        onClick={onClose}
-      />
-
-      <div
-        className="fixed z-[66] flex flex-col overflow-hidden"
-        style={{
-          ...modalStyle,
-          background: "rgba(6,8,12,0.99)",
-          border: `1px solid rgba(${ORANGE_RGB},0.32)`,
-          boxShadow: `0 24px 80px rgba(0,0,0,0.85), 0 0 32px rgba(${ORANGE_RGB},0.12)`,
-          transition: "all 0.2s cubic-bezier(0.4,0,0.2,1)",
-        }}
-      >
-        {/* Header */}
-        <div
-          className="flex items-center gap-3 px-5 py-3 flex-shrink-0"
-          style={{ borderBottom: `1px solid rgba(${ORANGE_RGB},0.18)` }}
-        >
-          <ClaudeIcon size={20} color={ORANGE} />
-          <h2 className="text-sm font-bold" style={{ color: ORANGE }}>Chat with Claude</h2>
-          <span className="text-[10px] text-white/30">claude-opus-4-6</span>
-          <div className="flex-1" />
-          <button
+      <PanelBackdrop onClick={onClose} />
+      <Panel $fs={fullscreen} $accent="orange">
+        <PanelHeader $accent="orange">
+          <ClaudeIcon size={20} color={colors.orange} />
+          <PanelTitle>Chat with Claude</PanelTitle>
+          <PanelTag>claude-opus-4-6</PanelTag>
+          <Spacer />
+          <PanelActionBtn
+            $variant="ghost"
             onClick={() => setMessages([])}
             disabled={messages.length === 0}
-            className="px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all disabled:opacity-30"
-            style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.55)" }}
-          >Clear</button>
-          <button
+          >
+            Clear
+          </PanelActionBtn>
+          <PanelIconBtn
             onClick={() => setFullscreen((p) => !p)}
             title={fullscreen ? "Exit fullscreen" : "Fullscreen"}
-            className="w-7 h-7 rounded-md flex items-center justify-center text-xs hover:bg-white/10 transition-all"
-            style={{ color: "rgba(255,255,255,0.4)" }}
-          >{fullscreen ? "⊡" : "⊞"}</button>
-          <button
-            onClick={onClose}
-            title="Close (Esc)"
-            className="w-7 h-7 rounded-md flex items-center justify-center text-xs hover:bg-white/10 transition-all"
-            style={{ color: "rgba(255,255,255,0.4)" }}
-          >✕</button>
-        </div>
+          >
+            {fullscreen ? "⊑" : "⊞"}
+          </PanelIconBtn>
+          <PanelIconBtn onClick={onClose} title="Close (Esc)">
+            ✕
+          </PanelIconBtn>
+        </PanelHeader>
 
-        {/* Messages */}
-        <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 py-4 space-y-4" style={{ scrollbarWidth: "thin" }}>
+        <MsgArea ref={scrollRef}>
           {messages.length === 0 && (
-            <div className="text-center text-white/30 text-sm pt-12">
-              Start a conversation. Press <kbd className="px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-[10px]">Enter</kbd> to send, <kbd className="px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-[10px]">Shift+Enter</kbd> for newline.
-            </div>
+            <Hint>
+              Start a conversation. Press <Kbd>Enter</Kbd> to send, <Kbd>Shift+Enter</Kbd> for newline.
+            </Hint>
           )}
           {messages.map((m, i) => (
-            <div key={i} className="flex flex-col gap-1">
-              <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: m.role === "user" ? "#00bfff" : ORANGE }}>
+            <div key={i}>
+              <MsgRole $user={m.role === "user"}>
                 {m.role === "user" ? "You" : "Claude"}
-              </span>
+              </MsgRole>
               {m.role === "assistant" ? (
-                <div
-                  className="md-content text-sm text-white/85 leading-relaxed"
+                <MsgText
+                  className="md-content"
                   dangerouslySetInnerHTML={{ __html: renderMarkdown(m.content) }}
                 />
               ) : (
-                <div className="text-sm text-white/85 leading-relaxed whitespace-pre-wrap">{m.content}</div>
+                <MsgText>{m.content}</MsgText>
               )}
             </div>
           ))}
           {sending && (
-            <div className="flex items-center gap-2 text-white/40 text-xs">
-              <span className="inline-block w-2 h-2 rounded-full animate-pulse" style={{ background: ORANGE }} />
+            <ThinkRow>
+              <ThinkDot />
               Claude is thinking…
-            </div>
+            </ThinkRow>
           )}
-          {error && (
-            <div className="text-xs px-3 py-2 rounded-lg" style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", color: "#fca5a5" }}>
-              {error}
-            </div>
-          )}
-        </div>
+          {error && <PanelError>{error}</PanelError>}
+        </MsgArea>
 
-        {/* Input */}
-        <div className="flex-shrink-0 px-5 py-3" style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }}>
-          <div className="flex items-end gap-2">
-            <textarea
-              ref={taRef}
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={onKeyDown}
-              placeholder="Ask Claude anything…"
-              rows={2}
-              className="flex-1 bg-transparent outline-none text-sm text-white/90 rounded-lg px-3 py-2 resize-none"
-              style={{ border: "1px solid rgba(255,255,255,0.12)" }}
-            />
-            <button
-              onClick={send}
-              disabled={!input.trim() || sending}
-              className="px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all disabled:opacity-30"
-              style={{
-                background: `rgba(${ORANGE_RGB},0.18)`,
-                border: `1px solid rgba(${ORANGE_RGB},0.45)`,
-                color: ORANGE,
-              }}
-            >Send</button>
-          </div>
-        </div>
-      </div>
+        <InputBar>
+          <ChatInput
+            ref={taRef}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={onKeyDown}
+            placeholder="Ask Claude anything…"
+            rows={2}
+          />
+          <SendBtn onClick={send} disabled={!input.trim() || sending}>
+            Send
+          </SendBtn>
+        </InputBar>
+      </Panel>
     </>
   );
 }

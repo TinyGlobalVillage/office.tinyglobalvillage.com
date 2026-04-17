@@ -250,3 +250,231 @@ export const PulseText = styled.span<{ $color?: string }>`
   color: ${(p) => p.$color || colors.cyan};
   animation: ${pulse} 1.5s ease-in-out infinite;
 `;
+
+
+/* ── Panel primitives (fullscreen-capable modals) ─────────────── */
+
+export const PanelBackdrop = styled.div`
+  position: fixed;
+  inset: 0;
+  z-index: 65;
+  background: rgba(0, 0, 0, 0.78);
+  backdrop-filter: blur(4px);
+
+  [data-theme="light"] & {
+    background: rgba(0, 0, 0, 0.35);
+  }
+`;
+
+export const Panel = styled.div<{ $fs?: boolean; $accent?: GlowColor }>`
+  position: fixed;
+  z-index: 66;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--t-surface);
+  border: 1px solid rgba(${(p) => rgb[p.$accent || "orange"]}, 0.32);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.85),
+    0 0 32px rgba(${(p) => rgb[p.$accent || "orange"]}, 0.12);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+
+  top: ${(p) => (p.$fs ? "0" : "60px")};
+  left: ${(p) => (p.$fs ? "0" : "4%")};
+  right: ${(p) => (p.$fs ? "0" : "4%")};
+  bottom: ${(p) => (p.$fs ? "0" : "4%")};
+  border-radius: ${(p) => (p.$fs ? "0" : "20px")};
+
+  [data-theme="light"] & {
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.12),
+      0 0 32px rgba(${(p) => rgb[p.$accent || "orange"]}, 0.06);
+  }
+`;
+
+export const PanelHeader = styled.div<{ $accent?: GlowColor }>`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1.25rem;
+  flex-shrink: 0;
+  border-bottom: 1px solid rgba(${(p) => rgb[p.$accent || "orange"]}, 0.18);
+
+  [data-theme="light"] & {
+    border-bottom-color: rgba(${(p) => rgb[p.$accent || "orange"]}, 0.12);
+  }
+`;
+
+export const PanelIconBtn = styled.button`
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 0.375rem;
+  border: none;
+  background: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  color: var(--t-textFaint);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+
+  &:hover {
+    background: var(--t-inputBg);
+    color: var(--t-textMuted);
+  }
+`;
+
+export const PanelActionBtn = styled.button<{ $color?: GlowColor; $variant?: "filled" | "ghost" }>`
+  padding: 0.25rem 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  transition: all 0.15s;
+  color: ${(p) =>
+    p.$variant === "ghost" ? "var(--t-textMuted)" : colors[p.$color || "orange"]};
+  background: ${(p) =>
+    p.$variant === "ghost"
+      ? "var(--t-inputBg)"
+      : `rgba(${rgb[p.$color || "orange"]}, 0.14)`};
+  border: 1px solid
+    ${(p) =>
+      p.$variant === "ghost"
+        ? "var(--t-borderStrong)"
+        : `rgba(${rgb[p.$color || "orange"]}, 0.4)`};
+
+  &:hover {
+    background: ${(p) =>
+      p.$variant === "ghost"
+        ? "var(--t-border)"
+        : `rgba(${rgb[p.$color || "orange"]}, 0.22)`};
+  }
+
+  &:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
+`;
+
+export const PanelError = styled.div`
+  font-size: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  background: rgba(${rgb.red}, 0.1);
+  border: 1px solid rgba(${rgb.red}, 0.3);
+  color: #fca5a5;
+
+  [data-theme="light"] & {
+    color: ${colors.red};
+    background: rgba(${rgb.red}, 0.06);
+  }
+`;
+
+export const PanelEmptyState = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  text-align: center;
+  color: var(--t-textFaint);
+  font-size: 0.875rem;
+  padding-top: 3rem;
+`;
+
+export const PanelEditor = styled.textarea`
+  width: 100%;
+  background: transparent;
+  outline: none;
+  font-size: 0.75rem;
+  color: var(--t-text);
+  font-family: var(--font-geist-mono), monospace;
+  resize: none;
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--t-borderStrong);
+  min-height: 400px;
+
+  &::placeholder {
+    color: var(--t-textGhost);
+  }
+`;
+
+export const PanelMarkdown = styled.div`
+  font-size: 0.875rem;
+  color: var(--t-text);
+  opacity: 0.85;
+  line-height: 1.625;
+  max-width: 48rem;
+`;
+
+export const PanelSidebar = styled.div`
+  overflow-y: auto;
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  border-right: 1px solid var(--t-border);
+  scrollbar-width: thin;
+`;
+
+export const PanelSidebarLabel = styled.div`
+  font-size: 0.625rem;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--t-textFaint);
+  padding: 0.25rem 0.5rem;
+`;
+
+export const PanelSidebarItem = styled.button<{ $active?: boolean; $accent?: GlowColor }>`
+  text-align: left;
+  padding: 0.375rem 0.75rem;
+  border-radius: 0.375rem;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  font-family: var(--font-geist-mono), monospace;
+  cursor: pointer;
+  border: 1px solid
+    ${(p) =>
+      p.$active ? `rgba(${rgb[p.$accent || "orange"]}, 0.3)` : "transparent"};
+  background: ${(p) =>
+    p.$active ? `rgba(${rgb[p.$accent || "orange"]}, 0.14)` : "transparent"};
+  color: ${(p) =>
+    p.$active ? colors[p.$accent || "orange"] : "var(--t-textMuted)"};
+
+  &:hover {
+    background: ${(p) =>
+      p.$active
+        ? `rgba(${rgb[p.$accent || "orange"]}, 0.14)`
+        : "var(--t-inputBg)"};
+  }
+`;
+
+export const PanelTitle = styled.h2<{ $color?: string }>`
+  font-size: 0.875rem;
+  font-weight: 700;
+  margin: 0;
+  color: ${(p) => p.$color || colors.orange};
+`;
+
+export const PanelTag = styled.span`
+  font-size: 0.625rem;
+  color: var(--t-textGhost);
+  font-family: var(--font-geist-mono), monospace;
+`;
+
+export const PanelToolbar = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--t-border);
+`;
+
+export const Spacer = styled.div`
+  flex: 1;
+`;

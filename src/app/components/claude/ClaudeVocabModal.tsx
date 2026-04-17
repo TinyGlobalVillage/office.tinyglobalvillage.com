@@ -1,11 +1,28 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import styled from "styled-components";
 import ClaudeIcon from "./ClaudeIcon";
 import { renderMarkdown } from "@/lib/markdown";
-
-const ORANGE = "#d97757";
-const ORANGE_RGB = "217,119,87";
+import { colors, rgb } from "@/app/theme";
+import {
+  PanelBackdrop,
+  Panel,
+  PanelHeader,
+  PanelIconBtn,
+  PanelActionBtn,
+  PanelError,
+  PanelEditor,
+  PanelMarkdown,
+  PanelEmptyState,
+  PanelSidebar,
+  PanelSidebarItem,
+  PanelTitle,
+  PanelTag,
+  PanelToolbar,
+  Input,
+  Spacer,
+} from "@/app/styled";
 
 type FileItem = {
   kind: "root" | "vocab";
@@ -32,6 +49,79 @@ description: <one-line description used as the index hook — be specific>
 
 **Related:**
 `;
+
+/* ── Local styled ──────────────────────────────────────────────── */
+
+const SplitLayout = styled.div`
+  flex: 1;
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  overflow: hidden;
+`;
+
+const MainPane = styled.div`
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+`;
+
+const Content = styled.div`
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.25rem 1.5rem;
+  scrollbar-width: thin;
+`;
+
+const FileName = styled.span`
+  font-size: 0.75rem;
+  color: var(--t-textMuted);
+  font-family: var(--font-geist-mono), monospace;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+`;
+
+const FileSize = styled.span`
+  font-size: 0.625rem;
+  color: var(--t-textGhost);
+`;
+
+const CreateWrap = styled.div`
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 2rem;
+`;
+
+const CreateTitle = styled.h3`
+  font-size: 0.875rem;
+  font-weight: 700;
+  margin: 0;
+  color: ${colors.orange};
+`;
+
+const CreateHint = styled.p`
+  font-size: 0.75rem;
+  color: var(--t-textFaint);
+  max-width: 28rem;
+  text-align: center;
+  margin: 0;
+`;
+
+const CreateInput = styled(Input).attrs({ $accent: "orange" as const })`
+  max-width: 16rem;
+  text-align: center;
+`;
+
+const BtnRow = styled.div`
+  display: flex;
+  gap: 0.5rem;
+`;
+
+/* ── Component ─────────────────────────────────────────────────── */
 
 export default function ClaudeVocabModal({ onClose }: { onClose: () => void }) {
   const [terms, setTerms] = useState<FileItem[]>([]);
@@ -166,190 +256,133 @@ export default function ClaudeVocabModal({ onClose }: { onClose: () => void }) {
     }
   }
 
-  const modalStyle: React.CSSProperties = fullscreen
-    ? { top: 0, left: 0, right: 0, bottom: 0, borderRadius: 0 }
-    : { top: 60, left: "4%", right: "4%", bottom: "4%", borderRadius: 20 };
-
   const activeItem = terms.find((i) => i.name === active);
   const displayName = (n: string) => n.replace(/^vocabulary\//, "").replace(/\.md$/, "");
 
   return (
     <>
-      <div
-        className="fixed inset-0 z-[65]"
-        style={{ background: "rgba(0,0,0,0.78)", backdropFilter: "blur(4px)" }}
-        onClick={onClose}
-      />
-
-      <div
-        className="fixed z-[66] flex flex-col overflow-hidden"
-        style={{
-          ...modalStyle,
-          background: "rgba(6,8,12,0.99)",
-          border: `1px solid rgba(${ORANGE_RGB},0.32)`,
-          boxShadow: `0 24px 80px rgba(0,0,0,0.85), 0 0 32px rgba(${ORANGE_RGB},0.12)`,
-          transition: "all 0.2s cubic-bezier(0.4,0,0.2,1)",
-        }}
-      >
-        <div className="flex items-center gap-3 px-5 py-3 flex-shrink-0" style={{ borderBottom: `1px solid rgba(${ORANGE_RGB},0.18)` }}>
-          <ClaudeIcon size={20} color={ORANGE} />
-          <h2 className="text-sm font-bold" style={{ color: ORANGE }}>Vocabulary</h2>
-          <span className="text-[10px] text-white/30 font-mono">~/.claude/vocabulary/</span>
-          <div className="flex-1" />
-          <button
-            onClick={() => { setCreating(true); setActive(null); setError(null); }}
-            className="px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all"
-            style={{ background: `rgba(${ORANGE_RGB},0.14)`, border: `1px solid rgba(${ORANGE_RGB},0.4)`, color: ORANGE }}
-          >+ New term</button>
-          <button
+      <PanelBackdrop onClick={onClose} />
+      <Panel $fs={fullscreen} $accent="orange">
+        <PanelHeader $accent="orange">
+          <ClaudeIcon size={20} color={colors.orange} />
+          <PanelTitle>Vocabulary</PanelTitle>
+          <PanelTag>~/.claude/vocabulary/</PanelTag>
+          <Spacer />
+          <PanelActionBtn onClick={() => { setCreating(true); setActive(null); setError(null); }}>
+            + New term
+          </PanelActionBtn>
+          <PanelIconBtn
             onClick={() => setFullscreen((p) => !p)}
             title={fullscreen ? "Exit fullscreen" : "Fullscreen"}
-            className="w-7 h-7 rounded-md flex items-center justify-center text-xs hover:bg-white/10 transition-all"
-            style={{ color: "rgba(255,255,255,0.4)" }}
-          >{fullscreen ? "⊡" : "⊞"}</button>
-          <button
-            onClick={onClose}
-            title="Close (Esc)"
-            className="w-7 h-7 rounded-md flex items-center justify-center text-xs hover:bg-white/10 transition-all"
-            style={{ color: "rgba(255,255,255,0.4)" }}
-          >✕</button>
-        </div>
-
-        <div className="flex-1 grid grid-cols-[220px_1fr] overflow-hidden">
-          {/* Sidebar */}
-          <div
-            className="overflow-y-auto p-3 flex flex-col gap-1"
-            style={{ borderRight: "1px solid rgba(255,255,255,0.07)", scrollbarWidth: "thin" }}
           >
+            {fullscreen ? "⊑" : "⊞"}
+          </PanelIconBtn>
+          <PanelIconBtn onClick={onClose} title="Close (Esc)">
+            ✕
+          </PanelIconBtn>
+        </PanelHeader>
+
+        <SplitLayout>
+          <PanelSidebar>
             {loadingList ? (
-              <div className="text-white/30 text-xs px-3 py-2">Loading…</div>
+              <PanelEmptyState style={{ padding: "0.5rem" }}>Loading…</PanelEmptyState>
             ) : terms.length === 0 ? (
-              <div className="text-white/30 text-xs px-3 py-2">No vocabulary terms yet.</div>
+              <PanelEmptyState style={{ padding: "0.5rem" }}>No vocabulary terms yet.</PanelEmptyState>
             ) : (
               terms.map((t) => (
-                <button
+                <PanelSidebarItem
                   key={t.name}
+                  $active={active === t.name}
                   onClick={() => loadTerm(t.name)}
-                  className="text-left px-3 py-1.5 rounded-md transition-all"
-                  style={{
-                    background: active === t.name ? `rgba(${ORANGE_RGB},0.14)` : "transparent",
-                    border: active === t.name ? `1px solid rgba(${ORANGE_RGB},0.3)` : "1px solid transparent",
-                    color: active === t.name ? ORANGE : "rgba(255,255,255,0.7)",
-                  }}
-                  onMouseEnter={(e) => { if (active !== t.name) (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.04)"; }}
-                  onMouseLeave={(e) => { if (active !== t.name) (e.currentTarget as HTMLElement).style.background = "transparent"; }}
                 >
-                  <span className="text-xs font-mono">{displayName(t.name)}</span>
-                </button>
+                  {displayName(t.name)}
+                </PanelSidebarItem>
               ))
             )}
-          </div>
+          </PanelSidebar>
 
-          {/* Main pane */}
-          <div className="flex flex-col overflow-hidden">
+          <MainPane>
             {creating ? (
-              <div className="flex-1 flex flex-col items-center justify-center gap-4 p-8">
-                <h3 className="text-sm font-bold" style={{ color: ORANGE }}>Create new vocabulary term</h3>
-                <p className="text-xs text-white/45 max-w-md text-center">
+              <CreateWrap>
+                <CreateTitle>Create new vocabulary term</CreateTitle>
+                <CreateHint>
                   Term name = filename. Use PascalCase or short codes (Lightswitch, QMBM, ECL). Letters, digits, underscore, hyphen only.
-                </p>
-                <input
+                </CreateHint>
+                <CreateInput
                   type="text"
                   value={newTermName}
                   onChange={(e) => setNewTermName(e.target.value)}
                   onKeyDown={(e) => { if (e.key === "Enter") createTerm(); }}
                   placeholder="TermName"
                   autoFocus
-                  className="w-64 bg-transparent outline-none text-sm text-white/90 rounded-lg px-3 py-2 text-center"
-                  style={{ border: `1px solid rgba(${ORANGE_RGB},0.4)` }}
                 />
-                {error && (
-                  <div className="text-xs px-3 py-2 rounded-lg" style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", color: "#fca5a5" }}>{error}</div>
-                )}
-                <div className="flex gap-2">
-                  <button
+                {error && <PanelError>{error}</PanelError>}
+                <BtnRow>
+                  <PanelActionBtn
+                    $variant="ghost"
                     onClick={() => { setCreating(false); setNewTermName(""); setError(null); }}
-                    className="px-4 py-1.5 rounded-lg text-[11px] font-bold uppercase tracking-wider"
-                    style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.6)" }}
-                  >Cancel</button>
-                  <button
-                    onClick={createTerm}
-                    disabled={saving || !newTermName.trim()}
-                    className="px-4 py-1.5 rounded-lg text-[11px] font-bold uppercase tracking-wider disabled:opacity-40"
-                    style={{ background: `rgba(${ORANGE_RGB},0.2)`, border: `1px solid rgba(${ORANGE_RGB},0.5)`, color: ORANGE }}
-                  >{saving ? "Creating…" : "Create"}</button>
-                </div>
-              </div>
+                  >
+                    Cancel
+                  </PanelActionBtn>
+                  <PanelActionBtn onClick={createTerm} disabled={saving || !newTermName.trim()}>
+                    {saving ? "Creating…" : "Create"}
+                  </PanelActionBtn>
+                </BtnRow>
+              </CreateWrap>
             ) : !active ? (
-              <div className="flex-1 flex items-center justify-center text-white/30 text-sm">
-                Select a term to view, or create a new one.
-              </div>
+              <PanelEmptyState>Select a term to view, or create a new one.</PanelEmptyState>
             ) : loadingTerm ? (
-              <div className="flex-1 flex items-center justify-center text-white/30 text-sm">Loading…</div>
+              <PanelEmptyState>Loading…</PanelEmptyState>
             ) : (
               <>
-                <div className="flex items-center gap-2 px-4 py-2 flex-shrink-0" style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
-                  <span className="text-xs text-white/70 font-mono truncate flex-1">{displayName(active)}</span>
-                  {activeItem && (
-                    <span className="text-[10px] text-white/30">{(activeItem.bytes / 1024).toFixed(1)} KB</span>
-                  )}
+                <PanelToolbar>
+                  <FileName>{displayName(active)}</FileName>
+                  {activeItem && <FileSize>{(activeItem.bytes / 1024).toFixed(1)} KB</FileSize>}
                   {editing ? (
                     <>
-                      <button
+                      <PanelActionBtn
+                        $variant="ghost"
                         onClick={() => { setEditing(false); setDraft(content); }}
                         disabled={saving}
-                        className="px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all"
-                        style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.6)" }}
-                      >Cancel</button>
-                      <button
+                      >
+                        Cancel
+                      </PanelActionBtn>
+                      <PanelActionBtn
                         onClick={save}
                         disabled={saving || draft === content}
-                        className="px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all disabled:opacity-40"
-                        style={{ background: `rgba(${ORANGE_RGB},0.2)`, border: `1px solid rgba(${ORANGE_RGB},0.5)`, color: ORANGE }}
-                      >{saving ? "Saving…" : "Save"}</button>
+                      >
+                        {saving ? "Saving…" : "Save"}
+                      </PanelActionBtn>
                     </>
                   ) : (
                     <>
-                      <button
-                        onClick={() => setEditing(true)}
-                        className="px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all"
-                        style={{ background: `rgba(${ORANGE_RGB},0.1)`, border: `1px solid rgba(${ORANGE_RGB},0.3)`, color: ORANGE }}
-                      >Edit</button>
-                      <button
-                        onClick={del}
-                        disabled={saving}
-                        className="px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all"
-                        style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.3)", color: "#fca5a5" }}
-                      >Delete</button>
+                      <PanelActionBtn onClick={() => setEditing(true)}>Edit</PanelActionBtn>
+                      <PanelActionBtn $color="red" onClick={del} disabled={saving}>
+                        Delete
+                      </PanelActionBtn>
                     </>
                   )}
-                </div>
-                <div className="flex-1 overflow-y-auto px-6 py-5" style={{ scrollbarWidth: "thin" }}>
-                  {error && (
-                    <div className="mb-3 text-xs px-3 py-2 rounded-lg" style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", color: "#fca5a5" }}>
-                      {error}
-                    </div>
-                  )}
+                </PanelToolbar>
+                <Content>
+                  {error && <PanelError style={{ marginBottom: "0.75rem" }}>{error}</PanelError>}
                   {editing ? (
-                    <textarea
+                    <PanelEditor
                       value={draft}
                       onChange={(e) => setDraft(e.target.value)}
                       spellCheck={false}
-                      className="w-full bg-transparent outline-none text-xs text-white/85 font-mono resize-none rounded-lg px-3 py-2"
-                      style={{ border: "1px solid rgba(255,255,255,0.12)", minHeight: 400 }}
                     />
                   ) : (
-                    <div
-                      className="md-content text-sm text-white/85 leading-relaxed max-w-3xl"
+                    <PanelMarkdown
+                      className="md-content"
                       dangerouslySetInnerHTML={{ __html: renderMarkdown(content) }}
                     />
                   )}
-                </div>
+                </Content>
               </>
             )}
-          </div>
-        </div>
-      </div>
+          </MainPane>
+        </SplitLayout>
+      </Panel>
     </>
   );
 }

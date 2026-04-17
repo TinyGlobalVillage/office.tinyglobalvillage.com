@@ -1,11 +1,28 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import styled from "styled-components";
 import ClaudeIcon from "./ClaudeIcon";
 import { renderMarkdown } from "@/lib/markdown";
-
-const ORANGE = "#d97757";
-const ORANGE_RGB = "217,119,87";
+import { colors, rgb } from "@/app/theme";
+import {
+  PanelBackdrop,
+  Panel,
+  PanelHeader,
+  PanelIconBtn,
+  PanelActionBtn,
+  PanelError,
+  PanelEditor,
+  PanelMarkdown,
+  PanelEmptyState,
+  PanelSidebar,
+  PanelSidebarLabel,
+  PanelSidebarItem,
+  PanelTitle,
+  PanelTag,
+  PanelToolbar,
+  Spacer,
+} from "@/app/styled";
 
 type FileItem = {
   kind: "root" | "vocab";
@@ -15,6 +32,82 @@ type FileItem = {
   exists: boolean;
   deletable: boolean;
 };
+
+/* ── Local styled ──────────────────────────────────────────────── */
+
+const SplitLayout = styled.div`
+  flex: 1;
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  overflow: hidden;
+`;
+
+const MainPane = styled.div`
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+`;
+
+const Content = styled.div`
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.25rem 1.5rem;
+  scrollbar-width: thin;
+`;
+
+const FileName = styled.span`
+  font-size: 0.75rem;
+  color: var(--t-textMuted);
+  font-family: var(--font-geist-mono), monospace;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+`;
+
+const FileSize = styled.span`
+  font-size: 0.625rem;
+  color: var(--t-textGhost);
+`;
+
+const MissingTag = styled.span`
+  font-size: 0.5625rem;
+  color: var(--t-textFaint);
+`;
+
+const ViewToggle = styled.div`
+  display: flex;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  border: 1px solid var(--t-borderStrong);
+`;
+
+const ViewBtn = styled.button<{ $active?: boolean }>`
+  padding: 0.125rem 0.5rem;
+  font-size: 0.625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s;
+  background: ${(p) => (p.$active ? `rgba(${rgb.orange}, 0.2)` : "transparent")};
+  color: ${(p) => (p.$active ? colors.orange : "var(--t-textMuted)")};
+
+  &:disabled {
+    opacity: 0.4;
+  }
+`;
+
+const RawPre = styled.pre`
+  font-size: 0.75rem;
+  color: var(--t-text);
+  opacity: 0.75;
+  font-family: var(--font-geist-mono), monospace;
+  white-space: pre-wrap;
+  word-break: break-word;
+`;
+
+/* ── Component ─────────────────────────────────────────────────── */
 
 export default function ClaudeFilesModal({ onClose }: { onClose: () => void }) {
   const [items, setItems] = useState<FileItem[]>([]);
@@ -121,182 +214,137 @@ export default function ClaudeFilesModal({ onClose }: { onClose: () => void }) {
     }
   }
 
-  const modalStyle: React.CSSProperties = fullscreen
-    ? { top: 0, left: 0, right: 0, bottom: 0, borderRadius: 0 }
-    : { top: 60, left: "4%", right: "4%", bottom: "4%", borderRadius: 20 };
-
   const activeItem = items.find((i) => i.name === active);
 
   return (
     <>
-      <div
-        className="fixed inset-0 z-[65]"
-        style={{ background: "rgba(0,0,0,0.78)", backdropFilter: "blur(4px)" }}
-        onClick={onClose}
-      />
-
-      <div
-        className="fixed z-[66] flex flex-col overflow-hidden"
-        style={{
-          ...modalStyle,
-          background: "rgba(6,8,12,0.99)",
-          border: `1px solid rgba(${ORANGE_RGB},0.32)`,
-          boxShadow: `0 24px 80px rgba(0,0,0,0.85), 0 0 32px rgba(${ORANGE_RGB},0.12)`,
-          transition: "all 0.2s cubic-bezier(0.4,0,0.2,1)",
-        }}
-      >
-        <div className="flex items-center gap-3 px-5 py-3 flex-shrink-0" style={{ borderBottom: `1px solid rgba(${ORANGE_RGB},0.18)` }}>
-          <ClaudeIcon size={20} color={ORANGE} />
-          <h2 className="text-sm font-bold" style={{ color: ORANGE }}>Global Claude Files</h2>
-          <span className="text-[10px] text-white/30 font-mono">~/.claude/</span>
-          <div className="flex-1" />
-          <button
+      <PanelBackdrop onClick={onClose} />
+      <Panel $fs={fullscreen} $accent="orange">
+        <PanelHeader $accent="orange">
+          <ClaudeIcon size={20} color={colors.orange} />
+          <PanelTitle>Global Claude Files</PanelTitle>
+          <PanelTag>~/.claude/</PanelTag>
+          <Spacer />
+          <PanelIconBtn
             onClick={() => setFullscreen((p) => !p)}
             title={fullscreen ? "Exit fullscreen" : "Fullscreen"}
-            className="w-7 h-7 rounded-md flex items-center justify-center text-xs hover:bg-white/10 transition-all"
-            style={{ color: "rgba(255,255,255,0.4)" }}
-          >{fullscreen ? "⊡" : "⊞"}</button>
-          <button
-            onClick={onClose}
-            title="Close (Esc)"
-            className="w-7 h-7 rounded-md flex items-center justify-center text-xs hover:bg-white/10 transition-all"
-            style={{ color: "rgba(255,255,255,0.4)" }}
-          >✕</button>
-        </div>
-
-        <div className="flex-1 grid grid-cols-[260px_1fr] overflow-hidden">
-          {/* Sidebar */}
-          <div
-            className="overflow-y-auto p-3 flex flex-col gap-1"
-            style={{ borderRight: "1px solid rgba(255,255,255,0.07)", scrollbarWidth: "thin" }}
           >
+            {fullscreen ? "⊑" : "⊞"}
+          </PanelIconBtn>
+          <PanelIconBtn onClick={onClose} title="Close (Esc)">
+            ✕
+          </PanelIconBtn>
+        </PanelHeader>
+
+        <SplitLayout>
+          <PanelSidebar>
             {loadingList ? (
-              <div className="text-white/30 text-xs px-3 py-2">Loading…</div>
+              <PanelEmptyState style={{ padding: "0.5rem" }}>Loading…</PanelEmptyState>
             ) : items.length === 0 ? (
-              <div className="text-white/30 text-xs px-3 py-2">No files</div>
+              <PanelEmptyState style={{ padding: "0.5rem" }}>No files</PanelEmptyState>
             ) : (
               <>
-                <div className="text-[10px] uppercase tracking-widest text-white/30 px-2 pt-1 pb-1">Indices</div>
+                <PanelSidebarLabel>Indices</PanelSidebarLabel>
                 {items.filter((i) => i.kind === "root").map((it) => (
-                  <FileRow key={it.name} item={it} active={active === it.name} onClick={() => loadFile(it.name)} />
+                  <PanelSidebarItem
+                    key={it.name}
+                    $active={active === it.name}
+                    onClick={() => loadFile(it.name)}
+                  >
+                    <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis" }}>
+                      {it.name}
+                    </span>
+                    {!it.exists && <MissingTag>missing</MissingTag>}
+                  </PanelSidebarItem>
                 ))}
-                <div className="text-[10px] uppercase tracking-widest text-white/30 px-2 pt-3 pb-1">Vocabulary</div>
+                <PanelSidebarLabel style={{ paddingTop: "0.75rem" }}>Vocabulary</PanelSidebarLabel>
                 {items.filter((i) => i.kind === "vocab").map((it) => (
-                  <FileRow key={it.name} item={it} active={active === it.name} onClick={() => loadFile(it.name)} />
+                  <PanelSidebarItem
+                    key={it.name}
+                    $active={active === it.name}
+                    onClick={() => loadFile(it.name)}
+                  >
+                    <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis" }}>
+                      {it.name.replace(/^vocabulary\//, "")}
+                    </span>
+                    {!it.exists && <MissingTag>missing</MissingTag>}
+                  </PanelSidebarItem>
                 ))}
               </>
             )}
-          </div>
+          </PanelSidebar>
 
-          {/* Main pane */}
-          <div className="flex flex-col overflow-hidden">
+          <MainPane>
             {!active ? (
-              <div className="flex-1 flex items-center justify-center text-white/30 text-sm">
-                Select a file to view or edit.
-              </div>
+              <PanelEmptyState>Select a file to view or edit.</PanelEmptyState>
             ) : loadingFile ? (
-              <div className="flex-1 flex items-center justify-center text-white/30 text-sm">Loading…</div>
+              <PanelEmptyState>Loading…</PanelEmptyState>
             ) : (
               <>
-                <div className="flex items-center gap-2 px-4 py-2 flex-shrink-0" style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
-                  <span className="text-xs text-white/70 font-mono truncate flex-1">{active}</span>
-                  {activeItem && (
-                    <span className="text-[10px] text-white/30">{(activeItem.bytes / 1024).toFixed(1)} KB</span>
-                  )}
-                  <div className="flex rounded-lg overflow-hidden" style={{ border: "1px solid rgba(255,255,255,0.12)" }}>
+                <PanelToolbar>
+                  <FileName>{active}</FileName>
+                  {activeItem && <FileSize>{(activeItem.bytes / 1024).toFixed(1)} KB</FileSize>}
+                  <ViewToggle>
                     {(["rendered", "raw"] as const).map((v) => (
-                      <button
+                      <ViewBtn
                         key={v}
+                        $active={view === v}
                         onClick={() => setView(v)}
                         disabled={editing}
-                        className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider transition-all disabled:opacity-40"
-                        style={{
-                          background: view === v ? `rgba(${ORANGE_RGB},0.2)` : "transparent",
-                          color: view === v ? ORANGE : "rgba(255,255,255,0.55)",
-                        }}
-                      >{v}</button>
+                      >
+                        {v}
+                      </ViewBtn>
                     ))}
-                  </div>
+                  </ViewToggle>
                   {editing ? (
                     <>
-                      <button
+                      <PanelActionBtn
+                        $variant="ghost"
                         onClick={() => { setEditing(false); setDraft(content); }}
                         disabled={saving}
-                        className="px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all"
-                        style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.6)" }}
-                      >Cancel</button>
-                      <button
+                      >
+                        Cancel
+                      </PanelActionBtn>
+                      <PanelActionBtn
                         onClick={save}
                         disabled={saving || draft === content}
-                        className="px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all disabled:opacity-40"
-                        style={{ background: `rgba(${ORANGE_RGB},0.2)`, border: `1px solid rgba(${ORANGE_RGB},0.5)`, color: ORANGE }}
-                      >{saving ? "Saving…" : "Save"}</button>
+                      >
+                        {saving ? "Saving…" : "Save"}
+                      </PanelActionBtn>
                     </>
                   ) : (
                     <>
-                      <button
-                        onClick={() => setEditing(true)}
-                        className="px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all"
-                        style={{ background: `rgba(${ORANGE_RGB},0.1)`, border: `1px solid rgba(${ORANGE_RGB},0.3)`, color: ORANGE }}
-                      >Edit</button>
+                      <PanelActionBtn onClick={() => setEditing(true)}>Edit</PanelActionBtn>
                       {activeItem?.deletable && (
-                        <button
-                          onClick={del}
-                          disabled={saving}
-                          className="px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all"
-                          style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.3)", color: "#fca5a5" }}
-                        >Delete</button>
+                        <PanelActionBtn $color="red" onClick={del} disabled={saving}>
+                          Delete
+                        </PanelActionBtn>
                       )}
                     </>
                   )}
-                </div>
-                <div className="flex-1 overflow-y-auto px-6 py-5" style={{ scrollbarWidth: "thin" }}>
-                  {error && (
-                    <div className="mb-3 text-xs px-3 py-2 rounded-lg" style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", color: "#fca5a5" }}>
-                      {error}
-                    </div>
-                  )}
+                </PanelToolbar>
+                <Content>
+                  {error && <PanelError style={{ marginBottom: "0.75rem" }}>{error}</PanelError>}
                   {editing ? (
-                    <textarea
+                    <PanelEditor
                       value={draft}
                       onChange={(e) => setDraft(e.target.value)}
                       spellCheck={false}
-                      className="w-full bg-transparent outline-none text-xs text-white/85 font-mono resize-none rounded-lg px-3 py-2"
-                      style={{ border: "1px solid rgba(255,255,255,0.12)", minHeight: 400 }}
                     />
                   ) : view === "rendered" ? (
-                    <div
-                      className="md-content text-sm text-white/85 leading-relaxed max-w-3xl"
+                    <PanelMarkdown
+                      className="md-content"
                       dangerouslySetInnerHTML={{ __html: renderMarkdown(content) }}
                     />
                   ) : (
-                    <pre className="text-xs text-white/75 font-mono whitespace-pre-wrap break-words">{content}</pre>
+                    <RawPre>{content}</RawPre>
                   )}
-                </div>
+                </Content>
               </>
             )}
-          </div>
-        </div>
-      </div>
+          </MainPane>
+        </SplitLayout>
+      </Panel>
     </>
-  );
-}
-
-function FileRow({ item, active, onClick }: { item: FileItem; active: boolean; onClick: () => void }) {
-  return (
-    <button
-      onClick={onClick}
-      className="text-left px-3 py-1.5 rounded-md transition-all flex items-center gap-2"
-      style={{
-        background: active ? `rgba(${ORANGE_RGB},0.14)` : "transparent",
-        border: active ? `1px solid rgba(${ORANGE_RGB},0.3)` : "1px solid transparent",
-        color: active ? ORANGE : "rgba(255,255,255,0.7)",
-      }}
-      onMouseEnter={(e) => { if (!active) (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.04)"; }}
-      onMouseLeave={(e) => { if (!active) (e.currentTarget as HTMLElement).style.background = "transparent"; }}
-    >
-      <span className="text-xs font-mono truncate flex-1">{item.name.replace(/^vocabulary\//, "")}</span>
-      {!item.exists && <span className="text-[9px] text-white/30">missing</span>}
-    </button>
   );
 }
