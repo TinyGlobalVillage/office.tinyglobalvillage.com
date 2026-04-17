@@ -63,7 +63,7 @@ const HeroTitle = styled.h1`
   font-weight: 700;
   line-height: 1.15;
   margin: 1.25rem 0 0.75rem;
-  color: ${colors.pink};
+  color: ye;
   text-shadow: 0 0 8px #ff66cc, 0 0 20px ${colors.pink};
 
   @media (min-width: 768px) {
@@ -121,7 +121,7 @@ const SBDMArrow = styled.button`
   border-radius: 0.375rem;
   border: none;
   background: none;
-  color: ${colors.pink};
+  color: blue;
   cursor: pointer;
   transition: background 0.15s;
 

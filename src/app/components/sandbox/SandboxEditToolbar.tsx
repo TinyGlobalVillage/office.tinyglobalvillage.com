@@ -131,6 +131,15 @@ const DDMItem = styled.button`
   }
 `;
 
+const DDMItemPrimary = styled(DDMItem)`
+  color: ${GOLD};
+  border-bottom: 1px solid var(--t-border);
+`;
+
+const DDMItemSecondary = styled(DDMItem)`
+  color: var(--t-textMuted);
+`;
+
 const PickerPanel = styled.div`
   position: absolute;
   right: 1rem;
@@ -207,6 +216,16 @@ const PickerEmpty = styled.div`
   font-size: 0.75rem;
   color: var(--t-textGhost);
   text-align: center;
+`;
+
+const DeployBtn = styled(PanelActionBtn)`
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+`;
+
+const DropdownArrow = styled.span`
+  font-size: 8px;
 `;
 
 const StatusMsg = styled.span`
@@ -302,25 +321,24 @@ export default function SandboxEditToolbar(p: Props) {
       </PanelActionBtn>
 
       <DDMWrap ref={ddmRef}>
-        <PanelActionBtn
+        <DeployBtn
           $color="gold"
           onClick={() => setDeployOpen((v) => !v)}
           disabled={!canDeploy || deploying !== "none"}
           title={canDeploy ? "Deploy" : "Save first"}
-          style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}
         >
           🚀 {deploying === "deploy" ? "Deploying…" : "Deploy"}
-          <span style={{ fontSize: 8 }}>▾</span>
-        </PanelActionBtn>
+          <DropdownArrow>▾</DropdownArrow>
+        </DeployBtn>
 
         {deployOpen && (
           <DDMMenu>
-            <DDMItem onClick={() => runDeploy({})} style={{ color: GOLD, borderBottom: "1px solid var(--t-border)" }}>
+            <DDMItemPrimary onClick={() => runDeploy({})}>
               🌍 Deploy for All
-            </DDMItem>
-            <DDMItem onClick={() => { setPickerOpen(true); setDeployOpen(false); }} style={{ color: "var(--t-textMuted)" }}>
+            </DDMItemPrimary>
+            <DDMItemSecondary onClick={() => { setPickerOpen(true); setDeployOpen(false); }}>
               🎯 Deploy to…
-            </DDMItem>
+            </DDMItemSecondary>
           </DDMMenu>
         )}
       </DDMWrap>

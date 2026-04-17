@@ -10,11 +10,19 @@
   ],
   "pings": [
     {
+      "id": "p_1776413094073_x2r7",
+      "from": "marmar",
+      "to": "admin",
+      "message": "Hiii :)",
+      "read": false,
+      "createdAt": "2026-04-17T08:04:54.073Z"
+    },
+    {
       "id": "p_1776362531633_znqs",
       "from": "admin",
       "to": "marmar",
       "message": "Hiiiii",
-      "read": false,
+      "read": true,
       "createdAt": "2026-04-16T18:02:11.633Z"
     },
     {

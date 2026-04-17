@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import styled from "styled-components";
 import { colors, rgb } from "../../theme";
 import {
@@ -210,12 +210,65 @@ const Body = styled.div`
   flex: 1;
   display: flex;
   overflow: hidden;
+  position: relative;
 `;
 
-const FileSidebar = styled(PanelSidebar)`
-  width: 240px;
+const FileSidebar = styled(PanelSidebar)<{ $w: number }>`
+  width: ${(p) => p.$w}px;
   flex-shrink: 0;
   padding: 0.75rem 0.5rem;
+  transition: ${(p) => (p.$w === 0 ? "width 0.2s" : "none")};
+  overflow: ${(p) => (p.$w < 80 ? "hidden" : "auto")};
+`;
+
+const ResizeHandle = styled.div<{ $dragging?: boolean }>`
+  width: 5px;
+  cursor: col-resize;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 5;
+  background: ${(p) => (p.$dragging ? `rgba(${PINK_RGB}, 0.25)` : "transparent")};
+  transition: background 0.15s;
+
+  &::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 2px;
+    width: 1px;
+    background: var(--t-border);
+  }
+
+  &:hover {
+    background: rgba(${PINK_RGB}, 0.12);
+    &::after { background: rgba(${PINK_RGB}, 0.4); }
+  }
+`;
+
+const DrawerTab = styled.button<{ $side: "left" | "right" }>`
+  position: absolute;
+  top: 50%;
+  ${(p) => p.$side}: 0;
+  transform: translateY(-50%);
+  z-index: 10;
+  width: 20px;
+  height: 48px;
+  border-radius: ${(p) => (p.$side === "left" ? "0 6px 6px 0" : "6px 0 0 6px")};
+  background: rgba(${PINK_RGB}, 0.08);
+  border: 1px solid rgba(${PINK_RGB}, 0.25);
+  border-${(p) => p.$side}: none;
+  color: ${PINK};
+  font-size: 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+
+  &:hover {
+    background: rgba(${PINK_RGB}, 0.18);
+  }
 `;
 
 const FileGroup = styled.div`
@@ -375,13 +428,13 @@ const EmptyCenter = styled.div`
   font-size: 0.875rem;
 `;
 
-const CodePane = styled.div`
+const CodePane = styled.div<{ $w: number }>`
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
-  width: 420px;
+  width: ${(p) => p.$w}px;
   overflow: hidden;
-  border-left: 1px solid var(--t-border);
+  transition: ${(p) => (p.$w === 0 ? "width 0.2s" : "none")};
   background: rgba(4, 6, 10, 0.7);
 
   [data-theme="light"] & {
@@ -412,6 +465,14 @@ const CodeTag = styled.span`
   color: var(--t-textGhost);
 `;
 
+const CodeEditorWrap = styled.div`
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+`;
+
 const CodeEditor = styled.textarea`
   flex: 1;
   background: transparent;
@@ -425,6 +486,106 @@ const CodeEditor = styled.textarea`
   line-height: 1.55;
   scrollbar-width: thin;
   border: none;
+`;
+
+const SearchBar = styled.div`
+  position: absolute;
+  top: 4px;
+  right: 16px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: rgba(8, 10, 16, 0.96);
+  border: 1px solid rgba(${PINK_RGB}, 0.35);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+
+  [data-theme="light"] & {
+    background: var(--t-surface);
+    border-color: var(--t-border);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  }
+`;
+
+const SearchInput = styled.input`
+  width: 180px;
+  padding: 3px 6px;
+  border-radius: 4px;
+  font-size: 0.6875rem;
+  font-family: var(--font-geist-mono), monospace;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(${PINK_RGB}, 0.2);
+  color: var(--t-text);
+  outline: none;
+
+  &:focus {
+    border-color: rgba(${PINK_RGB}, 0.5);
+  }
+
+  [data-theme="light"] & {
+    background: var(--t-inputBg);
+    border-color: var(--t-border);
+    &:focus { border-color: rgba(${PINK_RGB}, 0.4); }
+  }
+`;
+
+const SearchCount = styled.span`
+  font-size: 0.5625rem;
+  font-family: var(--font-geist-mono), monospace;
+  color: var(--t-textMuted);
+  white-space: nowrap;
+  min-width: 48px;
+  text-align: center;
+`;
+
+const SearchNavBtn = styled.button`
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  border: 1px solid rgba(${PINK_RGB}, 0.25);
+  background: rgba(${PINK_RGB}, 0.06);
+  color: ${PINK};
+  font-size: 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover { background: rgba(${PINK_RGB}, 0.14); }
+  &:disabled { opacity: 0.3; cursor: default; }
+`;
+
+const SearchCloseBtn = styled.button`
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  background: none;
+  border: none;
+  color: var(--t-textMuted);
+  font-size: 11px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover { color: var(--t-text); }
+`;
+
+const SearchCaseBtn = styled.button<{ $active?: boolean }>`
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  border: 1px solid ${(p) => (p.$active ? `rgba(${PINK_RGB}, 0.5)` : "rgba(255,255,255,0.1)")};
+  background: ${(p) => (p.$active ? `rgba(${PINK_RGB}, 0.12)` : "transparent")};
+  color: ${(p) => (p.$active ? PINK : "var(--t-textMuted)")};
+  font-size: 9px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 `;
 
 const CodeTabBar = styled.div`
@@ -462,7 +623,108 @@ const CodeFooter = styled.div`
   color: var(--t-textFaint);
 `;
 
+const DraftSbdmWrap = styled.div`
+  position: relative;
+`;
+
+const DraftArrow = styled.span`
+  font-size: 8px;
+`;
+
+const DraftNumber = styled.span`
+  font-family: var(--font-geist-mono), monospace;
+  color: ${GOLD};
+`;
+
+const DraftDate = styled.span`
+  margin-left: 0.5rem;
+  font-size: 0.625rem;
+  color: var(--t-textGhost);
+`;
+
+const FileItemsWrap = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+`;
+
+const FileItemRow = styled.div`
+  display: flex;
+  align-items: baseline;
+  gap: 0.375rem;
+`;
+
+const StyleFooterRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+`;
+
+const AutoSavedFlash = styled.span<{ $visible: boolean }>`
+  font-size: 0.5625rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: rgba(255, 255, 255, 0.7);
+  opacity: ${(p) => (p.$visible ? 1 : 0)};
+  transition: opacity ${(p) => (p.$visible ? "0.15s" : "1.5s")} ease;
+  pointer-events: none;
+  white-space: nowrap;
+`;
+
 // ── Component ────────────────────────────────────────────────────
+
+const SNAP_THRESHOLD = 50;
+const SIDEBAR_DEFAULT = 240;
+const CODE_DEFAULT = 420;
+const SIDEBAR_MIN = 140;
+const CODE_MIN = 200;
+
+function useResizePanel(
+  defaultW: number,
+  minW: number,
+  side: "left" | "right",
+  containerRef: React.RefObject<HTMLDivElement | null>,
+) {
+  const [width, setWidth] = useState(defaultW);
+  const [snapped, setSnapped] = useState(false);
+  const [dragging, setDragging] = useState(false);
+  const startX = useRef(0);
+  const startW = useRef(0);
+
+  const onPointerDown = useCallback((e: React.PointerEvent) => {
+    e.preventDefault();
+    startX.current = e.clientX;
+    startW.current = width || defaultW;
+    setDragging(true);
+
+    const onMove = (ev: PointerEvent) => {
+      const dx = ev.clientX - startX.current;
+      const raw = side === "left" ? startW.current + dx : startW.current - dx;
+      if (raw < SNAP_THRESHOLD) {
+        setWidth(0);
+        setSnapped(true);
+      } else {
+        setWidth(Math.max(minW, raw));
+        setSnapped(false);
+      }
+    };
+    const onUp = () => {
+      setDragging(false);
+      document.removeEventListener("pointermove", onMove);
+      document.removeEventListener("pointerup", onUp);
+    };
+    document.addEventListener("pointermove", onMove);
+    document.addEventListener("pointerup", onUp);
+  }, [width, defaultW, minW, side]);
+
+  const restore = useCallback(() => {
+    setWidth(defaultW);
+    setSnapped(false);
+  }, [defaultW]);
+
+  return { width: snapped ? 0 : width, snapped, dragging, onPointerDown, restore };
+}
 
 export default function SandboxModal({ onClose }: { onClose: () => void }) {
   const [activeKey, setActiveKey] = useState<string>(REGISTRY[0]?.key ?? "");
@@ -475,6 +737,17 @@ export default function SandboxModal({ onClose }: { onClose: () => void }) {
   const [styleDirty, setStyleDirty] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
   const [codeDraft, setCodeDraft] = useState<string>("");
+  const bodyRef = useRef<HTMLDivElement | null>(null);
+  const sidebar = useResizePanel(SIDEBAR_DEFAULT, SIDEBAR_MIN, "left", bodyRef);
+  const codePanel = useResizePanel(CODE_DEFAULT, CODE_MIN, "right", bodyRef);
+
+  // Search state
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchCase, setSearchCase] = useState(false);
+  const [searchIdx, setSearchIdx] = useState(0);
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
+  const codeEditorRef = useRef<HTMLTextAreaElement | null>(null);
 
   const [isAdmin, setIsAdmin] = useState(false);
   const [editMode, setEditMode] = useState(false);
@@ -556,7 +829,10 @@ export default function SandboxModal({ onClose }: { onClose: () => void }) {
       .finally(() => setStyleLoading(false));
   }, [codeTab, active?.stylePath]);
 
-  const saveStyle = async () => {
+  const [autoSavedFlash, setAutoSavedFlash] = useState(false);
+  const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const saveStyle = useCallback(async () => {
     if (!active?.stylePath || !liveStyle) return;
     const res = await fetch("/api/sandbox/styles", {
       method: "PUT",
@@ -564,8 +840,111 @@ export default function SandboxModal({ onClose }: { onClose: () => void }) {
       body: JSON.stringify({ path: active.stylePath, styles: liveStyle }),
     });
     const d = await res.json();
-    if (d.ok) setStyleDirty(false);
-  };
+    if (d.ok) {
+      setStyleDirty(false);
+      setAutoSavedFlash(true);
+      setTimeout(() => setAutoSavedFlash(false), 1800);
+    }
+  }, [active?.stylePath, liveStyle]);
+
+  // Debounced auto-save: 1.5s after the user stops typing in the style tab
+  useEffect(() => {
+    if (codeTab !== "style" || !styleDirty || !liveStyle) return;
+    if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
+    autoSaveTimer.current = setTimeout(() => { saveStyle(); }, 1500);
+    return () => { if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current); };
+  }, [liveStyle, styleDirty, codeTab, saveStyle]);
+
+  // Search: find all match positions in the current editor text
+  const currentText = codeTab === "style" ? (liveStyle ?? "") : (editMode && drafts.active ? (unsavedCode ?? drafts.active.code) : codeDraft);
+
+  const searchMatches = useMemo(() => {
+    if (!searchQuery || !searchOpen) return [];
+    const text = searchCase ? currentText : currentText.toLowerCase();
+    const q = searchCase ? searchQuery : searchQuery.toLowerCase();
+    const positions: number[] = [];
+    let pos = 0;
+    while ((pos = text.indexOf(q, pos)) !== -1) {
+      positions.push(pos);
+      pos += 1;
+    }
+    return positions;
+  }, [currentText, searchQuery, searchCase, searchOpen]);
+
+  const safeSearchIdx = searchMatches.length > 0 ? searchIdx % searchMatches.length : 0;
+
+  const jumpToMatch = useCallback((idx: number) => {
+    const ta = codeEditorRef.current;
+    if (!ta || searchMatches.length === 0) return;
+    const pos = searchMatches[idx % searchMatches.length];
+    ta.focus();
+    ta.setSelectionRange(pos, pos + searchQuery.length);
+    // Scroll to match: estimate line position
+    const textBefore = currentText.slice(0, pos);
+    const lineNum = textBefore.split("\n").length - 1;
+    const lineH = 15.4; // ~0.6875rem * 1.55 line-height ≈ 15.4px
+    ta.scrollTop = Math.max(0, lineNum * lineH - ta.clientHeight / 3);
+  }, [searchMatches, searchQuery, currentText]);
+
+  // Cmd+F / Ctrl+F to open search, Escape to close, Enter to navigate
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (!codeOpen || codePanel.snapped) return;
+      const mod = e.metaKey || e.ctrlKey;
+
+      // Cmd+F: open search
+      if (mod && e.key === "f") {
+        e.preventDefault();
+        e.stopPropagation();
+        setSearchOpen(true);
+        setSearchIdx(0);
+        setTimeout(() => searchInputRef.current?.focus(), 0);
+        return;
+      }
+
+      // Cmd+/ or Cmd+\: toggle comment on current line
+      if (mod && (e.key === "/" || e.key === "\\")) {
+        e.preventDefault();
+        e.stopPropagation();
+        const ta = codeEditorRef.current;
+        if (!ta) return;
+        const val = ta.value;
+        const start = ta.selectionStart;
+        const end = ta.selectionEnd;
+        // Find line boundaries
+        const lineStart = val.lastIndexOf("\n", start - 1) + 1;
+        const lineEnd = val.indexOf("\n", end);
+        const actualEnd = lineEnd === -1 ? val.length : lineEnd;
+        // Get all lines in selection
+        const block = val.slice(lineStart, actualEnd);
+        const lines = block.split("\n");
+        const allCommented = lines.every((l) => l.trimStart().startsWith("// ") || l.trimStart().startsWith("//") && l.trim() === "//");
+        const toggled = lines
+          .map((l) => {
+            if (allCommented) {
+              const idx = l.indexOf("// ");
+              if (idx !== -1) return l.slice(0, idx) + l.slice(idx + 3);
+              const idx2 = l.indexOf("//");
+              if (idx2 !== -1) return l.slice(0, idx2) + l.slice(idx2 + 2);
+              return l;
+            }
+            return "// " + l;
+          })
+          .join("\n");
+        const newVal = val.slice(0, lineStart) + toggled + val.slice(actualEnd);
+        // Update via the appropriate handler
+        const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, "value")?.set;
+        nativeInputValueSetter?.call(ta, newVal);
+        ta.dispatchEvent(new Event("input", { bubbles: true }));
+        // Restore selection
+        const diff = toggled.length - block.length;
+        ta.setSelectionRange(start + (allCommented ? -3 : 3), end + diff);
+        return;
+      }
+    };
+    document.addEventListener("keydown", handler, { capture: true });
+    return () => document.removeEventListener("keydown", handler, { capture: true });
+  }, [codeOpen, codePanel.snapped]);
 
   const editorCode = editMode && drafts.active
     ? (unsavedCode ?? drafts.active.code)
@@ -630,10 +1009,10 @@ export default function SandboxModal({ onClose }: { onClose: () => void }) {
           <Tag>Component Reference · {REGISTRY.length} entries</Tag>
 
           {isAdmin && drafts.drafts.length > 0 && (
-            <div ref={draftSbdmRef} style={{ position: "relative" }}>
+            <DraftSbdmWrap ref={draftSbdmRef}>
               <DraftTrigger onClick={() => setDraftPickerOpen((v) => !v)} title="Pick a draft or live">
                 {drafts.active ? `Draft #${drafts.active.number}` : "Live"}
-                <span style={{ fontSize: 8 }}>▾</span>
+                <DraftArrow>▾</DraftArrow>
               </DraftTrigger>
               {draftPickerOpen && (
                 <DraftPanel>
@@ -656,8 +1035,8 @@ export default function SandboxModal({ onClose }: { onClose: () => void }) {
                     {filteredDrafts.map((d) => (
                       <DraftItem key={d.id}>
                         <DraftItemBtn onClick={() => { drafts.openDraft(d.id); setEditMode(true); setDraftPickerOpen(false); }}>
-                          <span style={{ fontFamily: "var(--font-geist-mono), monospace", color: GOLD }}>Draft #{d.number}</span>
-                          <span style={{ marginLeft: "0.5rem", fontSize: "0.625rem", color: "var(--t-textGhost)" }}>{new Date(d.updatedAt).toLocaleString()}</span>
+                          <DraftNumber>Draft #{d.number}</DraftNumber>
+                          <DraftDate>{new Date(d.updatedAt).toLocaleString()}</DraftDate>
                         </DraftItemBtn>
                         <DraftItemDel onClick={() => drafts.deleteDraft(d.id)} title="Delete draft">✕</DraftItemDel>
                       </DraftItem>
@@ -665,7 +1044,7 @@ export default function SandboxModal({ onClose }: { onClose: () => void }) {
                   </DraftList>
                 </DraftPanel>
               )}
-            </div>
+            </DraftSbdmWrap>
           )}
 
           <Spacer />
@@ -680,8 +1059,8 @@ export default function SandboxModal({ onClose }: { onClose: () => void }) {
             </ToggleBtn>
           )}
 
-          <ToggleBtn $active={fsOpen} onClick={() => setFsOpen((p) => !p)}>📁 Files</ToggleBtn>
-          <ToggleBtn $active={codeOpen} onClick={() => setCodeOpen((p) => !p)}>{"</>"} Code</ToggleBtn>
+          <ToggleBtn $active={fsOpen && !sidebar.snapped} onClick={() => { if (sidebar.snapped) { sidebar.restore(); } else { setFsOpen((p) => !p); } }}>📁 Files</ToggleBtn>
+          <ToggleBtn $active={codeOpen && !codePanel.snapped} onClick={() => { if (codePanel.snapped) { codePanel.restore(); } else { setCodeOpen((p) => !p); } }}>{"</>"} Code</ToggleBtn>
           <PanelIconBtn onClick={() => setFullscreen((p) => !p)} title={fullscreen ? "Exit fullscreen" : "Fullscreen"}>
             {fullscreen ? "⊡" : "⊞"}
           </PanelIconBtn>
@@ -706,31 +1085,39 @@ export default function SandboxModal({ onClose }: { onClose: () => void }) {
           />
         )}
 
-        <Body>
-          {fsOpen && (
-            <FileSidebar>
+        <Body ref={bodyRef}>
+          {fsOpen && !sidebar.snapped && (
+            <FileSidebar $w={sidebar.width}>
               {CATEGORIES.map((cat) => (
                 <FileGroup key={cat}>
                   <PanelSidebarLabel>{cat}</PanelSidebarLabel>
-                  <div style={{ display: "flex", flexDirection: "column", gap: "0.125rem" }}>
+                  <FileItemsWrap>
                     {grouped[cat].map((e) => (
                       <FileItem
                         key={e.key}
                         $active={activeKey === e.key}
                         onClick={() => setActiveKey(e.key)}
                       >
-                        <div style={{ display: "flex", alignItems: "baseline", gap: "0.375rem" }}>
+                        <FileItemRow>
                           <FileItemLabel>{e.key}</FileItemLabel>
                           <FileItemSub $active={activeKey === e.key}>
                             {e.name.replace(`${e.key} — `, "").replace(e.key, "").trim() || e.name}
                           </FileItemSub>
-                        </div>
+                        </FileItemRow>
                       </FileItem>
                     ))}
-                  </div>
+                  </FileItemsWrap>
                 </FileGroup>
               ))}
             </FileSidebar>
+          )}
+          {fsOpen && !sidebar.snapped && (
+            <ResizeHandle $dragging={sidebar.dragging} onPointerDown={sidebar.onPointerDown} />
+          )}
+          {fsOpen && sidebar.snapped && (
+            <DrawerTab $side="left" onClick={sidebar.restore} title="Restore file panel">
+              📁
+            </DrawerTab>
           )}
 
           <CenterPane>
@@ -778,12 +1165,21 @@ export default function SandboxModal({ onClose }: { onClose: () => void }) {
             )}
           </CenterPane>
 
-          {codeOpen && active && (
-            <CodePane>
+          {codeOpen && active && !codePanel.snapped && (
+            <ResizeHandle $dragging={codePanel.dragging} onPointerDown={codePanel.onPointerDown} />
+          )}
+          {codeOpen && codePanel.snapped && (
+            <DrawerTab $side="right" onClick={codePanel.restore} title="Restore code panel">
+              {"</>"}
+            </DrawerTab>
+          )}
+          {codeOpen && active && !codePanel.snapped && (
+            <CodePane $w={codePanel.width}>
               <CodeHeader>
                 <CodeLabel $edit={editMode}>Code</CodeLabel>
                 <CodeTag>{active.key}{codeTab === "style" ? ".styled.ts" : ".tsx"}</CodeTag>
                 <Spacer />
+                {codeTab === "style" && <AutoSavedFlash $visible={autoSavedFlash}>auto-saved</AutoSavedFlash>}
                 <PanelActionBtn
                   $variant="ghost"
                   onClick={() => { if (codeTab === "style") { setLiveStyle(null); setStyleLoading(true); fetch(`/api/sandbox/styles?path=${encodeURIComponent(active.stylePath ?? "")}`).then(r => r.json()).then(d => { setLiveStyle(d.styles ?? ""); setStyleDirty(false); }).finally(() => setStyleLoading(false)); } else if (editMode) { drafts.resetToDeployed(); } else { setCodeDraft(active.code); } }}
@@ -802,23 +1198,63 @@ export default function SandboxModal({ onClose }: { onClose: () => void }) {
                   </CodeTabBtn>
                 </CodeTabBar>
               )}
-              <CodeEditor
-                value={codeTab === "style" ? (liveStyle ?? "// Loading...") : editorCode}
-                onChange={(e) => { if (codeTab === "style") { setLiveStyle(e.target.value); setStyleDirty(true); } else { handleCodeChange(e.target.value); } }}
-                spellCheck={false}
-              />
+              <CodeEditorWrap>
+                {searchOpen && (
+                  <SearchBar>
+                    <SearchInput
+                      ref={searchInputRef}
+                      value={searchQuery}
+                      onChange={(e) => { setSearchQuery(e.target.value); setSearchIdx(0); }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Escape") { e.stopPropagation(); setSearchOpen(false); setSearchQuery(""); codeEditorRef.current?.focus(); }
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          if (searchMatches.length === 0) return;
+                          const next = e.shiftKey
+                            ? (safeSearchIdx - 1 + searchMatches.length) % searchMatches.length
+                            : (safeSearchIdx + 1) % searchMatches.length;
+                          setSearchIdx(next);
+                          jumpToMatch(next);
+                        }
+                      }}
+                      placeholder="Find…"
+                      spellCheck={false}
+                    />
+                    <SearchCaseBtn
+                      $active={searchCase}
+                      onClick={() => setSearchCase((v) => !v)}
+                      title="Match case"
+                    >Aa</SearchCaseBtn>
+                    <SearchCount>
+                      {searchMatches.length > 0 ? `${safeSearchIdx + 1}/${searchMatches.length}` : searchQuery ? "0" : ""}
+                    </SearchCount>
+                    <SearchNavBtn
+                      disabled={searchMatches.length === 0}
+                      onClick={() => { const p = (safeSearchIdx - 1 + searchMatches.length) % searchMatches.length; setSearchIdx(p); jumpToMatch(p); }}
+                      title="Previous (Shift+Enter)"
+                    >▲</SearchNavBtn>
+                    <SearchNavBtn
+                      disabled={searchMatches.length === 0}
+                      onClick={() => { const n = (safeSearchIdx + 1) % searchMatches.length; setSearchIdx(n); jumpToMatch(n); }}
+                      title="Next (Enter)"
+                    >▼</SearchNavBtn>
+                    <SearchCloseBtn onClick={() => { setSearchOpen(false); setSearchQuery(""); codeEditorRef.current?.focus(); }} title="Close (Esc)">✕</SearchCloseBtn>
+                  </SearchBar>
+                )}
+                <CodeEditor
+                  ref={codeEditorRef}
+                  value={codeTab === "style" ? (liveStyle ?? "// Loading...") : editorCode}
+                  onChange={(e) => { if (codeTab === "style") { setLiveStyle(e.target.value); setStyleDirty(true); } else { handleCodeChange(e.target.value); } }}
+                  spellCheck={false}
+                />
+              </CodeEditorWrap>
               <CodeFooter>
                 {codeTab === "style" ? (
-                  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", width: "100%" }}>
+                  <StyleFooterRow>
                     <span>{active.stylePath}</span>
                     <Spacer />
-                    {styleDirty && (
-                      <PanelActionBtn $color="gold" onClick={saveStyle} style={{ padding: "0.125rem 0.5rem" }}>
-                        Save Styles
-                      </PanelActionBtn>
-                    )}
-                    <span>{styleLoading ? "loading…" : styleDirty ? "unsaved" : "synced"}</span>
-                  </div>
+                    <span>{styleLoading ? "loading…" : "synced"}</span>
+                  </StyleFooterRow>
                 ) : editMode && drafts.active
                   ? `Draft #${drafts.active.number} · ${isSaved ? "saved" : "unsaved"} · auto-save ${autoSave ? "on" : "off"}`
                   : "Edits reset on file switch · not saved"}

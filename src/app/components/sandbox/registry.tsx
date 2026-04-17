@@ -106,6 +106,1051 @@ const MutedNote = styled.span`
   color: ${MUTED_TEXT};
 `;
 
+// ── GPG styled ──────────────────────────────────────────────────────────
+
+const GpgGrid = styled.div<{ $cols: number }>`
+  display: grid;
+  grid-template-columns: repeat(${(p) => p.$cols}, minmax(0, 1fr));
+  gap: 8px;
+  min-width: 240px;
+  width: 100%;
+`;
+
+const GpgTile = styled.div`
+  aspect-ratio: 1;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid ${MUTED};
+`;
+
+const GpgTileNum = styled.span`
+  font-size: 10px;
+  font-family: var(--font-geist-mono), monospace;
+  color: ${MUTED_TEXT};
+`;
+
+const GpgPagerRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+`;
+
+const GpgPagerBtn = styled.button<{ $disabled?: boolean }>`
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  border: 1px solid rgba(${PINK_RGB}, 0.5);
+  background: rgba(${PINK_RGB}, 0.12);
+  color: ${PINK};
+  font-size: 14px;
+  font-weight: 700;
+  cursor: ${(p) => (p.$disabled ? "not-allowed" : "pointer")};
+  opacity: ${(p) => (p.$disabled ? 0.4 : 1)};
+`;
+
+const GpgPagerInfo = styled.span`
+  color: ${PINK};
+  font-size: 12px;
+  font-weight: 700;
+`;
+
+// ── TPG styled ──────────────────────────────────────────────────────────
+
+const TpgTable = styled.div`
+  width: 100%;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid ${MUTED};
+`;
+
+const TpgTableRow = styled.div<{ $alt?: boolean; $last?: boolean }>`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0.5rem 1rem;
+  border-bottom: ${(p) => (p.$last ? "none" : `1px solid ${MUTED}`)};
+  background: ${(p) => (p.$alt ? "rgba(255,255,255,0.02)" : "transparent")};
+`;
+
+const TpgMono = styled.span`
+  font-size: 11px;
+  font-family: var(--font-geist-mono), monospace;
+  color: ${MUTED_TEXT};
+`;
+
+const Spacer = styled.span`
+  flex: 1;
+`;
+
+const TpgDash = styled.span`
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.2);
+`;
+
+const TpgControlRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+`;
+
+const TpgPageInfo = styled.span`
+  color: ${PINK};
+  font-size: 11px;
+  font-weight: 600;
+`;
+
+const TpgSmallBtn = styled.button`
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  border: 1px solid rgba(${PINK_RGB}, 0.5);
+  background: rgba(${PINK_RGB}, 0.12);
+  color: ${PINK};
+  font-size: 11px;
+`;
+
+const TpgSelect = styled.select`
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(${PINK_RGB}, 0.5);
+  background: rgba(6, 8, 12, 0.9);
+  color: ${PINK};
+  font-size: 11px;
+`;
+
+const TpgNavBtn = styled.button<{ $disabled?: boolean }>`
+  padding: 4px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(${PINK_RGB}, 0.5);
+  background: rgba(${PINK_RGB}, 0.12);
+  color: ${PINK};
+  font-size: 12px;
+  opacity: ${(p) => (p.$disabled ? 0.4 : 1)};
+`;
+
+// ── ACR styled ──────────────────────────────────────────────────────────
+
+const AcrViewportLabel = styled.span`
+  font-size: 10px;
+  font-family: var(--font-geist-mono), monospace;
+  color: ${PINK};
+`;
+
+const AcrGrid = styled.div<{ $cols: number }>`
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(${(p) => p.$cols}, 1fr);
+  width: 320px;
+`;
+
+const AcrTile = styled.div`
+  aspect-ratio: 1;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid ${MUTED};
+`;
+
+// ── Lightswitch styled ──────────────────────────────────────────────────
+
+const LsTrack = styled.button<{ $on: boolean; $highlighted?: boolean }>`
+  position: relative;
+  width: 44px;
+  height: 18px;
+  border-radius: 999px;
+  border: 1px solid
+    ${(p) =>
+      p.$on
+        ? `rgba(${p.$highlighted ? PINK_RGB : "255,255,255"}, 0.7)`
+        : "rgba(255,255,255,0.15)"};
+  background: ${(p) =>
+    p.$on
+      ? `rgba(${p.$highlighted ? PINK_RGB : "255,255,255"}, 0.18)`
+      : "rgba(255,255,255,0.04)"};
+  box-shadow: ${(p) =>
+    p.$on && p.$highlighted
+      ? `0 0 12px rgba(${PINK_RGB}, 0.5)`
+      : "none"};
+  transition: all 0.2s;
+`;
+
+const LsThumb = styled.span<{ $on: boolean; $highlighted?: boolean }>`
+  position: absolute;
+  top: 1px;
+  left: ${(p) => (p.$on ? "26px" : "2px")};
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: ${(p) =>
+    p.$on
+      ? p.$highlighted
+        ? PINK
+        : "rgba(255,255,255,0.4)"
+      : "rgba(255,255,255,0.3)"};
+  box-shadow: ${(p) =>
+    p.$on && p.$highlighted
+      ? `0 0 10px rgba(${PINK_RGB}, 0.8), 0 0 2px rgba(${PINK_RGB}, 1)`
+      : "0 1px 2px rgba(0,0,0,0.3)"};
+  transition: all 0.2s;
+`;
+
+const LsWrap = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-width: 448px;
+`;
+
+const LsHighlightRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  width: 100%;
+  min-width: 280px;
+`;
+
+const LsExpandLabel = styled.span`
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.85);
+`;
+
+// ── ECL styled ──────────────────────────────────────────────────────────
+
+const EclWrap = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  max-width: 448px;
+`;
+
+const EclRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid ${MUTED};
+`;
+
+const EclSectionLabel = styled.span`
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: ${MUTED_TEXT};
+`;
+
+const EclTrackBar = styled.div`
+  flex: 1;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+`;
+
+const EclFill = styled.div<{ $pct: string }>`
+  height: 100%;
+  border-radius: 999px;
+  width: ${(p) => p.$pct};
+  background: rgba(0, 191, 255, 0.4);
+`;
+
+const EclResetBtn = styled.button`
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  border: 1px solid rgba(0, 228, 253, 0.25);
+  background: rgba(0, 228, 253, 0.08);
+  color: rgba(0, 228, 253, 0.8);
+  font-size: 11px;
+`;
+
+const EclInput = styled.input`
+  width: 40px;
+  text-align: center;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 11px;
+  padding: 2px 4px;
+`;
+
+const EclToggleRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
+
+const EclToggleLabel = styled.span`
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: ${PINK};
+`;
+
+// ── EyeIcon styled ──────────────────────────────────────────────────────
+
+const EyeWrap = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  max-width: 448px;
+`;
+
+const EyeBtnStyled = styled.button<{ $visible: boolean; $highlighted?: boolean }>`
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  border: 1px solid
+    rgba(
+      ${(p) => (p.$highlighted ? PINK_RGB : "0,228,253")},
+      ${(p) => (p.$visible ? 0.5 : 0.2)}
+    );
+  background: rgba(
+    ${(p) => (p.$highlighted ? PINK_RGB : "0,228,253")},
+    ${(p) => (p.$visible ? 0.15 : 0.04)}
+  );
+  color: ${(p) =>
+    p.$visible
+      ? p.$highlighted
+        ? PINK
+        : "rgba(0,228,253,0.6)"
+      : "rgba(255,255,255,0.3)"};
+  box-shadow: ${(p) =>
+    p.$visible && p.$highlighted
+      ? `0 0 10px rgba(${PINK_RGB}, 0.5)`
+      : "none"};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+`;
+
+const EyeRowLabel = styled.span`
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.85);
+`;
+
+// ── QMBM styled ─────────────────────────────────────────────────────────
+
+const QmbmBubbleStyled = styled.button<{ $highlighted?: boolean }>`
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1px solid
+    rgba(${(p) => (p.$highlighted ? PINK_RGB : "247,183,0")}, 0.6);
+  background: rgba(
+    ${(p) => (p.$highlighted ? PINK_RGB : "247,183,0")},
+    0.15
+  );
+  color: ${(p) => (p.$highlighted ? PINK : "rgba(247,183,0,0.6)")};
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  box-shadow: ${(p) =>
+    p.$highlighted
+      ? `0 0 8px rgba(${PINK_RGB}, 0.5)`
+      : "none"};
+`;
+
+const QmbmWrap = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-width: 448px;
+  min-height: 200px;
+`;
+
+const QmbmFieldRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
+
+const QmbmFieldLabel = styled.label`
+  font-size: 12px;
+  color: ${MUTED_TEXT};
+`;
+
+const QmbmFieldLabelActive = styled.label`
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.85);
+`;
+
+const QmbmInput = styled.input`
+  width: 100%;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid ${MUTED};
+  color: ${MUTED_TEXT};
+`;
+
+const QmbmRelRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+`;
+
+const QmbmCard = styled.div`
+  position: absolute;
+  top: 26px;
+  left: 0;
+  z-index: 10;
+  width: 260px;
+  padding: 12px;
+  border-radius: 10px;
+  background: rgba(6, 8, 12, 0.98);
+  border: 1px solid rgba(${PINK_RGB}, 0.45);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7),
+    0 0 16px rgba(${PINK_RGB}, 0.2);
+`;
+
+const QmbmCardHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+`;
+
+const QmbmCardTitle = styled.span`
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: ${PINK};
+`;
+
+const QmbmCloseBtn = styled.button`
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.4);
+  background: none;
+  border: none;
+  cursor: pointer;
+`;
+
+const QmbmCardBody = styled.p`
+  font-size: 11px;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.6);
+  margin: 0;
+`;
+
+// ── DDM styled ──────────────────────────────────────────────────────────
+
+const DdmWrap = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-width: 448px;
+  min-height: 200px;
+`;
+
+const DdmFieldLabel = styled.label`
+  font-size: 12px;
+  color: ${MUTED_TEXT};
+`;
+
+const DdmMutedBtn = styled.button`
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 11px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid ${MUTED};
+  color: ${MUTED_TEXT};
+`;
+
+const DdmRelWrap = styled.div`
+  position: relative;
+`;
+
+const DdmTriggerBtn = styled.button`
+  padding: 6px 16px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(${PINK_RGB}, 0.14);
+  border: 1px solid rgba(${PINK_RGB}, 0.5);
+  color: ${PINK};
+`;
+
+const DdmArrow = styled.span`
+  font-size: 8px;
+`;
+
+const DdmMenu = styled.div`
+  position: absolute;
+  top: 52px;
+  left: 8px;
+  z-index: 10;
+  width: 180px;
+  padding: 4px;
+  border-radius: 10px;
+  background: rgba(6, 8, 12, 0.98);
+  border: 1px solid rgba(${PINK_RGB}, 0.45);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7),
+    0 0 16px rgba(${PINK_RGB}, 0.2);
+`;
+
+const DdmMenuItem = styled.button<{ $active?: boolean }>`
+  width: 100%;
+  text-align: left;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 11px;
+  color: ${(p) => (p.$active ? PINK : "rgba(255,255,255,0.7)")};
+  background: ${(p) =>
+    p.$active ? `rgba(${PINK_RGB}, 0.1)` : "transparent"};
+  border: none;
+  cursor: pointer;
+`;
+
+// ── SRT styled ──────────────────────────────────────────────────────────
+
+const SrtWrap = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  max-width: 448px;
+`;
+
+const SrtRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0.5rem 0.75rem;
+  width: 100%;
+  min-width: 360px;
+`;
+
+const SrtLabel = styled.span<{ $active?: boolean }>`
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  width: 56px;
+  color: ${(p) => (p.$active ? PINK : MUTED_TEXT)};
+`;
+
+const SrtSlider = styled.input`
+  flex: 1;
+  accent-color: ${PINK};
+`;
+
+const SrtResetBtn = styled.button`
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  border: 1px solid rgba(${PINK_RGB}, 0.5);
+  background: rgba(${PINK_RGB}, 0.15);
+  color: ${PINK};
+  font-size: 11px;
+`;
+
+const SrtValueInput = styled.input`
+  width: 48px;
+  text-align: center;
+  border-radius: 4px;
+  font-size: 12px;
+  padding: 2px 4px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(${PINK_RGB}, 0.35);
+  color: ${PINK};
+  font-variant-numeric: tabular-nums;
+`;
+
+const SrtMutedRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid ${MUTED};
+`;
+
+const SrtMutedTrack = styled.div`
+  flex: 1;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+`;
+
+const SrtMutedFill = styled.div<{ $pct: string }>`
+  height: 100%;
+  border-radius: 999px;
+  width: ${(p) => p.$pct};
+  background: rgba(255, 255, 255, 0.15);
+`;
+
+const SrtMutedVal = styled.span`
+  font-size: 10px;
+  color: ${MUTED_TEXT};
+`;
+
+// ── Reset Button styled ─────────────────────────────────────────────────
+
+const RstWrap = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-width: 448px;
+`;
+
+const RstRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid ${MUTED};
+`;
+
+const RstLabel = styled.span<{ $active?: boolean }>`
+  font-size: 11px;
+  width: 56px;
+  color: ${(p) => (p.$active ? "rgba(255,255,255,0.85)" : MUTED_TEXT)};
+`;
+
+const RstMutedResetBtn = styled.button`
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  border: 1px solid rgba(0, 228, 253, 0.2);
+  background: rgba(0, 228, 253, 0.05);
+  color: rgba(0, 228, 253, 0.4);
+  font-size: 10px;
+`;
+
+const RstHighlightBtn = styled.button`
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  border: 1px solid rgba(${PINK_RGB}, 0.5);
+  background: rgba(${PINK_RGB}, 0.15);
+  color: ${PINK};
+  font-size: 12px;
+  font-weight: 700;
+`;
+
+const RstActiveFill = styled.div<{ $pct: string }>`
+  height: 100%;
+  border-radius: 999px;
+  width: ${(p) => p.$pct};
+  background: rgba(0, 191, 255, 0.4);
+`;
+
+const RstMonoVal = styled.span`
+  font-size: 10px;
+  font-family: var(--font-geist-mono), monospace;
+  color: rgba(255, 255, 255, 0.5);
+`;
+
+// ── TSG styled ──────────────────────────────────────────────────────────
+
+const TsgWrap = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-width: 512px;
+`;
+
+const TsgControlBar = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  width: 100%;
+  min-width: 360px;
+  background: rgba(${PINK_RGB}, 0.04);
+`;
+
+const TsgToggleGroup = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
+
+const TsgToggleLabel = styled.span<{ $active?: boolean }>`
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: ${(p) => (p.$active ? PINK : MUTED_TEXT)};
+`;
+
+const TsgPinkLabel = styled.span`
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: ${PINK};
+`;
+
+// ── SBDM styled ─────────────────────────────────────────────────────────
+
+const SbdmWrap = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-width: 448px;
+  min-height: 360px;
+`;
+
+const SbdmFieldGroup = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+`;
+
+const SbdmFieldLabel = styled.label<{ $active?: boolean }>`
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: ${(p) => (p.$active ? PINK : MUTED_TEXT)};
+`;
+
+const SbdmFieldInput = styled.input`
+  width: 100%;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid ${MUTED};
+  color: ${MUTED_TEXT};
+`;
+
+const SbdmRelGroup = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  position: relative;
+`;
+
+const SbdmSearchWrap = styled.div`
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-width: 320px;
+  position: relative;
+`;
+
+const SbdmSearchIcon = styled.span`
+  position: absolute;
+  left: 10px;
+  color: rgba(${PINK_RGB}, 0.7);
+  font-size: 12px;
+  pointer-events: none;
+`;
+
+const SbdmSearchInput = styled.input`
+  flex: 1;
+  padding: 6px 40px 6px 32px;
+  border-radius: 8px;
+  outline: none;
+  font-size: 12px;
+  background: rgba(${PINK_RGB}, 0.06);
+  border: 1px solid rgba(${PINK_RGB}, 0.5);
+  color: ${PINK};
+`;
+
+const SbdmDropdownBtn = styled.button<{ $open?: boolean }>`
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  background: ${(p) =>
+    p.$open
+      ? `rgba(${PINK_RGB}, 0.25)`
+      : `rgba(${PINK_RGB}, 0.12)`};
+  border: 1px solid rgba(${PINK_RGB}, 0.5);
+  color: ${PINK};
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+
+const SbdmPanel = styled.div`
+  position: absolute;
+  top: 80px;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  max-height: 240px;
+  padding: 6px;
+  background: rgba(6, 8, 12, 0.99);
+  border: 1px solid rgba(${PINK_RGB}, 0.45);
+  border-radius: 10px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7),
+    0 0 18px rgba(${PINK_RGB}, 0.2);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+`;
+
+const SbdmPanelHeader = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 4px;
+`;
+
+const SbdmInnerInput = styled.input`
+  flex: 1;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  outline: none;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(${PINK_RGB}, 0.3);
+  color: rgba(255, 255, 255, 0.85);
+`;
+
+const SbdmSortBtn = styled.button`
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  background: rgba(${PINK_RGB}, 0.14);
+  border: 1px solid rgba(${PINK_RGB}, 0.5);
+  color: ${PINK};
+  white-space: nowrap;
+`;
+
+const SbdmScrollList = styled.div`
+  overflow-y: auto;
+  max-height: 180px;
+  scrollbar-width: thin;
+`;
+
+const SbdmEmptyMsg = styled.div`
+  padding: 16px 12px;
+  text-align: center;
+  font-size: 10px;
+  color: ${MUTED_TEXT};
+`;
+
+const SbdmOptionBtn = styled.button<{ $active?: boolean }>`
+  width: 100%;
+  text-align: left;
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 11px;
+  color: ${(p) => (p.$active ? PINK : "rgba(255,255,255,0.7)")};
+  background: ${(p) =>
+    p.$active ? `rgba(${PINK_RGB}, 0.1)` : "transparent"};
+  border: none;
+  cursor: pointer;
+`;
+
+const SbdmFooter = styled.div`
+  padding: 4px 8px;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: ${MUTED_TEXT};
+  border-top: 1px solid rgba(${PINK_RGB}, 0.15);
+`;
+
+// ── LDM styled ──────────────────────────────────────────────────────────
+
+const LdmWrap = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+`;
+
+const LdmPreview = styled.div<{ $dark: boolean }>`
+  padding: 24px;
+  border-radius: 16px;
+  background: ${(p) =>
+    p.$dark ? "rgba(10,10,10,0.95)" : "rgba(248,246,243,0.95)"};
+  border: ${(p) =>
+    p.$dark
+      ? "1px solid rgba(255,255,255,0.08)"
+      : "1px solid rgba(0,0,0,0.08)"};
+  transition: all 0.3s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+`;
+
+const LdmModeLabel = styled.span<{ $dark: boolean }>`
+  font-size: 10px;
+  color: ${(p) => (p.$dark ? MUTED_TEXT : "rgba(0,0,0,0.4)")};
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  font-weight: 700;
+`;
+
+const LdmToggleBtn = styled.button<{ $dark: boolean }>`
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: ${(p) =>
+    p.$dark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.06)"};
+  border: ${(p) =>
+    p.$dark
+      ? "1px solid rgba(255,255,255,0.12)"
+      : "1px solid rgba(0,0,0,0.12)"};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 16px;
+`;
+
+const LdmAlertBox = styled.div`
+  padding: 16px;
+  border-radius: 12px;
+  background: rgba(${PINK_RGB}, 0.04);
+  border: 1px solid rgba(${PINK_RGB}, 0.2);
+  text-align: center;
+  max-width: 220px;
+`;
+
+const LdmAlertTitle = styled.div`
+  font-size: 10px;
+  color: ${PINK};
+  font-weight: 700;
+  margin-bottom: 8px;
+`;
+
+const LdmAlertActions = styled.div`
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+`;
+
+const LdmStayBtn = styled.button`
+  font-size: 9px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #ff4ecb, #a855f7);
+  color: #fff;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+`;
+
+const LdmSwitchBtn = styled.button`
+  font-size: 9px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+`;
+
+// ── SuggestionBox styled ────────────────────────────────────────────────
+
+const SbWrap = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+`;
+
+const SbDashedBox = styled.div<{ $open: boolean }>`
+  width: 140px;
+  height: 100px;
+  border-radius: 16px;
+  border: 2px dashed ${(p) => (p.$open ? PINK : MUTED)};
+  background: transparent;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: border-color 0.2s;
+`;
+
+const SbCta = styled.button`
+  padding: 6px 16px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #ff4ecb, #a855f7);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(${PINK_RGB}, 0.3);
+`;
+
+const SbModalPreview = styled.div`
+  width: 220px;
+  padding: 16px;
+  border-radius: 12px;
+  background: rgba(${PINK_RGB}, 0.04);
+  border: 1px solid rgba(${PINK_RGB}, 0.2);
+`;
+
+const SbModalTitle = styled.div`
+  font-size: 10px;
+  color: ${PINK};
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 8px;
+`;
+
+const SbLines = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+`;
+
+const SbLine = styled.div<{ $color: string; $width: string }>`
+  height: 6px;
+  border-radius: 3px;
+  background: ${(p) => p.$color};
+  width: ${(p) => p.$width};
+`;
+
+const SbFooter = styled.div`
+  margin-top: 10px;
+  display: flex;
+  justify-content: center;
+`;
+
+const SbSendBadge = styled.span`
+  font-size: 9px;
+  padding: 3px 10px;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #ff4ecb, #a855f7);
+  color: #fff;
+  font-weight: 700;
+`;
+
 // ── GPG demo ────────────────────────────────────────────────────────────
 function useGPGColumns() {
   const [cols, setCols] = useState(3);
@@ -141,62 +1186,29 @@ function GPGDemo() {
   return (
     <DemoCol>
       <Highlight label={`GPG · ${cols}-col`}>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
-            gap: 8,
-            minWidth: 240,
-            width: "100%",
-          }}
-        >
+        <GpgGrid $cols={cols}>
           {items.map((i) => (
-            <div
-              key={i}
-              style={{
-                aspectRatio: "1",
-                borderRadius: 8,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                background: "rgba(255,255,255,0.04)",
-                border: `1px solid ${MUTED}`,
-              }}
-            >
-              <span style={{ fontSize: 10, fontFamily: "var(--font-geist-mono), monospace", color: MUTED_TEXT }}>{i + 1}</span>
-            </div>
+            <GpgTile key={i}>
+              <GpgTileNum>{i + 1}</GpgTileNum>
+            </GpgTile>
           ))}
-        </div>
+        </GpgGrid>
       </Highlight>
 
       {showPager ? (
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <button
+        <GpgPagerRow>
+          <GpgPagerBtn
             onClick={() => setPage((p) => Math.max(0, p - 1))}
             disabled={safePage === 0}
-            style={{
-              width: 28, height: 28, borderRadius: 999,
-              border: `1px solid rgba(${PINK_RGB},0.5)`,
-              background: `rgba(${PINK_RGB},0.12)`,
-              color: PINK, fontSize: 14, fontWeight: 700,
-              cursor: safePage === 0 ? "not-allowed" : "pointer",
-              opacity: safePage === 0 ? 0.4 : 1,
-            }}
-          >‹</button>
-          <span style={{ color: PINK, fontSize: 12, fontWeight: 700 }}>{safePage + 1} / {totalPages}</span>
-          <button
+            $disabled={safePage === 0}
+          >‹</GpgPagerBtn>
+          <GpgPagerInfo>{safePage + 1} / {totalPages}</GpgPagerInfo>
+          <GpgPagerBtn
             onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
             disabled={safePage === totalPages - 1}
-            style={{
-              width: 28, height: 28, borderRadius: 999,
-              border: `1px solid rgba(${PINK_RGB},0.5)`,
-              background: `rgba(${PINK_RGB},0.12)`,
-              color: PINK, fontSize: 14, fontWeight: 700,
-              cursor: safePage === totalPages - 1 ? "not-allowed" : "pointer",
-              opacity: safePage === totalPages - 1 ? 0.4 : 1,
-            }}
-          >›</button>
-        </div>
+            $disabled={safePage === totalPages - 1}
+          >›</GpgPagerBtn>
+        </GpgPagerRow>
       ) : (
         <MutedNote>(no pager — total ≤ pageSize)</MutedNote>
       )}
@@ -210,44 +1222,36 @@ function TPGDemo() {
   const [size, setSize] = useState(10);
   const total = 3;
   return (
-    <DemoCol style={{ gap: "1rem" }}>
-      <div style={{ width: "100%", borderRadius: 12, overflow: "hidden", border: `1px solid ${MUTED}` }}>
+    <DemoCol>
+      <TpgTable>
         {["Row A", "Row B", "Row C", "Row D"].map((r, i) => (
-          <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "0.5rem 1rem", borderBottom: i < 3 ? `1px solid ${MUTED}` : "none", background: i % 2 ? "rgba(255,255,255,0.02)" : "transparent" }}>
-            <span style={{ fontSize: 11, fontFamily: "var(--font-geist-mono), monospace", color: MUTED_TEXT }}>{r}</span>
-            <span style={{ flex: 1 }} />
-            <span style={{ fontSize: 10, color: "rgba(255,255,255,0.2)" }}>—</span>
-          </div>
+          <TpgTableRow key={i} $alt={!!(i % 2)} $last={i === 3}>
+            <TpgMono>{r}</TpgMono>
+            <Spacer />
+            <TpgDash>—</TpgDash>
+          </TpgTableRow>
         ))}
-      </div>
+      </TpgTable>
 
       <Highlight label="TPG">
-        <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-          <span style={{ color: PINK, fontSize: 11, fontWeight: 600 }}>Page {page} of {total} · 24 results</span>
-          <span style={{ flex: 1 }} />
-          <button
-            onClick={() => setSize(10)}
-            style={{ width: 20, height: 20, borderRadius: 4, border: `1px solid rgba(${PINK_RGB},0.5)`, background: `rgba(${PINK_RGB},0.12)`, color: PINK, fontSize: 11 }}
-            title="Reset"
-          >↺</button>
-          <select
-            value={size}
-            onChange={(e) => setSize(Number(e.target.value))}
-            style={{ padding: "3px 8px", borderRadius: 6, border: `1px solid rgba(${PINK_RGB},0.5)`, background: "rgba(6,8,12,0.9)", color: PINK, fontSize: 11 }}
-          >
+        <TpgControlRow>
+          <TpgPageInfo>Page {page} of {total} · 24 results</TpgPageInfo>
+          <Spacer />
+          <TpgSmallBtn onClick={() => setSize(10)} title="Reset">↺</TpgSmallBtn>
+          <TpgSelect value={size} onChange={(e) => setSize(Number(e.target.value))}>
             {[5, 10, 25, 50].map((n) => <option key={n} value={n}>{n}</option>)}
-          </select>
-          <button
+          </TpgSelect>
+          <TpgNavBtn
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={page === 1}
-            style={{ padding: "4px 10px", borderRadius: 8, border: `1px solid rgba(${PINK_RGB},0.5)`, background: `rgba(${PINK_RGB},0.12)`, color: PINK, fontSize: 12, opacity: page === 1 ? 0.4 : 1 }}
-          >‹</button>
-          <button
+            $disabled={page === 1}
+          >‹</TpgNavBtn>
+          <TpgNavBtn
             onClick={() => setPage((p) => Math.min(total, p + 1))}
             disabled={page === total}
-            style={{ padding: "4px 10px", borderRadius: 8, border: `1px solid rgba(${PINK_RGB},0.5)`, background: `rgba(${PINK_RGB},0.12)`, color: PINK, fontSize: 12, opacity: page === total ? 0.4 : 1 }}
-          >›</button>
-        </div>
+            $disabled={page === total}
+          >›</TpgNavBtn>
+        </TpgControlRow>
       </Highlight>
     </DemoCol>
   );
@@ -271,15 +1275,15 @@ function ACRDemo() {
 
   return (
     <Highlight label="ACR">
-      <DemoCol style={{ gap: "0.75rem" }}>
-        <span style={{ fontSize: 10, fontFamily: "var(--font-geist-mono), monospace", color: PINK }}>
+      <DemoCol>
+        <AcrViewportLabel>
           viewport → <b>{cols === 1 ? "GPG (mobile)" : `TPG ${cols}-col`}</b>
-        </span>
-        <div style={{ display: "grid", gap: 8, gridTemplateColumns: `repeat(${cols}, 1fr)`, width: 320 }}>
+        </AcrViewportLabel>
+        <AcrGrid $cols={cols}>
           {Array.from({ length: cols }).map((_, i) => (
-            <div key={i} style={{ aspectRatio: "1", borderRadius: 4, background: "rgba(255,255,255,0.06)", border: `1px solid ${MUTED}` }} />
+            <AcrTile key={i} />
           ))}
-        </div>
+        </AcrGrid>
         <MutedNote>Resize the window — cols switch at 600/900/1200.</MutedNote>
       </DemoCol>
     </Highlight>
@@ -288,29 +1292,10 @@ function ACRDemo() {
 
 // ── Lightswitch demo ────────────────────────────────────────────────────
 function LightswitchSwitch({ on, onChange, highlighted }: { on: boolean; onChange: (v: boolean) => void; highlighted?: boolean }) {
-  const color = highlighted ? PINK : "rgba(255,255,255,0.4)";
-  const rgbVal = highlighted ? PINK_RGB : "255,255,255";
   return (
-    <button
-      onClick={() => onChange(!on)}
-      style={{
-        position: "relative", width: 44, height: 18, borderRadius: 999,
-        border: `1px solid ${on ? `rgba(${rgbVal},0.7)` : "rgba(255,255,255,0.15)"}`,
-        background: on ? `rgba(${rgbVal},0.18)` : "rgba(255,255,255,0.04)",
-        boxShadow: on && highlighted ? `0 0 12px rgba(${rgbVal},0.5)` : "none",
-        transition: "all 0.2s",
-      }}
-    >
-      <span
-        style={{
-          position: "absolute", top: 1, left: on ? 26 : 2,
-          width: 14, height: 14, borderRadius: "50%",
-          background: on ? color : "rgba(255,255,255,0.3)",
-          boxShadow: on && highlighted ? `0 0 10px rgba(${rgbVal},0.8), 0 0 2px rgba(${rgbVal},1)` : "0 1px 2px rgba(0,0,0,0.3)",
-          transition: "all 0.2s",
-        }}
-      />
-    </button>
+    <LsTrack onClick={() => onChange(!on)} $on={on} $highlighted={highlighted}>
+      <LsThumb $on={on} $highlighted={highlighted} />
+    </LsTrack>
   );
 }
 
@@ -319,7 +1304,7 @@ function LightswitchDemo() {
   const [b, setB] = useState(true);
   const [c, setC] = useState(true);
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 12, width: "100%", maxWidth: 448 }}>
+    <LsWrap>
       {[
         { label: "Notifications", state: a, set: setA },
         { label: "Sound effects",  state: b, set: setB },
@@ -330,12 +1315,12 @@ function LightswitchDemo() {
         </MutedRow>
       ))}
       <Highlight label="Lightswitch">
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0.5rem 1rem", borderRadius: 8, width: "100%", minWidth: 280 }}>
-          <span style={{ fontSize: 12, color: "rgba(255,255,255,0.85)" }}>Expand section</span>
+        <LsHighlightRow>
+          <LsExpandLabel>Expand section</LsExpandLabel>
           <LightswitchSwitch on={c} onChange={setC} highlighted />
-        </div>
+        </LsHighlightRow>
       </Highlight>
-    </div>
+    </LsWrap>
   );
 }
 
@@ -343,47 +1328,36 @@ function LightswitchDemo() {
 function ECLDemo() {
   const [expanded, setExpanded] = useState(true);
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 8, width: "100%", maxWidth: 448 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "0.5rem 0.75rem", borderRadius: 8, background: "rgba(255,255,255,0.02)", border: `1px solid ${MUTED}` }}>
-        <span style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: MUTED_TEXT }}>Zoom</span>
-        <div style={{ flex: 1, height: 6, borderRadius: 999, background: "rgba(255,255,255,0.06)" }}>
-          <div style={{ height: "100%", borderRadius: 999, width: expanded ? "55%" : "0%", background: "rgba(0,191,255,0.4)" }} />
-        </div>
+    <EclWrap>
+      <EclRow>
+        <EclSectionLabel>Zoom</EclSectionLabel>
+        <EclTrackBar>
+          <EclFill $pct={expanded ? "55%" : "0%"} />
+        </EclTrackBar>
         {expanded && (
           <>
-            <button style={{ width: 20, height: 20, borderRadius: 4, border: "1px solid rgba(0,228,253,0.25)", background: "rgba(0,228,253,0.08)", color: "rgba(0,228,253,0.8)", fontSize: 11 }}>↺</button>
-            <input defaultValue="1.0" style={{ width: 40, textAlign: "center", borderRadius: 4, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.6)", fontSize: 11, padding: "2px 4px" }} />
+            <EclResetBtn>↺</EclResetBtn>
+            <EclInput defaultValue="1.0" />
           </>
         )}
         <Highlight label="ECL">
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.1em", color: PINK }}>{expanded ? "Collapse" : "Expand"}</span>
+          <EclToggleRow>
+            <EclToggleLabel>{expanded ? "Collapse" : "Expand"}</EclToggleLabel>
             <LightswitchSwitch on={expanded} onChange={setExpanded} highlighted />
-          </div>
+          </EclToggleRow>
         </Highlight>
-      </div>
+      </EclRow>
       <MutedNote>Toggling ECL hides only the controls (↺ + input), not the row or label.</MutedNote>
-    </div>
+    </EclWrap>
   );
 }
 
 // ── Eye Icon demo ───────────────────────────────────────────────────────
 function EyeBtn({ visible, onChange, highlighted }: { visible: boolean; onChange: (v: boolean) => void; highlighted?: boolean }) {
-  const color = highlighted ? PINK : "rgba(0,228,253,0.6)";
-  const rgbVal = highlighted ? PINK_RGB : "0,228,253";
   return (
-    <button
-      onClick={() => onChange(!visible)}
-      style={{
-        width: 22, height: 22, borderRadius: 4,
-        border: `1px solid rgba(${rgbVal},${visible ? 0.5 : 0.2})`,
-        background: `rgba(${rgbVal},${visible ? 0.15 : 0.04})`,
-        color: visible ? color : "rgba(255,255,255,0.3)",
-        boxShadow: visible && highlighted ? `0 0 10px rgba(${rgbVal},0.5)` : "none",
-        display: "flex", alignItems: "center", justifyContent: "center",
-        fontSize: 12,
-      }}
-    >{visible ? "👁" : "⊘"}</button>
+    <EyeBtnStyled onClick={() => onChange(!visible)} $visible={visible} $highlighted={highlighted}>
+      {visible ? "👁" : "⊘"}
+    </EyeBtnStyled>
   );
 }
 
@@ -392,7 +1366,7 @@ function EyeIconDemo() {
   const [show2, setShow2] = useState(false);
   const [show3, setShow3] = useState(true);
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 8, width: "100%", maxWidth: 448 }}>
+    <EyeWrap>
       {[
         { label: "Header block", state: show1, set: setShow1 },
         { label: "Sidebar widget", state: show2, set: setShow2 },
@@ -403,68 +1377,49 @@ function EyeIconDemo() {
         </MutedRow>
       ))}
       <MutedRow>
-        <span style={{ fontSize: 12, color: "rgba(255,255,255,0.85)" }}>Footer section</span>
+        <EyeRowLabel>Footer section</EyeRowLabel>
         <Highlight label="EYE">
           <EyeBtn visible={show3} onChange={setShow3} highlighted />
         </Highlight>
       </MutedRow>
-    </div>
+    </EyeWrap>
   );
 }
 
 // ── QMBM demo ───────────────────────────────────────────────────────────
 function QMBMBubble({ highlighted, onClick }: { highlighted?: boolean; onClick: () => void }) {
-  const color = highlighted ? PINK : "rgba(247,183,0,0.6)";
-  const rgbVal = highlighted ? PINK_RGB : "247,183,0";
   return (
-    <button
-      onClick={onClick}
-      style={{
-        width: 16, height: 16, borderRadius: "50%",
-        border: `1px solid rgba(${rgbVal},0.6)`,
-        background: `rgba(${rgbVal},0.15)`,
-        color, fontSize: 10, fontWeight: 700, lineHeight: 1,
-        boxShadow: highlighted ? `0 0 8px rgba(${rgbVal},0.5)` : "none",
-      }}
-    >?</button>
+    <QmbmBubbleStyled onClick={onClick} $highlighted={highlighted}>?</QmbmBubbleStyled>
   );
 }
 
 function QMBMDemo() {
   const [open, setOpen] = useState(false);
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 12, width: "100%", maxWidth: 448, minHeight: 200 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <label style={{ fontSize: 12, color: MUTED_TEXT }}>API Key</label>
+    <QmbmWrap>
+      <QmbmFieldRow>
+        <QmbmFieldLabel>API Key</QmbmFieldLabel>
         <QMBMBubble onClick={() => {}} />
-      </div>
-      <input style={{ width: "100%", padding: "6px 12px", borderRadius: 4, fontSize: 12, background: "rgba(255,255,255,0.03)", border: `1px solid ${MUTED}`, color: MUTED_TEXT }} placeholder="sk-…" readOnly />
-      <div style={{ display: "flex", alignItems: "center", gap: 8, position: "relative" }}>
-        <label style={{ fontSize: 12, color: "rgba(255,255,255,0.85)" }}>Webhook secret</label>
+      </QmbmFieldRow>
+      <QmbmInput placeholder="sk-…" readOnly />
+      <QmbmRelRow>
+        <QmbmFieldLabelActive>Webhook secret</QmbmFieldLabelActive>
         <Highlight label="QMBM">
           <QMBMBubble highlighted onClick={() => setOpen((v) => !v)} />
         </Highlight>
         {open && (
-          <div
-            style={{
-              position: "absolute", top: 26, left: 0, zIndex: 10,
-              width: 260, padding: 12, borderRadius: 10,
-              background: "rgba(6,8,12,0.98)",
-              border: `1px solid rgba(${PINK_RGB},0.45)`,
-              boxShadow: `0 12px 40px rgba(0,0,0,0.7), 0 0 16px rgba(${PINK_RGB},0.2)`,
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-              <span style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: PINK }}>Webhook secret</span>
-              <button onClick={() => setOpen(false)} style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", background: "none", border: "none", cursor: "pointer" }}>✕</button>
-            </div>
-            <p style={{ fontSize: 11, lineHeight: 1.6, color: "rgba(255,255,255,0.6)", margin: 0 }}>
+          <QmbmCard>
+            <QmbmCardHeader>
+              <QmbmCardTitle>Webhook secret</QmbmCardTitle>
+              <QmbmCloseBtn onClick={() => setOpen(false)}>✕</QmbmCloseBtn>
+            </QmbmCardHeader>
+            <QmbmCardBody>
               Used to sign outbound webhook payloads. Rotate quarterly. Clients verify via HMAC-SHA256.
-            </p>
-          </div>
+            </QmbmCardBody>
+          </QmbmCard>
         )}
-      </div>
-    </div>
+      </QmbmRelRow>
+    </QmbmWrap>
   );
 }
 
@@ -473,42 +1428,31 @@ function DDMDemo() {
   const [open, setOpen] = useState(false);
   const [val, setVal] = useState("Markdown");
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 12, width: "100%", maxWidth: 448, minHeight: 200 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <label style={{ fontSize: 12, color: MUTED_TEXT }}>Theme</label>
-        <button style={{ padding: "4px 12px", borderRadius: 999, fontSize: 11, background: "rgba(255,255,255,0.04)", border: `1px solid ${MUTED}`, color: MUTED_TEXT }}>Dark ▾</button>
-      </div>
-      <div style={{ position: "relative" }}>
+    <DdmWrap>
+      <QmbmFieldRow>
+        <DdmFieldLabel>Theme</DdmFieldLabel>
+        <DdmMutedBtn>Dark ▾</DdmMutedBtn>
+      </QmbmFieldRow>
+      <DdmRelWrap>
         <Highlight label="DDM">
-          <button
-            onClick={() => setOpen((v) => !v)}
-            style={{ padding: "6px 16px", borderRadius: 999, fontSize: 11, fontWeight: 600, display: "flex", alignItems: "center", gap: 8, background: `rgba(${PINK_RGB},0.14)`, border: `1px solid rgba(${PINK_RGB},0.5)`, color: PINK }}
-          >
+          <DdmTriggerBtn onClick={() => setOpen((v) => !v)}>
             Save as: {val}
-            <span style={{ fontSize: 8 }}>▼</span>
-          </button>
+            <DdmArrow>▼</DdmArrow>
+          </DdmTriggerBtn>
         </Highlight>
         {open && (
-          <div
-            style={{
-              position: "absolute", top: 52, left: 8, zIndex: 10, width: 180,
-              padding: 4, borderRadius: 10,
-              background: "rgba(6,8,12,0.98)",
-              border: `1px solid rgba(${PINK_RGB},0.45)`,
-              boxShadow: `0 12px 40px rgba(0,0,0,0.7), 0 0 16px rgba(${PINK_RGB},0.2)`,
-            }}
-          >
+          <DdmMenu>
             {["Markdown", "JSON", "HTML", "Plain text"].map((opt) => (
-              <button
+              <DdmMenuItem
                 key={opt}
                 onClick={() => { setVal(opt); setOpen(false); }}
-                style={{ width: "100%", textAlign: "left", padding: "6px 12px", borderRadius: 4, fontSize: 11, color: val === opt ? PINK : "rgba(255,255,255,0.7)", background: val === opt ? `rgba(${PINK_RGB},0.1)` : "transparent", border: "none", cursor: "pointer" }}
-              >{opt}</button>
+                $active={val === opt}
+              >{opt}</DdmMenuItem>
             ))}
-          </div>
+          </DdmMenu>
         )}
-      </div>
-    </div>
+      </DdmRelWrap>
+    </DdmWrap>
   );
 }
 
@@ -516,34 +1460,32 @@ function DDMDemo() {
 function SRTDemo() {
   const [v, setV] = useState(1);
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 8, width: "100%", maxWidth: 448 }}>
+    <SrtWrap>
       <Highlight label="SRT">
-        <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "0.5rem 0.75rem", width: "100%", minWidth: 360 }}>
-          <span style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", width: 56, color: PINK }}>Zoom</span>
-          <input
+        <SrtRow>
+          <SrtLabel $active>Zoom</SrtLabel>
+          <SrtSlider
             type="range" min={0.5} max={2} step={0.05} value={v}
             onChange={(e) => setV(Number(e.target.value))}
-            style={{ flex: 1, accentColor: PINK }}
           />
-          <button onClick={() => setV(1)} style={{ width: 20, height: 20, borderRadius: 4, border: `1px solid rgba(${PINK_RGB},0.5)`, background: `rgba(${PINK_RGB},0.15)`, color: PINK, fontSize: 11 }}>↺</button>
-          <input
+          <SrtResetBtn onClick={() => setV(1)}>↺</SrtResetBtn>
+          <SrtValueInput
             value={v.toFixed(2)}
             onChange={(e) => { const n = Number(e.target.value); if (!Number.isNaN(n)) setV(n); }}
-            style={{ width: 48, textAlign: "center", borderRadius: 4, fontSize: 12, padding: "2px 4px", background: "rgba(255,255,255,0.05)", border: `1px solid rgba(${PINK_RGB},0.35)`, color: PINK, fontVariantNumeric: "tabular-nums" }}
           />
           <LightswitchSwitch on={true} onChange={() => {}} highlighted={false} />
-        </div>
+        </SrtRow>
       </Highlight>
       {["X-Axis", "Y-Axis"].map((lbl) => (
-        <div key={lbl} style={{ display: "flex", alignItems: "center", gap: 12, padding: "0.5rem 0.75rem", borderRadius: 8, background: "rgba(255,255,255,0.02)", border: `1px solid ${MUTED}` }}>
-          <span style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", width: 56, color: MUTED_TEXT }}>{lbl}</span>
-          <div style={{ flex: 1, height: 4, borderRadius: 999, background: "rgba(255,255,255,0.06)" }}>
-            <div style={{ height: "100%", borderRadius: 999, width: "50%", background: "rgba(255,255,255,0.15)" }} />
-          </div>
-          <span style={{ fontSize: 10, color: MUTED_TEXT }}>0.00</span>
-        </div>
+        <SrtMutedRow key={lbl}>
+          <SrtLabel>{lbl}</SrtLabel>
+          <SrtMutedTrack>
+            <SrtMutedFill $pct="50%" />
+          </SrtMutedTrack>
+          <SrtMutedVal>0.00</SrtMutedVal>
+        </SrtMutedRow>
       ))}
-    </div>
+    </SrtWrap>
   );
 }
 
@@ -551,33 +1493,30 @@ function SRTDemo() {
 function ResetBtnDemo() {
   const [v, setV] = useState(1.35);
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 12, width: "100%", maxWidth: 448 }}>
+    <RstWrap>
       {[
         { label: "X-Axis" },
         { label: "Y-Axis" },
       ].map((r) => (
-        <div key={r.label} style={{ display: "flex", alignItems: "center", gap: 12, padding: "0.5rem 0.75rem", borderRadius: 8, background: "rgba(255,255,255,0.02)", border: `1px solid ${MUTED}` }}>
-          <span style={{ fontSize: 11, width: 56, color: MUTED_TEXT }}>{r.label}</span>
-          <div style={{ flex: 1, height: 4, borderRadius: 999, background: "rgba(255,255,255,0.06)" }}>
-            <div style={{ height: "100%", borderRadius: 999, width: "50%", background: "rgba(255,255,255,0.15)" }} />
-          </div>
-          <button style={{ width: 20, height: 20, borderRadius: 4, border: "1px solid rgba(0,228,253,0.2)", background: "rgba(0,228,253,0.05)", color: "rgba(0,228,253,0.4)", fontSize: 10 }}>↺</button>
-        </div>
+        <RstRow key={r.label}>
+          <RstLabel>{r.label}</RstLabel>
+          <SrtMutedTrack>
+            <SrtMutedFill $pct="50%" />
+          </SrtMutedTrack>
+          <RstMutedResetBtn>↺</RstMutedResetBtn>
+        </RstRow>
       ))}
-      <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "0.5rem 0.75rem", borderRadius: 8, background: "rgba(255,255,255,0.02)", border: `1px solid ${MUTED}` }}>
-        <span style={{ fontSize: 11, width: 56, color: "rgba(255,255,255,0.85)" }}>Zoom</span>
-        <div style={{ flex: 1, height: 4, borderRadius: 999, background: "rgba(255,255,255,0.06)" }}>
-          <div style={{ height: "100%", borderRadius: 999, width: `${(v / 2) * 100}%`, background: "rgba(0,191,255,0.4)" }} />
-        </div>
+      <RstRow>
+        <RstLabel $active>Zoom</RstLabel>
+        <SrtMutedTrack>
+          <RstActiveFill $pct={`${(v / 2) * 100}%`} />
+        </SrtMutedTrack>
         <Highlight label="RESET">
-          <button
-            onClick={() => setV(1)}
-            style={{ width: 20, height: 20, borderRadius: 4, border: `1px solid rgba(${PINK_RGB},0.5)`, background: `rgba(${PINK_RGB},0.15)`, color: PINK, fontSize: 12, fontWeight: 700 }}
-          >↺</button>
+          <RstHighlightBtn onClick={() => setV(1)}>↺</RstHighlightBtn>
         </Highlight>
-        <span style={{ fontSize: 10, fontFamily: "var(--font-geist-mono), monospace", color: "rgba(255,255,255,0.5)" }}>{v.toFixed(2)}</span>
-      </div>
-    </div>
+        <RstMonoVal>{v.toFixed(2)}</RstMonoVal>
+      </RstRow>
+    </RstWrap>
   );
 }
 
@@ -586,19 +1525,19 @@ function TSGDemo() {
   const [icons, setIcons] = useState(false);
   const [all, setAll] = useState(true);
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 12, width: "100%", maxWidth: 512 }}>
+    <TsgWrap>
       <Highlight label="TSG">
-        <div style={{ display: "flex", alignItems: "center", gap: 24, padding: "0.5rem 1rem", borderRadius: 8, width: "100%", minWidth: 360, background: `rgba(${PINK_RGB},0.04)` }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.1em", color: PINK }}>Labels</span>
+        <TsgControlBar>
+          <TsgToggleGroup>
+            <TsgPinkLabel>Labels</TsgPinkLabel>
             <LightswitchSwitch on={icons} onChange={setIcons} highlighted />
-            <span style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.1em", color: icons ? PINK : MUTED_TEXT }}>Icons</span>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.1em", color: PINK }}>{all ? "Collapse all" : "Expand all"}</span>
+            <TsgToggleLabel $active={icons}>Icons</TsgToggleLabel>
+          </TsgToggleGroup>
+          <TsgToggleGroup>
+            <TsgPinkLabel>{all ? "Collapse all" : "Expand all"}</TsgPinkLabel>
             <LightswitchSwitch on={all} onChange={setAll} highlighted />
-          </div>
-        </div>
+          </TsgToggleGroup>
+        </TsgControlBar>
       </Highlight>
       {["Sessions", "Members", "Payouts"].map((s) => (
         <MutedRow key={s}>
@@ -606,7 +1545,7 @@ function TSGDemo() {
           <LightswitchSwitch on={all} onChange={() => {}} highlighted={false} />
         </MutedRow>
       ))}
-    </div>
+    </TsgWrap>
   );
 }
 
@@ -629,95 +1568,70 @@ function SBDMDemo() {
     .sort((a, b) => (asc ? a.localeCompare(b) : b.localeCompare(a)));
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 12, width: "100%", maxWidth: 448, minHeight: 360 }}>
-      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-        <label style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.1em", color: MUTED_TEXT }}>Email</label>
-        <input style={{ width: "100%", padding: "6px 12px", borderRadius: 4, fontSize: 12, background: "rgba(255,255,255,0.03)", border: `1px solid ${MUTED}`, color: MUTED_TEXT }} placeholder="user@example.com" readOnly />
-      </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-        <label style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.1em", color: MUTED_TEXT }}>Tag</label>
-        <input style={{ width: "100%", padding: "6px 12px", borderRadius: 4, fontSize: 12, background: "rgba(255,255,255,0.03)", border: `1px solid ${MUTED}`, color: MUTED_TEXT }} placeholder="optional" readOnly />
-      </div>
+    <SbdmWrap>
+      <SbdmFieldGroup>
+        <SbdmFieldLabel>Email</SbdmFieldLabel>
+        <SbdmFieldInput placeholder="user@example.com" readOnly />
+      </SbdmFieldGroup>
+      <SbdmFieldGroup>
+        <SbdmFieldLabel>Tag</SbdmFieldLabel>
+        <SbdmFieldInput placeholder="optional" readOnly />
+      </SbdmFieldGroup>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 4, position: "relative" }}>
-        <label style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.1em", color: PINK }}>Country</label>
+      <SbdmRelGroup>
+        <SbdmFieldLabel $active>Country</SbdmFieldLabel>
         <Highlight label="SBDM">
-          <div style={{ display: "flex", alignItems: "center", width: "100%", minWidth: 320, position: "relative" }}>
-            <span style={{ position: "absolute", left: 10, color: `rgba(${PINK_RGB},0.7)`, fontSize: 12, pointerEvents: "none" }}>🔍</span>
-            <input
+          <SbdmSearchWrap>
+            <SbdmSearchIcon>🔍</SbdmSearchIcon>
+            <SbdmSearchInput
               value={outer}
               onChange={(e) => setOuter(e.target.value)}
               placeholder="Search countries…"
-              style={{
-                flex: 1, paddingLeft: 32, paddingRight: 40, padding: "6px 40px 6px 32px", borderRadius: 8, outline: "none", fontSize: 12,
-                background: `rgba(${PINK_RGB},0.06)`,
-                border: `1px solid rgba(${PINK_RGB},0.5)`,
-                color: PINK,
-              }}
             />
-            <button
+            <SbdmDropdownBtn
               onClick={() => setOpen((v) => !v)}
-              style={{
-                position: "absolute", right: 4, top: "50%", transform: "translateY(-50%)",
-                width: 26, height: 26, borderRadius: 6,
-                background: open ? `rgba(${PINK_RGB},0.25)` : `rgba(${PINK_RGB},0.12)`,
-                border: `1px solid rgba(${PINK_RGB},0.5)`,
-                color: PINK, fontSize: 10,
-                display: "flex", alignItems: "center", justifyContent: "center",
-              }}
+              $open={open}
               title={open ? "Close" : "Browse all"}
-            >▾</button>
-          </div>
+            >▾</SbdmDropdownBtn>
+          </SbdmSearchWrap>
         </Highlight>
 
         {open && (
-          <div
-            style={{
-              position: "absolute", top: 80, left: 0, right: 0, zIndex: 20,
-              maxHeight: 240, padding: 6,
-              background: "rgba(6,8,12,0.99)",
-              border: `1px solid rgba(${PINK_RGB},0.45)`,
-              borderRadius: 10,
-              boxShadow: `0 12px 40px rgba(0,0,0,0.7), 0 0 18px rgba(${PINK_RGB},0.2)`,
-              display: "flex", flexDirection: "column", gap: 4,
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 4px" }}>
-              <input
+          <SbdmPanel>
+            <SbdmPanelHeader>
+              <SbdmInnerInput
                 value={inner}
                 onChange={(e) => setInner(e.target.value)}
                 placeholder="Search inside…"
                 autoFocus
-                style={{ flex: 1, padding: "4px 8px", borderRadius: 4, fontSize: 11, outline: "none", background: "rgba(255,255,255,0.04)", border: `1px solid rgba(${PINK_RGB},0.3)`, color: "rgba(255,255,255,0.85)" }}
               />
-              <button
+              <SbdmSortBtn
                 onClick={() => setAsc((v) => !v)}
-                style={{ padding: "4px 8px", borderRadius: 4, fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", background: `rgba(${PINK_RGB},0.14)`, border: `1px solid rgba(${PINK_RGB},0.5)`, color: PINK, whiteSpace: "nowrap" }}
                 title="Toggle sort order"
               >
                 {asc ? "Z-A" : "A-Z"} ↕
-              </button>
-            </div>
-            <div style={{ overflowY: "auto", maxHeight: 180, scrollbarWidth: "thin" as const }}>
+              </SbdmSortBtn>
+            </SbdmPanelHeader>
+            <SbdmScrollList>
               {filtered.length === 0 ? (
-                <div style={{ padding: "16px 12px", textAlign: "center", fontSize: 10, color: MUTED_TEXT }}>No matches.</div>
+                <SbdmEmptyMsg>No matches.</SbdmEmptyMsg>
               ) : (
                 filtered.map((o) => (
-                  <button
+                  <SbdmOptionBtn
                     key={o}
                     onClick={() => { setOuter(o); setOpen(false); setInner(""); }}
-                    style={{ width: "100%", textAlign: "left", padding: "4px 12px", borderRadius: 4, fontSize: 11, color: outer === o ? PINK : "rgba(255,255,255,0.7)", background: outer === o ? `rgba(${PINK_RGB},0.1)` : "transparent", border: "none", cursor: "pointer" }}
-                  >{o}</button>
+                    $active={outer === o}
+                  >{o}</SbdmOptionBtn>
                 ))
               )}
-            </div>
-            <div style={{ padding: "4px 8px", fontSize: 9, textTransform: "uppercase", letterSpacing: "0.1em", color: MUTED_TEXT, borderTop: `1px solid rgba(${PINK_RGB},0.15)` }}>
+            </SbdmScrollList>
+            <SbdmFooter>
               {filtered.length} of {SBDM_OPTIONS.length} · sorted {asc ? "A → Z" : "Z → A"}
-            </div>
-          </div>
+            </SbdmFooter>
+          </SbdmPanel>
         )}
-      </div>
-    </div>
+      </SbdmRelGroup>
+    </SbdmWrap>
   );
 }
 
@@ -727,50 +1641,30 @@ function LDMDemo() {
   const [alert, setAlert] = useState(false);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
-      <div
-        style={{
-          padding: 24, borderRadius: 16,
-          background: dark ? "rgba(10,10,10,0.95)" : "rgba(248,246,243,0.95)",
-          border: dark ? "1px solid rgba(255,255,255,0.08)" : "1px solid rgba(0,0,0,0.08)",
-          transition: "all 0.3s",
-          display: "flex", flexDirection: "column", alignItems: "center", gap: 12,
-        }}
-      >
-        <span style={{ fontSize: 10, color: dark ? MUTED_TEXT : "rgba(0,0,0,0.4)", textTransform: "uppercase", letterSpacing: "0.15em", fontWeight: 700 }}>
+    <LdmWrap>
+      <LdmPreview $dark={dark}>
+        <LdmModeLabel $dark={dark}>
           {dark ? "Dark Mode" : "Light Mode"}
-        </span>
+        </LdmModeLabel>
         <Highlight label="LDM">
-          <button
+          <LdmToggleBtn
             onClick={() => { if (dark) setAlert(true); else setDark(true); }}
-            style={{
-              width: 32, height: 32, borderRadius: 10,
-              background: dark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.06)",
-              border: dark ? "1px solid rgba(255,255,255,0.12)" : "1px solid rgba(0,0,0,0.12)",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              cursor: "pointer", fontSize: 16,
-            }}
+            $dark={dark}
           >
-            {dark ? "\u{1F319}" : "\u{2600}\u{FE0F}"}
-          </button>
+            {dark ? "🌙" : "☀️"}
+          </LdmToggleBtn>
         </Highlight>
-      </div>
+      </LdmPreview>
       {alert && (
-        <div style={{ padding: 16, borderRadius: 12, background: `rgba(${PINK_RGB},0.04)`, border: `1px solid rgba(${PINK_RGB},0.2)`, textAlign: "center", maxWidth: 220 }}>
-          <div style={{ fontSize: 10, color: PINK, fontWeight: 700, marginBottom: 8 }}>Dark mode is greener</div>
-          <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
-            <button
-              onClick={() => setAlert(false)}
-              style={{ fontSize: 9, padding: "4px 10px", borderRadius: 6, background: "linear-gradient(135deg, #ff4ecb, #a855f7)", color: "#fff", fontWeight: 700, border: "none", cursor: "pointer" }}
-            >Stay dark</button>
-            <button
-              onClick={() => { setDark(false); setAlert(false); }}
-              style={{ fontSize: 9, padding: "4px 10px", borderRadius: 6, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.5)", cursor: "pointer" }}
-            >Switch anyway</button>
-          </div>
-        </div>
+        <LdmAlertBox>
+          <LdmAlertTitle>Dark mode is greener</LdmAlertTitle>
+          <LdmAlertActions>
+            <LdmStayBtn onClick={() => setAlert(false)}>Stay dark</LdmStayBtn>
+            <LdmSwitchBtn onClick={() => { setDark(false); setAlert(false); }}>Switch anyway</LdmSwitchBtn>
+          </LdmAlertActions>
+        </LdmAlertBox>
       )}
-    </div>
+    </LdmWrap>
   );
 }
 
@@ -778,49 +1672,28 @@ function LDMDemo() {
 function SuggestionBoxDemo() {
   const [open, setOpen] = useState(false);
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
-      <div
-        style={{
-          width: 140, height: 100, borderRadius: 16,
-          border: open ? `2px dashed ${PINK}` : `2px dashed ${MUTED}`,
-          background: "transparent",
-          display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8,
-          transition: "border-color 0.2s",
-        }}
-      >
+    <SbWrap>
+      <SbDashedBox $open={open}>
         <Highlight label="tile">
-          <button
-            onClick={() => setOpen((v) => !v)}
-            style={{
-              padding: "6px 16px", borderRadius: 10,
-              background: "linear-gradient(135deg, #ff4ecb, #a855f7)",
-              color: "#fff", fontSize: 11, fontWeight: 700,
-              border: "none", cursor: "pointer",
-              boxShadow: `0 4px 16px rgba(${PINK_RGB},0.3)`,
-            }}
-          >
+          <SbCta onClick={() => setOpen((v) => !v)}>
             {open ? "Close" : "Make a suggestion"}
-          </button>
+          </SbCta>
         </Highlight>
-      </div>
+      </SbDashedBox>
       {open && (
-        <div style={{ width: 220, padding: 16, borderRadius: 12, background: `rgba(${PINK_RGB},0.04)`, border: `1px solid rgba(${PINK_RGB},0.2)` }}>
-          <div style={{ fontSize: 10, color: PINK, fontWeight: 700, textTransform: "uppercase", letterSpacing: "1px", marginBottom: 8 }}>
-            SuggestionBox Modal
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            <div style={{ height: 6, borderRadius: 3, background: `rgba(${PINK_RGB},0.15)`, width: "80%" }} />
-            <div style={{ height: 6, borderRadius: 3, background: `rgba(${rgb.cyan},0.15)`, width: "100%" }} />
-            <div style={{ height: 6, borderRadius: 3, background: `rgba(${rgb.cyan},0.1)`, width: "60%" }} />
-          </div>
-          <div style={{ marginTop: 10, display: "flex", justifyContent: "center" }}>
-            <span style={{ fontSize: 9, padding: "3px 10px", borderRadius: 6, background: "linear-gradient(135deg, #ff4ecb, #a855f7)", color: "#fff", fontWeight: 700 }}>
-              Send to admin
-            </span>
-          </div>
-        </div>
+        <SbModalPreview>
+          <SbModalTitle>SuggestionBox Modal</SbModalTitle>
+          <SbLines>
+            <SbLine $color={`rgba(${PINK_RGB},0.15)`} $width="80%" />
+            <SbLine $color={`rgba(${rgb.cyan},0.15)`} $width="100%" />
+            <SbLine $color={`rgba(${rgb.cyan},0.1)`} $width="60%" />
+          </SbLines>
+          <SbFooter>
+            <SbSendBadge>Send to admin</SbSendBadge>
+          </SbFooter>
+        </SbModalPreview>
       )}
-    </div>
+    </SbWrap>
   );
 }
 
@@ -831,8 +1704,8 @@ export const REGISTRY: SandboxEntry[] = [
     name: "Gallery Pagination Group",
     category: "Navigation",
     summary: "Responsive paginated grid: columns scale 1 → 2 → 3 → 5 across the 600/900/1200px breakpoints, page size always equals column count. Pager (28px circle ‹ ›  + `N / M` counter) only renders when `total > pageSize` — small datasets show as a static grid with no pager.",
-    usage: "Wrap any repeated-card collection. Use the canonical Tailwind grid `grid-cols-1 min-[600px]:grid-cols-2 min-[900px]:grid-cols-3 min-[1200px]:grid-cols-5`. Track current column count via `matchMedia` for slicing. Reset page to 0 when filter or column count changes.",
-    code: "// Hook (mirrors refusionist AnnouncementsWidget)\nfunction useGPGColumns() {\n  const [cols, setCols] = useState(3);\n  useEffect(() => {\n    const update = () => {\n      const w = window.innerWidth;\n      if (w < 600) setCols(1);\n      else if (w < 900) setCols(2);\n      else if (w < 1200) setCols(3);\n      else setCols(5);\n    };\n    update();\n    window.addEventListener(\"resize\", update);\n    return () => window.removeEventListener(\"resize\", update);\n  }, []);\n  return cols;\n}\n\n// Render\nconst cols = useGPGColumns();\nconst pageSize = cols;\nconst totalPages = Math.max(1, Math.ceil(items.length / pageSize));\nconst showPager = items.length > pageSize;\nconst visible = items.slice(page * pageSize, (page + 1) * pageSize);\n\n<>\n  <div style={{ display: \"grid\", gridTemplateColumns: \"repeat(auto-fill, minmax(180px, 1fr))\", gap: \"0.75rem\" }}>\n    {visible.map(renderCard)}\n  </div>\n  {showPager && (\n    <PagerRow>\n      <PagerBtn disabled={page === 0} onClick={() => setPage(p => p - 1)}>‹</PagerBtn>\n      <PagerInfo>{page + 1} / {totalPages}</PagerInfo>\n      <PagerBtn disabled={page === totalPages - 1} onClick={() => setPage(p => p + 1)}>›</PagerBtn>\n    </PagerRow>\n  )}\n</>",
+    usage: "Wrap any repeated-card collection. Use TileGrid styled-component with responsive media queries at 600/900/1200px breakpoints. Track current column count via `matchMedia` for slicing. Reset page to 0 when filter or column count changes.",
+    code: "// Hook (mirrors refusionist AnnouncementsWidget)\nfunction useGPGColumns() {\n  const [cols, setCols] = useState(3);\n  useEffect(() => {\n    const update = () => {\n      const w = window.innerWidth;\n      if (w < 600) setCols(1);\n      else if (w < 900) setCols(2);\n      else if (w < 1200) setCols(3);\n      else setCols(5);\n    };\n    update();\n    window.addEventListener(\"resize\", update);\n    return () => window.removeEventListener(\"resize\", update);\n  }, []);\n  return cols;\n}\n\n// Render\nconst cols = useGPGColumns();\nconst pageSize = cols;\nconst totalPages = Math.max(1, Math.ceil(items.length / pageSize));\nconst showPager = items.length > pageSize;\nconst visible = items.slice(page * pageSize, (page + 1) * pageSize);\n\n<>\n  <TileGrid>\n    {visible.map(renderCard)}\n  </TileGrid>\n  {showPager && (\n    <PagerRow>\n      <PagerBtn disabled={page === 0} onClick={() => setPage(p => p - 1)}>‹</PagerBtn>\n      <PagerInfo>{page + 1} / {totalPages}</PagerInfo>\n      <PagerBtn disabled={page === totalPages - 1} onClick={() => setPage(p => p + 1)}>›</PagerBtn>\n    </PagerRow>\n  )}\n</>",
     style: "const TileGrid = styled.section`\ndisplay: grid;\ngrid-template-columns: 1fr;\ngap: 0.75rem;\n\n@media (min-width: 600px) { grid-template-columns: repeat(2, 1fr); }\n@media (min-width: 900px) { grid-template-columns: repeat(3, 1fr); }\n@media (min-width: 1200px) { grid-template-columns: repeat(5, 1fr); }\n`;\n\nconst PagerRow = styled.div`\ndisplay: flex;\nalign-items: center;\njustify-content: center;\ngap: 0.75rem;\nmargin-top: 0.75rem;\n`;\n\nconst PagerBtn = styled.button`\nwidth: 28px; height: 28px;\nborder-radius: 50%;\nborder: 1px solid rgba(${rgb.pink}, 0.3);\nbackground: rgba(${rgb.pink}, 0.06);\ncolor: ${colors.pink};\ncursor: pointer;\n&:disabled { opacity: 0.3; cursor: not-allowed; }\n`;",
     stylePath: "src/app/dashboard/page.tsx",
     Demo: GPGDemo,
@@ -1062,7 +1935,7 @@ import LDM from "./LDM";
     category: "Navigation",
     summary: "Dashed-border dashboard tile that opens a feature-request modal. Users describe an idea, Claude AI generates a structured implementation plan, GPG paginates responses. A 'Send to admin team' button emails the full conversation via Fastmail JMAP with an 'Implement immediately' CTA that routes to Sandbox staging.",
     usage: "Add as the final dashboard tile. Tile has transparent background with dashed pink border. Modal has three phases: form (name + description), chat (Claude conversation with GPG), sent (confirmation). The API route handles both Claude chat and email sending via action parameter.",
-    code: `// Tile (in dashboard page.tsx tiles array)\n{ key: "Suggest", title: "Suggest", subtitle: "Feature ideas",\n  glow: "pink", icon: <span>💡</span>,\n  onClick: () => setSuggestionOpen(true) }\n\n// Special dashed border in tile renderer\nconst isSuggest = tile.key === "Suggest";\nstyle={{ background: isSuggest ? "transparent" : "rgba(...)",\n  border: isSuggest ? "dashed..." : "solid..." }}\n\n// Modal import\nimport SuggestionBoxModal from "./suggestion/SuggestionBoxModal";\n{suggestionOpen && <SuggestionBoxModal onClose={() => setSuggestionOpen(false)} />}`,
+    code: `// Tile (in dashboard page.tsx tiles array)\n{ key: "Suggest", title: "Suggest", subtitle: "Feature ideas",\n  glow: "pink", icon: <span>💡</span>,\n  onClick: () => setSuggestionOpen(true) }\n\n// SuggestTile styled-component handles dashed border\nconst SuggestTile = styled(DashTile)\`\n  background: transparent;\n  border: 2px dashed rgba(\${rgb.pink}, 0.4);\n\`;\n\n// Modal import\nimport SuggestionBoxModal from "./suggestion/SuggestionBoxModal";\n{suggestionOpen && <SuggestionBoxModal onClose={() => setSuggestionOpen(false)} />}`,
     stylePath: "src/app/components/suggestion/SuggestionBoxModal.tsx",
     Demo: SuggestionBoxDemo,
   },
