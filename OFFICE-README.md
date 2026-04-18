@@ -212,11 +212,45 @@ Key accents:
 
 These were built in Claude sessions that were never committed to git. They need to be rebuilt:
 
-### 1. WhatsApp Integration (ChatDrawer)
-- Was wired into the ChatDrawer alongside group/DM tabs
-- Likely used a WhatsApp Business API (WABA) or Twilio integration
-- Showed incoming WhatsApp messages, allowed replies from the office chat UI
-- **Status: Lost. Needs full rebuild.**
+### 1. WhatsApp Integration — Phase 1 ✅ Shipped (2026-04-17)
+
+**What was built:** "Continue in WhatsApp" deep link button in the DM user dropdown menu.
+
+**Files changed:**
+- `src/app/components/ChatUserList.tsx` — added `"whatsapp"` to the `UserMenuAction` union type; added `DropItem` in the dropdown (after "Export chat")
+- `src/app/components/ChatDrawer.tsx` — added `whatsapp` case to `handleMenuAction`
+
+**How to reimplement if lost:**
+
+_ChatUserList.tsx_ — add to `UserMenuAction` union (line ~14):
+```ts
+export type UserMenuAction =
+  | "open_window" | "mark_unread" | "archive" | "pin"
+  | "block" | "mute" | "contact_info" | "export_chat"
+  | "whatsapp" | "clear_chat" | "delete_chat";
+```
+
+Add menu item in the DM dropdown (after the Export chat `DropItem`):
+```tsx
+<DropItem onClick={() => handleAction(p.username, "whatsapp")}>💬 Continue in WhatsApp</DropItem>
+```
+
+_ChatDrawer.tsx_ — add case to `handleMenuAction` switch:
+```ts
+case "whatsapp": {
+  const profile = profiles.find(p => p.username === username);
+  const name = profile?.displayName ?? username;
+  const lastMsg = dmMessages.filter(m => m.from === username || m.to === username).at(-1);
+  const preview = lastMsg ? ` — "${lastMsg.content.slice(0, 80)}"` : "";
+  const text = `Continuing my conversation with ${name} from TGV Office${preview}`;
+  window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank", "noopener");
+  break;
+}
+```
+
+**Behaviour:** clicking "💬 Continue in WhatsApp" in any DM user's ▾ menu opens `wa.me` in a new tab with a pre-filled message including the contact name and last message preview. No phone number required — WhatsApp Web lets the user select the recipient.
+
+**Phase 2 (parked):** Full WhatsApp Business Cloud API integration — two-way sync, server-initiated messages. Requires Meta Business account + verified phone number + `/api/webhooks/whatsapp` endpoint. Scoped in `~/.claude/checklist/tgv-office-whatsapp.md`.
 
 ### 2. SessionsDrawer
 - Planned as a separate drawer (pink accent) for LiveKit team video sessions
