@@ -10,6 +10,7 @@ import PresenceHeartbeat from "./PresenceHeartbeat";
 import OfficeDrawer from "./OfficeDrawer";
 import PingNotifier from "./PingNotifier";
 import ChatDrawer from "./ChatDrawer";
+import SessionsDrawer from "./SessionsDrawer";
 
 export default function ClientShell({ children }: { children: ReactNode }) {
   return (
@@ -19,6 +20,7 @@ export default function ClientShell({ children }: { children: ReactNode }) {
         <PingNotifier />
         <ChatDrawer />
         <OfficeDrawer />
+        <SessionsDrawer />
         <LegendDrawer />
         {children}
         <CliTerminal />
