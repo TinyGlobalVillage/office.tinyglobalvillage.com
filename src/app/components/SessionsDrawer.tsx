@@ -256,10 +256,9 @@ export default function SessionsDrawer() {
   const [error, setError] = useState<string | null>(null);
   const [connected, setConnected] = useState(false);
 
-  // Persist tab position — hydrate from localStorage or viewport default after mount
+  // Reset to even-spaced viewport default after mount (ignores localStorage on refresh)
   useEffect(() => {
-    const saved = localStorage.getItem(TAB_STORAGE_KEY);
-    setTabY(saved ? parseInt(saved, 10) : getDefaultTabY());
+    setTabY(getDefaultTabY());
   }, []);
 
   // Cross-drawer mutual-exclusive: close when another drawer opens
@@ -320,7 +319,6 @@ export default function SessionsDrawer() {
       if (!tabDragging.current) return;
       const newY = Math.max(80, Math.min(window.innerHeight - 120, tabStartPos.current + (ev.clientY - tabStartY.current)));
       setTabY(newY);
-      localStorage.setItem(TAB_STORAGE_KEY, String(newY));
     };
     const onUp = () => {
       tabDragging.current = false;

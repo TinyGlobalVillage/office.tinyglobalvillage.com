@@ -163,8 +163,7 @@ export default function InboxDrawer() {
   const startW = useRef(0);
 
   useEffect(() => {
-    const saved = localStorage.getItem(TAB_STORAGE_KEY);
-    setTabY(saved ? parseInt(saved, 10) : getDefaultTabY());
+    setTabY(getDefaultTabY());
     const savedZ = sessionStorage.getItem("inbox-drawer-zoom");
     if (savedZ) setZoom(parseFloat(savedZ));
     const savedW = sessionStorage.getItem("inbox-drawer-width");
@@ -205,7 +204,6 @@ export default function InboxDrawer() {
       if (didDrag.current) {
         const next = Math.max(40, Math.min(window.innerHeight - 100, startTabPos.current + delta));
         setTabY(next);
-        localStorage.setItem(TAB_STORAGE_KEY, String(next));
       }
     };
     const onUp = () => {

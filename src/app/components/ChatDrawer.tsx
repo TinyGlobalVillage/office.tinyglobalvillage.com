@@ -1287,8 +1287,7 @@ export default function ChatDrawer() {
 
   useEffect(() => {
     setSettings(loadSettings());
-    const saved = localStorage.getItem(TAB_STORAGE_KEY);
-    setTabY(saved ? parseInt(saved, 10) : getDefaultTabY());
+    setTabY(getDefaultTabY());
     const savedW = sessionStorage.getItem("chat-drawer-width");
     if (savedW) setWidth(parseInt(savedW, 10));
     const savedLastSeen = localStorage.getItem("tgv_chat_last_seen_id");
@@ -1433,7 +1432,6 @@ export default function ChatDrawer() {
       if (didDrag.current) {
         const next = Math.max(40, Math.min(window.innerHeight - 100, startTabPos.current + delta));
         setTabY(next);
-        localStorage.setItem(TAB_STORAGE_KEY, String(next));
       }
     };
     const onUp = () => {

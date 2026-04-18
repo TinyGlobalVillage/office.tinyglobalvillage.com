@@ -48,7 +48,7 @@ const Main = styled.main`
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  padding: calc(var(--nav-offset, 7rem) + 1.5rem - 50px) 1rem 4rem;
+  padding: 0 1rem 4rem;
   max-width: 80rem;
   margin: 0 auto;
   width: 100%;

@@ -449,12 +449,12 @@ export default function TopNav() {
   }, []);
 
   useEffect(() => {
-    // Offset for downstream content: navbar height + pink "hide toggle" pill (~28px) + breathing gap.
-    // Hidden state still reserves room for the pill (it stays visible pinned to top:0 so users can re-open the nav).
-    const TOGGLE_CLEARANCE = 44;
+    // --nav-offset = total space to leave above page content.
+    // Includes navbar height + hide toggle pill + breathing gap (56px covers all three).
+    const CLEARANCE = 56;
     document.documentElement.style.setProperty(
       "--nav-offset",
-      hidden ? `${TOGGLE_CLEARANCE}px` : `${navH + TOGGLE_CLEARANCE}px`
+      hidden ? `${CLEARANCE}px` : `${navH + CLEARANCE}px`
     );
     document.documentElement.classList.toggle("nav-hidden", hidden);
   }, [hidden, navH]);
