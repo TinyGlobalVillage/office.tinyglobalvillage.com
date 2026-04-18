@@ -7,9 +7,10 @@ import CliTerminal from "./CliTerminal";
 import PreviewDrawer from "./PreviewDrawer";
 import LegendDrawer from "./LegendDrawer";
 import PresenceHeartbeat from "./PresenceHeartbeat";
-import OfficeDrawer from "./OfficeDrawer";
 import PingNotifier from "./PingNotifier";
+import AlertsDrawer from "./AlertsDrawer";
 import ChatDrawer from "./ChatDrawer";
+import InboxDrawer from "./InboxDrawer";
 import SessionsDrawer from "./SessionsDrawer";
 
 export default function ClientShell({ children }: { children: ReactNode }) {
@@ -18,8 +19,9 @@ export default function ClientShell({ children }: { children: ReactNode }) {
       <PreviewProvider>
         <PresenceHeartbeat />
         <PingNotifier />
+        <AlertsDrawer />
         <ChatDrawer />
-        <OfficeDrawer />
+        <InboxDrawer />
         <SessionsDrawer />
         <LegendDrawer />
         {children}
