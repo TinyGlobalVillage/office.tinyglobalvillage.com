@@ -451,7 +451,7 @@ export default function TopNav() {
   useEffect(() => {
     // --nav-offset = total space to leave above page content.
     // Includes navbar height + hide toggle pill + breathing gap (56px covers all three).
-    const CLEARANCE = 56;
+    const CLEARANCE = 25;
     document.documentElement.style.setProperty(
       "--nav-offset",
       hidden ? `${CLEARANCE}px` : `${navH + CLEARANCE}px`
