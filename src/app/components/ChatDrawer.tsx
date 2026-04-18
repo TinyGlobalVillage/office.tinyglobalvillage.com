@@ -21,6 +21,7 @@ import {
   Input,
 } from "../styled";
 import ChatSettingsModal, { UserAvatar, type MemberProfile, type ChatSettings as ModalChatSettings } from "./ChatSettingsModal";
+import MediaConverterModal from "./MediaConverterModal";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -175,6 +176,11 @@ const TitleText = styled.span<{ $color?: string }>`
   font-size: 0.875rem;
   font-weight: 700;
   color: ${(p) => p.$color || colors.cyan};
+  ${(p) => !p.$color ? `text-shadow: 0 0 8px rgba(${rgb.green}, 0.9), 0 0 20px rgba(${rgb.green}, 0.55);` : ""}
+
+  [data-theme="light"] & {
+    text-shadow: none;
+  }
 `;
 
 const DmTag = styled.span`
@@ -264,6 +270,169 @@ const FilePreviewClose = styled.button`
   cursor: pointer;
   &:hover { color: #f87171; }
 `;
+
+const CloseBtn = styled.button`
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.5rem;
+  background: rgba(${rgb.green}, 0.08);
+  border: 1px solid rgba(${rgb.green}, 0.2);
+  color: ${colors.green};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.15s;
+
+  &:hover {
+    background: rgba(${rgb.green}, 0.15);
+    box-shadow: 0 0 14px rgba(${rgb.green}, 0.6);
+  }
+`;
+
+const ThumbPreview = styled.div`
+  position: relative;
+  display: inline-flex;
+  align-items: flex-start;
+`;
+
+const ThumbImg = styled.img`
+  width: 60px;
+  height: 45px;
+  object-fit: cover;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(${rgb.cyan}, 0.3);
+  cursor: pointer;
+`;
+
+const ThumbRemove = styled.button`
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #1a1a2e;
+  border: 1px solid rgba(255,255,255,0.2);
+  color: #f87171;
+  font-size: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  line-height: 1;
+
+  &:hover { background: #2a1a1a; }
+`;
+
+const ConvertBtn = styled.button`
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: rgba(${rgb.green}, 0.08);
+  border: 1px solid rgba(${rgb.green}, 0.3);
+  color: ${colors.green};
+  cursor: pointer;
+  transition: all 0.15s;
+  font-size: 0.875rem;
+
+  &:hover {
+    background: rgba(${rgb.green}, 0.14);
+    box-shadow: 0 0 10px rgba(${rgb.green}, 0.4);
+  }
+`;
+
+// ── FileLightbox ──────────────────────────────────────────────────────────────
+
+const LightboxOverlay = styled.div`
+  position: fixed;
+  inset: 0;
+  z-index: 11000;
+  background: rgba(0,0,0,0.88);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 0.75rem;
+`;
+
+const LightboxImg = styled.img<{ $scale: number }>`
+  max-width: 90vw;
+  max-height: 80vh;
+  object-fit: contain;
+  transform: scale(${(p) => p.$scale});
+  transform-origin: center;
+  transition: transform 0.15s;
+  border-radius: 0.5rem;
+`;
+
+const LightboxControls = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+`;
+
+const LightboxBtn = styled.button`
+  padding: 0.375rem 0.875rem;
+  border-radius: 0.5rem;
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.2);
+  color: #fff;
+  font-size: 0.75rem;
+  cursor: pointer;
+  &:hover { background: rgba(255,255,255,0.18); }
+`;
+
+const LightboxScaleText = styled.span`
+  font-size: 0.6875rem;
+  color: rgba(255,255,255,0.6);
+  min-width: 3rem;
+  text-align: center;
+`;
+
+function FileLightbox({ file, onClose }: { file: File; onClose: () => void }) {
+  const [scale, setScale] = useState(1);
+  const url = URL.createObjectURL(file);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => { window.removeEventListener("keydown", onKey); URL.revokeObjectURL(url); };
+  }, [onClose, url]);
+
+  const isVideo = file.type.startsWith("video/");
+
+  return (
+    <LightboxOverlay onClick={onClose}>
+      <div onClick={(e) => e.stopPropagation()} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0.75rem" }}>
+        {isVideo ? (
+          <video
+            src={url}
+            controls
+            autoPlay
+            style={{ maxWidth: "90vw", maxHeight: "80vh", borderRadius: "0.5rem" }}
+          />
+        ) : (
+          <LightboxImg src={url} alt={file.name} $scale={scale} />
+        )}
+        {!isVideo && (
+          <LightboxControls>
+            <LightboxBtn onClick={() => setScale((s) => Math.max(0.25, s - 0.25))}>−</LightboxBtn>
+            <LightboxScaleText>{Math.round(scale * 100)}%</LightboxScaleText>
+            <LightboxBtn onClick={() => setScale((s) => Math.min(5, s + 0.25))}>+</LightboxBtn>
+            <LightboxBtn onClick={() => setScale(1)}>Reset</LightboxBtn>
+          </LightboxControls>
+        )}
+        <LightboxBtn onClick={onClose}>Close</LightboxBtn>
+      </div>
+    </LightboxOverlay>
+  );
+}
 
 const TypingRow = styled.div`
   display: flex;
@@ -955,6 +1124,9 @@ export default function ChatDrawer() {
   const [settings, setSettings]   = useState<ChatSettings>(DEFAULT_SETTINGS);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [converterType, setConverterType] = useState<"image" | "video" | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [thumbUrl, setThumbUrl] = useState<string | null>(null);
 
   const [dmMessages, setDmMessages] = useState<DmMessage[]>([]);
   const [dmInput, setDmInput]     = useState("");
@@ -976,6 +1148,35 @@ export default function ChatDrawer() {
   const didDrag     = useRef(false);
 
   const isAdmin = profiles.find((p) => p.username === currentUser)?.role === "admin";
+
+  // Generate thumbnail for upload file preview
+  useEffect(() => {
+    if (!uploadFile) { setThumbUrl(null); return; }
+    if (uploadFile.type.startsWith("image/")) {
+      const url = URL.createObjectURL(uploadFile);
+      setThumbUrl(url);
+      return () => URL.revokeObjectURL(url);
+    }
+    if (uploadFile.type.startsWith("video/")) {
+      const url = URL.createObjectURL(uploadFile);
+      const vid = document.createElement("video");
+      vid.src = url;
+      vid.muted = true;
+      vid.currentTime = 0.15;
+      vid.onloadeddata = () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = 120;
+        canvas.height = 90;
+        const ctx = canvas.getContext("2d");
+        ctx?.drawImage(vid, 0, 0, 120, 90);
+        setThumbUrl(canvas.toDataURL());
+        URL.revokeObjectURL(url);
+      };
+      vid.onerror = () => URL.revokeObjectURL(url);
+      return;
+    }
+    setThumbUrl(null);
+  }, [uploadFile]);
 
   useEffect(() => {
     setSettings(loadSettings());
@@ -1178,6 +1379,7 @@ export default function ChatDrawer() {
         setUploading(true);
         const fd = new FormData();
         fd.append("file", uploadFile);
+        fd.append("chatId", "group");
         if (input.trim()) fd.append("content", input.trim());
         const res = await fetch("/api/chat/upload", { method: "POST", body: fd });
         if (res.ok) { setInput(""); setUploadFile(null); await loadMessages(); }
@@ -1366,7 +1568,11 @@ export default function ChatDrawer() {
             </PanelIconBtn>
           )}
 
-          <PanelIconBtn onClick={() => setOpen(false)}>✕</PanelIconBtn>
+          <CloseBtn onClick={() => setOpen(false)}>
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+              <path d="M1 1l8 8M9 1l-8 8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
+            </svg>
+          </CloseBtn>
         </Header>
 
         {/* ── Members panel ────────────────────────────────────────── */}
@@ -1440,11 +1646,34 @@ export default function ChatDrawer() {
         {(mode.view === "chat" || mode.view === "dm") && (
           <InputArea>
             {mode.view === "chat" && uploadFile && (
-              <FilePreview>
-                <FilePreviewName>📎 {uploadFile.name}</FilePreviewName>
-                <FilePreviewSize>{fmtBytes(uploadFile.size)}</FilePreviewSize>
-                <FilePreviewClose onClick={() => setUploadFile(null)}>✕</FilePreviewClose>
-              </FilePreview>
+              (thumbUrl && (uploadFile.type.startsWith("image/") || uploadFile.type.startsWith("video/"))) ? (
+                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                  <ThumbPreview>
+                    <ThumbImg
+                      src={thumbUrl}
+                      alt="preview"
+                      onClick={() => setPreviewOpen(true)}
+                      title="Click to preview"
+                    />
+                    {uploadFile.type.startsWith("video/") && (
+                      <span style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}>
+                        <span style={{ fontSize: "1rem", opacity: 0.8 }}>▶</span>
+                      </span>
+                    )}
+                    <ThumbRemove onClick={() => setUploadFile(null)}>✕</ThumbRemove>
+                  </ThumbPreview>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <FilePreviewName style={{ display: "block" }}>{uploadFile.name}</FilePreviewName>
+                    <FilePreviewSize>{fmtBytes(uploadFile.size)}</FilePreviewSize>
+                  </div>
+                </div>
+              ) : (
+                <FilePreview>
+                  <FilePreviewName>📎 {uploadFile.name}</FilePreviewName>
+                  <FilePreviewSize>{fmtBytes(uploadFile.size)}</FilePreviewSize>
+                  <FilePreviewClose onClick={() => setUploadFile(null)}>✕</FilePreviewClose>
+                </FilePreview>
+              )
             )}
 
             {typers.length > 0 && (
@@ -1472,6 +1701,9 @@ export default function ChatDrawer() {
                       <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
                     </svg>
                   </AttachBtn>
+                  <ConvertBtn onClick={() => setConverterType("image")} title="Convert media">
+                    ✦
+                  </ConvertBtn>
                   <input ref={fileRef} type="file" style={{ display: "none" }} onChange={handleFileChange} />
                 </>
               )}
@@ -1529,6 +1761,18 @@ export default function ChatDrawer() {
           onClose={() => setShowSettingsModal(false)}
           onProfileRefresh={loadProfiles}
         />
+      )}
+
+      {converterType && (
+        <MediaConverterModal
+          defaultTab={converterType}
+          onClose={() => setConverterType(null)}
+          onFileConverted={(file) => { setUploadFile(file); setConverterType(null); }}
+        />
+      )}
+
+      {previewOpen && uploadFile && (
+        <FileLightbox file={uploadFile} onClose={() => setPreviewOpen(false)} />
       )}
     </>
   );

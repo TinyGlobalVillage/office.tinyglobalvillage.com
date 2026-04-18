@@ -3,7 +3,7 @@ import { requireAuth } from "@/lib/api-auth";
 import fs from "fs";
 import path from "path";
 
-const CHAT_FILE = path.join(process.cwd(), "data", "chat-messages.json");
+const DM_FILE = path.join(process.cwd(), "data", "direct-messages.json");
 const CDN_ROOT = "/srv/refusion-core/cdn";
 const CDN_BASE_URL = "https://office.tinyglobalvillage.com/media";
 const MAX_BYTES = 1024 * 1024 * 1024; // 1 GB
@@ -26,9 +26,10 @@ function mimeToType(mime: string): string {
   return "files";
 }
 
-type ChatMessage = {
+type DmMessage = {
   id: string;
   from: string;
+  to: string;
   content: string;
   fileUrl?: string;
   fileName?: string;
@@ -37,23 +38,25 @@ type ChatMessage = {
   createdAt: string;
 };
 
-type ChatDB = { messages: ChatMessage[]; storageBytes: number };
+type DmDb = { threads: Record<string, DmMessage[]> };
 
-function readDB(): ChatDB {
+function threadKey(a: string, b: string) { return [a, b].sort().join("_"); }
+
+function readDb(): DmDb {
   try {
-    if (!fs.existsSync(CHAT_FILE)) return { messages: [], storageBytes: 0 };
-    return JSON.parse(fs.readFileSync(CHAT_FILE, "utf8"));
-  } catch { return { messages: [], storageBytes: 0 }; }
+    if (!fs.existsSync(DM_FILE)) return { threads: {} };
+    return JSON.parse(fs.readFileSync(DM_FILE, "utf8"));
+  } catch { return { threads: {} }; }
 }
 
-function writeDB(db: ChatDB) {
-  fs.mkdirSync(path.dirname(CHAT_FILE), { recursive: true });
-  fs.writeFileSync(CHAT_FILE, JSON.stringify(db, null, 2));
+function writeDb(db: DmDb) {
+  fs.mkdirSync(path.dirname(DM_FILE), { recursive: true });
+  fs.writeFileSync(DM_FILE, JSON.stringify(db, null, 2));
 }
 
-function calcStorageBytes(): number {
+function calcStorageBytes(chatId: string): number {
   let total = 0;
-  const cdnChatDir = path.join(CDN_ROOT, "chat");
+  const cdnChatDir = path.join(CDN_ROOT, "chat", chatId);
   try {
     if (fs.existsSync(cdnChatDir)) {
       const walk = (dir: string) => {
@@ -66,7 +69,6 @@ function calcStorageBytes(): number {
       walk(cdnChatDir);
     }
   } catch { /* ignore */ }
-  try { total += fs.statSync(CHAT_FILE).size; } catch { /* ignore */ }
   return total;
 }
 
@@ -75,26 +77,28 @@ export async function POST(req: NextRequest) {
   if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const username = token.username ?? token.sub ?? "";
 
-  const storageBytes = calcStorageBytes();
-  if (storageBytes >= MAX_BYTES) {
-    return NextResponse.json({ error: "Storage full. Clear chat to free space." }, { status: 507 });
-  }
-
   const formData = await req.formData().catch(() => null);
   if (!formData) return NextResponse.json({ error: "Invalid form data" }, { status: 400 });
 
   const file = formData.get("file") as File | null;
   const caption = (formData.get("content") as string | null) ?? "";
-  const chatId = (formData.get("chatId") as string | null) ?? "group";
+  const to = (formData.get("to") as string | null) ?? "";
 
   if (!file) return NextResponse.json({ error: "No file provided" }, { status: 400 });
+  if (!to) return NextResponse.json({ error: "Missing 'to' field" }, { status: 400 });
   if (file.size > MAX_FILE_SIZE) {
     return NextResponse.json({ error: "File too large (max 50 MB)" }, { status: 413 });
   }
 
+  const chatId = `dm_${threadKey(username, to)}`;
+
+  const storageBytes = calcStorageBytes(chatId);
+  if (storageBytes >= MAX_BYTES) {
+    return NextResponse.json({ error: "Storage full." }, { status: 507 });
+  }
+
   const mime = file.type || "application/octet-stream";
   const type = mimeToType(mime);
-  const ext = path.extname(file.name).slice(0, 10);
   const sanitizedName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 80);
   const fileName = `${datePart()}_${sanitizedName}`;
 
@@ -107,10 +111,13 @@ export async function POST(req: NextRequest) {
 
   const fileUrl = `${CDN_BASE_URL}/chat/${chatId}/${username}/${type}/${fileName}`;
 
-  const db = readDB();
-  const msg: ChatMessage = {
-    id: `c_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+  const db = readDb();
+  const key = threadKey(username, to);
+  if (!db.threads[key]) db.threads[key] = [];
+  const msg: DmMessage = {
+    id: `dm_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
     from: username,
+    to,
     content: caption.trim(),
     fileUrl,
     fileName: file.name,
@@ -118,8 +125,9 @@ export async function POST(req: NextRequest) {
     fileMime: mime,
     createdAt: new Date().toISOString(),
   };
-  db.messages.push(msg);
-  writeDB(db);
+  db.threads[key].push(msg);
+  db.threads[key] = db.threads[key].slice(-500);
+  writeDb(db);
 
   return NextResponse.json({ ok: true, message: msg });
 }
