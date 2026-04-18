@@ -843,6 +843,52 @@ const DmLabel = styled.span`
   }
 `;
 
+const MemberMenuBtn = styled.button`
+  width: 1.5rem;
+  height: 1.5rem;
+  border: none;
+  background: none;
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--t-textGhost);
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.15s, background 0.15s, color 0.15s;
+
+  ${MemberCard}:hover & { opacity: 1; }
+  &:hover { background: rgba(${VIOLET_RGB}, 0.15); color: ${VIOLET}; }
+`;
+
+const MemberMenuDrop = styled.div`
+  position: absolute;
+  right: 0.5rem;
+  top: 2.2rem;
+  z-index: 200;
+  background: var(--t-surface);
+  border: 1px solid var(--t-border);
+  border-radius: 8px;
+  padding: 0.25rem 0;
+  min-width: 170px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.35);
+`;
+
+const MemberMenuItem = styled.button`
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 0.45rem 0.85rem;
+  font-size: 0.75rem;
+  color: var(--t-text);
+  cursor: pointer;
+  white-space: nowrap;
+  &:hover { background: rgba(${VIOLET_RGB}, 0.12); color: ${VIOLET}; }
+`;
+
 const PagerRow = styled.div`
   display: flex;
   align-items: center;
@@ -987,17 +1033,26 @@ function MembersPanel({
   presence,
   currentUser,
   onSelectUser,
+  onWhatsApp,
 }: {
   profiles: Profile[];
   presence: { sysUser: string; online: boolean }[];
   currentUser: string;
   onSelectUser: (p: Profile) => void;
+  onWhatsApp?: (p: Profile) => void;
 }) {
   const [search, setSearch] = useState("");
   const [pageSize, setPageSize] = useState(10);
   const [customSize, setCustomSize] = useState("");
   const [showCustom, setShowCustom] = useState(false);
   const [page, setPage] = useState(0);
+  const [menuOpen, setMenuOpen] = useState<string | null>(null);
+  useEffect(() => {
+    if (!menuOpen) return;
+    const close = () => setMenuOpen(null);
+    window.addEventListener("click", close);
+    return () => window.removeEventListener("click", close);
+  }, [menuOpen]);
 
   const filtered = profiles.filter((p) =>
     p.displayName.toLowerCase().includes(search.toLowerCase()) ||
@@ -1071,7 +1126,7 @@ function MembersPanel({
             const online = pres?.online ?? false;
             const isMe = p.username === currentUser;
             return (
-              <MemberCard key={p.username} onClick={() => !isMe && onSelectUser(p)} $disabled={isMe}>
+              <MemberCard key={p.username} onClick={() => !isMe && onSelectUser(p)} $disabled={isMe} style={{ position: "relative" }}>
                 <div style={{ position: "relative", flexShrink: 0 }}>
                   <UserAvatar profile={p} size={32} />
                   <PresenceDot $online={online} />
@@ -1082,7 +1137,26 @@ function MembersPanel({
                     {online ? "● Online" : "○ Offline"}
                   </MemberStatus>
                 </div>
-                {!isMe && <DmLabel>DM →</DmLabel>}
+                {!isMe && (
+                  <>
+                    <MemberMenuBtn
+                      onClick={(e) => { e.stopPropagation(); setMenuOpen(menuOpen === p.username ? null : p.username); }}
+                      title="More options"
+                    >⋮</MemberMenuBtn>
+                    {menuOpen === p.username && (
+                      <MemberMenuDrop onClick={(e) => e.stopPropagation()}>
+                        <MemberMenuItem onClick={() => { onSelectUser(p); setMenuOpen(null); }}>
+                          💬 Send DM
+                        </MemberMenuItem>
+                        {onWhatsApp && (
+                          <MemberMenuItem onClick={() => { onWhatsApp(p); setMenuOpen(null); }}>
+                            🟢 Continue in WhatsApp
+                          </MemberMenuItem>
+                        )}
+                      </MemberMenuDrop>
+                    )}
+                  </>
+                )}
               </MemberCard>
             );
           })
@@ -1582,6 +1656,10 @@ export default function ChatDrawer() {
             presence={presence}
             currentUser={currentUser}
             onSelectUser={(p) => { setMode({ view: "dm", peer: p }); setDmMessages([]); }}
+            onWhatsApp={(p) => {
+              const text = `Continuing my conversation with ${p.displayName} from TGV Office`;
+              window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank", "noopener");
+            }}
           />
         )}
 
