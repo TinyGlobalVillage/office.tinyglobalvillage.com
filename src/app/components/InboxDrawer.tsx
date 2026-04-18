@@ -273,7 +273,7 @@ export default function InboxDrawer() {
         title={open ? "Close inbox" : "Open inbox"}
         style={{
           top: tabY,
-          background: open
+          backgroundColor: open
             ? `rgba(${rgb.cyan}, 0.25)`
             : `rgba(${rgb.cyan}, 0.12)`,
         }}

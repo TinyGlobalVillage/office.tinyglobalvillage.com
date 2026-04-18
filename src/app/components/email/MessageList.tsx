@@ -48,15 +48,19 @@ const EmptyState = styled.div`
   color: var(--t-textGhost);
 `;
 
-const MessageRow = styled.button<{ $selected: boolean }>`
+const MessageRow = styled.div<{ $selected: boolean }>`
   width: 100%;
   text-align: left;
   transition: all 0.15s ease;
   background: ${(p) => (p.$selected ? `rgba(${rgb.cyan}, 0.08)` : "transparent")};
-  border: none;
   border-bottom: 1px solid var(--t-border);
   border-left: 2px solid ${(p) => (p.$selected ? colors.cyan : "transparent")};
   cursor: pointer;
+  outline: none;
+
+  &:focus-visible {
+    box-shadow: inset 0 0 0 2px rgba(${rgb.cyan}, 0.5);
+  }
 
   &:hover {
     background: ${(p) =>
@@ -273,7 +277,15 @@ export default function MessageList({
         {messages.map((msg) => (
           <MessageRow
             key={msg.id}
+            role="button"
+            tabIndex={0}
             onClick={() => onSelect(msg.id)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onSelect(msg.id);
+              }
+            }}
             $selected={selected === msg.id}
           >
             <RowInner>

@@ -247,7 +247,7 @@ const LeaveBtn = styled.button`
 export default function SessionsDrawer() {
   const [open, setOpen] = useState(false);
   const [width, setWidth] = useState(DEFAULT_W);
-  const [tabY, setTabY] = useState<number>(getDefaultTabY);
+  const [tabY, setTabY] = useState<number>(720);
 
   const [roomName, setRoomName] = useState("tgv-office-team");
   const [token, setToken] = useState<string | null>(null);
@@ -256,10 +256,10 @@ export default function SessionsDrawer() {
   const [error, setError] = useState<string | null>(null);
   const [connected, setConnected] = useState(false);
 
-  // Persist tab position
+  // Persist tab position — hydrate from localStorage or viewport default after mount
   useEffect(() => {
     const saved = localStorage.getItem(TAB_STORAGE_KEY);
-    if (saved) setTabY(parseInt(saved, 10));
+    setTabY(saved ? parseInt(saved, 10) : getDefaultTabY());
   }, []);
 
   // Cross-drawer mutual-exclusive: close when another drawer opens
@@ -371,7 +371,7 @@ export default function SessionsDrawer() {
         title={open ? "Close sessions" : "Open sessions"}
         style={{
           top: tabY,
-          background: open
+          backgroundColor: open
             ? `rgba(${rgb.pink}, 0.25)`
             : `rgba(${rgb.pink}, 0.12)`,
         }}

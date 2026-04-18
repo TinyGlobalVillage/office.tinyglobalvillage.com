@@ -284,7 +284,7 @@ export default function AlertsDrawer() {
         title={open ? "Close alerts" : "Open alerts"}
         style={{
           top: tabY,
-          background: open
+          backgroundColor: open
             ? `rgba(${rgb.gold}, 0.25)`
             : `rgba(${rgb.gold}, 0.12)`,
         }}
