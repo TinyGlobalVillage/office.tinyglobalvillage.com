@@ -19,6 +19,17 @@ const USERS = [
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [
+    // Dev-only: skip password when DEV_AUTO_LOGIN=<username> is set
+    ...(process.env.NODE_ENV === "development" && process.env.NEXT_PUBLIC_DEV_AUTO_LOGIN
+      ? [Credentials({
+          id: "dev",
+          credentials: {},
+          authorize: () => {
+            const u = USERS.find(u => u.username === process.env.NEXT_PUBLIC_DEV_AUTO_LOGIN);
+            return u ? { id: u.id, name: u.name, username: u.username } as { id: string; name: string; username: string } : null;
+          },
+        })]
+      : []),
     Credentials({
       credentials: {
         username: { label: "Username", type: "text" },

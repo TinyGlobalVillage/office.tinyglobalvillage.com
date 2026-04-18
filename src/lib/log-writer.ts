@@ -11,7 +11,7 @@ import { appendFileSync, mkdirSync } from "fs";
 import path from "path";
 import { broadcast, BroadcastEntry } from "./server-broadcast";
 
-const LOG_DIR = "/srv/refusion-core/logs/tgv-office";
+const LOG_DIR = process.env.TGV_LOG_DIR ?? "/srv/refusion-core/logs/tgv-office";
 
 // LA time helpers
 function laDateStr(ts: number): string {

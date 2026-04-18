@@ -4,7 +4,7 @@ import { useState, useEffect, FormEvent, Suspense } from "react";
 import { signIn } from "next-auth/react";
 import { useSearchParams, useRouter } from "next/navigation";
 import styled from "styled-components";
-import { colors, rgb } from "../theme";
+import { colors, rgb } from "./app/theme";
 
 type Method = "password" | "passkey" | "magic";
 
@@ -542,7 +542,7 @@ function bufferToBase64url(buffer: ArrayBuffer): string {
 export default function LoginPage() {
   useEffect(() => {
     if (process.env.NEXT_PUBLIC_DEV_AUTO_LOGIN) {
-      signIn("dev", { callbackUrl: "/dashboard" });
+      window.location.replace("/api/dev-login");
     }
   }, []);
 

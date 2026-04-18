@@ -209,6 +209,19 @@ const RightGroup = styled.div`
   flex-shrink: 0;
 `;
 
+const MobileOnly = styled.span`
+  display: none;
+  align-items: center;
+  @media (max-width: 560px) { display: flex; }
+`;
+
+const DesktopOnly = styled.span`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  @media (max-width: 560px) { display: none; }
+`;
+
 const ChipBtn = styled.button<{ $accent: string; $isMe?: boolean }>`
   position: relative;
   padding: 0.125rem;
@@ -436,7 +449,13 @@ export default function TopNav() {
   }, []);
 
   useEffect(() => {
-    document.documentElement.style.setProperty("--nav-offset", hidden ? "0px" : `${navH}px`);
+    // Offset for downstream content: navbar height + pink "hide toggle" pill (~28px) + breathing gap.
+    // Hidden state still reserves room for the pill (it stays visible pinned to top:0 so users can re-open the nav).
+    const TOGGLE_CLEARANCE = 44;
+    document.documentElement.style.setProperty(
+      "--nav-offset",
+      hidden ? `${TOGGLE_CLEARANCE}px` : `${navH + TOGGLE_CLEARANCE}px`
+    );
     document.documentElement.classList.toggle("nav-hidden", hidden);
   }, [hidden, navH]);
 
@@ -506,13 +525,22 @@ export default function TopNav() {
             </div>
             <div ref={menuRef} style={{ position: "relative" }}>
               <DDMTrigger $open={menuOpen} onClick={() => setMenuOpen((p) => !p)}>
-                <span>{currentPage}</span>
-                <svg
-                  width="8" height="8" viewBox="0 0 8 8" fill="currentColor"
-                  style={{ transform: menuOpen ? "rotate(180deg)" : "none", transition: "transform 0.2s" }}
-                >
-                  <path d="M4 6L0.5 1.5h7L4 6z" />
-                </svg>
+                <MobileOnly>
+                  <svg width="14" height="10" viewBox="0 0 14 10" fill="currentColor">
+                    <rect x="0" y="0" width="14" height="1.5" rx="0.75"/>
+                    <rect x="0" y="4.25" width="14" height="1.5" rx="0.75"/>
+                    <rect x="0" y="8.5" width="14" height="1.5" rx="0.75"/>
+                  </svg>
+                </MobileOnly>
+                <DesktopOnly>
+                  <span>{currentPage}</span>
+                  <svg
+                    width="8" height="8" viewBox="0 0 8 8" fill="currentColor"
+                    style={{ transform: menuOpen ? "rotate(180deg)" : "none", transition: "transform 0.2s" }}
+                  >
+                    <path d="M4 6L0.5 1.5h7L4 6z" />
+                  </svg>
+                </DesktopOnly>
               </DDMTrigger>
               {menuOpen && (
                 <DDMMenu>
@@ -582,7 +610,7 @@ export default function TopNav() {
             <LDM size={28} />
             <SignOutBtn onClick={() => signOut({ callbackUrl: "/login" })} title="Sign out of TGV Office">
               <span>⏏</span>
-              <span>Sign out</span>
+              <DesktopOnly>Sign out</DesktopOnly>
             </SignOutBtn>
           </RightGroup>
         </Nav>

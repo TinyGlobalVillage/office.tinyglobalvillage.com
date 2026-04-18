@@ -252,12 +252,10 @@ case "whatsapp": {
 
 **Phase 2 (parked):** Full WhatsApp Business Cloud API integration — two-way sync, server-initiated messages. Requires Meta Business account + verified phone number + `/api/webhooks/whatsapp` endpoint. Scoped in `~/.claude/checklist/tgv-office-whatsapp.md`.
 
-### 2. SessionsDrawer
-- Planned as a separate drawer (pink accent) for LiveKit team video sessions
-- Was a placeholder at time of last commit — may have been partially fleshed out
-- Should use `@tgv/module-sessions` (same LiveKit module as `refusionist.com` client sessions)
-- Features needed: start/join room, device selection, participant list
-- **Status: Placeholder only in memory. Needs implementation.**
+### 2. SessionsDrawer ✅ Rebuilt + committed `6cf0f60` (2026-04-18)
+- Pink-accented drawer: tab pill, resizable panel, LiveKit lobby + room connect/leave
+- `src/app/components/SessionsDrawer.tsx` + `src/app/api/livekit/token/route.ts`
+- Env vars required: `LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`
 
 ### 3. ChatRichInput + ChatUserList extraction
 - In the most recent session, ChatDrawer was being refactored to extract an inline rich text input (`ChatRichInput.tsx`) and user list (`ChatUserList.tsx`) into separate files
@@ -278,16 +276,24 @@ case "whatsapp": {
 ## Local Dev
 
 ```bash
-# On RCS (no local Mac copy — RCS-only project)
-cd /srv/refusion-core/client/office.tinyglobalvillage.com
+# Mac: /Users/macbookpro/Documents/REFUSIONIST/RCS/CLIENTS/ACTIVE RCS/office.tinyglobalvillage.com/
+# RCS: /srv/refusion-core/client/office.tinyglobalvillage.com/
 
-# Install (pnpm workspace — run from monorepo root)
-cd /srv/refusion-core && pnpm install --filter office.tinyglobalvillage.com...
+# Install (standalone npm — NOT pnpm workspace)
+npm install --legacy-peer-deps --no-audit --no-fund
 
-# Build
+# Local dev (Mac) — runs on port 3000, auto-detects LAN IP
+npm run dev
+# Then visit localhost:3000 — auto-login fires via NEXT_PUBLIC_DEV_AUTO_LOGIN in .env.local
+
+# Build + deploy (RCS)
 npm run build
-
-# PM2
 pm2 reload office.tinyglobalvillage.com --update-env
 pm2 logs office.tinyglobalvillage.com --lines 50
 ```
+
+**Local dev notes:**
+- `npm run dev` calls `bash ../dev-local.sh` (shared across all ACTIVE RCS projects)
+- Auto-login: set `NEXT_PUBLIC_DEV_AUTO_LOGIN=admin` in Mac `.env.local` — login page auto-calls `signIn("dev")`, no password needed
+- Mac `.env.local` must have `AUTH_URL=http://localhost:3000` — **do not sync to RCS** (RCS uses `https://office.tinyglobalvillage.com`)
+- Log writer (`src/lib/log-writer.ts`) only runs in production — skipped in dev to avoid hanging on `pm2 logs`

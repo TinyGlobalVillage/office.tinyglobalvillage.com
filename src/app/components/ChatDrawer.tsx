@@ -73,8 +73,8 @@ const VIOLET = colors.violet;
 const VIOLET_RGB = rgb.violet;
 
 function getDefaultTabY() {
-  if (typeof window === "undefined") return 480;
-  return Math.round(window.innerHeight * 0.5) + 50;
+  if (typeof window === "undefined") return 360;
+  return Math.round(window.innerHeight * 0.4);
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -117,7 +117,7 @@ function loadSettings(): ChatSettings {
 
 // ── Styled: shared across sub-components ──────────────────────────────────────
 
-const SideTab = styled(DrawerTab).attrs({ $side: "left", $accent: "pink" })`
+const SideTab = styled(DrawerTab).attrs({ $side: "left", $accent: "green" })`
   left: 0;
   z-index: 63;
   border-left: none;
@@ -147,10 +147,11 @@ const Backdrop = styled(DrawerBackdrop)`
 const Panel = styled(DrawerPanel)`
   left: 0;
   z-index: 62;
-  border-right: 1px solid rgba(${rgb.pink}, 0.18);
+  max-width: 85vw;
+  border-right: 1px solid rgba(${rgb.green}, 0.18);
 
   [data-theme="light"] & {
-    border-right-color: rgba(${rgb.pink}, 0.1);
+    border-right-color: rgba(${rgb.green}, 0.1);
   }
 `;
 
@@ -162,6 +163,38 @@ const Header = styled(DrawerHeader)`
 const BackBtn = styled(PanelIconBtn)`
   color: ${VIOLET};
   flex-shrink: 0;
+`;
+
+const ControlBtn = styled(PanelIconBtn)`
+  width: 2.125rem;
+  height: 2.125rem;
+  border-radius: 0.5rem;
+  font-size: 1.0625rem;
+  font-weight: 800;
+  line-height: 1;
+  background: rgba(${rgb.green}, 0.14);
+  border: 1px solid rgba(${rgb.green}, 0.45);
+  color: #4ade80;
+  text-shadow: 0 0 6px rgba(${rgb.green}, 0.7);
+  transition: background 0.15s, box-shadow 0.15s, transform 0.1s;
+
+  &:hover:not(:disabled) {
+    background: rgba(${rgb.green}, 0.28);
+    box-shadow: 0 0 10px rgba(${rgb.green}, 0.5);
+  }
+
+  &:active:not(:disabled) {
+    transform: translateY(1px);
+  }
+
+  &:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+
+  [data-theme="light"] & { text-shadow: none; }
+
+  svg { width: 14px; height: 14px; }
 `;
 
 const TitleWrap = styled.div`
@@ -194,7 +227,7 @@ const AvatarChips = styled.div`
   flex-shrink: 0;
 `;
 
-const Resize = styled(DrawerResizeHandle).attrs({ $accent: "pink" })``;
+const Resize = styled(DrawerResizeHandle).attrs({ $accent: "green" })``;
 
 const MsgScroll = styled.div`
   flex: 1;
@@ -965,7 +998,7 @@ function MessageBubble({
   settings: ChatSettings; canDelete: boolean;
   onDelete: () => void; onEdit: (content: string) => void;
 }) {
-  const accent = profile?.accentColor ?? "#ff4ecb";
+  const accent = profile?.accentColor ?? "#4ade80";
   const [editing, setEditing] = useState(false);
   const [editVal, setEditVal] = useState(content);
 
@@ -977,7 +1010,7 @@ function MessageBubble({
   return (
     <BubbleRow $isMe={isMe}>
       <UserAvatar
-        profile={profile ?? { displayName: from, accentColor: "#ff4ecb", avatarUrl: "" }}
+        profile={profile ?? { displayName: from, accentColor: "#4ade80", avatarUrl: "" }}
         size={28}
       />
       <BubbleCol $isMe={isMe}>
@@ -1535,13 +1568,13 @@ export default function ChatDrawer() {
         style={{
           top: tabY,
           background: open
-            ? `rgba(${rgb.pink}, 0.25)`
+            ? `rgba(${rgb.green}, 0.25)`
             : unread > 0
-            ? `rgba(${rgb.pink}, 0.22)`
-            : `rgba(${rgb.pink}, 0.12)`,
+            ? `rgba(${rgb.green}, 0.22)`
+            : `rgba(${rgb.green}, 0.12)`,
           boxShadow: unread > 0
-            ? `2px 0 14px rgba(${rgb.pink}, 0.35)`
-            : `2px 0 10px rgba(${rgb.pink}, 0.18)`,
+            ? `2px 0 14px rgba(${rgb.green}, 0.35)`
+            : `2px 0 10px rgba(${rgb.green}, 0.18)`,
         }}
       >
         <span style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -1551,10 +1584,10 @@ export default function ChatDrawer() {
             </svg>
           ) : (
             <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
-              <path d="M1 1h12v9H8l-3 3V10H1V1z" stroke="#ff4ecb" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
-              <circle cx="4.5" cy="5.5" r="0.8" fill="#ff4ecb"/>
-              <circle cx="7" cy="5.5" r="0.8" fill="#ff4ecb"/>
-              <circle cx="9.5" cy="5.5" r="0.8" fill="#ff4ecb"/>
+              <path d="M1 1h12v9H8l-3 3V10H1V1z" stroke="#4ade80" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
+              <circle cx="4.5" cy="5.5" r="0.8" fill="#4ade80"/>
+              <circle cx="7" cy="5.5" r="0.8" fill="#4ade80"/>
+              <circle cx="9.5" cy="5.5" r="0.8" fill="#4ade80"/>
             </svg>
           )}
           {unread > 0 && !open && (
@@ -1616,37 +1649,48 @@ export default function ChatDrawer() {
           )}
 
           {mode.view === "chat" && (
-            <PanelIconBtn onClick={() => setMode({ view: "members" })} title="Members" style={{ color: VIOLET }}>
-              <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor">
+            <ControlBtn onClick={() => setMode({ view: "members" })} title="Members">
+              <svg viewBox="0 0 16 16" fill="currentColor">
                 <circle cx="5" cy="5" r="2.5"/>
                 <circle cx="11" cy="5" r="2.5"/>
                 <path d="M0 14c0-2.5 2.2-4 5-4s5 1.5 5 4"/>
                 <path d="M11 10c2.2.5 4 1.8 4 4" strokeLinecap="round"/>
               </svg>
-            </PanelIconBtn>
+            </ControlBtn>
           )}
 
           {mode.view === "chat" && (
-            <PanelIconBtn onClick={clearChat} title="Clear all messages" style={{ color: "var(--t-textGhost)" }}>
-              <svg width="12" height="12" viewBox="0 0 14 14" fill="currentColor">
+            <ControlBtn onClick={clearChat} title="Clear all messages">
+              <svg viewBox="0 0 14 14" fill="currentColor">
                 <path d="M2 4h10M5 4V2.5A.5.5 0 0 1 5.5 2h3a.5.5 0 0 1 .5.5V4M3 4l.7 7.5A1 1 0 0 0 4.7 12.5h4.6a1 1 0 0 0 1-.9L11 4H3z"/>
               </svg>
-            </PanelIconBtn>
+            </ControlBtn>
           )}
 
           {mode.view === "chat" && (
-            <PanelIconBtn onClick={() => setShowSettingsModal(true)} title="Settings" style={{ width: 36, height: 36, color: "var(--t-textMuted)" }}>
-              <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor">
+            <ControlBtn onClick={() => setShowSettingsModal(true)} title="Settings">
+              <svg viewBox="0 0 16 16" fill="currentColor">
                 <path d="M8 10.5A2.5 2.5 0 1 1 8 5.5a2.5 2.5 0 0 1 0 5zm5.29-2.77a5.07 5.07 0 0 0 .04-.73 5 5 0 0 0-.04-.73l1.57-1.23a.38.38 0 0 0 .09-.48l-1.49-2.57a.37.37 0 0 0-.45-.16l-1.85.74a5.4 5.4 0 0 0-1.26-.73L9.67.37A.36.36 0 0 0 9.31 0H6.69a.36.36 0 0 0-.36.37l-.27 1.97a5.4 5.4 0 0 0-1.26.73l-1.85-.74a.37.37 0 0 0-.45.16L1.05 4.86a.37.37 0 0 0 .09.48l1.57 1.23c-.03.24-.04.48-.04.73s.01.49.04.73L1.14 9.26a.37.37 0 0 0-.09.48l1.49 2.57c.09.16.28.22.45.16l1.85-.74c.39.28.82.52 1.26.73l.27 1.97c.05.2.24.37.45.37H9.3c.21 0 .4-.17.45-.37l.27-1.97a5.4 5.4 0 0 0 1.26-.73l1.85.74c.17.06.36 0 .45-.16l1.49-2.57a.37.37 0 0 0-.09-.48l-1.69-1.27z"/>
               </svg>
-            </PanelIconBtn>
+            </ControlBtn>
           )}
 
-          <CloseBtn onClick={() => setOpen(false)}>
-            <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-              <path d="M1 1l8 8M9 1l-8 8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
-            </svg>
-          </CloseBtn>
+          <ControlBtn
+            onClick={() => {
+              const w = window.screen.width * 0.8;
+              const h = window.screen.height * 0.85;
+              const left = (window.screen.width - w) / 2;
+              const top  = (window.screen.height - h) / 2;
+              window.open("/dashboard/chat?popout=1", "tgv-chat-drawer", `width=${w},height=${h},left=${left},top=${top}`);
+            }}
+            title="Open in new window"
+          >
+            ⧉
+          </ControlBtn>
+
+          <ControlBtn onClick={() => setOpen(false)} title="Close (Esc)">
+            ✕
+          </ControlBtn>
         </Header>
 
         {/* ── Members panel ────────────────────────────────────────── */}

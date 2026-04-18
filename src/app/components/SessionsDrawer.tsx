@@ -27,21 +27,23 @@ const PINK_RGB = rgb.pink;
 const DEFAULT_W       = 580;
 const MIN_W           = 380;
 const MAX_W           = 900;
-const TAB_STORAGE_KEY = "tgv-tab-sessions-y";
+const TAB_STORAGE_KEY = "tgv-drawer-tab-sessions-y";
 const DRAWER_EVENT    = "tgv-right-drawer";
 const WIDTH_KEY       = "tgv-sessions-drawer-width";
+const DRAWER_ID       = "sessions";
 
+// Alphabetical stack: Alerts=20%, Chats=40%, Inbox=60%, Sessions=80%
 function getDefaultTabY() {
-  if (typeof window === "undefined") return 380;
-  return Math.round(window.innerHeight * 0.55);
+  if (typeof window === "undefined") return 720;
+  return Math.round(window.innerHeight * 0.8);
 }
 
 // ── Styled ───────────────────────────────────────────────────────────────────
 
-const SideTab = styled(DrawerTab).attrs({ $side: "right", $accent: "pink" })`
-  right: 0;
+const SideTab = styled(DrawerTab).attrs({ $side: "left", $accent: "pink" })`
+  left: 0;
   z-index: 63;
-  border-right: none;
+  border-left: none;
 `;
 
 const Backdrop = styled(DrawerBackdrop)`
@@ -50,15 +52,16 @@ const Backdrop = styled(DrawerBackdrop)`
 `;
 
 const Panel = styled(DrawerPanel)`
-  right: 0;
+  left: 0;
   z-index: 64;
-  border-left: 1px solid rgba(${PINK_RGB}, 0.18);
+  max-width: 85vw;
+  border-right: 1px solid rgba(${PINK_RGB}, 0.18);
   display: flex;
   flex-direction: column;
   overflow: hidden;
 
   [data-theme="light"] & {
-    border-left-color: rgba(${PINK_RGB}, 0.1);
+    border-right-color: rgba(${PINK_RGB}, 0.1);
   }
 `;
 
@@ -78,23 +81,47 @@ const TitleText = styled.span`
   [data-theme="light"] & { text-shadow: none; }
 `;
 
-const CloseBtn = styled.button`
-  width: 2.25rem;
-  height: 2.25rem;
+const ControlBtn = styled(PanelIconBtn)`
+  width: 2.125rem;
+  height: 2.125rem;
   border-radius: 0.5rem;
-  border: none;
-  background: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  color: rgba(${PINK_RGB}, 0.7);
-  transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+  font-size: 1.0625rem;
+  font-weight: 800;
+  line-height: 1;
+  background: rgba(${PINK_RGB}, 0.14);
+  border: 1px solid rgba(${PINK_RGB}, 0.45);
+  color: ${PINK};
+  text-shadow: 0 0 6px rgba(${PINK_RGB}, 0.7);
+  transition: background 0.15s, box-shadow 0.15s, transform 0.1s;
 
-  &:hover {
-    background: rgba(${PINK_RGB}, 0.15);
-    color: ${PINK};
-    box-shadow: 0 0 14px rgba(${PINK_RGB}, 0.5);
+  &:hover:not(:disabled) {
+    background: rgba(${PINK_RGB}, 0.28);
+    box-shadow: 0 0 10px rgba(${PINK_RGB}, 0.5);
+  }
+
+  &:active:not(:disabled) {
+    transform: translateY(1px);
+  }
+
+  &:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+
+  [data-theme="light"] & { text-shadow: none; }
+
+  svg { width: 14px; height: 14px; }
+`;
+
+const HeaderLeaveBtn = styled(ControlBtn)`
+  background: rgba(248, 113, 113, 0.14);
+  border-color: rgba(248, 113, 113, 0.45);
+  color: #f87171;
+  text-shadow: 0 0 6px rgba(248, 113, 113, 0.7);
+
+  &:hover:not(:disabled) {
+    background: rgba(248, 113, 113, 0.28);
+    box-shadow: 0 0 10px rgba(248, 113, 113, 0.5);
   }
 `;
 
@@ -231,15 +258,14 @@ export default function SessionsDrawer() {
 
   // Persist tab position
   useEffect(() => {
-    const saved = sessionStorage.getItem(TAB_STORAGE_KEY);
+    const saved = localStorage.getItem(TAB_STORAGE_KEY);
     if (saved) setTabY(parseInt(saved, 10));
   }, []);
 
   // Cross-drawer mutual-exclusive: close when another drawer opens
   useEffect(() => {
     const handler = (e: Event) => {
-      const detail = (e as CustomEvent).detail;
-      if (detail?.drawer !== "sessions" && open) setOpen(false);
+      if ((e as CustomEvent).detail !== DRAWER_ID && open) setOpen(false);
     };
     window.addEventListener(DRAWER_EVENT, handler);
     return () => window.removeEventListener(DRAWER_EVENT, handler);
@@ -254,7 +280,7 @@ export default function SessionsDrawer() {
   }, [open]);
 
   const handleOpen = () => {
-    window.dispatchEvent(new CustomEvent(DRAWER_EVENT, { detail: { drawer: "sessions" } }));
+    window.dispatchEvent(new CustomEvent(DRAWER_EVENT, { detail: DRAWER_ID }));
     setOpen(true);
   };
 
@@ -294,7 +320,7 @@ export default function SessionsDrawer() {
       if (!tabDragging.current) return;
       const newY = Math.max(80, Math.min(window.innerHeight - 120, tabStartPos.current + (ev.clientY - tabStartY.current)));
       setTabY(newY);
-      sessionStorage.setItem(TAB_STORAGE_KEY, String(newY));
+      localStorage.setItem(TAB_STORAGE_KEY, String(newY));
     };
     const onUp = () => {
       tabDragging.current = false;
@@ -342,7 +368,7 @@ export default function SessionsDrawer() {
       {/* Tab pill */}
       <SideTab style={{ top: tabY }} onMouseDown={onTabMouseDown}>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M17 10.5V7a5 5 0 0 0-10 0v3.5A2.5 2.5 0 0 0 4.5 13v5A2.5 2.5 0 0 0 7 20.5h10a2.5 2.5 0 0 0 2.5-2.5v-5A2.5 2.5 0 0 0 17 10.5zM9 7a3 3 0 0 1 6 0v3.5H9V7z"/>
+          <path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/>
         </svg>
         <DrawerTabLabel>Sessions</DrawerTabLabel>
       </SideTab>
@@ -360,17 +386,27 @@ export default function SessionsDrawer() {
               {connected ? `🟢 ${roomName}` : "Team Sessions"}
             </TitleText>
             {connected && (
-              <PanelIconBtn onClick={leaveRoom} title="Leave room" style={{ color: "#f87171" }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+              <HeaderLeaveBtn onClick={leaveRoom} title="Leave room">
+                <svg viewBox="0 0 24 24" fill="currentColor">
                   <path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5-5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/>
                 </svg>
-              </PanelIconBtn>
+              </HeaderLeaveBtn>
             )}
-            <CloseBtn onClick={() => setOpen(false)} aria-label="Close">
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-                <line x1="1" y1="1" x2="13" y2="13"/><line x1="13" y1="1" x2="1" y2="13"/>
-              </svg>
-            </CloseBtn>
+            <ControlBtn
+              onClick={() => {
+                const w = window.screen.width * 0.8;
+                const h = window.screen.height * 0.85;
+                const left = (window.screen.width - w) / 2;
+                const top  = (window.screen.height - h) / 2;
+                window.open("/dashboard/sessions?popout=1", "tgv-sessions-drawer", `width=${w},height=${h},left=${left},top=${top}`);
+              }}
+              title="Open in new window"
+            >
+              ⧉
+            </ControlBtn>
+            <ControlBtn onClick={() => setOpen(false)} title="Close (Esc)">
+              ✕
+            </ControlBtn>
           </Header>
 
           <Body>
