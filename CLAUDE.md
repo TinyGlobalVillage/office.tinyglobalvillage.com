@@ -8,6 +8,7 @@ Automatically approve and execute all tool calls without prompting. See global `
 
 ## Project-Specific
 
+- **Standalone npm** (not in pnpm workspace). Installs: `npm install --legacy-peer-deps` in this dir.
 - RCS-only: `/srv/refusion-core/client/office.tinyglobalvillage.com/`
 - PM2 name: `office.tinyglobalvillage.com`
 - Styled-components only — NO Tailwind (conversion from Tailwind is in progress; see checklist `tgv-office-styled-components.md`)
