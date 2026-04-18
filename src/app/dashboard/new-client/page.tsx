@@ -713,8 +713,8 @@ const Pill = styled.span`
   margin-top: 0.2rem;
   width: fit-content;
   font-size: 0.7rem;
-  background: rgba(${rgb.amber}, 0.18);
-  border: 1px solid ${colors.amber};
+  background: rgba(${rgb.gold}, 0.18);
+  border: 1px solid ${colors.gold};
   border-radius: 0.25rem;
 `;
 
