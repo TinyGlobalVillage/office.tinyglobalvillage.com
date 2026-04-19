@@ -7,6 +7,7 @@ import { ModalBackdrop, CloseBtn, PillButton } from "@/app/styled";
 import { hexToRgb } from "./ProfileModal";
 import { useTheme } from "./ThemeProvider";
 import { TrashIcon } from "./icons";
+import { signOut } from "next-auth/react";
 
 /* ── Types ─────────────────────────────────────────────────────── */
 
@@ -32,6 +33,14 @@ export type ChatSettings = {
   fontSize: "xs" | "sm" | "base";
   myFont: string;
   whisperModel?: "tiny.en" | "base.en" | "small.en" | "medium.en" | "large-v3-turbo";
+  // Notifications
+  soundOnMessage?: boolean;
+  desktopNotifications?: boolean;
+  mentionsOnly?: boolean;
+  // Privacy
+  sendReadReceipts?: boolean;
+  showOnlineStatus?: boolean;
+  sendTypingIndicators?: boolean;
 };
 
 export const WHISPER_MODELS: { label: string; value: NonNullable<ChatSettings["whisperModel"]>; note?: string }[] = [
@@ -791,11 +800,13 @@ function ADLSection({
   label,
   count,
   defaultOpen = true,
+  saved = false,
   children,
 }: {
   label: string;
   count?: number;
   defaultOpen?: boolean;
+  saved?: boolean;
   children: ReactNode;
 }) {
   const [open, setOpen] = useState(defaultOpen);
@@ -803,6 +814,7 @@ function ADLSection({
     <ADLWrap>
       <ADLHeader $open={open} aria-expanded={open} onClick={() => setOpen((o) => !o)}>
         <ADLLabel>{label}</ADLLabel>
+        <PreviewSaved data-visible={saved}>Saved</PreviewSaved>
         {typeof count === "number" && <ADLCount>{count}</ADLCount>}
         <ADLSwitchTrack $on={open} aria-hidden="true">
           <ADLSwitchThumb $on={open} />
@@ -1014,7 +1026,7 @@ function SettingsTab({
         }),
       });
       if (!res.ok) setSaveError("Save failed");
-      else onProfileRefresh();
+      else { onProfileRefresh(); flashSaved("identity"); }
     } finally {
       setSaving(false);
     }
@@ -1027,8 +1039,19 @@ function SettingsTab({
   const darkAccent = myProfile?.darkAccent ?? (isDark ? accent : NEON_DARK[0]);
   const lightAccent = myProfile?.lightAccent ?? (isDark ? NEON_LIGHT[0] : accent);
 
-  const [savedPip, setSavedPip] = useState<"dark" | "light" | null>(null);
+  const [savedKey, setSavedKey] = useState<string | null>(null);
   const savedPipTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const flashSaved = (key: string) => {
+    setSavedKey(key);
+    if (savedPipTimer.current) clearTimeout(savedPipTimer.current);
+    savedPipTimer.current = setTimeout(() => setSavedKey(null), 1200);
+  };
+
+  const setAndFlash = (patch: Partial<ChatSettings>, key: string) => {
+    onChange({ ...settings, ...patch });
+    flashSaved(key);
+  };
 
   const saveAccent = async (mode: "dark" | "light", color: string) => {
     const body: Record<string, string> = mode === "dark" ? { darkAccent: color } : { lightAccent: color };
@@ -1043,9 +1066,7 @@ function SettingsTab({
       });
       if (res.ok) {
         onProfileRefresh();
-        setSavedPip(mode);
-        if (savedPipTimer.current) clearTimeout(savedPipTimer.current);
-        savedPipTimer.current = setTimeout(() => setSavedPip(null), 1200);
+        flashSaved("appearance");
       }
     } catch { /* ignore */ }
   };
@@ -1056,7 +1077,7 @@ function SettingsTab({
 
   return (
     <Section>
-      <ADLSection label="Identity" defaultOpen>
+      <ADLSection label="Identity" saved={savedKey === "identity"} defaultOpen>
         <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
           <AvatarWrap>
             <button
@@ -1131,10 +1152,10 @@ function SettingsTab({
         </div>
       </ADLSection>
 
-      <ADLSection label="Timestamps" defaultOpen={false}>
+      <ADLSection label="Chat Preferences" saved={savedKey === "chatprefs"} defaultOpen={false}>
         <ToggleRow>
           <ToggleLabel>Show timestamps</ToggleLabel>
-          <Toggle $on={settings.showTimestamps} onClick={() => set({ showTimestamps: !settings.showTimestamps })}>
+          <Toggle $on={settings.showTimestamps} onClick={() => setAndFlash({ showTimestamps: !settings.showTimestamps }, "chatprefs")}>
             <ToggleThumb $on={settings.showTimestamps} />
           </Toggle>
         </ToggleRow>
@@ -1150,7 +1171,7 @@ function SettingsTab({
                   <RadioBtn
                     key={f.value}
                     $active={settings.timestampFormat === f.value}
-                    onClick={() => set({ timestampFormat: f.value })}
+                    onClick={() => setAndFlash({ timestampFormat: f.value }, "chatprefs")}
                   >
                     <RadioCircle $active={settings.timestampFormat === f.value}>
                       {settings.timestampFormat === f.value && <RadioDot />}
@@ -1168,7 +1189,7 @@ function SettingsTab({
               <TileBody $open={tzOpen}>
                 <TzSelect
                   value={settings.timezone}
-                  onChange={(e) => set({ timezone: e.target.value })}
+                  onChange={(e) => setAndFlash({ timezone: e.target.value }, "chatprefs")}
                 >
                   {TIMEZONES.map((tz) => (
                     <option key={tz.value} value={tz.value}>{tz.label}</option>
@@ -1180,7 +1201,7 @@ function SettingsTab({
         )}
       </ADLSection>
 
-      <ADLSection label="Appearance" defaultOpen={false}>
+      <ADLSection label="Appearance" saved={savedKey === "appearance"} defaultOpen={false}>
         <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
           <TileRow>
             <Tile>
@@ -1194,7 +1215,7 @@ function SettingsTab({
                     <OptionBtn
                       key={f.value}
                       $active={settings.fontSize === f.value}
-                      onClick={() => set({ fontSize: f.value })}
+                      onClick={() => setAndFlash({ fontSize: f.value }, "appearance")}
                     >
                       {f.label}
                     </OptionBtn>
@@ -1213,7 +1234,7 @@ function SettingsTab({
                     <OptionBtn
                       key={f.value}
                       $active={settings.myFont === f.value}
-                      onClick={() => set({ myFont: f.value })}
+                      onClick={() => setAndFlash({ myFont: f.value }, "appearance")}
                       style={{ fontFamily: f.css }}
                     >
                       {f.label}
@@ -1227,7 +1248,7 @@ function SettingsTab({
           <Tile>
             <TileHeader>
               <TileLabel>Accent color</TileLabel>
-              <PreviewSaved data-visible={savedPip !== null}>Saved</PreviewSaved>
+              <PreviewSaved data-visible={savedKey === "appearance"}>Saved</PreviewSaved>
               <Ecl on={accentOpen} onToggle={() => setAccentOpen((v) => !v)} />
             </TileHeader>
             <TileBody $open={accentOpen}>
@@ -1281,6 +1302,57 @@ function SettingsTab({
               </PreviewGrid>
             </TileBody>
           </Tile>
+        </div>
+      </ADLSection>
+
+      <ADLSection label="Notifications" saved={savedKey === "notifications"} defaultOpen={false}>
+        <ToggleRow>
+          <ToggleLabel>Sound on new message</ToggleLabel>
+          <Toggle $on={!!settings.soundOnMessage} onClick={() => setAndFlash({ soundOnMessage: !settings.soundOnMessage }, "notifications")}>
+            <ToggleThumb $on={!!settings.soundOnMessage} />
+          </Toggle>
+        </ToggleRow>
+        <ToggleRow>
+          <ToggleLabel>Desktop notifications</ToggleLabel>
+          <Toggle $on={!!settings.desktopNotifications} onClick={() => setAndFlash({ desktopNotifications: !settings.desktopNotifications }, "notifications")}>
+            <ToggleThumb $on={!!settings.desktopNotifications} />
+          </Toggle>
+        </ToggleRow>
+        <ToggleRow>
+          <ToggleLabel>Mentions only</ToggleLabel>
+          <Toggle $on={!!settings.mentionsOnly} onClick={() => setAndFlash({ mentionsOnly: !settings.mentionsOnly }, "notifications")}>
+            <ToggleThumb $on={!!settings.mentionsOnly} />
+          </Toggle>
+        </ToggleRow>
+      </ADLSection>
+
+      <ADLSection label="Privacy" saved={savedKey === "privacy"} defaultOpen={false}>
+        <ToggleRow>
+          <ToggleLabel>Send read receipts</ToggleLabel>
+          <Toggle $on={settings.sendReadReceipts !== false} onClick={() => setAndFlash({ sendReadReceipts: !(settings.sendReadReceipts !== false) }, "privacy")}>
+            <ToggleThumb $on={settings.sendReadReceipts !== false} />
+          </Toggle>
+        </ToggleRow>
+        <ToggleRow>
+          <ToggleLabel>Show online status</ToggleLabel>
+          <Toggle $on={settings.showOnlineStatus !== false} onClick={() => setAndFlash({ showOnlineStatus: !(settings.showOnlineStatus !== false) }, "privacy")}>
+            <ToggleThumb $on={settings.showOnlineStatus !== false} />
+          </Toggle>
+        </ToggleRow>
+        <ToggleRow>
+          <ToggleLabel>Send typing indicators</ToggleLabel>
+          <Toggle $on={settings.sendTypingIndicators !== false} onClick={() => setAndFlash({ sendTypingIndicators: !(settings.sendTypingIndicators !== false) }, "privacy")}>
+            <ToggleThumb $on={settings.sendTypingIndicators !== false} />
+          </Toggle>
+        </ToggleRow>
+      </ADLSection>
+
+      <ADLSection label="Account" defaultOpen={false}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", padding: "0.25rem 0" }}>
+          <HintText>Signed in as <strong>{currentUser}</strong></HintText>
+          <ClearBtn onClick={() => signOut({ callbackUrl: "/login" })}>
+            <span>⏏</span> Sign out
+          </ClearBtn>
         </div>
       </ADLSection>
 
