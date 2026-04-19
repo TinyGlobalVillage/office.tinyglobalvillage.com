@@ -16,23 +16,23 @@ const PAGE_SIZE_STORAGE_KEY = "tgv_team_page_size";
 
 /* ── Styled ────────────────────────────────────────────────── */
 
-const Card = styled.div`
-  background: var(--t-surface);
-  border: 1px solid rgba(${rgb.violet}, 0.25);
-  border-radius: 16px;
-  padding: 20px;
+const Card = styled.div<{ $embedded?: boolean }>`
   display: flex;
   flex-direction: column;
   gap: 12px;
   height: 100%;
   min-width: 0;
   overflow: hidden;
-  box-shadow: 0 0 24px rgba(${rgb.violet}, 0.06);
+  background: ${(p) => (p.$embedded ? "transparent" : "var(--t-surface)")};
+  border: ${(p) => (p.$embedded ? "none" : `1px solid rgba(${rgb.violet}, 0.25)`)};
+  border-radius: ${(p) => (p.$embedded ? "0" : "16px")};
+  padding: ${(p) => (p.$embedded ? "0" : "20px")};
+  box-shadow: ${(p) => (p.$embedded ? "none" : `0 0 24px rgba(${rgb.violet}, 0.06)`)};
 
   [data-theme="light"] & {
-    background: var(--t-surface);
-    border-color: rgba(${rgb.violet}, 0.3);
-    box-shadow: 0 0 16px rgba(${rgb.violet}, 0.04);
+    background: ${(p) => (p.$embedded ? "transparent" : "var(--t-surface)")};
+    border-color: ${(p) => (p.$embedded ? "transparent" : `rgba(${rgb.violet}, 0.3)`)};
+    box-shadow: ${(p) => (p.$embedded ? "none" : `0 0 16px rgba(${rgb.violet}, 0.04)`)};
   }
 `;
 
@@ -325,9 +325,11 @@ const MemoDate = styled.span`
 
 export default function UsersCard({
   className = "",
+  embedded = false,
   onPageSizeChange,
 }: {
   className?: string;
+  embedded?: boolean;
   onPageSizeChange?: (size: number) => void;
 }) {
   const [profiles, setProfiles] = useState<Profile[]>([]);
@@ -414,7 +416,7 @@ export default function UsersCard({
   const totalResults = profiles.length;
 
   return (
-    <Card className={className}>
+    <Card className={className} $embedded={embedded}>
       <HeaderRow>
         <Title>Team</Title>
         {unreadPings > 0 && (

@@ -258,6 +258,11 @@ const SBDMSub = styled.span`
 
 const SectionTile = styled.section<{ $accent: GlowColor }>`
   position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
   border-radius: 1rem;
   padding: 0.75rem;
   background: rgba(${(p) => rgb[p.$accent]}, 0.04);
@@ -838,7 +843,7 @@ export default function Home() {
                 <EclSwitch as="span" $on={teamExpanded} $accent="violet" aria-hidden="true" />
               </EclRow>
             </SectionHeader>
-            {teamExpanded && <UsersCard onPageSizeChange={setTeamPageSize} />}
+            {teamExpanded && <UsersCard embedded onPageSizeChange={setTeamPageSize} />}
           </SectionTile>
 
           <SectionTile $accent="cyan">
