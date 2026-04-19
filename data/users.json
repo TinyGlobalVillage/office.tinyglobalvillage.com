@@ -4,12 +4,14 @@
         "email": "gio@tinyglobalvillage.com",
         "role": "admin",
         "avatarUrl": "/avatars/admin.png?t=1776294707217",
-        "accentColor": "#ff4ecb",
+        "accentColor": "#d4ff00",
         "title": "CEO, Founder",
         "bio": "",
         "totpSecret": "OVX5O2DSKI7BKYPF5NJSYTYJV53WIEXS",
         "totpEnabled": true,
-        "webauthnCredentials": []
+        "webauthnCredentials": [],
+        "darkAccent": "#d4ff00",
+        "lightAccent": "#c08400"
     },
     "marmar": {
         "displayName": "Marthe",

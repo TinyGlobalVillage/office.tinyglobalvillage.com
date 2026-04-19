@@ -16,6 +16,7 @@ const Card = styled.div<{ $glow: GlowColor }>`
   border-radius: 1rem;
   padding: 1.5rem;
   cursor: pointer;
+  height: 100%;
   background: rgba(${(p) => rgb[p.$glow]}, 0.04);
   border: 1px solid rgba(${(p) => rgb[p.$glow]}, 0.15);
   box-shadow: 0 0 24px rgba(${(p) => rgb[p.$glow]}, 0.08);

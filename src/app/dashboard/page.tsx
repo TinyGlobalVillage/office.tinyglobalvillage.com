@@ -327,9 +327,16 @@ const BottomGrid = styled.div`
   display: grid;
   grid-template-columns: 1fr;
   gap: 1rem;
+  align-items: stretch;
+  width: 100%;
 
   @media (min-width: 1024px) {
     grid-template-columns: 1fr 2fr;
+  }
+
+  & > * {
+    min-width: 0;
+    height: 100%;
   }
 `;
 
@@ -583,7 +590,7 @@ export default function Home() {
           <UsersCard />
           <button
             onClick={() => setActivityOpen(true)}
-            style={{ textAlign: "left", width: "100%", padding: 0, background: "none", border: "none" }}
+            style={{ textAlign: "left", width: "100%", height: "100%", padding: 0, background: "none", border: "none" }}
           >
             <DashCard title="Recent Activity" subtitle="Click to expand · PM2 + git" glow="cyan" >
               <ActivityDivider>

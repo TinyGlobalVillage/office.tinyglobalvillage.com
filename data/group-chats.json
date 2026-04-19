@@ -1,0 +1,23 @@
+{
+  "groups": {
+    "grp_1776590540641_1d2f": {
+      "id": "grp_1776590540641_1d2f",
+      "name": "Marmar, 2, 4, Gio",
+      "createdBy": "admin",
+      "createdAt": "2026-04-19T09:22:20.641Z",
+      "memberIds": [
+        "admin",
+        "marmar",
+        "employee2",
+        "employee4"
+      ],
+      "admins": [
+        "admin"
+      ],
+      "visibility": "restricted"
+    }
+  },
+  "messages": {
+    "grp_1776590540641_1d2f": []
+  }
+}

@@ -18,6 +18,7 @@ const Card = styled.div`
   display: flex;
   flex-direction: column;
   gap: 12px;
+  height: 100%;
   box-shadow: 0 0 24px rgba(${rgb.violet}, 0.06);
 
   [data-theme="light"] & {

@@ -3108,24 +3108,8 @@ export default function ChatDrawer() {
                 )}
 
                 <InputRow>
-                  <TalkToText
-                    accent={colors.green}
-                    model={settings.whisperModel ?? "base.en"}
-                    onTranscript={(text) => {
-                      if (selection.type === "dm") {
-                        setDmInput((prev) => (prev ? `${prev} ${text}` : text));
-                      } else if (selection.type === "group") {
-                        setGroupInput((prev) => (prev ? `${prev} ${text}` : text));
-                      } else {
-                        setInput((prev) => (prev ? `${prev} ${text}` : text));
-                      }
-                    }}
-                    onError={(msg) => alert(`Transcribe: ${msg}`)}
-                    disabled={sending || uploading || dmSending || groupSending}
-                  />
                   {isTGV && (
                     <>
-                      <VoiceRecorder accent={colors.green} onSend={sendVoice} disabled={sending || uploading} />
                       <AttachMenuAnchor onClick={(e) => e.stopPropagation()}>
                         <AttachBtn onClick={() => setAttachMenuOpen((p) => !p)} title="Attach">
                           <AttachIcon size={14} />
@@ -3231,6 +3215,25 @@ export default function ChatDrawer() {
                       fontSize: settings.fontSize === "xs" ? 11 : settings.fontSize === "sm" ? 13 : 15,
                     }}
                   />
+
+                  <TalkToText
+                    accent={colors.green}
+                    model={settings.whisperModel ?? "base.en"}
+                    onTranscript={(text) => {
+                      if (selection.type === "dm") {
+                        setDmInput((prev) => (prev ? `${prev} ${text}` : text));
+                      } else if (selection.type === "group") {
+                        setGroupInput((prev) => (prev ? `${prev} ${text}` : text));
+                      } else {
+                        setInput((prev) => (prev ? `${prev} ${text}` : text));
+                      }
+                    }}
+                    onError={(msg) => alert(`Transcribe: ${msg}`)}
+                    disabled={sending || uploading || dmSending || groupSending}
+                  />
+                  {isTGV && (
+                    <VoiceRecorder accent={colors.green} onSend={sendVoice} disabled={sending || uploading} />
+                  )}
 
                   <SendBtn
                     onClick={
