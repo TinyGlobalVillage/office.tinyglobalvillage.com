@@ -1,10 +1,12 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback, ChangeEvent } from "react";
+import { useState, useEffect, useRef, useCallback, ChangeEvent, ReactNode } from "react";
 import styled from "styled-components";
 import { colors, rgb } from "@/app/theme";
 import { ModalBackdrop, CloseBtn, PillButton } from "@/app/styled";
 import { hexToRgb } from "./ProfileModal";
+import { useTheme } from "./ThemeProvider";
+import { TrashIcon } from "./icons";
 
 /* ── Types ─────────────────────────────────────────────────────── */
 
@@ -17,6 +19,8 @@ export type MemberProfile = {
   role: UserRole;
   avatarUrl: string;
   accentColor: string;
+  darkAccent?: string;
+  lightAccent?: string;
   title: string;
   bio?: string;
 };
@@ -24,6 +28,7 @@ export type MemberProfile = {
 export type ChatSettings = {
   showTimestamps: boolean;
   timestampFormat: "relative" | "time" | "datetime";
+  timezone: string;
   fontSize: "xs" | "sm" | "base";
   myFont: string;
 };
@@ -33,6 +38,35 @@ const TS_FORMATS: { label: string; value: ChatSettings["timestampFormat"] }[] = 
   { label: "Time (3:42 PM)", value: "time" },
   { label: "Full (Apr 15, 3:42)", value: "datetime" },
 ];
+
+// Common IANA zones + "auto" (resolves to the browser's local zone).
+export const TIMEZONES: { label: string; value: string }[] = [
+  { label: "Auto (device)", value: "auto" },
+  { label: "UTC", value: "UTC" },
+  { label: "Eastern · New York", value: "America/New_York" },
+  { label: "Central · Chicago", value: "America/Chicago" },
+  { label: "Mountain · Denver", value: "America/Denver" },
+  { label: "Pacific · Los Angeles", value: "America/Los_Angeles" },
+  { label: "Alaska · Anchorage", value: "America/Anchorage" },
+  { label: "Hawaii · Honolulu", value: "Pacific/Honolulu" },
+  { label: "São Paulo", value: "America/Sao_Paulo" },
+  { label: "London", value: "Europe/London" },
+  { label: "Paris / Berlin", value: "Europe/Paris" },
+  { label: "Athens", value: "Europe/Athens" },
+  { label: "Cairo", value: "Africa/Cairo" },
+  { label: "Dubai", value: "Asia/Dubai" },
+  { label: "Mumbai", value: "Asia/Kolkata" },
+  { label: "Bangkok", value: "Asia/Bangkok" },
+  { label: "Singapore", value: "Asia/Singapore" },
+  { label: "Shanghai / Beijing", value: "Asia/Shanghai" },
+  { label: "Tokyo", value: "Asia/Tokyo" },
+  { label: "Sydney", value: "Australia/Sydney" },
+];
+
+export function resolveTimezone(tz: string): string | undefined {
+  if (!tz || tz === "auto") return undefined; // let Intl fall back to system
+  return tz;
+}
 const FONT_SIZES: { label: string; value: ChatSettings["fontSize"] }[] = [
   { label: "Small", value: "xs" },
   { label: "Normal", value: "sm" },
@@ -45,6 +79,25 @@ const FONTS = [
 ];
 
 const MEMBERS_PER_PAGE = 5;
+
+const NEON_DARK = [
+  colors.pink,
+  colors.cyan,
+  colors.gold,
+  colors.orange,
+  colors.violet,
+  colors.green,
+  colors.red,
+];
+const NEON_LIGHT = [
+  "#d6336c",
+  "#1971c2",
+  "#c08400",
+  "#c04820",
+  "#7048e8",
+  "#2b8a3e",
+  "#c92a2a",
+];
 
 /* ── Styled ────────────────────────────────────────────────────── */
 
@@ -233,6 +286,115 @@ const SubLabel = styled.p`
   margin: 0 0 0.25rem;
 `;
 
+/* ── Tile card + per-subsetting ECL ────────────────────────────── */
+
+const TileRow = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+`;
+
+const Tile = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  padding: 0.5rem 0.625rem;
+  border-radius: 8px;
+  background: var(--t-inputBg);
+  border: 1px solid var(--t-borderStrong);
+`;
+
+const TileHeader = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+`;
+
+const TileLabel = styled.span`
+  flex: 1;
+  font-size: 0.5625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--t-textFaint);
+`;
+
+const TileBody = styled.div<{ $open: boolean }>`
+  display: ${(p) => (p.$open ? "flex" : "none")};
+  flex-direction: column;
+  gap: 0.25rem;
+`;
+
+const TzSelect = styled.select`
+  width: 100%;
+  padding: 0.375rem 0.5rem;
+  font-size: 0.6875rem;
+  border-radius: 0.5rem;
+  background: var(--t-surface, rgba(255,255,255,0.03));
+  border: 1px solid var(--t-borderStrong);
+  color: var(--t-text);
+  outline: none;
+  cursor: pointer;
+
+  &:focus { border-color: rgba(${rgb.pink}, 0.5); }
+`;
+
+const EclSwitchTrack = styled.span<{ $on: boolean }>`
+  position: relative;
+  display: inline-block;
+  width: 22px;
+  height: 11px;
+  border-radius: 999px;
+  background: ${(p) => (p.$on ? `rgba(${rgb.pink}, 0.55)` : "var(--t-inputBg)")};
+  border: 1px solid ${(p) => (p.$on ? `rgba(${rgb.pink}, 0.4)` : "var(--t-borderStrong)")};
+  transition: background 0.15s, border-color 0.15s;
+  flex-shrink: 0;
+`;
+
+const EclSwitchThumb = styled.span<{ $on: boolean }>`
+  position: absolute;
+  top: 1px;
+  left: ${(p) => (p.$on ? "12px" : "1px")};
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: ${(p) => (p.$on ? "#fff" : "var(--t-textFaint)")};
+  transition: left 0.15s, background 0.15s;
+`;
+
+const EclLabel = styled.span`
+  font-size: 0.5rem;
+  color: var(--t-textGhost);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+`;
+
+function Ecl({ on, onToggle }: { on: boolean; onToggle: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      title={on ? "Collapse" : "Expand"}
+      aria-expanded={on}
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: "0.25rem",
+        background: "transparent",
+        border: "none",
+        padding: 0,
+        cursor: "pointer",
+      }}
+    >
+      <EclLabel>{on ? "Collapse" : "Expand"}</EclLabel>
+      <EclSwitchTrack $on={on}>
+        <EclSwitchThumb $on={on} />
+      </EclSwitchTrack>
+    </button>
+  );
+}
+
 const AvatarWrap = styled.div`
   position: relative;
   flex-shrink: 0;
@@ -321,6 +483,10 @@ const ClearBtn = styled.button`
   background: rgba(${rgb.red}, 0.1);
   border: 1px solid rgba(${rgb.red}, 0.3);
   color: ${colors.red};
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
 `;
 
 const SearchWrap = styled.div`
@@ -522,6 +688,205 @@ export function UserAvatar({
   );
 }
 
+/* ── ADL section (Accordion + Lightswitch) ─────────────────────── */
+
+const ADLWrap = styled.div`
+  display: flex;
+  flex-direction: column;
+`;
+
+const ADLHeader = styled.button<{ $open: boolean }>`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.5rem 0.625rem;
+  background: ${(p) => (p.$open ? `rgba(${rgb.pink}, 0.05)` : "transparent")};
+  border: 1px solid ${(p) => (p.$open ? `rgba(${rgb.pink}, 0.22)` : "var(--t-border)")};
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+  color: ${(p) => (p.$open ? colors.pink : "var(--t-textFaint)")};
+  font-size: 0.5625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+
+  &:hover {
+    background: rgba(${rgb.pink}, 0.08);
+    border-color: rgba(${rgb.pink}, 0.35);
+    color: ${colors.pink};
+  }
+`;
+
+const ADLLabel = styled.span`
+  flex: 1;
+`;
+
+const ADLCount = styled.span`
+  font-size: 0.5625rem;
+  color: rgba(${rgb.pink}, 0.55);
+  font-weight: 600;
+`;
+
+const ADLSwitchTrack = styled.span<{ $on: boolean }>`
+  position: relative;
+  display: inline-block;
+  width: 28px;
+  height: 14px;
+  border-radius: 999px;
+  border: 1px solid ${(p) => (p.$on ? `rgba(${rgb.pink}, 0.7)` : "var(--t-borderStrong)")};
+  background: ${(p) => (p.$on ? `rgba(${rgb.pink}, 0.2)` : "var(--t-inputBg)")};
+  box-shadow: ${(p) => (p.$on ? `0 0 8px rgba(${rgb.pink}, 0.45)` : "none")};
+  transition: all 0.18s;
+  flex-shrink: 0;
+`;
+
+const ADLSwitchThumb = styled.span<{ $on: boolean }>`
+  position: absolute;
+  top: 1px;
+  left: ${(p) => (p.$on ? "15px" : "1px")};
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: ${(p) => (p.$on ? colors.pink : "var(--t-textFaint)")};
+  box-shadow: ${(p) =>
+    p.$on
+      ? `0 0 8px rgba(${rgb.pink}, 0.85), 0 0 2px rgba(${rgb.pink}, 1)`
+      : "0 1px 2px rgba(0,0,0,0.3)"};
+  transition: all 0.18s;
+`;
+
+const ADLBody = styled.div<{ $open: boolean }>`
+  display: ${(p) => (p.$open ? "block" : "none")};
+  padding: 0.75rem 0.25rem 0.25rem;
+`;
+
+function ADLSection({
+  label,
+  count,
+  defaultOpen = true,
+  children,
+}: {
+  label: string;
+  count?: number;
+  defaultOpen?: boolean;
+  children: ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <ADLWrap>
+      <ADLHeader $open={open} aria-expanded={open} onClick={() => setOpen((o) => !o)}>
+        <ADLLabel>{label}</ADLLabel>
+        {typeof count === "number" && <ADLCount>{count}</ADLCount>}
+        <ADLSwitchTrack $on={open} aria-hidden="true">
+          <ADLSwitchThumb $on={open} />
+        </ADLSwitchTrack>
+      </ADLHeader>
+      <ADLBody $open={open}>{children}</ADLBody>
+    </ADLWrap>
+  );
+}
+
+/* ── Color palette ─────────────────────────────────────────────── */
+
+const PaletteGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+`;
+
+const PaletteCol = styled.div<{ $bg: "dark" | "light" }>`
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  padding: 0.5rem;
+  border-radius: 8px;
+  background: ${(p) => (p.$bg === "dark" ? "#0a0a12" : "#f8f6f3")};
+  border: 1px solid ${(p) => (p.$bg === "dark" ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)")};
+`;
+
+const PaletteColLabel = styled.span<{ $bg: "dark" | "light" }>`
+  font-size: 0.5rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: ${(p) => (p.$bg === "dark" ? "rgba(255,255,255,0.55)" : "rgba(26,26,46,0.55)")};
+`;
+
+const SwatchRow = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+`;
+
+const Swatch = styled.button<{ $color: string; $selected: boolean }>`
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: transform 0.12s, box-shadow 0.12s;
+  background: ${(p) => p.$color};
+  border: 2px solid
+    ${(p) => (p.$selected ? "#ffffff" : "transparent")};
+  box-shadow: ${(p) =>
+    p.$selected
+      ? `0 0 0 1px ${p.$color}, 0 0 8px ${p.$color}`
+      : "0 1px 2px rgba(0,0,0,0.4)"};
+
+  &:hover {
+    transform: scale(1.12);
+  }
+`;
+
+const PreviewGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+`;
+
+const PreviewCard = styled.div<{ $bg: "dark" | "light"; $accent: string }>`
+  padding: 0.625rem;
+  border-radius: 8px;
+  background: ${(p) => (p.$bg === "dark" ? "#0a0a12" : "#f8f6f3")};
+  border: 1px solid ${(p) => p.$accent}44;
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+`;
+
+const PreviewName = styled.span<{ $accent: string }>`
+  font-size: 0.625rem;
+  font-weight: 700;
+  color: ${(p) => p.$accent};
+`;
+
+const PreviewBubble = styled.div<{ $bg: "dark" | "light"; $accent: string }>`
+  align-self: flex-end;
+  max-width: 80%;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.5625rem;
+  border-radius: 10px 10px 2px 10px;
+  background: ${(p) => `${p.$accent}22`};
+  border: 1px solid ${(p) => `${p.$accent}55`};
+  color: ${(p) => (p.$bg === "dark" ? "rgba(255,255,255,0.85)" : "rgba(26,26,46,0.85)")};
+`;
+
+const PreviewSaved = styled.span`
+  font-size: 0.5rem;
+  color: rgba(74, 222, 128, 0.8);
+  opacity: 0;
+  transition: opacity 0.2s;
+
+  &[data-visible="true"] {
+    opacity: 1;
+  }
+`;
+
 /* ── Settings tab ──────────────────────────────────────────────── */
 
 function SettingsTab({
@@ -555,6 +920,14 @@ function SettingsTab({
   const [editBio, setEditBio] = useState(myProfile?.bio ?? "");
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
+
+  // Per-subsetting ECL open-state
+  const [formatOpen, setFormatOpen] = useState(true);
+  const [tzOpen, setTzOpen] = useState(true);
+  const [fontSizeOpen, setFontSizeOpen] = useState(true);
+  const [fontFamilyOpen, setFontFamilyOpen] = useState(true);
+  const [accentOpen, setAccentOpen] = useState(true);
+  const [storageOpen, setStorageOpen] = useState(true);
 
   useEffect(() => {
     if (myProfile) {
@@ -611,11 +984,42 @@ function SettingsTab({
   };
 
   const accent = myProfile?.accentColor ?? colors.pink;
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
+
+  const darkAccent = myProfile?.darkAccent ?? (isDark ? accent : NEON_DARK[0]);
+  const lightAccent = myProfile?.lightAccent ?? (isDark ? NEON_LIGHT[0] : accent);
+
+  const [savedPip, setSavedPip] = useState<"dark" | "light" | null>(null);
+  const savedPipTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const saveAccent = async (mode: "dark" | "light", color: string) => {
+    const body: Record<string, string> = mode === "dark" ? { darkAccent: color } : { lightAccent: color };
+    if ((mode === "dark" && isDark) || (mode === "light" && !isDark)) {
+      body.accentColor = color;
+    }
+    try {
+      const res = await fetch("/api/users/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (res.ok) {
+        onProfileRefresh();
+        setSavedPip(mode);
+        if (savedPipTimer.current) clearTimeout(savedPipTimer.current);
+        savedPipTimer.current = setTimeout(() => setSavedPip(null), 1200);
+      }
+    } catch { /* ignore */ }
+  };
+
+  useEffect(() => () => {
+    if (savedPipTimer.current) clearTimeout(savedPipTimer.current);
+  }, []);
 
   return (
     <Section>
-      <div>
-        <SectionLabel>Identity</SectionLabel>
+      <ADLSection label="Identity" defaultOpen>
         <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
           <AvatarWrap>
             <button
@@ -688,12 +1092,9 @@ function SettingsTab({
             </div>
           </div>
         </div>
-      </div>
+      </ADLSection>
 
-      <Divider />
-
-      <div>
-        <SectionLabel>Timestamps</SectionLabel>
+      <ADLSection label="Timestamps" defaultOpen={false}>
         <ToggleRow>
           <ToggleLabel>Show timestamps</ToggleLabel>
           <Toggle $on={settings.showTimestamps} onClick={() => set({ showTimestamps: !settings.showTimestamps })}>
@@ -701,72 +1102,158 @@ function SettingsTab({
           </Toggle>
         </ToggleRow>
         {settings.showTimestamps && (
-          <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem", paddingLeft: "0.25rem" }}>
-            {TS_FORMATS.map((f) => (
-              <RadioBtn
-                key={f.value}
-                $active={settings.timestampFormat === f.value}
-                onClick={() => set({ timestampFormat: f.value })}
-              >
-                <RadioCircle $active={settings.timestampFormat === f.value}>
-                  {settings.timestampFormat === f.value && <RadioDot />}
-                </RadioCircle>
-                {f.label}
-              </RadioBtn>
-            ))}
-          </div>
+          <TileRow>
+            <Tile>
+              <TileHeader>
+                <TileLabel>Format</TileLabel>
+                <Ecl on={formatOpen} onToggle={() => setFormatOpen((v) => !v)} />
+              </TileHeader>
+              <TileBody $open={formatOpen}>
+                {TS_FORMATS.map((f) => (
+                  <RadioBtn
+                    key={f.value}
+                    $active={settings.timestampFormat === f.value}
+                    onClick={() => set({ timestampFormat: f.value })}
+                  >
+                    <RadioCircle $active={settings.timestampFormat === f.value}>
+                      {settings.timestampFormat === f.value && <RadioDot />}
+                    </RadioCircle>
+                    {f.label}
+                  </RadioBtn>
+                ))}
+              </TileBody>
+            </Tile>
+            <Tile>
+              <TileHeader>
+                <TileLabel>Timezone</TileLabel>
+                <Ecl on={tzOpen} onToggle={() => setTzOpen((v) => !v)} />
+              </TileHeader>
+              <TileBody $open={tzOpen}>
+                <TzSelect
+                  value={settings.timezone}
+                  onChange={(e) => set({ timezone: e.target.value })}
+                >
+                  {TIMEZONES.map((tz) => (
+                    <option key={tz.value} value={tz.value}>{tz.label}</option>
+                  ))}
+                </TzSelect>
+              </TileBody>
+            </Tile>
+          </TileRow>
         )}
-      </div>
+      </ADLSection>
 
-      <div>
-        <SectionLabel>Appearance</SectionLabel>
+      <ADLSection label="Appearance" defaultOpen={false}>
         <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-          <div>
-            <SubLabel>Font size</SubLabel>
-            <OptionGrid>
-              {FONT_SIZES.map((f) => (
-                <OptionBtn
-                  key={f.value}
-                  $active={settings.fontSize === f.value}
-                  onClick={() => set({ fontSize: f.value })}
-                >
-                  {f.label}
-                </OptionBtn>
-              ))}
-            </OptionGrid>
-          </div>
-          <div>
-            <SubLabel>Font family</SubLabel>
-            <OptionGrid>
-              {FONTS.map((f) => (
-                <OptionBtn
-                  key={f.value}
-                  $active={settings.myFont === f.value}
-                  onClick={() => set({ myFont: f.value })}
-                  style={{ fontFamily: f.css }}
-                >
-                  {f.label}
-                </OptionBtn>
-              ))}
-            </OptionGrid>
-          </div>
+          <TileRow>
+            <Tile>
+              <TileHeader>
+                <TileLabel>Font size</TileLabel>
+                <Ecl on={fontSizeOpen} onToggle={() => setFontSizeOpen((v) => !v)} />
+              </TileHeader>
+              <TileBody $open={fontSizeOpen}>
+                <OptionGrid>
+                  {FONT_SIZES.map((f) => (
+                    <OptionBtn
+                      key={f.value}
+                      $active={settings.fontSize === f.value}
+                      onClick={() => set({ fontSize: f.value })}
+                    >
+                      {f.label}
+                    </OptionBtn>
+                  ))}
+                </OptionGrid>
+              </TileBody>
+            </Tile>
+            <Tile>
+              <TileHeader>
+                <TileLabel>Font family</TileLabel>
+                <Ecl on={fontFamilyOpen} onToggle={() => setFontFamilyOpen((v) => !v)} />
+              </TileHeader>
+              <TileBody $open={fontFamilyOpen}>
+                <OptionGrid>
+                  {FONTS.map((f) => (
+                    <OptionBtn
+                      key={f.value}
+                      $active={settings.myFont === f.value}
+                      onClick={() => set({ myFont: f.value })}
+                      style={{ fontFamily: f.css }}
+                    >
+                      {f.label}
+                    </OptionBtn>
+                  ))}
+                </OptionGrid>
+              </TileBody>
+            </Tile>
+          </TileRow>
+
+          <Tile>
+            <TileHeader>
+              <TileLabel>Accent color</TileLabel>
+              <PreviewSaved data-visible={savedPip !== null}>Saved</PreviewSaved>
+              <Ecl on={accentOpen} onToggle={() => setAccentOpen((v) => !v)} />
+            </TileHeader>
+            <TileBody $open={accentOpen}>
+              <PaletteGrid>
+                <PaletteCol $bg="dark">
+                  <PaletteColLabel $bg="dark">Dark mode</PaletteColLabel>
+                  <SwatchRow>
+                    {NEON_DARK.map((c) => (
+                      <Swatch
+                        key={c}
+                        $color={c}
+                        $selected={darkAccent === c}
+                        onClick={() => saveAccent("dark", c)}
+                        title={c}
+                      />
+                    ))}
+                  </SwatchRow>
+                </PaletteCol>
+                <PaletteCol $bg="light">
+                  <PaletteColLabel $bg="light">Light mode</PaletteColLabel>
+                  <SwatchRow>
+                    {NEON_LIGHT.map((c) => (
+                      <Swatch
+                        key={c}
+                        $color={c}
+                        $selected={lightAccent === c}
+                        onClick={() => saveAccent("light", c)}
+                        title={c}
+                      />
+                    ))}
+                  </SwatchRow>
+                </PaletteCol>
+              </PaletteGrid>
+              <PreviewGrid>
+                <PreviewCard $bg="dark" $accent={darkAccent}>
+                  <PreviewName $accent={darkAccent}>{myProfile?.displayName ?? "You"}</PreviewName>
+                  <PreviewBubble $bg="dark" $accent={darkAccent}>Hello from the dark side</PreviewBubble>
+                </PreviewCard>
+                <PreviewCard $bg="light" $accent={lightAccent}>
+                  <PreviewName $accent={lightAccent}>{myProfile?.displayName ?? "You"}</PreviewName>
+                  <PreviewBubble $bg="light" $accent={lightAccent}>Hello from the light side</PreviewBubble>
+                </PreviewCard>
+              </PreviewGrid>
+            </TileBody>
+          </Tile>
         </div>
-      </div>
+      </ADLSection>
 
       {isAdmin && (
-        <>
-          <Divider />
-          <div>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.5rem" }}>
-              <SectionLabel style={{ margin: 0 }}>Chat storage</SectionLabel>
-              <span style={{ fontSize: "0.5625rem", color: "var(--t-textFaint)" }}>{storagePercent}%</span>
-            </div>
-            <StorageBar>
-              <StorageFill $pct={storagePercent} />
-            </StorageBar>
-            <ClearBtn onClick={onClearChat}>🗑 Clear All Chat &amp; Files</ClearBtn>
-          </div>
-        </>
+        <ADLSection label={`Chat storage · ${storagePercent}%`} defaultOpen={false}>
+          <Tile>
+            <TileHeader>
+              <TileLabel>Usage &amp; cleanup</TileLabel>
+              <Ecl on={storageOpen} onToggle={() => setStorageOpen((v) => !v)} />
+            </TileHeader>
+            <TileBody $open={storageOpen}>
+              <StorageBar>
+                <StorageFill $pct={storagePercent} />
+              </StorageBar>
+              <ClearBtn onClick={onClearChat}><TrashIcon size={14} /> Clear All Chat &amp; Files</ClearBtn>
+            </TileBody>
+          </Tile>
+        </ADLSection>
       )}
     </Section>
   );

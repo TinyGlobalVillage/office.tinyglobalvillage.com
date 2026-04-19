@@ -343,6 +343,207 @@ const AttachBtn = styled.button`
   }
 `;
 
+// ── QMBM (Question-Mark-Bubble Modal) ─────────────────────────────────────────
+
+const QmbmBtn = styled.button`
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 50%;
+  border: 1px solid rgba(${rgb.green}, 0.55);
+  background: rgba(${rgb.green}, 0.12);
+  color: ${colors.green};
+  font-size: 0.6875rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+  &:hover { background: rgba(${rgb.green}, 0.22); box-shadow: 0 0 10px rgba(${rgb.green}, 0.5); }
+`;
+
+const QmbmPanel = styled.div`
+  position: absolute;
+  inset: 0;
+  background: #0d0f1a;
+  z-index: 2;
+  padding: 0.875rem 1rem 1rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  animation: ${fadeIn} 0.15s ease;
+  [data-theme="light"] & { background: #f4f4f8; }
+`;
+
+const QmbmHead = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid rgba(${rgb.green}, 0.15);
+`;
+
+const QmbmTitle = styled.h3`
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: ${colors.green};
+  text-shadow: 0 0 6px rgba(${rgb.green}, 0.6);
+  margin: 0;
+  flex: 1;
+`;
+
+const QmbmFeatureCard = styled.div`
+  border: 1px solid rgba(${rgb.green}, 0.15);
+  border-radius: 0.625rem;
+  padding: 0.625rem 0.75rem;
+  background: rgba(${rgb.green}, 0.03);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+`;
+
+const QmbmFeatureTitle = styled.h4`
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: ${colors.green};
+  margin: 0;
+`;
+
+const QmbmFeatureDesc = styled.p`
+  font-size: 0.6875rem;
+  color: var(--t-textMuted);
+  margin: 0;
+  line-height: 1.45;
+`;
+
+const QmbmGifRow = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+`;
+
+const QmbmGifBox = styled.div`
+  aspect-ratio: 16/9;
+  border: 1px solid rgba(${rgb.green}, 0.15);
+  border-radius: 0.5rem;
+  overflow: hidden;
+  background: rgba(0,0,0,0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+`;
+
+const QmbmGifLabel = styled.span`
+  position: absolute;
+  top: 0.25rem;
+  left: 0.375rem;
+  z-index: 1;
+  font-size: 0.5rem;
+  color: var(--t-textGhost);
+  background: rgba(0,0,0,0.55);
+  padding: 0.125rem 0.3125rem;
+  border-radius: 0.25rem;
+`;
+
+const QmbmGifImg = styled.img`
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+`;
+
+const QmbmGifMissing = styled.span`
+  font-size: 0.5625rem;
+  color: var(--t-textGhost);
+`;
+
+type Feature = {
+  title: string;
+  desc: string;
+  before?: string;
+  after?: string;
+};
+
+const IMAGE_FEATURES: Feature[] = [
+  {
+    title: "Format conversion",
+    desc: "Re-encode between WebP, JPEG, PNG, and GIF. WebP is recommended for chat — smallest files at same quality.",
+    before: "/media-converter-help/image-format-before.gif",
+    after: "/media-converter-help/image-format-after.gif",
+  },
+  {
+    title: "Quality slider",
+    desc: "For WebP and JPEG. Lower values = smaller file, more visible artifacts. 85 is a good default.",
+    before: "/media-converter-help/image-quality-before.gif",
+    after: "/media-converter-help/image-quality-after.gif",
+  },
+  {
+    title: "Max width / height",
+    desc: "Downscale on the largest side while keeping aspect ratio. Leave blank to keep the original dimensions.",
+    before: "/media-converter-help/image-resize-before.gif",
+    after: "/media-converter-help/image-resize-after.gif",
+  },
+];
+
+const VIDEO_FEATURES: Feature[] = [
+  {
+    title: "Codec / format",
+    desc: "H.264 for max compatibility, H.265 for smaller files at the same quality, VP9 for WebM, GIF for looping previews.",
+    before: "/media-converter-help/video-codec-before.gif",
+    after: "/media-converter-help/video-codec-after.gif",
+  },
+  {
+    title: "CRF quality",
+    desc: "Constant-Rate Factor. 18–23 is visually lossless; higher = smaller + more compression. Default 23.",
+    before: "/media-converter-help/video-crf-before.gif",
+    after: "/media-converter-help/video-crf-after.gif",
+  },
+  {
+    title: "Live GIF preview",
+    desc: "A 3-second GIF is generated from the start of your video so you can preview before committing to the full conversion.",
+    before: "/media-converter-help/video-gifpreview-before.gif",
+    after: "/media-converter-help/video-gifpreview-after.gif",
+  },
+];
+
+function QmbmHelp({ tab, onClose }: { tab: "image" | "video"; onClose: () => void }) {
+  const features = tab === "image" ? IMAGE_FEATURES : VIDEO_FEATURES;
+  return (
+    <QmbmPanel>
+      <QmbmHead>
+        <QmbmTitle>Media Converter — how it works</QmbmTitle>
+        <CloseBtn onClick={onClose} title="Close help">
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+            <path d="M1 1l8 8M9 1l-8 8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
+          </svg>
+        </CloseBtn>
+      </QmbmHead>
+      {features.map((f) => (
+        <QmbmFeatureCard key={f.title}>
+          <QmbmFeatureTitle>{f.title}</QmbmFeatureTitle>
+          <QmbmFeatureDesc>{f.desc}</QmbmFeatureDesc>
+          <QmbmGifRow>
+            <QmbmGifBox>
+              <QmbmGifLabel>Before</QmbmGifLabel>
+              {f.before
+                ? <QmbmGifImg src={f.before} alt="before" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} />
+                : <QmbmGifMissing>preview coming soon</QmbmGifMissing>}
+            </QmbmGifBox>
+            <QmbmGifBox>
+              <QmbmGifLabel>After</QmbmGifLabel>
+              {f.after
+                ? <QmbmGifImg src={f.after} alt="after" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} />
+                : <QmbmGifMissing>preview coming soon</QmbmGifMissing>}
+            </QmbmGifBox>
+          </QmbmGifRow>
+        </QmbmFeatureCard>
+      ))}
+    </QmbmPanel>
+  );
+}
+
 // ── Minimized float ───────────────────────────────────────────────────────────
 
 const MinimizedFloat = styled.button`
@@ -367,30 +568,6 @@ const MinimizedFloat = styled.button`
   }
 `;
 
-// ── Canvas helpers ────────────────────────────────────────────────────────────
-
-function makeTestPattern(canvas: HTMLCanvasElement) {
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return;
-  const W = canvas.width, H = canvas.height;
-  const grad = ctx.createLinearGradient(0, 0, W, H);
-  grad.addColorStop(0, "#1a0033");
-  grad.addColorStop(0.5, "#003318");
-  grad.addColorStop(1, "#001a33");
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, W, H);
-  for (let i = 0; i < 60; i++) {
-    ctx.beginPath();
-    ctx.arc(Math.random() * W, Math.random() * H, Math.random() * 3, 0, Math.PI * 2);
-    ctx.fillStyle = `rgba(74,222,128,${Math.random() * 0.6 + 0.2})`;
-    ctx.fill();
-  }
-  ctx.font = "bold 14px monospace";
-  ctx.fillStyle = colors.green;
-  ctx.textAlign = "center";
-  ctx.fillText("After preview", W / 2, H / 2);
-}
-
 // ── Image Tab ─────────────────────────────────────────────────────────────────
 
 function ImageTab({ onFileConverted }: { onFileConverted: (f: File) => void }) {
@@ -402,29 +579,113 @@ function ImageTab({ onFileConverted }: { onFileConverted: (f: File) => void }) {
   const [converting, setConverting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const afterCanvasRef = useRef<HTMLCanvasElement>(null);
+  const [afterPreviewUrl, setAfterPreviewUrl] = useState<string | null>(null);
+  const [afterSize, setAfterSize] = useState<number | null>(null);
 
   useEffect(() => {
-    if (file) {
-      const url = URL.createObjectURL(file);
-      setPreviewUrl(url);
-      return () => URL.revokeObjectURL(url);
-    } else {
-      setPreviewUrl(null);
-    }
+    if (!file) { setPreviewUrl(null); return; }
+    const url = URL.createObjectURL(file);
+    setPreviewUrl(url);
+    return () => URL.revokeObjectURL(url);
   }, [file]);
 
+  // Real client-side "After" preview: re-encode via <canvas>.toBlob using the
+  // selected format + quality + max dims. Gives the user instant visual +
+  // size feedback without a server round-trip. GIF falls back to PNG preview
+  // (browsers can't encode GIF via canvas.toBlob).
   useEffect(() => {
-    if (afterCanvasRef.current) {
-      makeTestPattern(afterCanvasRef.current);
-    }
-  }, []);
+    if (!file) { setAfterPreviewUrl(null); setAfterSize(null); return; }
+    let cancelled = false;
+    let blobUrl: string | null = null;
+    const img = new Image();
+    const src = URL.createObjectURL(file);
+    img.onload = () => {
+      if (cancelled) { URL.revokeObjectURL(src); return; }
+      const maxW = maxWidth ? parseInt(maxWidth) : img.width;
+      const maxH = maxHeight ? parseInt(maxHeight) : img.height;
+      const scale = Math.min(1, maxW / img.width, maxH / img.height);
+      const w = Math.max(1, Math.round(img.width * scale));
+      const h = Math.max(1, Math.round(img.height * scale));
+      const canvas = document.createElement("canvas");
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) { URL.revokeObjectURL(src); return; }
+      ctx.drawImage(img, 0, 0, w, h);
+      const mime =
+        format === "webp" ? "image/webp" :
+        format === "jpeg" ? "image/jpeg" :
+        format === "png"  ? "image/png"  :
+        "image/png";
+      canvas.toBlob(
+        (blob) => {
+          URL.revokeObjectURL(src);
+          if (cancelled || !blob) return;
+          blobUrl = URL.createObjectURL(blob);
+          setAfterPreviewUrl(blobUrl);
+          setAfterSize(blob.size);
+        },
+        mime,
+        quality / 100,
+      );
+    };
+    img.onerror = () => { URL.revokeObjectURL(src); };
+    img.src = src;
+    return () => {
+      cancelled = true;
+      if (blobUrl) URL.revokeObjectURL(blobUrl);
+    };
+  }, [file, format, quality, maxWidth, maxHeight]);
+
+  // Canvas can natively encode webp/jpeg/png — no server round-trip needed.
+  // Only GIF still requires ffmpeg on the server.
+  const encodeClientSide = async (): Promise<File | null> => {
+    if (!file || format === "gif") return null;
+    return new Promise((resolve) => {
+      const img = new Image();
+      const src = URL.createObjectURL(file);
+      img.onload = () => {
+        const maxW = maxWidth ? parseInt(maxWidth) : img.width;
+        const maxH = maxHeight ? parseInt(maxHeight) : img.height;
+        const scale = Math.min(1, maxW / img.width, maxH / img.height);
+        const w = Math.max(1, Math.round(img.width * scale));
+        const h = Math.max(1, Math.round(img.height * scale));
+        const canvas = document.createElement("canvas");
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) { URL.revokeObjectURL(src); resolve(null); return; }
+        ctx.drawImage(img, 0, 0, w, h);
+        const mime =
+          format === "webp" ? "image/webp" :
+          format === "jpeg" ? "image/jpeg" :
+          "image/png";
+        const ext = format === "jpeg" ? ".jpg" : `.${format}`;
+        const baseName = file.name.replace(/\.[^.]+$/, "");
+        canvas.toBlob(
+          (blob) => {
+            URL.revokeObjectURL(src);
+            if (!blob) { resolve(null); return; }
+            resolve(new File([blob], `${baseName}-converted${ext}`, { type: mime }));
+          },
+          mime,
+          quality / 100,
+        );
+      };
+      img.onerror = () => { URL.revokeObjectURL(src); resolve(null); };
+      img.src = src;
+    });
+  };
 
   const convert = async () => {
     if (!file || converting) return;
     setError(null);
     setConverting(true);
     try {
+      const local = await encodeClientSide();
+      if (local) { onFileConverted(local); return; }
+
+      // GIF path — fall back to ffmpeg server route.
       const fd = new FormData();
       fd.append("file", file);
       fd.append("format", format);
@@ -500,20 +761,18 @@ function ImageTab({ onFileConverted }: { onFileConverted: (f: File) => void }) {
 
       <PreviewRow>
         <PreviewBox>
-          <PreviewLabel>Before</PreviewLabel>
+          <PreviewLabel>Before{file ? ` · ${(file.size / 1024).toFixed(0)} KB` : ""}</PreviewLabel>
           {previewUrl
             ? <PreviewImg src={previewUrl} alt="before" />
             : <PreviewPlaceholder>No file selected</PreviewPlaceholder>
           }
         </PreviewBox>
         <PreviewBox>
-          <PreviewLabel>After (preview)</PreviewLabel>
-          <canvas
-            ref={afterCanvasRef}
-            width={240}
-            height={135}
-            style={{ width: "100%", height: "100%", objectFit: "contain" }}
-          />
+          <PreviewLabel>After{afterSize != null ? ` · ${(afterSize / 1024).toFixed(0)} KB` : ""}</PreviewLabel>
+          {afterPreviewUrl
+            ? <PreviewImg src={afterPreviewUrl} alt="after" />
+            : <PreviewPlaceholder>{file ? "Rendering preview…" : "No file selected"}</PreviewPlaceholder>
+          }
         </PreviewBox>
       </PreviewRow>
 
@@ -774,19 +1033,25 @@ export default function MediaConverterModal({
   onFileConverted,
 }: MediaConverterModalProps) {
   const [tab, setTab] = useState<"image" | "video">(defaultTab);
+  const [helpOpen, setHelpOpen] = useState(false);
 
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      if (helpOpen) setHelpOpen(false);
+      else onClose();
+    };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  }, [onClose, helpOpen]);
 
   return (
     <Overlay onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <Modal onClick={(e) => e.stopPropagation()}>
+      <Modal onClick={(e) => e.stopPropagation()} style={{ position: "relative" }}>
         <ModalHeader>
           <ModalTitle>Media Converter</ModalTitle>
-          <CloseBtn onClick={onClose}>
+          <QmbmBtn onClick={() => setHelpOpen((v) => !v)} title="What does this do?">?</QmbmBtn>
+          <CloseBtn onClick={onClose} title="Close">
             <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
               <path d="M1 1l8 8M9 1l-8 8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
             </svg>
@@ -794,8 +1059,8 @@ export default function MediaConverterModal({
         </ModalHeader>
 
         <TabBar>
-          <Tab $active={tab === "image"} onClick={() => setTab("image")}>🖼 Image</Tab>
-          <Tab $active={tab === "video"} onClick={() => setTab("video")}>🎬 Video</Tab>
+          <Tab $active={tab === "image"} onClick={() => setTab("image")} title="Convert images (webp / jpeg / png / gif)">Image</Tab>
+          <Tab $active={tab === "video"} onClick={() => setTab("video")} title="Convert videos (h264 / h265 / vp9 / gif)">Video</Tab>
         </TabBar>
 
         <Body>
@@ -804,6 +1069,8 @@ export default function MediaConverterModal({
             : <VideoTab onFileConverted={(f) => { onFileConverted(f); onClose(); }} />
           }
         </Body>
+
+        {helpOpen && <QmbmHelp tab={tab} onClose={() => setHelpOpen(false)} />}
       </Modal>
     </Overlay>
   );

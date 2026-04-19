@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  Fragment,
   useState,
   useEffect,
   useRef,
@@ -20,8 +21,21 @@ import {
   PanelIconBtn,
   Input,
 } from "../styled";
-import ChatSettingsModal, { UserAvatar, type MemberProfile, type ChatSettings as ModalChatSettings } from "./ChatSettingsModal";
+import ChatSettingsModal, { UserAvatar, resolveTimezone, type MemberProfile, type ChatSettings as ModalChatSettings } from "./ChatSettingsModal";
 import MediaConverterModal from "./MediaConverterModal";
+import ChatPicker from "./ChatPicker";
+import {
+  ChatIcon,
+  MembersIcon,
+  TrashIcon,
+  FileIcon,
+  PhotosIcon,
+  ContactIcon,
+  PollIcon,
+  EventIcon,
+  ConvertImageIcon,
+  ConvertVideoIcon,
+} from "./icons";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -49,14 +63,23 @@ type DmMessage = {
 type Profile = MemberProfile;
 type ChatSettings = ModalChatSettings;
 
-type DrawerMode =
-  | { view: "chat" }
-  | { view: "members" }
-  | { view: "dm"; peer: Profile };
+type GroupChat = {
+  id: string;
+  name: string;
+  memberIds: string[];
+};
+
+type Selection =
+  | { type: "tgv" }
+  | { type: "dm"; peer: Profile }
+  | { type: "group"; groupId: string };
+
+type SidebarTab = "users" | "groups";
 
 const DEFAULT_SETTINGS: ChatSettings = {
   showTimestamps: true,
   timestampFormat: "time",
+  timezone: "auto",
   fontSize: "sm",
   myFont: "sans",
 };
@@ -64,13 +87,21 @@ const DEFAULT_SETTINGS: ChatSettings = {
 const SETTINGS_KEY    = "tgv_chat_settings";
 const TAB_STORAGE_KEY = "tgv-drawer-tab-chat-y";
 const DRAWER_EVENT    = "tgv-right-drawer";
-const DEFAULT_W       = 380;
-const MIN_W           = 300;
-const MAX_W           = 700;
-const PAGE_SIZES      = [5, 10, 25, 50];
+const MIN_W           = 420;
+const SIDEBAR_MIN     = 120;
+const SIDEBAR_DEFAULT = 150;
+const SIDEBAR_MAX     = 280;
+
+function getDefaultDrawerWidth() {
+  if (typeof window === "undefined") return 800;
+  return Math.max(MIN_W, Math.round(window.innerWidth * 0.5));
+}
+function getMaxDrawerWidth() {
+  if (typeof window === "undefined") return 1400;
+  return Math.round(window.innerWidth * 0.9);
+}
 
 const VIOLET = colors.violet;
-const VIOLET_RGB = rgb.violet;
 
 function getDefaultTabY() {
   if (typeof window === "undefined") return 360;
@@ -85,8 +116,9 @@ function fmtBytes(b: number) {
   return `${(b / 1048576).toFixed(1)} MB`;
 }
 
-function fmtTimestamp(iso: string, format: ChatSettings["timestampFormat"]): string {
+function fmtTimestamp(iso: string, format: ChatSettings["timestampFormat"], timezone?: string): string {
   const d = new Date(iso);
+  const tz = resolveTimezone(timezone ?? "auto");
   if (format === "relative") {
     const diff = Date.now() - d.getTime();
     const m = Math.floor(diff / 60000);
@@ -96,8 +128,32 @@ function fmtTimestamp(iso: string, format: ChatSettings["timestampFormat"]): str
     if (h < 24) return `${h}h ago`;
     return `${Math.floor(h / 24)}d ago`;
   }
-  if (format === "time") return d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-  return d.toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+  if (format === "time") {
+    return d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit", timeZone: tz });
+  }
+  return d.toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: tz });
+}
+
+// Returns e.g. "Sunday · April 19, 2026" in the user's selected timezone.
+// Used by the day divider that separates messages from different days.
+function fmtDayDivider(iso: string, timezone?: string): string {
+  const d = new Date(iso);
+  const tz = resolveTimezone(timezone ?? "auto");
+  return d.toLocaleDateString([], {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    timeZone: tz,
+  });
+}
+
+// Group key in the user's timezone — two timestamps are "same day" iff this
+// returns the same string. ISO 8601 date (YYYY-MM-DD) scoped by timezone.
+function dayKey(iso: string, timezone?: string): string {
+  const d = new Date(iso);
+  const tz = resolveTimezone(timezone ?? "auto");
+  return d.toLocaleDateString("en-CA", { timeZone: tz }); // en-CA → YYYY-MM-DD
 }
 
 function isImage(mime?: string) { return mime?.startsWith("image/") ?? false; }
@@ -160,11 +216,6 @@ const Header = styled(DrawerHeader)`
   padding: 0.5rem 0.75rem;
 `;
 
-const BackBtn = styled(PanelIconBtn)`
-  color: ${VIOLET};
-  flex-shrink: 0;
-`;
-
 const ControlBtn = styled(PanelIconBtn)`
   width: 2.125rem;
   height: 2.125rem;
@@ -208,11 +259,20 @@ const TitleWrap = styled.div`
 const TitleText = styled.span<{ $color?: string }>`
   font-size: 0.875rem;
   font-weight: 700;
-  color: ${(p) => p.$color || colors.cyan};
+  color: ${(p) => p.$color || colors.green};
   ${(p) => !p.$color ? `text-shadow: 0 0 8px rgba(${rgb.green}, 0.9), 0 0 20px rgba(${rgb.green}, 0.55);` : ""}
 
   [data-theme="light"] & {
     text-shadow: none;
+  }
+`;
+
+const TitleChatIcon = styled(ChatIcon)`
+  color: ${colors.green};
+  filter: drop-shadow(0 0 6px rgba(${rgb.green}, 0.8));
+
+  [data-theme="light"] & {
+    filter: none;
   }
 `;
 
@@ -223,8 +283,77 @@ const DmTag = styled.span`
 
 const AvatarChips = styled.div`
   display: flex;
+  align-items: center;
   gap: 0.25rem;
   flex-shrink: 0;
+  position: relative;
+`;
+
+const OnlineOverflowBtn = styled.button<{ $open?: boolean }>`
+  height: 1.5rem;
+  padding: 0 0.5rem;
+  border-radius: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.625rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+  background: ${(p) => (p.$open ? `rgba(${rgb.green}, 0.25)` : "var(--t-inputBg)")};
+  border: 1px solid rgba(${rgb.green}, 0.4);
+  color: ${colors.green};
+
+  &:hover { background: rgba(${rgb.green}, 0.18); }
+`;
+
+const OnlineOverflowMenu = styled.div`
+  position: absolute;
+  right: 0;
+  top: 100%;
+  margin-top: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  border-radius: 0.75rem;
+  padding: 0.5rem;
+  background: var(--t-surface);
+  border: 1px solid var(--t-border);
+  box-shadow: 0 6px 22px rgba(0,0,0,0.38);
+  z-index: 220;
+  min-width: 180px;
+`;
+
+const OnlineOverflowItem = styled.button<{ $accent?: string }>`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.5rem;
+  border: none;
+  border-radius: 0.5rem;
+  background: transparent;
+  cursor: pointer;
+  font-size: 0.6875rem;
+  color: var(--t-text);
+  text-align: left;
+  transition: background 0.12s, color 0.12s;
+
+  &:hover {
+    background: ${(p) => (p.$accent ? `${p.$accent}18` : `rgba(${rgb.green}, 0.12)`)};
+    color: ${(p) => p.$accent ?? colors.green};
+  }
+`;
+
+const OnlinePresenceDot = styled.span<{ $online?: boolean }>`
+  position: absolute;
+  bottom: -1px;
+  right: -1px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  border: 1.5px solid var(--t-surface);
+  background: ${(p) => (p.$online ? colors.green : "var(--t-textGhost)")};
+  box-shadow: ${(p) => (p.$online ? `0 0 4px ${colors.green}` : "none")};
 `;
 
 const Resize = styled(DrawerResizeHandle).attrs({ $accent: "green" })``;
@@ -236,7 +365,38 @@ const MsgScroll = styled.div`
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+
   scrollbar-width: thin;
+  scrollbar-color: rgba(${rgb.green}, 0.45) transparent;
+
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: rgba(${rgb.green}, 0.35);
+    border-radius: 4px;
+    box-shadow: 0 0 6px rgba(${rgb.green}, 0.4) inset;
+  }
+  &::-webkit-scrollbar-thumb:hover {
+    background: rgba(${rgb.green}, 0.6);
+    box-shadow: 0 0 10px rgba(${rgb.green}, 0.6) inset;
+  }
+
+  [data-theme="light"] & {
+    scrollbar-color: rgba(${rgb.green}, 0.55) transparent;
+
+    &::-webkit-scrollbar-thumb {
+      background: rgba(${rgb.green}, 0.5);
+      box-shadow: none;
+    }
+    &::-webkit-scrollbar-thumb:hover {
+      background: rgba(${rgb.green}, 0.7);
+      box-shadow: none;
+    }
+  }
 `;
 
 const EmptyChat = styled.div`
@@ -255,6 +415,34 @@ const EmptyIcon = styled.span`
 
 const EmptyText = styled.p`
   font-size: 0.75rem;
+`;
+
+const DayDivider = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.25rem;
+  margin: 0.25rem 0;
+
+  &::before,
+  &::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--t-border);
+  }
+`;
+
+const DayDividerLabel = styled.span`
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--t-textMuted);
+  background: rgba(${rgb.green}, 0.06);
+  padding: 0.2rem 0.625rem;
+  border-radius: 999px;
+  border: 1px solid rgba(${rgb.green}, 0.18);
+  white-space: nowrap;
 `;
 
 const InputArea = styled.div`
@@ -357,27 +545,6 @@ const ThumbRemove = styled.button`
   line-height: 1;
 
   &:hover { background: #2a1a1a; }
-`;
-
-const ConvertBtn = styled.button`
-  width: 2rem;
-  height: 2rem;
-  border-radius: 0.75rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  background: rgba(${rgb.green}, 0.08);
-  border: 1px solid rgba(${rgb.green}, 0.3);
-  color: ${colors.green};
-  cursor: pointer;
-  transition: all 0.15s;
-  font-size: 0.875rem;
-
-  &:hover {
-    background: rgba(${rgb.green}, 0.14);
-    box-shadow: 0 0 10px rgba(${rgb.green}, 0.4);
-  }
 `;
 
 // ── FileLightbox ──────────────────────────────────────────────────────────────
@@ -521,6 +688,86 @@ const AttachBtn = styled.button`
     background: rgba(${rgb.cyan}, 0.05);
     border-color: rgba(${rgb.cyan}, 0.2);
   }
+`;
+
+const AttachMenuAnchor = styled.div`
+  position: relative;
+  flex-shrink: 0;
+`;
+
+const PickerAnchor = styled.div`
+  position: relative;
+  flex-shrink: 0;
+`;
+
+const PickerBtn = styled.button`
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: rgba(${rgb.green}, 0.08);
+  border: 1px solid rgba(${rgb.green}, 0.3);
+  color: ${colors.green};
+  cursor: pointer;
+  font-size: 0.95rem;
+  transition: all 0.15s;
+
+  &:hover { background: rgba(${rgb.green}, 0.14); }
+`;
+
+const AttachMenuPopup = styled.div`
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 0;
+  z-index: 220;
+  min-width: 210px;
+  padding: 0.3rem 0;
+  border-radius: 10px;
+  background: var(--t-surface);
+  border: 1px solid var(--t-border);
+  box-shadow: 0 10px 28px rgba(0,0,0,0.42);
+`;
+
+const AttachMenuItem = styled.button<{ $disabled?: boolean }>`
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 0.5rem 0.8rem;
+  font-size: 0.75rem;
+  color: var(--t-text);
+  cursor: ${(p) => (p.$disabled ? "default" : "pointer")};
+  opacity: ${(p) => (p.$disabled ? 0.5 : 1)};
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  white-space: nowrap;
+  &:hover {
+    background: ${(p) => (p.$disabled ? "transparent" : `rgba(${rgb.cyan}, 0.12)`)};
+    color: ${(p) => (p.$disabled ? "var(--t-text)" : colors.cyan)};
+  }
+`;
+
+const AttachMenuIcon = styled.span`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: ${colors.green};
+`;
+
+const AttachMenuSoon = styled.span`
+  font-size: 0.5rem;
+  margin-left: auto;
+  padding: 0.1rem 0.35rem;
+  border-radius: 999px;
+  background: var(--t-inputBg);
+  color: var(--t-textGhost);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
 `;
 
 const ChatTextarea = styled.textarea<{ $accent?: string }>`
@@ -672,6 +919,69 @@ const EditCancel = styled.button`
   cursor: pointer;
 `;
 
+// ── Styled: inline GIF embed (auto-loops by default as `<img>`) ──────────────
+
+const InlineGif = styled.img`
+  display: block;
+  max-width: min(220px, 70%);
+  max-height: 200px;
+  border-radius: 0.5rem;
+  border: 1px solid var(--t-border);
+  margin-top: 0.35rem;
+`;
+
+const GifPreviewStrip = styled.div`
+  display: flex;
+  gap: 0.35rem;
+  padding: 0.3rem 0.4rem;
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--t-border);
+`;
+
+const GifPreviewItem = styled.div`
+  position: relative;
+  width: 70px;
+  height: 70px;
+  border-radius: 0.4rem;
+  overflow: hidden;
+  border: 1px solid var(--t-border);
+
+  img { width: 100%; height: 100%; object-fit: cover; display: block; }
+`;
+
+const GifPreviewRemove = styled.button`
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(0, 0, 0, 0.65);
+  color: #fff;
+  font-size: 9px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover { background: rgba(0, 0, 0, 0.85); }
+`;
+
+// Matches Giphy media URLs (we only auto-embed trusted hosts so random
+// .gif links in pasted messages don't auto-play content we didn't vet).
+const GIF_URL_RE = /https?:\/\/(?:media\d*\.giphy\.com|giphy\.com|i\.giphy\.com)\/media\/[^\s]+\.gif\b/gi;
+
+function extractGifUrls(text: string): string[] {
+  if (!text) return [];
+  const matches = text.match(GIF_URL_RE);
+  return matches ? Array.from(new Set(matches)) : [];
+}
+
+function stripGifUrls(text: string): string {
+  return text.replace(GIF_URL_RE, "").replace(/\s+/g, " ").trim();
+}
+
 // ── Styled: File attachment ───────────────────────────────────────────────────
 
 const AttachImage = styled.img`
@@ -729,234 +1039,309 @@ const AttachDl = styled.span`
 
 // ── Styled: Members panel ─────────────────────────────────────────────────────
 
-const MemberSearch = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  border-radius: 0.75rem;
-  padding: 0.5rem 0.75rem;
-  background: var(--t-inputBg);
-  border: 1px solid var(--t-borderStrong);
-`;
+/* ── Two-column body + sidebar ─────────────────────────────────── */
 
-const MemberSearchInput = styled.input`
+const Body = styled.div`
   flex: 1;
-  background: transparent;
-  outline: none;
-  font-size: 0.6875rem;
-  color: var(--t-textMuted);
-  border: none;
-
-  &::placeholder { color: var(--t-textGhost); }
+  display: flex;
+  min-height: 0;
+  overflow: hidden;
 `;
 
-const MemberSearchClear = styled.button`
-  font-size: 0.5625rem;
-  background: none;
-  border: none;
-  color: var(--t-textGhost);
-  cursor: pointer;
-  &:hover { color: var(--t-textMuted); }
+const Sidebar = styled.div<{ $width: number }>`
+  width: ${(p) => p.$width}px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--t-border);
+  background: rgba(${rgb.green}, 0.02);
 `;
 
-const MemberCountRow = styled.div`
-  padding: 0 0.75rem 0.5rem;
+const SidebarHeader = styled.div`
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 0.375rem;
+  padding: 0.5rem 0.5rem 0.375rem;
   flex-shrink: 0;
 `;
 
-const MemberCount = styled.span`
-  font-size: 0.5625rem;
-  color: var(--t-textGhost);
-`;
-
-const PageSizeRow = styled.div`
+const SidebarTabSwitch = styled.div`
   display: flex;
   align-items: center;
-  gap: 0.25rem;
+  border-radius: 9999px;
+  padding: 0.125rem;
+  flex: 1;
+  background: var(--t-inputBg);
+  border: 1px solid rgba(${rgb.green}, 0.18);
 `;
 
-const PageSizeLabel = styled.span`
+const SidebarTabBtn = styled.button<{ $active?: boolean }>`
+  flex: 1;
   font-size: 0.5625rem;
-  color: var(--t-textGhost);
-`;
-
-const PageSizeBtn = styled.button<{ $active?: boolean }>`
-  font-size: 0.5625rem;
-  padding: 0.125rem 0.375rem;
-  border-radius: 0.25rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 0.25rem 0.375rem;
+  border-radius: 9999px;
+  border: 1px solid ${(p) => (p.$active ? `rgba(${rgb.green}, 0.4)` : "transparent")};
+  background: ${(p) => (p.$active ? `rgba(${rgb.green}, 0.18)` : "transparent")};
+  color: ${(p) => (p.$active ? colors.green : "var(--t-textFaint)")};
   cursor: pointer;
   transition: all 0.15s;
-  background: ${(p) => (p.$active ? `${VIOLET}22` : "transparent")};
-  color: ${(p) => (p.$active ? VIOLET : "var(--t-textGhost)")};
-  border: 1px solid ${(p) => (p.$active ? `${VIOLET}44` : "transparent")};
 `;
 
-const CustomSizeInput = styled.input`
-  width: 2.5rem;
-  font-size: 0.5625rem;
-  background: transparent;
-  outline: none;
-  text-align: center;
-  border-radius: 0.25rem;
-  padding: 0.125rem 0.25rem;
-  border: 1px solid ${VIOLET}44;
-  color: ${VIOLET};
+const SidebarPlusBtn = styled.button`
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  background: rgba(${rgb.green}, 0.12);
+  border: 1px solid rgba(${rgb.green}, 0.4);
+  color: ${colors.green};
+  transition: all 0.15s;
+
+  &:hover {
+    background: rgba(${rgb.green}, 0.22);
+  }
 `;
 
-const MemberList = styled.div`
+const SidebarList = styled.div`
   flex: 1;
   overflow-y: auto;
-  padding: 0 0.75rem;
+  padding: 0.25rem 0.375rem 0.5rem;
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
   scrollbar-width: thin;
-`;
+  scrollbar-color: rgba(${rgb.green}, 0.4) transparent;
 
-const MemberCard = styled.button<{ $disabled?: boolean }>`
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  border-radius: 0.75rem;
-  padding: 0.625rem 0.75rem;
-  text-align: left;
-  width: 100%;
-  background: var(--t-inputBg);
-  border: none;
-  cursor: ${(p) => (p.$disabled ? "default" : "pointer")};
-  opacity: ${(p) => (p.$disabled ? 0.5 : 1)};
-  transition: background 0.15s;
-
-  &:hover {
-    background: ${(p) => (p.$disabled ? "var(--t-inputBg)" : "var(--t-border)")};
-  }
-`;
-
-const PresenceDot = styled.span<{ $online?: boolean }>`
-  position: absolute;
-  bottom: 0;
-  right: 0;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  border: 1.5px solid #060810;
-  background: ${(p) => (p.$online ? "#4ade80" : "#374151")};
-  box-shadow: ${(p) => (p.$online ? "0 0 4px #4ade80" : "none")};
+  &::-webkit-scrollbar { width: 6px; }
+  &::-webkit-scrollbar-thumb { background: rgba(${rgb.green}, 0.4); border-radius: 3px; }
+  &::-webkit-scrollbar-track { background: transparent; }
 
   [data-theme="light"] & {
-    border-color: var(--t-surface);
+    scrollbar-color: rgba(${rgb.green}, 0.55) transparent;
+    &::-webkit-scrollbar-thumb { background: rgba(${rgb.green}, 0.55); }
   }
 `;
 
-const MemberName = styled.p`
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--t-text);
-  margin: 0;
-  line-height: 1.3;
+const SidebarRowWrap = styled.div<{ $active?: boolean }>`
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  border-radius: 8px;
+  transition: all 0.12s;
+  background: ${(p) => (p.$active ? `rgba(${rgb.green}, 0.14)` : "transparent")};
+  border: 1px solid ${(p) => (p.$active ? `rgba(${rgb.green}, 0.35)` : "transparent")};
+
+  &:hover { background: rgba(${rgb.green}, 0.08); }
 `;
 
-const MemberStatus = styled.p<{ $online?: boolean }>`
-  font-size: 0.5625rem;
-  margin: 0;
-  color: ${(p) => (p.$online ? "#4ade8099" : "var(--t-textGhost)")};
-`;
-
-const DmLabel = styled.span`
-  font-size: 0.5625rem;
-  color: var(--t-textGhost);
-  flex-shrink: 0;
-  transition: color 0.15s;
-
-  ${MemberCard}:hover & {
-    color: var(--t-textMuted);
-  }
-`;
-
-const MemberMenuBtn = styled.button`
-  width: 1.5rem;
-  height: 1.5rem;
+const SidebarRow = styled.button<{ $active?: boolean; $accent?: string }>`
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.5rem;
   border: none;
-  background: none;
-  border-radius: 4px;
+  background: transparent;
   cursor: pointer;
+  text-align: left;
+  color: ${(p) => (p.$active ? colors.green : "var(--t-textMuted)")};
+  min-width: 0;
+`;
+
+const SidebarRowName = styled.span`
+  flex: 1;
+  min-width: 0;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+const SidebarRowPresence = styled.span<{ $online?: boolean }>`
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: ${(p) => (p.$online ? colors.green : "var(--t-textGhost)")};
+  box-shadow: ${(p) => (p.$online ? `0 0 4px ${colors.green}` : "none")};
+`;
+
+const RowHoverMenuBtn = styled.button<{ $open?: boolean }>`
+  width: 1.25rem;
+  align-self: stretch;
+  flex-shrink: 0;
+  border: none;
+  background: transparent;
   color: var(--t-textGhost);
-  font-size: 1rem;
+  cursor: pointer;
+  opacity: ${(p) => (p.$open ? 1 : 0)};
+  transition: opacity 0.15s, color 0.15s, background 0.15s;
+  border-radius: 0 7px 7px 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
-  opacity: 0;
-  transition: opacity 0.15s, background 0.15s, color 0.15s;
 
-  ${MemberCard}:hover & { opacity: 1; }
-  &:hover { background: rgba(${VIOLET_RGB}, 0.15); color: ${VIOLET}; }
+  ${SidebarRowWrap}:hover & { opacity: 1; }
+  &:hover { color: ${colors.green}; background: rgba(${rgb.green}, 0.14); }
 `;
 
-const MemberMenuDrop = styled.div`
+const RowHoverMenu = styled.div`
   position: absolute;
-  right: 0.5rem;
-  top: 2.2rem;
+  top: calc(100% + 2px);
+  right: 0;
   z-index: 200;
+  min-width: 170px;
+  padding: 0.25rem 0;
+  border-radius: 8px;
   background: var(--t-surface);
   border: 1px solid var(--t-border);
-  border-radius: 8px;
-  padding: 0.25rem 0;
-  min-width: 170px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.35);
+  box-shadow: 0 6px 22px rgba(0,0,0,0.38);
 `;
 
-const MemberMenuItem = styled.button`
+const RowHoverMenuItem = styled.button`
   width: 100%;
   text-align: left;
   background: none;
   border: none;
-  padding: 0.45rem 0.85rem;
-  font-size: 0.75rem;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.6875rem;
   color: var(--t-text);
   cursor: pointer;
   white-space: nowrap;
-  &:hover { background: rgba(${VIOLET_RGB}, 0.12); color: ${VIOLET}; }
-`;
-
-const PagerRow = styled.div`
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 0.25rem;
-  padding: 0.5rem 0.75rem;
+  gap: 0.5rem;
+  &:hover { background: rgba(${rgb.green}, 0.12); color: ${colors.green}; }
+`;
+
+const PinBadge = styled.span`
+  font-size: 0.5rem;
+  color: ${colors.green};
   flex-shrink: 0;
-  border-top: 1px solid var(--t-border);
+  opacity: 0.7;
 `;
 
-const PagerBtn = styled.button<{ $active?: boolean }>`
-  width: 1.5rem;
-  height: 1.5rem;
-  border-radius: 0.25rem;
-  font-size: 0.625rem;
+const DashedCreateCard = styled.button`
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 0.375rem;
+  padding: 0.5rem;
+  margin-top: 0.375rem;
+  border-radius: 8px;
+  font-size: 0.625rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
   cursor: pointer;
-  border: 1px solid ${(p) => (p.$active ? `${VIOLET}44` : "transparent")};
-  background: ${(p) => (p.$active ? `${VIOLET}25` : "transparent")};
-  color: ${(p) => (p.$active ? VIOLET : "var(--t-textGhost)")};
+  background: transparent;
+  border: 1px dashed rgba(${rgb.green}, 0.45);
+  color: ${colors.green};
   transition: all 0.15s;
 
-  &:disabled {
-    opacity: 0.3;
-    cursor: not-allowed;
+  &:hover {
+    background: rgba(${rgb.green}, 0.08);
+    border-color: rgba(${rgb.green}, 0.7);
   }
 `;
 
-const MemberEmpty = styled.p`
-  font-size: 0.6875rem;
-  color: var(--t-textGhost);
-  text-align: center;
-  padding: 2rem 0;
+const SidebarResizer = styled.div`
+  width: 4px;
+  cursor: ew-resize;
+  flex-shrink: 0;
+  background: transparent;
+  transition: background 0.15s;
+
+  &:hover {
+    background: rgba(${rgb.green}, 0.35);
+  }
+`;
+
+const DTogTab = styled.button<{ $collapsed: boolean }>`
+  position: absolute;
+  top: 50%;
+  left: ${(p) => (p.$collapsed ? "0" : "auto")};
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 36px;
+  padding: 0;
+  border-radius: 0 6px 6px 0;
+  border: 1px solid rgba(${rgb.green}, 0.35);
+  border-left: none;
+  background: rgba(${rgb.green}, 0.12);
+  color: ${colors.green};
+  cursor: pointer;
+  z-index: 2;
+  transition: background 0.15s;
+
+  &:hover { background: rgba(${rgb.green}, 0.22); }
+`;
+
+const ConvPane = styled.div`
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  position: relative;
+`;
+
+const CreateGroupBackdrop = styled.div`
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+
+const CreateGroupCard = styled.div`
+  width: min(90vw, 360px);
+  padding: 1.25rem;
+  border-radius: 16px;
+  background: var(--t-surface);
+  border: 1px solid rgba(${rgb.green}, 0.3);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.85);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+`;
+
+const CreateGroupTitle = styled.h3`
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: ${colors.green};
+`;
+
+const CreateGroupText = styled.p`
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--t-textMuted);
+  line-height: 1.5;
+`;
+
+const CreateGroupCloseBtn = styled.button`
+  align-self: flex-end;
+  font-size: 0.625rem;
+  font-weight: 700;
+  padding: 0.375rem 0.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(${rgb.green}, 0.4);
+  background: rgba(${rgb.green}, 0.12);
+  color: ${colors.green};
+  cursor: pointer;
 `;
 
 // ── File attachment ────────────────────────────────────────────────────────────
@@ -1020,7 +1405,7 @@ function MessageBubble({
           </BubbleName>
           {settings.showTimestamps && (
             <BubbleTime>
-              {fmtTimestamp(createdAt, settings.timestampFormat)}
+              {fmtTimestamp(createdAt, settings.timestampFormat, settings.timezone)}
               {editedAt && " · edited"}
             </BubbleTime>
           )}
@@ -1037,12 +1422,20 @@ function MessageBubble({
               <EditSave onClick={saveEdit}>Save</EditSave>
               <EditCancel onClick={() => setEditing(false)}>✕</EditCancel>
             </div>
-          ) : (
-            <>
-              {content && <p style={{ whiteSpace: "pre-wrap", wordBreak: "break-word", margin: 0 }}>{content}</p>}
-              {fileUrl && <FileAttachment url={fileUrl} name={fileName} size={fileSize} mime={fileMime} />}
-            </>
-          )}
+          ) : (() => {
+            const gifs = extractGifUrls(content);
+            const plain = gifs.length ? stripGifUrls(content) : content;
+            return (
+              <>
+                {plain && <p style={{ whiteSpace: "pre-wrap", wordBreak: "break-word", margin: 0 }}>{plain}</p>}
+                {gifs.map((url) => (
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <InlineGif key={url} src={url} alt="gif" loading="lazy" />
+                ))}
+                {fileUrl && <FileAttachment url={fileUrl} name={fileName} size={fileSize} mime={fileMime} />}
+              </>
+            );
+          })()}
           {!editing && (
             <BubbleActions $isMe={isMe}>
               {isMe && (
@@ -1059,165 +1452,23 @@ function MessageBubble({
   );
 }
 
-// ── Members panel ─────────────────────────────────────────────────────────────
-
-function MembersPanel({
-  profiles,
-  presence,
-  currentUser,
-  onSelectUser,
-  onWhatsApp,
-}: {
-  profiles: Profile[];
-  presence: { sysUser: string; online: boolean }[];
-  currentUser: string;
-  onSelectUser: (p: Profile) => void;
-  onWhatsApp?: (p: Profile) => void;
-}) {
-  const [search, setSearch] = useState("");
-  const [pageSize, setPageSize] = useState(10);
-  const [customSize, setCustomSize] = useState("");
-  const [showCustom, setShowCustom] = useState(false);
-  const [page, setPage] = useState(0);
-  const [menuOpen, setMenuOpen] = useState<string | null>(null);
-  useEffect(() => {
-    if (!menuOpen) return;
-    const close = () => setMenuOpen(null);
-    window.addEventListener("click", close);
-    return () => window.removeEventListener("click", close);
-  }, [menuOpen]);
-
-  const filtered = profiles.filter((p) =>
-    p.displayName.toLowerCase().includes(search.toLowerCase()) ||
-    p.username.toLowerCase().includes(search.toLowerCase())
-  );
-
-  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
-  const safePage = Math.min(page, totalPages - 1);
-  const paged = filtered.slice(safePage * pageSize, (safePage + 1) * pageSize);
-
-  const setSize = (n: number) => {
-    setPageSize(n);
-    setPage(0);
-    setShowCustom(false);
-  };
-
-  return (
-    <div style={{ display: "flex", flexDirection: "column", flex: 1, overflow: "hidden" }}>
-      <div style={{ padding: "0.75rem 0.75rem 0.5rem", flexShrink: 0 }}>
-        <MemberSearch>
-          <svg width="11" height="11" viewBox="0 0 11 11" fill="none">
-            <circle cx="4.5" cy="4.5" r="3.5" stroke="var(--t-textGhost)" strokeWidth="1.2"/>
-            <path d="M7.5 7.5l2 2" stroke="var(--t-textGhost)" strokeWidth="1.2" strokeLinecap="round"/>
-          </svg>
-          <MemberSearchInput
-            value={search}
-            onChange={(e) => { setSearch(e.target.value); setPage(0); }}
-            placeholder="Search members…"
-          />
-          {search && (
-            <MemberSearchClear onClick={() => { setSearch(""); setPage(0); }}>✕</MemberSearchClear>
-          )}
-        </MemberSearch>
-      </div>
-
-      <MemberCountRow>
-        <MemberCount>{filtered.length} member{filtered.length !== 1 ? "s" : ""}</MemberCount>
-        <PageSizeRow>
-          <PageSizeLabel>Show:</PageSizeLabel>
-          {PAGE_SIZES.map((n) => (
-            <PageSizeBtn key={n} $active={pageSize === n && !showCustom} onClick={() => setSize(n)}>
-              {n}
-            </PageSizeBtn>
-          ))}
-          <PageSizeBtn $active={showCustom} onClick={() => setShowCustom((p) => !p)}>
-            Custom
-          </PageSizeBtn>
-          {showCustom && (
-            <CustomSizeInput
-              value={customSize}
-              onChange={(e) => setCustomSize(e.target.value.replace(/\D/g, ""))}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  const n = parseInt(customSize, 10);
-                  if (n > 0) setSize(n);
-                }
-              }}
-              placeholder="n"
-              autoFocus
-            />
-          )}
-        </PageSizeRow>
-      </MemberCountRow>
-
-      <MemberList>
-        {paged.length === 0 ? (
-          <MemberEmpty>No members found</MemberEmpty>
-        ) : (
-          paged.map((p) => {
-            const pres = presence.find((pr) => pr.sysUser === p.username);
-            const online = pres?.online ?? false;
-            const isMe = p.username === currentUser;
-            return (
-              <MemberCard key={p.username} onClick={() => !isMe && onSelectUser(p)} $disabled={isMe} style={{ position: "relative" }}>
-                <div style={{ position: "relative", flexShrink: 0 }}>
-                  <UserAvatar profile={p} size={32} />
-                  <PresenceDot $online={online} />
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <MemberName>{p.displayName}</MemberName>
-                  <MemberStatus $online={online}>
-                    {online ? "● Online" : "○ Offline"}
-                  </MemberStatus>
-                </div>
-                {!isMe && (
-                  <>
-                    <MemberMenuBtn
-                      onClick={(e) => { e.stopPropagation(); setMenuOpen(menuOpen === p.username ? null : p.username); }}
-                      title="More options"
-                    >⋮</MemberMenuBtn>
-                    {menuOpen === p.username && (
-                      <MemberMenuDrop onClick={(e) => e.stopPropagation()}>
-                        <MemberMenuItem onClick={() => { onSelectUser(p); setMenuOpen(null); }}>
-                          💬 Send DM
-                        </MemberMenuItem>
-                        {onWhatsApp && (
-                          <MemberMenuItem onClick={() => { onWhatsApp(p); setMenuOpen(null); }}>
-                            🟢 Continue in WhatsApp
-                          </MemberMenuItem>
-                        )}
-                      </MemberMenuDrop>
-                    )}
-                  </>
-                )}
-              </MemberCard>
-            );
-          })
-        )}
-      </MemberList>
-
-      {totalPages > 1 && (
-        <PagerRow>
-          <PagerBtn onClick={() => setPage((p) => Math.max(0, p - 1))} disabled={safePage === 0}>‹</PagerBtn>
-          {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => (
-            <PagerBtn key={i} $active={safePage === i} onClick={() => setPage(i)}>
-              {i + 1}
-            </PagerBtn>
-          ))}
-          <PagerBtn onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))} disabled={safePage === totalPages - 1}>›</PagerBtn>
-        </PagerRow>
-      )}
-    </div>
-  );
-}
-
 // ── Main ChatDrawer ───────────────────────────────────────────────────────────
 
 export default function ChatDrawer() {
   const [open, setOpen]           = useState(false);
-  const [width, setWidth]         = useState(DEFAULT_W);
+  const [width, setWidth]         = useState(800);
+  const [maxW, setMaxW]           = useState(1400);
   const [tabY, setTabY]           = useState<number>(480);
-  const [mode, setMode]           = useState<DrawerMode>({ view: "chat" });
+  const [selection, setSelection] = useState<Selection>({ type: "tgv" });
+  const [sidebarTab, setSidebarTab] = useState<SidebarTab>("users");
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarWidth, setSidebarWidth] = useState(SIDEBAR_DEFAULT);
+  const [groups, setGroups] = useState<GroupChat[]>([]);
+  const [showCreateGroup, setShowCreateGroup] = useState(false);
+  const [rowHoverMenu, setRowHoverMenu] = useState<string | null>(null);
+  const [attachMenuOpen, setAttachMenuOpen] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [onlineOverflowOpen, setOnlineOverflowOpen] = useState(false);
 
   const [messages, setMessages]   = useState<ChatMessage[]>([]);
   const [profiles, setProfiles]   = useState<Profile[]>([]);
@@ -1243,6 +1494,7 @@ export default function ChatDrawer() {
   const lastTypingSentRef         = useRef(0);
 
   const fileRef     = useRef<HTMLInputElement>(null);
+  const photoRef    = useRef<HTMLInputElement>(null);
   const bottomRef   = useRef<HTMLDivElement>(null);
   const dmBottomRef = useRef<HTMLDivElement>(null);
   const seenCount   = useRef(0);
@@ -1288,10 +1540,15 @@ export default function ChatDrawer() {
   useEffect(() => {
     setSettings(loadSettings());
     setTabY(getDefaultTabY());
+    const initialMax = getMaxDrawerWidth();
+    setMaxW(initialMax);
     const savedW = sessionStorage.getItem("chat-drawer-width");
-    if (savedW) setWidth(parseInt(savedW, 10));
+    setWidth(savedW ? Math.min(initialMax, parseInt(savedW, 10)) : getDefaultDrawerWidth());
     const savedLastSeen = localStorage.getItem("tgv_chat_last_seen_id");
     if (savedLastSeen) lastSeenId.current = savedLastSeen;
+    const onResize = () => setMaxW(getMaxDrawerWidth());
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
   }, []);
 
   useEffect(() => {
@@ -1328,6 +1585,55 @@ export default function ChatDrawer() {
       setPresence(Array.isArray(presRes) ? presRes : []);
     });
   }, []);
+
+  const loadGroups = useCallback(async () => {
+    try {
+      const d = await fetch("/api/chat/group").then((r) => r.json());
+      setGroups(Array.isArray(d?.groups) ? d.groups : []);
+    } catch { /* ignore */ }
+  }, []);
+
+  useEffect(() => {
+    if (!rowHoverMenu) return;
+    const onClick = () => setRowHoverMenu(null);
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setRowHoverMenu(null); };
+    window.addEventListener("click", onClick);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("click", onClick);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [rowHoverMenu]);
+
+  useEffect(() => {
+    if (!onlineOverflowOpen) return;
+    const onClick = () => setOnlineOverflowOpen(false);
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setOnlineOverflowOpen(false); };
+    window.addEventListener("click", onClick);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("click", onClick);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [onlineOverflowOpen]);
+
+  useEffect(() => {
+    if (!attachMenuOpen) return;
+    const onClick = () => setAttachMenuOpen(false);
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setAttachMenuOpen(false); };
+    window.addEventListener("click", onClick);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("click", onClick);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [attachMenuOpen]);
+
+  useEffect(() => {
+    loadGroups();
+    const id = setInterval(loadGroups, 15_000);
+    return () => clearInterval(id);
+  }, [loadGroups]);
 
   const loadMessages = useCallback(async () => {
     try {
@@ -1372,23 +1678,23 @@ export default function ChatDrawer() {
   }, []);
 
   useEffect(() => {
-    if (mode.view !== "dm") return;
-    const peer = (mode as { view: "dm"; peer: Profile }).peer;
-    loadDmMessages(peer.username);
-    const id = setInterval(() => loadDmMessages(peer.username), 10_000);
+    if (selection.type !== "dm") return;
+    const peerUsername = selection.peer.username;
+    loadDmMessages(peerUsername);
+    const id = setInterval(() => loadDmMessages(peerUsername), 10_000);
     return () => clearInterval(id);
-  }, [mode, loadDmMessages]);
+  }, [selection, loadDmMessages]);
 
   useEffect(() => {
-    if (mode.view === "dm") {
+    if (selection.type === "dm") {
       dmBottomRef.current?.scrollIntoView({ behavior: "smooth" });
     }
-  }, [dmMessages, mode]);
+  }, [dmMessages, selection]);
 
   useEffect(() => {
-    if (!open || (mode.view !== "chat" && mode.view !== "dm")) return;
-    const context = mode.view === "dm"
-      ? `dm:${(mode as { view: "dm"; peer: Profile }).peer.username}`
+    if (!open || selection.type === "group") return;
+    const context = selection.type === "dm"
+      ? `dm:${selection.peer.username}`
       : "chat";
     const poll = () => {
       fetch(`/api/chat/typing?context=${encodeURIComponent(context)}`)
@@ -1399,21 +1705,21 @@ export default function ChatDrawer() {
     poll();
     const id = setInterval(poll, 2000);
     return () => clearInterval(id);
-  }, [open, mode]);
+  }, [open, selection]);
 
   const signalTyping = useCallback(() => {
     const now = Date.now();
     if (now - lastTypingSentRef.current < 2000) return;
     lastTypingSentRef.current = now;
-    const context = mode.view === "dm"
-      ? `dm:${(mode as { view: "dm"; peer: Profile }).peer.username}`
+    const context = selection.type === "dm"
+      ? `dm:${selection.peer.username}`
       : "chat";
     fetch("/api/chat/typing", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ context }),
     }).catch(() => {});
-  }, [mode]);
+  }, [selection]);
 
   const saveSettings = (s: ChatSettings) => {
     setSettings(s);
@@ -1461,7 +1767,7 @@ export default function ChatDrawer() {
     const onMove = (ev: MouseEvent) => {
       if (!resizing.current) return;
       const delta = ev.clientX - startX.current;
-      const newW = Math.min(MAX_W, Math.max(MIN_W, startW.current + delta));
+      const newW = Math.min(maxW, Math.max(MIN_W, startW.current + delta));
       setWidth(newW);
       sessionStorage.setItem("chat-drawer-width", String(newW));
     };
@@ -1474,7 +1780,27 @@ export default function ChatDrawer() {
     };
     window.addEventListener("mousemove", onMove);
     window.addEventListener("mouseup", onUp);
-  }, [width]);
+  }, [width, maxW]);
+
+  const onSidebarResizeStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    const startPx = e.clientX;
+    const startWpx = sidebarWidth;
+    const onMove = (ev: MouseEvent) => {
+      const next = Math.min(SIDEBAR_MAX, Math.max(SIDEBAR_MIN, startWpx + (ev.clientX - startPx)));
+      setSidebarWidth(next);
+    };
+    const onUp = () => {
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+    document.body.style.cursor = "ew-resize";
+    document.body.style.userSelect = "none";
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  }, [sidebarWidth]);
 
   const sendMessage = async () => {
     if ((!input.trim() && !uploadFile) || sending) return;
@@ -1517,8 +1843,8 @@ export default function ChatDrawer() {
   };
 
   const sendDm = async () => {
-    if (!dmInput.trim() || dmSending || mode.view !== "dm") return;
-    const peer = (mode as { view: "dm"; peer: Profile }).peer;
+    if (!dmInput.trim() || dmSending || selection.type !== "dm") return;
+    const peer = selection.peer;
     setDmSending(true);
     try {
       await fetch("/api/chat/dm", {
@@ -1532,15 +1858,15 @@ export default function ChatDrawer() {
   };
 
   const deleteDm = async (id: string) => {
-    if (mode.view !== "dm") return;
-    const peer = (mode as { view: "dm"; peer: Profile }).peer;
+    if (selection.type !== "dm") return;
+    const peer = selection.peer;
     await fetch(`/api/chat/dm?id=${id}&with=${peer.username}`, { method: "DELETE" });
     await loadDmMessages(peer.username);
   };
 
   const editDm = async (id: string, content: string) => {
-    if (mode.view !== "dm") return;
-    const peer = (mode as { view: "dm"; peer: Profile }).peer;
+    if (selection.type !== "dm") return;
+    const peer = selection.peer;
     await fetch("/api/chat/dm", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -1555,7 +1881,8 @@ export default function ChatDrawer() {
     e.target.value = "";
   };
 
-  const peer = mode.view === "dm" ? (mode as { view: "dm"; peer: Profile }).peer : null;
+  const peer = selection.type === "dm" ? selection.peer : null;
+  const isTGV = selection.type === "tgv";
 
   return (
     <>
@@ -1609,23 +1936,14 @@ export default function ChatDrawer() {
       >
         {/* ── Header ──────────────────────────────────────────────── */}
         <Header>
-          {mode.view !== "chat" && (
-            <BackBtn onClick={() => setMode(mode.view === "dm" ? { view: "members" } : { view: "chat" })}>
-              ‹
-            </BackBtn>
-          )}
-
           <TitleWrap>
-            {mode.view === "chat" && (
+            {isTGV && (
               <>
-                <span style={{ fontSize: "0.875rem" }}>💬</span>
+                <TitleChatIcon size={14} />
                 <TitleText>TGV Chat</TitleText>
               </>
             )}
-            {mode.view === "members" && (
-              <TitleText $color={VIOLET}>Members</TitleText>
-            )}
-            {mode.view === "dm" && peer && (
+            {selection.type === "dm" && peer && (
               <>
                 <UserAvatar profile={peer} size={20} />
                 <TitleText $color={peer.accentColor} style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
@@ -1634,44 +1952,83 @@ export default function ChatDrawer() {
                 <DmTag>DM</DmTag>
               </>
             )}
+            {selection.type === "group" && (
+              <TitleText $color={VIOLET}>
+                {groups.find((g) => g.id === selection.groupId)?.name ?? "Group"}
+              </TitleText>
+            )}
           </TitleWrap>
 
-          {mode.view === "chat" && (
-            <AvatarChips>
-              {profiles.map((p) => (
-                <span key={p.username} title={p.displayName} style={{ flexShrink: 0 }}>
-                  <UserAvatar profile={p} size={20} />
-                </span>
-              ))}
-            </AvatarChips>
-          )}
+          {isTGV && (() => {
+            const onlineProfiles = profiles
+              .filter((p) => {
+                if (p.username === currentUser) return false;
+                return presence.find((pr) => pr.sysUser === p.username)?.online ?? false;
+              })
+              .sort((a, b) => a.displayName.localeCompare(b.displayName));
+            const showOverflow = onlineProfiles.length > 2;
+            const visibleChips = showOverflow ? [] : onlineProfiles;
+            const overflowUsers = showOverflow ? onlineProfiles : [];
+            return (
+              <AvatarChips onClick={(e) => e.stopPropagation()}>
+                {visibleChips.map((p) => (
+                  <span
+                    key={p.username}
+                    title={p.displayName}
+                    style={{ flexShrink: 0, cursor: "pointer" }}
+                    onClick={() => { setSelection({ type: "dm", peer: p }); setDmMessages([]); }}
+                  >
+                    <UserAvatar profile={p} size={20} />
+                  </span>
+                ))}
+                {showOverflow && (
+                  <div style={{ position: "relative" }}>
+                    <OnlineOverflowBtn
+                      $open={onlineOverflowOpen}
+                      onClick={() => setOnlineOverflowOpen((p) => !p)}
+                      title={`${overflowUsers.length} online`}
+                    >
+                      <MembersIcon size={12} />
+                      <span>{overflowUsers.length}</span>
+                    </OnlineOverflowBtn>
+                    {onlineOverflowOpen && (
+                      <OnlineOverflowMenu onClick={(e) => e.stopPropagation()}>
+                        {overflowUsers.map((p) => (
+                          <OnlineOverflowItem
+                            key={p.username}
+                            $accent={p.accentColor}
+                            onClick={() => {
+                              setSelection({ type: "dm", peer: p });
+                              setDmMessages([]);
+                              setOnlineOverflowOpen(false);
+                            }}
+                          >
+                            <span style={{ position: "relative", display: "block", flexShrink: 0 }}>
+                              <UserAvatar profile={p} size={22} />
+                              <OnlinePresenceDot $online />
+                            </span>
+                            <span>{p.displayName}</span>
+                          </OnlineOverflowItem>
+                        ))}
+                      </OnlineOverflowMenu>
+                    )}
+                  </div>
+                )}
+              </AvatarChips>
+            );
+          })()}
 
-          {mode.view === "chat" && (
-            <ControlBtn onClick={() => setMode({ view: "members" })} title="Members">
-              <svg viewBox="0 0 16 16" fill="currentColor">
-                <circle cx="5" cy="5" r="2.5"/>
-                <circle cx="11" cy="5" r="2.5"/>
-                <path d="M0 14c0-2.5 2.2-4 5-4s5 1.5 5 4"/>
-                <path d="M11 10c2.2.5 4 1.8 4 4" strokeLinecap="round"/>
-              </svg>
-            </ControlBtn>
-          )}
-
-          {mode.view === "chat" && (
+          {isTGV && (
             <ControlBtn onClick={clearChat} title="Clear all messages">
-              <svg viewBox="0 0 14 14" fill="currentColor">
-                <path d="M2 4h10M5 4V2.5A.5.5 0 0 1 5.5 2h3a.5.5 0 0 1 .5.5V4M3 4l.7 7.5A1 1 0 0 0 4.7 12.5h4.6a1 1 0 0 0 1-.9L11 4H3z"/>
-              </svg>
+              <TrashIcon size={14} />
             </ControlBtn>
           )}
 
-          {mode.view === "chat" && (
-            <ControlBtn onClick={() => setShowSettingsModal(true)} title="Settings">
-              <svg viewBox="0 0 16 16" fill="currentColor">
-                <path d="M8 10.5A2.5 2.5 0 1 1 8 5.5a2.5 2.5 0 0 1 0 5zm5.29-2.77a5.07 5.07 0 0 0 .04-.73 5 5 0 0 0-.04-.73l1.57-1.23a.38.38 0 0 0 .09-.48l-1.49-2.57a.37.37 0 0 0-.45-.16l-1.85.74a5.4 5.4 0 0 0-1.26-.73L9.67.37A.36.36 0 0 0 9.31 0H6.69a.36.36 0 0 0-.36.37l-.27 1.97a5.4 5.4 0 0 0-1.26.73l-1.85-.74a.37.37 0 0 0-.45.16L1.05 4.86a.37.37 0 0 0 .09.48l1.57 1.23c-.03.24-.04.48-.04.73s.01.49.04.73L1.14 9.26a.37.37 0 0 0-.09.48l1.49 2.57c.09.16.28.22.45.16l1.85-.74c.39.28.82.52 1.26.73l.27 1.97c.05.2.24.37.45.37H9.3c.21 0 .4-.17.45-.37l.27-1.97a5.4 5.4 0 0 0 1.26-.73l1.85.74c.17.06.36 0 .45-.16l1.49-2.57a.37.37 0 0 0-.09-.48l-1.69-1.27z"/>
-              </svg>
-            </ControlBtn>
-          )}
+          <ControlBtn onClick={() => setShowSettingsModal(true)} title="Settings">
+            <svg viewBox="0 0 16 16" fill="currentColor">
+              <path d="M8 10.5A2.5 2.5 0 1 1 8 5.5a2.5 2.5 0 0 1 0 5zm5.29-2.77a5.07 5.07 0 0 0 .04-.73 5 5 0 0 0-.04-.73l1.57-1.23a.38.38 0 0 0 .09-.48l-1.49-2.57a.37.37 0 0 0-.45-.16l-1.85.74a5.4 5.4 0 0 0-1.26-.73L9.67.37A.36.36 0 0 0 9.31 0H6.69a.36.36 0 0 0-.36.37l-.27 1.97a5.4 5.4 0 0 0-1.26.73l-1.85-.74a.37.37 0 0 0-.45.16L1.05 4.86a.37.37 0 0 0 .09.48l1.57 1.23c-.03.24-.04.48-.04.73s.01.49.04.73L1.14 9.26a.37.37 0 0 0-.09.48l1.49 2.57c.09.16.28.22.45.16l1.85-.74c.39.28.82.52 1.26.73l.27 1.97c.05.2.24.37.45.37H9.3c.21 0 .4-.17.45-.37l.27-1.97a5.4 5.4 0 0 0 1.26-.73l1.85.74c.17.06.36 0 .45-.16l1.49-2.57a.37.37 0 0 0-.09-.48l-1.69-1.27z"/>
+            </svg>
+          </ControlBtn>
 
           <ControlBtn
             onClick={() => {
@@ -1691,181 +2048,442 @@ export default function ChatDrawer() {
           </ControlBtn>
         </Header>
 
-        {/* ── Members panel ────────────────────────────────────────── */}
-        {mode.view === "members" && (
-          <MembersPanel
-            profiles={profiles}
-            presence={presence}
-            currentUser={currentUser}
-            onSelectUser={(p) => { setMode({ view: "dm", peer: p }); setDmMessages([]); }}
-            onWhatsApp={(p) => {
-              const text = `Continuing my conversation with ${p.displayName} from TGV Office`;
-              window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank", "noopener");
-            }}
-          />
-        )}
-
-        {/* ── Chat messages ────────────────────────────────────────── */}
-        {mode.view === "chat" && (
-          <MsgScroll>
-            {messages.length === 0 ? (
-              <EmptyChat>
-                <EmptyIcon>💬</EmptyIcon>
-                <EmptyText>No messages yet. Say hi!</EmptyText>
-              </EmptyChat>
-            ) : (
-              messages.map((msg) => {
-                const profile = profiles.find((p) => p.username === msg.from);
-                return (
-                  <MessageBubble
-                    key={msg.id}
-                    id={msg.id} from={msg.from} content={msg.content}
-                    fileUrl={msg.fileUrl} fileName={msg.fileName} fileSize={msg.fileSize} fileMime={msg.fileMime}
-                    createdAt={msg.createdAt} editedAt={msg.editedAt}
-                    profile={profile} isMe={msg.from === currentUser}
-                    settings={settings} canDelete={msg.from === currentUser || isAdmin}
-                    onDelete={() => deleteMessage(msg.id)}
-                    onEdit={(content) => editMessage(msg.id, content)}
-                  />
-                );
-              })
-            )}
-            <div ref={bottomRef} />
-          </MsgScroll>
-        )}
-
-        {/* ── DM thread ────────────────────────────────────────────── */}
-        {mode.view === "dm" && peer && (
-          <MsgScroll>
-            {dmMessages.length === 0 ? (
-              <EmptyChat>
-                <UserAvatar profile={peer} size={40} />
-                <EmptyText style={{ marginTop: "0.25rem" }}>Start a conversation with {peer.displayName}</EmptyText>
-              </EmptyChat>
-            ) : (
-              dmMessages.map((msg) => {
-                const profile = profiles.find((p) => p.username === msg.from);
-                return (
-                  <MessageBubble
-                    key={msg.id}
-                    id={msg.id} from={msg.from} content={msg.content}
-                    createdAt={msg.createdAt} editedAt={msg.editedAt}
-                    profile={profile} isMe={msg.from === currentUser}
-                    settings={settings} canDelete={msg.from === currentUser}
-                    onDelete={() => deleteDm(msg.id)}
-                    onEdit={(content) => editDm(msg.id, content)}
-                  />
-                );
-              })
-            )}
-            <div ref={dmBottomRef} />
-          </MsgScroll>
-        )}
-
-        {/* ── Input (chat + DM) ────────────────────────────────────── */}
-        {(mode.view === "chat" || mode.view === "dm") && (
-          <InputArea>
-            {mode.view === "chat" && uploadFile && (
-              (thumbUrl && (uploadFile.type.startsWith("image/") || uploadFile.type.startsWith("video/"))) ? (
-                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                  <ThumbPreview>
-                    <ThumbImg
-                      src={thumbUrl}
-                      alt="preview"
-                      onClick={() => setPreviewOpen(true)}
-                      title="Click to preview"
-                    />
-                    {uploadFile.type.startsWith("video/") && (
-                      <span style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}>
-                        <span style={{ fontSize: "1rem", opacity: 0.8 }}>▶</span>
-                      </span>
-                    )}
-                    <ThumbRemove onClick={() => setUploadFile(null)}>✕</ThumbRemove>
-                  </ThumbPreview>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <FilePreviewName style={{ display: "block" }}>{uploadFile.name}</FilePreviewName>
-                    <FilePreviewSize>{fmtBytes(uploadFile.size)}</FilePreviewSize>
-                  </div>
-                </div>
-              ) : (
-                <FilePreview>
-                  <FilePreviewName>📎 {uploadFile.name}</FilePreviewName>
-                  <FilePreviewSize>{fmtBytes(uploadFile.size)}</FilePreviewSize>
-                  <FilePreviewClose onClick={() => setUploadFile(null)}>✕</FilePreviewClose>
-                </FilePreview>
-              )
-            )}
-
-            {typers.length > 0 && (
-              <TypingRow>
-                <span style={{ display: "flex", gap: "2px", alignItems: "flex-end" }}>
-                  {[0, 1, 2].map((i) => (
-                    <TypingDot key={i} $delay={i * 0.2} />
-                  ))}
-                </span>
-                <TypingText>
-                  {typers.length === 1
-                    ? `${typers[0]} is typing…`
-                    : typers.length === 2
-                    ? `${typers[0]} and ${typers[1]} are typing…`
-                    : "Several people are typing…"}
-                </TypingText>
-              </TypingRow>
-            )}
-
-            <InputRow>
-              {mode.view === "chat" && (
-                <>
-                  <AttachBtn onClick={() => fileRef.current?.click()} title="Attach file">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+        <Body>
+          {/* ── Sidebar ──────────────────────────────────────────── */}
+          {!sidebarCollapsed && (
+            <>
+              <Sidebar $width={sidebarWidth}>
+                <SidebarHeader>
+                  <SidebarTabSwitch>
+                    <SidebarTabBtn
+                      $active={sidebarTab === "users"}
+                      onClick={() => setSidebarTab("users")}
+                      title="Show direct-message users"
+                    >
+                      Users
+                    </SidebarTabBtn>
+                    <SidebarTabBtn
+                      $active={sidebarTab === "groups"}
+                      onClick={() => setSidebarTab("groups")}
+                      title="Show group chats"
+                    >
+                      Groups
+                    </SidebarTabBtn>
+                  </SidebarTabSwitch>
+                  <SidebarPlusBtn
+                    onClick={() => setShowCreateGroup(true)}
+                    title="New group chat"
+                  >
+                    <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+                      <path d="M5 1v8M1 5h8"/>
                     </svg>
-                  </AttachBtn>
-                  <ConvertBtn onClick={() => setConverterType("image")} title="Convert media">
-                    ✦
-                  </ConvertBtn>
-                  <input ref={fileRef} type="file" style={{ display: "none" }} onChange={handleFileChange} />
-                </>
-              )}
+                  </SidebarPlusBtn>
+                </SidebarHeader>
 
-              <ChatTextarea
-                value={mode.view === "dm" ? dmInput : input}
-                onChange={(e) => {
-                  if (mode.view === "dm") setDmInput(e.target.value);
-                  else setInput(e.target.value);
-                  if (e.target.value.trim()) signalTyping();
-                }}
-                onKeyDown={(e: ReactKeyboardEvent<HTMLTextAreaElement>) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    mode.view === "dm" ? sendDm() : sendMessage();
-                  }
-                }}
-                placeholder={mode.view === "dm" && peer ? `Message ${peer.displayName}…` : "Enter to send · Shift+Enter for newline"}
-                rows={1}
-                $accent={mode.view === "dm" ? (peer?.accentColor ?? VIOLET) : undefined}
-                style={{
-                  fontSize: settings.fontSize === "xs" ? 11 : settings.fontSize === "sm" ? 13 : 15,
-                }}
-              />
+                <SidebarList>
+                  <SidebarRowWrap $active={isTGV}>
+                    <SidebarRow
+                      $active={isTGV}
+                      onClick={() => setSelection({ type: "tgv" })}
+                      title="TGV Chat"
+                    >
+                      <TitleChatIcon size={12} />
+                      <SidebarRowName>TGV Chat</SidebarRowName>
+                      <PinBadge title="Pinned">★</PinBadge>
+                    </SidebarRow>
+                  </SidebarRowWrap>
 
-              <SendBtn
-                onClick={mode.view === "dm" ? sendDm : sendMessage}
-                disabled={mode.view === "dm" ? (!dmInput.trim() || dmSending) : ((sending || uploading) || (!input.trim() && !uploadFile))}
-                $color={mode.view === "dm" ? (peer?.accentColor ?? VIOLET) : undefined}
-                title="Send (Enter)"
-              >
-                {(sending || uploading || dmSending) ? (
-                  <span style={{ fontSize: "0.5625rem" }}>…</span>
-                ) : (
-                  <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
-                    <path d="M0 12L12 6 0 0v4.5l8.57 1.5L0 7.5z"/>
-                  </svg>
+                  {sidebarTab === "users" && profiles
+                    .filter((p) => p.username !== currentUser)
+                    .slice()
+                    .sort((a, b) => {
+                      const aOn = presence.find((pr) => pr.sysUser === a.username)?.online ?? false;
+                      const bOn = presence.find((pr) => pr.sysUser === b.username)?.online ?? false;
+                      if (aOn !== bOn) return aOn ? -1 : 1;
+                      return a.displayName.localeCompare(b.displayName);
+                    })
+                    .map((p) => {
+                      const online = presence.find((pr) => pr.sysUser === p.username)?.online ?? false;
+                      const isActive = selection.type === "dm" && selection.peer.username === p.username;
+                      const rowKey = `u:${p.username}`;
+                      const menuOpen = rowHoverMenu === rowKey;
+                      return (
+                        <SidebarRowWrap key={p.username} $active={isActive}>
+                          <SidebarRow
+                            $active={isActive}
+                            $accent={p.accentColor}
+                            onClick={() => {
+                              setSelection({ type: "dm", peer: p });
+                              setDmMessages([]);
+                            }}
+                            title={p.displayName}
+                          >
+                            <UserAvatar profile={p} size={18} />
+                            <SidebarRowName>{p.displayName}</SidebarRowName>
+                            <SidebarRowPresence $online={online} />
+                          </SidebarRow>
+                          <RowHoverMenuBtn
+                            $open={menuOpen}
+                            onClick={(e) => { e.stopPropagation(); setRowHoverMenu(menuOpen ? null : rowKey); }}
+                            title="More"
+                          >
+                            <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor" aria-hidden="true">
+                              <path d="M1 3l4 4 4-4" stroke="currentColor" strokeWidth="1.4" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                          </RowHoverMenuBtn>
+                          {menuOpen && (
+                            <RowHoverMenu onClick={(e) => e.stopPropagation()}>
+                              <RowHoverMenuItem onClick={() => {
+                                setSelection({ type: "dm", peer: p });
+                                setDmMessages([]);
+                                setRowHoverMenu(null);
+                              }}>
+                                💬 Open DM
+                              </RowHoverMenuItem>
+                              <RowHoverMenuItem onClick={() => {
+                                const text = `Continuing my conversation with ${p.displayName} from TGV Office`;
+                                window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank", "noopener");
+                                setRowHoverMenu(null);
+                              }}>
+                                🟢 Continue in WhatsApp
+                              </RowHoverMenuItem>
+                            </RowHoverMenu>
+                          )}
+                        </SidebarRowWrap>
+                      );
+                    })}
+
+                  {sidebarTab === "groups" && (
+                    <>
+                      {groups.map((g) => {
+                        const isActive = selection.type === "group" && selection.groupId === g.id;
+                        const rowKey = `g:${g.id}`;
+                        const menuOpen = rowHoverMenu === rowKey;
+                        return (
+                          <SidebarRowWrap key={g.id} $active={isActive}>
+                            <SidebarRow
+                              $active={isActive}
+                              onClick={() => setSelection({ type: "group", groupId: g.id })}
+                              title={g.name}
+                            >
+                              <MembersIcon size={14} />
+                              <SidebarRowName>{g.name}</SidebarRowName>
+                            </SidebarRow>
+                            <RowHoverMenuBtn
+                              $open={menuOpen}
+                              onClick={(e) => { e.stopPropagation(); setRowHoverMenu(menuOpen ? null : rowKey); }}
+                              title="More"
+                            >
+                              <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor" aria-hidden="true">
+                                <path d="M1 3l4 4 4-4" stroke="currentColor" strokeWidth="1.4" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+                              </svg>
+                            </RowHoverMenuBtn>
+                            {menuOpen && (
+                              <RowHoverMenu onClick={(e) => e.stopPropagation()}>
+                                <RowHoverMenuItem onClick={() => {
+                                  setSelection({ type: "group", groupId: g.id });
+                                  setRowHoverMenu(null);
+                                }}>
+                                  👥 Open group
+                                </RowHoverMenuItem>
+                                <RowHoverMenuItem onClick={() => setRowHoverMenu(null)}>
+                                  🔕 Mute (soon)
+                                </RowHoverMenuItem>
+                              </RowHoverMenu>
+                            )}
+                          </SidebarRowWrap>
+                        );
+                      })}
+                      <DashedCreateCard onClick={() => setShowCreateGroup(true)}>
+                        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+                          <path d="M5 1v8M1 5h8"/>
+                        </svg>
+                        Create a group chat
+                      </DashedCreateCard>
+                    </>
+                  )}
+                </SidebarList>
+              </Sidebar>
+
+              <SidebarResizer onMouseDown={onSidebarResizeStart} title="Drag to resize" />
+            </>
+          )}
+
+          <ConvPane>
+            <DTogTab
+              $collapsed={sidebarCollapsed}
+              onClick={() => setSidebarCollapsed((p) => !p)}
+              title={sidebarCollapsed ? "Show sidebar" : "Hide sidebar"}
+            >
+              {sidebarCollapsed ? "›" : "‹"}
+            </DTogTab>
+
+            {/* ── Chat messages ────────────────────────────────── */}
+            {isTGV && (
+              <MsgScroll>
+                {messages.length === 0 ? (
+                  <EmptyChat>
+                    <EmptyIcon>💬</EmptyIcon>
+                    <EmptyText>No messages yet. Say hi!</EmptyText>
+                  </EmptyChat>
+                ) : (() => {
+                  let lastKey = "";
+                  return messages.map((msg) => {
+                    const profile = profiles.find((p) => p.username === msg.from);
+                    const k = dayKey(msg.createdAt, settings.timezone);
+                    const showDivider = k !== lastKey;
+                    lastKey = k;
+                    return (
+                      <Fragment key={msg.id}>
+                        {showDivider && (
+                          <DayDivider>
+                            <DayDividerLabel>{fmtDayDivider(msg.createdAt, settings.timezone)}</DayDividerLabel>
+                          </DayDivider>
+                        )}
+                        <MessageBubble
+                          id={msg.id} from={msg.from} content={msg.content}
+                          fileUrl={msg.fileUrl} fileName={msg.fileName} fileSize={msg.fileSize} fileMime={msg.fileMime}
+                          createdAt={msg.createdAt} editedAt={msg.editedAt}
+                          profile={profile} isMe={msg.from === currentUser}
+                          settings={settings} canDelete={msg.from === currentUser || isAdmin}
+                          onDelete={() => deleteMessage(msg.id)}
+                          onEdit={(content) => editMessage(msg.id, content)}
+                        />
+                      </Fragment>
+                    );
+                  });
+                })()}
+                <div ref={bottomRef} />
+              </MsgScroll>
+            )}
+
+            {/* ── DM thread ────────────────────────────────────── */}
+            {selection.type === "dm" && peer && (
+              <MsgScroll>
+                {dmMessages.length === 0 ? (
+                  <EmptyChat>
+                    <UserAvatar profile={peer} size={40} />
+                    <EmptyText style={{ marginTop: "0.25rem" }}>Start a conversation with {peer.displayName}</EmptyText>
+                  </EmptyChat>
+                ) : (() => {
+                  let lastKey = "";
+                  return dmMessages.map((msg) => {
+                    const profile = profiles.find((p) => p.username === msg.from);
+                    const k = dayKey(msg.createdAt, settings.timezone);
+                    const showDivider = k !== lastKey;
+                    lastKey = k;
+                    return (
+                      <Fragment key={msg.id}>
+                        {showDivider && (
+                          <DayDivider>
+                            <DayDividerLabel>{fmtDayDivider(msg.createdAt, settings.timezone)}</DayDividerLabel>
+                          </DayDivider>
+                        )}
+                        <MessageBubble
+                          id={msg.id} from={msg.from} content={msg.content}
+                          createdAt={msg.createdAt} editedAt={msg.editedAt}
+                          profile={profile} isMe={msg.from === currentUser}
+                          settings={settings} canDelete={msg.from === currentUser}
+                          onDelete={() => deleteDm(msg.id)}
+                          onEdit={(content) => editDm(msg.id, content)}
+                        />
+                      </Fragment>
+                    );
+                  });
+                })()}
+                <div ref={dmBottomRef} />
+              </MsgScroll>
+            )}
+
+            {/* ── Group placeholder (1c wires real data) ──────── */}
+            {selection.type === "group" && (
+              <MsgScroll>
+                <EmptyChat>
+                  <EmptyIcon>👥</EmptyIcon>
+                  <EmptyText>Group chat data model arrives in the next step.</EmptyText>
+                </EmptyChat>
+              </MsgScroll>
+            )}
+
+            {/* ── Input (TGV + DM) ─────────────────────────────── */}
+            {(isTGV || selection.type === "dm") && (
+              <InputArea>
+                {isTGV && uploadFile && (
+                  (thumbUrl && (uploadFile.type.startsWith("image/") || uploadFile.type.startsWith("video/"))) ? (
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                      <ThumbPreview>
+                        <ThumbImg
+                          src={thumbUrl}
+                          alt="preview"
+                          onClick={() => setPreviewOpen(true)}
+                          title="Click to preview"
+                        />
+                        {uploadFile.type.startsWith("video/") && (
+                          <span style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}>
+                            <span style={{ fontSize: "1rem", opacity: 0.8 }}>▶</span>
+                          </span>
+                        )}
+                        <ThumbRemove onClick={() => setUploadFile(null)} title="Remove attachment">✕</ThumbRemove>
+                      </ThumbPreview>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <FilePreviewName style={{ display: "block" }}>{uploadFile.name}</FilePreviewName>
+                        <FilePreviewSize>{fmtBytes(uploadFile.size)}</FilePreviewSize>
+                      </div>
+                    </div>
+                  ) : (
+                    <FilePreview>
+                      <FilePreviewName>📎 {uploadFile.name}</FilePreviewName>
+                      <FilePreviewSize>{fmtBytes(uploadFile.size)}</FilePreviewSize>
+                      <FilePreviewClose onClick={() => setUploadFile(null)} title="Remove attachment">✕</FilePreviewClose>
+                    </FilePreview>
+                  )
                 )}
-              </SendBtn>
-            </InputRow>
-          </InputArea>
-        )}
+
+                {(() => {
+                  const composer = selection.type === "dm" ? dmInput : input;
+                  const gifs = extractGifUrls(composer);
+                  if (!gifs.length) return null;
+                  const removeGif = (url: string) => {
+                    const stripped = composer.replace(url, "").replace(/\s+/g, " ").trim();
+                    if (selection.type === "dm") setDmInput(stripped);
+                    else setInput(stripped);
+                  };
+                  return (
+                    <GifPreviewStrip>
+                      {gifs.map((url) => (
+                        <GifPreviewItem key={url}>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={url} alt="gif preview" />
+                          <GifPreviewRemove onClick={() => removeGif(url)} title="Remove GIF">✕</GifPreviewRemove>
+                        </GifPreviewItem>
+                      ))}
+                    </GifPreviewStrip>
+                  );
+                })()}
+
+                {typers.length > 0 && (
+                  <TypingRow>
+                    <span style={{ display: "flex", gap: "2px", alignItems: "flex-end" }}>
+                      {[0, 1, 2].map((i) => (
+                        <TypingDot key={i} $delay={i * 0.2} />
+                      ))}
+                    </span>
+                    <TypingText>
+                      {typers.length === 1
+                        ? `${typers[0]} is typing…`
+                        : typers.length === 2
+                        ? `${typers[0]} and ${typers[1]} are typing…`
+                        : "Several people are typing…"}
+                    </TypingText>
+                  </TypingRow>
+                )}
+
+                <InputRow>
+                  {isTGV && (
+                    <>
+                      <AttachMenuAnchor onClick={(e) => e.stopPropagation()}>
+                        <AttachBtn onClick={() => setAttachMenuOpen((p) => !p)} title="Attach">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+                          </svg>
+                        </AttachBtn>
+                        {attachMenuOpen && (
+                          <AttachMenuPopup>
+                            <AttachMenuItem onClick={() => { setAttachMenuOpen(false); fileRef.current?.click(); }}>
+                              <AttachMenuIcon><FileIcon size={16} /></AttachMenuIcon> File
+                            </AttachMenuItem>
+                            <AttachMenuItem onClick={() => { setAttachMenuOpen(false); photoRef.current?.click(); }}>
+                              <AttachMenuIcon><PhotosIcon size={16} /></AttachMenuIcon> Photos &amp; videos
+                            </AttachMenuItem>
+                            <AttachMenuItem $disabled onClick={() => setAttachMenuOpen(false)}>
+                              <AttachMenuIcon><ContactIcon size={16} /></AttachMenuIcon> Contact
+                              <AttachMenuSoon>soon</AttachMenuSoon>
+                            </AttachMenuItem>
+                            <AttachMenuItem $disabled onClick={() => setAttachMenuOpen(false)}>
+                              <AttachMenuIcon><PollIcon size={16} /></AttachMenuIcon> Poll
+                              <AttachMenuSoon>soon</AttachMenuSoon>
+                            </AttachMenuItem>
+                            <AttachMenuItem $disabled onClick={() => setAttachMenuOpen(false)}>
+                              <AttachMenuIcon><EventIcon size={16} /></AttachMenuIcon> Event
+                              <AttachMenuSoon>soon</AttachMenuSoon>
+                            </AttachMenuItem>
+                            <AttachMenuItem onClick={() => { setAttachMenuOpen(false); setConverterType("image"); }}>
+                              <AttachMenuIcon><ConvertImageIcon size={16} /></AttachMenuIcon> Convert image
+                            </AttachMenuItem>
+                            <AttachMenuItem onClick={() => { setAttachMenuOpen(false); setConverterType("video"); }}>
+                              <AttachMenuIcon><ConvertVideoIcon size={16} /></AttachMenuIcon> Convert video
+                            </AttachMenuItem>
+                          </AttachMenuPopup>
+                        )}
+                      </AttachMenuAnchor>
+                      <input ref={fileRef} type="file" style={{ display: "none" }} onChange={handleFileChange} />
+                      <input ref={photoRef} type="file" accept="image/*,video/*" style={{ display: "none" }} onChange={handleFileChange} />
+                    </>
+                  )}
+
+                  <PickerAnchor onClick={(e) => e.stopPropagation()}>
+                    <PickerBtn onClick={() => setPickerOpen((p) => !p)} title="Emoji · GIFs · Stickers">
+                      😊
+                    </PickerBtn>
+                    {pickerOpen && (
+                      <ChatPicker
+                        onClose={() => setPickerOpen(false)}
+                        onEmoji={(e) => {
+                          if (selection.type === "dm") setDmInput((prev) => prev + e);
+                          else setInput((prev) => prev + e);
+                        }}
+                        onGif={(url) => {
+                          if (selection.type === "dm") setDmInput((prev) => (prev ? `${prev} ${url}` : url));
+                          else setInput((prev) => (prev ? `${prev} ${url}` : url));
+                        }}
+                        onSticker={(url) => {
+                          if (selection.type === "dm") setDmInput((prev) => (prev ? `${prev} ${url}` : url));
+                          else setInput((prev) => (prev ? `${prev} ${url}` : url));
+                        }}
+                      />
+                    )}
+                  </PickerAnchor>
+
+                  <ChatTextarea
+                    value={selection.type === "dm" ? dmInput : input}
+                    onChange={(e) => {
+                      if (selection.type === "dm") setDmInput(e.target.value);
+                      else setInput(e.target.value);
+                      if (e.target.value.trim()) signalTyping();
+                    }}
+                    onKeyDown={(e: ReactKeyboardEvent<HTMLTextAreaElement>) => {
+                      if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault();
+                        selection.type === "dm" ? sendDm() : sendMessage();
+                      }
+                    }}
+                    placeholder={selection.type === "dm" && peer ? `Message ${peer.displayName}…` : "Enter to send · Shift+Enter for newline"}
+                    rows={1}
+                    $accent={selection.type === "dm" ? (peer?.accentColor ?? VIOLET) : undefined}
+                    style={{
+                      fontSize: settings.fontSize === "xs" ? 11 : settings.fontSize === "sm" ? 13 : 15,
+                    }}
+                  />
+
+                  <SendBtn
+                    onClick={selection.type === "dm" ? sendDm : sendMessage}
+                    disabled={selection.type === "dm" ? (!dmInput.trim() || dmSending) : ((sending || uploading) || (!input.trim() && !uploadFile))}
+                    $color={selection.type === "dm" ? (peer?.accentColor ?? VIOLET) : undefined}
+                    title="Send (Enter)"
+                  >
+                    {(sending || uploading || dmSending) ? (
+                      <span style={{ fontSize: "0.5625rem" }}>…</span>
+                    ) : (
+                      <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
+                        <path d="M0 12L12 6 0 0v4.5l8.57 1.5L0 7.5z"/>
+                      </svg>
+                    )}
+                  </SendBtn>
+                </InputRow>
+              </InputArea>
+            )}
+          </ConvPane>
+        </Body>
 
         <Resize onMouseDown={onResizeStart} />
       </Panel>
@@ -1893,6 +2511,16 @@ export default function ChatDrawer() {
 
       {previewOpen && uploadFile && (
         <FileLightbox file={uploadFile} onClose={() => setPreviewOpen(false)} />
+      )}
+
+      {showCreateGroup && (
+        <CreateGroupBackdrop onClick={() => setShowCreateGroup(false)}>
+          <CreateGroupCard onClick={(e) => e.stopPropagation()}>
+            <CreateGroupTitle>Create a group chat</CreateGroupTitle>
+            <CreateGroupText>Group chat creation arrives in the next step (1c — data model + endpoints).</CreateGroupText>
+            <CreateGroupCloseBtn onClick={() => setShowCreateGroup(false)}>Close</CreateGroupCloseBtn>
+          </CreateGroupCard>
+        </CreateGroupBackdrop>
       )}
     </>
   );

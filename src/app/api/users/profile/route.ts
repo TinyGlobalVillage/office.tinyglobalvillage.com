@@ -15,6 +15,8 @@ type UserRecord = {
   title?: string;
   bio?: string;
   accentColor?: string;
+  darkAccent?: string;
+  lightAccent?: string;
   totpSecret?: string;
   totpEnabled?: boolean;
   webauthnCredentials?: unknown[];
@@ -45,6 +47,8 @@ export async function GET(req: NextRequest) {
     title: u.title ?? "",
     bio: u.bio ?? "",
     accentColor: u.accentColor ?? (username === "admin" ? "#ff4ecb" : "#00bfff"),
+    darkAccent: u.darkAccent,
+    lightAccent: u.lightAccent,
   }));
   return NextResponse.json({ profiles });
 }
@@ -63,7 +67,7 @@ export async function PATCH(req: NextRequest) {
   const db = readUsers();
   if (!db[username]) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
-  const allowed = ["displayName", "email", "title", "bio", "accentColor", "avatarUrl"] as const;
+  const allowed = ["displayName", "email", "title", "bio", "accentColor", "darkAccent", "lightAccent", "avatarUrl"] as const;
   for (const field of allowed) {
     if (body[field] !== undefined) {
       (db[username] as Record<string, unknown>)[field] = body[field];

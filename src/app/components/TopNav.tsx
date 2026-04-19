@@ -10,6 +10,7 @@ import { signOut } from "next-auth/react";
 import { useNavHistory } from "./useNavHistory";
 import LDM from "./LDM";
 import { colors, rgb } from "@/app/theme";
+import { MembersIcon } from "./icons";
 
 const navLinks = [
   { label: "Dashboard", href: "/dashboard" },
@@ -263,19 +264,23 @@ const PingBadge = styled.span<{ $accent: string }>`
 `;
 
 const OverflowBtn = styled.button<{ $open?: boolean }>`
-  width: 1.5rem;
   height: 1.5rem;
-  border-radius: 50%;
+  padding: 0 0.5rem;
+  border-radius: 0.75rem;
   display: flex;
   align-items: center;
-  justify-content: center;
-  font-size: 0.5625rem;
+  gap: 0.25rem;
+  font-size: 0.625rem;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.15s;
   background: ${(p) => (p.$open ? `rgba(${rgb.pink}, 0.25)` : "var(--t-inputBg)")};
   border: 1px solid rgba(${rgb.pink}, 0.4);
   color: ${colors.pink};
+
+  &:hover {
+    background: rgba(${rgb.pink}, 0.18);
+  }
 `;
 
 const OverflowMenu = styled.div`
@@ -480,10 +485,13 @@ export default function TopNav() {
     return (pa?.onlineSinceMs ?? 0) - (pb?.onlineSinceMs ?? 0);
   });
 
-  const onlineCount = presence.filter((pr) => pr.online).length;
-  const showOverflow = onlineCount > 3;
-  const visibleChips = showOverflow ? sorted.slice(0, 3) : sorted;
-  const overflowUsers = showOverflow ? sorted.slice(3) : [];
+  const onlineProfiles = sorted.filter((p) => {
+    const pres = presence.find((pr) => pr.sysUser === p.username);
+    return pres?.online ?? false;
+  });
+  const showOverflow = onlineProfiles.length > 2;
+  const visibleChips = showOverflow ? [] : onlineProfiles;
+  const overflowUsers = showOverflow ? onlineProfiles : [];
 
   const renderChip = (p: Profile) => {
     const isMe = p.username === currentUser;
@@ -578,9 +586,10 @@ export default function TopNav() {
                 <OverflowBtn
                   $open={overflowOpen}
                   onClick={() => setOverflowOpen((p) => !p)}
-                  title={`${overflowUsers.length} more user${overflowUsers.length !== 1 ? "s" : ""} online`}
+                  title={`${overflowUsers.length} user${overflowUsers.length !== 1 ? "s" : ""} online`}
                 >
-                  +{overflowUsers.length}
+                  <MembersIcon size={12} />
+                  <span>{overflowUsers.length}</span>
                 </OverflowBtn>
                 {overflowOpen && (
                   <OverflowMenu>

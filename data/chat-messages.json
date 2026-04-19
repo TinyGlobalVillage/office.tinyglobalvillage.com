@@ -59,6 +59,22 @@
       "from": "admin",
       "content": "Do a hard-refresh on the page, and you should see yourself here you expect to",
       "createdAt": "2026-04-16T08:40:49.542Z"
+    },
+    {
+      "id": "c_1776584181626_gjaig",
+      "from": "admin",
+      "content": "",
+      "fileUrl": "https://office.tinyglobalvillage.com/media/chat/group/admin/images/2026_APR_19_tiny-global-village-logo-converted.webp",
+      "fileName": "tiny-global-village-logo-converted.webp",
+      "fileSize": 89418,
+      "fileMime": "image/webp",
+      "createdAt": "2026-04-19T07:36:21.626Z"
+    },
+    {
+      "id": "c_1776585129677_oy82e",
+      "from": "admin",
+      "content": "https://media2.giphy.com/media/v1.Y2lkPTFkMjk2MzhmYTJ0OHMwOHZkam5xMmhhcmg0MjRnZzhlbmVjdjljM3l1bTllcHJ6eSZlcD12MV9naWZzX3RyZW5kaW5nJmN0PWc/YaP3iYxN3T8nIEN5rD/giphy.gif",
+      "createdAt": "2026-04-19T07:52:09.677Z"
     }
   ],
   "storageBytes": 0

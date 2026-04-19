@@ -1,0 +1,10 @@
+export { default as ChatIcon } from "./ChatIcon";
+export { default as MembersIcon } from "./MembersIcon";
+export { default as TrashIcon } from "./TrashIcon";
+export { default as FileIcon } from "./FileIcon";
+export { default as PhotosIcon } from "./PhotosIcon";
+export { default as ContactIcon } from "./ContactIcon";
+export { default as PollIcon } from "./PollIcon";
+export { default as EventIcon } from "./EventIcon";
+export { default as ConvertImageIcon } from "./ConvertImageIcon";
+export { default as ConvertVideoIcon } from "./ConvertVideoIcon";

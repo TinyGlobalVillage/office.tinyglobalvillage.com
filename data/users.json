@@ -22,5 +22,65 @@
         "totpSecret": "JTRU4XMEM2PLS4CGGLVS3YUSCZDITSBN",
         "totpEnabled": true,
         "webauthnCredentials": []
+    },
+    "employee1": {
+        "displayName": "Employee 1",
+        "email": "employee1@tinyglobalvillage.com",
+        "role": "employee",
+        "avatarUrl": "",
+        "accentColor": "#f7b700",
+        "title": "Brand Designer",
+        "bio": "Seed employee for UX mirror testing.",
+        "totpSecret": null,
+        "totpEnabled": false,
+        "webauthnCredentials": []
+    },
+    "employee2": {
+        "displayName": "Employee 2",
+        "email": "employee2@tinyglobalvillage.com",
+        "role": "employee",
+        "avatarUrl": "",
+        "accentColor": "#d97757",
+        "title": "Backend Engineer",
+        "bio": "Seed employee for UX mirror testing.",
+        "totpSecret": null,
+        "totpEnabled": false,
+        "webauthnCredentials": []
+    },
+    "employee3": {
+        "displayName": "Employee 3",
+        "email": "employee3@tinyglobalvillage.com",
+        "role": "employee",
+        "avatarUrl": "",
+        "accentColor": "#a78bfa",
+        "title": "Community Lead",
+        "bio": "Seed employee for UX mirror testing.",
+        "totpSecret": null,
+        "totpEnabled": false,
+        "webauthnCredentials": []
+    },
+    "employee4": {
+        "displayName": "Employee 4",
+        "email": "employee4@tinyglobalvillage.com",
+        "role": "employee",
+        "avatarUrl": "",
+        "accentColor": "#4ade80",
+        "title": "Content Strategist",
+        "bio": "Seed employee for UX mirror testing.",
+        "totpSecret": null,
+        "totpEnabled": false,
+        "webauthnCredentials": []
+    },
+    "employee5": {
+        "displayName": "Employee 5",
+        "email": "employee5@tinyglobalvillage.com",
+        "role": "employee",
+        "avatarUrl": "",
+        "accentColor": "#ef4444",
+        "title": "QA Engineer",
+        "bio": "Seed employee for UX mirror testing.",
+        "totpSecret": null,
+        "totpEnabled": false,
+        "webauthnCredentials": []
     }
 }

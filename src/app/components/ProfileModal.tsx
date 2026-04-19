@@ -26,6 +26,7 @@ const CHAT_SETTINGS_KEY = "tgv_chat_settings";
 const DEFAULT_CHAT_SETTINGS: ChatSettings = {
   showTimestamps: true,
   timestampFormat: "time",
+  timezone: "auto",
   fontSize: "sm",
   myFont: "sans",
 };
