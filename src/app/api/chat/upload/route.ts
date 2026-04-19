@@ -35,6 +35,8 @@ type ChatMessage = {
   fileSize?: number;
   fileMime?: string;
   createdAt: string;
+  readBy?: string[];
+  replyTo?: { id: string; from: string; excerpt: string };
 };
 
 type ChatDB = { messages: ChatMessage[]; storageBytes: number };
@@ -86,6 +88,16 @@ export async function POST(req: NextRequest) {
   const file = formData.get("file") as File | null;
   const caption = (formData.get("content") as string | null) ?? "";
   const chatId = (formData.get("chatId") as string | null) ?? "group";
+  const replyToRaw = formData.get("replyTo") as string | null;
+  let replyTo: { id: string; from: string; excerpt: string } | null = null;
+  if (replyToRaw) {
+    try {
+      const parsed = JSON.parse(replyToRaw);
+      if (parsed && typeof parsed === "object" && typeof parsed.id === "string") {
+        replyTo = parsed;
+      }
+    } catch { /* ignore */ }
+  }
 
   if (!file) return NextResponse.json({ error: "No file provided" }, { status: 400 });
   if (file.size > MAX_FILE_SIZE) {
@@ -117,6 +129,8 @@ export async function POST(req: NextRequest) {
     fileSize: file.size,
     fileMime: mime,
     createdAt: new Date().toISOString(),
+    readBy: [],
+    ...(replyTo ? { replyTo } : {}),
   };
   db.messages.push(msg);
   writeDB(db);

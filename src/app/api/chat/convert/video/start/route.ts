@@ -35,11 +35,20 @@ export async function POST(req: NextRequest) {
     const token = await requireAuth(req);
     if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const fd = await req.formData().catch(() => null);
-    if (!fd) return NextResponse.json({ error: "Bad request" }, { status: 400 });
+    let fd: FormData;
+    try {
+        fd = await req.formData();
+    } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.error("[convert/video/start] formData parse failed:", msg);
+        return NextResponse.json({ error: `Upload parse failed: ${msg}` }, { status: 400 });
+    }
 
     const file = fd.get("file") as File | null;
     if (!file) return NextResponse.json({ error: "No file" }, { status: 400 });
+    if (typeof file.size === "number" && file.size === 0) {
+        return NextResponse.json({ error: "File is empty" }, { status: 400 });
+    }
 
     const format = ((fd.get("format") as string) ?? "h264") as VideoFormat;
     const crf = Math.min(51, Math.max(0, parseInt((fd.get("crf") as string) ?? "23")));
@@ -53,7 +62,13 @@ export async function POST(req: NextRequest) {
     const inPath = path.join(os.tmpdir(), `${jobId}${inExt}`);
     const outPath = path.join(os.tmpdir(), `${jobId}-out${outExt}`);
 
-    fs.writeFileSync(inPath, Buffer.from(await file.arrayBuffer()));
+    try {
+        fs.writeFileSync(inPath, Buffer.from(await file.arrayBuffer()));
+    } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.error("[convert/video/start] write failed:", msg);
+        return NextResponse.json({ error: `Write failed: ${msg}` }, { status: 500 });
+    }
 
     pruneJobs();
 

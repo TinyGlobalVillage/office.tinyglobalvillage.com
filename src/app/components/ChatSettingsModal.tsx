@@ -31,7 +31,16 @@ export type ChatSettings = {
   timezone: string;
   fontSize: "xs" | "sm" | "base";
   myFont: string;
+  whisperModel?: "tiny.en" | "base.en" | "small.en" | "medium.en" | "large-v3-turbo";
 };
+
+export const WHISPER_MODELS: { label: string; value: NonNullable<ChatSettings["whisperModel"]>; note?: string }[] = [
+  { label: "Tiny.en",       value: "tiny.en",          note: "fastest" },
+  { label: "Base.en",       value: "base.en",          note: "balanced" },
+  { label: "Small.en",      value: "small.en",         note: "more accurate" },
+  { label: "Medium.en",     value: "medium.en" },
+  { label: "Large v3 turbo", value: "large-v3-turbo",  note: "highest quality" },
+];
 
 const TS_FORMATS: { label: string; value: ChatSettings["timestampFormat"] }[] = [
   { label: "Relative (just now)", value: "relative" },
@@ -81,22 +90,36 @@ const FONTS = [
 const MEMBERS_PER_PAGE = 5;
 
 const NEON_DARK = [
-  colors.pink,
-  colors.cyan,
-  colors.gold,
-  colors.orange,
-  colors.violet,
-  colors.green,
-  colors.red,
+  colors.pink,      // hot magenta
+  colors.cyan,      // electric cyan
+  colors.gold,      // neon gold
+  colors.orange,    // neon orange
+  colors.violet,    // neon violet
+  colors.green,     // neon green
+  colors.red,       // neon red
+  "#ff00aa",        // fuchsia
+  "#00ffcc",        // mint / aqua
+  "#d4ff00",        // chartreuse / lime
+  "#00d4ff",        // sky cyan
+  "#ff6b6b",        // coral
+  "#a855f7",        // amethyst
+  "#38bdf8",        // neon sky blue
 ];
 const NEON_LIGHT = [
-  "#d6336c",
-  "#1971c2",
-  "#c08400",
-  "#c04820",
-  "#7048e8",
-  "#2b8a3e",
-  "#c92a2a",
+  "#d6336c",        // hot pink
+  "#1971c2",        // blue
+  "#c08400",        // gold
+  "#c04820",        // orange
+  "#7048e8",        // violet
+  "#2b8a3e",        // green
+  "#c92a2a",        // red
+  "#b0006e",        // fuchsia
+  "#007a6b",        // teal
+  "#a09000",        // chartreuse
+  "#0077aa",        // sky
+  "#b43030",        // coral
+  "#7e22ce",        // amethyst
+  "#0284c7",        // sky blue
 ];
 
 /* ── Styled ────────────────────────────────────────────────────── */
@@ -849,7 +872,19 @@ const PreviewGrid = styled.div`
   margin-top: 0.75rem;
 `;
 
-const PreviewCard = styled.div<{ $bg: "dark" | "light"; $accent: string }>`
+const PREVIEW_SIZE_PX: Record<ChatSettings["fontSize"], { name: string; bubble: string }> = {
+  xs:   { name: "0.5625rem", bubble: "0.5rem"    },
+  sm:   { name: "0.625rem",  bubble: "0.5625rem" },
+  base: { name: "0.6875rem", bubble: "0.625rem"  },
+};
+
+const FONT_FAMILY_CSS: Record<string, string> = {
+  sans: "sans-serif",
+  mono: "monospace",
+  serif: "serif",
+};
+
+const PreviewCard = styled.div<{ $bg: "dark" | "light"; $accent: string; $font?: string }>`
   padding: 0.625rem;
   border-radius: 8px;
   background: ${(p) => (p.$bg === "dark" ? "#0a0a12" : "#f8f6f3")};
@@ -857,19 +892,20 @@ const PreviewCard = styled.div<{ $bg: "dark" | "light"; $accent: string }>`
   display: flex;
   flex-direction: column;
   gap: 0.375rem;
+  font-family: ${(p) => FONT_FAMILY_CSS[p.$font ?? "sans"] ?? "sans-serif"};
 `;
 
-const PreviewName = styled.span<{ $accent: string }>`
-  font-size: 0.625rem;
+const PreviewName = styled.span<{ $accent: string; $size?: ChatSettings["fontSize"] }>`
+  font-size: ${(p) => PREVIEW_SIZE_PX[p.$size ?? "sm"].name};
   font-weight: 700;
   color: ${(p) => p.$accent};
 `;
 
-const PreviewBubble = styled.div<{ $bg: "dark" | "light"; $accent: string }>`
+const PreviewBubble = styled.div<{ $bg: "dark" | "light"; $accent: string; $size?: ChatSettings["fontSize"] }>`
   align-self: flex-end;
   max-width: 80%;
   padding: 0.25rem 0.5rem;
-  font-size: 0.5625rem;
+  font-size: ${(p) => PREVIEW_SIZE_PX[p.$size ?? "sm"].bubble};
   border-radius: 10px 10px 2px 10px;
   background: ${(p) => `${p.$accent}22`};
   border: 1px solid ${(p) => `${p.$accent}55`};
@@ -928,6 +964,7 @@ function SettingsTab({
   const [fontFamilyOpen, setFontFamilyOpen] = useState(true);
   const [accentOpen, setAccentOpen] = useState(true);
   const [storageOpen, setStorageOpen] = useState(true);
+  const [whisperOpen, setWhisperOpen] = useState(true);
 
   useEffect(() => {
     if (myProfile) {
@@ -1225,19 +1262,54 @@ function SettingsTab({
                 </PaletteCol>
               </PaletteGrid>
               <PreviewGrid>
-                <PreviewCard $bg="dark" $accent={darkAccent}>
-                  <PreviewName $accent={darkAccent}>{myProfile?.displayName ?? "You"}</PreviewName>
-                  <PreviewBubble $bg="dark" $accent={darkAccent}>Hello from the dark side</PreviewBubble>
+                <PreviewCard $bg="dark" $accent={darkAccent} $font={settings.myFont}>
+                  <PreviewName $accent={darkAccent} $size={settings.fontSize}>
+                    {myProfile?.displayName ?? "You"}
+                  </PreviewName>
+                  <PreviewBubble $bg="dark" $accent={darkAccent} $size={settings.fontSize}>
+                    Hello from the dark side
+                  </PreviewBubble>
                 </PreviewCard>
-                <PreviewCard $bg="light" $accent={lightAccent}>
-                  <PreviewName $accent={lightAccent}>{myProfile?.displayName ?? "You"}</PreviewName>
-                  <PreviewBubble $bg="light" $accent={lightAccent}>Hello from the light side</PreviewBubble>
+                <PreviewCard $bg="light" $accent={lightAccent} $font={settings.myFont}>
+                  <PreviewName $accent={lightAccent} $size={settings.fontSize}>
+                    {myProfile?.displayName ?? "You"}
+                  </PreviewName>
+                  <PreviewBubble $bg="light" $accent={lightAccent} $size={settings.fontSize}>
+                    Hello from the light side
+                  </PreviewBubble>
                 </PreviewCard>
               </PreviewGrid>
             </TileBody>
           </Tile>
         </div>
       </ADLSection>
+
+      {isAdmin && (
+        <ADLSection label="Talk-to-text · Whisper model" defaultOpen={false}>
+          <Tile>
+            <TileHeader>
+              <TileLabel>Model size</TileLabel>
+              <Ecl on={whisperOpen} onToggle={() => setWhisperOpen((v) => !v)} />
+            </TileHeader>
+            <TileBody $open={whisperOpen}>
+              <TzSelect
+                value={settings.whisperModel ?? "base.en"}
+                onChange={(e) => set({ whisperModel: e.target.value as NonNullable<ChatSettings["whisperModel"]> })}
+              >
+                {WHISPER_MODELS.map((m) => (
+                  <option key={m.value} value={m.value}>
+                    {m.label}{m.note ? ` — ${m.note}` : ""}
+                  </option>
+                ))}
+              </TzSelect>
+              <div style={{ fontSize: "0.625rem", color: "var(--t-textGhost)", marginTop: "0.35rem" }}>
+                Bigger models are more accurate but slower. Missing models must be downloaded via
+                {" "}<code>bash models/download-ggml-model.sh &lt;name&gt;</code> in the whisper.cpp dir.
+              </div>
+            </TileBody>
+          </Tile>
+        </ADLSection>
+      )}
 
       {isAdmin && (
         <ADLSection label={`Chat storage · ${storagePercent}%`} defaultOpen={false}>

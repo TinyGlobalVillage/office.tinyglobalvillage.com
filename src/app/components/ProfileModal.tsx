@@ -29,6 +29,7 @@ const DEFAULT_CHAT_SETTINGS: ChatSettings = {
   timezone: "auto",
   fontSize: "sm",
   myFont: "sans",
+  whisperModel: "base.en",
 };
 
 export type Memo = {

@@ -12,6 +12,7 @@ export type GroupChat = {
   createdAt: string;
   memberIds: string[];
   admins: string[];
+  visibility?: "open" | "restricted" | "invisible";
 };
 
 export type GroupMessage = {
@@ -21,6 +22,8 @@ export type GroupMessage = {
   content: string;
   createdAt: string;
   editedAt?: string;
+  readBy?: string[];
+  replyTo?: { id: string; from: string; excerpt: string };
 };
 
 type GroupDb = {
@@ -46,7 +49,13 @@ export async function GET(req: NextRequest) {
   if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const username = token.username ?? token.sub ?? "";
   const db = readGroupDb();
-  const groups = Object.values(db.groups).filter((g) => g.memberIds.includes(username));
+  const groups = Object.values(db.groups)
+    .filter((g) => g.memberIds.includes(username) || g.visibility !== "invisible")
+    .map((g) => ({
+      ...g,
+      isMember: g.memberIds.includes(username),
+      isAdmin: g.admins.includes(username),
+    }));
   return NextResponse.json({ groups });
 }
 
@@ -57,6 +66,9 @@ export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null);
   const name = typeof body?.name === "string" ? body.name.trim() : "";
   const memberIds: string[] = Array.isArray(body?.memberIds) ? body.memberIds.filter((m: unknown) => typeof m === "string") : [];
+  const visRaw = typeof body?.visibility === "string" ? body.visibility : "open";
+  const visibility: GroupChat["visibility"] =
+    visRaw === "restricted" || visRaw === "invisible" ? visRaw : "open";
   if (!name) return NextResponse.json({ error: "Missing name" }, { status: 400 });
 
   const db = readGroupDb();
@@ -69,6 +81,7 @@ export async function POST(req: NextRequest) {
     createdAt: new Date().toISOString(),
     memberIds: allMembers,
     admins: [username],
+    visibility,
   };
   db.groups[id] = group;
   db.messages[id] = [];

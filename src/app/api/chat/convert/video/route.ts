@@ -23,11 +23,20 @@ export async function POST(req: NextRequest) {
     const token = await requireAuth(req);
     if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const fd = await req.formData().catch(() => null);
-    if (!fd) return NextResponse.json({ error: "Bad request" }, { status: 400 });
+    let fd: FormData;
+    try {
+        fd = await req.formData();
+    } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.error("[convert/video] formData parse failed:", msg);
+        return NextResponse.json({ error: `Upload parse failed: ${msg}` }, { status: 400 });
+    }
 
     const file = fd.get("file") as File | null;
     if (!file) return NextResponse.json({ error: "No file" }, { status: 400 });
+    if (typeof file.size === "number" && file.size === 0) {
+        return NextResponse.json({ error: "File is empty" }, { status: 400 });
+    }
 
     const format = ((fd.get("format") as string) ?? "h264") as VideoFormat;
     const crf = Math.min(51, Math.max(0, parseInt((fd.get("crf") as string) ?? "23")));
@@ -44,33 +53,46 @@ export async function POST(req: NextRequest) {
     const palPath = path.join(os.tmpdir(), `${id}-pal.png`);
 
     try {
-        fs.writeFileSync(inPath, Buffer.from(await file.arrayBuffer()));
+        try {
+            fs.writeFileSync(inPath, Buffer.from(await file.arrayBuffer()));
+        } catch (err) {
+            const msg = err instanceof Error ? err.message : String(err);
+            console.error("[convert/video] write failed:", msg);
+            return NextResponse.json({ error: `Write failed: ${msg}` }, { status: 500 });
+        }
 
         const scaleW = (previewMode ? 320 : maxW) ?? null;
         const scaleFilter = scaleW ? `scale=${scaleW}:-2:flags=lanczos` : "scale=iw:-2";
 
-        if (format === "gif" || previewMode) {
-            const gifFps = fps ?? (previewMode ? 10 : 15);
-            const vf = `fps=${gifFps},${scaleFilter},split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse`;
-            const paletteArgs = ["-y"];
-            if (previewMode) paletteArgs.push("-t", String(previewSecs));
-            paletteArgs.push("-i", inPath, "-vf", vf, "-loop", "0", outPath);
-            await execFileAsync("ffmpeg", paletteArgs, { timeout: 120000 });
-        } else {
-            const args = ["-y", "-i", inPath];
+        try {
+            if (format === "gif" || previewMode) {
+                const gifFps = fps ?? (previewMode ? 10 : 15);
+                const vf = `fps=${gifFps},${scaleFilter},split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse`;
+                const paletteArgs = ["-y"];
+                if (previewMode) paletteArgs.push("-t", String(previewSecs));
+                paletteArgs.push("-i", inPath, "-vf", vf, "-loop", "0", outPath);
+                await execFileAsync("ffmpeg", paletteArgs, { timeout: 120000 });
+            } else {
+                const args = ["-y", "-i", inPath];
 
-            if (maxW) args.push("-vf", `${scaleFilter},setsar=1`);
+                if (maxW) args.push("-vf", `${scaleFilter},setsar=1`);
 
-            if (format === "h264") {
-                args.push("-c:v", "libx264", "-crf", String(crf), "-preset", "medium", "-c:a", "aac", "-movflags", "+faststart");
-            } else if (format === "h265") {
-                args.push("-c:v", "libx265", "-crf", String(crf), "-preset", "medium", "-c:a", "aac", "-tag:v", "hvc1");
-            } else if (format === "vp9") {
-                args.push("-c:v", "libvpx-vp9", "-crf", String(crf), "-b:v", "0", "-c:a", "libopus");
+                if (format === "h264") {
+                    args.push("-c:v", "libx264", "-crf", String(crf), "-preset", "medium", "-c:a", "aac", "-movflags", "+faststart");
+                } else if (format === "h265") {
+                    args.push("-c:v", "libx265", "-crf", String(crf), "-preset", "medium", "-c:a", "aac", "-tag:v", "hvc1");
+                } else if (format === "vp9") {
+                    args.push("-c:v", "libvpx-vp9", "-crf", String(crf), "-b:v", "0", "-c:a", "libopus");
+                }
+
+                args.push(outPath);
+                await execFileAsync("ffmpeg", args, { timeout: 300000 });
             }
-
-            args.push(outPath);
-            await execFileAsync("ffmpeg", args, { timeout: 300000 });
+        } catch (err) {
+            const e = err as { message?: string; stderr?: string; code?: number };
+            const msg = (e.stderr || e.message || String(err)).slice(0, 800);
+            console.error("[convert/video] ffmpeg failed:", msg);
+            return NextResponse.json({ error: `ffmpeg failed: ${msg}` }, { status: 500 });
         }
 
         const outBuf = fs.readFileSync(outPath);

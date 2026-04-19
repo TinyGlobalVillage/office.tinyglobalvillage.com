@@ -1,18 +1,25 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/api-auth";
+import { getClearCutoff, groupChannelKey, filterByCutoff } from "@/lib/chat-clears";
 import { readGroupDb, writeGroupDb, type GroupMessage } from "../route";
 
 export async function GET(req: NextRequest) {
   const token = await requireAuth(req);
   if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const username = token.username ?? token.sub ?? "";
+  const isExec = username === "admin" || username === "marmar";
   const groupId = req.nextUrl.searchParams.get("groupId");
   if (!groupId) return NextResponse.json({ error: "Missing groupId" }, { status: 400 });
   const db = readGroupDb();
   const group = db.groups[groupId];
   if (!group) return NextResponse.json({ error: "Group not found" }, { status: 404 });
   if (!group.memberIds.includes(username)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  return NextResponse.json({ messages: db.messages[groupId] ?? [] });
+  let messages = db.messages[groupId] ?? [];
+  if (!isExec) {
+    const cutoff = getClearCutoff(username, groupChannelKey(groupId));
+    messages = filterByCutoff(messages, cutoff);
+  }
+  return NextResponse.json({ messages });
 }
 
 export async function POST(req: NextRequest) {
@@ -34,6 +41,8 @@ export async function POST(req: NextRequest) {
     from: username,
     content,
     createdAt: new Date().toISOString(),
+    readBy: [],
+    ...(body.replyTo && typeof body.replyTo === "object" ? { replyTo: body.replyTo } : {}),
   };
   if (!db.messages[groupId]) db.messages[groupId] = [];
   db.messages[groupId].push(msg);
@@ -75,9 +84,13 @@ export async function DELETE(req: NextRequest) {
   if (!group) return NextResponse.json({ error: "Group not found" }, { status: 404 });
   if (!group.memberIds.includes(username)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const list = db.messages[groupId] ?? [];
-  const before = list.length;
-  db.messages[groupId] = list.filter((m) => !(m.id === id && m.from === username));
-  if (db.messages[groupId].length === before) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  const msg = list.find((m) => m.id === id);
+  if (!msg) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  const isGroupAdmin = group.admins.includes(username);
+  if (msg.from !== username && !isGroupAdmin) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+  db.messages[groupId] = list.filter((m) => m.id !== id);
   writeGroupDb(db);
   return NextResponse.json({ ok: true });
 }

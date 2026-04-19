@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/api-auth";
+import { getClearCutoff, tgvChannelKey, filterByCutoff } from "@/lib/chat-clears";
 import fs from "fs";
 import path from "path";
 
@@ -17,6 +18,8 @@ export type ChatMessage = {
   fileMime?: string;
   createdAt: string;
   editedAt?: string;
+  readBy?: string[];
+  replyTo?: { id: string; from: string; excerpt: string };
 };
 
 type ChatDB = {
@@ -60,6 +63,8 @@ function calcStorageBytes(): number {
 export async function GET(req: NextRequest) {
   const token = await requireAuth(req);
   if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const username = token.username ?? token.sub ?? "";
+  const isExec = username === "admin" || username === "marmar";
 
   const url = req.nextUrl;
   const limit = parseInt(url.searchParams.get("limit") ?? "50", 10);
@@ -67,6 +72,11 @@ export async function GET(req: NextRequest) {
 
   const db = readDB();
   let msgs = db.messages;
+
+  if (!isExec) {
+    const cutoff = getClearCutoff(username, tgvChannelKey());
+    msgs = filterByCutoff(msgs, cutoff);
+  }
 
   if (before) {
     const idx = msgs.findIndex((m) => m.id === before);
@@ -109,6 +119,8 @@ export async function POST(req: NextRequest) {
     from: username,
     content: body.content.trim(),
     createdAt: new Date().toISOString(),
+    readBy: [],
+    ...(body.replyTo && typeof body.replyTo === "object" ? { replyTo: body.replyTo } : {}),
   };
   db.messages.push(msg);
   writeDB(db);

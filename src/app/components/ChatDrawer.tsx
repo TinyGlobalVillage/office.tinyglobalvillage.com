@@ -24,6 +24,11 @@ import {
 import ChatSettingsModal, { UserAvatar, resolveTimezone, type MemberProfile, type ChatSettings as ModalChatSettings } from "./ChatSettingsModal";
 import MediaConverterModal from "./MediaConverterModal";
 import ChatPicker from "./ChatPicker";
+import VoiceRecorder from "./VoiceRecorder";
+import VoicePlayer from "./VoicePlayer";
+import TalkToText from "./TalkToText";
+import CreateGroupModal from "./CreateGroupModal";
+import GroupAdminModal from "./GroupAdminModal";
 import {
   ChatIcon,
   MembersIcon,
@@ -35,6 +40,12 @@ import {
   EventIcon,
   ConvertImageIcon,
   ConvertVideoIcon,
+  EditIcon,
+  CancelIcon,
+  SmileIcon,
+  AttachIcon,
+  SendIcon,
+  ReplyIcon,
 } from "./icons";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -49,6 +60,8 @@ type ChatMessage = {
   fileMime?: string;
   createdAt: string;
   editedAt?: string;
+  readBy?: string[];
+  replyTo?: { id: string; from: string; excerpt: string };
 };
 
 type DmMessage = {
@@ -58,6 +71,8 @@ type DmMessage = {
   content: string;
   createdAt: string;
   editedAt?: string;
+  readBy?: string[];
+  replyTo?: { id: string; from: string; excerpt: string };
 };
 
 type Profile = MemberProfile;
@@ -66,7 +81,23 @@ type ChatSettings = ModalChatSettings;
 type GroupChat = {
   id: string;
   name: string;
+  createdBy?: string;
   memberIds: string[];
+  admins?: string[];
+  visibility?: "open" | "restricted" | "invisible";
+  isMember?: boolean;
+  isAdmin?: boolean;
+};
+
+type GroupMessage = {
+  id: string;
+  groupId: string;
+  from: string;
+  content: string;
+  createdAt: string;
+  editedAt?: string;
+  readBy?: string[];
+  replyTo?: { id: string; from: string; excerpt: string };
 };
 
 type Selection =
@@ -82,6 +113,7 @@ const DEFAULT_SETTINGS: ChatSettings = {
   timezone: "auto",
   fontSize: "sm",
   myFont: "sans",
+  whisperModel: "base.en",
 };
 
 const SETTINGS_KEY    = "tgv_chat_settings";
@@ -279,6 +311,20 @@ const TitleChatIcon = styled(ChatIcon)`
 const DmTag = styled.span`
   font-size: 0.5625rem;
   color: var(--t-textGhost);
+`;
+
+const GroupManageBtn = styled.button`
+  display: inline-flex; align-items: center; gap: 0.2rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  background: rgba(${rgb.green}, 0.12);
+  border: 1px solid rgba(${rgb.green}, 0.35);
+  color: ${colors.green};
+  font-size: 0.625rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+  &:hover { background: rgba(${rgb.green}, 0.22); box-shadow: 0 0 6px rgba(${rgb.green}, 0.3); }
 `;
 
 const AvatarChips = styled.div`
@@ -637,27 +683,54 @@ function FileLightbox({ file, onClose }: { file: File; onClose: () => void }) {
 const TypingRow = styled.div`
   display: flex;
   align-items: center;
-  gap: 0.375rem;
-  padding: 0 0.25rem;
-  min-height: 16px;
+  gap: 0.5rem;
+  padding: 0 0.25rem 0.25rem;
+  justify-content: flex-start;
+`;
+
+const TypingBubble = styled.span`
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 7px 11px;
+  border-radius: 14px 14px 14px 4px;
+  background: var(--t-surface);
+  border: 1px solid var(--t-border);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+
+  &::before {
+    content: "";
+    position: absolute;
+    bottom: -1px;
+    left: -5px;
+    width: 9px;
+    height: 9px;
+    background: var(--t-surface);
+    border-left: 1px solid var(--t-border);
+    border-bottom: 1px solid var(--t-border);
+    border-bottom-left-radius: 3px;
+    clip-path: polygon(0 0, 100% 100%, 100% 0);
+  }
 `;
 
 const TypingDot = styled.span<{ $delay: number }>`
-  width: 4px;
-  height: 4px;
+  width: 5px;
+  height: 5px;
   border-radius: 50%;
-  background: var(--t-textFaint);
+  background: var(--t-textMuted);
   animation: typingBounce 1.2s ease-in-out ${(p) => p.$delay}s infinite;
 
   @keyframes typingBounce {
-    0%, 80%, 100% { transform: translateY(0); }
-    40% { transform: translateY(-3px); }
+    0%, 80%, 100% { transform: translateY(0); opacity: 0.5; }
+    40% { transform: translateY(-3px); opacity: 1; }
   }
 `;
 
 const TypingText = styled.span`
-  font-size: 0.625rem;
+  font-size: 0.6875rem;
   color: var(--t-textGhost);
+  font-style: italic;
 `;
 
 const InputRow = styled.div`
@@ -674,19 +747,20 @@ const AttachBtn = styled.button`
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  background: rgba(${rgb.cyan}, 0.08);
-  border: 1px solid rgba(${rgb.cyan}, 0.3);
-  color: ${colors.cyan};
+  background: rgba(${rgb.green}, 0.08);
+  border: 1px solid rgba(${rgb.green}, 0.3);
+  color: ${colors.green};
   cursor: pointer;
   transition: all 0.15s;
 
   &:hover {
-    background: rgba(${rgb.cyan}, 0.14);
+    background: rgba(${rgb.green}, 0.14);
+    box-shadow: 0 0 8px rgba(${rgb.green}, 0.3);
   }
 
   [data-theme="light"] & {
-    background: rgba(${rgb.cyan}, 0.05);
-    border-color: rgba(${rgb.cyan}, 0.2);
+    background: rgba(${rgb.green}, 0.05);
+    border-color: rgba(${rgb.green}, 0.2);
   }
 `;
 
@@ -715,7 +789,10 @@ const PickerBtn = styled.button`
   font-size: 0.95rem;
   transition: all 0.15s;
 
-  &:hover { background: rgba(${rgb.green}, 0.14); }
+  &:hover {
+    background: rgba(${rgb.green}, 0.14);
+    box-shadow: 0 0 8px rgba(${rgb.green}, 0.35);
+  }
 `;
 
 const AttachMenuPopup = styled.div`
@@ -797,9 +874,13 @@ const SendBtn = styled.button<{ $color?: string }>`
   flex-shrink: 0;
   cursor: pointer;
   transition: all 0.15s;
-  background: ${(p) => p.$color ? `${p.$color}22` : `rgba(${rgb.cyan}, 0.2)`};
-  border: 1px solid ${(p) => p.$color ? `${p.$color}55` : `rgba(${rgb.cyan}, 0.4)`};
-  color: ${(p) => p.$color || colors.cyan};
+  background: ${(p) => p.$color ? `${p.$color}22` : `rgba(${rgb.green}, 0.15)`};
+  border: 1px solid ${(p) => p.$color ? `${p.$color}55` : `rgba(${rgb.green}, 0.4)`};
+  color: ${(p) => p.$color || colors.green};
+
+  &:hover:not(:disabled) {
+    box-shadow: 0 0 10px ${(p) => p.$color ? `${p.$color}55` : `rgba(${rgb.green}, 0.4)`};
+  }
 
   &:disabled {
     opacity: 0.3;
@@ -857,21 +938,47 @@ const BubbleCard = styled.div<{ $isMe?: boolean; $accent?: string }>`
   color: ${(p) => (p.$isMe ? "#fff" : "var(--t-text)")};
   opacity: ${(p) => (p.$isMe ? 1 : 0.8)};
 
+  /* WhatsApp-style tail jutting from the outer top corner */
+  &::before {
+    content: "";
+    position: absolute;
+    top: -1px;
+    ${(p) => (p.$isMe ? "right: -7px;" : "left: -7px;")}
+    width: 0;
+    height: 0;
+    border-style: solid;
+    ${(p) =>
+      p.$isMe
+        ? `border-width: 0 0 8px 8px;
+           border-color: transparent transparent transparent ${p.$accent ? `rgba(${hexToRgb(p.$accent)}, 0.18)` : `rgba(${rgb.pink}, 0.18)`};`
+        : `border-width: 0 8px 8px 0;
+           border-color: transparent var(--t-inputBg) transparent transparent;`}
+    filter: drop-shadow(${(p) => (p.$isMe ? "1px 0" : "-1px 0")} 0 ${(p) => (p.$isMe ? `${p.$accent || colors.pink}44` : "var(--t-borderStrong)")});
+  }
+
   [data-theme="light"] & {
     background: ${(p) =>
       p.$isMe
         ? `rgba(${p.$accent ? hexToRgb(p.$accent) : rgb.pink}, 0.1)`
         : "rgba(0, 0, 0, 0.03)"};
     color: var(--t-text);
+
+    &::before {
+      ${(p) =>
+        p.$isMe
+          ? `border-color: transparent transparent transparent rgba(${p.$accent ? hexToRgb(p.$accent) : rgb.pink}, 0.1);`
+          : `border-color: transparent rgba(0,0,0,0.03) transparent transparent;`}
+    }
   }
 `;
 
 const BubbleActions = styled.div<{ $isMe?: boolean }>`
   position: absolute;
   top: 0;
-  ${(p) => (p.$isMe ? "left: 0; transform: translateX(-100%); padding-right: 0.25rem;" : "right: 0; transform: translateX(100%); padding-left: 0.25rem;")}
+  ${(p) => (p.$isMe ? "left: 0; transform: translateX(-100%); padding-right: 0.35rem;" : "right: 0; transform: translateX(100%); padding-left: 0.35rem;")}
   display: flex;
-  gap: 0.125rem;
+  align-items: center;
+  gap: 0.25rem;
   opacity: 0;
   transition: opacity 0.15s;
 
@@ -881,17 +988,28 @@ const BubbleActions = styled.div<{ $isMe?: boolean }>`
 `;
 
 const BubbleActionBtn = styled.button<{ $danger?: boolean }>`
-  font-size: 0.5625rem;
-  padding: 0 0.25rem;
-  background: none;
-  border: none;
-  color: var(--t-textGhost);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: ${colors.green};
   cursor: pointer;
-  transition: color 0.15s;
+  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s, color 0.15s, transform 0.1s;
 
   &:hover {
-    color: ${(p) => (p.$danger ? "#f87171" : "var(--t-textMuted)")};
+    background: rgba(${rgb.green}, 0.12);
+    border-color: rgba(${rgb.green}, 0.45);
+    box-shadow: 0 0 8px rgba(${rgb.green}, 0.35);
+    color: ${(p) => (p.$danger ? colors.red : colors.green)};
+    transform: scale(1.06);
   }
+
+  &:active { transform: scale(0.96); }
 `;
 
 const EditInput = styled.input`
@@ -917,6 +1035,101 @@ const EditCancel = styled.button`
   border: none;
   color: var(--t-textGhost);
   cursor: pointer;
+`;
+
+// ── Styled: reply quote (inside incoming bubble) ─────────────────────────────
+
+const QuotedReply = styled.button<{ $accent: string }>`
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 6px 8px 6px 10px;
+  margin: 0 0 6px 0;
+  border: none;
+  border-left: 3px solid ${(p) => p.$accent};
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.04);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  transition: background 0.15s;
+
+  &:hover { background: rgba(255, 255, 255, 0.08); }
+`;
+
+const QuotedFrom = styled.div<{ $accent: string }>`
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: ${(p) => p.$accent};
+  margin-bottom: 2px;
+`;
+
+const QuotedExcerpt = styled.div<{ $expanded?: boolean }>`
+  font-size: 0.75rem;
+  color: var(--t-textMuted);
+  ${(p) => p.$expanded
+    ? "white-space: pre-wrap; word-break: break-word;"
+    : "overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;"}
+`;
+
+const MoreBtn = styled.span`
+  display: inline-block;
+  margin-top: 2px;
+  font-size: 0.6875rem;
+  color: ${colors.green};
+  cursor: pointer;
+
+  &:hover { text-decoration: underline; }
+`;
+
+// ── Styled: composer reply chip ──────────────────────────────────────────────
+
+const ReplyChipRow = styled.div<{ $accent: string }>`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 6px 10px;
+  margin-bottom: 0.25rem;
+  border-radius: 8px 8px 0 0;
+  background: var(--t-surface);
+  border: 1px solid var(--t-border);
+  border-left: 3px solid ${(p) => p.$accent};
+`;
+
+const ReplyChipCol = styled.div`
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+`;
+
+const ReplyChipFrom = styled.div<{ $accent: string }>`
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: ${(p) => p.$accent};
+`;
+
+const ReplyChipExcerpt = styled.div`
+  font-size: 0.75rem;
+  color: var(--t-textMuted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+const ReplyChipClose = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: none;
+  background: transparent;
+  color: var(--t-textMuted);
+  cursor: pointer;
+  border-radius: 4px;
+
+  &:hover { background: rgba(255, 255, 255, 0.06); color: var(--t-text); }
 `;
 
 // ── Styled: inline GIF embed (auto-loops by default as `<img>`) ──────────────
@@ -982,6 +1195,122 @@ function stripGifUrls(text: string): string {
   return text.replace(GIF_URL_RE, "").replace(/\s+/g, " ").trim();
 }
 
+const URL_RE = /https?:\/\/[^\s<>"')]+/gi;
+function extractFirstUrl(text: string): string | null {
+  if (!text) return null;
+  const matches = text.match(URL_RE);
+  if (!matches) return null;
+  for (const u of matches) {
+    if (GIF_URL_RE.test(u)) { GIF_URL_RE.lastIndex = 0; continue; }
+    GIF_URL_RE.lastIndex = 0;
+    return u;
+  }
+  return null;
+}
+
+function makeExcerpt(content: string, fileName?: string): string {
+  const source = (content?.trim() || "") || (fileName ? `📎 ${fileName}` : "");
+  const max = 118;
+  const single = source.replace(/\s+/g, " ").trim();
+  if (single.length <= max) return single;
+  return single.slice(0, max).trimEnd() + "…";
+}
+
+type OgMeta = { url: string; title?: string; description?: string; image?: string; siteName?: string };
+const OG_CACHE = new Map<string, OgMeta | null>();
+function fetchOg(url: string): Promise<OgMeta | null> {
+  if (OG_CACHE.has(url)) return Promise.resolve(OG_CACHE.get(url) ?? null);
+  return fetch(`/api/chat/og?url=${encodeURIComponent(url)}`)
+    .then((r) => (r.ok ? r.json() : null))
+    .then((meta) => {
+      const m = meta && typeof meta === "object" ? meta as OgMeta : null;
+      OG_CACHE.set(url, m);
+      return m;
+    })
+    .catch(() => { OG_CACHE.set(url, null); return null; });
+}
+
+const OgCard = styled.a`
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.375rem;
+  padding: 0.5rem;
+  border-radius: 0.625rem;
+  background: var(--t-inputBg);
+  border: 1px solid var(--t-borderStrong);
+  text-decoration: none;
+  color: inherit;
+  max-width: 320px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+
+  &:hover {
+    border-color: rgba(${rgb.green}, 0.45);
+    box-shadow: 0 0 10px rgba(${rgb.green}, 0.2);
+  }
+`;
+const OgThumb = styled.img`
+  width: 64px;
+  height: 64px;
+  object-fit: cover;
+  border-radius: 0.5rem;
+  flex-shrink: 0;
+  background: var(--t-surface);
+`;
+const OgCol = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+  flex: 1;
+`;
+const OgSite = styled.span`
+  font-size: 0.5rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: ${colors.green};
+`;
+const OgTitle = styled.span`
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--t-text);
+  line-height: 1.25;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+`;
+const OgDesc = styled.span`
+  font-size: 0.625rem;
+  color: var(--t-textFaint);
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+`;
+
+function OgPreview({ url }: { url: string }) {
+  const [meta, setMeta] = useState<OgMeta | null>(null);
+  const [loaded, setLoaded] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    fetchOg(url).then((m) => { if (alive) { setMeta(m); setLoaded(true); } });
+    return () => { alive = false; };
+  }, [url]);
+  if (!loaded || !meta || (!meta.title && !meta.description && !meta.image)) return null;
+  return (
+    <OgCard href={url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>
+      {meta.image && <OgThumb src={meta.image} alt="" loading="lazy" />}
+      <OgCol>
+        {meta.siteName && <OgSite>{meta.siteName}</OgSite>}
+        {meta.title && <OgTitle>{meta.title}</OgTitle>}
+        {meta.description && <OgDesc>{meta.description}</OgDesc>}
+      </OgCol>
+    </OgCard>
+  );
+}
+
 // ── Styled: File attachment ───────────────────────────────────────────────────
 
 const AttachImage = styled.img`
@@ -1011,7 +1340,7 @@ const AttachFile = styled.a`
   }
 `;
 
-const AttachIcon = styled.span`
+const AttachGlyph = styled.span`
   font-size: 1rem;
   flex-shrink: 0;
 `;
@@ -1253,6 +1582,76 @@ const DashedCreateCard = styled.button`
   }
 `;
 
+const ClearConfirmOverlay = styled.div`
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  backdrop-filter: blur(2px);
+  z-index: 410;
+  display: flex; align-items: center; justify-content: center;
+`;
+
+const ClearConfirmCard = styled.div`
+  width: min(460px, 94vw);
+  padding: 1.1rem 1.15rem;
+  border-radius: 14px;
+  background: var(--t-surface);
+  border: 1px solid var(--t-borderStrong);
+  box-shadow: 0 24px 64px rgba(0,0,0,0.55);
+  display: flex; flex-direction: column; gap: 0.75rem;
+`;
+
+const ClearConfirmTitle = styled.h3`
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: ${colors.red};
+`;
+
+const ClearConfirmBody = styled.p`
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--t-textMuted);
+  line-height: 1.5;
+`;
+
+const ClearConfirmActions = styled.div`
+  display: flex; flex-wrap: wrap; gap: 0.4rem; justify-content: flex-end;
+`;
+
+const GhostBtn = styled.button`
+  padding: 0.4rem 0.75rem;
+  font-size: 0.6875rem;
+  border-radius: 8px;
+  background: transparent;
+  border: 1px solid var(--t-border);
+  color: var(--t-text);
+  cursor: pointer;
+  &:hover { background: rgba(255,255,255,0.04); }
+`;
+
+const PrimaryBtn = styled.button`
+  padding: 0.4rem 0.8rem;
+  font-size: 0.6875rem;
+  border-radius: 8px;
+  background: rgba(${rgb.green}, 0.18);
+  border: 1px solid rgba(${rgb.green}, 0.55);
+  color: ${colors.green};
+  cursor: pointer;
+  &:hover { box-shadow: 0 0 8px rgba(${rgb.green}, 0.35); }
+`;
+
+const DangerBtn = styled.button`
+  padding: 0.4rem 0.8rem;
+  font-size: 0.6875rem;
+  border-radius: 8px;
+  background: rgba(${rgb.red}, 0.12);
+  border: 1px solid rgba(${rgb.red}, 0.45);
+  color: ${colors.red};
+  cursor: pointer;
+  &:hover { box-shadow: 0 0 8px rgba(${rgb.red}, 0.35); }
+`;
+
 const SidebarResizer = styled.div`
   width: 4px;
   cursor: ew-resize;
@@ -1296,57 +1695,9 @@ const ConvPane = styled.div`
   position: relative;
 `;
 
-const CreateGroupBackdrop = styled.div`
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.6);
-  z-index: 90;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-`;
-
-const CreateGroupCard = styled.div`
-  width: min(90vw, 360px);
-  padding: 1.25rem;
-  border-radius: 16px;
-  background: var(--t-surface);
-  border: 1px solid rgba(${rgb.green}, 0.3);
-  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.85);
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-`;
-
-const CreateGroupTitle = styled.h3`
-  margin: 0;
-  font-size: 0.875rem;
-  font-weight: 700;
-  color: ${colors.green};
-`;
-
-const CreateGroupText = styled.p`
-  margin: 0;
-  font-size: 0.75rem;
-  color: var(--t-textMuted);
-  line-height: 1.5;
-`;
-
-const CreateGroupCloseBtn = styled.button`
-  align-self: flex-end;
-  font-size: 0.625rem;
-  font-weight: 700;
-  padding: 0.375rem 0.75rem;
-  border-radius: 0.5rem;
-  border: 1px solid rgba(${rgb.green}, 0.4);
-  background: rgba(${rgb.green}, 0.12);
-  color: ${colors.green};
-  cursor: pointer;
-`;
-
 // ── File attachment ────────────────────────────────────────────────────────────
 
-function FileAttachment({ url, name, size, mime }: { url: string; name?: string; size?: number; mime?: string }) {
+function FileAttachment({ url, name, size, mime, accent }: { url: string; name?: string; size?: number; mime?: string; accent?: string }) {
   if (isImage(mime)) {
     return (
       <a href={url} target="_blank" rel="noreferrer" style={{ display: "block" }}>
@@ -1355,11 +1706,14 @@ function FileAttachment({ url, name, size, mime }: { url: string; name?: string;
       </a>
     );
   }
+  if (mime?.startsWith("audio/")) {
+    return <VoicePlayer url={url} accent={accent} />;
+  }
   return (
     <AttachFile href={url} target="_blank" rel="noreferrer" download={name}>
-      <AttachIcon>
-        {mime?.startsWith("video/") ? "🎥" : mime?.startsWith("audio/") ? "🎵" : "📎"}
-      </AttachIcon>
+      <AttachGlyph>
+        {mime?.startsWith("video/") ? "🎥" : "📎"}
+      </AttachGlyph>
       <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
         <AttachName>{name ?? "file"}</AttachName>
         {size && <AttachSize>{fmtBytes(size)}</AttachSize>}
@@ -1371,21 +1725,45 @@ function FileAttachment({ url, name, size, mime }: { url: string; name?: string;
 
 // ── Message bubble (shared by chat + DM) ─────────────────────────────────────
 
+function ReadCheck({ state, accent }: { state: "sent" | "read"; accent?: string }) {
+  const color = state === "read" ? (accent || colors.cyan) : "var(--t-textGhost)";
+  return (
+    <span
+      title={state === "read" ? "Read" : "Sent"}
+      aria-label={state === "read" ? "Read" : "Sent"}
+      style={{ display: "inline-flex", alignItems: "center", marginLeft: 4, color }}
+    >
+      <svg width="14" height="9" viewBox="0 0 14 9" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M1 4.5 L4 7.5 L10 1.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+        {state === "read" && (
+          <path d="M4.5 4.5 L7.5 7.5 L13.5 1.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+        )}
+      </svg>
+    </span>
+  );
+}
+
 function MessageBubble({
   id, from, content, fileUrl, fileName, fileSize, fileMime, createdAt, editedAt,
+  readBy, peerUsername, replyTo,
   profile, isMe, settings, canDelete,
-  onDelete, onEdit,
+  onDelete, onEdit, onReply, onJumpToReply,
 }: {
   id: string; from: string; content: string;
   fileUrl?: string; fileName?: string; fileSize?: number; fileMime?: string;
   createdAt: string; editedAt?: string;
+  readBy?: string[]; peerUsername?: string;
+  replyTo?: { id: string; from: string; excerpt: string };
   profile?: Profile; isMe: boolean;
   settings: ChatSettings; canDelete: boolean;
   onDelete: () => void; onEdit: (content: string) => void;
+  onReply?: () => void;
+  onJumpToReply?: (id: string) => void;
 }) {
   const accent = profile?.accentColor ?? "#4ade80";
   const [editing, setEditing] = useState(false);
   const [editVal, setEditVal] = useState(content);
+  const [replyExpanded, setReplyExpanded] = useState(false);
 
   const saveEdit = () => {
     if (editVal.trim()) onEdit(editVal.trim());
@@ -1393,7 +1771,7 @@ function MessageBubble({
   };
 
   return (
-    <BubbleRow $isMe={isMe}>
+    <BubbleRow $isMe={isMe} data-msg-id={id}>
       <UserAvatar
         profile={profile ?? { displayName: from, accentColor: "#4ade80", avatarUrl: "" }}
         size={28}
@@ -1408,6 +1786,12 @@ function MessageBubble({
               {fmtTimestamp(createdAt, settings.timestampFormat, settings.timezone)}
               {editedAt && " · edited"}
             </BubbleTime>
+          )}
+          {isMe && peerUsername && (
+            <ReadCheck
+              state={readBy?.includes(peerUsername) ? "read" : "sent"}
+              accent={accent}
+            />
           )}
         </BubbleMeta>
         <BubbleCard $isMe={isMe} $accent={accent}>
@@ -1425,24 +1809,59 @@ function MessageBubble({
           ) : (() => {
             const gifs = extractGifUrls(content);
             const plain = gifs.length ? stripGifUrls(content) : content;
+            const linkUrl = extractFirstUrl(plain);
+            const excerptTruncated = replyTo ? replyTo.excerpt.length >= 118 : false;
             return (
               <>
+                {replyTo && (
+                  <QuotedReply
+                    $accent={accent}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (onJumpToReply) onJumpToReply(replyTo.id);
+                    }}
+                    title="Jump to replied message"
+                  >
+                    <QuotedFrom $accent={accent}>{replyTo.from}</QuotedFrom>
+                    <QuotedExcerpt $expanded={replyExpanded}>{replyTo.excerpt}</QuotedExcerpt>
+                    {excerptTruncated && (
+                      <MoreBtn
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setReplyExpanded((v) => !v);
+                        }}
+                      >
+                        {replyExpanded ? "Less" : "More"}
+                      </MoreBtn>
+                    )}
+                  </QuotedReply>
+                )}
                 {plain && <p style={{ whiteSpace: "pre-wrap", wordBreak: "break-word", margin: 0 }}>{plain}</p>}
                 {gifs.map((url) => (
                   /* eslint-disable-next-line @next/next/no-img-element */
                   <InlineGif key={url} src={url} alt="gif" loading="lazy" />
                 ))}
-                {fileUrl && <FileAttachment url={fileUrl} name={fileName} size={fileSize} mime={fileMime} />}
+                {linkUrl && <OgPreview url={linkUrl} />}
+                {fileUrl && <FileAttachment url={fileUrl} name={fileName} size={fileSize} mime={fileMime} accent={accent} />}
               </>
             );
           })()}
           {!editing && (
             <BubbleActions $isMe={isMe}>
+              {onReply && (
+                <BubbleActionBtn onClick={onReply} title="Reply">
+                  <ReplyIcon size={16} />
+                </BubbleActionBtn>
+              )}
               {isMe && (
-                <BubbleActionBtn onClick={() => { setEditing(true); setEditVal(content); }} title="Edit">✎</BubbleActionBtn>
+                <BubbleActionBtn onClick={() => { setEditing(true); setEditVal(content); }} title="Edit">
+                  <EditIcon size={16} />
+                </BubbleActionBtn>
               )}
               {canDelete && (
-                <BubbleActionBtn $danger onClick={onDelete} title="Delete">✕</BubbleActionBtn>
+                <BubbleActionBtn $danger onClick={onDelete} title="Delete">
+                  <CancelIcon size={16} />
+                </BubbleActionBtn>
               )}
             </BubbleActions>
           )}
@@ -1464,7 +1883,13 @@ export default function ChatDrawer() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(SIDEBAR_DEFAULT);
   const [groups, setGroups] = useState<GroupChat[]>([]);
+  const [groupMessages, setGroupMessages] = useState<GroupMessage[]>([]);
+  const [groupSending, setGroupSending] = useState(false);
+  const [groupInput, setGroupInput] = useState("");
+  const groupBottomRef = useRef<HTMLDivElement>(null);
   const [showCreateGroup, setShowCreateGroup] = useState(false);
+  const [groupAdminId, setGroupAdminId] = useState<string | null>(null);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [rowHoverMenu, setRowHoverMenu] = useState<string | null>(null);
   const [attachMenuOpen, setAttachMenuOpen] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -1474,6 +1899,7 @@ export default function ChatDrawer() {
   const [profiles, setProfiles]   = useState<Profile[]>([]);
   const [presence, setPresence]   = useState<{ sysUser: string; online: boolean }[]>([]);
   const [currentUser, setCurrentUser] = useState<string>("");
+  const isExec = currentUser === "admin" || currentUser === "marmar";
   const [input, setInput]         = useState("");
   const [sending, setSending]     = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -1492,6 +1918,22 @@ export default function ChatDrawer() {
 
   const [typers, setTypers]       = useState<string[]>([]);
   const lastTypingSentRef         = useRef(0);
+
+  const [replyTarget, setReplyTarget] = useState<{
+    id: string;
+    from: string;
+    excerpt: string;
+  } | null>(null);
+
+  const scrollToMessage = useCallback((targetId: string) => {
+    if (typeof document === "undefined") return;
+    const el = document.querySelector<HTMLElement>(`[data-msg-id="${CSS.escape(targetId)}"]`);
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    el.style.transition = "background 0.4s";
+    el.style.background = "rgba(74, 222, 128, 0.15)";
+    setTimeout(() => { el.style.background = ""; }, 900);
+  }, []);
 
   const fileRef     = useRef<HTMLInputElement>(null);
   const photoRef    = useRef<HTMLInputElement>(null);
@@ -1593,6 +2035,85 @@ export default function ChatDrawer() {
     } catch { /* ignore */ }
   }, []);
 
+  const loadGroupMessages = useCallback(async (groupId: string) => {
+    try {
+      const d = await fetch(`/api/chat/group/messages?groupId=${encodeURIComponent(groupId)}`).then((r) => r.json());
+      setGroupMessages(Array.isArray(d?.messages) ? d.messages : []);
+    } catch { /* ignore */ }
+  }, []);
+
+  const sendGroupMessage = async () => {
+    if (selection.type !== "group" || !groupInput.trim() || groupSending) return;
+    setGroupSending(true);
+    try {
+      const res = await fetch("/api/chat/group/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          groupId: selection.groupId,
+          content: groupInput.trim(),
+          ...(replyTarget ? { replyTo: replyTarget } : {}),
+        }),
+      });
+      if (res.ok) {
+        setGroupInput("");
+        setReplyTarget(null);
+        await loadGroupMessages(selection.groupId);
+      }
+    } finally {
+      setGroupSending(false);
+    }
+  };
+
+  const deleteGroupMessage = async (id: string) => {
+    if (selection.type !== "group") return;
+    await fetch(`/api/chat/group/messages?groupId=${encodeURIComponent(selection.groupId)}&id=${encodeURIComponent(id)}`, { method: "DELETE" });
+    await loadGroupMessages(selection.groupId);
+  };
+
+  const editGroupMessage = async (id: string, content: string) => {
+    if (selection.type !== "group") return;
+    await fetch("/api/chat/group/messages", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ groupId: selection.groupId, id, content }),
+    });
+    await loadGroupMessages(selection.groupId);
+  };
+
+  const joinGroup = async (groupId: string) => {
+    const res = await fetch("/api/chat/group/join", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ groupId }),
+    });
+    if (res.ok) { await loadGroups(); setSelection({ type: "group", groupId }); }
+    else {
+      const d = await res.json().catch(() => ({}));
+      alert(d?.error ?? "Could not join");
+    }
+  };
+
+  const leaveGroup = async (groupId: string) => {
+    if (!confirm("Leave this group?")) return;
+    await fetch(`/api/chat/group/join?groupId=${encodeURIComponent(groupId)}`, { method: "DELETE" });
+    await loadGroups();
+    setSelection({ type: "tgv" });
+  };
+
+  useEffect(() => {
+    if (selection.type !== "group") return;
+    loadGroupMessages(selection.groupId);
+    const id = setInterval(() => loadGroupMessages(selection.groupId), 10_000);
+    return () => clearInterval(id);
+  }, [selection, loadGroupMessages]);
+
+  useEffect(() => {
+    if (selection.type === "group") {
+      groupBottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [groupMessages, selection]);
+
   useEffect(() => {
     if (!rowHoverMenu) return;
     const onClick = () => setRowHoverMenu(null);
@@ -1675,6 +2196,12 @@ export default function ChatDrawer() {
   const loadDmMessages = useCallback(async (peerUsername: string) => {
     const res = await fetch(`/api/chat/dm?with=${peerUsername}`).then((r) => r.json()).catch(() => ({ messages: [] }));
     setDmMessages(res.messages ?? []);
+    // Mark incoming messages read automatically while the DM is open
+    fetch("/api/chat/mark-read", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ scope: "dm", peer: peerUsername }),
+    }).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -1692,10 +2219,12 @@ export default function ChatDrawer() {
   }, [dmMessages, selection]);
 
   useEffect(() => {
-    if (!open || selection.type === "group") return;
+    if (!open) return;
     const context = selection.type === "dm"
       ? `dm:${selection.peer.username}`
-      : "chat";
+      : selection.type === "group"
+        ? `group:${selection.groupId}`
+        : "chat";
     const poll = () => {
       fetch(`/api/chat/typing?context=${encodeURIComponent(context)}`)
         .then((r) => r.json())
@@ -1713,7 +2242,9 @@ export default function ChatDrawer() {
     lastTypingSentRef.current = now;
     const context = selection.type === "dm"
       ? `dm:${selection.peer.username}`
-      : "chat";
+      : selection.type === "group"
+        ? `group:${selection.groupId}`
+        : "chat";
     fetch("/api/chat/typing", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -1812,18 +2343,45 @@ export default function ChatDrawer() {
         fd.append("file", uploadFile);
         fd.append("chatId", "group");
         if (input.trim()) fd.append("content", input.trim());
+        if (replyTarget) fd.append("replyTo", JSON.stringify(replyTarget));
         const res = await fetch("/api/chat/upload", { method: "POST", body: fd });
-        if (res.ok) { setInput(""); setUploadFile(null); await loadMessages(); }
+        if (res.ok) { setInput(""); setUploadFile(null); setReplyTarget(null); await loadMessages(); }
         setUploading(false);
       } else {
         const res = await fetch("/api/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ content: input.trim() }),
+          body: JSON.stringify({
+            content: input.trim(),
+            ...(replyTarget ? { replyTo: replyTarget } : {}),
+          }),
         });
-        if (res.ok) { setInput(""); await loadMessages(); }
+        if (res.ok) { setInput(""); setReplyTarget(null); await loadMessages(); }
       }
     } finally { setSending(false); }
+  };
+
+  const sendVoice = async (blob: Blob, mime: string, durationMs: number) => {
+    if (!isTGV || sending) return;
+    const extFromMime = mime.includes("webm") ? "webm" : mime.includes("ogg") ? "ogg" : mime.includes("mp4") ? "m4a" : "webm";
+    const file = new File([blob], `voice_${Date.now()}.${extFromMime}`, { type: mime || "audio/webm" });
+    setSending(true);
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("chatId", "group");
+      fd.append("content", `Voice memo · ${Math.round(durationMs / 1000)}s`);
+      if (replyTarget) fd.append("replyTo", JSON.stringify(replyTarget));
+      const res = await fetch("/api/chat/upload", { method: "POST", body: fd });
+      if (res.ok) {
+        setReplyTarget(null);
+        await loadMessages();
+      }
+    } finally {
+      setSending(false);
+      setUploading(false);
+    }
   };
 
   const deleteMessage = async (id: string) => {
@@ -1837,8 +2395,28 @@ export default function ChatDrawer() {
   };
 
   const clearChat = async () => {
-    if (!confirm("Clear all chat messages and files? This cannot be undone.")) return;
+    setShowClearConfirm(true);
+  };
+
+  const doClearMine = async () => {
+    const body: Record<string, string> = {};
+    if (selection.type === "dm") { body.scope = "dm"; body.peer = selection.peer.username; }
+    else if (selection.type === "group") { body.scope = "group"; body.groupId = selection.groupId; }
+    else { body.scope = "tgv"; }
+    await fetch("/api/chat/clear-mine", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    setShowClearConfirm(false);
+    if (selection.type === "dm") await loadDmMessages(selection.peer.username);
+    else if (selection.type === "group") await loadGroupMessages(selection.groupId);
+    else await loadMessages();
+  };
+
+  const doClearGlobal = async () => {
     await fetch("/api/chat/clear", { method: "POST" });
+    setShowClearConfirm(false);
     await loadMessages();
   };
 
@@ -1850,9 +2428,14 @@ export default function ChatDrawer() {
       await fetch("/api/chat/dm", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ to: peer.username, content: dmInput.trim() }),
+        body: JSON.stringify({
+          to: peer.username,
+          content: dmInput.trim(),
+          ...(replyTarget ? { replyTo: replyTarget } : {}),
+        }),
       });
       setDmInput("");
+      setReplyTarget(null);
       await loadDmMessages(peer.username);
     } finally { setDmSending(false); }
   };
@@ -1952,11 +2535,23 @@ export default function ChatDrawer() {
                 <DmTag>DM</DmTag>
               </>
             )}
-            {selection.type === "group" && (
-              <TitleText $color={VIOLET}>
-                {groups.find((g) => g.id === selection.groupId)?.name ?? "Group"}
-              </TitleText>
-            )}
+            {selection.type === "group" && (() => {
+              const g = groups.find((gg) => gg.id === selection.groupId);
+              return (
+                <>
+                  <TitleText $color={VIOLET}>{g?.name ?? "Group"}</TitleText>
+                  {g && (
+                    <GroupManageBtn
+                      onClick={() => setGroupAdminId(g.id)}
+                      title={g.isAdmin ? "Manage group" : "Group info"}
+                    >
+                      <MembersIcon size={12} />
+                      <span>{g.memberIds.length}</span>
+                    </GroupManageBtn>
+                  )}
+                </>
+              );
+            })()}
           </TitleWrap>
 
           {isTGV && (() => {
@@ -2018,11 +2613,16 @@ export default function ChatDrawer() {
             );
           })()}
 
-          {isTGV && (
-            <ControlBtn onClick={clearChat} title="Clear all messages">
-              <TrashIcon size={14} />
-            </ControlBtn>
-          )}
+          <ControlBtn
+            onClick={clearChat}
+            title={
+              selection.type === "dm" ? "Clear this DM for me"
+              : selection.type === "group" ? "Clear this group for me"
+              : "Clear chat"
+            }
+          >
+            <TrashIcon size={14} />
+          </ControlBtn>
 
           <ControlBtn onClick={() => setShowSettingsModal(true)} title="Settings">
             <svg viewBox="0 0 16 16" fill="currentColor">
@@ -2244,10 +2844,20 @@ export default function ChatDrawer() {
                           id={msg.id} from={msg.from} content={msg.content}
                           fileUrl={msg.fileUrl} fileName={msg.fileName} fileSize={msg.fileSize} fileMime={msg.fileMime}
                           createdAt={msg.createdAt} editedAt={msg.editedAt}
+                          replyTo={msg.replyTo}
                           profile={profile} isMe={msg.from === currentUser}
                           settings={settings} canDelete={msg.from === currentUser || isAdmin}
                           onDelete={() => deleteMessage(msg.id)}
                           onEdit={(content) => editMessage(msg.id, content)}
+                          onReply={() => {
+                            const who = profile?.displayName ?? msg.from;
+                            setReplyTarget({
+                              id: msg.id,
+                              from: who,
+                              excerpt: makeExcerpt(msg.content, msg.fileName),
+                            });
+                          }}
+                          onJumpToReply={(targetId) => scrollToMessage(targetId)}
                         />
                       </Fragment>
                     );
@@ -2282,10 +2892,21 @@ export default function ChatDrawer() {
                         <MessageBubble
                           id={msg.id} from={msg.from} content={msg.content}
                           createdAt={msg.createdAt} editedAt={msg.editedAt}
+                          readBy={msg.readBy} peerUsername={selection.peer.username}
+                          replyTo={msg.replyTo}
                           profile={profile} isMe={msg.from === currentUser}
                           settings={settings} canDelete={msg.from === currentUser}
                           onDelete={() => deleteDm(msg.id)}
                           onEdit={(content) => editDm(msg.id, content)}
+                          onReply={() => {
+                            const who = profile?.displayName ?? msg.from;
+                            setReplyTarget({
+                              id: msg.id,
+                              from: who,
+                              excerpt: makeExcerpt(msg.content),
+                            });
+                          }}
+                          onJumpToReply={(targetId) => scrollToMessage(targetId)}
                         />
                       </Fragment>
                     );
@@ -2295,19 +2916,122 @@ export default function ChatDrawer() {
               </MsgScroll>
             )}
 
-            {/* ── Group placeholder (1c wires real data) ──────── */}
-            {selection.type === "group" && (
-              <MsgScroll>
-                <EmptyChat>
-                  <EmptyIcon>👥</EmptyIcon>
-                  <EmptyText>Group chat data model arrives in the next step.</EmptyText>
-                </EmptyChat>
-              </MsgScroll>
-            )}
+            {/* ── Group thread ────────────────────────────────── */}
+            {selection.type === "group" && (() => {
+              const activeGroup = groups.find((g) => g.id === selection.groupId);
+              if (!activeGroup) {
+                return (
+                  <MsgScroll>
+                    <EmptyChat>
+                      <EmptyIcon>👥</EmptyIcon>
+                      <EmptyText>Group not found.</EmptyText>
+                    </EmptyChat>
+                  </MsgScroll>
+                );
+              }
+              if (!activeGroup.isMember) {
+                return (
+                  <MsgScroll>
+                    <EmptyChat>
+                      <EmptyIcon>👥</EmptyIcon>
+                      <EmptyText>
+                        <strong>{activeGroup.name}</strong> · {activeGroup.visibility ?? "open"}
+                      </EmptyText>
+                      <EmptyText style={{ color: "var(--t-textMuted)" }}>
+                        {activeGroup.visibility === "open"
+                          ? "You're not a member yet."
+                          : "Members-only. Ask an admin for an invite."}
+                      </EmptyText>
+                      {activeGroup.visibility === "open" && (
+                        <button
+                          onClick={() => joinGroup(activeGroup.id)}
+                          style={{
+                            marginTop: "0.5rem",
+                            padding: "0.4rem 0.85rem",
+                            fontSize: "0.75rem",
+                            borderRadius: "8px",
+                            background: `rgba(${rgb.green}, 0.18)`,
+                            border: `1px solid rgba(${rgb.green}, 0.55)`,
+                            color: colors.green,
+                            cursor: "pointer",
+                          }}
+                        >
+                          Join group
+                        </button>
+                      )}
+                    </EmptyChat>
+                  </MsgScroll>
+                );
+              }
+              return (
+                <MsgScroll>
+                  {groupMessages.length === 0 ? (
+                    <EmptyChat>
+                      <EmptyIcon>👥</EmptyIcon>
+                      <EmptyText>Start the conversation in {activeGroup.name}.</EmptyText>
+                    </EmptyChat>
+                  ) : (() => {
+                    let lastKey = "";
+                    return groupMessages.map((msg) => {
+                      const profile = profiles.find((p) => p.username === msg.from);
+                      const k = dayKey(msg.createdAt, settings.timezone);
+                      const showDivider = k !== lastKey;
+                      lastKey = k;
+                      const canDelete = msg.from === currentUser || (activeGroup.admins ?? []).includes(currentUser);
+                      return (
+                        <Fragment key={msg.id}>
+                          {showDivider && (
+                            <DayDivider>
+                              <DayDividerLabel>{fmtDayDivider(msg.createdAt, settings.timezone)}</DayDividerLabel>
+                            </DayDivider>
+                          )}
+                          <MessageBubble
+                            id={msg.id} from={msg.from} content={msg.content}
+                            createdAt={msg.createdAt} editedAt={msg.editedAt}
+                            replyTo={msg.replyTo}
+                            profile={profile} isMe={msg.from === currentUser}
+                            settings={settings} canDelete={canDelete}
+                            onDelete={() => deleteGroupMessage(msg.id)}
+                            onEdit={(content) => editGroupMessage(msg.id, content)}
+                            onReply={() => {
+                              const who = profile?.displayName ?? msg.from;
+                              setReplyTarget({
+                                id: msg.id,
+                                from: who,
+                                excerpt: makeExcerpt(msg.content),
+                              });
+                            }}
+                            onJumpToReply={(targetId) => scrollToMessage(targetId)}
+                          />
+                        </Fragment>
+                      );
+                    });
+                  })()}
+                  <div ref={groupBottomRef} />
+                </MsgScroll>
+              );
+            })()}
 
-            {/* ── Input (TGV + DM) ─────────────────────────────── */}
-            {(isTGV || selection.type === "dm") && (
+            {/* ── Input (TGV + DM + group member) ─────────────── */}
+            {(isTGV || selection.type === "dm" || (selection.type === "group" && groups.find((g) => g.id === selection.groupId)?.isMember)) && (
               <InputArea>
+                {replyTarget && (
+                  <ReplyChipRow $accent={peer?.accentColor ?? VIOLET}>
+                    <ReplyIcon size={14} />
+                    <ReplyChipCol>
+                      <ReplyChipFrom $accent={peer?.accentColor ?? VIOLET}>
+                        Replying to {replyTarget.from}
+                      </ReplyChipFrom>
+                      <ReplyChipExcerpt>{replyTarget.excerpt}</ReplyChipExcerpt>
+                    </ReplyChipCol>
+                    <ReplyChipClose
+                      onClick={() => setReplyTarget(null)}
+                      title="Cancel reply"
+                    >
+                      <CancelIcon size={14} />
+                    </ReplyChipClose>
+                  </ReplyChipRow>
+                )}
                 {isTGV && uploadFile && (
                   (thumbUrl && (uploadFile.type.startsWith("image/") || uploadFile.type.startsWith("video/"))) ? (
                     <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
@@ -2340,12 +3064,17 @@ export default function ChatDrawer() {
                 )}
 
                 {(() => {
-                  const composer = selection.type === "dm" ? dmInput : input;
+                  const composer = selection.type === "dm"
+                    ? dmInput
+                    : selection.type === "group"
+                      ? groupInput
+                      : input;
                   const gifs = extractGifUrls(composer);
                   if (!gifs.length) return null;
                   const removeGif = (url: string) => {
                     const stripped = composer.replace(url, "").replace(/\s+/g, " ").trim();
                     if (selection.type === "dm") setDmInput(stripped);
+                    else if (selection.type === "group") setGroupInput(stripped);
                     else setInput(stripped);
                   };
                   return (
@@ -2363,11 +3092,11 @@ export default function ChatDrawer() {
 
                 {typers.length > 0 && (
                   <TypingRow>
-                    <span style={{ display: "flex", gap: "2px", alignItems: "flex-end" }}>
+                    <TypingBubble>
                       {[0, 1, 2].map((i) => (
                         <TypingDot key={i} $delay={i * 0.2} />
                       ))}
-                    </span>
+                    </TypingBubble>
                     <TypingText>
                       {typers.length === 1
                         ? `${typers[0]} is typing…`
@@ -2379,13 +3108,27 @@ export default function ChatDrawer() {
                 )}
 
                 <InputRow>
+                  <TalkToText
+                    accent={colors.green}
+                    model={settings.whisperModel ?? "base.en"}
+                    onTranscript={(text) => {
+                      if (selection.type === "dm") {
+                        setDmInput((prev) => (prev ? `${prev} ${text}` : text));
+                      } else if (selection.type === "group") {
+                        setGroupInput((prev) => (prev ? `${prev} ${text}` : text));
+                      } else {
+                        setInput((prev) => (prev ? `${prev} ${text}` : text));
+                      }
+                    }}
+                    onError={(msg) => alert(`Transcribe: ${msg}`)}
+                    disabled={sending || uploading || dmSending || groupSending}
+                  />
                   {isTGV && (
                     <>
+                      <VoiceRecorder accent={colors.green} onSend={sendVoice} disabled={sending || uploading} />
                       <AttachMenuAnchor onClick={(e) => e.stopPropagation()}>
                         <AttachBtn onClick={() => setAttachMenuOpen((p) => !p)} title="Attach">
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
-                          </svg>
+                          <AttachIcon size={14} />
                         </AttachBtn>
                         {attachMenuOpen && (
                           <AttachMenuPopup>
@@ -2423,21 +3166,24 @@ export default function ChatDrawer() {
 
                   <PickerAnchor onClick={(e) => e.stopPropagation()}>
                     <PickerBtn onClick={() => setPickerOpen((p) => !p)} title="Emoji · GIFs · Stickers">
-                      😊
+                      <SmileIcon size={16} />
                     </PickerBtn>
                     {pickerOpen && (
                       <ChatPicker
                         onClose={() => setPickerOpen(false)}
                         onEmoji={(e) => {
                           if (selection.type === "dm") setDmInput((prev) => prev + e);
+                          else if (selection.type === "group") setGroupInput((prev) => prev + e);
                           else setInput((prev) => prev + e);
                         }}
                         onGif={(url) => {
                           if (selection.type === "dm") setDmInput((prev) => (prev ? `${prev} ${url}` : url));
+                          else if (selection.type === "group") setGroupInput((prev) => (prev ? `${prev} ${url}` : url));
                           else setInput((prev) => (prev ? `${prev} ${url}` : url));
                         }}
                         onSticker={(url) => {
                           if (selection.type === "dm") setDmInput((prev) => (prev ? `${prev} ${url}` : url));
+                          else if (selection.type === "group") setGroupInput((prev) => (prev ? `${prev} ${url}` : url));
                           else setInput((prev) => (prev ? `${prev} ${url}` : url));
                         }}
                       />
@@ -2445,38 +3191,75 @@ export default function ChatDrawer() {
                   </PickerAnchor>
 
                   <ChatTextarea
-                    value={selection.type === "dm" ? dmInput : input}
+                    value={
+                      selection.type === "dm"
+                        ? dmInput
+                        : selection.type === "group"
+                          ? groupInput
+                          : input
+                    }
                     onChange={(e) => {
                       if (selection.type === "dm") setDmInput(e.target.value);
+                      else if (selection.type === "group") setGroupInput(e.target.value);
                       else setInput(e.target.value);
                       if (e.target.value.trim()) signalTyping();
                     }}
                     onKeyDown={(e: ReactKeyboardEvent<HTMLTextAreaElement>) => {
                       if (e.key === "Enter" && !e.shiftKey) {
                         e.preventDefault();
-                        selection.type === "dm" ? sendDm() : sendMessage();
+                        if (selection.type === "dm") sendDm();
+                        else if (selection.type === "group") sendGroupMessage();
+                        else sendMessage();
                       }
                     }}
-                    placeholder={selection.type === "dm" && peer ? `Message ${peer.displayName}…` : "Enter to send · Shift+Enter for newline"}
+                    placeholder={
+                      selection.type === "dm" && peer
+                        ? `Message ${peer.displayName}…`
+                        : selection.type === "group"
+                          ? "Message group…"
+                          : "Enter to send · Shift+Enter for newline"
+                    }
                     rows={1}
-                    $accent={selection.type === "dm" ? (peer?.accentColor ?? VIOLET) : undefined}
+                    $accent={
+                      selection.type === "dm"
+                        ? (peer?.accentColor ?? VIOLET)
+                        : selection.type === "group"
+                          ? colors.green
+                          : undefined
+                    }
                     style={{
                       fontSize: settings.fontSize === "xs" ? 11 : settings.fontSize === "sm" ? 13 : 15,
                     }}
                   />
 
                   <SendBtn
-                    onClick={selection.type === "dm" ? sendDm : sendMessage}
-                    disabled={selection.type === "dm" ? (!dmInput.trim() || dmSending) : ((sending || uploading) || (!input.trim() && !uploadFile))}
-                    $color={selection.type === "dm" ? (peer?.accentColor ?? VIOLET) : undefined}
+                    onClick={
+                      selection.type === "dm"
+                        ? sendDm
+                        : selection.type === "group"
+                          ? sendGroupMessage
+                          : sendMessage
+                    }
+                    disabled={
+                      selection.type === "dm"
+                        ? (!dmInput.trim() || dmSending)
+                        : selection.type === "group"
+                          ? (!groupInput.trim() || groupSending)
+                          : ((sending || uploading) || (!input.trim() && !uploadFile))
+                    }
+                    $color={
+                      selection.type === "dm"
+                        ? (peer?.accentColor ?? VIOLET)
+                        : selection.type === "group"
+                          ? colors.green
+                          : undefined
+                    }
                     title="Send (Enter)"
                   >
-                    {(sending || uploading || dmSending) ? (
+                    {(sending || uploading || dmSending || groupSending) ? (
                       <span style={{ fontSize: "0.5625rem" }}>…</span>
                     ) : (
-                      <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
-                        <path d="M0 12L12 6 0 0v4.5l8.57 1.5L0 7.5z"/>
-                      </svg>
+                      <SendIcon size={14} />
                     )}
                   </SendBtn>
                 </InputRow>
@@ -2514,14 +3297,66 @@ export default function ChatDrawer() {
       )}
 
       {showCreateGroup && (
-        <CreateGroupBackdrop onClick={() => setShowCreateGroup(false)}>
-          <CreateGroupCard onClick={(e) => e.stopPropagation()}>
-            <CreateGroupTitle>Create a group chat</CreateGroupTitle>
-            <CreateGroupText>Group chat creation arrives in the next step (1c — data model + endpoints).</CreateGroupText>
-            <CreateGroupCloseBtn onClick={() => setShowCreateGroup(false)}>Close</CreateGroupCloseBtn>
-          </CreateGroupCard>
-        </CreateGroupBackdrop>
+        <CreateGroupModal
+          profiles={profiles}
+          currentUser={currentUser}
+          onClose={() => setShowCreateGroup(false)}
+          onCreated={(id) => {
+            loadGroups();
+            setSelection({ type: "group", groupId: id });
+            setSidebarTab("groups");
+          }}
+        />
       )}
+
+      {showClearConfirm && (
+        <ClearConfirmOverlay onMouseDown={() => setShowClearConfirm(false)}>
+          <ClearConfirmCard onMouseDown={(e) => e.stopPropagation()}>
+            <ClearConfirmTitle>Clear chat</ClearConfirmTitle>
+            <ClearConfirmBody>
+              {selection.type === "dm"
+                ? `Hide this DM with ${selection.peer.displayName} for you only. Other users keep their view.`
+                : selection.type === "group"
+                  ? "Hide this group's messages for you only. Other members keep their view."
+                  : isExec
+                    ? "Choose scope: clear only your view, or wipe the global chat for everyone."
+                    : "Hide the TGV chat for you only. Other users keep their view."}
+            </ClearConfirmBody>
+            <ClearConfirmActions>
+              <GhostBtn onClick={() => setShowClearConfirm(false)}>Cancel</GhostBtn>
+              <PrimaryBtn onClick={doClearMine}>Clear for me</PrimaryBtn>
+              {isExec && selection.type === "tgv" && (
+                <DangerBtn onClick={doClearGlobal}>Wipe for everyone</DangerBtn>
+              )}
+            </ClearConfirmActions>
+          </ClearConfirmCard>
+        </ClearConfirmOverlay>
+      )}
+
+      {groupAdminId && (() => {
+        const g = groups.find((gg) => gg.id === groupAdminId);
+        if (!g) return null;
+        return (
+          <GroupAdminModal
+            group={{
+              id: g.id,
+              name: g.name,
+              createdBy: g.createdBy ?? "",
+              memberIds: g.memberIds,
+              admins: g.admins ?? [],
+              visibility: g.visibility,
+            }}
+            profiles={profiles}
+            currentUser={currentUser}
+            onClose={() => setGroupAdminId(null)}
+            onChanged={() => loadGroups()}
+            onDeleted={() => {
+              loadGroups();
+              setSelection({ type: "tgv" });
+            }}
+          />
+        );
+      })()}
     </>
   );
 }

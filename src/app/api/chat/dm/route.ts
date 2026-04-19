@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/api-auth";
+import { getClearCutoff, dmChannelKey, filterByCutoff } from "@/lib/chat-clears";
 import fs from "fs";
 import path from "path";
 
@@ -12,6 +13,8 @@ export type DmMessage = {
   content: string;
   createdAt: string;
   editedAt?: string;
+  readBy?: string[];
+  replyTo?: { id: string; from: string; excerpt: string };
 };
 
 type DmDb = { threads: Record<string, DmMessage[]> };
@@ -34,10 +37,15 @@ export async function GET(req: NextRequest) {
   const token = await requireAuth(req);
   if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const username = token.username ?? token.sub ?? "";
+  const isExec = username === "admin" || username === "marmar";
   const withUser = req.nextUrl.searchParams.get("with");
   if (!withUser) return NextResponse.json({ error: "Missing 'with'" }, { status: 400 });
   const db = readDb();
-  const messages = db.threads[threadKey(username, withUser)] ?? [];
+  let messages = db.threads[threadKey(username, withUser)] ?? [];
+  if (!isExec) {
+    const cutoff = getClearCutoff(username, dmChannelKey(username, withUser));
+    messages = filterByCutoff(messages, cutoff);
+  }
   return NextResponse.json({ messages });
 }
 
@@ -57,6 +65,8 @@ export async function POST(req: NextRequest) {
     to: body.to,
     content: body.content.trim(),
     createdAt: new Date().toISOString(),
+    readBy: [],
+    ...(body.replyTo && typeof body.replyTo === "object" ? { replyTo: body.replyTo } : {}),
   };
   db.threads[key].push(msg);
   db.threads[key] = db.threads[key].slice(-500);
