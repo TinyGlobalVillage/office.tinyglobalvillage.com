@@ -28,3 +28,4 @@ export { default as UtilsIcon } from "./UtilsIcon";
 export { default as SuggestionIcon } from "./SuggestionIcon";
 export { default as ProcessesIcon } from "./ProcessesIcon";
 export { default as DeployIcon } from "./DeployIcon";
+export { default as ArrowRightIcon } from "./ArrowRightIcon";

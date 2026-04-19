@@ -104,150 +104,166 @@ const RefreshBtn = styled.button`
   }
 `;
 
-const SbdmContainer = styled.div`
+const DdmWrap = styled.div`
   position: relative;
+  display: inline-block;
 `;
 
-const SearchBar = styled.div`
-  display: flex;
+const DdmTrigger = styled.button<{ $open: boolean }>`
+  display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  border-radius: 0.75rem;
-  padding: 0.5rem 0.75rem;
-  background: var(--t-inputBg);
-  border: 1px solid rgba(${rgb.pink}, 0.22);
-
-  [data-theme="light"] & {
-    background: var(--t-surface);
-    border-color: rgba(${rgb.pink}, 0.3);
-  }
-`;
-
-const SearchIcon = styled.span`
-  font-size: 0.875rem;
-  color: rgba(${rgb.pink}, 0.7);
-`;
-
-const SearchInput = styled.input`
-  flex: 1;
-  background: transparent;
-  outline: none;
-  font-size: 0.875rem;
-  color: var(--t-text);
-  border: none;
-
-  &::placeholder {
-    color: var(--t-textGhost);
-  }
-`;
-
-const DropdownToggle = styled.button`
-  color: ${colors.pink};
+  padding: 0.5rem 1rem;
+  border-radius: 9999px;
   font-size: 0.75rem;
-  padding: 0.25rem 0.5rem;
-  border-radius: 0.375rem;
-  background: transparent;
-  border: none;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
   cursor: pointer;
-  transition: background 0.15s;
+  background: linear-gradient(135deg, rgba(${rgb.violet}, 0.18), rgba(${rgb.pink}, 0.14));
+  border: 1px solid rgba(${rgb.violet}, 0.45);
+  color: ${colors.violet};
+  box-shadow: ${(p) => (p.$open ? `0 0 18px rgba(${rgb.violet}, 0.55)` : `0 0 10px rgba(${rgb.violet}, 0.25)`)};
+  transition: background 0.15s, box-shadow 0.15s, transform 0.12s;
 
   &:hover {
-    background: rgba(${rgb.pink}, 0.1);
+    background: linear-gradient(135deg, rgba(${rgb.violet}, 0.28), rgba(${rgb.pink}, 0.2));
+    box-shadow: 0 0 18px rgba(${rgb.violet}, 0.55);
+  }
+
+  &:active {
+    transform: translateY(1px);
+  }
+
+  [data-theme="light"] & {
+    background: linear-gradient(135deg, rgba(${rgb.violet}, 0.12), rgba(${rgb.pink}, 0.08));
+    border-color: rgba(${rgb.violet}, 0.5);
   }
 `;
 
-const DropdownPanel = styled.div`
+const DdmLabel = styled.span`
+  max-width: 14rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+const DdmTriangle = styled.span<{ $open: boolean }>`
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 6px solid ${colors.violet};
+  filter: drop-shadow(0 0 3px rgba(${rgb.violet}, 0.7));
+  transform: ${(p) => (p.$open ? "rotate(180deg)" : "rotate(0deg)")};
+  transition: transform 0.15s;
+`;
+
+const DdmMenu = styled.div`
   position: absolute;
   left: 0;
-  right: 0;
-  margin-top: 0.5rem;
-  border-radius: 0.75rem;
+  top: calc(100% + 0.5rem);
+  min-width: 16rem;
+  max-width: 24rem;
   z-index: 30;
+  border-radius: 0.875rem;
   overflow: hidden;
-  background: rgba(10, 8, 20, 0.96);
-  border: 1px solid rgba(${rgb.pink}, 0.28);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6), 0 0 24px rgba(${rgb.pink}, 0.12);
+  background: linear-gradient(180deg, rgba(20, 12, 32, 0.98), rgba(10, 8, 20, 0.98));
+  border: 1px solid rgba(${rgb.violet}, 0.4);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6), 0 0 28px rgba(${rgb.violet}, 0.22);
   backdrop-filter: blur(8px);
+  animation: ddmFadeSlide 0.15s ease-out;
+
+  @keyframes ddmFadeSlide {
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
 
   [data-theme="light"] & {
     background: var(--t-surface);
-    border-color: rgba(${rgb.pink}, 0.3);
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
+    border-color: rgba(${rgb.violet}, 0.35);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.12);
   }
 `;
 
-const DropdownHeader = styled.div`
+const DdmHeader = styled.div`
   display: flex;
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem;
-  border-bottom: 1px solid var(--t-border);
+  border-bottom: 1px solid rgba(${rgb.violet}, 0.2);
 `;
 
-const DropdownSearchInput = styled.input`
+const DdmSearchInput = styled.input`
   flex: 1;
-  background: var(--t-inputBg);
-  border-radius: 0.375rem;
-  padding: 0.375rem 0.5rem;
+  background: rgba(${rgb.violet}, 0.08);
+  border-radius: 9999px;
+  padding: 0.4rem 0.8rem;
   font-size: 0.75rem;
   color: var(--t-text);
   outline: none;
-  border: none;
+  border: 1px solid rgba(${rgb.violet}, 0.25);
 
   &::placeholder {
-    color: var(--t-textGhost);
+    color: rgba(${rgb.violet}, 0.55);
   }
 `;
 
-const SortBtn = styled.button`
-  padding: 0.375rem 0.5rem;
-  border-radius: 0.375rem;
+const DdmSortBtn = styled.button`
+  padding: 0.4rem 0.7rem;
+  border-radius: 9999px;
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.05em;
-  background: rgba(${rgb.cyan}, 0.08);
-  border: 1px solid rgba(${rgb.cyan}, 0.3);
-  color: ${colors.cyan};
+  background: rgba(${rgb.violet}, 0.1);
+  border: 1px solid rgba(${rgb.violet}, 0.35);
+  color: ${colors.violet};
   cursor: pointer;
+
+  &:hover {
+    background: rgba(${rgb.violet}, 0.18);
+  }
 `;
 
-const DropdownList = styled.div`
-  max-height: 18rem;
+const DdmList = styled.div`
+  max-height: 20rem;
   overflow-y: auto;
 `;
 
-const DropdownEmpty = styled.div`
-  padding: 0.75rem 1rem;
+const DdmEmpty = styled.div`
+  padding: 0.9rem 1rem;
   font-size: 0.75rem;
-  color: var(--t-textGhost);
+  color: rgba(${rgb.violet}, 0.7);
   text-align: center;
 `;
 
-const DropdownItem = styled.button<{ $dotColor: string }>`
+const DdmItem = styled.button<{ $dotColor: string; $active?: boolean }>`
   width: 100%;
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.5rem 0.75rem;
+  padding: 0.55rem 0.85rem;
   text-align: left;
   font-size: 0.75rem;
-  color: var(--t-textMuted);
-  background: transparent;
+  color: ${(p) => (p.$active ? colors.violet : "var(--t-textMuted)")};
+  background: ${(p) => (p.$active ? `rgba(${rgb.violet}, 0.15)` : "transparent")};
   border: none;
   cursor: pointer;
-  transition: background 0.15s;
+  transition: background 0.12s, color 0.12s;
 
   &:hover {
-    background: var(--t-inputBg);
+    background: rgba(${rgb.violet}, 0.12);
+    color: ${colors.violet};
   }
 
   &::before {
     content: "";
-    width: 0.375rem;
-    height: 0.375rem;
+    width: 0.4rem;
+    height: 0.4rem;
     border-radius: 9999px;
     flex-shrink: 0;
     background: ${(p) => p.$dotColor};
+    box-shadow: 0 0 4px ${(p) => p.$dotColor};
   }
 `;
 
@@ -535,55 +551,60 @@ export default function DeployPage() {
           </HeaderActions>
         </HeaderRow>
 
-        {/* SBDM */}
-        <SbdmContainer ref={sbdmRef}>
-          <SearchBar>
-            <SearchIcon>🔍</SearchIcon>
-            <SearchInput
-              value={filter}
-              onChange={(e) => setFilter(e.target.value)}
-              placeholder="Filter projects…"
-            />
-            <DropdownToggle
-              onClick={() => setOpen((v) => !v)}
-              aria-label="Open project list"
-            >
-              ▾
-            </DropdownToggle>
-          </SearchBar>
+        {/* DDM */}
+        <DdmWrap ref={sbdmRef}>
+          <DdmTrigger
+            $open={open}
+            onClick={() => setOpen((v) => !v)}
+            aria-haspopup="menu"
+            aria-expanded={open}
+          >
+            <DdmLabel>{filter ? filter : "All Projects"}</DdmLabel>
+            <DdmTriangle $open={open} />
+          </DdmTrigger>
 
           {open && (
-            <DropdownPanel>
-              <DropdownHeader>
-                <DropdownSearchInput
+            <DdmMenu role="menu">
+              <DdmHeader>
+                <DdmSearchInput
                   value={inner}
                   onChange={(e) => setInner(e.target.value)}
-                  placeholder="Search…"
+                  placeholder="Search projects…"
                   autoFocus
                 />
-                <SortBtn onClick={() => setAsc((v) => !v)}>
+                <DdmSortBtn onClick={() => setAsc((v) => !v)}>
                   {asc ? "Z-A" : "A-Z"}
-                </SortBtn>
-              </DropdownHeader>
-              <DropdownList>
+                </DdmSortBtn>
+              </DdmHeader>
+              <DdmList>
+                {filter && (
+                  <DdmItem
+                    $dotColor="#6b7280"
+                    onClick={() => { setFilter(""); setInner(""); setOpen(false); }}
+                  >
+                    <em style={{ fontStyle: "normal", opacity: 0.75 }}>Clear filter · All Projects</em>
+                  </DdmItem>
+                )}
                 {panelList.length === 0 ? (
-                  <DropdownEmpty>No matches</DropdownEmpty>
+                  <DdmEmpty>No matches</DdmEmpty>
                 ) : panelList.map((p) => {
                   const dot = p.pm2Status ? (STATUS_COLOR[p.pm2Status] ?? "#6b7280") : "#6b7280";
                   return (
-                    <DropdownItem
+                    <DdmItem
                       key={p.name}
                       $dotColor={dot}
-                      onClick={() => { setFilter(p.name); setOpen(false); }}
+                      $active={filter === p.name}
+                      role="menuitem"
+                      onClick={() => { setFilter(p.name); setInner(""); setOpen(false); }}
                     >
                       {p.name}
-                    </DropdownItem>
+                    </DdmItem>
                   );
                 })}
-              </DropdownList>
-            </DropdownPanel>
+              </DdmList>
+            </DdmMenu>
           )}
-        </SbdmContainer>
+        </DdmWrap>
 
         {/* Grid */}
         {loading ? (

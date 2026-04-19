@@ -7,6 +7,7 @@ import { colors, rgb } from "../theme";
 import ProfileModal, { type Profile, type Memo, type Ping, hexToRgb } from "./ProfileModal";
 import { UserAvatar } from "./ChatSettingsModal";
 import type { UserPresence } from "./PresenceDots";
+import { ArrowRightIcon } from "./icons";
 
 const MOBILE_PAGE_SIZE = 5;
 const TILE_MIN_WIDTH = 200;
@@ -181,15 +182,16 @@ const UnreadBadge = styled.span<{ $accent: string }>`
 `;
 
 const ArrowHint = styled.span`
-  font-size: 30px;
-  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   color: ${colors.violet};
   flex-shrink: 0;
-  transition: color 0.15s, text-shadow 0.15s, transform 0.15s;
+  filter: drop-shadow(0 0 4px rgba(${rgb.violet}, 0.55));
+  transition: transform 0.15s, filter 0.15s;
 
   ${UserBtn}:hover & {
-    color: ${colors.violet};
-    text-shadow: 0 0 10px rgba(${rgb.violet}, 0.6);
+    filter: drop-shadow(0 0 10px rgba(${rgb.violet}, 0.85));
     transform: translateX(2px);
   }
 `;
@@ -326,7 +328,10 @@ export default function UsersCard({ className = "" }: { className?: string }) {
 
               <InfoCol>
                 <DisplayName $accent={accent}>{p.displayName}</DisplayName>
-                <SubText $accent={accent}>{p.title || p.email}</SubText>
+                <SubText $accent={accent}>
+                  {p.title || p.email}
+                  {pres?.lastSeen ? ` - last seen ${pres.lastSeen}` : ""}
+                </SubText>
               </InfoCol>
 
               {myUnreadPings.length > 0 && (
@@ -335,7 +340,9 @@ export default function UsersCard({ className = "" }: { className?: string }) {
                 </UnreadBadge>
               )}
 
-              <ArrowHint>&rarr;</ArrowHint>
+              <ArrowHint>
+                <ArrowRightIcon size={28} />
+              </ArrowHint>
             </UserBtn>
           );
         })}
