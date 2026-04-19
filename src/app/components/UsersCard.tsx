@@ -417,14 +417,16 @@ export default function UsersCard({
 
   return (
     <Card className={className} $embedded={embedded}>
-      <HeaderRow>
-        <Title>Team</Title>
-        {unreadPings > 0 && (
-          <PingBadge>
-            {unreadPings} ping{unreadPings !== 1 ? "s" : ""}
-          </PingBadge>
-        )}
-      </HeaderRow>
+      {(!embedded || unreadPings > 0) && (
+        <HeaderRow>
+          {!embedded && <Title>Team</Title>}
+          {unreadPings > 0 && (
+            <PingBadge>
+              {unreadPings} ping{unreadPings !== 1 ? "s" : ""}
+            </PingBadge>
+          )}
+        </HeaderRow>
+      )}
 
       <UserList ref={listRef} $cols={cols}>
         {pageProfiles.map((p) => {
