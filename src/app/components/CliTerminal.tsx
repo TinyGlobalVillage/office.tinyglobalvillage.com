@@ -74,6 +74,10 @@ const ToggleButton = styled.button<{ $running: boolean }>`
         ? `0 0 16px rgba(${rgb.gold}, 0.4)`
         : `0 0 16px rgba(${rgb.pink}, 0.35)`};
   }
+
+  body[data-dashboard-modal="open"][data-dashboard-sidebar="hidden"] & {
+    display: none;
+  }
 `;
 
 const ToggleIcon = styled.span`

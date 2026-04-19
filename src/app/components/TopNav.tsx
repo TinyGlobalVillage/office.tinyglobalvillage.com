@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import styled from "styled-components";
 import ProfileModal, { type Profile, type Memo, type Ping } from "./ProfileModal";
 import { UserAvatar } from "./ChatSettingsModal";
@@ -381,7 +381,9 @@ const DrawerTab = styled.button<{ $hidden?: boolean; $navH: number }>`
 
 /* ── Component ───────────��─────────────────────────────────────── */
 
-export default function TopNav() {
+function TopNavInner() {
+  const searchParams = useSearchParams();
+  const embedded = searchParams?.get("embedded") === "1";
   const [scrolled, setScrolled] = useState(false);
   const [hidden, setHidden] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -518,6 +520,8 @@ export default function TopNav() {
       </ChipBtn>
     );
   };
+
+  if (embedded) return null;
 
   return (
     <>
@@ -662,4 +666,12 @@ function hexToRgb(hex: string): string {
   const g = parseInt(clean.slice(2, 4), 16);
   const b = parseInt(clean.slice(4, 6), 16);
   return `${r},${g},${b}`;
+}
+
+export default function TopNav() {
+  return (
+    <Suspense fallback={null}>
+      <TopNavInner />
+    </Suspense>
+  );
 }

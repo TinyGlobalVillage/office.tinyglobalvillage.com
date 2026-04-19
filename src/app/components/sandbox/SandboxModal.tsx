@@ -605,6 +605,11 @@ const FileSidebar = styled(PanelSidebar)<{ $w: number }>`
   transition: ${(p) => (p.$w === 0 ? "width 0.2s" : "none")};
   overflow: ${(p) => (p.$w < 80 ? "hidden" : "auto")};
   ${sandboxScrollbar}
+
+  @media (max-width: 640px) {
+    width: ${(p) => (p.$w === 0 ? "0" : "33vw")};
+    max-width: 33vw;
+  }
 `;
 
 // DTog grip — 3 stacked horizontal bars bracketed by up/down neon triangles.

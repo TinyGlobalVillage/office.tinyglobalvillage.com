@@ -1,6 +1,7 @@
 "use client";
 
-import { ReactNode } from "react";
+import { ReactNode, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { TerminalProvider } from "./TerminalProvider";
 import { PreviewProvider } from "./PreviewDrawer";
 import CliTerminal from "./CliTerminal";
@@ -13,7 +14,22 @@ import ChatDrawer from "./ChatDrawer";
 import InboxDrawer from "./InboxDrawer";
 import SessionsDrawer from "./SessionsDrawer";
 
-export default function ClientShell({ children }: { children: ReactNode }) {
+function ShellInner({ children }: { children: ReactNode }) {
+  const searchParams = useSearchParams();
+  const embedded = searchParams?.get("embedded") === "1";
+
+  if (embedded) {
+    // Embedded mode: stripped-down shell for iframe-mounted dashboard modals.
+    // Skip drawers, terminal, preview — the host window owns those.
+    return (
+      <TerminalProvider>
+        <PreviewProvider>
+          {children}
+        </PreviewProvider>
+      </TerminalProvider>
+    );
+  }
+
   return (
     <TerminalProvider>
       <PreviewProvider>
@@ -29,5 +45,19 @@ export default function ClientShell({ children }: { children: ReactNode }) {
         <PreviewDrawer />
       </PreviewProvider>
     </TerminalProvider>
+  );
+}
+
+export default function ClientShell({ children }: { children: ReactNode }) {
+  return (
+    <Suspense
+      fallback={
+        <TerminalProvider>
+          <PreviewProvider>{children}</PreviewProvider>
+        </TerminalProvider>
+      }
+    >
+      <ShellInner>{children}</ShellInner>
+    </Suspense>
   );
 }

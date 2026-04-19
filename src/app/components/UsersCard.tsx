@@ -25,6 +25,8 @@ const Card = styled.div`
   flex-direction: column;
   gap: 12px;
   height: 100%;
+  min-width: 0;
+  overflow: hidden;
   box-shadow: 0 0 24px rgba(${rgb.violet}, 0.06);
 
   [data-theme="light"] & {
@@ -62,6 +64,7 @@ const UserList = styled.div<{ $cols: number }>`
   display: grid;
   grid-template-columns: repeat(${(p) => p.$cols}, minmax(0, 1fr));
   gap: 8px;
+  min-width: 0;
 `;
 
 const TpgRow = styled.div`
@@ -71,6 +74,13 @@ const TpgRow = styled.div`
   flex-wrap: wrap;
   gap: 10px;
   padding-top: 6px;
+
+  @media (max-width: 599px) {
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
 `;
 
 const TpgInfo = styled.span`
@@ -85,6 +95,11 @@ const TpgControls = styled.div`
   display: flex;
   align-items: center;
   gap: 8px;
+
+  @media (max-width: 599px) {
+    justify-content: center;
+    flex-wrap: wrap;
+  }
 `;
 
 const TpgSelect = styled.select`
@@ -196,6 +211,8 @@ const UserBtn = styled.button`
   transition: all 0.15s;
   text-align: left;
   width: 100%;
+  min-width: 0;
+  overflow: hidden;
   background: rgba(255, 255, 255, 0.03);
   border: none;
   cursor: pointer;
@@ -235,6 +252,9 @@ const DisplayName = styled.span<{ $accent: string }>`
   color: ${({ $accent }) => $accent};
   text-shadow: ${({ $accent }) => `0 0 6px rgba(${hexToRgb($accent)}, 0.45)`};
   line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const SubText = styled.span<{ $accent: string }>`

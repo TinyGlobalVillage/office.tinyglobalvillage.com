@@ -538,6 +538,10 @@ export const DrawerTab = styled.button<{ $side?: "left" | "right"; $accent?: Glo
   [data-theme="light"] & {
     border-color: rgba(${(p) => rgb[p.$accent || "pink"]}, 0.3);
   }
+
+  body[data-dashboard-modal="open"][data-dashboard-sidebar="hidden"] & {
+    display: none;
+  }
 `;
 
 export const DrawerTabLabel = styled.span`

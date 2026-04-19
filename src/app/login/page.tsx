@@ -244,6 +244,23 @@ const HintText = styled.p`
   text-align: center;
 `;
 
+const RememberRow = styled.label`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--t-textMuted);
+  cursor: pointer;
+  user-select: none;
+`;
+
+const RememberCheck = styled.input`
+  width: 14px;
+  height: 14px;
+  accent-color: ${colors.pink};
+  cursor: pointer;
+`;
+
 const PinkLink = styled.a`
   text-decoration: underline;
   color: ${colors.pink};
@@ -292,6 +309,9 @@ function SubmitBtn({ loading, label }: { loading: boolean; label: string }) {
 
 /* ── LoginForm ─────────────────────────────────────────────── */
 
+const REMEMBER_USER_KEY = "tgv-office-remember-user";
+const REMEMBER_FLAG_KEY = "tgv-office-remember-enabled";
+
 function LoginForm() {
   const [method, setMethod] = useState<Method>("password");
   const [username, setUsername] = useState("");
@@ -300,10 +320,35 @@ function LoginForm() {
   const [error, setError] = useState("");
   const [info, setInfo] = useState("");
   const [loading, setLoading] = useState(false);
+  const [remember, setRemember] = useState(true);
   const searchParams = useSearchParams();
   const router = useRouter();
 
   const callbackUrl = searchParams.get("callbackUrl") || "/verify-2fa";
+
+  // Hydrate pre-fill + remember preference from localStorage on mount.
+  useEffect(() => {
+    try {
+      const savedFlag = window.localStorage.getItem(REMEMBER_FLAG_KEY);
+      const flag = savedFlag === null ? true : savedFlag === "1";
+      setRemember(flag);
+      if (flag) {
+        const savedUser = window.localStorage.getItem(REMEMBER_USER_KEY);
+        if (savedUser) {
+          setUsername(savedUser);
+          setMagicEmail(savedUser.includes("@") ? savedUser : "");
+        }
+      }
+    } catch { /* ignore */ }
+  }, []);
+
+  const persistRemember = (u: string) => {
+    try {
+      window.localStorage.setItem(REMEMBER_FLAG_KEY, remember ? "1" : "0");
+      if (remember && u) window.localStorage.setItem(REMEMBER_USER_KEY, u);
+      else window.localStorage.removeItem(REMEMBER_USER_KEY);
+    } catch { /* ignore */ }
+  };
 
   async function handlePassword(e: FormEvent) {
     e.preventDefault();
@@ -315,6 +360,7 @@ function LoginForm() {
     if (res?.error) {
       setError("Invalid username or password.");
     } else {
+      persistRemember(username);
       router.push("/verify-2fa");
     }
   }
@@ -376,6 +422,7 @@ function LoginForm() {
       const data = await verifyRes.json();
       setLoading(false);
       if (data.ok) {
+        persistRemember(username);
         router.push("/verify-2fa");
         router.refresh();
       } else {
@@ -407,6 +454,7 @@ function LoginForm() {
       if (data.error) {
         setError(data.error);
       } else {
+        persistRemember(magicEmail);
         setInfo(
           `Check your inbox at ${magicEmail} — link expires in 15 minutes.`
         );
@@ -469,6 +517,14 @@ function LoginForm() {
             onChange={setPassword}
             autoComplete="current-password"
           />
+          <RememberRow>
+            <RememberCheck
+              type="checkbox"
+              checked={remember}
+              onChange={(e) => setRemember(e.target.checked)}
+            />
+            Remember this device
+          </RememberRow>
           {error && <ErrMsg msg={error} />}
           <SubmitBtn loading={loading} label="Sign In" />
         </FormInner>
@@ -483,6 +539,14 @@ function LoginForm() {
             onChange={setUsername}
             autoComplete="username"
           />
+          <RememberRow>
+            <RememberCheck
+              type="checkbox"
+              checked={remember}
+              onChange={(e) => setRemember(e.target.checked)}
+            />
+            Remember this device
+          </RememberRow>
           <HintText>
             Your browser will prompt for Face ID, Touch ID, or your hardware
             key.
@@ -508,6 +572,14 @@ function LoginForm() {
             onChange={setMagicEmail}
             autoComplete="email"
           />
+          <RememberRow>
+            <RememberCheck
+              type="checkbox"
+              checked={remember}
+              onChange={(e) => setRemember(e.target.checked)}
+            />
+            Remember this device
+          </RememberRow>
           {error && <ErrMsg msg={error} />}
           {info && <InfoText>{info}</InfoText>}
           <SubmitBtn loading={loading} label="Send Magic Link ✉" />

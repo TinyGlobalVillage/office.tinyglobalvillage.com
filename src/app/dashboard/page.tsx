@@ -3,7 +3,6 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import styled from "styled-components";
 import TopNav from "../components/TopNav";
-import DashCard from "../components/DashCard";
 import UsersCard from "../components/UsersCard";
 import ActivityModal from "../components/ActivityModal";
 import AnnouncementsPanel from "../components/AnnouncementsPanel";
@@ -14,8 +13,8 @@ import SandboxModal from "../components/sandbox/SandboxModal";
 import LibraryIcon from "../components/LibraryIcon";
 import LibraryModal from "../components/LibraryModal";
 import SuggestionBoxModal from "../components/suggestion/SuggestionBoxModal";
+import DashboardPageModal from "../components/DashboardPageModal";
 import { DatabaseIcon, StorageIcon, EditorIcon, UtilsIcon, SuggestionIcon, ProcessesIcon, DeployIcon } from "../components/icons";
-import Link from "next/link";
 import { colors, rgb, type GlowColor } from "@/app/theme";
 
 type DashTile = {
@@ -24,7 +23,7 @@ type DashTile = {
   subtitle: string;
   glow: GlowColor;
   icon: React.ReactNode;
-  href?: string;
+  pageKey?: string;
   onClick?: () => void;
 };
 
@@ -42,6 +41,10 @@ const TYPE_COLOR: Record<string, string> = {
 };
 
 const TILE_LIMIT = 10;
+const TILES_COLLAPSED_KEY = "tgv_dash_tiles_collapsed";
+const TEAM_COLLAPSED_KEY = "tgv_dash_team_collapsed";
+const ACTIVITY_COLLAPSED_KEY = "tgv_dash_activity_collapsed";
+const MASTER_COLLAPSED_KEY = "tgv_dash_master_collapsed";
 
 /* ── Styled ────────────────────────────────────────────────────── */
 
@@ -64,23 +67,48 @@ const HeroTitle = styled.h1`
   font-weight: 700;
   line-height: 1.15;
   margin: 1.25rem 0 0.75rem;
-  color: ye;
-  text-shadow: 0 0 8px #ff66cc, 0 0 20px ${colors.pink};
+  color: ${colors.pink};
+  filter: url(#tgv-hero-outline);
+  text-shadow:
+    0 0 10px rgba(${rgb.pink}, 0.55),
+    0 0 22px rgba(${rgb.pink}, 0.3);
 
   @media (min-width: 768px) {
     font-size: 3rem;
   }
 
   [data-theme="light"] & {
+    color: ${colors.pink};
+    filter: none;
     text-shadow: none;
   }
 `;
 
+/* SVG filter that rasterizes text then subtracts an eroded inner copy, so the
+   outline is one unified hollow shape — adjacent glyph stems (e.g. "ff") merge
+   instead of showing per-glyph outlines. */
+const HeroFilterDefs = () => (
+  <svg width="0" height="0" style={{ position: "absolute" }} aria-hidden="true">
+    <defs>
+      <filter id="tgv-hero-outline" x="-5%" y="-5%" width="110%" height="110%">
+        <feMorphology operator="erode" radius="1.5" in="SourceAlpha" result="inner" />
+        <feComposite operator="out" in="SourceGraphic" in2="inner" />
+      </filter>
+    </defs>
+  </svg>
+);
+
 const HeroSub = styled.p`
-  color: var(--t-textMuted);
+  color: ${colors.pink};
   font-size: 1rem;
   max-width: 32rem;
   margin: 0;
+  text-shadow: 0 0 8px rgba(${rgb.pink}, 0.45);
+
+  [data-theme="light"] & {
+    color: ${colors.pink};
+    text-shadow: none;
+  }
 `;
 
 const SBDMWrap = styled.section`
@@ -228,6 +256,106 @@ const SBDMSub = styled.span`
   color: ${colors.pink};
 `;
 
+const SectionTile = styled.section<{ $accent: GlowColor }>`
+  position: relative;
+  border-radius: 1rem;
+  padding: 0.75rem;
+  background: rgba(${(p) => rgb[p.$accent]}, 0.04);
+  border: 1px solid rgba(${(p) => rgb[p.$accent]}, 0.15);
+  box-shadow: 0 0 24px rgba(${(p) => rgb[p.$accent]}, 0.08);
+
+  [data-theme="light"] & {
+    background: rgba(${(p) => rgb[p.$accent]}, 0.03);
+    border-color: rgba(${(p) => rgb[p.$accent]}, 0.1);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+  }
+`;
+
+const TilesTile = styled(SectionTile)``;
+
+const MasterAdl = styled(SectionTile)`
+  padding: 0.75rem;
+  margin-bottom: 1rem;
+`;
+
+const MasterBody = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 0.5rem;
+`;
+
+const SectionHeader = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.125rem 0.375rem 0.5rem;
+  width: 100%;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+`;
+
+const TilesHeader = SectionHeader;
+
+const SectionTitle = styled.h2<{ $accent: GlowColor }>`
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: ${(p) => colors[p.$accent]};
+  margin: 0;
+`;
+
+const TilesTitle = styled(SectionTitle)``;
+
+const EclRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+`;
+
+const EclLabel = styled.span`
+  font-size: 0.5rem;
+  color: var(--t-textGhost);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+`;
+
+const EclSwitch = styled.button<{ $on: boolean; $accent: GlowColor }>`
+  position: relative;
+  display: inline-block;
+  width: 28px;
+  height: 14px;
+  border-radius: 999px;
+  border: 1px solid ${(p) => (p.$on ? `rgba(${rgb[p.$accent]}, 0.7)` : "var(--t-borderStrong)")};
+  background: ${(p) => (p.$on ? `rgba(${rgb[p.$accent]}, 0.2)` : "var(--t-inputBg)")};
+  box-shadow: ${(p) => (p.$on ? `0 0 8px rgba(${rgb[p.$accent]}, 0.45)` : "none")};
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+  transition: all 0.18s;
+
+  &::after {
+    content: "";
+    position: absolute;
+    top: 1px;
+    left: ${(p) => (p.$on ? "15px" : "1px")};
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: ${(p) => (p.$on ? colors[p.$accent] : "var(--t-textFaint)")};
+    box-shadow: ${(p) =>
+      p.$on
+        ? `0 0 8px rgba(${rgb[p.$accent]}, 0.85), 0 0 2px rgba(${rgb[p.$accent]}, 1)`
+        : "0 1px 2px rgba(0,0,0,0.3)"};
+    transition: all 0.18s;
+  }
+`;
+
 const TileGrid = styled.section`
   display: grid;
   grid-template-columns: 1fr;
@@ -313,8 +441,8 @@ const PagerBtn = styled.button`
   color: var(--t-textMuted);
 
   &:hover {
-    border-color: rgba(${rgb.cyan}, 0.5);
-    color: ${colors.cyan};
+    border-color: rgba(${rgb.pink}, 0.5);
+    color: ${colors.pink};
   }
 
   &:disabled {
@@ -347,6 +475,16 @@ const BottomGrid = styled.div<{ $teamFullRow: boolean }>`
   }
 `;
 
+const ActivitySub = styled.p`
+  font-size: 0.75rem;
+  color: rgba(${rgb.cyan}, 0.65);
+  margin: 0 0 0.75rem;
+
+  [data-theme="light"] & {
+    color: rgba(${rgb.cyan}, 0.8);
+  }
+`;
+
 const ActivityDivider = styled.div`
   display: flex;
   flex-direction: column;
@@ -363,10 +501,14 @@ const ActivityRow = styled.div`
 const ActivityTime = styled.span`
   font-size: 0.625rem;
   font-family: var(--font-geist-mono), monospace;
-  color: var(--t-textGhost);
+  color: rgba(${rgb.cyan}, 0.55);
   width: 3rem;
   flex-shrink: 0;
   text-align: right;
+
+  [data-theme="light"] & {
+    color: rgba(${rgb.cyan}, 0.7);
+  }
 `;
 
 const ActivityType = styled.span<{ $type: string }>`
@@ -381,16 +523,24 @@ const ActivityType = styled.span<{ $type: string }>`
 
 const ActivityText = styled.span`
   font-size: 0.75rem;
-  color: var(--t-textMuted);
+  color: rgba(${rgb.cyan}, 0.75);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+
+  [data-theme="light"] & {
+    color: rgba(${rgb.cyan}, 0.9);
+  }
 `;
 
 const MoreLabel = styled.p`
   font-size: 0.625rem;
-  color: var(--t-textGhost);
+  color: rgba(${rgb.cyan}, 0.55);
   margin: 0.5rem 0 0;
+
+  [data-theme="light"] & {
+    color: rgba(${rgb.cyan}, 0.7);
+  }
 `;
 
 /* ── Component ─────────────────────────────────────────────────── */
@@ -410,6 +560,33 @@ export default function Home() {
   const sbdmRef = useRef<HTMLDivElement | null>(null);
   const [page, setPage] = useState(0);
   const [teamPageSize, setTeamPageSize] = useState(5);
+  const [modalPage, setModalPage] = useState<{ pageKey: string; title: string; glow: GlowColor } | null>(null);
+  const [tilesExpanded, setTilesExpanded] = useState(true);
+  const [teamExpanded, setTeamExpanded] = useState(true);
+  const [activityExpanded, setActivityExpanded] = useState(true);
+  const [masterExpanded, setMasterExpanded] = useState(true);
+
+  useEffect(() => {
+    try {
+      if (localStorage.getItem(TILES_COLLAPSED_KEY) === "1") setTilesExpanded(false);
+      if (localStorage.getItem(TEAM_COLLAPSED_KEY) === "1") setTeamExpanded(false);
+      if (localStorage.getItem(ACTIVITY_COLLAPSED_KEY) === "1") setActivityExpanded(false);
+      if (localStorage.getItem(MASTER_COLLAPSED_KEY) === "1") setMasterExpanded(false);
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    try { localStorage.setItem(TILES_COLLAPSED_KEY, tilesExpanded ? "0" : "1"); } catch {}
+  }, [tilesExpanded]);
+  useEffect(() => {
+    try { localStorage.setItem(TEAM_COLLAPSED_KEY, teamExpanded ? "0" : "1"); } catch {}
+  }, [teamExpanded]);
+  useEffect(() => {
+    try { localStorage.setItem(ACTIVITY_COLLAPSED_KEY, activityExpanded ? "0" : "1"); } catch {}
+  }, [activityExpanded]);
+  useEffect(() => {
+    try { localStorage.setItem(MASTER_COLLAPSED_KEY, masterExpanded ? "0" : "1"); } catch {}
+  }, [masterExpanded]);
 
   useEffect(() => {
     fetch("/api/activity")
@@ -446,12 +623,12 @@ export default function Home() {
   useEffect(() => { setPage(0); }, [filter]);
 
   const tiles: DashTile[] = useMemo(() => [
-    { key: "Processes", title: "Processes", subtitle: "PM2", glow: "cyan", icon: <ProcessesIcon size={28} style={{ color: colors.cyan }} />, href: "/dashboard/processes" },
-    { key: "Deploy", title: "Deploy", subtitle: "Projects", glow: "pink", icon: <DeployIcon size={28} style={{ color: colors.pink }} />, href: "/dashboard/deploy" },
-    { key: "Database", title: "Database", subtitle: "PostgreSQL", glow: "gold", icon: <DatabaseIcon size={28} style={{ color: colors.gold }} />, href: "/dashboard/database" },
-    { key: "Storage", title: "Storage", subtitle: "Files", glow: "pink", icon: <StorageIcon size={28} style={{ color: colors.pink }} />, href: "/dashboard/storage" },
-    { key: "Editor", title: "Editor", subtitle: "Code", glow: "gold", icon: <EditorIcon size={28} style={{ color: colors.gold }} />, href: "/dashboard/editor" },
-    { key: "Utils", title: "Utils", subtitle: "Tooling", glow: "cyan", icon: <UtilsIcon size={28} style={{ color: colors.cyan }} />, href: "/dashboard/utils" },
+    { key: "Processes", title: "Processes", subtitle: "PM2", glow: "cyan", icon: <ProcessesIcon size={28} style={{ color: colors.cyan }} />, pageKey: "processes" },
+    { key: "Deploy", title: "Deploy", subtitle: "Projects", glow: "pink", icon: <DeployIcon size={28} style={{ color: colors.pink }} />, pageKey: "deploy" },
+    { key: "Database", title: "Database", subtitle: "PostgreSQL", glow: "gold", icon: <DatabaseIcon size={28} style={{ color: colors.gold }} />, pageKey: "database" },
+    { key: "Storage", title: "Storage", subtitle: "Files", glow: "pink", icon: <StorageIcon size={28} style={{ color: colors.pink }} />, pageKey: "storage" },
+    { key: "Editor", title: "Editor", subtitle: "Code", glow: "gold", icon: <EditorIcon size={28} style={{ color: colors.gold }} />, pageKey: "editor" },
+    { key: "Utils", title: "Utils", subtitle: "Tooling", glow: "cyan", icon: <UtilsIcon size={28} style={{ color: colors.cyan }} />, pageKey: "utils" },
     { key: "Claude", title: "Claude", subtitle: "AI Assistant", glow: "orange", icon: <ClaudeIcon size={28} color={colors.orange} />, onClick: () => setClaudeOpen(true) },
     { key: "Sandbox", title: "Sandbox", subtitle: "Component Lab", glow: "pink", icon: <SandboxIcon size={28} color={colors.pink} />, onClick: () => setSandboxOpen(true) },
     { key: "Library", title: "Library", subtitle: "Catalog", glow: "violet", icon: <LibraryIcon size={28} color={colors.violet} />, onClick: () => setLibraryOpen(true) },
@@ -484,7 +661,16 @@ export default function Home() {
       {sandboxOpen && <SandboxModal onClose={() => setSandboxOpen(false)} />}
       {libraryOpen && <LibraryModal onClose={() => setLibraryOpen(false)} />}
       {suggestionOpen && <SuggestionBoxModal onClose={() => setSuggestionOpen(false)} />}
+      {modalPage && (
+        <DashboardPageModal
+          pageKey={modalPage.pageKey}
+          title={modalPage.title}
+          glow={modalPage.glow}
+          onClose={() => setModalPage(null)}
+        />
+      )}
       <TopNav />
+      <HeroFilterDefs />
       <Main>
         <Hero>
           <div style={{ height: "1.25rem" }} />
@@ -495,6 +681,54 @@ export default function Home() {
           </HeroSub>
         </Hero>
 
+        <div style={{ marginBottom: "1rem" }}><AnnouncementsPanel /></div>
+
+        {(() => {
+          const anyInnerExpanded = tilesExpanded || teamExpanded || activityExpanded;
+          const toggleAll = () => {
+            const next = !anyInnerExpanded;
+            setTilesExpanded(next);
+            setTeamExpanded(next);
+            setActivityExpanded(next);
+            setMasterExpanded(next);
+          };
+          const showBody = masterExpanded || anyInnerExpanded;
+          return (
+        <MasterAdl $accent="pink">
+          <SectionHeader
+            type="button"
+            onClick={toggleAll}
+            aria-expanded={anyInnerExpanded}
+            aria-label={anyInnerExpanded ? "Collapse all" : "Expand all"}
+          >
+            <SectionTitle $accent="pink">Dashboard</SectionTitle>
+            <EclRow>
+              <EclLabel>{anyInnerExpanded ? "Collapse All" : "Expand All"}</EclLabel>
+              <EclSwitch as="span" $on={anyInnerExpanded} $accent="pink" aria-hidden="true" />
+            </EclRow>
+          </SectionHeader>
+          {showBody && (
+            <MasterBody>
+
+        <TilesTile $accent="orange">
+          <TilesHeader
+            type="button"
+            onClick={() => setTilesExpanded((v) => !v)}
+            aria-expanded={tilesExpanded}
+            aria-label={tilesExpanded ? "Collapse Office tiles" : "Expand Office tiles"}
+          >
+            <TilesTitle $accent="orange">Office</TilesTitle>
+            <EclRow>
+              <EclLabel>{tilesExpanded ? "Collapse" : "Expand"}</EclLabel>
+              <EclSwitch
+                as="span"
+                $on={tilesExpanded}
+                $accent="orange"
+                aria-hidden="true"
+              />
+            </EclRow>
+          </TilesHeader>
+          {tilesExpanded && (<>
         <SBDMWrap ref={sbdmRef}>
           <SBDMBar>
             <SBDMIcon>🔍</SBDMIcon>
@@ -552,18 +786,14 @@ export default function Home() {
                   <TileSub>{tile.subtitle}</TileSub>
                 </TileOuter>
               );
-              if (tile.href) {
-                return (
-                  <Link key={tile.key} href={tile.href} style={{ textDecoration: "none" }}>
-                    {inner}
-                  </Link>
-                );
-              }
+              const handleClick = tile.pageKey
+                ? () => setModalPage({ pageKey: tile.pageKey!, title: tile.title, glow: tile.glow })
+                : tile.onClick;
               return (
                 <button
                   key={tile.key}
-                  onClick={tile.onClick}
-                  style={{ padding: 0, background: "none", border: "none", textAlign: "left" }}
+                  onClick={handleClick}
+                  style={{ padding: 0, background: "none", border: "none", textAlign: "left", cursor: "pointer" }}
                 >
                   {inner}
                 </button>
@@ -591,37 +821,73 @@ export default function Home() {
             </PagerBtn>
           </PagerRow>
         )}
-
-        <div style={{ marginBottom: "1rem" }}><AnnouncementsPanel /></div>
+          </>)}
+        </TilesTile>
 
         <BottomGrid $teamFullRow={teamPageSize > 5}>
-          <UsersCard onPageSizeChange={setTeamPageSize} />
-          <button
-            onClick={() => setActivityOpen(true)}
-            style={{ textAlign: "left", width: "100%", height: "100%", padding: 0, background: "none", border: "none" }}
-          >
-            <DashCard title="Recent Activity" subtitle="Click to expand · PM2 + git" glow="cyan" >
-              <ActivityDivider>
-                {activity.length === 0 ? (
-                  <div style={{ padding: "0.75rem 0", fontSize: "0.75rem", color: "var(--t-textGhost)" }}>
-                    Loading activity…
-                  </div>
-                ) : (
-                  activity.slice(0, 5).map((item, i) => (
-                    <ActivityRow key={i}>
-                      <ActivityTime>{item.timeLabel}</ActivityTime>
-                      <ActivityType $type={item.type}>{item.type}</ActivityType>
-                      <ActivityText>{item.event}</ActivityText>
-                    </ActivityRow>
-                  ))
+          <SectionTile $accent="violet">
+            <SectionHeader
+              type="button"
+              onClick={() => setTeamExpanded((v) => !v)}
+              aria-expanded={teamExpanded}
+              aria-label={teamExpanded ? "Collapse Team" : "Expand Team"}
+            >
+              <SectionTitle $accent="violet">Team</SectionTitle>
+              <EclRow>
+                <EclLabel>{teamExpanded ? "Collapse" : "Expand"}</EclLabel>
+                <EclSwitch as="span" $on={teamExpanded} $accent="violet" aria-hidden="true" />
+              </EclRow>
+            </SectionHeader>
+            {teamExpanded && <UsersCard onPageSizeChange={setTeamPageSize} />}
+          </SectionTile>
+
+          <SectionTile $accent="cyan">
+            <SectionHeader
+              type="button"
+              onClick={() => setActivityExpanded((v) => !v)}
+              aria-expanded={activityExpanded}
+              aria-label={activityExpanded ? "Collapse Recent Activity" : "Expand Recent Activity"}
+            >
+              <SectionTitle $accent="cyan">Recent Activity</SectionTitle>
+              <EclRow>
+                <EclLabel>{activityExpanded ? "Collapse" : "Expand"}</EclLabel>
+                <EclSwitch as="span" $on={activityExpanded} $accent="cyan" aria-hidden="true" />
+              </EclRow>
+            </SectionHeader>
+            {activityExpanded && (
+              <button
+                onClick={() => setActivityOpen(true)}
+                style={{ textAlign: "left", width: "100%", padding: "0 0.375rem 0.375rem", background: "none", border: "none", cursor: "pointer" }}
+              >
+                <ActivitySub>Click to expand · PM2 + git</ActivitySub>
+                <ActivityDivider>
+                  {activity.length === 0 ? (
+                    <div style={{ padding: "0.75rem 0", fontSize: "0.75rem", color: `rgba(${rgb.cyan}, 0.5)` }}>
+                      Loading activity…
+                    </div>
+                  ) : (
+                    activity.slice(0, 5).map((item, i) => (
+                      <ActivityRow key={i}>
+                        <ActivityTime>{item.timeLabel}</ActivityTime>
+                        <ActivityType $type={item.type}>{item.type}</ActivityType>
+                        <ActivityText>{item.event}</ActivityText>
+                      </ActivityRow>
+                    ))
+                  )}
+                </ActivityDivider>
+                {activity.length > 5 && (
+                  <MoreLabel>+{activity.length - 5} more · click to view all</MoreLabel>
                 )}
-              </ActivityDivider>
-              {activity.length > 5 && (
-                <MoreLabel>+{activity.length - 5} more · click to view all</MoreLabel>
-              )}
-            </DashCard>
-          </button>
+              </button>
+            )}
+          </SectionTile>
         </BottomGrid>
+
+            </MasterBody>
+          )}
+        </MasterAdl>
+          );
+        })()}
       </Main>
     </>
   );
