@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import styled from "styled-components";
-import { MicIcon, StopIcon, CancelIcon, SendIcon } from "./icons";
+import { WaveformIcon, StopIcon, CancelIcon, SendIcon } from "./icons";
 
 const MAX_DURATION_MS = 5 * 60 * 1000; // 5 minutes
 const BAR_COUNT = 48;
@@ -261,7 +261,7 @@ export default function VoiceRecorder({ accent, onSend, disabled }: Props) {
         disabled={disabled}
         title="Record voice memo"
       >
-        <MicIcon size={16} />
+        <WaveformIcon size={16} />
       </MicTrigger>
     );
   }

@@ -2,7 +2,7 @@
 
 import { useCallback, useRef, useState } from "react";
 import styled from "styled-components";
-import { WaveformIcon, StopIcon } from "./icons";
+import { MicIcon, StopIcon } from "./icons";
 
 const MIME_CANDIDATES = [
   "audio/webm;codecs=opus",
@@ -143,7 +143,7 @@ export default function TalkToText({ accent, model, onTranscript, onError, disab
       disabled={disabled || state === "transcribing"}
       title={title}
     >
-      {state === "recording" ? <StopIcon size={14} /> : <WaveformIcon size={16} />}
+      {state === "recording" ? <StopIcon size={14} /> : <MicIcon size={16} />}
     </Btn>
   );
 }
