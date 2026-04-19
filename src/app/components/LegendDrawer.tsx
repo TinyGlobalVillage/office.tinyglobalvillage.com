@@ -3,8 +3,8 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { usePathname } from "next/navigation";
 import styled from "styled-components";
-import { colors, rgb } from "../theme";
-import { DrawerBackdrop, DrawerPanel, DrawerHeader, DrawerTab, DrawerTabLabel, DrawerFooter, PanelIconBtn } from "../styled";
+import { colors, rgb, glowRgba } from "../theme";
+import { DrawerBackdrop, DrawerPanel, DrawerHeader, DrawerTab, DrawerTabLabel, DrawerFooter } from "../styled";
 
 type LegendItem = { glyph: string; label: string; desc: string };
 type PageLegend = { title: string; items: LegendItem[] };
@@ -101,27 +101,35 @@ function getLegend(pathname: string): PageLegend | null {
 
 // ── Styled ───────────────────────────────────────────────────────
 
-const Tab = styled(DrawerTab).attrs({ $side: "right", $accent: "cyan" })`
-  right: 0;
-  z-index: 41;
+const PANEL_WIDTH = 300;
+
+const Tab = styled(DrawerTab).attrs({ $side: "right", $accent: "cyan" })<{ $open?: boolean }>`
+  right: ${(p) => (p.$open ? `${PANEL_WIDTH}px` : "0")};
+  z-index: 62;
   border-right: none;
   padding-top: 14px;
   padding-bottom: 14px;
+  transition: right 0.25s cubic-bezier(0.4, 0, 0.2, 1), background 0.2s;
+  background: ${(p) => (p.$open ? `rgba(${rgb.cyan}, 0.22)` : `rgba(${rgb.cyan}, 0.08)`)};
+  box-shadow: ${(p) => (p.$open ? `-4px 0 16px rgba(${rgb.cyan}, 0.25)` : "none")};
 `;
 
 const Backdrop = styled(DrawerBackdrop)`
-  z-index: 30;
+  z-index: 55;
+  background: rgba(0, 0, 0, 0.35);
 `;
 
 const Panel = styled(DrawerPanel)`
   right: 0;
-  z-index: 40;
-  width: 300px;
-  border-left: 1px solid rgba(${rgb.cyan}, 0.15);
+  z-index: 60;
+  width: ${PANEL_WIDTH}px;
+  background: #07090d;
+  border-left: 1px solid rgba(${rgb.cyan}, 0.25);
   transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 
   [data-theme="light"] & {
-    border-left-color: rgba(${rgb.cyan}, 0.1);
+    background: var(--t-surface);
+    border-left-color: rgba(${rgb.cyan}, 0.2);
   }
 `;
 
@@ -187,6 +195,37 @@ const ItemDesc = styled.p`
 `;
 
 const Footer = styled(DrawerFooter)``;
+
+const ActionBtn = styled.button`
+  width: 2.125rem;
+  height: 2.125rem;
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.0625rem;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+  background: rgba(${rgb.cyan}, 0.14);
+  border: 1px solid ${glowRgba("cyan", 0.45)};
+  color: ${colors.cyan};
+  text-shadow: 0 0 6px rgba(${rgb.cyan}, 0.7);
+  transition: background 0.15s, box-shadow 0.15s, transform 0.1s;
+
+  &:hover {
+    background: rgba(${rgb.cyan}, 0.28);
+    box-shadow: 0 0 10px rgba(${rgb.cyan}, 0.5);
+  }
+
+  &:active {
+    transform: translateY(1px);
+  }
+
+  [data-theme="light"] & {
+    text-shadow: none;
+  }
+`;
 
 // ── Constants ────────────────────────────────────────────────────
 
@@ -266,14 +305,10 @@ export default function LegendDrawer() {
   return (
     <>
       <Tab
+        $open={open}
         onMouseDown={onTabMouseDown}
         title="Page legend"
-        style={{
-          top: tabY,
-          background: open
-            ? `rgba(${rgb.cyan}, 0.2)`
-            : `rgba(${rgb.cyan}, 0.08)`,
-        }}
+        style={{ top: tabY }}
       >
         {open ? "✕" : "?"}&nbsp;<DrawerTabLabel>Legend</DrawerTabLabel>
       </Tab>
@@ -291,7 +326,7 @@ export default function LegendDrawer() {
             <HeaderLabel>Page Legend</HeaderLabel>
             <HeaderTitle>{legend.title}</HeaderTitle>
           </div>
-          <PanelIconBtn onClick={() => setOpen(false)}>✕</PanelIconBtn>
+          <ActionBtn onClick={() => setOpen(false)} title="Close legend">✕</ActionBtn>
         </Header>
 
         <ItemList>

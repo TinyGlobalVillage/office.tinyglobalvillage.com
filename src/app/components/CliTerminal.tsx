@@ -78,6 +78,11 @@ const ToggleButton = styled.button<{ $running: boolean }>`
   body[data-dashboard-modal="open"][data-dashboard-sidebar="hidden"] & {
     display: none;
   }
+
+  body[data-editor-dock="open"] &,
+  body[data-editor-dock="closed"] & {
+    display: none;
+  }
 `;
 
 const ToggleIcon = styled.span`

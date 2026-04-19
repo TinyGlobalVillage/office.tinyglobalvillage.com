@@ -384,6 +384,7 @@ const DrawerTab = styled.button<{ $hidden?: boolean; $navH: number }>`
 function TopNavInner() {
   const searchParams = useSearchParams();
   const embedded = searchParams?.get("embedded") === "1";
+  const popout = searchParams?.get("popout") === "1";
   const [scrolled, setScrolled] = useState(false);
   const [hidden, setHidden] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -521,7 +522,7 @@ function TopNavInner() {
     );
   };
 
-  if (embedded) return null;
+  if (embedded || popout) return null;
 
   return (
     <>

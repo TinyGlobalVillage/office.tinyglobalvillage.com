@@ -8,6 +8,7 @@ import { colors, rgb } from "../../theme";
 import TopNav from "../../components/TopNav";
 import SandboxIcon from "../../components/sandbox/SandboxIcon";
 import SandboxModal from "../../components/sandbox/SandboxModal";
+import EditorTerminalDock from "../../components/EditorTerminalDock";
 
 const MonacoEditor = dynamic(() => import("@monaco-editor/react"), { ssr: false });
 
@@ -60,8 +61,9 @@ const EditorFrame = styled.div`
   top: var(--nav-offset, 68px);
   left: 0;
   right: 0;
-  bottom: 0;
+  bottom: var(--editor-dock-h, 0px);
   background: rgba(4, 6, 10, 1);
+  transition: bottom 0.1s;
 
   [data-theme="light"] & {
     background: var(--t-bg);
@@ -836,6 +838,8 @@ function EditorPageInner() {
         <BuildPanel project={activeProject} onClose={() => setShowBuild(false)} />
       )}
       {sandboxOpen && <SandboxModal onClose={() => setSandboxOpen(false)} />}
+
+      <EditorTerminalDock project={activeProject} />
 
       <EditorFrame>
         <EditorRow>

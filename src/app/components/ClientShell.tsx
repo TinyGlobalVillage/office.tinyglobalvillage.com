@@ -13,10 +13,12 @@ import AlertsDrawer from "./AlertsDrawer";
 import ChatDrawer from "./ChatDrawer";
 import InboxDrawer from "./InboxDrawer";
 import SessionsDrawer from "./SessionsDrawer";
+import DashboardPopoutBeacon from "./DashboardPopoutBeacon";
 
 function ShellInner({ children }: { children: ReactNode }) {
   const searchParams = useSearchParams();
   const embedded = searchParams?.get("embedded") === "1";
+  const popout = searchParams?.get("popout") === "1";
 
   if (embedded) {
     // Embedded mode: stripped-down shell for iframe-mounted dashboard modals.
@@ -24,6 +26,19 @@ function ShellInner({ children }: { children: ReactNode }) {
     return (
       <TerminalProvider>
         <PreviewProvider>
+          {children}
+        </PreviewProvider>
+      </TerminalProvider>
+    );
+  }
+
+  if (popout) {
+    // Pop-out mode: chromeless standalone window, heartbeat to the main window
+    // via BroadcastChannel so the origin modal shows a Blackout placeholder.
+    return (
+      <TerminalProvider>
+        <PreviewProvider>
+          <DashboardPopoutBeacon />
           {children}
         </PreviewProvider>
       </TerminalProvider>
