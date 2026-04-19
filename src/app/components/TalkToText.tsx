@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+
 import styled from "styled-components";
 import { MicIcon, StopIcon } from "./icons";
 
@@ -81,11 +82,16 @@ type Props = {
   model: string;
   onTranscript: (text: string) => void;
   onError?: (msg: string) => void;
+  onActiveChange?: (active: boolean) => void;
   disabled?: boolean;
 };
 
-export default function TalkToText({ accent, model, onTranscript, onError, disabled }: Props) {
+export default function TalkToText({ accent, model, onTranscript, onError, onActiveChange, disabled }: Props) {
   const [state, setState] = useState<"idle" | "recording" | "transcribing">("idle");
+
+  useEffect(() => {
+    onActiveChange?.(state !== "idle");
+  }, [state, onActiveChange]);
 
   // SpeechRecognition (primary, streaming)
   const recognitionRef = useRef<SRInstance | null>(null);

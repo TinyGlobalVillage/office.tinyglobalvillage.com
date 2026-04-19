@@ -38,20 +38,52 @@ const TooltipBubble = styled.div<{ $accent: string }>`
   }
 `;
 
-const TooltipArrow = styled.div<{ $accent: string }>`
+const TooltipArrow = styled.div<{ $accent: string; $flipped: boolean }>`
   position: absolute;
-  top: -5px;
+  ${(p) => p.$flipped ? "bottom: -5px;" : "top: -5px;"}
   width: 10px;
   height: 10px;
   transform: rotate(45deg);
   background: color-mix(in srgb, ${(p) => p.$accent} 18%, #0a0a12);
-  border-left: 1px solid color-mix(in srgb, ${(p) => p.$accent} 55%, transparent);
-  border-top: 1px solid color-mix(in srgb, ${(p) => p.$accent} 55%, transparent);
+  ${(p) => p.$flipped
+    ? `
+        border-right: 1px solid color-mix(in srgb, ${p.$accent} 55%, transparent);
+        border-bottom: 1px solid color-mix(in srgb, ${p.$accent} 55%, transparent);
+      `
+    : `
+        border-left: 1px solid color-mix(in srgb, ${p.$accent} 55%, transparent);
+        border-top: 1px solid color-mix(in srgb, ${p.$accent} 55%, transparent);
+      `}
 `;
 
 const TooltipWrap = styled.span`
   display: contents;
 `;
+
+const FALLBACK_ACCENT = "#00e4fd";
+
+const LOW_CONTRAST_COLORS = new Set([
+  "rgb(0, 0, 0)",
+  "rgba(0, 0, 0, 0)",
+  "transparent",
+  "rgb(255, 255, 255)",
+]);
+
+function readAccentFromTrigger(wrap: HTMLElement | null): string | null {
+  if (!wrap) return null;
+  let el: HTMLElement | null = wrap.firstElementChild as HTMLElement | null;
+  let depth = 0;
+  while (el && depth < 4) {
+    const cs = getComputedStyle(el);
+    const c = cs.color;
+    if (c && !LOW_CONTRAST_COLORS.has(c.replace(/\s+/g, " "))) {
+      return c;
+    }
+    el = el.firstElementChild as HTMLElement | null;
+    depth++;
+  }
+  return null;
+}
 
 type Props = {
   label: string;
@@ -60,12 +92,14 @@ type Props = {
   children: React.ReactNode;
 };
 
-export default function Tooltip({ label, accent = "#00e4fd", disabled, children }: Props) {
+export default function Tooltip({ label, accent, disabled, children }: Props) {
   const [open, setOpen] = useState(false);
-  const [pos, setPos] = useState<{ left: number; top: number; arrowLeft: number } | null>(null);
+  const [pos, setPos] = useState<{ left: number; top: number; arrowLeft: number; flipped: boolean } | null>(null);
+  const [autoAccent, setAutoAccent] = useState<string | null>(null);
   const triggerRef = useRef<HTMLSpanElement | null>(null);
   const bubbleRef = useRef<HTMLDivElement | null>(null);
   const autoHideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const effectiveAccent = accent ?? autoAccent ?? FALLBACK_ACCENT;
 
   const clearAutoHide = useCallback(() => {
     if (autoHideTimerRef.current) {
@@ -86,15 +120,23 @@ export default function Tooltip({ label, accent = "#00e4fd", disabled, children 
     const r = el.getBoundingClientRect();
     if (r.width === 0 && r.height === 0) return; // trigger not laid out yet
     const anchorX = r.left + r.width / 2;
-    const top = r.bottom + GAP;
     const bubbleWidth = bubbleRef.current?.offsetWidth ?? Math.max(label.length * 7, 80);
-    let left = anchorX - bubbleWidth / 2;
+    const bubbleHeight = bubbleRef.current?.offsetHeight ?? 32;
     const margin = 8;
+
+    // Flip above trigger when there isn't room below (e.g. composer icons
+    // near the viewport bottom get clipped otherwise).
+    const roomBelow = window.innerHeight - r.bottom;
+    const needed = bubbleHeight + GAP + margin;
+    const flipped = roomBelow < needed && r.top > needed;
+    const top = flipped ? r.top - GAP - bubbleHeight : r.bottom + GAP;
+
+    let left = anchorX - bubbleWidth / 2;
     const maxLeft = window.innerWidth - bubbleWidth - margin;
     if (left < margin) left = margin;
     if (left > maxLeft) left = maxLeft;
     const arrowLeft = Math.max(6, Math.min(bubbleWidth - 16, anchorX - left - 5));
-    setPos({ left, top, arrowLeft });
+    setPos({ left, top, arrowLeft, flipped });
   }, [label]);
 
   useEffect(() => {
@@ -115,6 +157,10 @@ export default function Tooltip({ label, accent = "#00e4fd", disabled, children 
 
   const show = () => {
     if (disabled) return;
+    if (!accent) {
+      const sniffed = readAccentFromTrigger(triggerRef.current);
+      if (sniffed) setAutoAccent(sniffed);
+    }
     setOpen(true);
     clearAutoHide();
     autoHideTimerRef.current = setTimeout(() => setOpen(false), 2000);
@@ -144,10 +190,10 @@ export default function Tooltip({ label, accent = "#00e4fd", disabled, children 
           <TooltipBubble
             ref={bubbleRef}
             role="tooltip"
-            $accent={accent}
+            $accent={effectiveAccent}
             style={{ left: pos.left, top: pos.top }}
           >
-            <TooltipArrow $accent={accent} style={{ left: pos.arrowLeft }} />
+            <TooltipArrow $accent={effectiveAccent} $flipped={pos.flipped} style={{ left: pos.arrowLeft }} />
             {label}
           </TooltipBubble>,
           portalTarget,

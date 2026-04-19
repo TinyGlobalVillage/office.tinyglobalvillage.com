@@ -79,19 +79,22 @@ const PagerBtn = styled.button`
   font-size: 14px;
   line-height: 1;
   cursor: pointer;
-  color: var(--t-textMuted);
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: ${colors.violet};
+  background: rgba(${rgb.violet}, 0.08);
+  border: 1px solid rgba(${rgb.violet}, 0.5);
   transition: all 0.15s;
 
   [data-theme="light"] & {
-    background: rgba(0, 0, 0, 0.03);
-    border-color: rgba(0, 0, 0, 0.1);
+    background: rgba(${rgb.violet}, 0.06);
+    border-color: rgba(${rgb.violet}, 0.45);
   }
 
   &:not(:disabled):hover {
-    color: ${colors.cyan};
-    border-color: ${colors.cyan};
+    color: ${colors.violet};
+    border-color: ${colors.violet};
+    background: rgba(${rgb.violet}, 0.15);
+    box-shadow: 0 0 10px rgba(${rgb.violet}, 0.7);
+    text-shadow: 0 0 6px rgba(${rgb.violet}, 0.8);
   }
 
   &:disabled {
@@ -104,7 +107,8 @@ const PagerInfo = styled.span`
   font-size: 12px;
   font-family: var(--font-geist-mono), monospace;
   font-variant-numeric: tabular-nums;
-  color: var(--t-textGhost);
+  color: ${colors.violet};
+  text-shadow: 0 0 6px rgba(${rgb.violet}, 0.5);
 `;
 
 const UserBtn = styled.button`
@@ -149,19 +153,20 @@ const InfoCol = styled.div`
   min-width: 0;
 `;
 
-const DisplayName = styled.span`
+const DisplayName = styled.span<{ $accent: string }>`
   font-size: 14px;
   font-weight: 600;
-  color: var(--t-text);
+  color: ${({ $accent }) => $accent};
+  text-shadow: ${({ $accent }) => `0 0 6px rgba(${hexToRgb($accent)}, 0.45)`};
   line-height: 1.2;
 `;
 
-const SubText = styled.span`
+const SubText = styled.span<{ $accent: string }>`
   font-size: 10px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: var(--t-textGhost);
+  color: ${({ $accent }) => `rgba(${hexToRgb($accent)}, 0.75)`};
 `;
 
 const UnreadBadge = styled.span<{ $accent: string }>`
@@ -176,13 +181,16 @@ const UnreadBadge = styled.span<{ $accent: string }>`
 `;
 
 const ArrowHint = styled.span`
-  font-size: 10px;
-  color: var(--t-textGhost);
+  font-size: 30px;
+  line-height: 1;
+  color: ${colors.violet};
   flex-shrink: 0;
-  transition: color 0.15s;
+  transition: color 0.15s, text-shadow 0.15s, transform 0.15s;
 
   ${UserBtn}:hover & {
-    color: var(--t-textMuted);
+    color: ${colors.violet};
+    text-shadow: 0 0 10px rgba(${rgb.violet}, 0.6);
+    transform: translateX(2px);
   }
 `;
 
@@ -196,13 +204,14 @@ const MemoLabel = styled.p`
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: var(--t-textGhost);
+  color: ${colors.violet};
+  text-shadow: 0 0 6px rgba(${rgb.violet}, 0.5);
   margin-bottom: 6px;
 `;
 
 const MemoLine = styled.div`
   font-size: 10px;
-  color: var(--t-textMuted);
+  color: ${colors.violet};
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -210,7 +219,9 @@ const MemoLine = styled.div`
 `;
 
 const MemoDate = styled.span`
-  color: var(--t-textGhost);
+  color: ${colors.violet};
+  opacity: 0.7;
+  margin-right: 4px;
 `;
 
 /* ── Component ─────────────────────────────────────────────── */
@@ -314,8 +325,8 @@ export default function UsersCard({ className = "" }: { className?: string }) {
               </AvatarWrap>
 
               <InfoCol>
-                <DisplayName>{p.displayName}</DisplayName>
-                <SubText>{p.title || p.email}</SubText>
+                <DisplayName $accent={accent}>{p.displayName}</DisplayName>
+                <SubText $accent={accent}>{p.title || p.email}</SubText>
               </InfoCol>
 
               {myUnreadPings.length > 0 && (

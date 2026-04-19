@@ -14,6 +14,7 @@ import SandboxModal from "../components/sandbox/SandboxModal";
 import LibraryIcon from "../components/LibraryIcon";
 import LibraryModal from "../components/LibraryModal";
 import SuggestionBoxModal from "../components/suggestion/SuggestionBoxModal";
+import { DatabaseIcon, StorageIcon, EditorIcon, UtilsIcon, SuggestionIcon, ProcessesIcon, DeployIcon } from "../components/icons";
 import Link from "next/link";
 import { colors, rgb, type GlowColor } from "@/app/theme";
 
@@ -121,7 +122,7 @@ const SBDMArrow = styled.button`
   border-radius: 0.375rem;
   border: none;
   background: none;
-  color: blue;
+  color: ${colors.pink};
   cursor: pointer;
   transition: background 0.15s;
 
@@ -177,10 +178,16 @@ const SBDMSortBtn = styled.button`
   font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: 0.1em;
-  background: rgba(${rgb.cyan}, 0.08);
-  border: 1px solid rgba(${rgb.cyan}, 0.3);
-  color: ${colors.cyan};
+  background: rgba(${rgb.pink}, 0.1);
+  border: 1px solid rgba(${rgb.pink}, 0.4);
+  color: ${colors.pink};
   cursor: pointer;
+  transition: background 0.15s, box-shadow 0.15s;
+
+  &:hover {
+    background: rgba(${rgb.pink}, 0.18);
+    box-shadow: 0 0 8px rgba(${rgb.pink}, 0.35);
+  }
 `;
 
 const SBDMList = styled.div`
@@ -218,7 +225,7 @@ const SBDMDot = styled.span<{ $glow: GlowColor }>`
 const SBDMSub = styled.span`
   margin-left: auto;
   font-size: 0.625rem;
-  color: var(--t-textFaint);
+  color: ${colors.pink};
 `;
 
 const TileGrid = styled.section`
@@ -438,16 +445,16 @@ export default function Home() {
   useEffect(() => { setPage(0); }, [filter]);
 
   const tiles: DashTile[] = useMemo(() => [
-    { key: "Processes", title: "Processes", subtitle: "PM2", glow: "cyan", icon: <span style={{ fontSize: "1.5rem" }}>⚡</span>, href: "/dashboard/processes" },
-    { key: "Deploy", title: "Deploy", subtitle: "Projects", glow: "pink", icon: <span style={{ fontSize: "1.5rem" }}>🚀</span>, href: "/dashboard/deploy" },
-    { key: "Database", title: "Database", subtitle: "PostgreSQL", glow: "gold", icon: <span style={{ fontSize: "1.5rem" }}>🗄️</span>, href: "/dashboard/database" },
-    { key: "Storage", title: "Storage", subtitle: "Files", glow: "pink", icon: <span style={{ fontSize: "1.5rem" }}>📦</span>, href: "/dashboard/storage" },
-    { key: "Editor", title: "Editor", subtitle: "Code", glow: "gold", icon: <span style={{ fontSize: "1.5rem" }}>✎</span>, href: "/dashboard/editor" },
-    { key: "Utils", title: "Utils", subtitle: "Tooling", glow: "cyan", icon: <span style={{ fontSize: "1.5rem" }}>🔧</span>, href: "/dashboard/utils" },
+    { key: "Processes", title: "Processes", subtitle: "PM2", glow: "cyan", icon: <ProcessesIcon size={28} style={{ color: colors.cyan }} />, href: "/dashboard/processes" },
+    { key: "Deploy", title: "Deploy", subtitle: "Projects", glow: "pink", icon: <DeployIcon size={28} style={{ color: colors.pink }} />, href: "/dashboard/deploy" },
+    { key: "Database", title: "Database", subtitle: "PostgreSQL", glow: "gold", icon: <DatabaseIcon size={28} style={{ color: colors.gold }} />, href: "/dashboard/database" },
+    { key: "Storage", title: "Storage", subtitle: "Files", glow: "pink", icon: <StorageIcon size={28} style={{ color: colors.pink }} />, href: "/dashboard/storage" },
+    { key: "Editor", title: "Editor", subtitle: "Code", glow: "gold", icon: <EditorIcon size={28} style={{ color: colors.gold }} />, href: "/dashboard/editor" },
+    { key: "Utils", title: "Utils", subtitle: "Tooling", glow: "cyan", icon: <UtilsIcon size={28} style={{ color: colors.cyan }} />, href: "/dashboard/utils" },
     { key: "Claude", title: "Claude", subtitle: "AI Assistant", glow: "orange", icon: <ClaudeIcon size={28} color={colors.orange} />, onClick: () => setClaudeOpen(true) },
     { key: "Sandbox", title: "Sandbox", subtitle: "Component Lab", glow: "pink", icon: <SandboxIcon size={28} color={colors.pink} />, onClick: () => setSandboxOpen(true) },
     { key: "Library", title: "Library", subtitle: "Catalog", glow: "violet", icon: <LibraryIcon size={28} color={colors.violet} />, onClick: () => setLibraryOpen(true) },
-    { key: "Suggest", title: "Suggest", subtitle: "Feature ideas", glow: "pink", icon: <span style={{ fontSize: "1.5rem" }}>💡</span>, onClick: () => setSuggestionOpen(true) },
+    { key: "Suggest", title: "Suggest", subtitle: "Feature ideas", glow: "pink", icon: <SuggestionIcon size={28} style={{ color: colors.pink }} />, onClick: () => setSuggestionOpen(true) },
   ], []);
 
   const filteredTiles = useMemo(

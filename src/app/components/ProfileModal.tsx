@@ -469,9 +469,7 @@ export default function ProfileModal({
 }) {
   const isOwn = profile.username === currentUser;
   const accent = profile.accentColor;
-  // On other users' profiles, tint text & buttons with their chosen accent.
-  // On your own profile, keep theme-neutral colors.
-  const pa = isOwn ? undefined : accent;
+  const pa = accent;
 
   const [newMemo, setNewMemo] = useState("");
   const [sendingMemo, setSendingMemo] = useState(false);

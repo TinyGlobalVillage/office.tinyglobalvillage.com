@@ -9,6 +9,7 @@ import {
   ChangeEvent,
   KeyboardEvent as ReactKeyboardEvent,
 } from "react";
+import { createPortal } from "react-dom";
 import styled from "styled-components";
 import { colors, rgb } from "../theme";
 import {
@@ -29,6 +30,7 @@ import VoicePlayer from "./VoicePlayer";
 import TalkToText from "./TalkToText";
 import CreateGroupModal from "./CreateGroupModal";
 import GroupAdminModal from "./GroupAdminModal";
+import Tooltip from "./ui/Tooltip";
 import {
   ChatIcon,
   MembersIcon,
@@ -46,6 +48,10 @@ import {
   AttachIcon,
   SendIcon,
   ReplyIcon,
+  MicIcon,
+  WaveformIcon,
+  VideoIcon,
+  PhoneIcon,
 } from "./icons";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -62,6 +68,7 @@ type ChatMessage = {
   editedAt?: string;
   readBy?: string[];
   replyTo?: { id: string; from: string; excerpt: string };
+  reactions?: Record<string, string[]>;
 };
 
 type DmMessage = {
@@ -73,6 +80,7 @@ type DmMessage = {
   editedAt?: string;
   readBy?: string[];
   replyTo?: { id: string; from: string; excerpt: string };
+  reactions?: Record<string, string[]>;
 };
 
 type Profile = MemberProfile;
@@ -98,6 +106,7 @@ type GroupMessage = {
   editedAt?: string;
   readBy?: string[];
   replyTo?: { id: string; from: string; excerpt: string };
+  reactions?: Record<string, string[]>;
 };
 
 type Selection =
@@ -1076,6 +1085,255 @@ const BubbleActionBtn = styled.button<{ $danger?: boolean }>`
   &:active { transform: scale(0.96); }
 `;
 
+const BubbleChevron = styled.button<{ $isMe: boolean; $accent: string }>`
+  position: absolute;
+  top: 4px;
+  ${(p) => (p.$isMe ? "right: 4px;" : "right: 4px;")}
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: 9999px;
+  background: ${(p) => `linear-gradient(to bottom, transparent, ${p.$isMe ? `rgba(${rgb.green}, 0.18)` : "rgba(0,0,0,0.18)"})`};
+  color: ${(p) => (p.$isMe ? colors.green : "var(--t-textMuted)")};
+  cursor: pointer;
+  opacity: 0;
+  transform: translateY(-2px);
+  transition: opacity 0.15s, background 0.15s, color 0.15s;
+
+  ${BubbleRow}:hover & {
+    opacity: 1;
+  }
+
+  &:hover,
+  &[data-open="true"] {
+    opacity: 1;
+    background: rgba(${rgb.green}, 0.22);
+    color: ${colors.green};
+  }
+
+  svg {
+    display: block;
+  }
+`;
+
+const BubbleMenuPopup = styled.div<{ $accent: string }>`
+  position: fixed;
+  z-index: 10050;
+  min-width: 184px;
+  border-radius: 10px;
+  padding: 6px 0;
+  background: var(--t-surface);
+  border: 1px solid rgba(${rgb.green}, 0.25);
+  box-shadow:
+    0 12px 32px rgba(0, 0, 0, 0.45),
+    0 0 18px rgba(${rgb.green}, 0.18);
+  font-size: 0.8125rem;
+  animation: bm-in 0.12s ease-out;
+
+  @keyframes bm-in {
+    from { opacity: 0; transform: translateY(-3px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  [data-theme="light"] & {
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+  }
+`;
+
+const BubbleMenuItem = styled.button<{ $danger?: boolean }>`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.5rem 0.9rem;
+  background: none;
+  border: none;
+  text-align: left;
+  color: ${(p) => (p.$danger ? colors.red : colors.green)};
+  cursor: pointer;
+  transition: background 0.12s;
+
+  &:hover {
+    background: ${(p) => (p.$danger ? `rgba(${rgb.red}, 0.14)` : `rgba(${rgb.green}, 0.14)`)};
+  }
+`;
+
+const BubbleMenuGlyph = styled.span`
+  display: inline-flex;
+  width: 16px;
+  font-size: 0.875rem;
+  color: currentColor;
+  justify-content: center;
+`;
+
+const BubbleMenuDivider = styled.div`
+  height: 1px;
+  margin: 4px 0;
+  background: var(--t-border);
+`;
+
+const ReactEmojiBtn = styled.button<{ $isMe: boolean; $accent: string }>`
+  position: absolute;
+  bottom: -8px;
+  ${(p) => (p.$isMe ? "left: -10px;" : "right: -10px;")}
+  width: 26px;
+  height: 26px;
+  border-radius: 9999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--t-surface);
+  border: 1px solid rgba(${rgb.green}, 0.35);
+  color: ${(p) => p.$accent};
+  cursor: pointer;
+  font-size: 0.875rem;
+  line-height: 1;
+  opacity: 0;
+  transform: scale(0.9);
+  transition: opacity 0.15s, transform 0.15s, box-shadow 0.15s, background 0.15s;
+
+  ${BubbleRow}:hover & {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  &:hover {
+    opacity: 1;
+    box-shadow: 0 0 8px rgba(${rgb.green}, 0.45);
+    background: rgba(${rgb.green}, 0.12);
+  }
+`;
+
+const ReactionTray = styled.div<{ $accent: string }>`
+  position: fixed;
+  z-index: 10060;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0.3rem 0.4rem;
+  border-radius: 9999px;
+  background: #0a0f14;
+  border: 1px solid color-mix(in srgb, ${(p) => p.$accent} 45%, transparent);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5), 0 0 14px color-mix(in srgb, ${(p) => p.$accent} 35%, transparent);
+  animation: rt-in 0.12s ease-out;
+
+  [data-theme="light"] & {
+    background: #ffffff;
+  }
+
+  @keyframes rt-in {
+    from { opacity: 0; transform: translateY(-3px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+`;
+
+const ReactionTrayBtn = styled.button<{ $accent: string }>`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 9999px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  transition: background 0.12s, transform 0.1s;
+
+  &:hover {
+    background: color-mix(in srgb, ${(p) => p.$accent} 18%, transparent);
+    transform: scale(1.15);
+  }
+`;
+
+const ReactionRow = styled.div<{ $isMe: boolean }>`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-top: 0.3rem;
+  ${(p) => (p.$isMe ? "justify-content: flex-end;" : "")}
+`;
+
+const ReactionChip = styled.button<{ $accent: string; $mine: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  line-height: 1.2;
+  cursor: pointer;
+  background: ${(p) => p.$mine
+    ? `color-mix(in srgb, ${p.$accent} 20%, transparent)`
+    : "color-mix(in srgb, var(--t-text) 8%, transparent)"};
+  border: 1px solid ${(p) => p.$mine
+    ? `color-mix(in srgb, ${p.$accent} 55%, transparent)`
+    : "color-mix(in srgb, var(--t-text) 18%, transparent)"};
+  color: var(--t-text);
+  transition: background 0.12s, border-color 0.12s, transform 0.08s;
+
+  &:hover {
+    background: color-mix(in srgb, ${(p) => p.$accent} 14%, transparent);
+  }
+  &:active { transform: scale(0.94); }
+`;
+
+const ReactionChipCount = styled.span`
+  font-weight: 600;
+  opacity: 0.85;
+`;
+
+const QUICK_REACTIONS = ["👍", "❤️", "😂", "😮", "😢", "🙏"];
+
+const MsgScrollWrap = styled.div`
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+`;
+
+const ScrollToBottomBtn = styled.button<{ $visible: boolean }>`
+  position: absolute;
+  right: 1rem;
+  bottom: 1rem;
+  width: 36px;
+  height: 36px;
+  border-radius: 9999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(${rgb.green}, 0.6);
+  background: #0a0f14;
+  color: ${colors.green};
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5), 0 0 14px rgba(${rgb.green}, 0.35);
+  z-index: 30;
+  opacity: ${(p) => (p.$visible ? 1 : 0)};
+  pointer-events: ${(p) => (p.$visible ? "auto" : "none")};
+  transform: ${(p) => (p.$visible ? "translateY(0)" : "translateY(6px)")};
+  transition: opacity 0.18s, transform 0.18s, box-shadow 0.15s, background 0.15s;
+
+  [data-theme="light"] & {
+    background: #ffffff;
+  }
+
+  &:hover {
+    background: #111820;
+    box-shadow: 0 6px 22px rgba(0, 0, 0, 0.55), 0 0 20px rgba(${rgb.green}, 0.6);
+  }
+  [data-theme="light"] &:hover {
+    background: #f4f6f8;
+  }
+
+  svg { display: block; }
+`;
+
 const EditInput = styled.input`
   flex: 1;
   background: transparent;
@@ -1993,6 +2251,135 @@ const ConvPane = styled.div`
   position: relative;
 `;
 
+// ── Chat header row ────────────────────────────────────────────────────────────
+
+const ChatHeaderRow = styled.div<{ $accent: string }>`
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid color-mix(in srgb, ${(p) => p.$accent} 22%, transparent);
+  background: color-mix(in srgb, ${(p) => p.$accent} 5%, transparent);
+`;
+
+const ChatHeaderLeft = styled.button<{ $accent: string }>`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  flex: 1;
+  background: none;
+  border: none;
+  padding: 0.25rem 0.4rem;
+  border-radius: 8px;
+  cursor: pointer;
+  color: ${(p) => p.$accent};
+  transition: background 0.15s;
+
+  &:hover {
+    background: color-mix(in srgb, ${(p) => p.$accent} 14%, transparent);
+  }
+`;
+
+const ChatHeaderName = styled.span`
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+`;
+
+const ChatHeaderSub = styled.span`
+  font-size: 0.6875rem;
+  opacity: 0.65;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
+
+const ChatHeaderActions = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+`;
+
+const ChatHeaderIconBtn = styled.button<{ $accent: string }>`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.5rem;
+  background: color-mix(in srgb, ${(p) => p.$accent} 10%, transparent);
+  border: 1px solid color-mix(in srgb, ${(p) => p.$accent} 40%, transparent);
+  color: ${(p) => p.$accent};
+  cursor: pointer;
+  transition: background 0.15s, box-shadow 0.15s, transform 0.1s;
+
+  &:hover {
+    background: color-mix(in srgb, ${(p) => p.$accent} 22%, transparent);
+    box-shadow: 0 0 8px color-mix(in srgb, ${(p) => p.$accent} 50%, transparent);
+  }
+  &:active { transform: scale(0.94); }
+`;
+
+const ChatHeaderMemberDropdown = styled.div<{ $accent: string }>`
+  position: absolute;
+  top: 100%;
+  left: 0.75rem;
+  right: 0.75rem;
+  margin-top: 0.25rem;
+  z-index: 40;
+  background: rgba(8, 8, 16, 0.96);
+  border: 1px solid color-mix(in srgb, ${(p) => p.$accent} 45%, transparent);
+  border-radius: 10px;
+  box-shadow: 0 12px 30px -10px rgba(0, 0, 0, 0.7),
+              0 0 24px -8px color-mix(in srgb, ${(p) => p.$accent} 45%, transparent);
+  padding: 0.5rem;
+  max-height: 14rem;
+  overflow: auto;
+`;
+
+const ChatHeaderMemberSearch = styled.input<{ $accent: string }>`
+  width: 100%;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid color-mix(in srgb, ${(p) => p.$accent} 30%, transparent);
+  border-radius: 8px;
+  padding: 0.4rem 0.6rem;
+  color: var(--t-text);
+  font-size: 0.75rem;
+  outline: none;
+  margin-bottom: 0.4rem;
+
+  &:focus {
+    border-color: ${(p) => p.$accent};
+    box-shadow: 0 0 0 2px color-mix(in srgb, ${(p) => p.$accent} 25%, transparent);
+  }
+`;
+
+const ChatHeaderMemberItem = styled.button<{ $accent: string }>`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.35rem 0.5rem;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--t-text);
+  font-size: 0.75rem;
+  text-align: left;
+
+  &:hover {
+    background: color-mix(in srgb, ${(p) => p.$accent} 16%, transparent);
+  }
+`;
+
 // ── File attachment ────────────────────────────────────────────────────────────
 
 function FileAttachment({ url, name, size, mime, accent }: { url: string; name?: string; size?: number; mime?: string; accent?: string }) {
@@ -2041,32 +2428,124 @@ function ReadCheck({ state, accent }: { state: "sent" | "read"; accent?: string 
   );
 }
 
+const EDIT_WINDOW_MS = 30 * 60 * 1000;
+
 function MessageBubble({
   id, from, content, fileUrl, fileName, fileSize, fileMime, createdAt, editedAt,
-  readBy, peerUsername, replyTo,
+  readBy, peerUsername, replyTo, reactions, currentUser,
   profile, isMe, settings, canDelete,
-  onDelete, onEdit, onReply, onJumpToReply,
+  onDelete, onEdit, onReply, onJumpToReply, onReact,
 }: {
   id: string; from: string; content: string;
   fileUrl?: string; fileName?: string; fileSize?: number; fileMime?: string;
   createdAt: string; editedAt?: string;
   readBy?: string[]; peerUsername?: string;
   replyTo?: { id: string; from: string; excerpt: string };
+  reactions?: Record<string, string[]>;
+  currentUser?: string;
   profile?: Profile; isMe: boolean;
   settings: ChatSettings; canDelete: boolean;
   onDelete: () => void; onEdit: (content: string) => void;
   onReply?: () => void;
   onJumpToReply?: (id: string) => void;
+  onReact?: (messageId: string, emoji: string) => void;
 }) {
   const accent = profile?.accentColor ?? "#4ade80";
   const [editing, setEditing] = useState(false);
   const [editVal, setEditVal] = useState(content);
   const [replyExpanded, setReplyExpanded] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(null);
+  const [reactTrayOpen, setReactTrayOpen] = useState(false);
+  const [reactTrayPos, setReactTrayPos] = useState<{ top: number; left: number } | null>(null);
+  const chevronRef = useRef<HTMLButtonElement>(null);
+  const reactBtnRef = useRef<HTMLButtonElement>(null);
+
+  const ageMs = Date.now() - new Date(createdAt).getTime();
+  const canEdit = isMe && ageMs < EDIT_WINDOW_MS;
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const close = () => setMenuOpen(false);
+    window.addEventListener("click", close);
+    window.addEventListener("resize", close);
+    window.addEventListener("scroll", close, true);
+    return () => {
+      window.removeEventListener("click", close);
+      window.removeEventListener("resize", close);
+      window.removeEventListener("scroll", close, true);
+    };
+  }, [menuOpen]);
+
+  useEffect(() => {
+    if (!reactTrayOpen) return;
+    const close = () => setReactTrayOpen(false);
+    window.addEventListener("click", close);
+    window.addEventListener("resize", close);
+    window.addEventListener("scroll", close, true);
+    return () => {
+      window.removeEventListener("click", close);
+      window.removeEventListener("resize", close);
+      window.removeEventListener("scroll", close, true);
+    };
+  }, [reactTrayOpen]);
+
+  const openReactTray = (e: React.MouseEvent, anchor: HTMLElement | null) => {
+    e.stopPropagation();
+    if (!anchor) return;
+    const r = anchor.getBoundingClientRect();
+    const TRAY_WIDTH = 220;
+    const TRAY_HEIGHT = 44;
+    let left = r.left + r.width / 2 - TRAY_WIDTH / 2;
+    if (left < 8) left = 8;
+    if (left + TRAY_WIDTH > window.innerWidth - 8) left = window.innerWidth - TRAY_WIDTH - 8;
+    const aboveTop = r.top - TRAY_HEIGHT - 8;
+    const top = aboveTop >= 8 ? aboveTop : r.bottom + 8;
+    setReactTrayPos({ top, left });
+    setReactTrayOpen(true);
+  };
+
+  const pickReaction = (emoji: string) => {
+    setReactTrayOpen(false);
+    if (onReact) onReact(id, emoji);
+  };
+
+  const openMenu = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const btn = chevronRef.current;
+    if (!btn) return;
+    const r = btn.getBoundingClientRect();
+    const MENU_WIDTH = 188;
+    const MENU_HEIGHT_EST = 400;
+    let left = r.right - MENU_WIDTH;
+    if (left < 8) left = 8;
+    if (left + MENU_WIDTH > window.innerWidth - 8) left = window.innerWidth - MENU_WIDTH - 8;
+    const belowTop = r.bottom + 6;
+    const fitsBelow = belowTop + MENU_HEIGHT_EST <= window.innerHeight - 8;
+    const top = fitsBelow ? belowTop : Math.max(8, r.top - MENU_HEIGHT_EST - 6);
+    setMenuPos({ top, left });
+    setMenuOpen(true);
+  };
+
+  const closeMenu = () => setMenuOpen(false);
 
   const saveEdit = () => {
     if (editVal.trim()) onEdit(editVal.trim());
     setEditing(false);
   };
+
+  const copyContent = async () => {
+    try { await navigator.clipboard.writeText(content); } catch { /* ignore */ }
+  };
+
+  const showInfo = () => {
+    const created = new Date(createdAt).toLocaleString();
+    const edited = editedAt ? new Date(editedAt).toLocaleString() : null;
+    const readers = readBy && readBy.length ? readBy.join(", ") : "—";
+    alert(`From: ${profile?.displayName ?? from}\nSent: ${created}${edited ? `\nEdited: ${edited}` : ""}\nRead by: ${readers}`);
+  };
+
+  const stub = (what: string) => () => alert(`${what}: coming soon`);
 
   return (
     <BubbleRow $isMe={isMe} data-msg-id={id}>
@@ -2145,27 +2624,173 @@ function MessageBubble({
             );
           })()}
           {!editing && (
-            <BubbleActions $isMe={isMe}>
-              {onReply && (
-                <BubbleActionBtn onClick={onReply} title="Reply">
-                  <ReplyIcon size={16} />
-                </BubbleActionBtn>
+            <>
+              <BubbleChevron
+                ref={chevronRef}
+                $isMe={isMe}
+                $accent={accent}
+                data-open={menuOpen ? "true" : "false"}
+                onClick={openMenu}
+                aria-label="Message actions"
+              >
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3.5 5.25 L7 8.75 L10.5 5.25" />
+                </svg>
+              </BubbleChevron>
+              {onReact && (
+                <ReactEmojiBtn
+                  ref={reactBtnRef}
+                  $isMe={isMe}
+                  $accent={accent}
+                  onClick={(e) => openReactTray(e, reactBtnRef.current)}
+                  aria-label="React"
+                >
+                  <SmileIcon size={14} />
+                </ReactEmojiBtn>
               )}
-              {isMe && (
-                <BubbleActionBtn onClick={() => { setEditing(true); setEditVal(content); }} title="Edit">
-                  <EditIcon size={16} />
-                </BubbleActionBtn>
-              )}
-              {canDelete && (
-                <BubbleActionBtn $danger onClick={onDelete} title="Delete">
-                  <CancelIcon size={16} />
-                </BubbleActionBtn>
-              )}
-            </BubbleActions>
+            </>
           )}
         </BubbleCard>
+        {reactions && Object.keys(reactions).length > 0 && (
+          <ReactionRow $isMe={isMe}>
+            {Object.entries(reactions).map(([emoji, users]) => {
+              const mine = !!currentUser && users.includes(currentUser);
+              return (
+                <ReactionChip
+                  key={emoji}
+                  $accent={accent}
+                  $mine={mine}
+                  onClick={() => onReact?.(id, emoji)}
+                  title={users.join(", ")}
+                >
+                  <span>{emoji}</span>
+                  <ReactionChipCount>{users.length}</ReactionChipCount>
+                </ReactionChip>
+              );
+            })}
+          </ReactionRow>
+        )}
       </BubbleCol>
+      {menuOpen && menuPos && createPortal(
+        <BubbleMenuPopup
+          $accent={accent}
+          style={{ top: menuPos.top, left: menuPos.left }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {onReply && (
+            <BubbleMenuItem onClick={() => { closeMenu(); onReply(); }}>
+              <BubbleMenuGlyph><ReplyIcon size={14} /></BubbleMenuGlyph> Reply
+            </BubbleMenuItem>
+          )}
+          {onReact && (
+            <BubbleMenuItem onClick={(e) => {
+              closeMenu();
+              openReactTray(e, chevronRef.current);
+            }}>
+              <BubbleMenuGlyph><SmileIcon size={14} /></BubbleMenuGlyph> React
+            </BubbleMenuItem>
+          )}
+          <BubbleMenuItem onClick={() => { closeMenu(); stub("Star")(); }}>
+            <BubbleMenuGlyph>☆</BubbleMenuGlyph> Star
+          </BubbleMenuItem>
+          <BubbleMenuItem onClick={() => { closeMenu(); stub("Pin")(); }}>
+            <BubbleMenuGlyph>📌</BubbleMenuGlyph> Pin
+          </BubbleMenuItem>
+          <BubbleMenuItem onClick={() => { closeMenu(); stub("Forward")(); }}>
+            <BubbleMenuGlyph>↪</BubbleMenuGlyph> Forward
+          </BubbleMenuItem>
+          <BubbleMenuItem onClick={() => { closeMenu(); copyContent(); }}>
+            <BubbleMenuGlyph>⧉</BubbleMenuGlyph> Copy
+          </BubbleMenuItem>
+          {canEdit && (
+            <BubbleMenuItem onClick={() => { closeMenu(); setEditing(true); setEditVal(content); }}>
+              <BubbleMenuGlyph><EditIcon size={14} /></BubbleMenuGlyph> Edit
+            </BubbleMenuItem>
+          )}
+          {isMe && (
+            <BubbleMenuItem onClick={() => { closeMenu(); showInfo(); }}>
+              <BubbleMenuGlyph>ⓘ</BubbleMenuGlyph> Info
+            </BubbleMenuItem>
+          )}
+          {!isMe && (
+            <BubbleMenuItem onClick={() => { closeMenu(); stub("Report")(); }}>
+              <BubbleMenuGlyph>⚠</BubbleMenuGlyph> Report
+            </BubbleMenuItem>
+          )}
+          {canDelete && (
+            <>
+              <BubbleMenuDivider />
+              <BubbleMenuItem $danger onClick={() => { closeMenu(); onDelete(); }}>
+                <BubbleMenuGlyph><TrashIcon size={14} /></BubbleMenuGlyph> Delete
+              </BubbleMenuItem>
+            </>
+          )}
+          <BubbleMenuDivider />
+          <BubbleMenuItem onClick={() => { closeMenu(); stub("Select messages")(); }}>
+            <BubbleMenuGlyph>☑</BubbleMenuGlyph> Select messages
+          </BubbleMenuItem>
+        </BubbleMenuPopup>,
+        document.body,
+      )}
+      {reactTrayOpen && reactTrayPos && createPortal(
+        <ReactionTray
+          $accent={accent}
+          style={{ top: reactTrayPos.top, left: reactTrayPos.left }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {QUICK_REACTIONS.map((emoji) => (
+            <ReactionTrayBtn
+              key={emoji}
+              $accent={accent}
+              onClick={() => pickReaction(emoji)}
+              aria-label={`React with ${emoji}`}
+            >
+              {emoji}
+            </ReactionTrayBtn>
+          ))}
+        </ReactionTray>,
+        document.body,
+      )}
     </BubbleRow>
+  );
+}
+
+// ── ScrollableMessages ───────────────────────────────────────────────────────
+
+function ScrollableMessages({ children, innerRef }: { children: React.ReactNode; innerRef?: React.MutableRefObject<HTMLDivElement | null> }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [showJump, setShowJump] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    if (innerRef) innerRef.current = el;
+    const onScroll = () => {
+      const dist = el.scrollHeight - el.scrollTop - el.clientHeight;
+      setShowJump(dist > 200);
+    };
+    onScroll();
+    el.addEventListener("scroll", onScroll);
+    return () => {
+      el.removeEventListener("scroll", onScroll);
+      if (innerRef) innerRef.current = null;
+    };
+  }, [innerRef]);
+
+  const jumpToBottom = () => {
+    const el = ref.current;
+    if (el) el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+  };
+
+  return (
+    <MsgScrollWrap>
+      <MsgScroll ref={ref}>{children}</MsgScroll>
+      <ScrollToBottomBtn $visible={showJump} onClick={jumpToBottom} aria-label="Jump to latest">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M3.5 5.5 L7 9 L10.5 5.5" />
+        </svg>
+      </ScrollToBottomBtn>
+    </MsgScrollWrap>
   );
 }
 
@@ -2197,9 +2822,14 @@ export default function ChatDrawer() {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [onlineOverflowOpen, setOnlineOverflowOpen] = useState(false);
   const [voiceActive, setVoiceActive] = useState(false);
+  const [talkActive, setTalkActive] = useState(false);
   const [composerNarrow, setComposerNarrow] = useState(false);
   const [composerMoreOpen, setComposerMoreOpen] = useState(false);
+  const [headerMembersOpen, setHeaderMembersOpen] = useState(false);
+  const [headerMemberQuery, setHeaderMemberQuery] = useState("");
   const inputRowRef = useRef<HTMLDivElement>(null);
+  const talkTriggerRef = useRef<HTMLDivElement>(null);
+  const voiceTriggerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const el = inputRowRef.current;
@@ -2782,6 +3412,33 @@ export default function ChatDrawer() {
     await loadMessages();
   };
 
+  const reactTgv = async (messageId: string, emoji: string) => {
+    await fetch("/api/chat/react", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ scope: "tgv", messageId, emoji }),
+    });
+    await loadMessages();
+  };
+
+  const reactDm = async (messageId: string, emoji: string, withUser: string) => {
+    await fetch("/api/chat/react", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ scope: "dm", messageId, emoji, with: withUser }),
+    });
+    await loadDmMessages(withUser);
+  };
+
+  const reactGroup = async (messageId: string, emoji: string, groupId: string) => {
+    await fetch("/api/chat/react", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ scope: "group", messageId, emoji, groupId }),
+    });
+    await loadGroupMessages(groupId);
+  };
+
   const clearChat = async () => {
     setShowClearConfirm(true);
   };
@@ -2995,39 +3652,46 @@ export default function ChatDrawer() {
             );
           })()}
 
-          <ControlBtn
-            onClick={clearChat}
-            title={
+          <Tooltip
+            accent={colors.green}
+            label={
               selection.type === "dm" ? "Clear this DM for me"
               : selection.type === "group" ? "Clear this group for me"
               : "Clear chat"
             }
           >
-            <TrashIcon size={14} />
-          </ControlBtn>
+            <ControlBtn onClick={clearChat}>
+              <TrashIcon size={14} />
+            </ControlBtn>
+          </Tooltip>
 
-          <ControlBtn onClick={() => setShowSettingsModal(true)} title="Settings">
-            <svg viewBox="0 0 16 16" fill="currentColor">
-              <path d="M8 10.5A2.5 2.5 0 1 1 8 5.5a2.5 2.5 0 0 1 0 5zm5.29-2.77a5.07 5.07 0 0 0 .04-.73 5 5 0 0 0-.04-.73l1.57-1.23a.38.38 0 0 0 .09-.48l-1.49-2.57a.37.37 0 0 0-.45-.16l-1.85.74a5.4 5.4 0 0 0-1.26-.73L9.67.37A.36.36 0 0 0 9.31 0H6.69a.36.36 0 0 0-.36.37l-.27 1.97a5.4 5.4 0 0 0-1.26.73l-1.85-.74a.37.37 0 0 0-.45.16L1.05 4.86a.37.37 0 0 0 .09.48l1.57 1.23c-.03.24-.04.48-.04.73s.01.49.04.73L1.14 9.26a.37.37 0 0 0-.09.48l1.49 2.57c.09.16.28.22.45.16l1.85-.74c.39.28.82.52 1.26.73l.27 1.97c.05.2.24.37.45.37H9.3c.21 0 .4-.17.45-.37l.27-1.97a5.4 5.4 0 0 0 1.26-.73l1.85.74c.17.06.36 0 .45-.16l1.49-2.57a.37.37 0 0 0-.09-.48l-1.69-1.27z"/>
-            </svg>
-          </ControlBtn>
+          <Tooltip accent={colors.green} label="Settings">
+            <ControlBtn onClick={() => setShowSettingsModal(true)}>
+              <svg viewBox="0 0 16 16" fill="currentColor">
+                <path d="M8 10.5A2.5 2.5 0 1 1 8 5.5a2.5 2.5 0 0 1 0 5zm5.29-2.77a5.07 5.07 0 0 0 .04-.73 5 5 0 0 0-.04-.73l1.57-1.23a.38.38 0 0 0 .09-.48l-1.49-2.57a.37.37 0 0 0-.45-.16l-1.85.74a5.4 5.4 0 0 0-1.26-.73L9.67.37A.36.36 0 0 0 9.31 0H6.69a.36.36 0 0 0-.36.37l-.27 1.97a5.4 5.4 0 0 0-1.26.73l-1.85-.74a.37.37 0 0 0-.45.16L1.05 4.86a.37.37 0 0 0 .09.48l1.57 1.23c-.03.24-.04.48-.04.73s.01.49.04.73L1.14 9.26a.37.37 0 0 0-.09.48l1.49 2.57c.09.16.28.22.45.16l1.85-.74c.39.28.82.52 1.26.73l.27 1.97c.05.2.24.37.45.37H9.3c.21 0 .4-.17.45-.37l.27-1.97a5.4 5.4 0 0 0 1.26-.73l1.85.74c.17.06.36 0 .45-.16l1.49-2.57a.37.37 0 0 0-.09-.48l-1.69-1.27z"/>
+              </svg>
+            </ControlBtn>
+          </Tooltip>
 
-          <ControlBtn
-            onClick={() => {
-              const w = window.screen.width * 0.8;
-              const h = window.screen.height * 0.85;
-              const left = (window.screen.width - w) / 2;
-              const top  = (window.screen.height - h) / 2;
-              window.open("/dashboard/chat?popout=1", "tgv-chat-drawer", `width=${w},height=${h},left=${left},top=${top}`);
-            }}
-            title="Open in new window"
-          >
-            ⧉
-          </ControlBtn>
+          <Tooltip accent={colors.green} label="Open in new window">
+            <ControlBtn
+              onClick={() => {
+                const w = window.screen.width * 0.8;
+                const h = window.screen.height * 0.85;
+                const left = (window.screen.width - w) / 2;
+                const top  = (window.screen.height - h) / 2;
+                window.open("/dashboard/chat?popout=1", "tgv-chat-drawer", `width=${w},height=${h},left=${left},top=${top}`);
+              }}
+            >
+              ⧉
+            </ControlBtn>
+          </Tooltip>
 
-          <ControlBtn onClick={() => setOpen(false)} title="Close (Esc)">
-            ✕
-          </ControlBtn>
+          <Tooltip accent={colors.green} label="Close (Esc)">
+            <ControlBtn onClick={() => setOpen(false)}>
+              ✕
+            </ControlBtn>
+          </Tooltip>
         </Header>
 
         <Body>
@@ -3037,43 +3701,46 @@ export default function ChatDrawer() {
               <Sidebar $width={sidebarWidth}>
                 <SidebarHeader>
                   <SidebarTabSwitch>
-                    <SidebarTabBtn
-                      $active={sidebarTab === "users"}
-                      $narrow={sidebarWidth < SIDEBAR_NARROW}
-                      onClick={() => setSidebarTab("users")}
-                      title="Show direct-message users"
-                    >
-                      {sidebarWidth < SIDEBAR_NARROW ? (
-                        <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
-                          <circle cx="8" cy="5.5" r="2.75"/>
-                          <path d="M2.75 13.5c.6-2.4 2.75-3.75 5.25-3.75s4.65 1.35 5.25 3.75"/>
-                        </svg>
-                      ) : "Users"}
-                    </SidebarTabBtn>
-                    <SidebarTabBtn
-                      $active={sidebarTab === "groups"}
-                      $narrow={sidebarWidth < SIDEBAR_NARROW}
-                      onClick={() => setSidebarTab("groups")}
-                      title="Show group chats"
-                    >
-                      {sidebarWidth < SIDEBAR_NARROW ? (
-                        <svg width="13" height="11" viewBox="0 0 20 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
-                          <circle cx="7" cy="5.5" r="2.5"/>
-                          <circle cx="14.5" cy="6" r="2"/>
-                          <path d="M2 13.5c.5-2.1 2.5-3.3 5-3.3s4.5 1.2 5 3.3"/>
-                          <path d="M13 10.25c1.7 0 3.3.9 4.25 3.25"/>
-                        </svg>
-                      ) : "Groups"}
-                    </SidebarTabBtn>
+                    <Tooltip accent={colors.green} label="Show direct-message users">
+                      <SidebarTabBtn
+                        $active={sidebarTab === "users"}
+                        $narrow={sidebarWidth < SIDEBAR_NARROW}
+                        onClick={() => setSidebarTab("users")}
+                      >
+                        {sidebarWidth < SIDEBAR_NARROW ? (
+                          <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
+                            <circle cx="8" cy="5.5" r="2.75"/>
+                            <path d="M2.75 13.5c.6-2.4 2.75-3.75 5.25-3.75s4.65 1.35 5.25 3.75"/>
+                          </svg>
+                        ) : "Users"}
+                      </SidebarTabBtn>
+                    </Tooltip>
+                    <Tooltip accent={colors.green} label="Show group chats">
+                      <SidebarTabBtn
+                        $active={sidebarTab === "groups"}
+                        $narrow={sidebarWidth < SIDEBAR_NARROW}
+                        onClick={() => setSidebarTab("groups")}
+                      >
+                        {sidebarWidth < SIDEBAR_NARROW ? (
+                          <svg width="13" height="11" viewBox="0 0 20 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
+                            <circle cx="7" cy="5.5" r="2.5"/>
+                            <circle cx="14.5" cy="6" r="2"/>
+                            <path d="M2 13.5c.5-2.1 2.5-3.3 5-3.3s4.5 1.2 5 3.3"/>
+                            <path d="M13 10.25c1.7 0 3.3.9 4.25 3.25"/>
+                          </svg>
+                        ) : "Groups"}
+                      </SidebarTabBtn>
+                    </Tooltip>
                   </SidebarTabSwitch>
-                  <SidebarPlusBtn
-                    onClick={() => setShowCreateGroup(true)}
-                    title="New group chat"
-                  >
-                    <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
-                      <path d="M5 1v8M1 5h8"/>
-                    </svg>
-                  </SidebarPlusBtn>
+                  <Tooltip accent={colors.green} label="New group chat">
+                    <SidebarPlusBtn
+                      onClick={() => setShowCreateGroup(true)}
+                    >
+                      <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+                        <path d="M5 1v8M1 5h8"/>
+                      </svg>
+                    </SidebarPlusBtn>
+                  </Tooltip>
                 </SidebarHeader>
 
                 <SidebarList>
@@ -3413,42 +4080,161 @@ export default function ChatDrawer() {
                     const archivedCount = Object.entries(rowMeta).filter(([k, m]) => k.startsWith(prefix) && m.archived).length;
                     if (archivedCount === 0) return null;
                     return (
-                      <ArchivedToggle
-                        $open={showArchived}
-                        onClick={() => setShowArchived((p) => !p)}
-                        title={showArchived ? "Hide archived" : "Show archived"}
-                      >
-                        <RowMenuGlyph><WaArchive/></RowMenuGlyph>
-                        {showArchived ? "Hide" : "Show"} archived ({archivedCount})
-                      </ArchivedToggle>
+                      <Tooltip accent={colors.green} label={showArchived ? "Hide archived" : "Show archived"}>
+                        <ArchivedToggle
+                          $open={showArchived}
+                          onClick={() => setShowArchived((p) => !p)}
+                        >
+                          <RowMenuGlyph><WaArchive/></RowMenuGlyph>
+                          {showArchived ? "Hide" : "Show"} archived ({archivedCount})
+                        </ArchivedToggle>
+                      </Tooltip>
                     );
                   })()}
                 </SidebarList>
               </Sidebar>
 
-              <SidebarDTog
-                onMouseDown={onSidebarResizeStart}
-                $dragging={sidebarDragging}
-                title="Drag to resize · click to collapse"
-              >
-                <DTogGrip />
-              </SidebarDTog>
+              <Tooltip accent={colors.green} label="Drag to resize · click to collapse">
+                <SidebarDTog
+                  onMouseDown={onSidebarResizeStart}
+                  $dragging={sidebarDragging}
+                >
+                  <DTogGrip />
+                </SidebarDTog>
+              </Tooltip>
             </>
           )}
 
           <ConvPane>
             {sidebarCollapsed && (
-              <DTogTab
-                onClick={() => setSidebarCollapsed(false)}
-                title="Show sidebar"
-              >
-                <DTogExpandIcon />
-              </DTogTab>
+              <Tooltip accent={colors.green} label="Show sidebar">
+                <DTogTab
+                  onClick={() => setSidebarCollapsed(false)}
+                >
+                  <DTogExpandIcon />
+                </DTogTab>
+              </Tooltip>
             )}
+
+            {/* ── Chat header row (peer / group / TGV) ────────── */}
+            {(() => {
+              const isDM = selection.type === "dm" && !!peer;
+              const isGroup = selection.type === "group";
+              const activeGroup = isGroup ? groups.find((g) => g.id === selection.groupId) : undefined;
+              if (!isTGV && !isDM && !isGroup) return null;
+
+              const accent = isDM ? (peer?.accentColor ?? VIOLET)
+                : isGroup ? colors.green
+                : colors.green;
+
+              const members = isGroup && activeGroup
+                ? (activeGroup.memberIds ?? [])
+                    .map((username) => profiles.find((p) => p.username === username))
+                    .filter((p): p is MemberProfile => !!p)
+                : [];
+              const filteredMembers = headerMemberQuery
+                ? members.filter((m) =>
+                    m.displayName.toLowerCase().includes(headerMemberQuery.toLowerCase()) ||
+                    m.username.toLowerCase().includes(headerMemberQuery.toLowerCase()))
+                : members;
+
+              return (
+                <div style={{ position: "relative" }}>
+                  <ChatHeaderRow $accent={accent}>
+                    {isDM && peer ? (
+                      <ChatHeaderLeft
+                        $accent={accent}
+                        onClick={() => setContactInfoFor(peer.username)}
+                        title="View profile"
+                      >
+                        <UserAvatar profile={peer} size={28} />
+                        <div style={{ display: "flex", flexDirection: "column", minWidth: 0, alignItems: "flex-start" }}>
+                          <ChatHeaderName>{peer.displayName}</ChatHeaderName>
+                          {peer.title && <ChatHeaderSub>{peer.title}</ChatHeaderSub>}
+                        </div>
+                      </ChatHeaderLeft>
+                    ) : isGroup && activeGroup ? (
+                      <ChatHeaderLeft
+                        $accent={accent}
+                        onClick={() => {
+                          setHeaderMembersOpen((v) => !v);
+                          setHeaderMemberQuery("");
+                        }}
+                        title="View members"
+                      >
+                        <MembersIcon size={18} />
+                        <div style={{ display: "flex", flexDirection: "column", minWidth: 0, alignItems: "flex-start" }}>
+                          <ChatHeaderName>{activeGroup.name}</ChatHeaderName>
+                          <ChatHeaderSub>{(activeGroup.memberIds ?? []).length} members</ChatHeaderSub>
+                        </div>
+                      </ChatHeaderLeft>
+                    ) : (
+                      <ChatHeaderLeft $accent={accent} as="div" style={{ cursor: "default" }}>
+                        <ChatIcon size={18} />
+                        <div style={{ display: "flex", flexDirection: "column", minWidth: 0, alignItems: "flex-start" }}>
+                          <ChatHeaderName>TGV Chatroom</ChatHeaderName>
+                          <ChatHeaderSub>All members</ChatHeaderSub>
+                        </div>
+                      </ChatHeaderLeft>
+                    )}
+                    <ChatHeaderActions>
+                      <Tooltip accent={accent} label="Video call">
+                        <ChatHeaderIconBtn
+                          $accent={accent}
+                          onClick={() => alert("Video call: coming soon")}
+                        >
+                          <VideoIcon size={16} />
+                        </ChatHeaderIconBtn>
+                      </Tooltip>
+                      <Tooltip accent={accent} label="Voice call">
+                        <ChatHeaderIconBtn
+                          $accent={accent}
+                          onClick={() => alert("Voice call: coming soon")}
+                        >
+                          <PhoneIcon size={16} />
+                        </ChatHeaderIconBtn>
+                      </Tooltip>
+                    </ChatHeaderActions>
+                  </ChatHeaderRow>
+                  {isGroup && headerMembersOpen && activeGroup && (
+                    <ChatHeaderMemberDropdown $accent={accent}>
+                      <ChatHeaderMemberSearch
+                        $accent={accent}
+                        placeholder="Search members…"
+                        value={headerMemberQuery}
+                        onChange={(e) => setHeaderMemberQuery(e.target.value)}
+                        autoFocus
+                      />
+                      {filteredMembers.length === 0 ? (
+                        <div style={{ padding: "0.5rem", fontSize: "0.75rem", opacity: 0.6 }}>
+                          No members found.
+                        </div>
+                      ) : (
+                        filteredMembers.map((m) => (
+                          <ChatHeaderMemberItem
+                            key={m.username}
+                            $accent={accent}
+                            onClick={() => {
+                              setHeaderMembersOpen(false);
+                              setContactInfoFor(m.username);
+                            }}
+                          >
+                            <UserAvatar profile={m} size={22} />
+                            <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                              {m.displayName}
+                            </span>
+                          </ChatHeaderMemberItem>
+                        ))
+                      )}
+                    </ChatHeaderMemberDropdown>
+                  )}
+                </div>
+              );
+            })()}
 
             {/* ── Chat messages ────────────────────────────────── */}
             {isTGV && (
-              <MsgScroll>
+              <ScrollableMessages>
                 {messages.length === 0 ? (
                   <EmptyChat>
                     <EmptyIcon>💬</EmptyIcon>
@@ -3473,6 +4259,8 @@ export default function ChatDrawer() {
                           fileUrl={msg.fileUrl} fileName={msg.fileName} fileSize={msg.fileSize} fileMime={msg.fileMime}
                           createdAt={msg.createdAt} editedAt={msg.editedAt}
                           replyTo={msg.replyTo}
+                          reactions={msg.reactions}
+                          currentUser={currentUser}
                           profile={profile} isMe={msg.from === currentUser}
                           settings={settings} canDelete={msg.from === currentUser || isAdmin}
                           onDelete={() => deleteMessage(msg.id)}
@@ -3486,18 +4274,19 @@ export default function ChatDrawer() {
                             });
                           }}
                           onJumpToReply={(targetId) => scrollToMessage(targetId)}
+                          onReact={(mid, emoji) => reactTgv(mid, emoji)}
                         />
                       </Fragment>
                     );
                   });
                 })()}
                 <div ref={bottomRef} />
-              </MsgScroll>
+              </ScrollableMessages>
             )}
 
             {/* ── DM thread ────────────────────────────────────── */}
             {selection.type === "dm" && peer && (
-              <MsgScroll>
+              <ScrollableMessages>
                 {dmMessages.length === 0 ? (
                   <EmptyChat>
                     <UserAvatar profile={peer} size={40} />
@@ -3522,6 +4311,8 @@ export default function ChatDrawer() {
                           createdAt={msg.createdAt} editedAt={msg.editedAt}
                           readBy={msg.readBy} peerUsername={selection.peer.username}
                           replyTo={msg.replyTo}
+                          reactions={msg.reactions}
+                          currentUser={currentUser}
                           profile={profile} isMe={msg.from === currentUser}
                           settings={settings} canDelete={msg.from === currentUser}
                           onDelete={() => deleteDm(msg.id)}
@@ -3535,13 +4326,14 @@ export default function ChatDrawer() {
                             });
                           }}
                           onJumpToReply={(targetId) => scrollToMessage(targetId)}
+                          onReact={(mid, emoji) => reactDm(mid, emoji, selection.peer.username)}
                         />
                       </Fragment>
                     );
                   });
                 })()}
                 <div ref={dmBottomRef} />
-              </MsgScroll>
+              </ScrollableMessages>
             )}
 
             {/* ── Group thread ────────────────────────────────── */}
@@ -3592,7 +4384,7 @@ export default function ChatDrawer() {
                 );
               }
               return (
-                <MsgScroll>
+                <ScrollableMessages>
                   {groupMessages.length === 0 ? (
                     <EmptyChat>
                       <EmptyIcon>👥</EmptyIcon>
@@ -3617,6 +4409,8 @@ export default function ChatDrawer() {
                             id={msg.id} from={msg.from} content={msg.content}
                             createdAt={msg.createdAt} editedAt={msg.editedAt}
                             replyTo={msg.replyTo}
+                            reactions={msg.reactions}
+                            currentUser={currentUser}
                             profile={profile} isMe={msg.from === currentUser}
                             settings={settings} canDelete={canDelete}
                             onDelete={() => deleteGroupMessage(msg.id)}
@@ -3630,13 +4424,14 @@ export default function ChatDrawer() {
                               });
                             }}
                             onJumpToReply={(targetId) => scrollToMessage(targetId)}
+                            onReact={(mid, emoji) => reactGroup(mid, emoji, activeGroup.id)}
                           />
                         </Fragment>
                       );
                     });
                   })()}
                   <div ref={groupBottomRef} />
-                </MsgScroll>
+                </ScrollableMessages>
               );
             })()}
 
@@ -3738,13 +4533,14 @@ export default function ChatDrawer() {
                 <InputRow ref={inputRowRef}>
                   {!voiceActive && composerNarrow && (
                     <ComposerMoreAnchor onClick={(e) => e.stopPropagation()}>
-                      <ComposerMoreBtn
-                        $open={composerMoreOpen}
-                        onClick={() => setComposerMoreOpen((p) => !p)}
-                        title="More options"
-                      >
-                        ⋯
-                      </ComposerMoreBtn>
+                      <Tooltip accent={colors.green} label="More options">
+                        <ComposerMoreBtn
+                          $open={composerMoreOpen}
+                          onClick={() => setComposerMoreOpen((p) => !p)}
+                        >
+                          ⋯
+                        </ComposerMoreBtn>
+                      </Tooltip>
                       {composerMoreOpen && (
                         <ComposerMorePopup>
                           {isTGV && (
@@ -3766,6 +4562,20 @@ export default function ChatDrawer() {
                           <ComposerMoreItem onClick={() => { setComposerMoreOpen(false); setPickerOpen(true); }}>
                             <AttachMenuIcon><SmileIcon size={16} /></AttachMenuIcon> Emoji · GIFs · Stickers
                           </ComposerMoreItem>
+                          <ComposerMoreItem onClick={() => {
+                            setComposerMoreOpen(false);
+                            talkTriggerRef.current?.querySelector("button")?.click();
+                          }}>
+                            <AttachMenuIcon><MicIcon size={16} /></AttachMenuIcon> Talk to text
+                          </ComposerMoreItem>
+                          {isTGV && (
+                            <ComposerMoreItem onClick={() => {
+                              setComposerMoreOpen(false);
+                              voiceTriggerRef.current?.querySelector("button")?.click();
+                            }}>
+                              <AttachMenuIcon><WaveformIcon size={16} /></AttachMenuIcon> Voice memo
+                            </ComposerMoreItem>
+                          )}
                         </ComposerMorePopup>
                       )}
                     </ComposerMoreAnchor>
@@ -3773,9 +4583,11 @@ export default function ChatDrawer() {
                   {!voiceActive && !composerNarrow && isTGV && (
                     <>
                       <AttachMenuAnchor onClick={(e) => e.stopPropagation()}>
-                        <AttachBtn onClick={() => setAttachMenuOpen((p) => !p)} title="Attach">
-                          <AttachIcon size={14} />
-                        </AttachBtn>
+                        <Tooltip accent={colors.green} label="Attach">
+                          <AttachBtn onClick={() => setAttachMenuOpen((p) => !p)}>
+                            <AttachIcon size={14} />
+                          </AttachBtn>
+                        </Tooltip>
                         {attachMenuOpen && (
                           <AttachMenuPopup>
                             <AttachMenuItem onClick={() => { setAttachMenuOpen(false); fileRef.current?.click(); }}>
@@ -3818,9 +4630,11 @@ export default function ChatDrawer() {
                   <>
                   {!composerNarrow && (
                   <PickerAnchor onClick={(e) => e.stopPropagation()}>
-                    <PickerBtn onClick={() => setPickerOpen((p) => !p)} title="Emoji · GIFs · Stickers">
-                      <SmileIcon size={16} />
-                    </PickerBtn>
+                    <Tooltip accent={colors.green} label="Emoji · GIFs · Stickers">
+                      <PickerBtn onClick={() => setPickerOpen((p) => !p)}>
+                        <SmileIcon size={16} />
+                      </PickerBtn>
+                    </Tooltip>
                     {pickerOpen && (
                       <ChatPicker
                         onClose={() => setPickerOpen(false)}
@@ -3887,11 +4701,13 @@ export default function ChatDrawer() {
                       }
                     }}
                     placeholder={
-                      selection.type === "dm" && peer
-                        ? `Message ${peer.displayName}…`
-                        : selection.type === "group"
-                          ? "Message group…"
-                          : "Enter to send · Shift+Enter for newline"
+                      composerNarrow
+                        ? "Enter to send"
+                        : selection.type === "dm" && peer
+                          ? `Message ${peer.displayName}…`
+                          : selection.type === "group"
+                            ? "Message group…"
+                            : "Enter to send · Shift+Enter for newline"
                     }
                     rows={1}
                     $accent={
@@ -3906,58 +4722,70 @@ export default function ChatDrawer() {
                     }}
                   />
 
-                  <TalkToText
-                    accent={colors.green}
-                    model={settings.whisperModel ?? "base.en"}
-                    onTranscript={(text) => {
-                      if (selection.type === "dm") {
-                        setDmInput((prev) => (prev ? `${prev} ${text}` : text));
-                      } else if (selection.type === "group") {
-                        setGroupInput((prev) => (prev ? `${prev} ${text}` : text));
-                      } else {
-                        setInput((prev) => (prev ? `${prev} ${text}` : text));
-                      }
-                    }}
-                    onError={(msg) => alert(`Transcribe: ${msg}`)}
-                    disabled={sending || uploading || dmSending || groupSending}
-                  />
+                  <div
+                    ref={talkTriggerRef}
+                    style={{ display: composerNarrow && !talkActive ? "none" : "contents" }}
+                  >
+                    <TalkToText
+                      accent={colors.green}
+                      model={settings.whisperModel ?? "base.en"}
+                      onTranscript={(text) => {
+                        if (selection.type === "dm") {
+                          setDmInput((prev) => (prev ? `${prev} ${text}` : text));
+                        } else if (selection.type === "group") {
+                          setGroupInput((prev) => (prev ? `${prev} ${text}` : text));
+                        } else {
+                          setInput((prev) => (prev ? `${prev} ${text}` : text));
+                        }
+                      }}
+                      onError={(msg) => alert(`Transcribe: ${msg}`)}
+                      onActiveChange={setTalkActive}
+                      disabled={sending || uploading || dmSending || groupSending}
+                    />
+                  </div>
                   </>
                   )}
                   {isTGV && (
-                    <VoiceRecorder accent={colors.green} onSend={sendVoice} onActiveChange={setVoiceActive} disabled={sending || uploading} />
+                    <div
+                      ref={voiceTriggerRef}
+                      style={{ display: composerNarrow && !voiceActive ? "none" : "contents" }}
+                    >
+                      <VoiceRecorder accent={colors.green} onSend={sendVoice} onActiveChange={setVoiceActive} disabled={sending || uploading} />
+                    </div>
                   )}
 
                   {!voiceActive && (
-                  <SendBtn
-                    onClick={
-                      selection.type === "dm"
-                        ? sendDm
-                        : selection.type === "group"
-                          ? sendGroupMessage
-                          : sendMessage
-                    }
-                    disabled={
-                      selection.type === "dm"
-                        ? (!dmInput.trim() || dmSending)
-                        : selection.type === "group"
-                          ? (!groupInput.trim() || groupSending)
-                          : ((sending || uploading) || (!input.trim() && !uploadFile))
-                    }
-                    $color={
-                      selection.type === "dm"
-                        ? (peer?.accentColor ?? VIOLET)
-                        : selection.type === "group"
-                          ? colors.green
-                          : undefined
-                    }
-                    title="Send (Enter)"
-                  >
-                    {(sending || uploading || dmSending || groupSending) ? (
-                      <span style={{ fontSize: "0.5625rem" }}>…</span>
-                    ) : (
-                      <SendIcon size={14} />
-                    )}
-                  </SendBtn>
+                  <Tooltip accent={colors.green} label="Send (Enter)">
+                    <SendBtn
+                      onClick={
+                        selection.type === "dm"
+                          ? sendDm
+                          : selection.type === "group"
+                            ? sendGroupMessage
+                            : sendMessage
+                      }
+                      disabled={
+                        selection.type === "dm"
+                          ? (!dmInput.trim() || dmSending)
+                          : selection.type === "group"
+                            ? (!groupInput.trim() || groupSending)
+                            : ((sending || uploading) || (!input.trim() && !uploadFile))
+                      }
+                      $color={
+                        selection.type === "dm"
+                          ? (peer?.accentColor ?? VIOLET)
+                          : selection.type === "group"
+                            ? colors.green
+                            : undefined
+                      }
+                    >
+                      {(sending || uploading || dmSending || groupSending) ? (
+                        <span style={{ fontSize: "0.5625rem" }}>…</span>
+                      ) : (
+                        <SendIcon size={14} />
+                      )}
+                    </SendBtn>
+                  </Tooltip>
                   )}
                 </InputRow>
               </InputArea>

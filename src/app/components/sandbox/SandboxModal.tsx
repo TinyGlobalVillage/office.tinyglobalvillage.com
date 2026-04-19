@@ -992,6 +992,13 @@ const SummaryKey = styled.span`
   min-width: 0;
 `;
 
+const SummaryKeyAcronym = styled.span`
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: ${PINK};
+  margin-right: 0.4rem;
+`;
+
 const SummaryBody = styled.div`
   padding: 0 1.25rem 1rem;
   max-width: 56rem;
@@ -2191,9 +2198,14 @@ export default function SandboxModal({
                     </SummaryTopRow>
                     <SummaryKeyRow>
                       <SummaryKey>
-                        · {active.key.length > 5
-                          ? active.name
-                          : `${active.key} — ${active.name}`}
+                        {active.key.length > 5 ? (
+                          active.name
+                        ) : (
+                          <>
+                            <SummaryKeyAcronym>{active.key}</SummaryKeyAcronym>
+                            {active.name}
+                          </>
+                        )}
                       </SummaryKey>
                     </SummaryKeyRow>
                   </SummaryToggle>
