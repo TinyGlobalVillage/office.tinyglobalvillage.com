@@ -9,8 +9,10 @@ import { UserAvatar } from "./ChatSettingsModal";
 import type { UserPresence } from "./PresenceDots";
 import { ArrowRightIcon } from "./icons";
 
-const MOBILE_PAGE_SIZE = 5;
 const TILE_MIN_WIDTH = 200;
+const DEFAULT_PAGE_SIZE = 5;
+const PAGE_SIZE_OPTIONS = [5, 10, 25, 50] as const;
+const PAGE_SIZE_STORAGE_KEY = "tgv_team_page_size";
 
 /* ── Styled ────────────────────────────────────────────────── */
 
@@ -62,15 +64,96 @@ const UserList = styled.div<{ $cols: number }>`
   gap: 8px;
 `;
 
-const PagerRow = styled.div`
+const TpgRow = styled.div`
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 12px;
-  padding-top: 4px;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding-top: 6px;
 `;
 
-const PagerBtn = styled.button`
+const TpgInfo = styled.span`
+  font-size: 11px;
+  font-family: var(--font-geist-mono), monospace;
+  font-variant-numeric: tabular-nums;
+  color: ${colors.violet};
+  text-shadow: 0 0 5px rgba(${rgb.violet}, 0.45);
+`;
+
+const TpgControls = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
+
+const TpgSelect = styled.select`
+  appearance: none;
+  background: rgba(${rgb.violet}, 0.08);
+  border: 1px solid rgba(${rgb.violet}, 0.5);
+  border-radius: 9999px;
+  color: ${colors.violet};
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  padding: 4px 24px 4px 10px;
+  cursor: pointer;
+  background-image: linear-gradient(45deg, transparent 50%, ${colors.violet} 50%), linear-gradient(135deg, ${colors.violet} 50%, transparent 50%);
+  background-position: calc(100% - 12px) 50%, calc(100% - 7px) 50%;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+  filter: drop-shadow(0 0 4px rgba(${rgb.violet}, 0.45));
+
+  &:hover {
+    background-color: rgba(${rgb.violet}, 0.15);
+  }
+
+  [data-theme="light"] & {
+    background-color: rgba(${rgb.violet}, 0.06);
+  }
+`;
+
+const TpgCustomInput = styled.input`
+  width: 56px;
+  padding: 4px 8px;
+  border-radius: 9999px;
+  background: rgba(${rgb.violet}, 0.08);
+  border: 1px solid rgba(${rgb.violet}, 0.5);
+  color: ${colors.violet};
+  font-size: 11px;
+  font-weight: 700;
+  text-align: center;
+  outline: none;
+  font-variant-numeric: tabular-nums;
+
+  &::-webkit-inner-spin-button,
+  &::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+`;
+
+const ResetBtn = styled.button`
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  background: rgba(${rgb.cyan}, 0.1);
+  border: 1px solid rgba(${rgb.cyan}, 0.45);
+  color: ${colors.cyan};
+  filter: drop-shadow(0 0 3px rgba(${rgb.cyan}, 0.45));
+
+  &:hover {
+    background: rgba(${rgb.cyan}, 0.2);
+  }
+`;
+
+const TpgBtn = styled.button`
   width: 28px;
   height: 28px;
   border-radius: 9999px;
@@ -102,14 +185,6 @@ const PagerBtn = styled.button`
     opacity: 0.35;
     cursor: not-allowed;
   }
-`;
-
-const PagerInfo = styled.span`
-  font-size: 12px;
-  font-family: var(--font-geist-mono), monospace;
-  font-variant-numeric: tabular-nums;
-  color: ${colors.violet};
-  text-shadow: 0 0 6px rgba(${rgb.violet}, 0.5);
 `;
 
 const UserBtn = styled.button`
@@ -228,7 +303,13 @@ const MemoDate = styled.span`
 
 /* ── Component ─────────────────────────────────────────────── */
 
-export default function UsersCard({ className = "" }: { className?: string }) {
+export default function UsersCard({
+  className = "",
+  onPageSizeChange,
+}: {
+  className?: string;
+  onPageSizeChange?: (size: number) => void;
+}) {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [presence, setPresence] = useState<UserPresence[]>([]);
   const [memos, setMemos] = useState<Memo[]>([]);
@@ -238,7 +319,26 @@ export default function UsersCard({ className = "" }: { className?: string }) {
   const [currentUser, setCurrentUser] = useState<string>("");
   const [cols, setCols] = useState(1);
   const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState<number>(DEFAULT_PAGE_SIZE);
+  const [customMode, setCustomMode] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
+
+  // Hydrate page size from localStorage (client-only)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const saved = window.localStorage.getItem(PAGE_SIZE_STORAGE_KEY);
+    const n = saved ? parseInt(saved, 10) : NaN;
+    if (Number.isFinite(n) && n > 0) {
+      setPageSize(n);
+      setCustomMode(!PAGE_SIZE_OPTIONS.includes(n as (typeof PAGE_SIZE_OPTIONS)[number]));
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(PAGE_SIZE_STORAGE_KEY, String(pageSize));
+    onPageSizeChange?.(pageSize);
+  }, [pageSize, onPageSizeChange]);
 
   const load = async () => {
     const [profRes, presRes, memoRes, pingRes, meRes] = await Promise.all([
@@ -283,13 +383,15 @@ export default function UsersCard({ className = "" }: { className?: string }) {
     return () => ro.disconnect();
   }, []);
 
-  // Page size: 5 per page on mobile (1 col), otherwise cols * 3 rows.
-  const pageSize = cols === 1 ? MOBILE_PAGE_SIZE : cols * 3;
+  // Page size is user-controlled (TPG). Columns stay responsive via ResizeObserver.
   const totalPages = Math.max(1, Math.ceil(profiles.length / pageSize));
   useEffect(() => {
     if (page > totalPages - 1) setPage(Math.max(0, totalPages - 1));
   }, [page, totalPages]);
   const pageProfiles = profiles.slice(page * pageSize, (page + 1) * pageSize);
+
+  const isDefaultSize = pageSize === DEFAULT_PAGE_SIZE && !customMode;
+  const totalResults = profiles.length;
 
   return (
     <Card className={className}>
@@ -348,27 +450,85 @@ export default function UsersCard({ className = "" }: { className?: string }) {
         })}
       </UserList>
 
-      {profiles.length > pageSize && (
-        <PagerRow>
-          <PagerBtn
+      <TpgRow>
+        <TpgInfo>
+          Page {page + 1} of {totalPages} · {totalResults} result{totalResults === 1 ? "" : "s"}
+        </TpgInfo>
+        <TpgControls>
+          {!isDefaultSize && (
+            <ResetBtn
+              type="button"
+              aria-label="Reset page size"
+              title="Reset to default"
+              onClick={() => {
+                setPageSize(DEFAULT_PAGE_SIZE);
+                setCustomMode(false);
+                setPage(0);
+              }}
+            >
+              ↺
+            </ResetBtn>
+          )}
+          {customMode ? (
+            <TpgCustomInput
+              type="number"
+              min={1}
+              max={500}
+              value={pageSize}
+              onChange={(e) => {
+                const v = parseInt(e.target.value, 10);
+                if (Number.isFinite(v) && v > 0) {
+                  setPageSize(v);
+                  setPage(0);
+                }
+              }}
+              onBlur={(e) => {
+                if (!e.target.value) {
+                  setPageSize(DEFAULT_PAGE_SIZE);
+                  setCustomMode(false);
+                }
+              }}
+              aria-label="Custom page size"
+            />
+          ) : (
+            <TpgSelect
+              value={pageSize}
+              onChange={(e) => {
+                const v = e.target.value;
+                if (v === "custom") {
+                  setCustomMode(true);
+                  return;
+                }
+                const n = parseInt(v, 10);
+                if (Number.isFinite(n) && n > 0) {
+                  setPageSize(n);
+                  setPage(0);
+                }
+              }}
+              aria-label="Page size"
+            >
+              {PAGE_SIZE_OPTIONS.map((n) => (
+                <option key={n} value={n}>{n} / page</option>
+              ))}
+              <option value="custom">Custom…</option>
+            </TpgSelect>
+          )}
+          <TpgBtn
             disabled={page === 0}
             onClick={() => setPage((p) => Math.max(0, p - 1))}
             aria-label="Previous page"
           >
             ‹
-          </PagerBtn>
-          <PagerInfo>
-            {page + 1} / {totalPages}
-          </PagerInfo>
-          <PagerBtn
+          </TpgBtn>
+          <TpgBtn
             disabled={page >= totalPages - 1}
             onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
             aria-label="Next page"
           >
             ›
-          </PagerBtn>
-        </PagerRow>
-      )}
+          </TpgBtn>
+        </TpgControls>
+      </TpgRow>
 
       {memos.length > 0 && (
         <MemoDivider>

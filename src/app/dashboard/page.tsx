@@ -330,7 +330,7 @@ const PagerInfo = styled.span`
   font-variant-numeric: tabular-nums;
 `;
 
-const BottomGrid = styled.div`
+const BottomGrid = styled.div<{ $teamFullRow: boolean }>`
   display: grid;
   grid-template-columns: 1fr;
   gap: 1rem;
@@ -338,7 +338,7 @@ const BottomGrid = styled.div`
   width: 100%;
 
   @media (min-width: 1024px) {
-    grid-template-columns: 1fr 2fr;
+    grid-template-columns: ${(p) => (p.$teamFullRow ? "1fr" : "1fr 2fr")};
   }
 
   & > * {
@@ -409,6 +409,7 @@ export default function Home() {
   const [asc, setAsc] = useState(true);
   const sbdmRef = useRef<HTMLDivElement | null>(null);
   const [page, setPage] = useState(0);
+  const [teamPageSize, setTeamPageSize] = useState(5);
 
   useEffect(() => {
     fetch("/api/activity")
@@ -593,8 +594,8 @@ export default function Home() {
 
         <div style={{ marginBottom: "1rem" }}><AnnouncementsPanel /></div>
 
-        <BottomGrid>
-          <UsersCard />
+        <BottomGrid $teamFullRow={teamPageSize > 5}>
+          <UsersCard onPageSizeChange={setTeamPageSize} />
           <button
             onClick={() => setActivityOpen(true)}
             style={{ textAlign: "left", width: "100%", height: "100%", padding: 0, background: "none", border: "none" }}
