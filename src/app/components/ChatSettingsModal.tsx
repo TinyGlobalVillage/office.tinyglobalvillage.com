@@ -241,25 +241,33 @@ const ToggleLabel = styled.span`
 `;
 
 const Toggle = styled.button<{ $on?: boolean }>`
-  width: 2.5rem;
-  height: 1.25rem;
-  border-radius: 9999px;
-  border: none;
   position: relative;
+  display: inline-block;
+  width: 28px;
+  height: 14px;
+  padding: 0;
+  border-radius: 999px;
+  border: 1px solid ${(p) => (p.$on ? `rgba(${rgb.pink}, 0.7)` : "var(--t-borderStrong)")};
+  background: ${(p) => (p.$on ? `rgba(${rgb.pink}, 0.2)` : "var(--t-inputBg)")};
+  box-shadow: ${(p) => (p.$on ? `0 0 8px rgba(${rgb.pink}, 0.45)` : "none")};
   cursor: pointer;
-  transition: all 0.15s;
-  background: ${(p) => (p.$on ? `rgba(${rgb.pink}, 0.7)` : "var(--t-inputBg)")};
+  transition: all 0.18s;
+  flex-shrink: 0;
 `;
 
 const ToggleThumb = styled.span<{ $on?: boolean }>`
   position: absolute;
-  top: 0.125rem;
-  width: 1rem;
-  height: 1rem;
+  top: 1px;
+  left: ${(p) => (p.$on ? "15px" : "1px")};
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
-  transition: all 0.15s;
-  left: ${(p) => (p.$on ? "calc(100% - 1.125rem)" : "0.125rem")};
-  background: ${(p) => (p.$on ? "#fff" : "var(--t-textFaint)")};
+  background: ${(p) => (p.$on ? colors.pink : "var(--t-textFaint)")};
+  box-shadow: ${(p) =>
+    p.$on
+      ? `0 0 8px rgba(${rgb.pink}, 0.85), 0 0 2px rgba(${rgb.pink}, 1)`
+      : "0 1px 2px rgba(0,0,0,0.3)"};
+  transition: all 0.18s;
 `;
 
 const RadioBtn = styled.button<{ $active?: boolean }>`
@@ -374,24 +382,29 @@ const TzSelect = styled.select`
 const EclSwitchTrack = styled.span<{ $on: boolean }>`
   position: relative;
   display: inline-block;
-  width: 22px;
-  height: 11px;
+  width: 28px;
+  height: 14px;
   border-radius: 999px;
-  background: ${(p) => (p.$on ? `rgba(${rgb.pink}, 0.55)` : "var(--t-inputBg)")};
-  border: 1px solid ${(p) => (p.$on ? `rgba(${rgb.pink}, 0.4)` : "var(--t-borderStrong)")};
-  transition: background 0.15s, border-color 0.15s;
+  background: ${(p) => (p.$on ? `rgba(${rgb.pink}, 0.2)` : "var(--t-inputBg)")};
+  border: 1px solid ${(p) => (p.$on ? `rgba(${rgb.pink}, 0.7)` : "var(--t-borderStrong)")};
+  box-shadow: ${(p) => (p.$on ? `0 0 8px rgba(${rgb.pink}, 0.45)` : "none")};
+  transition: all 0.18s;
   flex-shrink: 0;
 `;
 
 const EclSwitchThumb = styled.span<{ $on: boolean }>`
   position: absolute;
   top: 1px;
-  left: ${(p) => (p.$on ? "12px" : "1px")};
-  width: 7px;
-  height: 7px;
+  left: ${(p) => (p.$on ? "15px" : "1px")};
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
-  background: ${(p) => (p.$on ? "#fff" : "var(--t-textFaint)")};
-  transition: left 0.15s, background 0.15s;
+  background: ${(p) => (p.$on ? colors.pink : "var(--t-textFaint)")};
+  box-shadow: ${(p) =>
+    p.$on
+      ? `0 0 8px rgba(${rgb.pink}, 0.85), 0 0 2px rgba(${rgb.pink}, 1)`
+      : "0 1px 2px rgba(0,0,0,0.3)"};
+  transition: all 0.18s;
 `;
 
 const EclLabel = styled.span`
@@ -471,15 +484,16 @@ const ProfileTextarea = styled.textarea`
   border: 1px solid var(--t-borderStrong);
 `;
 
-const SaveBtn = styled.button<{ $accent: string }>`
+const SaveBtn = styled.button<{ $accent: string; $dirty?: boolean }>`
   font-size: 0.625rem;
   padding: 0.375rem 0.75rem;
   border-radius: 0.5rem;
   transition: all 0.15s;
-  cursor: pointer;
-  background: rgba(${(p) => hexToRgb(p.$accent)}, 0.18);
-  border: 1px solid ${(p) => p.$accent}55;
-  color: ${(p) => p.$accent};
+  cursor: ${(p) => (p.$dirty ? "pointer" : "default")};
+  background: ${(p) => (p.$dirty ? `rgba(${hexToRgb(p.$accent)}, 0.22)` : "var(--t-inputBg)")};
+  border: 1px solid ${(p) => (p.$dirty ? `${p.$accent}88` : "var(--t-border)")};
+  color: ${(p) => (p.$dirty ? p.$accent : "var(--t-textFaint)")};
+  box-shadow: ${(p) => (p.$dirty ? `0 0 8px ${p.$accent}44` : "none")};
 
   &:disabled {
     opacity: 0.3;
@@ -519,6 +533,38 @@ const ClearBtn = styled.button`
   align-items: center;
   justify-content: center;
   gap: 0.35rem;
+`;
+
+const SignOutRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+  padding-top: 0.875rem;
+  border-top: 1px solid var(--t-border);
+`;
+
+const SignOutBtn = styled.button`
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 0.375rem 0.875rem;
+  border-radius: 0.5rem;
+  transition: all 0.15s;
+  cursor: pointer;
+  background: rgba(${rgb.red}, 0.12);
+  border: 1px solid rgba(${rgb.red}, 0.4);
+  color: ${colors.red};
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+
+  &:hover {
+    background: rgba(${rgb.red}, 0.2);
+    border-color: rgba(${rgb.red}, 0.55);
+  }
 `;
 
 const SearchWrap = styled.div`
@@ -727,6 +773,23 @@ const ADLWrap = styled.div`
   flex-direction: column;
 `;
 
+const MasterEclRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding: 0.25rem 0.625rem 0.5rem;
+  margin-bottom: -0.5rem;
+`;
+
+const MasterEclLabel = styled.span`
+  font-size: 0.5rem;
+  color: var(--t-textGhost);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+`;
+
 const ADLHeader = styled.button<{ $open: boolean }>`
   display: flex;
   align-items: center;
@@ -793,7 +856,7 @@ const ADLSwitchThumb = styled.span<{ $on: boolean }>`
 
 const ADLBody = styled.div<{ $open: boolean }>`
   display: ${(p) => (p.$open ? "block" : "none")};
-  padding: 0.75rem 0.25rem 0.25rem;
+  padding: 0.75rem 0 0.25rem;
 `;
 
 function ADLSection({
@@ -801,18 +864,28 @@ function ADLSection({
   count,
   defaultOpen = true,
   saved = false,
+  open: openProp,
+  onOpenChange,
   children,
 }: {
   label: string;
   count?: number;
   defaultOpen?: boolean;
   saved?: boolean;
+  open?: boolean;
+  onOpenChange?: (next: boolean) => void;
   children: ReactNode;
 }) {
-  const [open, setOpen] = useState(defaultOpen);
+  const [openState, setOpenState] = useState(defaultOpen);
+  const open = openProp ?? openState;
+  const toggle = () => {
+    const next = !open;
+    if (onOpenChange) onOpenChange(next);
+    else setOpenState(next);
+  };
   return (
     <ADLWrap>
-      <ADLHeader $open={open} aria-expanded={open} onClick={() => setOpen((o) => !o)}>
+      <ADLHeader $open={open} aria-expanded={open} onClick={toggle}>
         <ADLLabel>{label}</ADLLabel>
         <PreviewSaved data-visible={saved}>Saved</PreviewSaved>
         {typeof count === "number" && <ADLCount>{count}</ADLCount>}
@@ -976,7 +1049,24 @@ function SettingsTab({
   const [fontFamilyOpen, setFontFamilyOpen] = useState(true);
   const [accentOpen, setAccentOpen] = useState(true);
   const [storageOpen, setStorageOpen] = useState(true);
-  const [whisperOpen, setWhisperOpen] = useState(true);
+  // ADL open-state (controlled, so the master ECL can batch-toggle)
+  const ADL_KEYS = ["bio", "appearance", "chatprefs", "storage", "notifications", "privacy", "talk"] as const;
+  type ADLKey = typeof ADL_KEYS[number];
+  const [adlOpen, setAdlOpen] = useState<Record<ADLKey, boolean>>({
+    bio: true,
+    appearance: false,
+    chatprefs: false,
+    storage: false,
+    notifications: false,
+    privacy: false,
+    talk: false,
+  });
+  const setOne = (k: ADLKey) => (next: boolean) => setAdlOpen((s) => ({ ...s, [k]: next }));
+  const allOpen = ADL_KEYS.every((k) => adlOpen[k]);
+  const toggleAll = () => {
+    const next = !allOpen;
+    setAdlOpen(ADL_KEYS.reduce((acc, k) => ({ ...acc, [k]: next }), {} as Record<ADLKey, boolean>));
+  };
 
   useEffect(() => {
     if (myProfile) {
@@ -1075,9 +1165,35 @@ function SettingsTab({
     if (savedPipTimer.current) clearTimeout(savedPipTimer.current);
   }, []);
 
+  const isProfileDirty =
+    editName.trim() !== (myProfile?.displayName ?? "") ||
+    editEmail.trim() !== (myProfile?.email ?? "") ||
+    editTitle.trim() !== (myProfile?.title ?? "") ||
+    editBio.trim() !== (myProfile?.bio ?? "");
+
   return (
     <Section>
-      <ADLSection label="Identity" saved={savedKey === "identity"} defaultOpen>
+      <MasterEclRow>
+        <MasterEclLabel>{allOpen ? "Collapse all" : "Expand all"}</MasterEclLabel>
+        <button
+          type="button"
+          onClick={toggleAll}
+          aria-label={allOpen ? "Collapse all sections" : "Expand all sections"}
+          aria-expanded={allOpen}
+          style={{ background: "transparent", border: "none", padding: 0, cursor: "pointer", display: "inline-flex", alignItems: "center" }}
+        >
+          <ADLSwitchTrack $on={allOpen} aria-hidden="true">
+            <ADLSwitchThumb $on={allOpen} />
+          </ADLSwitchTrack>
+        </button>
+      </MasterEclRow>
+
+      <ADLSection
+        label="Bio"
+        saved={savedKey === "identity"}
+        open={adlOpen.bio}
+        onOpenChange={setOne("bio")}
+      >
         <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
           <AvatarWrap>
             <button
@@ -1144,7 +1260,12 @@ function SettingsTab({
             {saveError && <ErrorText>{saveError}</ErrorText>}
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <HintText>Click avatar to change photo</HintText>
-              <SaveBtn $accent={accent} onClick={saveProfile} disabled={saving}>
+              <SaveBtn
+                $accent={accent}
+                $dirty={isProfileDirty}
+                onClick={saveProfile}
+                disabled={saving || !isProfileDirty}
+              >
                 {saving ? "Saving…" : "Save"}
               </SaveBtn>
             </div>
@@ -1152,56 +1273,12 @@ function SettingsTab({
         </div>
       </ADLSection>
 
-      <ADLSection label="Chat Preferences" saved={savedKey === "chatprefs"} defaultOpen={false}>
-        <ToggleRow>
-          <ToggleLabel>Show timestamps</ToggleLabel>
-          <Toggle $on={settings.showTimestamps} onClick={() => setAndFlash({ showTimestamps: !settings.showTimestamps }, "chatprefs")}>
-            <ToggleThumb $on={settings.showTimestamps} />
-          </Toggle>
-        </ToggleRow>
-        {settings.showTimestamps && (
-          <TileRow>
-            <Tile>
-              <TileHeader>
-                <TileLabel>Format</TileLabel>
-                <Ecl on={formatOpen} onToggle={() => setFormatOpen((v) => !v)} />
-              </TileHeader>
-              <TileBody $open={formatOpen}>
-                {TS_FORMATS.map((f) => (
-                  <RadioBtn
-                    key={f.value}
-                    $active={settings.timestampFormat === f.value}
-                    onClick={() => setAndFlash({ timestampFormat: f.value }, "chatprefs")}
-                  >
-                    <RadioCircle $active={settings.timestampFormat === f.value}>
-                      {settings.timestampFormat === f.value && <RadioDot />}
-                    </RadioCircle>
-                    {f.label}
-                  </RadioBtn>
-                ))}
-              </TileBody>
-            </Tile>
-            <Tile>
-              <TileHeader>
-                <TileLabel>Timezone</TileLabel>
-                <Ecl on={tzOpen} onToggle={() => setTzOpen((v) => !v)} />
-              </TileHeader>
-              <TileBody $open={tzOpen}>
-                <TzSelect
-                  value={settings.timezone}
-                  onChange={(e) => setAndFlash({ timezone: e.target.value }, "chatprefs")}
-                >
-                  {TIMEZONES.map((tz) => (
-                    <option key={tz.value} value={tz.value}>{tz.label}</option>
-                  ))}
-                </TzSelect>
-              </TileBody>
-            </Tile>
-          </TileRow>
-        )}
-      </ADLSection>
-
-      <ADLSection label="Appearance" saved={savedKey === "appearance"} defaultOpen={false}>
+      <ADLSection
+        label="Appearance"
+        saved={savedKey === "appearance"}
+        open={adlOpen.appearance}
+        onOpenChange={setOne("appearance")}
+      >
         <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
           <TileRow>
             <Tile>
@@ -1305,7 +1382,87 @@ function SettingsTab({
         </div>
       </ADLSection>
 
-      <ADLSection label="Notifications" saved={savedKey === "notifications"} defaultOpen={false}>
+      <ADLSection
+        label="Chat Preferences"
+        saved={savedKey === "chatprefs"}
+        open={adlOpen.chatprefs}
+        onOpenChange={setOne("chatprefs")}
+      >
+        <ToggleRow>
+          <ToggleLabel>Show timestamps</ToggleLabel>
+          <Toggle $on={settings.showTimestamps} onClick={() => setAndFlash({ showTimestamps: !settings.showTimestamps }, "chatprefs")}>
+            <ToggleThumb $on={settings.showTimestamps} />
+          </Toggle>
+        </ToggleRow>
+        {settings.showTimestamps && (
+          <TileRow>
+            <Tile>
+              <TileHeader>
+                <TileLabel>Format</TileLabel>
+                <Ecl on={formatOpen} onToggle={() => setFormatOpen((v) => !v)} />
+              </TileHeader>
+              <TileBody $open={formatOpen}>
+                {TS_FORMATS.map((f) => (
+                  <RadioBtn
+                    key={f.value}
+                    $active={settings.timestampFormat === f.value}
+                    onClick={() => setAndFlash({ timestampFormat: f.value }, "chatprefs")}
+                  >
+                    <RadioCircle $active={settings.timestampFormat === f.value}>
+                      {settings.timestampFormat === f.value && <RadioDot />}
+                    </RadioCircle>
+                    {f.label}
+                  </RadioBtn>
+                ))}
+              </TileBody>
+            </Tile>
+            <Tile>
+              <TileHeader>
+                <TileLabel>Timezone</TileLabel>
+                <Ecl on={tzOpen} onToggle={() => setTzOpen((v) => !v)} />
+              </TileHeader>
+              <TileBody $open={tzOpen}>
+                <TzSelect
+                  value={settings.timezone}
+                  onChange={(e) => setAndFlash({ timezone: e.target.value }, "chatprefs")}
+                >
+                  {TIMEZONES.map((tz) => (
+                    <option key={tz.value} value={tz.value}>{tz.label}</option>
+                  ))}
+                </TzSelect>
+              </TileBody>
+            </Tile>
+          </TileRow>
+        )}
+      </ADLSection>
+
+      {isAdmin && (
+        <ADLSection
+          label={`Chat storage · ${storagePercent}%`}
+          open={adlOpen.storage}
+          onOpenChange={setOne("storage")}
+        >
+          <Tile>
+            <TileHeader>
+              <TileLabel>Usage &amp; cleanup</TileLabel>
+              <Ecl on={storageOpen} onToggle={() => setStorageOpen((v) => !v)} />
+            </TileHeader>
+            <TileBody $open={storageOpen}>
+              <StorageBar>
+                <StorageFill $pct={storagePercent} />
+              </StorageBar>
+              <ClearBtn onClick={onClearChat}><TrashIcon size={14} /> Clear All Chat &amp; Files</ClearBtn>
+            </TileBody>
+          </Tile>
+        </ADLSection>
+      )}
+
+      <ADLSection
+        label="Notifications"
+        saved={savedKey === "notifications"}
+        open={adlOpen.notifications}
+        onOpenChange={setOne("notifications")}
+      >
         <ToggleRow>
           <ToggleLabel>Sound on new message</ToggleLabel>
           <Toggle $on={!!settings.soundOnMessage} onClick={() => setAndFlash({ soundOnMessage: !settings.soundOnMessage }, "notifications")}>
@@ -1326,7 +1483,12 @@ function SettingsTab({
         </ToggleRow>
       </ADLSection>
 
-      <ADLSection label="Privacy" saved={savedKey === "privacy"} defaultOpen={false}>
+      <ADLSection
+        label="Privacy"
+        saved={savedKey === "privacy"}
+        open={adlOpen.privacy}
+        onOpenChange={setOne("privacy")}
+      >
         <ToggleRow>
           <ToggleLabel>Send read receipts</ToggleLabel>
           <Toggle $on={settings.sendReadReceipts !== false} onClick={() => setAndFlash({ sendReadReceipts: !(settings.sendReadReceipts !== false) }, "privacy")}>
@@ -1347,23 +1509,17 @@ function SettingsTab({
         </ToggleRow>
       </ADLSection>
 
-      <ADLSection label="Account" defaultOpen={false}>
-        <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", padding: "0.25rem 0" }}>
-          <HintText>Signed in as <strong>{currentUser}</strong></HintText>
-          <ClearBtn onClick={() => signOut({ callbackUrl: "/login" })}>
-            <span>⏏</span> Sign out
-          </ClearBtn>
-        </div>
-      </ADLSection>
-
       {isAdmin && (
-        <ADLSection label="Talk-to-text · Whisper model" defaultOpen={false}>
+        <ADLSection
+          label="Talk-to-text"
+          open={adlOpen.talk}
+          onOpenChange={setOne("talk")}
+        >
           <Tile>
             <TileHeader>
               <TileLabel>Model size</TileLabel>
-              <Ecl on={whisperOpen} onToggle={() => setWhisperOpen((v) => !v)} />
             </TileHeader>
-            <TileBody $open={whisperOpen}>
+            <TileBody $open={true}>
               <TzSelect
                 value={settings.whisperModel ?? "base.en"}
                 onChange={(e) => set({ whisperModel: e.target.value as NonNullable<ChatSettings["whisperModel"]> })}
@@ -1383,22 +1539,12 @@ function SettingsTab({
         </ADLSection>
       )}
 
-      {isAdmin && (
-        <ADLSection label={`Chat storage · ${storagePercent}%`} defaultOpen={false}>
-          <Tile>
-            <TileHeader>
-              <TileLabel>Usage &amp; cleanup</TileLabel>
-              <Ecl on={storageOpen} onToggle={() => setStorageOpen((v) => !v)} />
-            </TileHeader>
-            <TileBody $open={storageOpen}>
-              <StorageBar>
-                <StorageFill $pct={storagePercent} />
-              </StorageBar>
-              <ClearBtn onClick={onClearChat}><TrashIcon size={14} /> Clear All Chat &amp; Files</ClearBtn>
-            </TileBody>
-          </Tile>
-        </ADLSection>
-      )}
+      <SignOutRow>
+        <HintText>Signed in as <strong>{currentUser}</strong></HintText>
+        <SignOutBtn onClick={() => signOut({ callbackUrl: "/login" })}>
+          <span>⏏</span> Sign out
+        </SignOutBtn>
+      </SignOutRow>
     </Section>
   );
 }

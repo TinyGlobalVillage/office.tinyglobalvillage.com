@@ -952,13 +952,26 @@ const SummaryBar = styled.div`
 const SummaryToggle = styled.button`
   width: 100%;
   display: flex;
-  align-items: center;
-  gap: 0.75rem;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.25rem;
   padding: 0.5rem 1.25rem;
   text-align: left;
   background: none;
   border: none;
   cursor: pointer;
+`;
+
+const SummaryTopRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+`;
+
+const SummaryKeyRow = styled.div`
+  display: flex;
+  align-items: center;
+  min-width: 0;
 `;
 
 const SummaryLabel = styled.span`
@@ -967,6 +980,7 @@ const SummaryLabel = styled.span`
   text-transform: uppercase;
   letter-spacing: 0.15em;
   color: ${PINK};
+  flex-shrink: 0;
 `;
 
 const SummaryKey = styled.span`
@@ -974,6 +988,8 @@ const SummaryKey = styled.span`
   font-family: var(--font-geist-mono), monospace;
   color: var(--t-text);
   opacity: 0.85;
+  overflow-wrap: anywhere;
+  min-width: 0;
 `;
 
 const SummaryBody = styled.div`
@@ -2166,16 +2182,20 @@ export default function SandboxModal({
                     aria-pressed={summaryOpen}
                     aria-label={summaryOpen ? "Collapse summary" : "Expand summary"}
                   >
-                    <SummaryLabel>Summary</SummaryLabel>
-                    <SummaryKey>
-                      · {active.key.length > 5
-                        ? active.name
-                        : `${active.key} — ${active.name}`}
-                    </SummaryKey>
-                    <Spacer />
-                    <AdlSwitchTrack $on={summaryOpen} aria-hidden="true">
-                      <AdlSwitchThumb $on={summaryOpen} />
-                    </AdlSwitchTrack>
+                    <SummaryTopRow>
+                      <SummaryLabel>Summary</SummaryLabel>
+                      <Spacer />
+                      <AdlSwitchTrack $on={summaryOpen} aria-hidden="true">
+                        <AdlSwitchThumb $on={summaryOpen} />
+                      </AdlSwitchTrack>
+                    </SummaryTopRow>
+                    <SummaryKeyRow>
+                      <SummaryKey>
+                        · {active.key.length > 5
+                          ? active.name
+                          : `${active.key} — ${active.name}`}
+                      </SummaryKey>
+                    </SummaryKeyRow>
                   </SummaryToggle>
                   {summaryOpen && (
                     <SummaryBody>

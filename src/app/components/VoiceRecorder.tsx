@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import styled from "styled-components";
-import { WaveformIcon, StopIcon, CancelIcon, SendIcon } from "./icons";
+import { WaveformIcon, StopIcon, CancelIcon, SendIcon, PlayIcon, PauseIcon } from "./icons";
 
 const MAX_DURATION_MS = 5 * 60 * 1000; // 5 minutes
 const BAR_COUNT = 48;
@@ -39,14 +39,17 @@ const Wrap = styled.div<{ $accent: string }>`
   background: var(--t-surface);
   border: 1px solid ${(p) => p.$accent}55;
   box-shadow: 0 0 12px ${(p) => p.$accent}33;
+  flex: 1;
+  min-width: 0;
 `;
 
-const RecDot = styled.span<{ $accent: string }>`
+const RecDot = styled.span<{ $accent: string; $paused?: boolean }>`
   width: 8px;
   height: 8px;
   border-radius: 50%;
   background: ${(p) => p.$accent};
-  animation: recPulse 1s ease-in-out infinite;
+  animation: ${(p) => (p.$paused ? "none" : "recPulse 1s ease-in-out infinite")};
+  opacity: ${(p) => (p.$paused ? 0.45 : 1)};
 
   @keyframes recPulse {
     0%, 100% { opacity: 1; }
@@ -61,6 +64,7 @@ const WaveBox = styled.div`
   gap: 2px;
   height: 28px;
   overflow: hidden;
+  min-width: 0;
 `;
 
 const Bar = styled.span<{ $h: number; $accent: string }>`
@@ -93,6 +97,7 @@ const ActionBtn = styled.button<{ $accent?: string; $danger?: boolean }>`
   color: ${(p) => p.$danger ? "#ff6b6b" : (p.$accent ?? "#4ade80")};
   cursor: pointer;
   transition: box-shadow 0.15s, transform 0.1s;
+  flex-shrink: 0;
 
   &:hover {
     box-shadow: 0 0 10px ${(p) => p.$danger ? "rgba(255, 90, 90, 0.45)" : (p.$accent ?? "#4ade80") + "66"};
@@ -119,19 +124,24 @@ const MicTrigger = styled.button<{ $accent: string }>`
   &:active { transform: scale(0.94); }
 `;
 
+type RecState = "idle" | "recording" | "paused" | "stopping" | "preview";
+
 type Props = {
   accent: string;
   onSend: (blob: Blob, mimeType: string, durationMs: number) => void | Promise<void>;
+  onActiveChange?: (active: boolean) => void;
   disabled?: boolean;
 };
 
-export default function VoiceRecorder({ accent, onSend, disabled }: Props) {
-  const [state, setState] = useState<"idle" | "recording" | "stopping" | "preview">("idle");
+export default function VoiceRecorder({ accent, onSend, onActiveChange, disabled }: Props) {
+  const [state, setState] = useState<RecState>("idle");
   const [elapsed, setElapsed] = useState(0);
   const [bars, setBars] = useState<number[]>(() => Array(BAR_COUNT).fill(3));
   const [previewBlob, setPreviewBlob] = useState<Blob | null>(null);
   const [previewMime, setPreviewMime] = useState("");
   const [previewDur, setPreviewDur] = useState(0);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
 
   const recorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -139,8 +149,25 @@ export default function VoiceRecorder({ accent, onSend, disabled }: Props) {
   const analyserRef = useRef<AnalyserNode | null>(null);
   const chunksRef = useRef<BlobPart[]>([]);
   const startedAtRef = useRef(0);
+  const pausedAccumRef = useRef(0);
+  const pausedAtRef = useRef(0);
   const rafRef = useRef(0);
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const audioElRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    onActiveChange?.(state !== "idle");
+  }, [state, onActiveChange]);
+
+  useEffect(() => {
+    if (!previewBlob) {
+      setPreviewUrl((url) => { if (url) URL.revokeObjectURL(url); return null; });
+      return;
+    }
+    const url = URL.createObjectURL(previewBlob);
+    setPreviewUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [previewBlob]);
 
   const cleanup = useCallback(() => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
@@ -157,6 +184,31 @@ export default function VoiceRecorder({ accent, onSend, disabled }: Props) {
   useEffect(() => {
     return () => cleanup();
   }, [cleanup]);
+
+  const startMeterAndTick = useCallback((analyser: AnalyserNode) => {
+    const data = new Uint8Array(analyser.frequencyBinCount);
+    const tick = () => {
+      if (!analyserRef.current) return;
+      analyserRef.current.getByteTimeDomainData(data);
+      let sum = 0;
+      for (let i = 0; i < data.length; i++) {
+        const v = (data[i] - 128) / 128;
+        sum += v * v;
+      }
+      const rms = Math.sqrt(sum / data.length);
+      const h = Math.min(26, Math.round(3 + rms * 72));
+      setBars((prev) => [...prev.slice(1), h]);
+      rafRef.current = requestAnimationFrame(tick);
+    };
+    rafRef.current = requestAnimationFrame(tick);
+
+    tickRef.current = setInterval(() => {
+      const e = Date.now() - startedAtRef.current - pausedAccumRef.current;
+      setElapsed(e);
+      if (e >= MAX_DURATION_MS) stopRecording();
+    }, 100);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const startRecording = useCallback(async () => {
     if (state !== "idle" || disabled) return;
@@ -177,12 +229,13 @@ export default function VoiceRecorder({ accent, onSend, disabled }: Props) {
       const rec = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
       recorderRef.current = rec;
       chunksRef.current = [];
+      pausedAccumRef.current = 0;
       rec.ondataavailable = (e) => {
         if (e.data && e.data.size > 0) chunksRef.current.push(e.data);
       };
       rec.onstop = () => {
         const blob = new Blob(chunksRef.current, { type: rec.mimeType || mime || "audio/webm" });
-        const dur = Date.now() - startedAtRef.current;
+        const dur = Date.now() - startedAtRef.current - pausedAccumRef.current;
         setPreviewBlob(blob);
         setPreviewMime(rec.mimeType || mime || "audio/webm");
         setPreviewDur(dur);
@@ -194,30 +247,7 @@ export default function VoiceRecorder({ accent, onSend, disabled }: Props) {
       setState("recording");
       setElapsed(0);
       setBars(Array(BAR_COUNT).fill(3));
-
-      const data = new Uint8Array(analyser.frequencyBinCount);
-      const tick = () => {
-        if (!analyserRef.current) return;
-        analyserRef.current.getByteTimeDomainData(data);
-        let sum = 0;
-        for (let i = 0; i < data.length; i++) {
-          const v = (data[i] - 128) / 128;
-          sum += v * v;
-        }
-        const rms = Math.sqrt(sum / data.length);
-        const h = Math.min(26, Math.round(3 + rms * 72));
-        setBars((prev) => [...prev.slice(1), h]);
-        rafRef.current = requestAnimationFrame(tick);
-      };
-      rafRef.current = requestAnimationFrame(tick);
-
-      tickRef.current = setInterval(() => {
-        const e = Date.now() - startedAtRef.current;
-        setElapsed(e);
-        if (e >= MAX_DURATION_MS) {
-          stopRecording();
-        }
-      }, 100);
+      startMeterAndTick(analyser);
     } catch (err) {
       console.error("[VoiceRecorder] start failed", err);
       cleanup();
@@ -225,10 +255,38 @@ export default function VoiceRecorder({ accent, onSend, disabled }: Props) {
       alert("Could not access microphone.");
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state, disabled, cleanup]);
+  }, [state, disabled, cleanup, startMeterAndTick]);
+
+  const pauseRecording = useCallback(() => {
+    if (state !== "recording") return;
+    const rec = recorderRef.current;
+    if (!rec || rec.state !== "recording") return;
+    try { rec.pause(); } catch { /* ignore */ }
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    if (tickRef.current) clearInterval(tickRef.current);
+    rafRef.current = 0;
+    tickRef.current = null;
+    pausedAtRef.current = Date.now();
+    setState("paused");
+  }, [state]);
+
+  const resumeRecording = useCallback(() => {
+    if (state !== "paused") return;
+    const rec = recorderRef.current;
+    if (!rec || rec.state !== "paused") return;
+    try { rec.resume(); } catch { /* ignore */ }
+    pausedAccumRef.current += Date.now() - pausedAtRef.current;
+    pausedAtRef.current = 0;
+    if (analyserRef.current) startMeterAndTick(analyserRef.current);
+    setState("recording");
+  }, [state, startMeterAndTick]);
 
   const stopRecording = useCallback(() => {
-    if (state !== "recording") return;
+    if (state !== "recording" && state !== "paused") return;
+    if (state === "paused") {
+      // Recorder needs to be resumed before stop to flush final chunk
+      try { recorderRef.current?.resume(); } catch { /* ignore */ }
+    }
     setState("stopping");
     try { recorderRef.current?.stop(); } catch { /* ignore */ }
   }, [state]);
@@ -237,15 +295,32 @@ export default function VoiceRecorder({ accent, onSend, disabled }: Props) {
     try { recorderRef.current?.stop(); } catch { /* ignore */ }
     cleanup();
     chunksRef.current = [];
+    if (audioElRef.current) {
+      try { audioElRef.current.pause(); } catch { /* ignore */ }
+    }
+    setIsPlaying(false);
     setPreviewBlob(null);
     setPreviewMime("");
     setPreviewDur(0);
     setState("idle");
   }, [cleanup]);
 
+  const togglePlayback = useCallback(() => {
+    const el = audioElRef.current;
+    if (!el) return;
+    if (el.paused) {
+      el.currentTime = 0;
+      void el.play();
+    } else {
+      el.pause();
+    }
+  }, []);
+
   const sendPreview = useCallback(async () => {
     if (!previewBlob) return;
+    if (audioElRef.current && !audioElRef.current.paused) audioElRef.current.pause();
     await onSend(previewBlob, previewMime, previewDur);
+    setIsPlaying(false);
     setPreviewBlob(null);
     setPreviewMime("");
     setPreviewDur(0);
@@ -266,24 +341,64 @@ export default function VoiceRecorder({ accent, onSend, disabled }: Props) {
     );
   }
 
+  const isRec = state === "recording";
+  const isPaused = state === "paused";
+  const isPreview = state === "preview";
+
   return (
     <Wrap $accent={accent}>
-      <RecDot $accent={accent} />
+      {isPreview && previewUrl && (
+        <>
+          <audio
+            ref={audioElRef}
+            src={previewUrl}
+            onPlay={() => setIsPlaying(true)}
+            onPause={() => setIsPlaying(false)}
+            onEnded={() => setIsPlaying(false)}
+            preload="auto"
+            style={{ display: "none" }}
+          />
+          <ActionBtn
+            $accent={accent}
+            onClick={togglePlayback}
+            title={isPlaying ? "Pause playback" : "Play back recording"}
+            type="button"
+          >
+            {isPlaying ? <PauseIcon size={14} /> : <PlayIcon size={14} />}
+          </ActionBtn>
+        </>
+      )}
+      <RecDot $accent={accent} $paused={isPaused} />
       <WaveBox>
         {bars.map((h, i) => (
           <Bar key={i} $h={h} $accent={accent} />
         ))}
       </WaveBox>
-      <TimeLabel>{fmtDur(elapsed || previewDur)}</TimeLabel>
+      <TimeLabel>{fmtDur(isPreview ? previewDur : elapsed)}</TimeLabel>
       <ActionBtn $danger onClick={cancel} title="Cancel" type="button">
         <CancelIcon size={14} />
       </ActionBtn>
-      {state === "recording" && (
-        <ActionBtn $accent={accent} onClick={stopRecording} title="Stop" type="button">
-          <StopIcon size={14} />
-        </ActionBtn>
+      {isRec && (
+        <>
+          <ActionBtn $accent={accent} onClick={pauseRecording} title="Pause recording" type="button">
+            <PauseIcon size={14} />
+          </ActionBtn>
+          <ActionBtn $accent={accent} onClick={stopRecording} title="Stop" type="button">
+            <StopIcon size={14} />
+          </ActionBtn>
+        </>
       )}
-      {state === "preview" && (
+      {isPaused && (
+        <>
+          <ActionBtn $accent={accent} onClick={resumeRecording} title="Resume recording" type="button">
+            <PlayIcon size={14} />
+          </ActionBtn>
+          <ActionBtn $accent={accent} onClick={stopRecording} title="Stop" type="button">
+            <StopIcon size={14} />
+          </ActionBtn>
+        </>
+      )}
+      {isPreview && (
         <ActionBtn $accent={accent} onClick={sendPreview} title="Send voice memo" type="button">
           <SendIcon size={14} />
         </ActionBtn>

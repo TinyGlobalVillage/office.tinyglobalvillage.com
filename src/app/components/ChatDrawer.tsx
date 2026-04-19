@@ -120,8 +120,10 @@ const SETTINGS_KEY    = "tgv_chat_settings";
 const TAB_STORAGE_KEY = "tgv-drawer-tab-chat-y";
 const DRAWER_EVENT    = "tgv-right-drawer";
 const MIN_W           = 420;
-const SIDEBAR_MIN     = 120;
-const SIDEBAR_DEFAULT = 150;
+const SIDEBAR_MIN     = 96;
+const SIDEBAR_NARROW  = 172;
+const SIDEBAR_COLLAPSE_AT = 96;
+const SIDEBAR_DEFAULT = 172;
 const SIDEBAR_MAX     = 280;
 
 function getDefaultDrawerWidth() {
@@ -228,13 +230,13 @@ const UnreadBadge = styled.span`
 `;
 
 const Backdrop = styled(DrawerBackdrop)`
-  z-index: 58;
+  z-index: 69;
   backdrop-filter: blur(1px);
 `;
 
 const Panel = styled(DrawerPanel)`
   left: 0;
-  z-index: 62;
+  z-index: 70;
   max-width: 85vw;
   border-right: 1px solid rgba(${rgb.green}, 0.18);
 
@@ -848,7 +850,8 @@ const AttachMenuSoon = styled.span`
 `;
 
 const ChatTextarea = styled.textarea<{ $accent?: string }>`
-  flex: 1;
+  flex: 1 1 0;
+  min-width: 100px;
   background: transparent;
   outline: none;
   color: var(--t-text);
@@ -861,6 +864,67 @@ const ChatTextarea = styled.textarea<{ $accent?: string }>`
 
   &::placeholder {
     color: var(--t-textGhost);
+  }
+`;
+
+const ComposerMoreBtn = styled.button<{ $open?: boolean }>`
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: rgba(${rgb.green}, ${(p) => (p.$open ? 0.18 : 0.08)});
+  border: 1px solid rgba(${rgb.green}, ${(p) => (p.$open ? 0.55 : 0.3)});
+  color: ${colors.green};
+  cursor: pointer;
+  transition: all 0.15s;
+  font-size: 1rem;
+  line-height: 1;
+
+  &:hover {
+    background: rgba(${rgb.green}, 0.18);
+    box-shadow: 0 0 8px rgba(${rgb.green}, 0.35);
+  }
+`;
+
+const ComposerMoreAnchor = styled.div`
+  position: relative;
+  flex-shrink: 0;
+`;
+
+const ComposerMorePopup = styled.div`
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 0;
+  z-index: 220;
+  min-width: 180px;
+  padding: 0.3rem 0;
+  border-radius: 10px;
+  background: var(--t-surface);
+  border: 1px solid var(--t-border);
+  box-shadow: 0 10px 28px rgba(0,0,0,0.42);
+  display: flex;
+  flex-direction: column;
+`;
+
+const ComposerMoreItem = styled.button`
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 0.5rem 0.8rem;
+  font-size: 0.75rem;
+  color: var(--t-text);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  white-space: nowrap;
+  &:hover {
+    background: rgba(${rgb.green}, 0.1);
+    color: ${colors.green};
   }
 `;
 
@@ -1379,11 +1443,13 @@ const Body = styled.div`
 
 const Sidebar = styled.div<{ $width: number }>`
   width: ${(p) => p.$width}px;
+  min-width: 0;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
   border-right: 1px solid var(--t-border);
   background: rgba(${rgb.green}, 0.02);
+  overflow: hidden;
 `;
 
 const SidebarHeader = styled.div`
@@ -1392,6 +1458,8 @@ const SidebarHeader = styled.div`
   gap: 0.375rem;
   padding: 0.5rem 0.5rem 0.375rem;
   flex-shrink: 0;
+  min-width: 0;
+  overflow: hidden;
 `;
 
 const SidebarTabSwitch = styled.div`
@@ -1399,24 +1467,33 @@ const SidebarTabSwitch = styled.div`
   align-items: center;
   border-radius: 9999px;
   padding: 0.125rem;
-  flex: 1;
+  flex: 1 1 0;
+  min-width: 0;
   background: var(--t-inputBg);
   border: 1px solid rgba(${rgb.green}, 0.18);
 `;
 
-const SidebarTabBtn = styled.button<{ $active?: boolean }>`
-  flex: 1;
+const SidebarTabBtn = styled.button<{ $active?: boolean; $narrow?: boolean }>`
+  flex: 1 1 0;
+  min-width: 0;
   font-size: 0.5625rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  padding: 0.25rem 0.375rem;
+  padding: ${(p) => (p.$narrow ? "0.25rem 0.25rem" : "0.25rem 0.375rem")};
   border-radius: 9999px;
   border: 1px solid ${(p) => (p.$active ? `rgba(${rgb.green}, 0.4)` : "transparent")};
   background: ${(p) => (p.$active ? `rgba(${rgb.green}, 0.18)` : "transparent")};
   color: ${(p) => (p.$active ? colors.green : "var(--t-textFaint)")};
   cursor: pointer;
   transition: all 0.15s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  overflow: hidden;
+
+  svg { flex-shrink: 0; }
 `;
 
 const SidebarPlusBtn = styled.button`
@@ -1535,20 +1612,79 @@ const RowHoverMenu = styled.div`
   box-shadow: 0 6px 22px rgba(0,0,0,0.38);
 `;
 
-const RowHoverMenuItem = styled.button`
+const RowHoverMenuItem = styled.button<{ $danger?: boolean; $highlight?: boolean }>`
   width: 100%;
   text-align: left;
-  background: none;
+  background: ${(p) => p.$highlight ? `rgba(${rgb.green}, 0.18)` : "none"};
   border: none;
   padding: 0.4rem 0.75rem;
   font-size: 0.6875rem;
-  color: var(--t-text);
+  color: ${(p) => p.$danger ? "#e86a6a" : p.$highlight ? colors.green : "var(--t-text)"};
   cursor: pointer;
   white-space: nowrap;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  &:hover { background: rgba(${rgb.green}, 0.12); color: ${colors.green}; }
+  gap: 0.55rem;
+  position: relative;
+  &:hover {
+    background: ${(p) => p.$danger ? "rgba(232, 106, 106, 0.12)" : `rgba(${rgb.green}, 0.12)`};
+    color: ${(p) => p.$danger ? "#e86a6a" : colors.green};
+  }
+`;
+
+const RowMenuGlyph = styled.span`
+  width: 14px;
+  height: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: currentColor;
+`;
+
+const RowMenuCaret = styled.span`
+  margin-left: auto;
+  font-size: 0.75rem;
+  opacity: 0.7;
+`;
+
+const RowMenuDivider = styled.div`
+  height: 1px;
+  background: var(--t-border);
+  margin: 0.25rem 0;
+`;
+
+const ArchivedToggle = styled.button<{ $open: boolean }>`
+  width: 100%;
+  margin-top: 0.4rem;
+  padding: 0.4rem 0.55rem;
+  border-radius: 7px;
+  border: 1px solid rgba(${rgb.green}, ${(p) => p.$open ? 0.45 : 0.22});
+  background: ${(p) => p.$open ? `rgba(${rgb.green}, 0.14)` : "transparent"};
+  color: ${colors.green};
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: background 0.15s, border-color 0.15s;
+  &:hover { background: rgba(${rgb.green}, 0.12); }
+`;
+
+const MuteSubmenu = styled.div`
+  position: absolute;
+  top: 0;
+  left: 100%;
+  margin-left: 4px;
+  min-width: 120px;
+  padding: 0.25rem 0;
+  border-radius: 8px;
+  background: var(--t-surface);
+  border: 1px solid var(--t-border);
+  box-shadow: 0 6px 22px rgba(0,0,0,0.38);
+  z-index: 210;
 `;
 
 const PinBadge = styled.span`
@@ -1558,29 +1694,45 @@ const PinBadge = styled.span`
   opacity: 0.7;
 `;
 
-const DashedCreateCard = styled.button`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.375rem;
-  padding: 0.5rem;
-  margin-top: 0.375rem;
-  border-radius: 8px;
-  font-size: 0.625rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  cursor: pointer;
-  background: transparent;
-  border: 1px dashed rgba(${rgb.green}, 0.45);
-  color: ${colors.green};
-  transition: all 0.15s;
+// ── WhatsApp row-menu: per-row meta (client-side, localStorage-backed) ───────
 
-  &:hover {
-    background: rgba(${rgb.green}, 0.08);
-    border-color: rgba(${rgb.green}, 0.7);
-  }
-`;
+type RowMetaEntry = {
+  pinned?: boolean;
+  archived?: boolean;
+  muteUntil?: number | "always";
+  markedUnread?: boolean;
+  blocked?: boolean;
+  deleted?: boolean;
+};
+
+const ROW_META_KEY = "tgv_chat_row_meta";
+
+function loadRowMeta(): Record<string, RowMetaEntry> {
+  if (typeof window === "undefined") return {};
+  try { return JSON.parse(window.localStorage.getItem(ROW_META_KEY) ?? "{}"); }
+  catch { return {}; }
+}
+
+function isMuted(entry?: RowMetaEntry): boolean {
+  if (!entry?.muteUntil) return false;
+  if (entry.muteUntil === "always") return true;
+  return entry.muteUntil > Date.now();
+}
+
+// WhatsApp-style menu icons — inline SVG, currentColor, 14px
+const WA_ICON_SIZE = 14;
+const WaX = () => (<svg width={WA_ICON_SIZE} height={WA_ICON_SIZE} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M6 6l12 12M6 18L18 6"/></svg>);
+const WaPopout = () => (<svg width={WA_ICON_SIZE} height={WA_ICON_SIZE} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 4h6v6"/><path d="M20 4L10 14"/><path d="M20 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h4"/></svg>);
+const WaUnread = () => (<svg width={WA_ICON_SIZE} height={WA_ICON_SIZE} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg>);
+const WaArchive = () => (<svg width={WA_ICON_SIZE} height={WA_ICON_SIZE} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8"/><path d="M10 12h4"/></svg>);
+const WaPin = () => (<svg width={WA_ICON_SIZE} height={WA_ICON_SIZE} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v7M8 9h8l-1 5H9l-1-5zM12 14v8"/></svg>);
+const WaBlock = () => (<svg width={WA_ICON_SIZE} height={WA_ICON_SIZE} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/></svg>);
+const WaMute = () => (<svg width={WA_ICON_SIZE} height={WA_ICON_SIZE} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 8a6 6 0 0 1 12 0v5l2 3H4l2-3V8z"/><path d="M10 19a2 2 0 0 0 4 0"/><path d="M3 3l18 18"/></svg>);
+const WaInfo = () => (<svg width={WA_ICON_SIZE} height={WA_ICON_SIZE} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v.01M12 11v5"/></svg>);
+const WaExport = () => (<svg width={WA_ICON_SIZE} height={WA_ICON_SIZE} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 4v12"/><path d="M8 8l4-4 4 4"/><path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>);
+const WaClear = () => (<svg width={WA_ICON_SIZE} height={WA_ICON_SIZE} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="9"/><path d="M8 8l8 8M16 8l-8 8"/></svg>);
+const WaTrash = () => (<svg width={WA_ICON_SIZE} height={WA_ICON_SIZE} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="M6 7l1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13"/></svg>);
+const WaExit = () => (<svg width={WA_ICON_SIZE} height={WA_ICON_SIZE} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h3"/><path d="M15 8l4 4-4 4"/><path d="M19 12H9"/></svg>);
 
 const ClearConfirmOverlay = styled.div`
   position: fixed;
@@ -1589,6 +1741,88 @@ const ClearConfirmOverlay = styled.div`
   backdrop-filter: blur(2px);
   z-index: 410;
   display: flex; align-items: center; justify-content: center;
+`;
+
+const ContactInfoOverlay = styled.div`
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  backdrop-filter: blur(2px);
+  z-index: 420;
+  display: flex; align-items: center; justify-content: center;
+  padding: 1rem;
+`;
+
+const ContactInfoCard = styled.div<{ $accent: string }>`
+  width: min(360px, 94vw);
+  border-radius: 14px;
+  background: var(--t-surface);
+  border: 1px solid ${(p) => p.$accent}55;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.55);
+  display: flex; flex-direction: column;
+  overflow: hidden;
+  position: relative;
+`;
+
+const ContactInfoClose = styled.button`
+  position: absolute;
+  top: 0.4rem;
+  right: 0.4rem;
+  width: 1.4rem;
+  height: 1.4rem;
+  border: none;
+  background: rgba(0,0,0,0.25);
+  color: #fff;
+  border-radius: 50%;
+  font-size: 0.75rem;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  z-index: 2;
+  &:hover { background: rgba(0,0,0,0.4); }
+`;
+
+const ContactInfoHeader = styled.div<{ $accent: string }>`
+  padding: 1.25rem 1rem 1rem;
+  display: flex; flex-direction: column; align-items: center; gap: 0.5rem;
+  background: linear-gradient(180deg, ${(p) => p.$accent}22 0%, transparent 100%);
+  border-bottom: 1px solid var(--t-border);
+`;
+
+const ContactInfoName = styled.div`
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--t-text);
+  text-align: center;
+`;
+
+const ContactInfoTitle = styled.div`
+  font-size: 0.75rem;
+  color: var(--t-textMuted);
+  text-align: center;
+`;
+
+const ContactInfoBody = styled.div`
+  padding: 0.75rem 1rem 1rem;
+  display: flex; flex-direction: column; gap: 0.65rem;
+`;
+
+const ContactInfoField = styled.div`
+  display: flex; flex-direction: column; gap: 0.15rem;
+`;
+
+const ContactInfoLabel = styled.div`
+  font-size: 0.625rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--t-textGhost);
+`;
+
+const ContactInfoValue = styled.div`
+  font-size: 0.8125rem;
+  color: var(--t-text);
+  line-height: 1.4;
+  word-break: break-word;
 `;
 
 const ClearConfirmCard = styled.div`
@@ -1652,40 +1886,104 @@ const DangerBtn = styled.button`
   &:hover { box-shadow: 0 0 8px rgba(${rgb.red}, 0.35); }
 `;
 
-const SidebarResizer = styled.div`
-  width: 4px;
-  cursor: ew-resize;
+const SidebarDTog = styled.div<{ $dragging?: boolean }>`
+  width: 8px;
+  cursor: col-resize;
   flex-shrink: 0;
-  background: transparent;
-  transition: background 0.15s;
+  position: relative;
+  background: ${(p) => p.$dragging ? `rgba(${rgb.green}, 0.2)` : "transparent"};
+  transition: background 0.15s, box-shadow 0.15s;
+
+  /* left hairline */
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 1px;
+    background: ${(p) => p.$dragging ? `rgba(${rgb.green}, 0.6)` : "var(--t-border)"};
+  }
+  /* right hairline (outside, paired with the row divider above) */
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0 0 0 auto;
+    width: 1px;
+    background: ${(p) => p.$dragging ? `rgba(${rgb.green}, 0.6)` : `rgba(${rgb.green}, 0.35)`};
+  }
+
+  > svg {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    color: ${(p) => p.$dragging ? colors.green : `rgba(${rgb.green}, 0.75)`};
+    opacity: ${(p) => p.$dragging ? 1 : 0.8};
+    pointer-events: none;
+    ${(p) => p.$dragging && `filter: drop-shadow(0 0 3px rgba(${rgb.green}, 0.55));`}
+  }
+
+  [data-theme="light"] & > svg { color: rgba(${rgb.green}, 0.9); }
 
   &:hover {
-    background: rgba(${rgb.green}, 0.35);
+    background: rgba(${rgb.green}, 0.1);
+    box-shadow: 0 0 10px rgba(${rgb.green}, 0.35), inset 0 0 6px rgba(${rgb.green}, 0.18);
+    &::before { background: rgba(${rgb.green}, 0.4); }
+    &::after { background: rgba(${rgb.green}, 0.6); }
+    > svg { opacity: 1; color: ${colors.green}; filter: drop-shadow(0 0 3px rgba(${rgb.green}, 0.55)); }
   }
 `;
 
-const DTogTab = styled.button<{ $collapsed: boolean }>`
+const DTogTab = styled.button`
   position: absolute;
   top: 50%;
-  left: ${(p) => (p.$collapsed ? "0" : "auto")};
+  left: 0;
   transform: translateY(-50%);
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 14px;
-  height: 36px;
+  width: 18px;
+  height: 40px;
   padding: 0;
-  border-radius: 0 6px 6px 0;
+  border-radius: 0 8px 8px 0;
   border: 1px solid rgba(${rgb.green}, 0.35);
   border-left: none;
   background: rgba(${rgb.green}, 0.12);
   color: ${colors.green};
   cursor: pointer;
   z-index: 2;
-  transition: background 0.15s;
+  transition: background 0.15s, box-shadow 0.15s;
 
-  &:hover { background: rgba(${rgb.green}, 0.22); }
+  &:hover {
+    background: rgba(${rgb.green}, 0.22);
+    box-shadow: 0 0 8px rgba(${rgb.green}, 0.35);
+  }
 `;
+
+function DTogGrip() {
+  return (
+    <svg width="14" height="30" viewBox="0 0 14 30" fill="currentColor" aria-hidden="true">
+      <polygon points="7,0.5 2.5,5 11.5,5" />
+      <rect x="1" y="8.5" width="12" height="2" rx="1" />
+      <rect x="1" y="13" width="12" height="2" rx="1" />
+      <rect x="1" y="17.5" width="12" height="2" rx="1" />
+      <polygon points="7,29.5 2.5,25 11.5,25" />
+    </svg>
+  );
+}
+
+function DTogExpandIcon() {
+  // Sidebar is on the LEFT side; snapped tab sits at left edge → arrow points right (INTO the sidebar).
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <rect x="2" y="4" width="20" height="2" rx="1" />
+      <rect x="2" y="10" width="11" height="2" rx="1" />
+      <rect x="2" y="14" width="11" height="2" rx="1" />
+      <rect x="2" y="20" width="20" height="2" rx="1" />
+      <polygon points="17,8 17,18 22,13" />
+    </svg>
+  );
+}
+
+const DTOG_CLICK_SLOP = 4;
 
 const ConvPane = styled.div`
   flex: 1;
@@ -1891,9 +2189,28 @@ export default function ChatDrawer() {
   const [groupAdminId, setGroupAdminId] = useState<string | null>(null);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [rowHoverMenu, setRowHoverMenu] = useState<string | null>(null);
+  const [muteSubmenuFor, setMuteSubmenuFor] = useState<string | null>(null);
+  const [contactInfoFor, setContactInfoFor] = useState<string | null>(null);
+  const [showArchived, setShowArchived] = useState(false);
+  const [rowMeta, setRowMeta] = useState<Record<string, RowMetaEntry>>({});
   const [attachMenuOpen, setAttachMenuOpen] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [onlineOverflowOpen, setOnlineOverflowOpen] = useState(false);
+  const [voiceActive, setVoiceActive] = useState(false);
+  const [composerNarrow, setComposerNarrow] = useState(false);
+  const [composerMoreOpen, setComposerMoreOpen] = useState(false);
+  const inputRowRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = inputRowRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver((entries) => {
+      const w = entries[0]?.contentRect.width ?? 0;
+      setComposerNarrow(w > 0 && w < 340);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [open]);
 
   const [messages, setMessages]   = useState<ChatMessage[]>([]);
   const [profiles, setProfiles]   = useState<Profile[]>([]);
@@ -2114,10 +2431,56 @@ export default function ChatDrawer() {
     }
   }, [groupMessages, selection]);
 
+  // hydrate row meta from localStorage once
+  useEffect(() => { setRowMeta(loadRowMeta()); }, []);
+
+  // persist row meta on every change
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(ROW_META_KEY, JSON.stringify(rowMeta));
+  }, [rowMeta]);
+
+  const patchRowMeta = useCallback((key: string, patch: Partial<RowMetaEntry>) => {
+    setRowMeta((prev) => {
+      const current = prev[key] ?? {};
+      const next = { ...current, ...patch };
+      // drop empty/falsy defaults so the map stays tidy
+      if (!next.pinned) delete next.pinned;
+      if (!next.archived) delete next.archived;
+      if (!next.markedUnread) delete next.markedUnread;
+      if (!next.blocked) delete next.blocked;
+      if (!next.deleted) delete next.deleted;
+      if (!next.muteUntil || (typeof next.muteUntil === "number" && next.muteUntil <= Date.now())) delete next.muteUntil;
+      if (Object.keys(next).length === 0) {
+        const out = { ...prev };
+        delete out[key];
+        return out;
+      }
+      return { ...prev, [key]: next };
+    });
+  }, []);
+
+  const exportChannel = useCallback((filename: string, payload: unknown) => {
+    try {
+      const json = JSON.stringify(payload, null, 2);
+      const blob = new Blob([json], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Export failed");
+    }
+  }, []);
+
   useEffect(() => {
     if (!rowHoverMenu) return;
-    const onClick = () => setRowHoverMenu(null);
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setRowHoverMenu(null); };
+    const onClick = () => { setRowHoverMenu(null); setMuteSubmenuFor(null); };
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") { setRowHoverMenu(null); setMuteSubmenuFor(null); } };
     window.addEventListener("click", onClick);
     window.addEventListener("keydown", onKey);
     return () => {
@@ -2313,12 +2676,34 @@ export default function ChatDrawer() {
     window.addEventListener("mouseup", onUp);
   }, [width, maxW]);
 
+  const [sidebarDragging, setSidebarDragging] = useState(false);
   const onSidebarResizeStart = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     const startPx = e.clientX;
     const startWpx = sidebarWidth;
+    let moved = false;
+    let autoCollapsed = false;
     const onMove = (ev: MouseEvent) => {
-      const next = Math.min(SIDEBAR_MAX, Math.max(SIDEBAR_MIN, startWpx + (ev.clientX - startPx)));
+      const dx = ev.clientX - startPx;
+      if (!moved && Math.abs(dx) < DTOG_CLICK_SLOP) return;
+      if (!moved) {
+        moved = true;
+        setSidebarDragging(true);
+        document.body.style.cursor = "col-resize";
+        document.body.style.userSelect = "none";
+      }
+      const raw = startWpx + dx;
+      if (raw < SIDEBAR_COLLAPSE_AT) {
+        autoCollapsed = true;
+        setSidebarCollapsed(true);
+        document.body.style.cursor = "";
+        document.body.style.userSelect = "";
+        window.removeEventListener("mousemove", onMove);
+        window.removeEventListener("mouseup", onUp);
+        setSidebarDragging(false);
+        return;
+      }
+      const next = Math.min(SIDEBAR_MAX, Math.max(SIDEBAR_MIN, raw));
       setSidebarWidth(next);
     };
     const onUp = () => {
@@ -2326,9 +2711,12 @@ export default function ChatDrawer() {
       document.body.style.userSelect = "";
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("mouseup", onUp);
+      setSidebarDragging(false);
+      if (!moved && !autoCollapsed) {
+        // plain click → collapse
+        setSidebarCollapsed(true);
+      }
     };
-    document.body.style.cursor = "ew-resize";
-    document.body.style.userSelect = "none";
     window.addEventListener("mousemove", onMove);
     window.addEventListener("mouseup", onUp);
   }, [sidebarWidth]);
@@ -2469,41 +2857,35 @@ export default function ChatDrawer() {
 
   return (
     <>
-      {/* ── Side tab pill ────────────────────────────────────────────── */}
-      <SideTab
-        onMouseDown={onTabMouseDown}
-        title={open ? "Close chat" : "Open chat"}
-        style={{
-          top: tabY,
-          background: open
-            ? `rgba(${rgb.green}, 0.25)`
-            : unread > 0
-            ? `rgba(${rgb.green}, 0.22)`
-            : `rgba(${rgb.green}, 0.12)`,
-          boxShadow: unread > 0
-            ? `2px 0 14px rgba(${rgb.green}, 0.35)`
-            : `2px 0 10px rgba(${rgb.green}, 0.18)`,
-        }}
-      >
-        <span style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center" }}>
-          {open ? (
-            <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-              <path d="M1 1l8 8M9 1l-8 8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
-            </svg>
-          ) : (
+      {/* ── Side tab pill (hidden while drawer is open — use in-drawer ✕ instead) */}
+      {!open && (
+        <SideTab
+          onMouseDown={onTabMouseDown}
+          title="Open chat"
+          style={{
+            top: tabY,
+            background: unread > 0
+              ? `rgba(${rgb.green}, 0.22)`
+              : `rgba(${rgb.green}, 0.12)`,
+            boxShadow: unread > 0
+              ? `2px 0 14px rgba(${rgb.green}, 0.35)`
+              : `2px 0 10px rgba(${rgb.green}, 0.18)`,
+          }}
+        >
+          <span style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
               <path d="M1 1h12v9H8l-3 3V10H1V1z" stroke="#4ade80" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
               <circle cx="4.5" cy="5.5" r="0.8" fill="#4ade80"/>
               <circle cx="7" cy="5.5" r="0.8" fill="#4ade80"/>
               <circle cx="9.5" cy="5.5" r="0.8" fill="#4ade80"/>
             </svg>
-          )}
-          {unread > 0 && !open && (
-            <UnreadBadge>{unread > 9 ? "9+" : unread}</UnreadBadge>
-          )}
-        </span>
-        <DrawerTabLabel>Chat</DrawerTabLabel>
-      </SideTab>
+            {unread > 0 && (
+              <UnreadBadge>{unread > 9 ? "9+" : unread}</UnreadBadge>
+            )}
+          </span>
+          <DrawerTabLabel>Chat</DrawerTabLabel>
+        </SideTab>
+      )}
 
       {/* ── Backdrop ──────────────────────────────────────────────── */}
       {open && <Backdrop onClick={() => setOpen(false)} />}
@@ -2657,17 +3039,31 @@ export default function ChatDrawer() {
                   <SidebarTabSwitch>
                     <SidebarTabBtn
                       $active={sidebarTab === "users"}
+                      $narrow={sidebarWidth < SIDEBAR_NARROW}
                       onClick={() => setSidebarTab("users")}
                       title="Show direct-message users"
                     >
-                      Users
+                      {sidebarWidth < SIDEBAR_NARROW ? (
+                        <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="8" cy="5.5" r="2.75"/>
+                          <path d="M2.75 13.5c.6-2.4 2.75-3.75 5.25-3.75s4.65 1.35 5.25 3.75"/>
+                        </svg>
+                      ) : "Users"}
                     </SidebarTabBtn>
                     <SidebarTabBtn
                       $active={sidebarTab === "groups"}
+                      $narrow={sidebarWidth < SIDEBAR_NARROW}
                       onClick={() => setSidebarTab("groups")}
                       title="Show group chats"
                     >
-                      Groups
+                      {sidebarWidth < SIDEBAR_NARROW ? (
+                        <svg width="13" height="11" viewBox="0 0 20 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="7" cy="5.5" r="2.5"/>
+                          <circle cx="14.5" cy="6" r="2"/>
+                          <path d="M2 13.5c.5-2.1 2.5-3.3 5-3.3s4.5 1.2 5 3.3"/>
+                          <path d="M13 10.25c1.7 0 3.3.9 4.25 3.25"/>
+                        </svg>
+                      ) : "Groups"}
                     </SidebarTabBtn>
                   </SidebarTabSwitch>
                   <SidebarPlusBtn
@@ -2695,8 +3091,17 @@ export default function ChatDrawer() {
 
                   {sidebarTab === "users" && profiles
                     .filter((p) => p.username !== currentUser)
+                    .filter((p) => {
+                      const meta = rowMeta[`u:${p.username}`];
+                      if (meta?.deleted) return false;
+                      if (meta?.archived) return showArchived;
+                      return true;
+                    })
                     .slice()
                     .sort((a, b) => {
+                      const aMeta = rowMeta[`u:${a.username}`];
+                      const bMeta = rowMeta[`u:${b.username}`];
+                      if ((aMeta?.pinned ?? false) !== (bMeta?.pinned ?? false)) return aMeta?.pinned ? -1 : 1;
                       const aOn = presence.find((pr) => pr.sysUser === a.username)?.online ?? false;
                       const bOn = presence.find((pr) => pr.sysUser === b.username)?.online ?? false;
                       if (aOn !== bOn) return aOn ? -1 : 1;
@@ -2706,6 +3111,8 @@ export default function ChatDrawer() {
                       const online = presence.find((pr) => pr.sysUser === p.username)?.online ?? false;
                       const isActive = selection.type === "dm" && selection.peer.username === p.username;
                       const rowKey = `u:${p.username}`;
+                      const meta = rowMeta[rowKey];
+                      const muted = isMuted(meta);
                       const menuOpen = rowHoverMenu === rowKey;
                       return (
                         <SidebarRowWrap key={p.username} $active={isActive}>
@@ -2715,16 +3122,20 @@ export default function ChatDrawer() {
                             onClick={() => {
                               setSelection({ type: "dm", peer: p });
                               setDmMessages([]);
+                              if (meta?.markedUnread) patchRowMeta(rowKey, { markedUnread: false });
                             }}
                             title={p.displayName}
                           >
                             <UserAvatar profile={p} size={18} />
                             <SidebarRowName>{p.displayName}</SidebarRowName>
+                            {meta?.pinned && <PinBadge title="Pinned">★</PinBadge>}
+                            {meta?.markedUnread && <PinBadge title="Unread" style={{ color: "#3fb7ff" }}>●</PinBadge>}
+                            {muted && <PinBadge title="Muted" style={{ opacity: 0.55 }}>🔕</PinBadge>}
                             <SidebarRowPresence $online={online} />
                           </SidebarRow>
                           <RowHoverMenuBtn
                             $open={menuOpen}
-                            onClick={(e) => { e.stopPropagation(); setRowHoverMenu(menuOpen ? null : rowKey); }}
+                            onClick={(e) => { e.stopPropagation(); setRowHoverMenu(menuOpen ? null : rowKey); setMuteSubmenuFor(null); }}
                             title="More"
                           >
                             <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor" aria-hidden="true">
@@ -2733,19 +3144,115 @@ export default function ChatDrawer() {
                           </RowHoverMenuBtn>
                           {menuOpen && (
                             <RowHoverMenu onClick={(e) => e.stopPropagation()}>
+                              {isActive && (
+                                <RowHoverMenuItem onClick={() => {
+                                  setSelection({ type: "tgv" });
+                                  setRowHoverMenu(null);
+                                }}>
+                                  <RowMenuGlyph><WaX/></RowMenuGlyph> Close chat
+                                </RowHoverMenuItem>
+                              )}
+                              <RowHoverMenuItem onClick={() => {
+                                const w = Math.round(window.screen.width * 0.7);
+                                const h = Math.round(window.screen.height * 0.8);
+                                const left = Math.round((window.screen.width - w) / 2);
+                                const top = Math.round((window.screen.height - h) / 2);
+                                window.open(`/dashboard/chat?popout=1&peer=${encodeURIComponent(p.username)}`, `tgv-chat-${p.username}`, `width=${w},height=${h},left=${left},top=${top}`);
+                                setRowHoverMenu(null);
+                              }}>
+                                <RowMenuGlyph><WaPopout/></RowMenuGlyph> Open in New Window
+                              </RowHoverMenuItem>
+                              <RowHoverMenuItem onClick={() => {
+                                patchRowMeta(rowKey, { markedUnread: !meta?.markedUnread });
+                                setRowHoverMenu(null);
+                              }}>
+                                <RowMenuGlyph><WaUnread/></RowMenuGlyph> {meta?.markedUnread ? "Mark as read" : "Mark as unread"}
+                              </RowHoverMenuItem>
+                              <RowHoverMenuItem onClick={() => {
+                                patchRowMeta(rowKey, { archived: !meta?.archived });
+                                if (isActive) setSelection({ type: "tgv" });
+                                setRowHoverMenu(null);
+                              }}>
+                                <RowMenuGlyph><WaArchive/></RowMenuGlyph> {meta?.archived ? "Unarchive" : "Archive"}
+                              </RowHoverMenuItem>
+                              <RowHoverMenuItem onClick={() => {
+                                patchRowMeta(rowKey, { pinned: !meta?.pinned });
+                                setRowHoverMenu(null);
+                              }}>
+                                <RowMenuGlyph><WaPin/></RowMenuGlyph> {meta?.pinned ? "Unpin" : "Pin"}
+                              </RowHoverMenuItem>
+                              <RowHoverMenuItem onClick={() => {
+                                if (!confirm(meta?.blocked ? `Unblock ${p.displayName}?` : `Block ${p.displayName}? They won't be able to message you.`)) return;
+                                patchRowMeta(rowKey, { blocked: !meta?.blocked });
+                                setRowHoverMenu(null);
+                              }}>
+                                <RowMenuGlyph><WaBlock/></RowMenuGlyph> {meta?.blocked ? `Unblock ${p.displayName}` : `Block ${p.displayName}`}
+                              </RowHoverMenuItem>
+                              <RowHoverMenuItem
+                                $highlight={muteSubmenuFor === rowKey}
+                                onMouseEnter={() => setMuteSubmenuFor(rowKey)}
+                                onClick={(e) => { e.stopPropagation(); setMuteSubmenuFor((cur) => cur === rowKey ? null : rowKey); }}
+                              >
+                                <RowMenuGlyph><WaMute/></RowMenuGlyph> {muted ? "Unmute" : "Mute"}
+                                <RowMenuCaret>›</RowMenuCaret>
+                                {muteSubmenuFor === rowKey && (
+                                  <MuteSubmenu onClick={(e) => e.stopPropagation()}>
+                                    <RowHoverMenuItem onClick={() => {
+                                      patchRowMeta(rowKey, { muteUntil: Date.now() + 8 * 60 * 60 * 1000 });
+                                      setRowHoverMenu(null); setMuteSubmenuFor(null);
+                                    }}>8 hours</RowHoverMenuItem>
+                                    <RowHoverMenuItem onClick={() => {
+                                      patchRowMeta(rowKey, { muteUntil: Date.now() + 7 * 24 * 60 * 60 * 1000 });
+                                      setRowHoverMenu(null); setMuteSubmenuFor(null);
+                                    }}>1 week</RowHoverMenuItem>
+                                    <RowHoverMenuItem onClick={() => {
+                                      patchRowMeta(rowKey, { muteUntil: "always" });
+                                      setRowHoverMenu(null); setMuteSubmenuFor(null);
+                                    }}>Always</RowHoverMenuItem>
+                                    {muted && (
+                                      <>
+                                        <RowMenuDivider />
+                                        <RowHoverMenuItem onClick={() => {
+                                          patchRowMeta(rowKey, { muteUntil: undefined });
+                                          setRowHoverMenu(null); setMuteSubmenuFor(null);
+                                        }}>Unmute now</RowHoverMenuItem>
+                                      </>
+                                    )}
+                                  </MuteSubmenu>
+                                )}
+                              </RowHoverMenuItem>
+                              <RowMenuDivider />
+                              <RowHoverMenuItem onClick={() => {
+                                setContactInfoFor(p.username);
+                                setRowHoverMenu(null);
+                              }}>
+                                <RowMenuGlyph><WaInfo/></RowMenuGlyph> Contact info
+                              </RowHoverMenuItem>
+                              <RowHoverMenuItem onClick={async () => {
+                                setRowHoverMenu(null);
+                                try {
+                                  const res = await fetch(`/api/chat/dm?with=${encodeURIComponent(p.username)}&limit=1000`);
+                                  const data = await res.json().catch(() => ({}));
+                                  exportChannel(`dm-${p.username}.json`, { peer: p.username, exportedAt: new Date().toISOString(), messages: data.messages ?? data });
+                                } catch (e) { alert(e instanceof Error ? e.message : "Export failed"); }
+                              }}>
+                                <RowMenuGlyph><WaExport/></RowMenuGlyph> Export chat
+                              </RowHoverMenuItem>
                               <RowHoverMenuItem onClick={() => {
                                 setSelection({ type: "dm", peer: p });
                                 setDmMessages([]);
+                                setShowClearConfirm(true);
                                 setRowHoverMenu(null);
                               }}>
-                                💬 Open DM
+                                <RowMenuGlyph><WaClear/></RowMenuGlyph> Clear chat
                               </RowHoverMenuItem>
-                              <RowHoverMenuItem onClick={() => {
-                                const text = `Continuing my conversation with ${p.displayName} from TGV Office`;
-                                window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank", "noopener");
+                              <RowHoverMenuItem $danger onClick={() => {
+                                if (!confirm(`Delete this chat with ${p.displayName}? This removes it from your list.`)) return;
+                                patchRowMeta(rowKey, { deleted: true });
+                                if (isActive) setSelection({ type: "tgv" });
                                 setRowHoverMenu(null);
                               }}>
-                                🟢 Continue in WhatsApp
+                                <RowMenuGlyph><WaTrash/></RowMenuGlyph> Delete chat
                               </RowHoverMenuItem>
                             </RowHoverMenu>
                           )}
@@ -2755,23 +3262,44 @@ export default function ChatDrawer() {
 
                   {sidebarTab === "groups" && (
                     <>
-                      {groups.map((g) => {
-                        const isActive = selection.type === "group" && selection.groupId === g.id;
-                        const rowKey = `g:${g.id}`;
-                        const menuOpen = rowHoverMenu === rowKey;
-                        return (
+                      {groups
+                        .filter((g) => {
+                          const meta = rowMeta[`g:${g.id}`];
+                          if (meta?.archived) return showArchived;
+                          return true;
+                        })
+                        .slice()
+                        .sort((a, b) => {
+                          const aMeta = rowMeta[`g:${a.id}`];
+                          const bMeta = rowMeta[`g:${b.id}`];
+                          if ((aMeta?.pinned ?? false) !== (bMeta?.pinned ?? false)) return aMeta?.pinned ? -1 : 1;
+                          return a.name.localeCompare(b.name);
+                        })
+                        .map((g) => {
+                          const isActive = selection.type === "group" && selection.groupId === g.id;
+                          const rowKey = `g:${g.id}`;
+                          const meta = rowMeta[rowKey];
+                          const muted = isMuted(meta);
+                          const menuOpen = rowHoverMenu === rowKey;
+                          return (
                           <SidebarRowWrap key={g.id} $active={isActive}>
                             <SidebarRow
                               $active={isActive}
-                              onClick={() => setSelection({ type: "group", groupId: g.id })}
+                              onClick={() => {
+                                setSelection({ type: "group", groupId: g.id });
+                                if (meta?.markedUnread) patchRowMeta(rowKey, { markedUnread: false });
+                              }}
                               title={g.name}
                             >
                               <MembersIcon size={14} />
                               <SidebarRowName>{g.name}</SidebarRowName>
+                              {meta?.pinned && <PinBadge title="Pinned">★</PinBadge>}
+                              {meta?.markedUnread && <PinBadge title="Unread" style={{ color: "#3fb7ff" }}>●</PinBadge>}
+                              {muted && <PinBadge title="Muted" style={{ opacity: 0.55 }}>🔕</PinBadge>}
                             </SidebarRow>
                             <RowHoverMenuBtn
                               $open={menuOpen}
-                              onClick={(e) => { e.stopPropagation(); setRowHoverMenu(menuOpen ? null : rowKey); }}
+                              onClick={(e) => { e.stopPropagation(); setRowHoverMenu(menuOpen ? null : rowKey); setMuteSubmenuFor(null); }}
                               title="More"
                             >
                               <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor" aria-hidden="true">
@@ -2781,42 +3309,142 @@ export default function ChatDrawer() {
                             {menuOpen && (
                               <RowHoverMenu onClick={(e) => e.stopPropagation()}>
                                 <RowHoverMenuItem onClick={() => {
-                                  setSelection({ type: "group", groupId: g.id });
+                                  const w = Math.round(window.screen.width * 0.7);
+                                  const h = Math.round(window.screen.height * 0.8);
+                                  const left = Math.round((window.screen.width - w) / 2);
+                                  const top = Math.round((window.screen.height - h) / 2);
+                                  window.open(`/dashboard/chat?popout=1&group=${encodeURIComponent(g.id)}`, `tgv-chat-g-${g.id}`, `width=${w},height=${h},left=${left},top=${top}`);
                                   setRowHoverMenu(null);
                                 }}>
-                                  👥 Open group
+                                  <RowMenuGlyph><WaPopout/></RowMenuGlyph> Open in New Window
                                 </RowHoverMenuItem>
-                                <RowHoverMenuItem onClick={() => setRowHoverMenu(null)}>
-                                  🔕 Mute (soon)
+                                <RowHoverMenuItem onClick={() => {
+                                  patchRowMeta(rowKey, { markedUnread: !meta?.markedUnread });
+                                  setRowHoverMenu(null);
+                                }}>
+                                  <RowMenuGlyph><WaUnread/></RowMenuGlyph> {meta?.markedUnread ? "Mark as read" : "Mark as unread"}
+                                </RowHoverMenuItem>
+                                <RowHoverMenuItem onClick={() => {
+                                  patchRowMeta(rowKey, { archived: !meta?.archived });
+                                  if (isActive) setSelection({ type: "tgv" });
+                                  setRowHoverMenu(null);
+                                }}>
+                                  <RowMenuGlyph><WaArchive/></RowMenuGlyph> {meta?.archived ? "Unarchive" : "Archive"}
+                                </RowHoverMenuItem>
+                                <RowHoverMenuItem onClick={() => {
+                                  patchRowMeta(rowKey, { pinned: !meta?.pinned });
+                                  setRowHoverMenu(null);
+                                }}>
+                                  <RowMenuGlyph><WaPin/></RowMenuGlyph> {meta?.pinned ? "Unpin" : "Pin"}
+                                </RowHoverMenuItem>
+                                <RowHoverMenuItem
+                                  $highlight={muteSubmenuFor === rowKey}
+                                  onMouseEnter={() => setMuteSubmenuFor(rowKey)}
+                                  onClick={(e) => { e.stopPropagation(); setMuteSubmenuFor((cur) => cur === rowKey ? null : rowKey); }}
+                                >
+                                  <RowMenuGlyph><WaMute/></RowMenuGlyph> {muted ? "Unmute" : "Mute"}
+                                  <RowMenuCaret>›</RowMenuCaret>
+                                  {muteSubmenuFor === rowKey && (
+                                    <MuteSubmenu onClick={(e) => e.stopPropagation()}>
+                                      <RowHoverMenuItem onClick={() => {
+                                        patchRowMeta(rowKey, { muteUntil: Date.now() + 8 * 60 * 60 * 1000 });
+                                        setRowHoverMenu(null); setMuteSubmenuFor(null);
+                                      }}>8 hours</RowHoverMenuItem>
+                                      <RowHoverMenuItem onClick={() => {
+                                        patchRowMeta(rowKey, { muteUntil: Date.now() + 7 * 24 * 60 * 60 * 1000 });
+                                        setRowHoverMenu(null); setMuteSubmenuFor(null);
+                                      }}>1 week</RowHoverMenuItem>
+                                      <RowHoverMenuItem onClick={() => {
+                                        patchRowMeta(rowKey, { muteUntil: "always" });
+                                        setRowHoverMenu(null); setMuteSubmenuFor(null);
+                                      }}>Always</RowHoverMenuItem>
+                                      {muted && (
+                                        <>
+                                          <RowMenuDivider />
+                                          <RowHoverMenuItem onClick={() => {
+                                            patchRowMeta(rowKey, { muteUntil: undefined });
+                                            setRowHoverMenu(null); setMuteSubmenuFor(null);
+                                          }}>Unmute now</RowHoverMenuItem>
+                                        </>
+                                      )}
+                                    </MuteSubmenu>
+                                  )}
+                                </RowHoverMenuItem>
+                                <RowMenuDivider />
+                                <RowHoverMenuItem onClick={() => {
+                                  setGroupAdminId(g.id);
+                                  setRowHoverMenu(null);
+                                }}>
+                                  <RowMenuGlyph><WaInfo/></RowMenuGlyph> Group info
+                                </RowHoverMenuItem>
+                                <RowHoverMenuItem onClick={async () => {
+                                  setRowHoverMenu(null);
+                                  try {
+                                    const res = await fetch(`/api/chat/group/messages?groupId=${encodeURIComponent(g.id)}&limit=1000`);
+                                    const data = await res.json().catch(() => ({}));
+                                    exportChannel(`group-${g.id}.json`, { group: g, exportedAt: new Date().toISOString(), messages: data.messages ?? data });
+                                  } catch (e) { alert(e instanceof Error ? e.message : "Export failed"); }
+                                }}>
+                                  <RowMenuGlyph><WaExport/></RowMenuGlyph> Export chat
+                                </RowHoverMenuItem>
+                                <RowHoverMenuItem onClick={() => {
+                                  setSelection({ type: "group", groupId: g.id });
+                                  setShowClearConfirm(true);
+                                  setRowHoverMenu(null);
+                                }}>
+                                  <RowMenuGlyph><WaClear/></RowMenuGlyph> Clear chat
+                                </RowHoverMenuItem>
+                                <RowHoverMenuItem $danger onClick={async () => {
+                                  setRowHoverMenu(null);
+                                  if (!confirm(`Exit "${g.name}"? You'll need to be re-added to rejoin.`)) return;
+                                  await leaveGroup(g.id);
+                                }}>
+                                  <RowMenuGlyph><WaExit/></RowMenuGlyph> Exit group
                                 </RowHoverMenuItem>
                               </RowHoverMenu>
                             )}
                           </SidebarRowWrap>
-                        );
-                      })}
-                      <DashedCreateCard onClick={() => setShowCreateGroup(true)}>
-                        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
-                          <path d="M5 1v8M1 5h8"/>
-                        </svg>
-                        Create a group chat
-                      </DashedCreateCard>
+                          );
+                        })}
                     </>
                   )}
+                  {(() => {
+                    const prefix = sidebarTab === "users" ? "u:" : "g:";
+                    const archivedCount = Object.entries(rowMeta).filter(([k, m]) => k.startsWith(prefix) && m.archived).length;
+                    if (archivedCount === 0) return null;
+                    return (
+                      <ArchivedToggle
+                        $open={showArchived}
+                        onClick={() => setShowArchived((p) => !p)}
+                        title={showArchived ? "Hide archived" : "Show archived"}
+                      >
+                        <RowMenuGlyph><WaArchive/></RowMenuGlyph>
+                        {showArchived ? "Hide" : "Show"} archived ({archivedCount})
+                      </ArchivedToggle>
+                    );
+                  })()}
                 </SidebarList>
               </Sidebar>
 
-              <SidebarResizer onMouseDown={onSidebarResizeStart} title="Drag to resize" />
+              <SidebarDTog
+                onMouseDown={onSidebarResizeStart}
+                $dragging={sidebarDragging}
+                title="Drag to resize · click to collapse"
+              >
+                <DTogGrip />
+              </SidebarDTog>
             </>
           )}
 
           <ConvPane>
-            <DTogTab
-              $collapsed={sidebarCollapsed}
-              onClick={() => setSidebarCollapsed((p) => !p)}
-              title={sidebarCollapsed ? "Show sidebar" : "Hide sidebar"}
-            >
-              {sidebarCollapsed ? "›" : "‹"}
-            </DTogTab>
+            {sidebarCollapsed && (
+              <DTogTab
+                onClick={() => setSidebarCollapsed(false)}
+                title="Show sidebar"
+              >
+                <DTogExpandIcon />
+              </DTogTab>
+            )}
 
             {/* ── Chat messages ────────────────────────────────── */}
             {isTGV && (
@@ -3107,8 +3735,42 @@ export default function ChatDrawer() {
                   </TypingRow>
                 )}
 
-                <InputRow>
-                  {isTGV && (
+                <InputRow ref={inputRowRef}>
+                  {!voiceActive && composerNarrow && (
+                    <ComposerMoreAnchor onClick={(e) => e.stopPropagation()}>
+                      <ComposerMoreBtn
+                        $open={composerMoreOpen}
+                        onClick={() => setComposerMoreOpen((p) => !p)}
+                        title="More options"
+                      >
+                        ⋯
+                      </ComposerMoreBtn>
+                      {composerMoreOpen && (
+                        <ComposerMorePopup>
+                          {isTGV && (
+                            <>
+                              <ComposerMoreItem onClick={() => { setComposerMoreOpen(false); fileRef.current?.click(); }}>
+                                <AttachMenuIcon><FileIcon size={16} /></AttachMenuIcon> File
+                              </ComposerMoreItem>
+                              <ComposerMoreItem onClick={() => { setComposerMoreOpen(false); photoRef.current?.click(); }}>
+                                <AttachMenuIcon><PhotosIcon size={16} /></AttachMenuIcon> Photos &amp; videos
+                              </ComposerMoreItem>
+                              <ComposerMoreItem onClick={() => { setComposerMoreOpen(false); setConverterType("image"); }}>
+                                <AttachMenuIcon><ConvertImageIcon size={16} /></AttachMenuIcon> Convert image
+                              </ComposerMoreItem>
+                              <ComposerMoreItem onClick={() => { setComposerMoreOpen(false); setConverterType("video"); }}>
+                                <AttachMenuIcon><ConvertVideoIcon size={16} /></AttachMenuIcon> Convert video
+                              </ComposerMoreItem>
+                            </>
+                          )}
+                          <ComposerMoreItem onClick={() => { setComposerMoreOpen(false); setPickerOpen(true); }}>
+                            <AttachMenuIcon><SmileIcon size={16} /></AttachMenuIcon> Emoji · GIFs · Stickers
+                          </ComposerMoreItem>
+                        </ComposerMorePopup>
+                      )}
+                    </ComposerMoreAnchor>
+                  )}
+                  {!voiceActive && !composerNarrow && isTGV && (
                     <>
                       <AttachMenuAnchor onClick={(e) => e.stopPropagation()}>
                         <AttachBtn onClick={() => setAttachMenuOpen((p) => !p)} title="Attach">
@@ -3143,11 +3805,18 @@ export default function ChatDrawer() {
                           </AttachMenuPopup>
                         )}
                       </AttachMenuAnchor>
+                    </>
+                  )}
+                  {!voiceActive && (
+                    <>
                       <input ref={fileRef} type="file" style={{ display: "none" }} onChange={handleFileChange} />
                       <input ref={photoRef} type="file" accept="image/*,video/*" style={{ display: "none" }} onChange={handleFileChange} />
                     </>
                   )}
 
+                  {!voiceActive && (
+                  <>
+                  {!composerNarrow && (
                   <PickerAnchor onClick={(e) => e.stopPropagation()}>
                     <PickerBtn onClick={() => setPickerOpen((p) => !p)} title="Emoji · GIFs · Stickers">
                       <SmileIcon size={16} />
@@ -3173,6 +3842,27 @@ export default function ChatDrawer() {
                       />
                     )}
                   </PickerAnchor>
+                  )}
+                  {composerNarrow && pickerOpen && (
+                    <ChatPicker
+                      onClose={() => setPickerOpen(false)}
+                      onEmoji={(e) => {
+                        if (selection.type === "dm") setDmInput((prev) => prev + e);
+                        else if (selection.type === "group") setGroupInput((prev) => prev + e);
+                        else setInput((prev) => prev + e);
+                      }}
+                      onGif={(url) => {
+                        if (selection.type === "dm") setDmInput((prev) => (prev ? `${prev} ${url}` : url));
+                        else if (selection.type === "group") setGroupInput((prev) => (prev ? `${prev} ${url}` : url));
+                        else setInput((prev) => (prev ? `${prev} ${url}` : url));
+                      }}
+                      onSticker={(url) => {
+                        if (selection.type === "dm") setDmInput((prev) => (prev ? `${prev} ${url}` : url));
+                        else if (selection.type === "group") setGroupInput((prev) => (prev ? `${prev} ${url}` : url));
+                        else setInput((prev) => (prev ? `${prev} ${url}` : url));
+                      }}
+                    />
+                  )}
 
                   <ChatTextarea
                     value={
@@ -3231,10 +3921,13 @@ export default function ChatDrawer() {
                     onError={(msg) => alert(`Transcribe: ${msg}`)}
                     disabled={sending || uploading || dmSending || groupSending}
                   />
+                  </>
+                  )}
                   {isTGV && (
-                    <VoiceRecorder accent={colors.green} onSend={sendVoice} disabled={sending || uploading} />
+                    <VoiceRecorder accent={colors.green} onSend={sendVoice} onActiveChange={setVoiceActive} disabled={sending || uploading} />
                   )}
 
+                  {!voiceActive && (
                   <SendBtn
                     onClick={
                       selection.type === "dm"
@@ -3265,6 +3958,7 @@ export default function ChatDrawer() {
                       <SendIcon size={14} />
                     )}
                   </SendBtn>
+                  )}
                 </InputRow>
               </InputArea>
             )}
@@ -3358,6 +4052,41 @@ export default function ChatDrawer() {
               setSelection({ type: "tgv" });
             }}
           />
+        );
+      })()}
+
+      {contactInfoFor && (() => {
+        const p = profiles.find((pp) => pp.username === contactInfoFor);
+        if (!p) return null;
+        return (
+          <ContactInfoOverlay onMouseDown={() => setContactInfoFor(null)}>
+            <ContactInfoCard $accent={p.accentColor} onMouseDown={(e) => e.stopPropagation()}>
+              <ContactInfoClose onClick={() => setContactInfoFor(null)} title="Close">✕</ContactInfoClose>
+              <ContactInfoHeader $accent={p.accentColor}>
+                <UserAvatar profile={p} size={72} />
+                <ContactInfoName>{p.displayName}</ContactInfoName>
+                {p.title && <ContactInfoTitle>{p.title}</ContactInfoTitle>}
+              </ContactInfoHeader>
+              <ContactInfoBody>
+                {p.bio && (
+                  <ContactInfoField>
+                    <ContactInfoLabel>About</ContactInfoLabel>
+                    <ContactInfoValue>{p.bio}</ContactInfoValue>
+                  </ContactInfoField>
+                )}
+                {p.email && (
+                  <ContactInfoField>
+                    <ContactInfoLabel>Email</ContactInfoLabel>
+                    <ContactInfoValue><a href={`mailto:${p.email}`} style={{ color: "inherit" }}>{p.email}</a></ContactInfoValue>
+                  </ContactInfoField>
+                )}
+                <ContactInfoField>
+                  <ContactInfoLabel>Username</ContactInfoLabel>
+                  <ContactInfoValue>@{p.username}</ContactInfoValue>
+                </ContactInfoField>
+              </ContactInfoBody>
+            </ContactInfoCard>
+          </ContactInfoOverlay>
         );
       })()}
     </>

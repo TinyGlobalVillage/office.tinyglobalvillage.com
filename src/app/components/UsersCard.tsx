@@ -1,12 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import styled from "styled-components";
 import { colors, rgb } from "../theme";
 import ProfileModal, { type Profile, type Memo, type Ping, hexToRgb } from "./ProfileModal";
 import { UserAvatar } from "./ChatSettingsModal";
 import type { UserPresence } from "./PresenceDots";
+
+const MOBILE_PAGE_SIZE = 5;
+const TILE_MIN_WIDTH = 200;
 
 /* ── Styled ────────────────────────────────────────────────── */
 
@@ -52,10 +55,56 @@ const PingBadge = styled.span`
   color: ${colors.violet};
 `;
 
-const UserList = styled.div`
-  display: flex;
-  flex-direction: column;
+const UserList = styled.div<{ $cols: number }>`
+  display: grid;
+  grid-template-columns: repeat(${(p) => p.$cols}, minmax(0, 1fr));
   gap: 8px;
+`;
+
+const PagerRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding-top: 4px;
+`;
+
+const PagerBtn = styled.button`
+  width: 28px;
+  height: 28px;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--t-textMuted);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  transition: all 0.15s;
+
+  [data-theme="light"] & {
+    background: rgba(0, 0, 0, 0.03);
+    border-color: rgba(0, 0, 0, 0.1);
+  }
+
+  &:not(:disabled):hover {
+    color: ${colors.cyan};
+    border-color: ${colors.cyan};
+  }
+
+  &:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
+`;
+
+const PagerInfo = styled.span`
+  font-size: 12px;
+  font-family: var(--font-geist-mono), monospace;
+  font-variant-numeric: tabular-nums;
+  color: var(--t-textGhost);
 `;
 
 const UserBtn = styled.button`
@@ -174,6 +223,9 @@ export default function UsersCard({ className = "" }: { className?: string }) {
   const [unreadPings, setUnreadPings] = useState(0);
   const [openProfile, setOpenProfile] = useState<Profile | null>(null);
   const [currentUser, setCurrentUser] = useState<string>("");
+  const [cols, setCols] = useState(1);
+  const [page, setPage] = useState(0);
+  const listRef = useRef<HTMLDivElement>(null);
 
   const load = async () => {
     const [profRes, presRes, memoRes, pingRes, meRes] = await Promise.all([
@@ -204,6 +256,28 @@ export default function UsersCard({ className = "" }: { className?: string }) {
     }
   }, [profiles]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Responsive column count: container width / TILE_MIN_WIDTH.
+  // On narrow containers falls back to 1 col (mobile default).
+  useEffect(() => {
+    const el = listRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver((entries) => {
+      const w = entries[0]?.contentRect.width ?? 0;
+      const next = Math.max(1, Math.floor(w / TILE_MIN_WIDTH));
+      setCols((prev) => (prev !== next ? next : prev));
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  // Page size: 5 per page on mobile (1 col), otherwise cols * 3 rows.
+  const pageSize = cols === 1 ? MOBILE_PAGE_SIZE : cols * 3;
+  const totalPages = Math.max(1, Math.ceil(profiles.length / pageSize));
+  useEffect(() => {
+    if (page > totalPages - 1) setPage(Math.max(0, totalPages - 1));
+  }, [page, totalPages]);
+  const pageProfiles = profiles.slice(page * pageSize, (page + 1) * pageSize);
+
   return (
     <Card className={className}>
       <HeaderRow>
@@ -215,8 +289,8 @@ export default function UsersCard({ className = "" }: { className?: string }) {
         )}
       </HeaderRow>
 
-      <UserList>
-        {profiles.map((p) => {
+      <UserList ref={listRef} $cols={cols}>
+        {pageProfiles.map((p) => {
           const pres = presence.find((u) => u.sysUser === p.username);
           const online = pres?.online ?? false;
           const accent = p.accentColor;
@@ -255,6 +329,28 @@ export default function UsersCard({ className = "" }: { className?: string }) {
           );
         })}
       </UserList>
+
+      {profiles.length > pageSize && (
+        <PagerRow>
+          <PagerBtn
+            disabled={page === 0}
+            onClick={() => setPage((p) => Math.max(0, p - 1))}
+            aria-label="Previous page"
+          >
+            ‹
+          </PagerBtn>
+          <PagerInfo>
+            {page + 1} / {totalPages}
+          </PagerInfo>
+          <PagerBtn
+            disabled={page >= totalPages - 1}
+            onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+            aria-label="Next page"
+          >
+            ›
+          </PagerBtn>
+        </PagerRow>
+      )}
 
       {memos.length > 0 && (
         <MemoDivider>

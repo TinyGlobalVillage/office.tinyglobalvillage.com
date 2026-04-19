@@ -112,16 +112,16 @@ const NameBlock = styled.div`
   min-width: 0;
 `;
 
-const Name = styled.h3`
+const Name = styled.h3<{ $accent?: string }>`
   font-size: 1rem;
   font-weight: 700;
-  color: var(--t-text);
+  color: ${(p) => p.$accent ?? "var(--t-text)"};
   margin: 0;
 `;
 
-const Email = styled.p`
+const Email = styled.p<{ $accent?: string }>`
   font-size: 0.75rem;
-  color: var(--t-textFaint);
+  color: ${(p) => (p.$accent ? `${p.$accent}cc` : "var(--t-textFaint)")};
   margin: 0;
 `;
 
@@ -194,18 +194,18 @@ const Body = styled.div`
   scrollbar-width: thin;
 `;
 
-const SectionLabel = styled.p`
+const SectionLabel = styled.p<{ $accent?: string }>`
   font-size: 0.5625rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.15em;
-  color: var(--t-textGhost);
+  color: ${(p) => (p.$accent ? `${p.$accent}aa` : "var(--t-textGhost)")};
   margin: 0 0 0.375rem;
 `;
 
-const BioText = styled.p`
+const BioText = styled.p<{ $accent?: string }>`
   font-size: 0.75rem;
-  color: var(--t-textMuted);
+  color: ${(p) => (p.$accent ? `${p.$accent}dd` : "var(--t-textMuted)")};
   line-height: 1.625;
   margin: 0;
 `;
@@ -300,26 +300,30 @@ const PingCheck = styled.button<{ $accent: string }>`
   }
 `;
 
-const MemoInput = styled.input`
+const MemoInput = styled.input<{ $accent?: string }>`
   flex: 1;
   background: transparent;
   outline: none;
   font-size: 0.75rem;
-  color: var(--t-textMuted);
+  color: ${(p) => p.$accent ?? "var(--t-textMuted)"};
   border-radius: 0.5rem;
   padding: 0.5rem 0.75rem;
-  border: 1px solid var(--t-borderStrong);
+  border: 1px solid ${(p) => (p.$accent ? `${p.$accent}55` : "var(--t-borderStrong)")};
+
+  &::placeholder {
+    color: ${(p) => (p.$accent ? `${p.$accent}77` : "var(--t-textGhost)")};
+  }
 `;
 
-const MemoAddBtn = styled.button`
+const MemoAddBtn = styled.button<{ $accent?: string }>`
   font-size: 0.625rem;
   padding: 0.25rem 0.75rem;
   border-radius: 0.5rem;
   transition: all 0.15s;
   cursor: pointer;
-  background: var(--t-inputBg);
-  border: 1px solid var(--t-borderStrong);
-  color: var(--t-textMuted);
+  background: ${(p) => (p.$accent ? `rgba(${hexToRgb(p.$accent)}, 0.18)` : "var(--t-inputBg)")};
+  border: 1px solid ${(p) => (p.$accent ? `${p.$accent}66` : "var(--t-borderStrong)")};
+  color: ${(p) => p.$accent ?? "var(--t-textMuted)"};
 
   &:disabled {
     opacity: 0.4;
@@ -327,31 +331,31 @@ const MemoAddBtn = styled.button`
   }
 `;
 
-const MemoCard = styled.div`
+const MemoCard = styled.div<{ $accent?: string }>`
   border-radius: 0.75rem;
   padding: 0.5rem 0.75rem;
-  background: var(--t-inputBg);
-  border: 1px solid var(--t-border);
+  background: ${(p) => (p.$accent ? `rgba(${hexToRgb(p.$accent)}, 0.08)` : "var(--t-inputBg)")};
+  border: 1px solid ${(p) => (p.$accent ? `${p.$accent}33` : "var(--t-border)")};
 `;
 
-const MemoContent = styled.p`
+const MemoContent = styled.p<{ $accent?: string }>`
   font-size: 0.6875rem;
-  color: var(--t-text);
-  opacity: 0.75;
+  color: ${(p) => p.$accent ?? "var(--t-text)"};
+  opacity: ${(p) => (p.$accent ? 0.95 : 0.75)};
   line-height: 1.625;
   margin: 0;
 `;
 
-const MemoMeta = styled.p`
+const MemoMeta = styled.p<{ $accent?: string }>`
   font-size: 0.5625rem;
-  color: var(--t-textGhost);
+  color: ${(p) => (p.$accent ? `${p.$accent}99` : "var(--t-textGhost)")};
   margin: 0.125rem 0 0;
 `;
 
 const MemoActions = styled.div`
   display: flex;
-  gap: 0.25rem;
-  opacity: 0;
+  gap: 0.5rem;
+  opacity: 0.55;
   flex-shrink: 0;
   transition: opacity 0.15s;
 
@@ -360,59 +364,87 @@ const MemoActions = styled.div`
   }
 `;
 
-const MemoActionBtn = styled.button`
-  font-size: 0.5625rem;
-  color: var(--t-textFaint);
-  border: none;
-  background: none;
+const MemoActionBtn = styled.button<{ $accent?: string }>`
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  line-height: 1;
+  transition: all 0.15s;
   cursor: pointer;
+  color: ${(p) => (p.$accent ? p.$accent : "var(--t-textMuted)")};
+  background: ${(p) => (p.$accent ? `rgba(${hexToRgb(p.$accent)}, 0.14)` : "var(--t-inputBg)")};
+  border: 1px solid ${(p) => (p.$accent ? `${p.$accent}55` : "var(--t-border)")};
 
   &:hover {
-    color: var(--t-textMuted);
+    background: ${(p) => (p.$accent ? `rgba(${hexToRgb(p.$accent)}, 0.24)` : "var(--t-inputBg)")};
+    border-color: ${(p) => (p.$accent ? `${p.$accent}88` : "var(--t-borderStrong)")};
+    color: ${(p) => p.$accent ?? "var(--t-text)"};
+    box-shadow: ${(p) => (p.$accent ? `0 0 8px ${p.$accent}55` : "none")};
   }
 `;
 
-const ArchiveBtn = styled.button`
-  width: 1.25rem;
-  height: 1.25rem;
-  border-radius: 50%;
-  display: flex;
+const ArchiveBtn = styled.button<{ $accent?: string }>`
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.5rem;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.5625rem;
+  font-size: 1rem;
+  line-height: 1;
   transition: all 0.15s;
   cursor: pointer;
-  background: rgba(${rgb.violet}, 0.15);
-  border: 1px solid rgba(${rgb.violet}, 0.35);
-  color: ${colors.violet};
+  color: ${(p) => p.$accent ?? colors.violet};
+  background: ${(p) =>
+    p.$accent
+      ? `rgba(${hexToRgb(p.$accent)}, 0.14)`
+      : `rgba(${rgb.violet}, 0.15)`};
+  border: 1px solid ${(p) => (p.$accent ? `${p.$accent}55` : `rgba(${rgb.violet}, 0.35)`)};
+
+  &:hover {
+    background: ${(p) =>
+      p.$accent
+        ? `rgba(${hexToRgb(p.$accent)}, 0.24)`
+        : `rgba(${rgb.violet}, 0.25)`};
+    border-color: ${(p) => (p.$accent ? `${p.$accent}88` : `rgba(${rgb.violet}, 0.5)`)};
+    box-shadow: ${(p) =>
+      p.$accent
+        ? `0 0 8px ${p.$accent}55`
+        : `0 0 8px rgba(${rgb.violet}, 0.35)`};
+  }
 `;
 
 const DeleteBtn = styled(ArchiveBtn)`
   &:hover {
-    background: rgba(${rgb.red}, 0.2);
-    border-color: rgba(${rgb.red}, 0.4);
+    background: rgba(${rgb.red}, 0.22);
+    border-color: rgba(${rgb.red}, 0.55);
     color: ${colors.red};
+    box-shadow: 0 0 10px rgba(${rgb.red}, 0.45);
   }
 `;
 
-const MemoEditInput = styled.input`
+const MemoEditInput = styled.input<{ $accent?: string }>`
   flex: 1;
   background: transparent;
   outline: none;
   font-size: 0.75rem;
-  color: var(--t-text);
+  color: ${(p) => p.$accent ?? "var(--t-text)"};
   border: none;
 `;
 
-const MarkAllBtn = styled.button`
+const MarkAllBtn = styled.button<{ $accent?: string }>`
   font-size: 0.5625rem;
-  color: var(--t-textFaint);
+  color: ${(p) => (p.$accent ? `${p.$accent}cc` : "var(--t-textFaint)")};
   border: none;
   background: none;
   cursor: pointer;
 
   &:hover {
-    color: var(--t-textMuted);
+    color: ${(p) => p.$accent ?? "var(--t-textMuted)"};
   }
 `;
 
@@ -437,6 +469,9 @@ export default function ProfileModal({
 }) {
   const isOwn = profile.username === currentUser;
   const accent = profile.accentColor;
+  // On other users' profiles, tint text & buttons with their chosen accent.
+  // On your own profile, keep theme-neutral colors.
+  const pa = isOwn ? undefined : accent;
 
   const [newMemo, setNewMemo] = useState("");
   const [sendingMemo, setSendingMemo] = useState(false);
@@ -649,8 +684,8 @@ export default function ProfileModal({
             )}
           </AvatarWrap>
           <NameBlock>
-            <Name>{profile.displayName}</Name>
-            <Email>{profile.email}</Email>
+            <Name $accent={pa}>{profile.displayName}</Name>
+            <Email $accent={pa}>{profile.email}</Email>
           </NameBlock>
           <HeaderActions>
             {isOwn && (
@@ -672,15 +707,15 @@ export default function ProfileModal({
         <Body>
           {profile.bio && (
             <div>
-              <SectionLabel>Bio</SectionLabel>
-              <BioText>{profile.bio}</BioText>
+              <SectionLabel $accent={pa}>Bio</SectionLabel>
+              <BioText $accent={pa}>{profile.bio}</BioText>
             </div>
           )}
 
           {profile.title && (
             <div>
-              <SectionLabel>Role</SectionLabel>
-              <BioText>{profile.title}</BioText>
+              <SectionLabel $accent={pa}>Role</SectionLabel>
+              <BioText $accent={pa}>{profile.title}</BioText>
             </div>
           )}
 
@@ -712,7 +747,7 @@ export default function ProfileModal({
                   {isOwn ? "Unread Pings" : `Pings from ${profile.displayName}`}
                 </SectionLabel>
                 {isOwn && relevantPings.length > 1 && (
-                  <MarkAllBtn onClick={markAllPingsRead}>Mark all read</MarkAllBtn>
+                  <MarkAllBtn $accent={pa} onClick={markAllPingsRead}>Mark all read</MarkAllBtn>
                 )}
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: "0.375rem" }}>
@@ -741,9 +776,10 @@ export default function ProfileModal({
           )}
 
           <div>
-            <SectionLabel>Memos</SectionLabel>
+            <SectionLabel $accent={pa}>Memos</SectionLabel>
             <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.75rem" }}>
               <MemoInput
+                $accent={pa}
                 value={newMemo}
                 onChange={(e) => setNewMemo(e.target.value)}
                 onKeyDown={(e) => {
@@ -754,20 +790,21 @@ export default function ProfileModal({
                 }}
                 placeholder={isOwn ? "Note to self…" : `Note for ${profile.displayName}…`}
               />
-              <MemoAddBtn onClick={sendMemo} disabled={!newMemo.trim() || sendingMemo}>
+              <MemoAddBtn $accent={pa} onClick={sendMemo} disabled={!newMemo.trim() || sendingMemo}>
                 Add
               </MemoAddBtn>
             </div>
 
             {relevantMemos.length === 0 ? (
-              <p style={{ fontSize: "0.625rem", color: "var(--t-textGhost)" }}>No memos yet.</p>
+              <p style={{ fontSize: "0.625rem", color: pa ? `${pa}99` : "var(--t-textGhost)" }}>No memos yet.</p>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
                 {relevantMemos.map((m) => (
-                  <MemoCard key={m.id}>
+                  <MemoCard key={m.id} $accent={pa}>
                     {editingMemoId === m.id ? (
                       <div style={{ display: "flex", gap: "0.5rem" }}>
                         <MemoEditInput
+                          $accent={pa}
                           value={editMemoContent}
                           onChange={(e) => setEditMemoContent(e.target.value)}
                           onKeyDown={(e) => {
@@ -776,14 +813,14 @@ export default function ProfileModal({
                           }}
                           autoFocus
                         />
-                        <MemoActionBtn onClick={() => saveMemoEdit(m.id)}>Save</MemoActionBtn>
-                        <MemoActionBtn onClick={() => setEditingMemoId(null)}>✕</MemoActionBtn>
+                        <MemoActionBtn $accent={pa} onClick={() => saveMemoEdit(m.id)}>Save</MemoActionBtn>
+                        <MemoActionBtn $accent={pa} onClick={() => setEditingMemoId(null)}>✕</MemoActionBtn>
                       </div>
                     ) : (
                       <div style={{ display: "flex", alignItems: "flex-start", gap: "0.5rem" }}>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <MemoContent>{m.content}</MemoContent>
-                          <MemoMeta>
+                          <MemoContent $accent={pa}>{m.content}</MemoContent>
+                          <MemoMeta $accent={pa}>
                             {profiles.find((p) => p.username === m.from)?.displayName ?? m.from} ·{" "}
                             {timeAgo(m.createdAt)}
                             {m.editedAt && " · edited"}
@@ -792,6 +829,7 @@ export default function ProfileModal({
                         <MemoActions>
                           {m.from === currentUser && (
                             <MemoActionBtn
+                              $accent={pa}
                               onClick={() => {
                                 setEditingMemoId(m.id);
                                 setEditMemoContent(m.content);
@@ -801,10 +839,10 @@ export default function ProfileModal({
                               ✎
                             </MemoActionBtn>
                           )}
-                          <ArchiveBtn onClick={() => archiveMemo(m.id)} title="Archive (hide from your view)">
+                          <ArchiveBtn $accent={pa} onClick={() => archiveMemo(m.id)} title="Archive (hide from your view)">
                             ⬇
                           </ArchiveBtn>
-                          <DeleteBtn onClick={() => deleteMemo(m.id)} title="Delete permanently">
+                          <DeleteBtn $accent={pa} onClick={() => deleteMemo(m.id)} title="Delete permanently">
                             ✕
                           </DeleteBtn>
                         </MemoActions>

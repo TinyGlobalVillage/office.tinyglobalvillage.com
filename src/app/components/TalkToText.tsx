@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 import { MicIcon, StopIcon } from "./icons";
 
@@ -16,6 +16,28 @@ function pickMime(): string {
     try { if (MediaRecorder.isTypeSupported(m)) return m; } catch { /* ignore */ }
   }
   return "";
+}
+
+type SRResult = { transcript: string };
+type SRResultEntry = { [index: number]: SRResult; isFinal: boolean };
+type SREvent = { resultIndex: number; results: ArrayLike<SRResultEntry> };
+type SRInstance = {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  start: () => void;
+  stop: () => void;
+  abort: () => void;
+  onresult: ((e: SREvent) => void) | null;
+  onerror: ((e: { error: string }) => void) | null;
+  onend: (() => void) | null;
+};
+type SRCtor = new () => SRInstance;
+
+function getSpeechRecognitionCtor(): SRCtor | null {
+  if (typeof window === "undefined") return null;
+  const w = window as unknown as { SpeechRecognition?: SRCtor; webkitSpeechRecognition?: SRCtor };
+  return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null;
 }
 
 const Btn = styled.button<{ $accent: string; $active: boolean }>`
@@ -64,11 +86,21 @@ type Props = {
 
 export default function TalkToText({ accent, model, onTranscript, onError, disabled }: Props) {
   const [state, setState] = useState<"idle" | "recording" | "transcribing">("idle");
+
+  // SpeechRecognition (primary, streaming)
+  const recognitionRef = useRef<SRInstance | null>(null);
+  const deliveredRef = useRef<string>("");
+
+  // MediaRecorder fallback (whisper-cli)
   const recorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const chunksRef = useRef<BlobPart[]>([]);
 
-  const stop = useCallback(() => {
+  const stopSR = useCallback(() => {
+    try { recognitionRef.current?.stop(); } catch { /* ignore */ }
+  }, []);
+
+  const stopFallback = useCallback(() => {
     const rec = recorderRef.current;
     if (rec && rec.state !== "inactive") {
       try { rec.stop(); } catch { /* ignore */ }
@@ -77,8 +109,50 @@ export default function TalkToText({ accent, model, onTranscript, onError, disab
     streamRef.current = null;
   }, []);
 
-  const start = useCallback(async () => {
-    if (state !== "idle" || disabled) return;
+  useEffect(() => () => { stopSR(); stopFallback(); }, [stopSR, stopFallback]);
+
+  const startSR = useCallback((Ctor: SRCtor) => {
+    const rec = new Ctor();
+    rec.continuous = true;
+    rec.interimResults = true;
+    rec.lang = "en-US";
+    recognitionRef.current = rec;
+    deliveredRef.current = "";
+
+    rec.onresult = (event) => {
+      // Only emit finalised segments so the composer doesn't see duplicate
+      // interim text. Finals arrive roughly when the speaker pauses.
+      let finalDelta = "";
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const entry = event.results[i];
+        if (entry.isFinal) finalDelta += entry[0].transcript;
+      }
+      const trimmed = finalDelta.trim();
+      if (trimmed) {
+        deliveredRef.current = (deliveredRef.current + " " + trimmed).trim();
+        onTranscript(trimmed);
+      }
+    };
+    rec.onerror = (e) => {
+      if (e.error !== "no-speech" && e.error !== "aborted") {
+        onError?.(`Speech: ${e.error}`);
+      }
+    };
+    rec.onend = () => {
+      setState("idle");
+      recognitionRef.current = null;
+    };
+    try {
+      rec.start();
+      setState("recording");
+    } catch (e) {
+      onError?.(e instanceof Error ? e.message : "Speech start failed");
+      setState("idle");
+      recognitionRef.current = null;
+    }
+  }, [onTranscript, onError]);
+
+  const startFallback = useCallback(async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
@@ -93,11 +167,8 @@ export default function TalkToText({ accent, model, onTranscript, onError, disab
         setState("transcribing");
         const blob = new Blob(chunksRef.current, { type: rec.mimeType || mime || "audio/webm" });
         chunksRef.current = [];
-        try {
-          streamRef.current?.getTracks().forEach((t) => t.stop());
-        } catch { /* ignore */ }
+        try { streamRef.current?.getTracks().forEach((t) => t.stop()); } catch { /* ignore */ }
         streamRef.current = null;
-
         try {
           const fd = new FormData();
           const ext = (rec.mimeType || mime || "webm").includes("ogg") ? "ogg" : "webm";
@@ -105,11 +176,8 @@ export default function TalkToText({ accent, model, onTranscript, onError, disab
           fd.append("model", model);
           const res = await fetch("/api/chat/transcribe", { method: "POST", body: fd });
           const data = await res.json().catch(() => ({}));
-          if (!res.ok) {
-            onError?.(data.error ?? `Transcribe failed (HTTP ${res.status})`);
-          } else if (data.text) {
-            onTranscript(data.text);
-          }
+          if (!res.ok) onError?.(data.error ?? `Transcribe failed (HTTP ${res.status})`);
+          else if (data.text) onTranscript(data.text);
         } catch (e) {
           onError?.(e instanceof Error ? e.message : "Transcription error");
         } finally {
@@ -122,7 +190,19 @@ export default function TalkToText({ accent, model, onTranscript, onError, disab
       onError?.(e instanceof Error ? e.message : "Mic access denied");
       setState("idle");
     }
-  }, [state, disabled, model, onTranscript, onError]);
+  }, [model, onTranscript, onError]);
+
+  const start = useCallback(async () => {
+    if (state !== "idle" || disabled) return;
+    const SR = getSpeechRecognitionCtor();
+    if (SR) startSR(SR);
+    else await startFallback();
+  }, [state, disabled, startSR, startFallback]);
+
+  const stop = useCallback(() => {
+    if (recognitionRef.current) stopSR();
+    else stopFallback();
+  }, [stopSR, stopFallback]);
 
   const toggle = useCallback(() => {
     if (state === "recording") stop();
