@@ -16,6 +16,7 @@
     "@livekit/components-react": "^2.9.20",
     "@monaco-editor/react": "^4.7.0",
     "@simplewebauthn/server": "^9.0.3",
+    "@tgv/module-inbox": "file:../../packages/@tgv/module-inbox",
     "@types/bcryptjs": "^2.4.6",
     "@types/nodemailer": "^8.0.0",
     "@types/qrcode": "^1.5.6",

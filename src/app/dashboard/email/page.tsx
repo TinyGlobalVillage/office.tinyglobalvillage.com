@@ -8,7 +8,7 @@ import dynamic from "next/dynamic";
 import styled from "styled-components";
 
 const EmailClient = dynamic(
-  () => import("../../components/email/EmailClient"),
+  () => import("@tgv/module-inbox/components/EmailClient"),
   { ssr: false }
 );
 

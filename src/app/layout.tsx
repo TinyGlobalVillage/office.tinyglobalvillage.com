@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import "@/lib/inbox-setup";
 import SessionWrapper from "./components/SessionWrapper";
 import ThemeProvider from "./components/ThemeProvider";
 import StyledRegistry from "./StyledRegistry";
