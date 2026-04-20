@@ -3016,6 +3016,126 @@ function ScrollbarDemo() {
   );
 }
 
+// ── DaB (Dashed+Add Button) demo ────────────────────────────────────────
+const DabRow = styled.div`
+  display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: flex-start;
+`;
+
+const DabTile = styled.button<{ $accent: string; $accentRgb: string }>`
+  display: flex; align-items: center; justify-content: center;
+  gap: 0.45rem;
+  min-width: 160px;
+  min-height: 72px;
+  padding: 0.85rem 1.1rem;
+  border-radius: 12px;
+  background: color-mix(in srgb, ${p => p.$accent} 4%, transparent);
+  border: 1.5px dashed color-mix(in srgb, ${p => p.$accent} 45%, transparent);
+  color: ${p => p.$accent};
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+
+  &:hover {
+    background: rgba(${p => p.$accentRgb}, 0.08);
+    border-color: color-mix(in srgb, ${p => p.$accent} 70%, transparent);
+    box-shadow: 0 0 14px rgba(${p => p.$accentRgb}, 0.25);
+  }
+`;
+
+const DabForm = styled.div<{ $accent: string; $accentRgb: string }>`
+  display: flex; flex-direction: column; gap: 0.45rem;
+  min-width: 220px;
+  padding: 0.65rem 0.75rem;
+  border-radius: 12px;
+  background: rgba(${p => p.$accentRgb}, 0.06);
+  border: 1.5px dashed color-mix(in srgb, ${p => p.$accent} 55%, transparent);
+`;
+
+const DabInput = styled.input<{ $accent: string }>`
+  width: 100%;
+  padding: 0.45rem 0.6rem;
+  font-size: 0.8125rem;
+  background: var(--t-inputBg);
+  border-radius: 6px;
+  border: 1px solid var(--t-border);
+  color: var(--t-text);
+  outline: none;
+  &:focus { border-color: ${p => p.$accent}; }
+`;
+
+const DabActions = styled.div`
+  display: flex; gap: 0.4rem; justify-content: flex-end;
+`;
+
+const DabBtn = styled.button<{ $accent?: string; $accentRgb?: string; $ghost?: boolean }>`
+  padding: 0.35rem 0.7rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: pointer;
+  background: ${p => p.$ghost ? "transparent" : `rgba(${p.$accentRgb}, 0.18)`};
+  border: 1px solid ${p => p.$ghost ? "var(--t-border)" : `rgba(${p.$accentRgb}, 0.55)`};
+  color: ${p => p.$ghost ? "var(--t-textMuted)" : (p.$accent ?? "var(--t-text)")};
+  &:hover { opacity: 0.9; }
+`;
+
+function DaBDemo() {
+  const [mode, setMode] = useState<"tile" | "form">("tile");
+  const [value, setValue] = useState("");
+  const accent = "#ff4ecb";
+  const accentRgb = "255, 78, 203";
+  const confirm = () => {
+    setValue("");
+    setMode("tile");
+  };
+  const cancel = () => {
+    setValue("");
+    setMode("tile");
+  };
+  return (
+    <DabRow>
+      <Highlight label="DaB">
+        {mode === "tile" ? (
+          <DabTile
+            $accent={accent}
+            $accentRgb={accentRgb}
+            onClick={() => setMode("form")}
+          >
+            <span style={{ fontSize: "1.25rem", lineHeight: 1 }}>+</span>
+            Add session
+          </DabTile>
+        ) : (
+          <DabForm $accent={accent} $accentRgb={accentRgb}>
+            <DabInput
+              autoFocus
+              $accent={accent}
+              placeholder="Session name…"
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && value.trim()) confirm();
+                if (e.key === "Escape") cancel();
+              }}
+            />
+            <DabActions>
+              <DabBtn $ghost onClick={cancel}>Cancel</DabBtn>
+              <DabBtn
+                $accent={accent}
+                $accentRgb={accentRgb}
+                onClick={confirm}
+                disabled={!value.trim()}
+              >
+                Create
+              </DabBtn>
+            </DabActions>
+          </DabForm>
+        )}
+      </Highlight>
+    </DabRow>
+  );
+}
+
 // ── Registry ────────────────────────────────────────────────────────────
 // Entries are sorted alphabetically by `name` within each category, and
 // `CATEGORIES` below is sorted alphabetically by category name. Array order
@@ -3189,6 +3309,39 @@ const AdlBody = styled.div<{ $open: boolean }>\`
 />`,
     stylePath: "src/app/components/drawers/ChatsDrawer.tsx",
     Demo: ChatsDrawerDemo,
+  },
+  {
+    key: "DaB",
+    name: "Dashed+Add Button",
+    category: "Buttons",
+    summary: "Dashed-border accent-tinted tile reading `+Add <thing>`. On click, it expands **in place** into an inline form (input + confirm + cancel). Collapses back to the tile on confirm or cancel — never opens a modal. The dashed border signals 'not-a-thing-yet' and visually separates it from real existing items. Used for lightweight creation flows where a full modal would be overkill.",
+    usage: "Use for inline creation of short-named items in a list/grid: new chat pair-room, new category, new label, new quick-reaction slot. Accent matches the surrounding surface (pink for SessionsDrawer pair-rooms, etc). Enter = confirm; Escape = cancel. Do NOT use for complex creation flows — those still warrant a modal.",
+    code: `const [mode, setMode] = useState<"tile" | "form">("tile");
+const [name, setName] = useState("");
+
+{mode === "tile" ? (
+  <DabTile $accent={accent} onClick={() => setMode("form")}>
+    + Add session
+  </DabTile>
+) : (
+  <DabForm $accent={accent}>
+    <DabInput
+      autoFocus
+      value={name}
+      onChange={(e) => setName(e.target.value)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" && name.trim()) create();
+        if (e.key === "Escape") cancel();
+      }}
+    />
+    <DabActions>
+      <DabBtn $ghost onClick={cancel}>Cancel</DabBtn>
+      <DabBtn $accent={accent} onClick={create}>Create</DabBtn>
+    </DabActions>
+  </DabForm>
+)}`,
+    stylePath: "src/app/components/SessionsDrawer.tsx",
+    Demo: DaBDemo,
   },
   {
     key: "Drawer",

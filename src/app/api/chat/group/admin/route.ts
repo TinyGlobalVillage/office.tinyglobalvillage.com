@@ -10,6 +10,10 @@ type Patch =
   | { op: "promote"; username: string }
   | { op: "demote"; username: string }
   | { op: "setBlockedFromSelfAdd"; usernames: string[] }
+  | { op: "ban"; username: string }
+  | { op: "unban"; username: string }
+  | { op: "addInvisible"; username: string }
+  | { op: "removeInvisible"; username: string }
   | { op: "deleteMessages"; ids: string[] }
   | { op: "truncateMessages" }
   | { op: "deleteGroup" };
@@ -59,7 +63,12 @@ export async function PATCH(req: NextRequest) {
     }
     case "addMembers": {
       const add = (patch.usernames ?? []).filter((u) => typeof u === "string");
-      group.memberIds = Array.from(new Set([...group.memberIds, ...add]));
+      const banned = new Set(group.banned ?? []);
+      const allowed = add.filter((u) => !banned.has(u));
+      if (allowed.length !== add.length) {
+        return NextResponse.json({ error: "Cannot add banned users" }, { status: 400 });
+      }
+      group.memberIds = Array.from(new Set([...group.memberIds, ...allowed]));
       break;
     }
     case "removeMembers": {
@@ -86,6 +95,35 @@ export async function PATCH(req: NextRequest) {
     case "setBlockedFromSelfAdd": {
       const blocked = (patch.usernames ?? []).filter((u) => typeof u === "string");
       group.blockedFromSelfAdd = blocked;
+      break;
+    }
+    case "ban": {
+      if (patch.username === group.createdBy) {
+        return NextResponse.json({ error: "Cannot ban the creator" }, { status: 400 });
+      }
+      const banned = new Set(group.banned ?? []);
+      banned.add(patch.username);
+      group.banned = Array.from(banned);
+      // Banned users are also removed from membership / admin.
+      group.memberIds = group.memberIds.filter((m) => m !== patch.username);
+      group.admins = group.admins.filter((a) => a !== patch.username);
+      break;
+    }
+    case "unban": {
+      group.banned = (group.banned ?? []).filter((u) => u !== patch.username);
+      break;
+    }
+    case "addInvisible": {
+      if (!group.memberIds.includes(patch.username)) {
+        return NextResponse.json({ error: "Not a member" }, { status: 400 });
+      }
+      const inv = new Set(group.invisible ?? []);
+      inv.add(patch.username);
+      group.invisible = Array.from(inv);
+      break;
+    }
+    case "removeInvisible": {
+      group.invisible = (group.invisible ?? []).filter((u) => u !== patch.username);
       break;
     }
     case "deleteMessages": {

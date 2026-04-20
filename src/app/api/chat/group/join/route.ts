@@ -14,6 +14,9 @@ export async function POST(req: NextRequest) {
   const db = readGroupDb();
   const group = db.groups[groupId];
   if (!group) return NextResponse.json({ error: "Group not found" }, { status: 404 });
+  if (group.banned?.includes(username)) {
+    return NextResponse.json({ error: "You are banned from this group." }, { status: 403 });
+  }
   if (group.memberIds.includes(username)) {
     return NextResponse.json({ ok: true, group });
   }

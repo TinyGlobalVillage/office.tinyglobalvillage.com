@@ -57,6 +57,7 @@ import {
   DTogExpandIcon,
   DrawerChatsIcon,
 } from "./icons";
+import { CallSurface, type RingChannel } from "./call";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -97,6 +98,8 @@ type GroupChat = {
   memberIds: string[];
   admins?: string[];
   visibility?: "open" | "restricted" | "invisible";
+  banned?: string[];
+  invisible?: string[];
   isMember?: boolean;
   isAdmin?: boolean;
 };
@@ -118,6 +121,13 @@ type Selection =
   | { type: "tgv" }
   | { type: "dm"; peer: Profile }
   | { type: "group"; groupId: string };
+
+type ActiveCall = {
+  channel: RingChannel;
+  mode: "active" | "observer";
+  /** True while we're still ringing the other side (caller hasn't joined yet). */
+  ringing: boolean;
+};
 
 type SidebarTab = "users" | "groups";
 
@@ -3699,6 +3709,7 @@ export default function ChatDrawer({ popout = false, popoutPeer = null, popoutGr
   const [maxW, setMaxW]           = useState(1400);
   const [tabY, setTabY]           = useState<number>(480);
   const [selection, setSelection] = useState<Selection>({ type: "tgv" });
+  const [activeCall, setActiveCall] = useState<ActiveCall | null>(null);
   const [sidebarTab, setSidebarTab] = useState<SidebarTab>("users");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(SIDEBAR_DEFAULT);
@@ -4714,6 +4725,95 @@ export default function ChatDrawer({ popout = false, popoutPeer = null, popoutGr
 
   const peer = selection.type === "dm" ? selection.peer : null;
   const isTGV = selection.type === "tgv";
+
+  // ── Calls ──────────────────────────────────────────────────────────────
+  const buildChannelForSelection = useCallback((): RingChannel | null => {
+    if (selection.type === "dm" && currentUser) {
+      const id = [currentUser, selection.peer.username].sort().join("_");
+      return { type: "dm", id, name: selection.peer.displayName };
+    }
+    if (selection.type === "group") {
+      const g = groups.find(x => x.id === selection.groupId);
+      if (!g) return null;
+      return { type: "group", id: g.id, name: g.name };
+    }
+    return null;
+  }, [selection, currentUser, groups]);
+
+  const [callInitialVideo, setCallInitialVideo] = useState(true);
+
+  const startCallWithVideo = useCallback(async (video: boolean) => {
+    const channel = buildChannelForSelection();
+    if (!channel) return;
+    setCallInitialVideo(video);
+    try {
+      await fetch("/api/chat/ring", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ channel }),
+      });
+    } catch { /* non-fatal — caller still joins the room */ }
+    setActiveCall({ channel, mode: "active", ringing: true });
+  }, [buildChannelForSelection]);
+
+  const leaveCall = useCallback(async () => {
+    const current = activeCall;
+    setActiveCall(null);
+    if (!current) return;
+    if (current.ringing && current.channel.type !== "session") {
+      try {
+        await fetch("/api/chat/ring", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ channel: current.channel, action: "cancel" }),
+        });
+      } catch { /* ignore */ }
+    }
+  }, [activeCall]);
+
+  // Once any remote peer joins, the ring is resolved server-side.
+  // We don't know that from here, so we clear the "ringing" flag after 3s
+  // as a best-effort — the UI mostly cares so that leaveCall() knows whether
+  // to send a cancel.
+  useEffect(() => {
+    if (!activeCall?.ringing) return;
+    const t = setTimeout(() => {
+      setActiveCall(c => (c ? { ...c, ringing: false } : c));
+    }, 3000);
+    return () => clearTimeout(t);
+  }, [activeCall?.ringing, activeCall?.channel.id]);
+
+  // Handoff from IncomingCallToast (ClientShell dispatches tgv-call-accept).
+  useEffect(() => {
+    function onAccept(e: Event) {
+      const ce = e as CustomEvent<{ channel: RingChannel; mode: "active" | "observer" }>;
+      if (!ce.detail) return;
+      const { channel, mode } = ce.detail;
+      if (channel.type === "session") return; // SessionsDrawer handles those
+      setCallInitialVideo(mode === "active");
+      setActiveCall({ channel, mode, ringing: false });
+      if (channel.type === "dm") {
+        const parts = channel.id.split("_");
+        const peerName = parts.find(u => u !== currentUser);
+        const p = profiles.find(x => x.username === peerName);
+        if (p) setSelection({ type: "dm", peer: p });
+      } else if (channel.type === "group") {
+        setSelection({ type: "group", groupId: channel.id });
+      }
+    }
+    window.addEventListener("tgv-call-accept", onAccept as EventListener);
+    return () => window.removeEventListener("tgv-call-accept", onAccept as EventListener);
+  }, [currentUser, profiles]);
+
+  // If the user changes channels while on a call, drop the call.
+  useEffect(() => {
+    if (!activeCall) return;
+    const expected = buildChannelForSelection();
+    if (!expected || expected.id !== activeCall.channel.id || expected.type !== activeCall.channel.type) {
+      void leaveCall();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selection.type, selection]);
 
   return (
     <>
@@ -5858,22 +5958,28 @@ export default function ChatDrawer({ popout = false, popoutPeer = null, popoutGr
                       </ChatHeaderLeft>
                     )}
                     <ChatHeaderActions>
-                      <Tooltip accent={accent} label="Video call">
-                        <ChatHeaderIconBtn
-                          $accent={accent}
-                          onClick={() => alert("Video call: coming soon")}
-                        >
-                          <VideoIcon size={16} />
-                        </ChatHeaderIconBtn>
-                      </Tooltip>
-                      <Tooltip accent={accent} label="Voice call">
-                        <ChatHeaderIconBtn
-                          $accent={accent}
-                          onClick={() => alert("Voice call: coming soon")}
-                        >
-                          <PhoneIcon size={16} />
-                        </ChatHeaderIconBtn>
-                      </Tooltip>
+                      {!isTGV && (
+                        <>
+                          <Tooltip accent={accent} label={activeCall ? "Leave call" : "Video call"}>
+                            <ChatHeaderIconBtn
+                              $accent={accent}
+                              onClick={() => activeCall ? void leaveCall() : startCallWithVideo(true)}
+                              aria-pressed={!!activeCall}
+                            >
+                              <VideoIcon size={16} />
+                            </ChatHeaderIconBtn>
+                          </Tooltip>
+                          <Tooltip accent={accent} label={activeCall ? "Leave call" : "Voice call"}>
+                            <ChatHeaderIconBtn
+                              $accent={accent}
+                              onClick={() => activeCall ? void leaveCall() : startCallWithVideo(false)}
+                              aria-pressed={!!activeCall}
+                            >
+                              <PhoneIcon size={16} />
+                            </ChatHeaderIconBtn>
+                          </Tooltip>
+                        </>
+                      )}
                       <Tooltip accent={accent} label="Close chatroom">
                         <NeonX
                           color={accent}
@@ -5977,6 +6083,17 @@ export default function ChatDrawer({ popout = false, popoutPeer = null, popoutGr
                 </div>
               );
             })()}
+
+            {/* ── Inline call strip (DM/group calls sit above messages) ── */}
+            {activeCall && (
+              <CallSurface
+                room={`${activeCall.channel.type}:${activeCall.channel.id}`}
+                mode={activeCall.mode}
+                layout="strip"
+                video={callInitialVideo}
+                onLeave={() => void leaveCall()}
+              />
+            )}
 
             {/* ── Chat messages ────────────────────────────────── */}
             {isTGV && (
@@ -6668,6 +6785,8 @@ export default function ChatDrawer({ popout = false, popoutPeer = null, popoutGr
               memberIds: g.memberIds,
               admins: g.admins ?? [],
               visibility: g.visibility,
+              banned: g.banned,
+              invisible: g.invisible,
             }}
             profiles={profiles}
             currentUser={currentUser}

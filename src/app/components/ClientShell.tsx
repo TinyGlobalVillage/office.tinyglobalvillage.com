@@ -15,6 +15,8 @@ import InboxDrawer from "./InboxDrawer";
 import SessionsDrawer from "./SessionsDrawer";
 import DashboardPopoutBeacon from "./DashboardPopoutBeacon";
 import GlobalModals from "./GlobalModals";
+import { IncomingCallToast } from "./call";
+import type { RingChannel } from "./call";
 
 function ShellInner({ children }: { children: ReactNode }) {
   const searchParams = useSearchParams();
@@ -46,6 +48,18 @@ function ShellInner({ children }: { children: ReactNode }) {
     );
   }
 
+  const handleJoinFromRing = (mode: "active" | "observer") => (channel: RingChannel) => {
+    // Drawers listen on `tgv-drawer-open` + `tgv-call-accept` to swap to the
+    // accepted channel. The call stack's drawers subscribe to the latter and
+    // enter the appropriate surface (full for sessions, strip for dm/group).
+    window.dispatchEvent(new CustomEvent("tgv-call-accept", {
+      detail: { channel, mode },
+    }));
+    // Also pop open the relevant drawer.
+    const drawerId = channel.type === "session" ? "sessions" : "chat";
+    window.dispatchEvent(new CustomEvent("tgv-drawer-open", { detail: drawerId }));
+  };
+
   return (
     <TerminalProvider>
       <PreviewProvider>
@@ -57,6 +71,10 @@ function ShellInner({ children }: { children: ReactNode }) {
         <SessionsDrawer />
         <LegendDrawer />
         <GlobalModals />
+        <IncomingCallToast
+          onJoinActive={handleJoinFromRing("active")}
+          onJoinObserver={handleJoinFromRing("observer")}
+        />
         {children}
         <CliTerminal />
         <PreviewDrawer />

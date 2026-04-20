@@ -1,0 +1,69 @@
+{
+  "sessions": [
+    {
+      "id": "lounge",
+      "kind": "lounge",
+      "name": "TGV Lounge",
+      "createdBy": null,
+      "createdAt": "2026-04-20T00:00:00.000Z",
+      "cap": null,
+      "memberIds": [],
+      "admins": [],
+      "banned": [],
+      "invisible": [],
+      "updatedAt": "2026-04-20T00:00:00.000Z"
+    },
+    {
+      "id": "study-1",
+      "kind": "study",
+      "name": "Study 1",
+      "createdBy": null,
+      "createdAt": "2026-04-20T00:00:00.000Z",
+      "cap": null,
+      "memberIds": [],
+      "admins": [],
+      "banned": [],
+      "invisible": [],
+      "updatedAt": "2026-04-20T00:00:00.000Z"
+    },
+    {
+      "id": "study-2",
+      "kind": "study",
+      "name": "Study 2",
+      "createdBy": null,
+      "createdAt": "2026-04-20T00:00:00.000Z",
+      "cap": null,
+      "memberIds": [],
+      "admins": [],
+      "banned": [],
+      "invisible": [],
+      "updatedAt": "2026-04-20T00:00:00.000Z"
+    },
+    {
+      "id": "pair-1",
+      "kind": "pair",
+      "name": "Pair 1",
+      "createdBy": null,
+      "createdAt": "2026-04-20T00:00:00.000Z",
+      "cap": 4,
+      "memberIds": [],
+      "admins": [],
+      "banned": [],
+      "invisible": [],
+      "updatedAt": "2026-04-20T00:00:00.000Z"
+    },
+    {
+      "id": "pair-2",
+      "kind": "pair",
+      "name": "Pair 2",
+      "createdBy": null,
+      "createdAt": "2026-04-20T00:00:00.000Z",
+      "cap": 4,
+      "memberIds": [],
+      "admins": [],
+      "banned": [],
+      "invisible": [],
+      "updatedAt": "2026-04-20T00:00:00.000Z"
+    }
+  ]
+}

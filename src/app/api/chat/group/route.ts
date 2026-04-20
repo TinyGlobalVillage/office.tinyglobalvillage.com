@@ -14,6 +14,10 @@ export type GroupChat = {
   admins: string[];
   visibility?: "open" | "restricted" | "invisible";
   blockedFromSelfAdd?: string[];
+  /** Users banned by admins — blocked from re-joining and not rendered in member lists. */
+  banned?: string[];
+  /** Users hidden from non-admin members; admin can still see + manage. */
+  invisible?: string[];
 };
 
 export type GroupMessage = {
@@ -52,11 +56,19 @@ export async function GET(req: NextRequest) {
   const db = readGroupDb();
   const groups = Object.values(db.groups)
     .filter((g) => g.memberIds.includes(username) || g.visibility !== "invisible")
-    .map((g) => ({
-      ...g,
-      isMember: g.memberIds.includes(username),
-      isAdmin: g.admins.includes(username),
-    }));
+    .map((g) => {
+      const viewerIsAdmin = g.admins.includes(username);
+      // Non-admin members don't see invisible members in the roster.
+      const projectedMembers = viewerIsAdmin
+        ? g.memberIds
+        : g.memberIds.filter((m) => !(g.invisible ?? []).includes(m));
+      return {
+        ...g,
+        memberIds: projectedMembers,
+        isMember: g.memberIds.includes(username),
+        isAdmin: viewerIsAdmin,
+      };
+    });
   return NextResponse.json({ groups });
 }
 

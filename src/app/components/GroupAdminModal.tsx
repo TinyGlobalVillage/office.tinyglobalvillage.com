@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import styled from "styled-components";
 import { colors, rgb } from "../theme";
 import { UserAvatar, type MemberProfile } from "./ChatSettingsModal";
@@ -15,6 +15,8 @@ export type GroupForAdmin = {
   memberIds: string[];
   admins: string[];
   visibility?: Visibility;
+  banned?: string[];
+  invisible?: string[];
 };
 
 const Overlay = styled.div`
@@ -222,6 +224,101 @@ const Hint = styled.div`
   color: var(--t-textMuted);
 `;
 
+// ── ADL (Accordion Dropdown with Lightswitch) ──────────────────────────────
+const ADLHeader = styled.button<{ $open: boolean }>`
+  display: flex; align-items: center; gap: 0.5rem;
+  width: 100%;
+  padding: 0.5rem 0.625rem;
+  background: ${p => p.$open ? `rgba(${rgb.green}, 0.05)` : "transparent"};
+  border: 1px solid ${p => p.$open ? `rgba(${rgb.green}, 0.22)` : "var(--t-border)"};
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+  color: ${p => p.$open ? colors.green : "var(--t-textFaint)"};
+  font-size: 0.5625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  &:hover {
+    background: rgba(${rgb.green}, 0.08);
+    border-color: rgba(${rgb.green}, 0.35);
+    color: ${colors.green};
+  }
+`;
+
+const ADLLabel = styled.span` flex: 1; `;
+const ADLCount = styled.span`
+  font-size: 0.5625rem;
+  color: rgba(${rgb.green}, 0.55);
+  font-weight: 600;
+`;
+const ADLSwitchTrack = styled.span<{ $on: boolean }>`
+  position: relative;
+  display: inline-block;
+  width: 28px; height: 14px;
+  border-radius: 999px;
+  border: 1px solid ${p => p.$on ? `rgba(${rgb.green}, 0.7)` : "var(--t-borderStrong)"};
+  background: ${p => p.$on ? `rgba(${rgb.green}, 0.2)` : "var(--t-inputBg)"};
+  box-shadow: ${p => p.$on ? `0 0 8px rgba(${rgb.green}, 0.45)` : "none"};
+  transition: all 0.18s;
+`;
+const ADLSwitchThumb = styled.span<{ $on: boolean }>`
+  position: absolute;
+  top: 1px;
+  left: ${p => p.$on ? "15px" : "1px"};
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: ${p => p.$on ? colors.green : "var(--t-textFaint)"};
+  box-shadow: ${p => p.$on
+    ? `0 0 8px rgba(${rgb.green}, 0.85), 0 0 2px rgba(${rgb.green}, 1)`
+    : "0 1px 2px rgba(0,0,0,0.3)"};
+  transition: all 0.18s;
+`;
+const ADLBody = styled.div<{ $open: boolean }>`
+  display: ${p => p.$open ? "block" : "none"};
+  padding: 0.75rem 0.25rem 0.25rem;
+`;
+
+function ADLSection({ label, count, defaultOpen, children }: {
+  label: string;
+  count?: number;
+  defaultOpen?: boolean;
+  children: ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen ?? false);
+  return (
+    <div>
+      <ADLHeader $open={open} onClick={() => setOpen(v => !v)} aria-expanded={open}>
+        <ADLLabel>{label}</ADLLabel>
+        {typeof count === "number" && <ADLCount>{count}</ADLCount>}
+        <ADLSwitchTrack $on={open}>
+          <ADLSwitchThumb $on={open} />
+        </ADLSwitchTrack>
+      </ADLHeader>
+      <ADLBody $open={open}>{children}</ADLBody>
+    </div>
+  );
+}
+
+const BannedList = styled.div`
+  display: flex; flex-direction: column; gap: 2px;
+  max-height: 180px;
+  overflow-y: auto;
+  padding: 0.3rem;
+  border: 1px solid var(--t-border);
+  border-radius: 8px;
+`;
+
+const BannedRow = styled.div`
+  display: flex; align-items: center; gap: 0.5rem;
+  padding: 0.3rem 0.45rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  color: var(--t-text);
+  &:hover { background: rgba(255,255,255,0.04); }
+`;
+
 type Props = {
   group: GroupForAdmin;
   profiles: MemberProfile[];
@@ -337,6 +434,15 @@ export default function GroupAdminModal({ group, profiles, currentUser, onClose,
     if (ok) { onDeleted(); onClose(); }
   };
 
+  const banMember = async (u: string) => { await patch("ban", { username: u }); };
+  const unbanMember = async (u: string) => { await patch("unban", { username: u }); };
+  const toggleInvisible = async (u: string, on: boolean) => {
+    await patch(on ? "addInvisible" : "removeInvisible", { username: u });
+  };
+
+  const invisibleSet = new Set(group.invisible ?? []);
+  const bannedList = group.banned ?? [];
+
   return (
     <Overlay onMouseDown={onClose}>
       <Modal onMouseDown={(e) => e.stopPropagation()}>
@@ -415,6 +521,65 @@ export default function GroupAdminModal({ group, profiles, currentUser, onClose,
                   </AddRow>
                 )}
               </Section>
+
+              <ADLSection label="Admin Controls" count={invisibleSet.size + bannedList.length}>
+                <Section>
+                  <Label>Invisible members</Label>
+                  <Hint>
+                    Invisible members are hidden from non-admins. They can still post — admins see them here.
+                  </Hint>
+                  <MemberList>
+                    {memberProfiles
+                      .filter((p) => p.username !== group.createdBy)
+                      .map((p) => {
+                        const on = invisibleSet.has(p.username);
+                        return (
+                          <MemberRow key={p.username}>
+                            <UserAvatar profile={p} size={22} />
+                            <RowName>{p.displayName}</RowName>
+                            <RowSpacer />
+                            <GhostBtn
+                              onClick={() => toggleInvisible(p.username, !on)}
+                              disabled={busy}
+                            >
+                              {on ? "Reveal" : "Hide"}
+                            </GhostBtn>
+                            <GhostBtn
+                              onClick={() => banMember(p.username)}
+                              disabled={busy}
+                              title="Ban from group"
+                            >
+                              Ban
+                            </GhostBtn>
+                          </MemberRow>
+                        );
+                      })}
+                  </MemberList>
+                </Section>
+
+                <Section>
+                  <Label>Banned ({bannedList.length})</Label>
+                  {bannedList.length === 0 ? (
+                    <Hint>Nobody is banned.</Hint>
+                  ) : (
+                    <BannedList>
+                      {bannedList.map((u) => {
+                        const p = profiles.find((x) => x.username === u);
+                        return (
+                          <BannedRow key={u}>
+                            {p && <UserAvatar profile={p} size={20} />}
+                            <RowName>{p?.displayName ?? u}</RowName>
+                            <RowSpacer />
+                            <GhostBtn onClick={() => unbanMember(u)} disabled={busy}>
+                              Unban
+                            </GhostBtn>
+                          </BannedRow>
+                        );
+                      })}
+                    </BannedList>
+                  )}
+                </Section>
+              </ADLSection>
             </>
           ) : (
             <Hint>You&apos;re a member of this group. Only admins can modify settings.</Hint>
