@@ -3,12 +3,65 @@
 import { useState, useEffect, useRef } from "react";
 import styled from "styled-components";
 import { colors, rgb, glowRgba } from "../../theme";
+import { useModalLifecycle } from "../../lib/drawerKnobs";
 import {
   ModalBackdrop, ModalContainer, ModalHeader, ModalHeaderLeft,
-  ModalTitle, ModalSubtitle, ModalBody, CloseBtn, GlowButton,
+  ModalTitle, ModalSubtitle, ModalBody, GlowButton,
   SubtleButton, Input, TextArea, GlassCard, AccentLabel, PulseText,
+  DrawerTitle,
 } from "../../styled";
 import NeonX from "../NeonX";
+import Tooltip from "../ui/Tooltip";
+
+const FsContainer = styled(ModalContainer)<{ $fs: boolean }>`
+  ${(p) => p.$fs && `
+    max-width: 100vw;
+    max-height: 100vh;
+    width: 100vw;
+    height: 100vh;
+    border-radius: 0;
+  `}
+`;
+
+const CtrlBtn = styled.button<{ $active?: boolean }>`
+  width: 2.125rem;
+  height: 2.125rem;
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.0625rem;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+  flex-shrink: 0;
+  background: ${(p) => (p.$active ? glowRgba("pink", 0.28) : glowRgba("pink", 0.14))};
+  border: 1px solid ${(p) => glowRgba("pink", p.$active ? 0.6 : 0.45)};
+  color: ${colors.pink};
+  text-shadow: 0 0 6px rgba(${rgb.pink}, 0.7);
+  transition: background 0.15s, box-shadow 0.15s, transform 0.1s;
+
+  &:hover { background: ${glowRgba("pink", 0.28)}; box-shadow: 0 0 10px ${glowRgba("pink", 0.5)}; }
+  &:active { transform: translateY(1px); }
+
+  [data-theme="light"] & { text-shadow: none; }
+
+  svg { width: 14px; height: 14px; }
+
+  @media (max-width: 768px) {
+    width: 2.75rem;
+    height: 2.75rem;
+    font-size: 1.1875rem;
+    border-radius: 0.625rem;
+  }
+`;
+
+const HeaderRight = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
+`;
 
 type Message = { role: "user" | "assistant"; content: string };
 type Phase = "form" | "chat" | "sent";
@@ -126,6 +179,7 @@ const FormLabel = styled(AccentLabel).attrs({ $accent: "pink" as const })`
 `;
 
 export default function SuggestionBoxModal({ onClose }: { onClose: () => void }) {
+  useModalLifecycle();
   const [phase, setPhase] = useState<Phase>("form");
   const [featureName, setFeatureName] = useState("");
   const [description, setDescription] = useState("");
@@ -135,6 +189,7 @@ export default function SuggestionBoxModal({ onClose }: { onClose: () => void })
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
   const [page, setPage] = useState(0);
+  const [fullscreen, setFullscreen] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -203,12 +258,12 @@ export default function SuggestionBoxModal({ onClose }: { onClose: () => void })
 
   return (
     <ModalBackdrop onClick={onClose}>
-      <ModalContainer $accent="pink" $maxWidth="42rem" onClick={(e) => e.stopPropagation()}>
+      <FsContainer $fs={fullscreen} $accent="pink" $maxWidth="42rem" onClick={(e) => e.stopPropagation()}>
         <ModalHeader>
           <ModalHeaderLeft>
             <span style={{ fontSize: "1.5rem" }}>💡</span>
             <div>
-              <ModalTitle>SuggestionBox</ModalTitle>
+              <DrawerTitle $accent="pink">SuggestionBox</DrawerTitle>
               <ModalSubtitle>
                 {phase === "form" && "Describe your feature idea"}
                 {phase === "chat" && "Refine your idea with Claude"}
@@ -216,7 +271,20 @@ export default function SuggestionBoxModal({ onClose }: { onClose: () => void })
               </ModalSubtitle>
             </div>
           </ModalHeaderLeft>
-          <NeonX accent="pink" onClick={onClose} title="Close" />
+          <HeaderRight>
+            <Tooltip accent={colors.pink} label={fullscreen ? "Exit fullscreen" : "Fullscreen"}>
+              <CtrlBtn
+                $active={fullscreen}
+                onClick={() => setFullscreen((v) => !v)}
+                aria-label={fullscreen ? "Exit fullscreen" : "Fullscreen"}
+              >
+                {fullscreen ? "⊡" : "⊞"}
+              </CtrlBtn>
+            </Tooltip>
+            <Tooltip accent={colors.pink} label="Close (Esc)">
+              <NeonX accent="pink" onClick={onClose} />
+            </Tooltip>
+          </HeaderRight>
         </ModalHeader>
         <ModalBody>
           {phase === "form" && (
@@ -309,7 +377,7 @@ export default function SuggestionBoxModal({ onClose }: { onClose: () => void })
           {error && <ErrorBox>{error}</ErrorBox>}
           <div ref={chatEndRef} />
         </ModalBody>
-      </ModalContainer>
+      </FsContainer>
     </ModalBackdrop>
   );
 }

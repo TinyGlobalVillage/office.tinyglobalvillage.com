@@ -11,6 +11,7 @@ import ChatSettingsModal, {
 import { colors, rgb } from "@/app/theme";
 import { ModalBackdrop, CloseBtn } from "@/app/styled";
 import NeonX from "./NeonX";
+import { useModalLifecycle } from "@/app/lib/drawerKnobs";
 
 export type Profile = {
   username: string;
@@ -187,14 +188,34 @@ const SettingsBtn = styled.button<{ $accent: string }>`
 `;
 
 const PingBtn = styled.button<{ $accent: string; $open?: boolean }>`
-  font-size: 0.625rem;
-  padding: 0.25rem 0.625rem;
+  width: 2.125rem;
+  height: 2.125rem;
   border-radius: 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   transition: all 0.15s;
   cursor: pointer;
-  background: rgba(${(p) => hexToRgb(p.$accent)}, ${(p) => (p.$open ? 0.2 : 0.1)});
-  border: 1px solid ${(p) => p.$accent}44;
+  background: rgba(${(p) => hexToRgb(p.$accent)}, ${(p) => (p.$open ? 0.28 : 0.14)});
+  border: 1px solid rgba(${(p) => hexToRgb(p.$accent)}, ${(p) => (p.$open ? 0.6 : 0.45)});
   color: ${(p) => p.$accent};
+  filter: drop-shadow(0 0 6px rgba(${(p) => hexToRgb(p.$accent)}, 0.65));
+
+  &:hover {
+    background: rgba(${(p) => hexToRgb(p.$accent)}, 0.28);
+    box-shadow: 0 0 10px rgba(${(p) => hexToRgb(p.$accent)}, 0.5);
+  }
+
+  [data-theme="light"] & { filter: none; }
+
+  svg { width: 16px; height: 16px; }
+
+  @media (max-width: 768px) {
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: 0.625rem;
+    svg { width: 20px; height: 20px; }
+  }
 `;
 
 const Body = styled.div`
@@ -461,6 +482,127 @@ const MarkAllBtn = styled.button<{ $accent?: string }>`
   }
 `;
 
+const MemoPager = styled.div<{ $accent?: string }>`
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.375rem;
+  margin-top: 0.625rem;
+`;
+
+const MemoPagerBtn = styled.button<{ $accent?: string }>`
+  height: 1.75rem;
+  min-width: 1.75rem;
+  padding: 0 0.5rem;
+  border-radius: 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  cursor: pointer;
+  background: ${(p) => (p.$accent ? `rgba(${hexToRgb(p.$accent)}, 0.14)` : "var(--t-inputBg)")};
+  border: 1px solid ${(p) => (p.$accent ? `${p.$accent}55` : "var(--t-border)")};
+  color: ${(p) => p.$accent ?? "var(--t-textMuted)"};
+  transition: all 0.15s;
+
+  &:hover:not(:disabled) {
+    background: ${(p) => (p.$accent ? `rgba(${hexToRgb(p.$accent)}, 0.26)` : "var(--t-inputBg)")};
+    border-color: ${(p) => (p.$accent ? `${p.$accent}88` : "var(--t-borderStrong)")};
+    box-shadow: ${(p) => (p.$accent ? `0 0 8px ${p.$accent}55` : "none")};
+  }
+
+  &:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
+`;
+
+const MemoPagerInfo = styled.span<{ $accent?: string }>`
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: ${(p) => (p.$accent ? `${p.$accent}cc` : "var(--t-textMuted)")};
+`;
+
+const MemoDropWrap = styled.div`
+  position: relative;
+`;
+
+const MemoDropTrigger = styled.button<{ $accent?: string; $active?: boolean }>`
+  height: 1.75rem;
+  padding: 0 0.625rem;
+  border-radius: 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  background: ${(p) =>
+    p.$accent
+      ? `rgba(${hexToRgb(p.$accent)}, ${p.$active ? 0.28 : 0.14})`
+      : "var(--t-inputBg)"};
+  border: 1px solid ${(p) =>
+    p.$accent ? `${p.$accent}${p.$active ? "99" : "55"}` : "var(--t-border)"};
+  color: ${(p) => p.$accent ?? "var(--t-textMuted)"};
+  transition: all 0.15s;
+
+  &:hover {
+    background: ${(p) => (p.$accent ? `rgba(${hexToRgb(p.$accent)}, 0.28)` : "var(--t-inputBg)")};
+    box-shadow: ${(p) => (p.$accent ? `0 0 8px ${p.$accent}55` : "none")};
+  }
+`;
+
+const MemoDropMenu = styled.div<{ $accent?: string }>`
+  position: absolute;
+  right: 0;
+  top: 100%;
+  margin-top: 0.25rem;
+  min-width: 96px;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  z-index: 10;
+  background: var(--t-surface);
+  border: 1px solid ${(p) => (p.$accent ? `${p.$accent}55` : "var(--t-borderStrong)")};
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.7);
+
+  [data-theme="light"] & {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  }
+`;
+
+const MemoDropItem = styled.button<{ $accent?: string; $active?: boolean }>`
+  width: 100%;
+  text-align: left;
+  padding: 0.5rem 1rem;
+  font-size: 0.6875rem;
+  border: none;
+  cursor: pointer;
+  color: ${(p) => (p.$active && p.$accent ? p.$accent : "var(--t-textMuted)")};
+  background: transparent;
+  transition: background 0.1s;
+
+  &:hover {
+    background: ${(p) => (p.$accent ? `rgba(${hexToRgb(p.$accent)}, 0.12)` : "var(--t-inputBg)")};
+  }
+`;
+
+const MemoCustomInput = styled.input<{ $accent?: string }>`
+  width: 3.5rem;
+  height: 1.75rem;
+  text-align: center;
+  font-size: 0.6875rem;
+  padding: 0 0.5rem;
+  border-radius: 0.5rem;
+  outline: none;
+  background: ${(p) => (p.$accent ? `rgba(${hexToRgb(p.$accent)}, 0.08)` : "var(--t-inputBg)")};
+  color: ${(p) => p.$accent ?? "var(--t-text)"};
+  border: 1px solid ${(p) => (p.$accent ? `${p.$accent}55` : "var(--t-border)")};
+`;
+
 /* ── Component ─────────────────────────────────────────────────── */
 
 export default function ProfileModal({
@@ -480,6 +622,7 @@ export default function ProfileModal({
   onClose: () => void;
   onRefresh: () => void;
 }) {
+  useModalLifecycle();
   const isOwn = profile.username === currentUser;
   const accent = profile.accentColor;
   const pa = accent;
@@ -488,6 +631,21 @@ export default function ProfileModal({
   const [sendingMemo, setSendingMemo] = useState(false);
   const [editingMemoId, setEditingMemoId] = useState<string | null>(null);
   const [editMemoContent, setEditMemoContent] = useState("");
+  const [memoPage, setMemoPage] = useState(0);
+  const [memoPerPage, setMemoPerPage] = useState<number>(5);
+  const [memoCustomPerPage, setMemoCustomPerPage] = useState("");
+  const [memoShowCustom, setMemoShowCustom] = useState(false);
+  const [memoDropOpen, setMemoDropOpen] = useState(false);
+  const memoDropRef = useRef<HTMLDivElement>(null);
+  const MEMO_PAGE_OPTIONS = [5, 10, 25, 50];
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (memoDropRef.current && !memoDropRef.current.contains(e.target as Node)) setMemoDropOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
   const [pingMsg, setPingMsg] = useState("");
   const [sendingPing, setSendingPing] = useState(false);
   const [showPingInput, setShowPingInput] = useState(false);
@@ -707,11 +865,20 @@ export default function ProfileModal({
               </SettingsBtn>
             )}
             {!isOwn && (
-              <PingBtn $accent={accent} $open={showPingInput} onClick={() => setShowPingInput((p) => !p)}>
-                🔔 Ping
+              <PingBtn
+                $accent={accent}
+                $open={showPingInput}
+                onClick={() => setShowPingInput((p) => !p)}
+                title="Ping"
+                aria-label="Ping"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                  <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                </svg>
               </PingBtn>
             )}
-            <NeonX accent="pink" onClick={onClose} title="Close" />
+            <NeonX color={pa} onClick={onClose} title="Close" />
           </HeaderActions>
         </Header>
 
@@ -808,61 +975,159 @@ export default function ProfileModal({
 
             {relevantMemos.length === 0 ? (
               <p style={{ fontSize: "0.625rem", color: pa ? `${pa}99` : "var(--t-textGhost)" }}>No memos yet.</p>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-                {relevantMemos.map((m) => (
-                  <MemoCard key={m.id} $accent={pa}>
-                    {editingMemoId === m.id ? (
-                      <div style={{ display: "flex", gap: "0.5rem" }}>
-                        <MemoEditInput
+            ) : (() => {
+              const customN = parseInt(memoCustomPerPage);
+              const effectivePerPage = memoShowCustom && customN > 0 ? customN : memoPerPage;
+              const totalMemoPages = Math.max(1, Math.ceil(relevantMemos.length / effectivePerPage));
+              const safePage = Math.min(memoPage, totalMemoPages - 1);
+              const pagedMemos = relevantMemos.slice(
+                safePage * effectivePerPage,
+                safePage * effectivePerPage + effectivePerPage
+              );
+              return (
+                <>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                    {pagedMemos.map((m) => {
+                      const authorAccent = profiles.find((p) => p.username === m.from)?.accentColor ?? pa;
+                      return (
+                        <MemoCard key={m.id} $accent={authorAccent}>
+                          {editingMemoId === m.id ? (
+                            <div style={{ display: "flex", gap: "0.5rem" }}>
+                              <MemoEditInput
+                                $accent={authorAccent}
+                                value={editMemoContent}
+                                onChange={(e) => setEditMemoContent(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") saveMemoEdit(m.id);
+                                  if (e.key === "Escape") setEditingMemoId(null);
+                                }}
+                                autoFocus
+                              />
+                              <MemoActionBtn $accent={authorAccent} onClick={() => saveMemoEdit(m.id)}>Save</MemoActionBtn>
+                              <MemoActionBtn $accent={authorAccent} onClick={() => setEditingMemoId(null)}>✕</MemoActionBtn>
+                            </div>
+                          ) : (
+                            <div style={{ display: "flex", alignItems: "flex-start", gap: "0.5rem" }}>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <MemoContent $accent={authorAccent}>{m.content}</MemoContent>
+                                <MemoMeta $accent={authorAccent}>
+                                  {profiles.find((p) => p.username === m.from)?.displayName ?? m.from} ·{" "}
+                                  {timeAgo(m.createdAt)}
+                                  {m.editedAt && " · edited"}
+                                </MemoMeta>
+                              </div>
+                              <MemoActions>
+                                {m.from === currentUser && (
+                                  <MemoActionBtn
+                                    $accent={authorAccent}
+                                    onClick={() => {
+                                      setEditingMemoId(m.id);
+                                      setEditMemoContent(m.content);
+                                    }}
+                                    title="Edit"
+                                  >
+                                    ✎
+                                  </MemoActionBtn>
+                                )}
+                                <ArchiveBtn $accent={authorAccent} onClick={() => archiveMemo(m.id)} title="Archive (hide from your view)">
+                                  ⬇
+                                </ArchiveBtn>
+                                <DeleteBtn $accent={authorAccent} onClick={() => deleteMemo(m.id)} title="Delete permanently">
+                                  ✕
+                                </DeleteBtn>
+                              </MemoActions>
+                            </div>
+                          )}
+                        </MemoCard>
+                      );
+                    })}
+                  </div>
+                  {relevantMemos.length > MEMO_PAGE_OPTIONS[0] && (
+                    <MemoPager $accent={pa}>
+                      <MemoDropWrap ref={memoDropRef}>
+                        <MemoDropTrigger
                           $accent={pa}
-                          value={editMemoContent}
-                          onChange={(e) => setEditMemoContent(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") saveMemoEdit(m.id);
-                            if (e.key === "Escape") setEditingMemoId(null);
-                          }}
+                          $active
+                          onClick={() => setMemoDropOpen((p) => !p)}
+                          title="Memos per page"
+                          type="button"
+                        >
+                          <span>
+                            {memoShowCustom && customN > 0 ? customN : effectivePerPage} / pg
+                          </span>
+                          <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor">
+                            <path d="M5 7L1 3h8L5 7z" />
+                          </svg>
+                        </MemoDropTrigger>
+                        {memoDropOpen && (
+                          <MemoDropMenu $accent={pa}>
+                            {MEMO_PAGE_OPTIONS.map((n) => (
+                              <MemoDropItem
+                                key={n}
+                                $accent={pa}
+                                $active={effectivePerPage === n && !memoShowCustom}
+                                onClick={() => {
+                                  setMemoPerPage(n);
+                                  setMemoShowCustom(false);
+                                  setMemoPage(0);
+                                  setMemoDropOpen(false);
+                                }}
+                                type="button"
+                              >
+                                {n}
+                              </MemoDropItem>
+                            ))}
+                            <MemoDropItem
+                              $accent={pa}
+                              $active={memoShowCustom}
+                              onClick={() => {
+                                setMemoShowCustom(true);
+                                setMemoDropOpen(false);
+                              }}
+                              style={{ borderTop: "1px solid var(--t-border)" }}
+                              type="button"
+                            >
+                              Custom…
+                            </MemoDropItem>
+                          </MemoDropMenu>
+                        )}
+                      </MemoDropWrap>
+                      {memoShowCustom && (
+                        <MemoCustomInput
+                          $accent={pa}
+                          type="number"
+                          value={memoCustomPerPage}
+                          onChange={(e) => { setMemoCustomPerPage(e.target.value); setMemoPage(0); }}
+                          placeholder="n"
                           autoFocus
                         />
-                        <MemoActionBtn $accent={pa} onClick={() => saveMemoEdit(m.id)}>Save</MemoActionBtn>
-                        <MemoActionBtn $accent={pa} onClick={() => setEditingMemoId(null)}>✕</MemoActionBtn>
-                      </div>
-                    ) : (
-                      <div style={{ display: "flex", alignItems: "flex-start", gap: "0.5rem" }}>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <MemoContent $accent={pa}>{m.content}</MemoContent>
-                          <MemoMeta $accent={pa}>
-                            {profiles.find((p) => p.username === m.from)?.displayName ?? m.from} ·{" "}
-                            {timeAgo(m.createdAt)}
-                            {m.editedAt && " · edited"}
-                          </MemoMeta>
-                        </div>
-                        <MemoActions>
-                          {m.from === currentUser && (
-                            <MemoActionBtn
-                              $accent={pa}
-                              onClick={() => {
-                                setEditingMemoId(m.id);
-                                setEditMemoContent(m.content);
-                              }}
-                              title="Edit"
-                            >
-                              ✎
-                            </MemoActionBtn>
-                          )}
-                          <ArchiveBtn $accent={pa} onClick={() => archiveMemo(m.id)} title="Archive (hide from your view)">
-                            ⬇
-                          </ArchiveBtn>
-                          <DeleteBtn $accent={pa} onClick={() => deleteMemo(m.id)} title="Delete permanently">
-                            ✕
-                          </DeleteBtn>
-                        </MemoActions>
-                      </div>
-                    )}
-                  </MemoCard>
-                ))}
-              </div>
-            )}
+                      )}
+                      <MemoPagerBtn
+                        $accent={pa}
+                        onClick={() => setMemoPage((p) => Math.max(0, p - 1))}
+                        disabled={safePage === 0}
+                        title="Previous page"
+                        type="button"
+                      >
+                        ‹
+                      </MemoPagerBtn>
+                      <MemoPagerInfo $accent={pa}>
+                        {safePage + 1} / {totalMemoPages}
+                      </MemoPagerInfo>
+                      <MemoPagerBtn
+                        $accent={pa}
+                        onClick={() => setMemoPage((p) => Math.min(totalMemoPages - 1, p + 1))}
+                        disabled={safePage >= totalMemoPages - 1}
+                        title="Next page"
+                        type="button"
+                      >
+                        ›
+                      </MemoPagerBtn>
+                    </MemoPager>
+                  )}
+                </>
+              );
+            })()}
           </div>
         </Body>
       </Card>

@@ -5,11 +5,21 @@ import styled, { keyframes } from "styled-components";
 import { colors, rgb } from "../theme";
 import { CloudIcon } from "./icons";
 import NeonX from "./NeonX";
+import { useModalLifecycle } from "../lib/drawerKnobs";
+
+export type MinimizedConversionInfo = {
+  jobId: string;
+  format: "h264" | "h265" | "vp9" | "gif";
+  fileName: string;
+  thumbUrl: string | null;
+  percent: number;
+};
 
 export type MediaConverterModalProps = {
   defaultTab?: "image" | "video";
   onClose: () => void;
   onFileConverted: (file: File) => void;
+  onMinimizeConversion?: (info: MinimizedConversionInfo) => void;
 };
 
 // ── Animations ────────────────────────────────────────────────────────────────
@@ -238,6 +248,174 @@ const SliderVal = styled.span`
   color: ${colors.green};
   width: 2rem;
   text-align: right;
+`;
+
+const RangeBtn = styled.button`
+  flex: 1;
+  min-width: 100px;
+  background: rgba(${rgb.green}, 0.12);
+  border: 1px solid rgba(${rgb.green}, 0.35);
+  border-radius: 0.5rem;
+  padding: 0.375rem 0.625rem;
+  color: ${colors.green};
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s;
+
+  &:hover:not(:disabled) {
+    background: rgba(${rgb.green}, 0.22);
+    border-color: rgba(${rgb.green}, 0.55);
+    box-shadow: 0 0 10px rgba(${rgb.green}, 0.35);
+  }
+
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+`;
+
+const RangeClearBtn = styled.button`
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 0.375rem;
+  background: rgba(${rgb.red}, 0.12);
+  border: 1px solid rgba(${rgb.red}, 0.4);
+  color: ${colors.red};
+  font-size: 0.875rem;
+  line-height: 1;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background: rgba(${rgb.red}, 0.22);
+  }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+`;
+
+// ── GIF range modal ───────────────────────────────────────────────────────────
+
+const RangeOverlay = styled.div`
+  position: fixed;
+  inset: 0;
+  z-index: 10050;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+`;
+
+const RangeModal = styled.div`
+  background: #0d0f1a;
+  border: 1px solid rgba(${rgb.green}, 0.35);
+  border-radius: 1rem;
+  box-shadow: 0 0 40px rgba(${rgb.green}, 0.2), 0 20px 60px rgba(0,0,0,0.7);
+  width: 100%;
+  max-width: 560px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: ${fadeIn} 0.18s ease;
+
+  [data-theme="light"] & { background: #f4f4f8; }
+`;
+
+const RangeHeader = styled.div`
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid rgba(${rgb.green}, 0.18);
+  gap: 0.75rem;
+`;
+
+const RangeTitle = styled.h2`
+  flex: 1;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: ${colors.green};
+  margin: 0;
+  text-shadow: 0 0 8px rgba(${rgb.green}, 0.6);
+`;
+
+const RangeBody = styled.div`
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  overflow-y: auto;
+`;
+
+const RangeVideo = styled.video`
+  width: 100%;
+  border-radius: 0.5rem;
+  background: #000;
+  aspect-ratio: 16/9;
+  object-fit: contain;
+`;
+
+const RangeScrubRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+`;
+
+const RangeScrubLabel = styled.span`
+  flex: 1;
+  font-size: 0.6875rem;
+  color: var(--t-textMuted);
+  b { color: ${colors.green}; }
+`;
+
+const RangeToggle = styled.button`
+  padding: 0.25rem 0.625rem;
+  background: rgba(${rgb.green}, 0.14);
+  border: 1px solid rgba(${rgb.green}, 0.4);
+  color: ${colors.green};
+  border-radius: 0.5rem;
+  font-size: 0.625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+
+  &:hover { background: rgba(${rgb.green}, 0.24); }
+`;
+
+const RangeSliderRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+`;
+
+const RangeSliderLabel = styled.span`
+  width: 6rem;
+  font-size: 0.6875rem;
+  color: ${colors.green};
+  font-weight: 600;
+`;
+
+const RangeWarn = styled.p`
+  margin: 0;
+  font-size: 0.625rem;
+  color: ${colors.red};
+`;
+
+const RangeApplyBtn = styled.button<{ $disabled?: boolean }>`
+  padding: 0.625rem;
+  background: ${(p) => (p.$disabled ? "rgba(255,255,255,0.05)" : `rgba(${rgb.green}, 0.2)`)};
+  border: 1px solid ${(p) => (p.$disabled ? "rgba(255,255,255,0.1)" : `rgba(${rgb.green}, 0.5)`)};
+  color: ${(p) => (p.$disabled ? "var(--t-textGhost)" : colors.green)};
+  border-radius: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  cursor: ${(p) => (p.$disabled ? "not-allowed" : "pointer")};
+
+  &:hover:not(:disabled) {
+    background: rgba(${rgb.green}, 0.32);
+    box-shadow: 0 0 12px rgba(${rgb.green}, 0.4);
+  }
 `;
 
 // ── Preview area ──────────────────────────────────────────────────────────────
@@ -827,10 +1005,15 @@ function ImageTab({ onFileConverted }: { onFileConverted: (f: File) => void }) {
 
 // ── Video Tab ─────────────────────────────────────────────────────────────────
 
-function VideoTab({ onFileConverted }: { onFileConverted: (f: File) => void }) {
+function VideoTab({ onFileConverted, onHandoff, setIsRunningRef }: {
+  onFileConverted: (f: File) => void;
+  onHandoff?: (info: MinimizedConversionInfo) => void;
+  setIsRunningRef?: (cb: () => MinimizedConversionInfo | null) => void;
+}) {
   const [file, setFile] = useState<File | null>(null);
   const [format, setFormat] = useState<"h264" | "h265" | "vp9" | "gif">("h264");
   const [crf, setCrf] = useState(23);
+  const [preset, setPreset] = useState<"ultrafast" | "veryfast" | "fast" | "medium" | "slow" | "veryslow">("medium");
   const [maxWidth, setMaxWidth] = useState("");
   const [fps, setFps] = useState("");
   const [vidStarting, setVidStarting] = useState(false);
@@ -841,16 +1024,30 @@ function VideoTab({ onFileConverted }: { onFileConverted: (f: File) => void }) {
   const [minimized, setMinimized] = useState(false);
   const [gifPreviewUrl, setGifPreviewUrl] = useState<string | null>(null);
   const [thumbUrl, setThumbUrl] = useState<string | null>(null);
+  const [gifRangeOpen, setGifRangeOpen] = useState(false);
+  const [gifStartSecs, setGifStartSecs] = useState<number | null>(null);
+  const [gifEndSecs, setGifEndSecs] = useState<number | null>(null);
+  const [videoDuration, setVideoDuration] = useState<number>(0);
   const thumbVideoRef = useRef<HTMLVideoElement>(null);
 
-  // Generate thumbnail when file changes
+  // Generate thumbnail + capture duration when file changes
   useEffect(() => {
-    if (!file) { setThumbUrl(null); return; }
+    if (!file) {
+      setThumbUrl(null);
+      setVideoDuration(0);
+      setGifStartSecs(null);
+      setGifEndSecs(null);
+      return;
+    }
     const url = URL.createObjectURL(file);
     const vid = document.createElement("video");
     vid.src = url;
     vid.muted = true;
-    vid.currentTime = 0.15;
+    vid.preload = "metadata";
+    vid.onloadedmetadata = () => {
+      if (isFinite(vid.duration) && vid.duration > 0) setVideoDuration(vid.duration);
+      vid.currentTime = 0.15;
+    };
     vid.onloadeddata = () => {
       const canvas = document.createElement("canvas");
       canvas.width = 240;
@@ -863,7 +1060,7 @@ function VideoTab({ onFileConverted }: { onFileConverted: (f: File) => void }) {
     vid.onerror = () => { URL.revokeObjectURL(url); };
   }, [file]);
 
-  // Generate GIF preview when file changes
+  // Generate GIF preview when file or selected range changes
   useEffect(() => {
     if (!file) { setGifPreviewUrl(null); return; }
     let cancelled = false;
@@ -873,7 +1070,12 @@ function VideoTab({ onFileConverted }: { onFileConverted: (f: File) => void }) {
         fd.append("file", file);
         fd.append("format", "gif");
         fd.append("preview", "true");
-        fd.append("previewSecs", "3");
+        if (gifStartSecs !== null && gifEndSecs !== null && gifEndSecs > gifStartSecs) {
+          fd.append("startSecs", String(gifStartSecs));
+          fd.append("previewSecs", String(Math.min(6, gifEndSecs - gifStartSecs)));
+        } else {
+          fd.append("previewSecs", "3");
+        }
         const res = await fetch("/api/chat/convert/video", { method: "POST", body: fd });
         if (cancelled || !res.ok) return;
         const blob = await res.blob();
@@ -882,7 +1084,7 @@ function VideoTab({ onFileConverted }: { onFileConverted: (f: File) => void }) {
     };
     doPreview();
     return () => { cancelled = true; };
-  }, [file]);
+  }, [file, gifStartSecs, gifEndSecs]);
 
   const startConversion = async () => {
     if (!file || vidStarting || jobId) return;
@@ -891,12 +1093,42 @@ function VideoTab({ onFileConverted }: { onFileConverted: (f: File) => void }) {
     setPercent(0);
     setDone(false);
     try {
+      // Cloudflare caps request bodies at ~100 MB on free plans, so anything
+      // larger has to be split client-side and reassembled by the start route.
+      const CHUNK_THRESHOLD = 90 * 1024 * 1024;
+      const CHUNK_SIZE = 80 * 1024 * 1024;
       const fd = new FormData();
-      fd.append("file", file);
       fd.append("format", format);
       fd.append("crf", String(crf));
+      fd.append("preset", preset);
       if (maxWidth) fd.append("maxWidth", maxWidth);
       if (fps) fd.append("fps", fps);
+      if (format === "gif" && gifStartSecs !== null) fd.append("startSecs", String(gifStartSecs));
+      if (format === "gif" && gifEndSecs !== null) fd.append("endSecs", String(gifEndSecs));
+
+      if (file.size > CHUNK_THRESHOLD) {
+        const uploadId = `u${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`;
+        const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+        for (let i = 0; i < totalChunks; i++) {
+          const start = i * CHUNK_SIZE;
+          const end = Math.min(file.size, start + CHUNK_SIZE);
+          const cfd = new FormData();
+          cfd.append("uploadId", uploadId);
+          cfd.append("chunkIndex", String(i));
+          cfd.append("totalChunks", String(totalChunks));
+          cfd.append("chunk", file.slice(start, end), `chunk-${i}`);
+          if (i === 0) cfd.append("fileName", file.name);
+          const cres = await fetch("/api/chat/convert/video/upload-chunk", { method: "POST", body: cfd });
+          if (!cres.ok) {
+            const j = await cres.json().catch(() => ({}));
+            throw new Error(j.error ?? `Chunk ${i + 1}/${totalChunks} HTTP ${cres.status}`);
+          }
+        }
+        fd.append("uploadId", uploadId);
+        fd.append("fileName", file.name);
+      } else {
+        fd.append("file", file);
+      }
 
       const res = await fetch("/api/chat/convert/video/start", { method: "POST", body: fd });
       if (!res.ok) {
@@ -968,6 +1200,31 @@ function VideoTab({ onFileConverted }: { onFileConverted: (f: File) => void }) {
 
   const isRunning = !!jobId && !done;
 
+  useEffect(() => {
+    if (!setIsRunningRef) return;
+    setIsRunningRef(() => {
+      if (!isRunning || !jobId) return null;
+      return {
+        jobId,
+        format,
+        fileName: file?.name ?? "video",
+        thumbUrl,
+        percent,
+      };
+    });
+  }, [setIsRunningRef, isRunning, jobId, format, file, thumbUrl, percent]);
+
+  const handoffMinimize = useCallback(() => {
+    if (!isRunning || !jobId || !onHandoff) { setMinimized(true); return; }
+    onHandoff({
+      jobId,
+      format,
+      fileName: file?.name ?? "video",
+      thumbUrl,
+      percent,
+    });
+  }, [isRunning, jobId, format, file, thumbUrl, percent, onHandoff]);
+
   if (minimized && isRunning) {
     return (
       <MinimizedFloat onClick={() => setMinimized(false)}>
@@ -1000,6 +1257,15 @@ function VideoTab({ onFileConverted }: { onFileConverted: (f: File) => void }) {
           <option value="vp9">VP9 (WebM)</option>
           <option value="gif">GIF</option>
         </Select>
+        <Label>Preset</Label>
+        <Select value={preset} onChange={(e) => setPreset(e.target.value as typeof preset)} disabled={isRunning}>
+          <option value="ultrafast">ultrafast</option>
+          <option value="veryfast">veryfast</option>
+          <option value="fast">fast</option>
+          <option value="medium">medium</option>
+          <option value="slow">slow</option>
+          <option value="veryslow">veryslow</option>
+        </Select>
       </ControlRow>
 
       {format !== "gif" && (
@@ -1012,6 +1278,27 @@ function VideoTab({ onFileConverted }: { onFileConverted: (f: File) => void }) {
           />
           <SliderVal>{crf}</SliderVal>
         </SliderRow>
+      )}
+
+      {format === "gif" && file && videoDuration > 0 && (
+        <ControlRow>
+          <Label>GIF range</Label>
+          <RangeBtn type="button" onClick={() => setGifRangeOpen(true)} disabled={isRunning}>
+            {gifStartSecs !== null && gifEndSecs !== null
+              ? `${gifStartSecs.toFixed(1)}s – ${gifEndSecs.toFixed(1)}s`
+              : "Select range…"}
+          </RangeBtn>
+          {gifStartSecs !== null && (
+            <RangeClearBtn
+              type="button"
+              onClick={() => { setGifStartSecs(null); setGifEndSecs(null); }}
+              title="Clear range"
+              disabled={isRunning}
+            >
+              ✕
+            </RangeClearBtn>
+          )}
+        </ControlRow>
       )}
 
       <ControlRow>
@@ -1060,7 +1347,7 @@ function VideoTab({ onFileConverted }: { onFileConverted: (f: File) => void }) {
             <ProgressPct>{percent}%</ProgressPct>
             <NeonX accent="green" size="sm" onClick={cancelConversion} title="Cancel conversion" />
           </ProgressRow>
-          <ActionBtn onClick={() => setMinimized(true)} $disabled={false}>
+          <ActionBtn onClick={handoffMinimize} $disabled={false}>
             Minimize
           </ActionBtn>
         </>
@@ -1087,7 +1374,142 @@ function VideoTab({ onFileConverted }: { onFileConverted: (f: File) => void }) {
           Convert another
         </ActionBtn>
       )}
+
+      {gifRangeOpen && file && videoDuration > 0 && (
+        <GifRangeModal
+          file={file}
+          duration={videoDuration}
+          initialStart={gifStartSecs ?? 0}
+          initialEnd={gifEndSecs ?? Math.min(videoDuration, 3)}
+          onClose={() => setGifRangeOpen(false)}
+          onApply={(s, e) => {
+            setGifStartSecs(s);
+            setGifEndSecs(e);
+            setGifRangeOpen(false);
+          }}
+        />
+      )}
     </>
+  );
+}
+
+// ── GIF range-select modal ──────────────────────────────────────────────────
+
+function GifRangeModal({
+  file,
+  duration,
+  initialStart,
+  initialEnd,
+  onClose,
+  onApply,
+}: {
+  file: File;
+  duration: number;
+  initialStart: number;
+  initialEnd: number;
+  onClose: () => void;
+  onApply: (start: number, end: number) => void;
+}) {
+  useModalLifecycle();
+  const [start, setStart] = useState(initialStart);
+  const [end, setEnd] = useState(initialEnd);
+  const [scrubTarget, setScrubTarget] = useState<"start" | "end">("start");
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const urlRef = useRef<string>("");
+
+  useEffect(() => {
+    urlRef.current = URL.createObjectURL(file);
+    if (videoRef.current) {
+      videoRef.current.src = urlRef.current;
+      videoRef.current.currentTime = initialStart;
+    }
+    return () => { if (urlRef.current) URL.revokeObjectURL(urlRef.current); };
+  }, [file, initialStart]);
+
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v) return;
+    const t = scrubTarget === "start" ? start : end;
+    if (Math.abs(v.currentTime - t) > 0.05) v.currentTime = t;
+  }, [start, end, scrubTarget]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") { e.stopImmediatePropagation(); onClose(); }
+    };
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
+  }, [onClose]);
+
+  const maxClip = Math.min(30, duration);
+  const clipLen = Math.max(0, end - start);
+  const tooLong = clipLen > maxClip;
+  const invalid = clipLen <= 0.1 || tooLong;
+
+  return (
+    <RangeOverlay onClick={onClose}>
+      <RangeModal onClick={(e) => e.stopPropagation()}>
+        <RangeHeader>
+          <RangeTitle>GIF range</RangeTitle>
+          <NeonX accent="green" size="sm" onClick={onClose} title="Close" />
+        </RangeHeader>
+        <RangeBody>
+          <RangeVideo ref={videoRef} muted controls={false} playsInline />
+          <RangeScrubRow>
+            <RangeScrubLabel>
+              Scrubbing: <b>{scrubTarget === "start" ? "start" : "end"}</b> · clip {clipLen.toFixed(2)}s
+            </RangeScrubLabel>
+            <RangeToggle
+              type="button"
+              onClick={() => setScrubTarget((t) => (t === "start" ? "end" : "start"))}
+            >
+              Scrub {scrubTarget === "start" ? "end" : "start"}
+            </RangeToggle>
+          </RangeScrubRow>
+          <RangeSliderRow>
+            <RangeSliderLabel>Start {start.toFixed(2)}s</RangeSliderLabel>
+            <Slider
+              type="range"
+              min={0}
+              max={duration}
+              step={0.05}
+              value={start}
+              onChange={(e) => {
+                const v = parseFloat(e.target.value);
+                setStart(Math.min(v, end - 0.1));
+                setScrubTarget("start");
+              }}
+            />
+          </RangeSliderRow>
+          <RangeSliderRow>
+            <RangeSliderLabel>End {end.toFixed(2)}s</RangeSliderLabel>
+            <Slider
+              type="range"
+              min={0}
+              max={duration}
+              step={0.05}
+              value={end}
+              onChange={(e) => {
+                const v = parseFloat(e.target.value);
+                setEnd(Math.max(v, start + 0.1));
+                setScrubTarget("end");
+              }}
+            />
+          </RangeSliderRow>
+          {tooLong && (
+            <RangeWarn>Max GIF clip is {maxClip.toFixed(0)}s. Trim to avoid huge files.</RangeWarn>
+          )}
+          <RangeApplyBtn
+            type="button"
+            onClick={() => onApply(start, end)}
+            disabled={invalid}
+            $disabled={invalid}
+          >
+            Apply range
+          </RangeApplyBtn>
+        </RangeBody>
+      </RangeModal>
+    </RangeOverlay>
   );
 }
 
@@ -1097,27 +1519,39 @@ export default function MediaConverterModal({
   defaultTab = "image",
   onClose,
   onFileConverted,
+  onMinimizeConversion,
 }: MediaConverterModalProps) {
+  useModalLifecycle();
   const [tab, setTab] = useState<"image" | "video">(defaultTab);
   const [helpOpen, setHelpOpen] = useState(false);
+  const runningSnapshotRef = useRef<(() => MinimizedConversionInfo | null) | null>(null);
+
+  const tryClose = useCallback(() => {
+    if (onMinimizeConversion && runningSnapshotRef.current) {
+      const info = runningSnapshotRef.current();
+      if (info) { onMinimizeConversion(info); return; }
+    }
+    onClose();
+  }, [onClose, onMinimizeConversion]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
+      e.stopImmediatePropagation();
       if (helpOpen) setHelpOpen(false);
-      else onClose();
+      else tryClose();
     };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose, helpOpen]);
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
+  }, [tryClose, helpOpen]);
 
   return (
-    <Overlay onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+    <Overlay onClick={(e) => { if (e.target === e.currentTarget) tryClose(); }}>
       <Modal onClick={(e) => e.stopPropagation()} style={{ position: "relative" }}>
         <ModalHeader>
           <ModalTitle>Media Converter</ModalTitle>
           <QmbmBtn onClick={() => setHelpOpen((v) => !v)} title="What does this do?">?</QmbmBtn>
-          <CloseBtn onClick={onClose} title="Close">
+          <CloseBtn onClick={tryClose} title="Close">
             <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
               <path d="M1 1l8 8M9 1l-8 8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
             </svg>
@@ -1132,7 +1566,11 @@ export default function MediaConverterModal({
         <Body>
           {tab === "image"
             ? <ImageTab onFileConverted={(f) => { onFileConverted(f); onClose(); }} />
-            : <VideoTab onFileConverted={(f) => { onFileConverted(f); onClose(); }} />
+            : <VideoTab
+                onFileConverted={(f) => { onFileConverted(f); onClose(); }}
+                onHandoff={onMinimizeConversion ? (info) => { onMinimizeConversion(info); onClose(); } : undefined}
+                setIsRunningRef={(cb) => { runningSnapshotRef.current = cb; }}
+              />
           }
         </Body>
 

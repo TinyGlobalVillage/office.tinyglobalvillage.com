@@ -1,20 +1,71 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import styled from "styled-components";
 import LibraryIcon from "./LibraryIcon";
 import { colors, rgb, glowRgba } from "../theme";
+import { useModalLifecycle } from "../lib/drawerKnobs";
 import {
   ModalBackdrop,
   ModalContainer,
   ModalHeader,
   ModalHeaderLeft,
-  ModalTitle,
   ModalSubtitle,
   ModalBody,
-  CloseBtn,
+  DrawerTitle,
 } from "../styled";
 import NeonX from "./NeonX";
+import Tooltip from "./ui/Tooltip";
+
+const FsContainer = styled(ModalContainer)<{ $fs: boolean }>`
+  ${(p) => p.$fs && `
+    max-width: 100vw;
+    max-height: 100vh;
+    width: 100vw;
+    height: 100vh;
+    border-radius: 0;
+  `}
+`;
+
+const CtrlBtn = styled.button<{ $active?: boolean }>`
+  width: 2.125rem;
+  height: 2.125rem;
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.0625rem;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+  flex-shrink: 0;
+  background: ${(p) => (p.$active ? glowRgba("violet", 0.28) : glowRgba("violet", 0.14))};
+  border: 1px solid ${(p) => glowRgba("violet", p.$active ? 0.6 : 0.45)};
+  color: ${colors.violet};
+  text-shadow: 0 0 6px rgba(${rgb.violet}, 0.7);
+  transition: background 0.15s, box-shadow 0.15s, transform 0.1s;
+
+  &:hover { background: ${glowRgba("violet", 0.28)}; box-shadow: 0 0 10px ${glowRgba("violet", 0.5)}; }
+  &:active { transform: translateY(1px); }
+
+  [data-theme="light"] & { text-shadow: none; }
+
+  svg { width: 14px; height: 14px; }
+
+  @media (max-width: 768px) {
+    width: 2.75rem;
+    height: 2.75rem;
+    font-size: 1.1875rem;
+    border-radius: 0.625rem;
+  }
+`;
+
+const HeaderRight = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
+`;
 
 const SECTIONS = [
   { title: "Component Library", body: "Canonical TGV UI primitives — pulled from the Sandbox registry once they ship.", status: "in progress" },
@@ -88,6 +139,9 @@ const CardBody = styled.p`
 `;
 
 export default function LibraryModal({ onClose }: { onClose: () => void }) {
+  useModalLifecycle();
+  const [fullscreen, setFullscreen] = useState(false);
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") { e.stopPropagation(); onClose(); } };
     document.addEventListener("keydown", onKey);
@@ -96,16 +150,29 @@ export default function LibraryModal({ onClose }: { onClose: () => void }) {
 
   return (
     <ModalBackdrop onClick={onClose}>
-      <ModalContainer $accent="violet" $maxWidth="48rem" onClick={(e) => e.stopPropagation()}>
+      <FsContainer $fs={fullscreen} $accent="violet" $maxWidth="48rem" onClick={(e) => e.stopPropagation()}>
         <ModalHeader>
           <ModalHeaderLeft>
             <LibraryIcon size={28} color={colors.violet} />
             <div>
-              <ModalTitle $color={colors.violet}>Library</ModalTitle>
+              <DrawerTitle $accent="violet">Library</DrawerTitle>
               <ModalSubtitle>Catalog of every reusable asset across TGV + Refusionist</ModalSubtitle>
             </div>
           </ModalHeaderLeft>
-          <NeonX accent="pink" onClick={onClose} title="Close" />
+          <HeaderRight>
+            <Tooltip accent={colors.violet} label={fullscreen ? "Exit fullscreen" : "Fullscreen"}>
+              <CtrlBtn
+                $active={fullscreen}
+                onClick={() => setFullscreen((v) => !v)}
+                aria-label={fullscreen ? "Exit fullscreen" : "Fullscreen"}
+              >
+                {fullscreen ? "⊡" : "⊞"}
+              </CtrlBtn>
+            </Tooltip>
+            <Tooltip accent={colors.violet} label="Close (Esc)">
+              <NeonX accent="violet" onClick={onClose} />
+            </Tooltip>
+          </HeaderRight>
         </ModalHeader>
         <ModalBody>
           <Grid>
@@ -120,7 +187,7 @@ export default function LibraryModal({ onClose }: { onClose: () => void }) {
             ))}
           </Grid>
         </ModalBody>
-      </ModalContainer>
+      </FsContainer>
     </ModalBackdrop>
   );
 }

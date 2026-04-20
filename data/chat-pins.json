@@ -1,0 +1,22 @@
+{
+  "pins": [
+    {
+      "chatId": "tgv",
+      "userId": null,
+      "menu": "both",
+      "pinnedAt": "2026-04-19T00:00:00.000Z"
+    },
+    {
+      "chatId": "marmar",
+      "userId": "admin",
+      "menu": "users",
+      "pinnedAt": "2026-04-20T03:45:00.007Z"
+    },
+    {
+      "chatId": "claude",
+      "userId": "admin",
+      "menu": "users",
+      "pinnedAt": "2026-04-20T03:45:02.824Z"
+    }
+  ]
+}

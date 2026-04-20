@@ -14,6 +14,7 @@ import ChatDrawer from "./ChatDrawer";
 import InboxDrawer from "./InboxDrawer";
 import SessionsDrawer from "./SessionsDrawer";
 import DashboardPopoutBeacon from "./DashboardPopoutBeacon";
+import GlobalModals from "./GlobalModals";
 
 function ShellInner({ children }: { children: ReactNode }) {
   const searchParams = useSearchParams();
@@ -55,6 +56,7 @@ function ShellInner({ children }: { children: ReactNode }) {
         <InboxDrawer />
         <SessionsDrawer />
         <LegendDrawer />
+        <GlobalModals />
         {children}
         <CliTerminal />
         <PreviewDrawer />

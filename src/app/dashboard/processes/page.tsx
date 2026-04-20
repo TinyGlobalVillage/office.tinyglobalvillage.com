@@ -54,19 +54,6 @@ const HeaderRow = styled.div`
   gap: 0.75rem;
 `;
 
-const PageTitle = styled.h1`
-  font-size: 1.875rem;
-  font-weight: 700;
-  margin-bottom: 0.25rem;
-  color: ${colors.cyan};
-  text-shadow: 0 0 8px ${colors.cyan}, 0 0 20px ${colors.cyan};
-
-  [data-theme="light"] & {
-    color: ${colors.cyan};
-    text-shadow: none;
-  }
-`;
-
 const PageSubtitle = styled.p`
   font-size: 0.75rem;
   color: var(--t-textGhost);
@@ -350,7 +337,6 @@ export default function ProcessesPage() {
         {/* Header */}
         <HeaderRow>
           <div>
-            <PageTitle>Processes</PageTitle>
             <PageSubtitle>
               PM2 — auto-refreshes every 10s
               {lastRefresh && (

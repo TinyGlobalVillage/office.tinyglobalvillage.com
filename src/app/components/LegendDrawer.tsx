@@ -4,9 +4,10 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { usePathname } from "next/navigation";
 import styled from "styled-components";
 import { colors, rgb, glowRgba } from "../theme";
-import { DrawerBackdrop, DrawerPanel, DrawerHeader, DrawerTab, DrawerTabLabel, DrawerFooter } from "../styled";
+import { DrawerBackdrop, DrawerPanel, DrawerHeader, DrawerTab, DrawerTabLabel, DrawerTitle, DrawerFooter } from "../styled";
 import { DTogExpandIcon } from "./icons";
 import NeonX from "./NeonX";
+import { useKnobVisibility } from "../lib/drawerKnobs";
 
 type LegendItem = { glyph: string; label: string; desc: string };
 type PageLegend = { title: string; items: LegendItem[] };
@@ -148,12 +149,7 @@ const HeaderLabel = styled.p`
   margin: 0 0 0.125rem;
 `;
 
-const HeaderTitle = styled.h2`
-  font-size: 0.875rem;
-  font-weight: 700;
-  margin: 0;
-  color: ${colors.cyan};
-`;
+const HeaderTitle = styled(DrawerTitle).attrs({ $accent: "cyan" })``;
 
 const ItemList = styled.div`
   flex: 1;
@@ -246,6 +242,7 @@ export default function LegendDrawer() {
   const [tabY, setTabY] = useState<number>(400);
   const pathname = usePathname();
   const legend = getLegend(pathname ?? "");
+  const { hideKnob } = useKnobVisibility();
 
   const startTabY = useRef(0);
   const startTabPos = useRef(0);
@@ -306,15 +303,17 @@ export default function LegendDrawer() {
 
   return (
     <>
-      <Tab
-        $open={open}
-        onMouseDown={onTabMouseDown}
-        title="Page legend"
-        style={{ top: tabY }}
-      >
-        <DTogExpandIcon side={open ? "left" : "right"} size={14} />
-        <DrawerTabLabel>Legend</DrawerTabLabel>
-      </Tab>
+      {!hideKnob && (
+        <Tab
+          $open={open}
+          onMouseDown={onTabMouseDown}
+          title="Page legend"
+          style={{ top: tabY }}
+        >
+          <DTogExpandIcon side={open ? "left" : "right"} size={14} />
+          <DrawerTabLabel>Legend</DrawerTabLabel>
+        </Tab>
+      )}
 
       {open && <Backdrop onClick={() => setOpen(false)} />}
 

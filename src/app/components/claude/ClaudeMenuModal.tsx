@@ -8,8 +8,10 @@ import ClaudeGuideModal from "./ClaudeGuideModal";
 import ClaudeFilesModal from "./ClaudeFilesModal";
 import ClaudeVocabModal from "./ClaudeVocabModal";
 import { colors, rgb, glowRgba } from "../../theme";
-import { CloseBtn } from "../../styled";
+import { DrawerTitle } from "../../styled";
 import NeonX from "../NeonX";
+import Tooltip from "../ui/Tooltip";
+import { useModalLifecycle } from "../../lib/drawerKnobs";
 
 type SubModal = null | "chat" | "guide" | "files" | "vocab";
 
@@ -26,15 +28,22 @@ const Backdrop = styled.div`
   backdrop-filter: blur(4px);
 `;
 
-const Panel = styled.div`
+const Panel = styled.div<{ $fs?: boolean }>`
   position: fixed; z-index: 56;
   display: flex; flex-direction: column; overflow: hidden;
-  top: 80px; left: 50%; transform: translateX(-50%);
-  width: min(720px, 92vw);
-  max-height: calc(100vh - 120px);
+  ${(p) => p.$fs ? `
+    inset: 0;
+    width: 100vw;
+    max-height: 100vh;
+    border-radius: 0;
+  ` : `
+    top: 80px; left: 50%; transform: translateX(-50%);
+    width: min(720px, 92vw);
+    max-height: calc(100vh - 120px);
+    border-radius: 20px;
+  `}
   background: var(--t-surface);
   border: 1px solid ${glowRgba("orange", 0.32)};
-  border-radius: 20px;
   box-shadow: 0 24px 80px rgba(0,0,0,0.85), 0 0 32px ${glowRgba("orange", 0.15)};
 
   [data-theme="light"] & {
@@ -42,15 +51,43 @@ const Panel = styled.div`
   }
 `;
 
+const CtrlBtn = styled.button<{ $active?: boolean }>`
+  width: 2.125rem;
+  height: 2.125rem;
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.0625rem;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+  flex-shrink: 0;
+  background: ${(p) => (p.$active ? glowRgba("orange", 0.28) : glowRgba("orange", 0.14))};
+  border: 1px solid ${(p) => glowRgba("orange", p.$active ? 0.6 : 0.45)};
+  color: ${colors.orange};
+  text-shadow: 0 0 6px rgba(${rgb.orange}, 0.7);
+  transition: background 0.15s, box-shadow 0.15s, transform 0.1s;
+
+  &:hover { background: ${glowRgba("orange", 0.28)}; box-shadow: 0 0 10px ${glowRgba("orange", 0.5)}; }
+  &:active { transform: translateY(1px); }
+
+  [data-theme="light"] & { text-shadow: none; }
+
+  svg { width: 14px; height: 14px; }
+
+  @media (max-width: 768px) {
+    width: 2.75rem;
+    height: 2.75rem;
+    font-size: 1.1875rem;
+    border-radius: 0.625rem;
+  }
+`;
+
 const Header = styled.div`
   display: flex; align-items: center; gap: 0.75rem;
   padding: 1rem 1.25rem; flex-shrink: 0;
   border-bottom: 1px solid ${glowRgba("orange", 0.18)};
-`;
-
-const Title = styled.h2`
-  font-size: 1rem; font-weight: 700; margin: 0;
-  color: ${colors.orange};
 `;
 
 const Sub = styled.p`
@@ -99,7 +136,9 @@ const TileSub = styled.span`
 `;
 
 export default function ClaudeMenuModal({ onClose }: { onClose: () => void }) {
+  useModalLifecycle();
   const [sub, setSub] = useState<SubModal>(null);
+  const [fullscreen, setFullscreen] = useState(false);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -121,14 +160,25 @@ export default function ClaudeMenuModal({ onClose }: { onClose: () => void }) {
       {sub === "vocab" && <ClaudeVocabModal onClose={() => setSub(null)} />}
 
       <Backdrop onClick={onClose} />
-      <Panel>
+      <Panel $fs={fullscreen}>
         <Header>
           <ClaudeIcon size={28} color={colors.orange} />
           <div style={{ flex: 1 }}>
-            <Title>Claude</Title>
+            <DrawerTitle $accent="orange">Claude</DrawerTitle>
             <Sub>Pick a tool — chat, guide, file browser, or vocabulary.</Sub>
           </div>
-          <NeonX accent="pink" onClick={onClose} title="Close (Esc)" />
+          <Tooltip accent={colors.orange} label={fullscreen ? "Exit fullscreen" : "Fullscreen"}>
+            <CtrlBtn
+              $active={fullscreen}
+              onClick={() => setFullscreen((v) => !v)}
+              aria-label={fullscreen ? "Exit fullscreen" : "Fullscreen"}
+            >
+              {fullscreen ? "⊡" : "⊞"}
+            </CtrlBtn>
+          </Tooltip>
+          <Tooltip accent={colors.orange} label="Close (Esc)">
+            <NeonX accent="orange" onClick={onClose} />
+          </Tooltip>
         </Header>
         <Grid>
           {tiles.map((t) => (

@@ -99,6 +99,24 @@
       "content": "I can edit this one?",
       "createdAt": "2026-04-19T19:12:40.660Z",
       "readBy": []
+    },
+    {
+      "id": "c_1776668269084_qrxzf",
+      "from": "admin",
+      "content": "So I'm currently converting a movie right now to send here, and it's loading, and i can send a message even while it's loading. :D",
+      "createdAt": "2026-04-20T06:57:49.084Z",
+      "readBy": []
+    },
+    {
+      "id": "c_1776671308145_u1xjb",
+      "from": "admin",
+      "content": "",
+      "fileUrl": "https://office.tinyglobalvillage.com/media/chat/group/admin/images/2026_APR_20_example-converted.gif",
+      "fileName": "example-converted.gif",
+      "fileSize": 22431841,
+      "fileMime": "image/gif",
+      "createdAt": "2026-04-20T07:48:28.145Z",
+      "readBy": []
     }
   ],
   "storageBytes": 0

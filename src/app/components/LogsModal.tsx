@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import styled from "styled-components";
 import { colors, rgb } from "@/app/theme";
+import { useModalLifecycle } from "@/app/lib/drawerKnobs";
 import {
   PanelBackdrop,
   Panel,
@@ -354,6 +355,7 @@ export default function LogsModal({
   onClose: () => void;
   initialTab?: TabMode;
 }) {
+  useModalLifecycle();
   const [tab, setTab] = useState<TabMode>(initialTab);
 
   useEffect(() => {

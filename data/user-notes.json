@@ -1,5 +1,69 @@
 {
-  "memos": [],
+  "memos": [
+    {
+      "id": "m_demo_marmar_001",
+      "from": "marmar",
+      "to": "admin",
+      "content": "Tallis Fabric invoices uploaded to the shared drive — ready for your sign-off whenever.",
+      "createdAt": "2026-04-20T05:10:00.000Z"
+    },
+    {
+      "id": "m_demo_employee1_001",
+      "from": "employee1",
+      "to": "admin",
+      "content": "Pushed the new brand palette to Figma. Let me know if the gold needs more punch on dark.",
+      "createdAt": "2026-04-19T21:45:00.000Z"
+    },
+    {
+      "id": "m_demo_employee2_001",
+      "from": "employee2",
+      "to": "admin",
+      "content": "Finished the activity log pagination; PR is up. One edge case around empty pages — flagged in the description.",
+      "createdAt": "2026-04-19T17:20:00.000Z"
+    },
+    {
+      "id": "m_demo_employee3_001",
+      "from": "employee3",
+      "to": "admin",
+      "content": "Community recap is drafted — can we loop in Marthe before I send it out? Violet season is working 💫",
+      "createdAt": "2026-04-19T14:05:00.000Z"
+    },
+    {
+      "id": "m_demo_employee4_001",
+      "from": "employee4",
+      "to": "admin",
+      "content": "Got three long-form drafts for the April newsletter. Prioritised the TGV Office rollout piece up top.",
+      "createdAt": "2026-04-19T11:30:00.000Z"
+    },
+    {
+      "id": "m_demo_employee5_001",
+      "from": "employee5",
+      "to": "admin",
+      "content": "Heads up — found a drawer-knob ghosting bug on mobile Safari. Repro attached in Linear INGEST-214.",
+      "createdAt": "2026-04-19T09:15:00.000Z"
+    },
+    {
+      "id": "m_demo_claude_001",
+      "from": "claude",
+      "to": "admin",
+      "content": "Merged the SVG icon sweep across ChatDrawer and Team. Let me know if any glyphs still feel off.",
+      "createdAt": "2026-04-18T22:40:00.000Z"
+    },
+    {
+      "id": "m_1776668064324_nee0",
+      "from": "admin",
+      "to": "employee2",
+      "content": "Woohoo",
+      "createdAt": "2026-04-20T06:54:24.324Z"
+    },
+    {
+      "id": "m_1776661177834_pup4",
+      "from": "admin",
+      "to": "admin",
+      "content": "My first memo!",
+      "createdAt": "2026-04-20T04:59:37.834Z"
+    }
+  ],
   "pings": [
     {
       "id": "p_1776413094073_x2r7",

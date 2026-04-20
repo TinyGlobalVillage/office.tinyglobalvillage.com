@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import styled, { css } from "styled-components";
 import { colors, rgb } from "../../theme";
+import { useModalLifecycle } from "../../lib/drawerKnobs";
 import {
   PanelBackdrop,
   Panel,
@@ -12,6 +13,7 @@ import {
   PanelSidebar,
   PanelSidebarItem,
   Spacer,
+  DrawerTitle,
 } from "../../styled";
 import SandboxIcon from "./SandboxIcon";
 import { REGISTRY, CATEGORIES, type SandboxEntry } from "./registry";
@@ -193,11 +195,13 @@ const HeaderRight = styled.div`
   container-name: sandboxhdr;
 `;
 
-const Title = styled.h2<{ $edit?: boolean }>`
-  font-size: 0.875rem;
-  font-weight: 700;
-  margin: 0;
+const Title = styled(DrawerTitle)<{ $edit?: boolean }>`
   color: ${(p) => (p.$edit ? GOLD : PINK)};
+  text-shadow:
+    0 0 8px ${(p) => (p.$edit ? GOLD : PINK)},
+    0 0 20px ${(p) => (p.$edit ? GOLD : PINK)};
+
+  [data-theme="light"] & { text-shadow: none; }
 `;
 
 // Sum-total of every sandbox entry, displayed just left of the header ECL.
@@ -1544,6 +1548,7 @@ export default function SandboxModal({
   onClose: () => void;
   mode?: SandboxMode;
 }) {
+  useModalLifecycle();
   const [activeKey, setActiveKey] = useState<string>(REGISTRY[0]?.key ?? "");
   const [popoutActive, setPopoutActive] = useState(false);
   const [fsOpen, setFsOpen] = useState(true);

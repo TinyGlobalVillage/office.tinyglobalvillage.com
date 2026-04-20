@@ -538,6 +538,21 @@ export const DrawerHeader = styled.div`
   border-bottom: 1px solid var(--t-border);
 `;
 
+export const DrawerTitle = styled.h1<{ $accent?: GlowColor }>`
+  font-size: 1.875rem;
+  font-weight: 700;
+  margin: 0;
+  color: ${(p) => colors[p.$accent ?? "cyan"]};
+  text-shadow:
+    0 0 8px ${(p) => colors[p.$accent ?? "cyan"]},
+    0 0 20px ${(p) => colors[p.$accent ?? "cyan"]};
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+
+  [data-theme="light"] & { text-shadow: none; }
+`;
+
 export const DrawerTab = styled.button<{ $side?: "left" | "right"; $accent?: GlowColor }>`
   position: fixed;
   display: flex;

@@ -20,6 +20,9 @@ export async function POST(req: NextRequest) {
   if (group.visibility !== "open") {
     return NextResponse.json({ error: "Group is not open to join. Ask an admin for an invite." }, { status: 403 });
   }
+  if (group.blockedFromSelfAdd?.includes(username)) {
+    return NextResponse.json({ error: "You are blocked from self-joining this group." }, { status: 403 });
+  }
   group.memberIds = [...group.memberIds, username];
   writeGroupDb(db);
   return NextResponse.json({ ok: true, group });

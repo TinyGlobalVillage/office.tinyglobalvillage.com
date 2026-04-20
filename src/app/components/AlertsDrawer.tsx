@@ -10,11 +10,13 @@ import {
   DrawerTab,
   DrawerTabLabel,
   DrawerResizeHandle,
+  DrawerTitle,
   PanelIconBtn,
 } from "../styled";
 import AnnouncementsPanel from "./AnnouncementsPanel";
 import { DrawerAlertsIcon } from "./icons";
 import NeonX from "./NeonX";
+import { useKnobVisibility } from "../lib/drawerKnobs";
 
 const MIN_W = 420;
 const MAX_W = 1400;
@@ -61,20 +63,6 @@ const Header = styled(DrawerHeader)`
   border-bottom: 1px solid rgba(${rgb.gold}, 0.15);
 `;
 
-const Title = styled.span`
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: #f7b700;
-  text-shadow: 0 0 8px rgba(${rgb.gold}, 0.6);
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-
-  [data-theme="light"] & { text-shadow: none; }
-`;
-
 const ControlRow = styled.div`
   display: flex;
   align-items: center;
@@ -110,6 +98,15 @@ const ControlBtn = styled(PanelIconBtn)`
   }
 
   [data-theme="light"] & { text-shadow: none; }
+
+  svg { width: 14px; height: 14px; }
+
+  @media (max-width: 768px) {
+    width: 2.75rem;
+    height: 2.75rem;
+    font-size: 1.1875rem;
+    border-radius: 0.625rem;
+  }
 `;
 
 const ZoomLabel = styled.button`
@@ -184,13 +181,23 @@ export default function AlertsDrawer() {
     if (savedW) setWidth(parseInt(savedW, 10));
   }, []);
 
+  const [otherDrawerOpen, setOtherDrawerOpen] = useState(false);
+  const { hideKnob } = useKnobVisibility();
   useEffect(() => {
     const handler = (e: Event) => {
-      if ((e as CustomEvent).detail !== DRAWER_ID) setOpen(false);
+      const detail = (e as CustomEvent).detail;
+      if (detail === DRAWER_ID) {
+        setOtherDrawerOpen(false);
+      } else if (detail === "close") {
+        setOtherDrawerOpen(false);
+      } else {
+        if (open) setOpen(false);
+        setOtherDrawerOpen(true);
+      }
     };
     window.addEventListener(DRAWER_EVENT, handler);
     return () => window.removeEventListener(DRAWER_EVENT, handler);
-  }, []);
+  }, [open]);
 
   useEffect(() => {
     const handler = (e: Event) => {
@@ -206,7 +213,10 @@ export default function AlertsDrawer() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape" && fullscreen) { setFullscreen(false); return; }
-      if (e.key === "Escape" && open) setOpen(false);
+      if (e.key === "Escape" && open) {
+        setOpen(false);
+        window.dispatchEvent(new CustomEvent(DRAWER_EVENT, { detail: "close" }));
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -235,7 +245,7 @@ export default function AlertsDrawer() {
       if (!didDrag.current) {
         setOpen((p) => {
           const next = !p;
-          if (next) window.dispatchEvent(new CustomEvent(DRAWER_EVENT, { detail: DRAWER_ID }));
+          window.dispatchEvent(new CustomEvent(DRAWER_EVENT, { detail: next ? DRAWER_ID : "close" }));
           return next;
         });
       }
@@ -291,25 +301,27 @@ export default function AlertsDrawer() {
 
   return (
     <>
-      <SideTab
-        onMouseDown={onTabMouseDown}
-        title={open ? "Close alerts" : "Open alerts"}
-        $openOffset={open && !fullscreen ? width : 0}
-        style={{
-          top: tabY,
-          backgroundColor: open
-            ? `rgba(${rgb.gold}, 0.25)`
-            : `rgba(${rgb.gold}, 0.12)`,
-        }}
-      >
-        <span style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <DrawerAlertsIcon size={16} />
-        </span>
-        <DrawerTabLabel>Alerts</DrawerTabLabel>
-      </SideTab>
+      {!otherDrawerOpen && !hideKnob && (
+        <SideTab
+          onMouseDown={onTabMouseDown}
+          title={open ? "Close alerts" : "Open alerts"}
+          $openOffset={open && !fullscreen ? width : 0}
+          style={{
+            top: tabY,
+            backgroundColor: open
+              ? `rgba(${rgb.gold}, 0.25)`
+              : `rgba(${rgb.gold}, 0.12)`,
+          }}
+        >
+          <span style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <DrawerAlertsIcon size={16} />
+          </span>
+          <DrawerTabLabel>Alerts</DrawerTabLabel>
+        </SideTab>
+      )}
 
       {open && !fullscreen && (
-        <Backdrop onClick={() => setOpen(false)} />
+        <Backdrop onClick={() => { setOpen(false); window.dispatchEvent(new CustomEvent(DRAWER_EVENT, { detail: "close" })); }} />
       )}
 
       <Panel
@@ -323,13 +335,13 @@ export default function AlertsDrawer() {
         }}
       >
         <Header>
-          <Title>
+          <DrawerTitle $accent="gold">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
               <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
             </svg>
             Alerts
-          </Title>
+          </DrawerTitle>
 
           <ControlRow>
             <ControlBtn onClick={zoomOut} title="Zoom out" disabled={zoom <= ZOOM_STEPS[0]}>−</ControlBtn>
@@ -344,7 +356,7 @@ export default function AlertsDrawer() {
             <ControlBtn onClick={() => setFullscreen((p) => !p)} title={fullscreen ? "Exit full screen (Esc)" : "Full screen"}>
               {fullscreen ? "⊡" : "⊞"}
             </ControlBtn>
-            <NeonX accent="gold" onClick={() => { setOpen(false); setFullscreen(false); }} title="Close (Esc)" />
+            <NeonX accent="gold" onClick={() => { setOpen(false); setFullscreen(false); window.dispatchEvent(new CustomEvent(DRAWER_EVENT, { detail: "close" })); }} title="Close (Esc)" />
           </ControlRow>
         </Header>
 

@@ -9,6 +9,7 @@ import { hexToRgb } from "./ProfileModal";
 import { useTheme } from "./ThemeProvider";
 import { TrashIcon } from "./icons";
 import { signOut } from "next-auth/react";
+import { useModalLifecycle, getAutoHide, setAutoHide } from "@/app/lib/drawerKnobs";
 
 /* ── Types ─────────────────────────────────────────────────────── */
 
@@ -1063,17 +1064,20 @@ function SettingsTab({
   const [accentOpen, setAccentOpen] = useState(true);
   const [storageOpen, setStorageOpen] = useState(true);
   // ADL open-state (controlled, so the master ECL can batch-toggle)
-  const ADL_KEYS = ["bio", "appearance", "chatprefs", "storage", "notifications", "privacy", "talk"] as const;
+  const ADL_KEYS = ["bio", "appearance", "chatprefs", "interface", "storage", "notifications", "privacy", "talk"] as const;
   type ADLKey = typeof ADL_KEYS[number];
   const [adlOpen, setAdlOpen] = useState<Record<ADLKey, boolean>>({
     bio: true,
     appearance: false,
     chatprefs: false,
+    interface: false,
     storage: false,
     notifications: false,
     privacy: false,
     talk: false,
   });
+  const [drawerKnobsAutoHide, setDrawerKnobsAutoHide] = useState(false);
+  useEffect(() => { setDrawerKnobsAutoHide(getAutoHide()); }, []);
   const setOne = (k: ADLKey) => (next: boolean) => setAdlOpen((s) => ({ ...s, [k]: next }));
   const allOpen = ADL_KEYS.every((k) => adlOpen[k]);
   const toggleAll = () => {
@@ -1522,6 +1526,33 @@ function SettingsTab({
         </ToggleRow>
       </ADLSection>
 
+      <ADLSection
+        label="Interface Controls"
+        saved={savedKey === "interface"}
+        open={adlOpen.interface}
+        onOpenChange={setOne("interface")}
+      >
+        <ToggleRow>
+          <ToggleLabel>
+            Auto-hide drawer knobs
+            <div style={{ fontSize: "0.625rem", color: "var(--t-textGhost)", marginTop: "0.25rem", fontWeight: 400 }}>
+              When on, side drawer knobs (and the Legend knob) stay hidden. Move the mouse, scroll, or press a key to reveal them; they hide again after 3 seconds.
+            </div>
+          </ToggleLabel>
+          <Toggle
+            $on={drawerKnobsAutoHide}
+            onClick={() => {
+              const next = !drawerKnobsAutoHide;
+              setDrawerKnobsAutoHide(next);
+              setAutoHide(next);
+              flashSaved("interface");
+            }}
+          >
+            <ToggleThumb $on={drawerKnobsAutoHide} />
+          </Toggle>
+        </ToggleRow>
+      </ADLSection>
+
       {isAdmin && (
         <ADLSection
           label="Talk-to-text"
@@ -1703,6 +1734,7 @@ export default function ChatSettingsModal({
   onClose: () => void;
   onProfileRefresh: () => void;
 }) {
+  useModalLifecycle();
   const [tab, setTab] = useState<ModalTab>("settings");
 
   const myProfile = profiles.find((p) => p.username === currentUser);
@@ -1750,7 +1782,7 @@ export default function ChatSettingsModal({
           </TabGroup>
           {tab === "members" && <CountBadge>{profiles.length}</CountBadge>}
           <div style={{ marginLeft: "auto" }}>
-            <NeonX accent="green" onClick={onClose} title="Close" />
+            <NeonX accent="pink" onClick={onClose} title="Close" />
           </div>
         </Header>
 

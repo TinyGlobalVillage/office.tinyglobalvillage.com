@@ -9,7 +9,9 @@ type Patch =
   | { op: "removeMembers"; usernames: string[] }
   | { op: "promote"; username: string }
   | { op: "demote"; username: string }
+  | { op: "setBlockedFromSelfAdd"; usernames: string[] }
   | { op: "deleteMessages"; ids: string[] }
+  | { op: "truncateMessages" }
   | { op: "deleteGroup" };
 
 function requireGroupAdmin(groupId: string, username: string) {
@@ -81,10 +83,19 @@ export async function PATCH(req: NextRequest) {
       group.admins = group.admins.filter((a) => a !== patch.username);
       break;
     }
+    case "setBlockedFromSelfAdd": {
+      const blocked = (patch.usernames ?? []).filter((u) => typeof u === "string");
+      group.blockedFromSelfAdd = blocked;
+      break;
+    }
     case "deleteMessages": {
       const ids = new Set((patch.ids ?? []).filter((i) => typeof i === "string"));
       const list = db.messages[groupId] ?? [];
       db.messages[groupId] = list.filter((m) => !ids.has(m.id));
+      break;
+    }
+    case "truncateMessages": {
+      db.messages[groupId] = [];
       break;
     }
     case "deleteGroup": {

@@ -4,8 +4,9 @@ import { useState, useEffect, useRef } from "react";
 import styled from "styled-components";
 import LogsModal, { type TabMode } from "./LogsModal";
 import { colors, rgb, glowRgba } from "../theme";
-import { PillButton } from "../styled";
 import NeonX from "./NeonX";
+import { LogsIcon, ArchiveIcon } from "./icons";
+import { useModalLifecycle } from "../lib/drawerKnobs";
 
 type ActivityEvent = {
   timeLabel: string;
@@ -93,7 +94,7 @@ const DropMenu = styled.div`
   z-index: 10;
   min-width: 90px;
   background: var(--t-surface);
-  border: 1px solid ${glowRgba("pink", 0.3)};
+  border: 1px solid ${glowRgba("cyan", 0.3)};
   box-shadow: 0 8px 32px rgba(0,0,0,0.7);
 
   [data-theme="light"] & {
@@ -108,41 +109,84 @@ const DropItem = styled.button<{ $active?: boolean }>`
   font-size: 0.6875rem;
   border: none;
   cursor: pointer;
-  color: ${(p) => p.$active ? colors.pink : "var(--t-textMuted)"};
+  color: ${(p) => p.$active ? colors.cyan : "var(--t-textMuted)"};
   background: transparent;
   transition: background 0.1s;
 
-  &:hover { background: ${glowRgba("pink", 0.08)}; }
+  &:hover { background: ${glowRgba("cyan", 0.08)}; }
+`;
+
+const CtrlBtn = styled.button<{ $active?: boolean }>`
+  height: 2.125rem;
+  min-width: 2.125rem;
+  padding: 0 0.625rem;
+  border-radius: 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  cursor: pointer;
+  flex-shrink: 0;
+  background: ${(p) => (p.$active ? glowRgba("cyan", 0.28) : glowRgba("cyan", 0.14))};
+  border: 1px solid ${(p) => glowRgba("cyan", p.$active ? 0.6 : 0.45)};
+  color: ${colors.cyan};
+  text-shadow: 0 0 6px rgba(${rgb.cyan}, 0.5);
+  transition: background 0.15s, box-shadow 0.15s, transform 0.1s;
+
+  &:hover { background: ${glowRgba("cyan", 0.28)}; box-shadow: 0 0 10px ${glowRgba("cyan", 0.5)}; }
+  &:active { transform: translateY(1px); }
+  &:disabled { opacity: 0.3; cursor: default; transform: none; }
+
+  [data-theme="light"] & { text-shadow: none; }
+
+  svg { width: 14px; height: 14px; }
+
+  @media (max-width: 768px) {
+    height: 2.75rem;
+    min-width: 2.75rem;
+    padding: 0 0.75rem;
+    border-radius: 0.625rem;
+    svg { width: 16px; height: 16px; }
+  }
 `;
 
 const CustomInput = styled.input`
   width: 3.5rem;
+  height: 2.125rem;
   text-align: center;
   font-size: 0.6875rem;
-  padding: 0.25rem 0.5rem;
+  padding: 0 0.5rem;
   border-radius: 0.5rem;
   outline: none;
-  background: transparent;
-  color: ${colors.pink};
-  border: 1px solid ${glowRgba("pink", 0.35)};
+  background: ${glowRgba("cyan", 0.08)};
+  color: ${colors.cyan};
+  border: 1px solid ${glowRgba("cyan", 0.35)};
+
+  @media (max-width: 768px) { height: 2.75rem; }
 `;
 
-const PageBtn = styled.button`
-  width: 1.75rem;
-  height: 1.75rem;
-  border-radius: 0.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.75rem;
-  border: 1px solid ${glowRgba("pink", 0.3)};
-  background: ${glowRgba("pink", 0.1)};
-  color: ${colors.pink};
-  cursor: pointer;
-  transition: opacity 0.15s;
+function ArrowGlyph({ dir }: { dir: "left" | "right" }) {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      {dir === "left"
+        ? <path d="M15 6l-6 6 6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        : <path d="M9 6l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />}
+    </svg>
+  );
+}
 
-  &:disabled { opacity: 0.25; cursor: default; }
-`;
+function CaretDown() {
+  return (
+    <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+      <path d="M5 7L1 3h8L5 7z" />
+    </svg>
+  );
+}
 
 const PageInfo = styled.span`
   font-size: 0.625rem;
@@ -204,6 +248,7 @@ const EventText = styled.span`
 `;
 
 export default function ActivityModal({ onClose }: { onClose: () => void }) {
+  useModalLifecycle();
   const [activity, setActivity] = useState<ActivityEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [perPage, setPerPage] = useState<number>(25);
@@ -255,15 +300,17 @@ export default function ActivityModal({ onClose }: { onClose: () => void }) {
         <Header>
           <Title>Recent Activity</Title>
           {(["logs", "archive"] as TabMode[]).map((t) => (
-            <PillButton key={t} $color="pink" onClick={() => setLogsTab(t)}>
-              {t === "logs" ? "�� Logs" : "🗜 Archive"}
-            </PillButton>
+            <CtrlBtn key={t} onClick={() => setLogsTab(t)} title={t === "logs" ? "Open logs" : "Open archive"}>
+              {t === "logs" ? <LogsIcon size={14} /> : <ArchiveIcon size={14} />}
+              <span>{t === "logs" ? "Logs" : "Archive"}</span>
+            </CtrlBtn>
           ))}
           <Spacer />
           <DropWrap ref={dropRef}>
-            <PillButton $color="pink" $active onClick={() => setShowDropdown((p) => !p)}>
-              {showCustom && parseInt(customPerPage) > 0 ? customPerPage : effectivePerPage} / pg ▾
-            </PillButton>
+            <CtrlBtn $active onClick={() => setShowDropdown((p) => !p)} title="Items per page">
+              <span>{showCustom && parseInt(customPerPage) > 0 ? customPerPage : effectivePerPage} / pg</span>
+              <CaretDown />
+            </CtrlBtn>
             {showDropdown && (
               <DropMenu>
                 {PAGE_OPTIONS.map((n) => (
@@ -290,9 +337,13 @@ export default function ActivityModal({ onClose }: { onClose: () => void }) {
               autoFocus
             />
           )}
-          <PageBtn onClick={() => setPage((p) => Math.max(0, p - 1))} disabled={page === 0}>←</PageBtn>
+          <CtrlBtn onClick={() => setPage((p) => Math.max(0, p - 1))} disabled={page === 0} title="Previous page">
+            <ArrowGlyph dir="left" />
+          </CtrlBtn>
           <PageInfo>{page + 1} / {totalPages}</PageInfo>
-          <PageBtn onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))} disabled={page >= totalPages - 1}>→</PageBtn>
+          <CtrlBtn onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))} disabled={page >= totalPages - 1} title="Next page">
+            <ArrowGlyph dir="right" />
+          </CtrlBtn>
           <NeonX accent="cyan" onClick={() => setFullscreen((p) => !p)} title={fullscreen ? "Exit fullscreen" : "Fullscreen"}>
             {fullscreen ? "⊡" : "⊞"}
           </NeonX>

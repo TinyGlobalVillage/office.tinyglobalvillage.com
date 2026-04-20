@@ -167,18 +167,6 @@ const HeaderRow = styled.div`
   justify-content: space-between;
 `;
 
-const PageTitle = styled.h1`
-  font-size: 1.875rem;
-  font-weight: 700;
-  margin-bottom: 0.25rem;
-  color: ${colors.pink};
-  text-shadow: 0 0 8px #ff66cc, 0 0 20px ${colors.pink};
-
-  [data-theme="light"] & {
-    text-shadow: none;
-  }
-`;
-
 const PageSubtitle = styled.p`
   font-size: 0.875rem;
   color: var(--t-textGhost);
@@ -677,7 +665,6 @@ export default function UtilsPage() {
       <PageMain>
         <HeaderRow>
           <div>
-            <PageTitle>Utils</PageTitle>
             <PageSubtitle>
               Server scripts — grouped, configured, and streamed to your terminal
             </PageSubtitle>

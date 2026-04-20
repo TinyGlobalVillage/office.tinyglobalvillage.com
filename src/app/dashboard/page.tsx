@@ -7,14 +7,10 @@ import UsersCard from "../components/UsersCard";
 import ActivityModal from "../components/ActivityModal";
 import AnnouncementsPanel from "../components/AnnouncementsPanel";
 import ClaudeIcon from "../components/claude/ClaudeIcon";
-import ClaudeMenuModal from "../components/claude/ClaudeMenuModal";
 import SandboxIcon from "../components/sandbox/SandboxIcon";
-import SandboxModal from "../components/sandbox/SandboxModal";
 import LibraryIcon from "../components/LibraryIcon";
-import LibraryModal from "../components/LibraryModal";
-import SuggestionBoxModal from "../components/suggestion/SuggestionBoxModal";
 import DashboardPageModal from "../components/DashboardPageModal";
-import { DatabaseIcon, StorageIcon, EditorIcon, UtilsIcon, SuggestionIcon, ProcessesIcon, DeployIcon, DrawerAlertsIcon, DrawerChatsIcon, DrawerInboxIcon, DrawerSessionsIcon } from "../components/icons";
+import { DatabaseIcon, StorageIcon, EditorIcon, UtilsIcon, SuggestionIcon, ProcessesIcon, DeployIcon, DrawerAlertsIcon, DrawerChatsIcon, DrawerInboxIcon, DrawerSessionsIcon, LogsIcon, SearchIcon } from "../components/icons";
 import { colors, rgb, type GlowColor } from "@/app/theme";
 
 type DashTile = {
@@ -40,7 +36,6 @@ const TYPE_COLOR: Record<string, string> = {
   system: colors.green,
 };
 
-const TILE_LIMIT = 10;
 const TILES_COLLAPSED_KEY = "tgv_dash_tiles_collapsed";
 const TEAM_COLLAPSED_KEY = "tgv_dash_team_collapsed";
 const ACTIVITY_COLLAPSED_KEY = "tgv_dash_activity_collapsed";
@@ -64,6 +59,7 @@ const Main = styled.main`
 
 const Hero = styled.section`
   margin-bottom: 1.5rem;
+  text-align: center;
 `;
 
 const HeroTitle = styled.h1`
@@ -73,6 +69,7 @@ const HeroTitle = styled.h1`
   margin: 1.25rem 0 0.75rem;
   color: ${colors.pink};
   filter: url(#tgv-hero-outline);
+  text-align: center;
   text-shadow:
     0 0 10px rgba(${rgb.pink}, 0.55),
     0 0 22px rgba(${rgb.pink}, 0.3);
@@ -106,7 +103,8 @@ const HeroSub = styled.p`
   color: ${colors.pink};
   font-size: 1rem;
   max-width: 32rem;
-  margin: 0;
+  margin: 0 auto;
+  text-align: center;
   text-shadow: 0 0 8px rgba(${rgb.pink}, 0.45);
 
   [data-theme="light"] & {
@@ -131,8 +129,11 @@ const SBDMBar = styled.div`
 `;
 
 const SBDMIcon = styled.span`
-  font-size: 0.875rem;
-  color: rgba(${rgb.pink}, 0.7);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: ${colors.orange};
+  filter: drop-shadow(0 0 4px rgba(${rgb.orange}, 0.7)) drop-shadow(0 0 10px rgba(${rgb.orange}, 0.35));
 `;
 
 const SBDMInput = styled.input`
@@ -431,63 +432,6 @@ const EmptyTiles = styled.div`
   padding: 2rem 0;
 `;
 
-const PagerRow = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-`;
-
-const PagerBtn = styled.button`
-  width: 1.75rem;
-  height: 1.75rem;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.875rem;
-  transition: all 0.15s;
-  cursor: pointer;
-  background: var(--t-inputBg);
-  border: 1px solid var(--t-borderStrong);
-  color: var(--t-textMuted);
-
-  &:hover {
-    border-color: rgba(${rgb.pink}, 0.5);
-    color: ${colors.pink};
-  }
-
-  &:disabled {
-    opacity: 0.3;
-    cursor: not-allowed;
-  }
-`;
-
-const PagerInfo = styled.span`
-  font-size: 0.75rem;
-  font-family: var(--font-geist-mono), monospace;
-  color: var(--t-textMuted);
-  font-variant-numeric: tabular-nums;
-`;
-
-const BottomGrid = styled.div<{ $teamFullRow: boolean }>`
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 1rem;
-  align-items: stretch;
-  width: 100%;
-
-  @media (min-width: 1024px) {
-    grid-template-columns: ${(p) => (p.$teamFullRow ? "1fr" : "1fr 2fr")};
-  }
-
-  & > * {
-    min-width: 0;
-    height: 100%;
-  }
-`;
-
 const ActivitySub = styled.p`
   font-size: 0.75rem;
   color: rgba(${rgb.cyan}, 0.65);
@@ -561,18 +505,12 @@ const MoreLabel = styled.p`
 export default function Home() {
   const [activity, setActivity] = useState<ActivityEvent[]>([]);
   const [activityOpen, setActivityOpen] = useState(false);
-  const [claudeOpen, setClaudeOpen] = useState(false);
-  const [sandboxOpen, setSandboxOpen] = useState(false);
-  const [libraryOpen, setLibraryOpen] = useState(false);
-  const [suggestionOpen, setSuggestionOpen] = useState(false);
 
   const [filter, setFilter] = useState("");
   const [open, setOpen] = useState(false);
   const [inner, setInner] = useState("");
   const [asc, setAsc] = useState(true);
   const sbdmRef = useRef<HTMLDivElement | null>(null);
-  const [page, setPage] = useState(0);
-  const [teamPageSize, setTeamPageSize] = useState(5);
   const [modalPage, setModalPage] = useState<{ pageKey: string; title: string; glow: GlowColor } | null>(null);
   const [tilesExpanded, setTilesExpanded] = useState(true);
   const [teamExpanded, setTeamExpanded] = useState(true);
@@ -609,14 +547,9 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    const handlers: Record<string, () => void> = {
-      "open-claude": () => setClaudeOpen(true),
-      "open-sandbox": () => setSandboxOpen(true),
-      "open-library": () => setLibraryOpen(true),
-    };
-    const entries = Object.entries(handlers);
-    entries.forEach(([ev, fn]) => window.addEventListener(ev, fn));
-    return () => entries.forEach(([ev, fn]) => window.removeEventListener(ev, fn));
+    const onOpenActivity = () => setActivityOpen(true);
+    window.addEventListener("open-activity", onOpenActivity);
+    return () => window.removeEventListener("open-activity", onOpenActivity);
   }, []);
 
   useEffect(() => {
@@ -633,8 +566,6 @@ export default function Home() {
     };
   }, [open]);
 
-  useEffect(() => { setPage(0); }, [filter]);
-
   const tiles: DashTile[] = useMemo(() => [
     { key: "Processes", title: "Processes", subtitle: "PM2", glow: "cyan", icon: <ProcessesIcon size={28} style={{ color: colors.cyan }} />, pageKey: "processes" },
     { key: "Deploy", title: "Deploy", subtitle: "Projects", glow: "pink", icon: <DeployIcon size={28} style={{ color: colors.pink }} />, pageKey: "deploy" },
@@ -642,42 +573,42 @@ export default function Home() {
     { key: "Storage", title: "Storage", subtitle: "Files", glow: "pink", icon: <StorageIcon size={28} style={{ color: colors.pink }} />, pageKey: "storage" },
     { key: "Editor", title: "Editor", subtitle: "Code", glow: "gold", icon: <EditorIcon size={28} style={{ color: colors.gold }} />, pageKey: "editor" },
     { key: "Utils", title: "Utils", subtitle: "Tooling", glow: "cyan", icon: <UtilsIcon size={28} style={{ color: colors.cyan }} />, pageKey: "utils" },
-    { key: "Claude", title: "Claude", subtitle: "AI Assistant", glow: "orange", icon: <ClaudeIcon size={28} color={colors.orange} />, onClick: () => setClaudeOpen(true) },
-    { key: "Sandbox", title: "Sandbox", subtitle: "Component Lab", glow: "pink", icon: <SandboxIcon size={28} color={colors.pink} />, onClick: () => setSandboxOpen(true) },
-    { key: "Library", title: "Library", subtitle: "Catalog", glow: "violet", icon: <LibraryIcon size={28} color={colors.violet} />, onClick: () => setLibraryOpen(true) },
-    { key: "Suggest", title: "Suggest", subtitle: "Feature ideas", glow: "pink", icon: <SuggestionIcon size={28} style={{ color: colors.pink }} />, onClick: () => setSuggestionOpen(true) },
+    { key: "Claude", title: "Claude", subtitle: "AI Assistant", glow: "orange", icon: <ClaudeIcon size={28} color={colors.orange} />, onClick: () => window.dispatchEvent(new CustomEvent("open-claude")) },
+    { key: "Sandbox", title: "Sandbox", subtitle: "Component Lab", glow: "pink", icon: <SandboxIcon size={28} color={colors.pink} />, onClick: () => window.dispatchEvent(new CustomEvent("open-sandbox")) },
+    { key: "Library", title: "Library", subtitle: "Catalog", glow: "violet", icon: <LibraryIcon size={28} color={colors.violet} />, onClick: () => window.dispatchEvent(new CustomEvent("open-library")) },
+    { key: "Suggest", title: "Suggest", subtitle: "Feature ideas", glow: "pink", icon: <SuggestionIcon size={28} style={{ color: colors.pink }} />, onClick: () => window.dispatchEvent(new CustomEvent("open-suggestion")) },
     { key: "Alerts", title: "Alerts", subtitle: "Announcements", glow: "gold", icon: <DrawerAlertsIcon size={28} style={{ color: colors.gold }} />, onClick: () => window.dispatchEvent(new CustomEvent("tgv-drawer-open", { detail: "alerts" })) },
     { key: "Chats", title: "Chats", subtitle: "Team messaging", glow: "green", icon: <DrawerChatsIcon size={28} style={{ color: colors.green }} />, onClick: () => window.dispatchEvent(new CustomEvent("tgv-drawer-open", { detail: "chat" })) },
     { key: "Inbox", title: "Inbox", subtitle: "Email", glow: "cyan", icon: <DrawerInboxIcon size={28} style={{ color: colors.cyan }} />, onClick: () => window.dispatchEvent(new CustomEvent("tgv-drawer-open", { detail: "inbox" })) },
     { key: "Sessions", title: "Sessions", subtitle: "Video rooms", glow: "pink", icon: <DrawerSessionsIcon size={28} style={{ color: colors.pink }} />, onClick: () => window.dispatchEvent(new CustomEvent("tgv-drawer-open", { detail: "sessions" })) },
+    { key: "Logs", title: "Logs", subtitle: "Recent Activity", glow: "cyan", icon: <LogsIcon size={28} style={{ color: colors.cyan }} />, onClick: () => setActivityOpen(true) },
   ], []);
 
-  const filteredTiles = useMemo(
-    () => tiles.filter((t) => t.title.toLowerCase().includes(filter.toLowerCase())),
-    [tiles, filter]
-  );
+  const filteredTiles = useMemo(() => {
+    return tiles
+      .filter((t) => t.title.toLowerCase().includes(filter.toLowerCase()))
+      .slice()
+      .sort((a, b) => {
+        if (a.key === "Suggest") return 1;
+        if (b.key === "Suggest") return -1;
+        return a.title.localeCompare(b.title);
+      });
+  }, [tiles, filter]);
 
   const panelList = useMemo(() => {
     return tiles
       .filter((t) => t.title.toLowerCase().includes(inner.toLowerCase()))
       .slice()
-      .sort((a, b) => (asc ? a.title.localeCompare(b.title) : b.title.localeCompare(a.title)));
+      .sort((a, b) => {
+        if (a.key === "Suggest") return 1;
+        if (b.key === "Suggest") return -1;
+        return asc ? a.title.localeCompare(b.title) : b.title.localeCompare(a.title);
+      });
   }, [tiles, inner, asc]);
-
-  const paginationActive = filteredTiles.length > TILE_LIMIT;
-  const totalPages = paginationActive ? Math.ceil(filteredTiles.length / TILE_LIMIT) : 1;
-  const safePage = Math.min(page, totalPages - 1);
-  const pageTiles = paginationActive
-    ? filteredTiles.slice(safePage * TILE_LIMIT, (safePage + 1) * TILE_LIMIT)
-    : filteredTiles;
 
   return (
     <>
       {activityOpen && <ActivityModal onClose={() => setActivityOpen(false)} />}
-      {claudeOpen && <ClaudeMenuModal onClose={() => setClaudeOpen(false)} />}
-      {sandboxOpen && <SandboxModal onClose={() => setSandboxOpen(false)} />}
-      {libraryOpen && <LibraryModal onClose={() => setLibraryOpen(false)} />}
-      {suggestionOpen && <SuggestionBoxModal onClose={() => setSuggestionOpen(false)} />}
       {modalPage && (
         <DashboardPageModal
           pageKey={modalPage.pageKey}
@@ -727,6 +658,22 @@ export default function Home() {
           {showBody && (
             <MasterBody>
 
+        <SectionTile $accent="violet">
+          <SectionHeader
+            type="button"
+            onClick={() => setTeamExpanded((v) => !v)}
+            aria-expanded={teamExpanded}
+            aria-label={teamExpanded ? "Collapse Team" : "Expand Team"}
+          >
+            <SectionTitle $accent="violet">Team</SectionTitle>
+            <EclRow>
+              <EclLabel>{teamExpanded ? "Collapse" : "Expand"}</EclLabel>
+              <EclSwitch as="span" $on={teamExpanded} $accent="violet" aria-hidden="true" />
+            </EclRow>
+          </SectionHeader>
+          {teamExpanded && <UsersCard embedded />}
+        </SectionTile>
+
         <TilesTile $accent="orange">
           <TilesHeader
             type="button"
@@ -748,7 +695,7 @@ export default function Home() {
           {tilesExpanded && (<>
         <SBDMWrap ref={sbdmRef}>
           <SBDMBar>
-            <SBDMIcon>🔍</SBDMIcon>
+            <SBDMIcon><SearchIcon size={16} /></SBDMIcon>
             <SBDMInput
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
@@ -791,10 +738,10 @@ export default function Home() {
         </SBDMWrap>
 
         <TileGrid>
-          {pageTiles.length === 0 ? (
+          {filteredTiles.length === 0 ? (
             <EmptyTiles>No tiles match &ldquo;{filter}&rdquo;</EmptyTiles>
           ) : (
-            pageTiles.map((tile) => {
+            filteredTiles.map((tile) => {
               const isSuggest = tile.key === "Suggest";
               const inner = (
                 <TileOuter $glow={tile.glow} $isSuggest={isSuggest}>
@@ -818,87 +765,49 @@ export default function Home() {
             })
           )}
         </TileGrid>
-
-        {totalPages > 1 && (
-          <PagerRow>
-            <PagerBtn
-              onClick={() => setPage((p) => Math.max(0, p - 1))}
-              disabled={safePage === 0}
-            >
-              ‹
-            </PagerBtn>
-            <PagerInfo>
-              {safePage + 1} / {totalPages}
-            </PagerInfo>
-            <PagerBtn
-              onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
-              disabled={safePage === totalPages - 1}
-            >
-              ›
-            </PagerBtn>
-          </PagerRow>
-        )}
           </>)}
         </TilesTile>
 
-        <BottomGrid $teamFullRow={teamPageSize > 5}>
-          <SectionTile $accent="violet">
-            <SectionHeader
-              type="button"
-              onClick={() => setTeamExpanded((v) => !v)}
-              aria-expanded={teamExpanded}
-              aria-label={teamExpanded ? "Collapse Team" : "Expand Team"}
+        <SectionTile $accent="cyan">
+          <SectionHeader
+            type="button"
+            onClick={() => setActivityExpanded((v) => !v)}
+            aria-expanded={activityExpanded}
+            aria-label={activityExpanded ? "Collapse Recent Activity" : "Expand Recent Activity"}
+          >
+            <SectionTitle $accent="cyan">Recent Activity</SectionTitle>
+            <EclRow>
+              <EclLabel>{activityExpanded ? "Collapse" : "Expand"}</EclLabel>
+              <EclSwitch as="span" $on={activityExpanded} $accent="cyan" aria-hidden="true" />
+            </EclRow>
+          </SectionHeader>
+          {activityExpanded && (
+            <button
+              onClick={() => setActivityOpen(true)}
+              style={{ textAlign: "left", width: "100%", padding: "0 0.375rem 0.375rem", background: "none", border: "none", cursor: "pointer" }}
             >
-              <SectionTitle $accent="violet">Team</SectionTitle>
-              <EclRow>
-                <EclLabel>{teamExpanded ? "Collapse" : "Expand"}</EclLabel>
-                <EclSwitch as="span" $on={teamExpanded} $accent="violet" aria-hidden="true" />
-              </EclRow>
-            </SectionHeader>
-            {teamExpanded && <UsersCard embedded onPageSizeChange={setTeamPageSize} />}
-          </SectionTile>
-
-          <SectionTile $accent="cyan">
-            <SectionHeader
-              type="button"
-              onClick={() => setActivityExpanded((v) => !v)}
-              aria-expanded={activityExpanded}
-              aria-label={activityExpanded ? "Collapse Recent Activity" : "Expand Recent Activity"}
-            >
-              <SectionTitle $accent="cyan">Recent Activity</SectionTitle>
-              <EclRow>
-                <EclLabel>{activityExpanded ? "Collapse" : "Expand"}</EclLabel>
-                <EclSwitch as="span" $on={activityExpanded} $accent="cyan" aria-hidden="true" />
-              </EclRow>
-            </SectionHeader>
-            {activityExpanded && (
-              <button
-                onClick={() => setActivityOpen(true)}
-                style={{ textAlign: "left", width: "100%", padding: "0 0.375rem 0.375rem", background: "none", border: "none", cursor: "pointer" }}
-              >
-                <ActivitySub>Click to expand · PM2 + git</ActivitySub>
-                <ActivityDivider>
-                  {activity.length === 0 ? (
-                    <div style={{ padding: "0.75rem 0", fontSize: "0.75rem", color: `rgba(${rgb.cyan}, 0.5)` }}>
-                      Loading activity…
-                    </div>
-                  ) : (
-                    activity.slice(0, 5).map((item, i) => (
-                      <ActivityRow key={i}>
-                        <ActivityTime>{item.timeLabel}</ActivityTime>
-                        <ActivityType $type={item.type}>{item.type}</ActivityType>
-                        <ActivityText>{item.event}</ActivityText>
-                      </ActivityRow>
-                    ))
-                  )}
-                </ActivityDivider>
-                {activity.length > 5 && (
-                  <MoreLabel>+{activity.length - 5} more · click to view all</MoreLabel>
+              <ActivitySub>Click to expand · PM2 + git</ActivitySub>
+              <ActivityDivider>
+                {activity.length === 0 ? (
+                  <div style={{ padding: "0.75rem 0", fontSize: "0.75rem", color: `rgba(${rgb.cyan}, 0.5)` }}>
+                    Loading activity…
+                  </div>
+                ) : (
+                  activity.slice(0, 5).map((item, i) => (
+                    <ActivityRow key={i}>
+                      <ActivityTime>{item.timeLabel}</ActivityTime>
+                      <ActivityType $type={item.type}>{item.type}</ActivityType>
+                      <ActivityText>{item.event}</ActivityText>
+                    </ActivityRow>
+                  ))
                 )}
-              </button>
-            )}
-          </SectionTile>
-        </BottomGrid>
+              </ActivityDivider>
+              {activity.length > 5 && (
+                <MoreLabel>+{activity.length - 5} more · click to view all</MoreLabel>
+              )}
+            </button>
+          )}
+        </SectionTile>
 
             </MasterBody>
           )}

@@ -3,7 +3,10 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import styled from "styled-components";
 import { colors, rgb, glowRgba, type GlowColor } from "../theme";
+import { DrawerTitle } from "../styled";
 import NeonX from "./NeonX";
+import Tooltip from "./ui/Tooltip";
+import { useModalLifecycle } from "../lib/drawerKnobs";
 
 type Props = {
   pageKey: string;
@@ -61,19 +64,13 @@ const Header = styled.div<{ $glow: GlowColor }>`
   }
 `;
 
-const Title = styled.h2<{ $glow: GlowColor }>`
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
+const Title = styled(DrawerTitle)`
   margin: 0 0.25rem;
-  color: ${(p) => colors[p.$glow]};
 
   @media (max-width: 768px) {
-    font-size: 0.5625rem;
-    letter-spacing: 0.08em;
+    font-size: 1.125rem;
     margin: 0;
-    max-width: 42vw;
+    max-width: 50vw;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -341,6 +338,7 @@ const SidebarSvg = ({ open }: { open: boolean }) => (
 );
 
 export default function DashboardPageModal({ pageKey, title, glow, onClose }: Props) {
+  useModalLifecycle();
   const [sidebarShown, setSidebarShown] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
   const [zoom, setZoom] = useState(100);
@@ -451,49 +449,53 @@ export default function DashboardPageModal({ pageKey, title, glow, onClose }: Pr
       <Backdrop onClick={onClose} />
       <Panel $glow={glow} $fs={fullscreen} role="dialog" aria-modal="true" aria-label={title}>
         <Header $glow={glow}>
-          <Title $glow={glow}>{title}</Title>
+          <Title $accent={glow}>{title}</Title>
           <Spacer />
 
           <ZoomTrio>
-            <CtrlBtn
-              $glow={glow}
-              onClick={() => setZoom((z) => Math.max(ZOOM_MIN, z - ZOOM_STEP))}
-              disabled={zoom <= ZOOM_MIN}
-              aria-label="Zoom out"
-              title="Zoom out"
-            >
-              −
-            </CtrlBtn>
-            <ZoomLabel
-              $glow={glow}
-              onClick={() => setZoom(100)}
-              aria-label={`Zoom ${zoom}% (click to reset)`}
-              title="Reset zoom"
-            >
-              {zoom}%
-            </ZoomLabel>
-            <CtrlBtn
-              $glow={glow}
-              onClick={() => setZoom((z) => Math.min(ZOOM_MAX, z + ZOOM_STEP))}
-              disabled={zoom >= ZOOM_MAX}
-              aria-label="Zoom in"
-              title="Zoom in"
-            >
-              +
-            </CtrlBtn>
+            <Tooltip accent={colors[glow]} label="Zoom out" disabled={zoom <= ZOOM_MIN}>
+              <CtrlBtn
+                $glow={glow}
+                onClick={() => setZoom((z) => Math.max(ZOOM_MIN, z - ZOOM_STEP))}
+                disabled={zoom <= ZOOM_MIN}
+                aria-label="Zoom out"
+              >
+                −
+              </CtrlBtn>
+            </Tooltip>
+            <Tooltip accent={colors[glow]} label="Reset zoom">
+              <ZoomLabel
+                $glow={glow}
+                onClick={() => setZoom(100)}
+                aria-label={`Zoom ${zoom}% (click to reset)`}
+              >
+                {zoom}%
+              </ZoomLabel>
+            </Tooltip>
+            <Tooltip accent={colors[glow]} label="Zoom in" disabled={zoom >= ZOOM_MAX}>
+              <CtrlBtn
+                $glow={glow}
+                onClick={() => setZoom((z) => Math.min(ZOOM_MAX, z + ZOOM_STEP))}
+                disabled={zoom >= ZOOM_MAX}
+                aria-label="Zoom in"
+              >
+                +
+              </CtrlBtn>
+            </Tooltip>
           </ZoomTrio>
 
           <ZoomDDMWrap onClick={(e) => e.stopPropagation()} onTouchStart={(e) => e.stopPropagation()}>
-            <ZoomDDMTrigger
-              $glow={glow}
-              $open={zoomDDMOpen}
-              onClick={() => setZoomDDMOpen((v) => !v)}
-              aria-label={`Zoom ${zoom}%`}
-              title="Zoom"
-            >
-              {zoom}%
-              <ZoomDDMArrow $open={zoomDDMOpen}>▾</ZoomDDMArrow>
-            </ZoomDDMTrigger>
+            <Tooltip accent={colors[glow]} label="Zoom">
+              <ZoomDDMTrigger
+                $glow={glow}
+                $open={zoomDDMOpen}
+                onClick={() => setZoomDDMOpen((v) => !v)}
+                aria-label={`Zoom ${zoom}%`}
+              >
+                {zoom}%
+                <ZoomDDMArrow $open={zoomDDMOpen}>▾</ZoomDDMArrow>
+              </ZoomDDMTrigger>
+            </Tooltip>
             {zoomDDMOpen && (
               <ZoomDDMPanel $glow={glow}>
                 <ZoomDDMItem
@@ -534,37 +536,42 @@ export default function DashboardPageModal({ pageKey, title, glow, onClose }: Pr
 
           <Separator $glow={glow} />
 
-          <CtrlBtn
-            $glow={glow}
-            $active={sidebarShown}
-            onClick={() => setSidebarShown((v) => !v)}
-            aria-label={sidebarShown ? "Hide side drawers" : "Show side drawers"}
-            title={sidebarShown ? "Hide side drawers" : "Show side drawers"}
-          >
-            <SidebarSvg open={sidebarShown} />
-          </CtrlBtn>
+          <Tooltip accent={colors[glow]} label={sidebarShown ? "Hide side drawers" : "Show side drawers"}>
+            <CtrlBtn
+              $glow={glow}
+              $active={sidebarShown}
+              onClick={() => setSidebarShown((v) => !v)}
+              aria-label={sidebarShown ? "Hide side drawers" : "Show side drawers"}
+            >
+              <SidebarSvg open={sidebarShown} />
+            </CtrlBtn>
+          </Tooltip>
 
-          <CtrlBtn
-            $glow={glow}
-            onClick={openPopout}
-            disabled={popoutActive}
-            aria-label="Open in new window"
-            title={popoutActive ? "Already open in pop-out" : "Open in new window"}
-          >
-            ⧉
-          </CtrlBtn>
+          <Tooltip accent={colors[glow]} label={popoutActive ? "Already open in pop-out" : "Open in new window"}>
+            <CtrlBtn
+              $glow={glow}
+              onClick={openPopout}
+              disabled={popoutActive}
+              aria-label="Open in new window"
+            >
+              ⧉
+            </CtrlBtn>
+          </Tooltip>
 
-          <CtrlBtn
-            $glow={glow}
-            $active={fullscreen}
-            onClick={() => setFullscreen((p) => !p)}
-            aria-label={fullscreen ? "Exit fullscreen" : "Fullscreen"}
-            title={fullscreen ? "Exit fullscreen" : "Fullscreen"}
-          >
-            {fullscreen ? "⊡" : "⊞"}
-          </CtrlBtn>
+          <Tooltip accent={colors[glow]} label={fullscreen ? "Exit fullscreen" : "Fullscreen"}>
+            <CtrlBtn
+              $glow={glow}
+              $active={fullscreen}
+              onClick={() => setFullscreen((p) => !p)}
+              aria-label={fullscreen ? "Exit fullscreen" : "Fullscreen"}
+            >
+              {fullscreen ? "⊡" : "⊞"}
+            </CtrlBtn>
+          </Tooltip>
 
-          <NeonX accent={glow} onClick={onClose} title="Close (Esc)" />
+          <Tooltip accent={colors[glow]} label="Close (Esc)">
+            <NeonX accent={glow} onClick={onClose} title="Close (Esc)" />
+          </Tooltip>
         </Header>
 
         <Body>

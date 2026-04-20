@@ -11,6 +11,7 @@ import {
   DrawerTab,
   DrawerTabLabel,
   DrawerResizeHandle,
+  DrawerTitle,
   PanelIconBtn,
 } from "../styled";
 
@@ -21,6 +22,7 @@ const VideoConference = dynamic(() => import("@livekit/components-react").then(m
 import "@livekit/components-styles";
 import { DrawerSessionsIcon } from "./icons";
 import NeonX from "./NeonX";
+import { useKnobVisibility } from "../lib/drawerKnobs";
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -74,14 +76,8 @@ const Header = styled(DrawerHeader)`
   border-bottom: 1px solid rgba(${PINK_RGB}, 0.12);
 `;
 
-const TitleText = styled.span`
-  font-size: 0.875rem;
-  font-weight: 700;
-  color: ${PINK};
+const TitleText = styled(DrawerTitle).attrs({ $accent: "pink" })`
   flex: 1;
-  text-shadow: 0 0 8px rgba(${PINK_RGB}, 0.8), 0 0 20px rgba(${PINK_RGB}, 0.4);
-
-  [data-theme="light"] & { text-shadow: none; }
 `;
 
 const ControlBtn = styled(PanelIconBtn)`
@@ -114,6 +110,13 @@ const ControlBtn = styled(PanelIconBtn)`
   [data-theme="light"] & { text-shadow: none; }
 
   svg { width: 14px; height: 14px; }
+
+  @media (max-width: 768px) {
+    width: 2.75rem;
+    height: 2.75rem;
+    font-size: 1.1875rem;
+    border-radius: 0.625rem;
+  }
 `;
 
 const HeaderLeaveBtn = styled(ControlBtn)`
@@ -264,10 +267,21 @@ export default function SessionsDrawer() {
     setTabY(getDefaultTabY());
   }, []);
 
-  // Cross-drawer mutual-exclusive: close when another drawer opens
+  // Cross-drawer mutual-exclusive: close when another drawer opens, and hide
+  // our tab while another drawer is open (their panel would cover/overlap us).
+  const [otherDrawerOpen, setOtherDrawerOpen] = useState(false);
+  const { hideKnob } = useKnobVisibility();
   useEffect(() => {
     const handler = (e: Event) => {
-      if ((e as CustomEvent).detail !== DRAWER_ID && open) setOpen(false);
+      const detail = (e as CustomEvent).detail;
+      if (detail === DRAWER_ID) {
+        setOtherDrawerOpen(false);
+      } else if (detail === "close") {
+        setOtherDrawerOpen(false);
+      } else {
+        if (open) setOpen(false);
+        setOtherDrawerOpen(true);
+      }
     };
     window.addEventListener(DRAWER_EVENT, handler);
     return () => window.removeEventListener(DRAWER_EVENT, handler);
@@ -287,7 +301,12 @@ export default function SessionsDrawer() {
   // ESC to close
   useEffect(() => {
     if (!open) return;
-    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setOpen(false);
+        window.dispatchEvent(new CustomEvent(DRAWER_EVENT, { detail: "close" }));
+      }
+    };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [open]);
@@ -295,6 +314,10 @@ export default function SessionsDrawer() {
   const handleOpen = () => {
     window.dispatchEvent(new CustomEvent(DRAWER_EVENT, { detail: DRAWER_ID }));
     setOpen(true);
+  };
+  const handleClose = () => {
+    setOpen(false);
+    window.dispatchEvent(new CustomEvent(DRAWER_EVENT, { detail: "close" }));
   };
 
   // Resize drag
@@ -320,22 +343,36 @@ export default function SessionsDrawer() {
     window.addEventListener("mouseup", onUp);
   }, [width]);
 
-  // Tab drag
+  // Tab drag — also interprets a no-drag release as a click to toggle open/close.
   const tabDragging = useRef(false);
+  const didDrag = useRef(false);
   const tabStartY = useRef(0);
   const tabStartPos = useRef(0);
 
   const onTabMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
     tabDragging.current = true;
+    didDrag.current = false;
     tabStartY.current = e.clientY;
     tabStartPos.current = tabY;
     const onMove = (ev: MouseEvent) => {
       if (!tabDragging.current) return;
-      const newY = Math.max(80, Math.min(window.innerHeight - 120, tabStartPos.current + (ev.clientY - tabStartY.current)));
-      setTabY(newY);
+      const delta = ev.clientY - tabStartY.current;
+      if (Math.abs(delta) > 4) didDrag.current = true;
+      if (didDrag.current) {
+        const newY = Math.max(80, Math.min(window.innerHeight - 120, tabStartPos.current + delta));
+        setTabY(newY);
+      }
     };
     const onUp = () => {
       tabDragging.current = false;
+      if (!didDrag.current) {
+        setOpen((p) => {
+          const next = !p;
+          window.dispatchEvent(new CustomEvent(DRAWER_EVENT, { detail: next ? DRAWER_ID : "close" }));
+          return next;
+        });
+      }
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("mouseup", onUp);
     };
@@ -378,23 +415,25 @@ export default function SessionsDrawer() {
   return (
     <>
       {/* Tab pill */}
-      <SideTab
-        onMouseDown={onTabMouseDown}
-        title={open ? "Close sessions" : "Open sessions"}
-        $openOffset={open ? width : 0}
-        style={{
-          top: tabY,
-          backgroundColor: open
-            ? `rgba(${rgb.pink}, 0.25)`
-            : `rgba(${rgb.pink}, 0.12)`,
-        }}
-      >
-        <DrawerSessionsIcon size={16} />
-        <DrawerTabLabel>Sessions</DrawerTabLabel>
-      </SideTab>
+      {!otherDrawerOpen && !hideKnob && (
+        <SideTab
+          onMouseDown={onTabMouseDown}
+          title={open ? "Close sessions" : "Open sessions"}
+          $openOffset={open ? width : 0}
+          style={{
+            top: tabY,
+            backgroundColor: open
+              ? `rgba(${rgb.pink}, 0.25)`
+              : `rgba(${rgb.pink}, 0.12)`,
+          }}
+        >
+          <DrawerSessionsIcon size={16} />
+          <DrawerTabLabel>Sessions</DrawerTabLabel>
+        </SideTab>
+      )}
 
       {/* Backdrop */}
-      {open && <Backdrop onClick={() => setOpen(false)} />}
+      {open && <Backdrop onClick={handleClose} />}
 
       {/* Panel */}
       {open && (
@@ -424,7 +463,7 @@ export default function SessionsDrawer() {
             >
               ⧉
             </ControlBtn>
-            <NeonX accent="pink" onClick={() => setOpen(false)} title="Close (Esc)" />
+            <NeonX accent="pink" onClick={handleClose} title="Close (Esc)" />
           </Header>
 
           <Body>

@@ -68,18 +68,6 @@ const HeaderRow = styled.div`
   gap: 0.75rem;
 `;
 
-const PageTitle = styled.h1`
-  font-size: 1.875rem;
-  font-weight: 700;
-  margin-bottom: 0.25rem;
-  color: ${colors.cyan};
-  text-shadow: 0 0 8px ${colors.cyan}, 0 0 20px ${colors.cyan};
-
-  [data-theme="light"] & {
-    text-shadow: none;
-  }
-`;
-
 const PageSubtitle = styled.p`
   font-size: 0.75rem;
   color: var(--t-textGhost);
@@ -1047,7 +1035,6 @@ function StoragePageInner() {
         {!embedded && (
           <HeaderRow>
             <div>
-              <PageTitle>Storage</PageTitle>
               <PageSubtitle>
                 Files are served at{" "}
                 <CdnPath>{CDN_BASE}/&#123;project&#125;/&#123;file&#125;</CdnPath>

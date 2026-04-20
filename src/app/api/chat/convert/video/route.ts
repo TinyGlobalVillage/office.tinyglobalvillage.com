@@ -44,6 +44,11 @@ export async function POST(req: NextRequest) {
     const fps = fd.get("fps") ? parseInt(fd.get("fps") as string) : null;
     const previewMode = fd.get("preview") === "true";
     const previewSecs = parseInt((fd.get("previewSecs") as string) ?? "3");
+    const ALLOWED_PRESETS = new Set(["ultrafast", "superfast", "veryfast", "faster", "fast", "medium", "slow", "slower", "veryslow"]);
+    const rawPreset = (fd.get("preset") as string) ?? "medium";
+    const preset = ALLOWED_PRESETS.has(rawPreset) ? rawPreset : "medium";
+    const startSecs = fd.get("startSecs") ? Math.max(0, parseFloat(fd.get("startSecs") as string)) : null;
+    const endSecs = fd.get("endSecs") ? Math.max(0, parseFloat(fd.get("endSecs") as string)) : null;
 
     const id = `vid-${Date.now()}-${Math.random().toString(36).slice(2)}`;
     const inExt = path.extname(file.name) || ".mp4";
@@ -65,22 +70,26 @@ export async function POST(req: NextRequest) {
         const scaleFilter = scaleW ? `scale=${scaleW}:-2:flags=lanczos` : "scale=iw:-2";
 
         try {
+            const trimArgs: string[] = [];
+            if (startSecs !== null) trimArgs.push("-ss", String(startSecs));
+            if (endSecs !== null) trimArgs.push("-to", String(endSecs));
+
             if (format === "gif" || previewMode) {
                 const gifFps = fps ?? (previewMode ? 10 : 15);
                 const vf = `fps=${gifFps},${scaleFilter},split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse`;
-                const paletteArgs = ["-y"];
-                if (previewMode) paletteArgs.push("-t", String(previewSecs));
+                const paletteArgs = ["-y", ...trimArgs];
+                if (previewMode && endSecs === null) paletteArgs.push("-t", String(previewSecs));
                 paletteArgs.push("-i", inPath, "-vf", vf, "-loop", "0", outPath);
                 await execFileAsync("ffmpeg", paletteArgs, { timeout: 120000 });
             } else {
-                const args = ["-y", "-i", inPath];
+                const args = ["-y", ...trimArgs, "-i", inPath];
 
                 if (maxW) args.push("-vf", `${scaleFilter},setsar=1`);
 
                 if (format === "h264") {
-                    args.push("-c:v", "libx264", "-crf", String(crf), "-preset", "medium", "-c:a", "aac", "-movflags", "+faststart");
+                    args.push("-c:v", "libx264", "-crf", String(crf), "-preset", preset, "-c:a", "aac", "-movflags", "+faststart");
                 } else if (format === "h265") {
-                    args.push("-c:v", "libx265", "-crf", String(crf), "-preset", "medium", "-c:a", "aac", "-tag:v", "hvc1");
+                    args.push("-c:v", "libx265", "-crf", String(crf), "-preset", preset, "-c:a", "aac", "-tag:v", "hvc1");
                 } else if (format === "vp9") {
                     args.push("-c:v", "libvpx-vp9", "-crf", String(crf), "-b:v", "0", "-c:a", "libopus");
                 }

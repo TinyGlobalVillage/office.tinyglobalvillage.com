@@ -14,19 +14,26 @@ import { MembersIcon } from "./icons";
 
 const navLinks = [
   { label: "Dashboard", href: "/dashboard" },
-  { label: "Deploy", href: "/dashboard/deploy" },
-  { label: "Processes", href: "/dashboard/processes" },
-  { label: "Storage", href: "/dashboard/storage" },
-  { label: "Editor", href: "/dashboard/editor" },
-  { label: "Database", href: "/dashboard/database" },
-  { label: "Email", href: "/dashboard/email" },
-  { label: "Utils", href: "/dashboard/utils" },
 ];
 
-const modalLinks = [
+type ModalLink = { label: string; glow: keyof typeof colors; event?: string; drawer?: string; href?: string };
+
+const modalLinks: ModalLink[] = [
+  { label: "Alerts", drawer: "alerts", glow: "gold" },
+  { label: "Chats", drawer: "chat", glow: "green" },
   { label: "Claude", event: "open-claude", glow: "orange" },
-  { label: "Sandbox", event: "open-sandbox", glow: "pink" },
+  { label: "Database", href: "/dashboard/database", glow: "gold" },
+  { label: "Deploy", href: "/dashboard/deploy", glow: "pink" },
+  { label: "Editor", href: "/dashboard/editor", glow: "gold" },
+  { label: "Inbox", drawer: "inbox", glow: "cyan" },
   { label: "Library", event: "open-library", glow: "violet" },
+  { label: "Logs", event: "open-activity", glow: "cyan" },
+  { label: "Processes", href: "/dashboard/processes", glow: "cyan" },
+  { label: "Sandbox", event: "open-sandbox", glow: "pink" },
+  { label: "Sessions", drawer: "sessions", glow: "pink" },
+  { label: "Storage", href: "/dashboard/storage", glow: "pink" },
+  { label: "Utils", href: "/dashboard/utils", glow: "cyan" },
+  { label: "Suggest", event: "open-suggestion", glow: "pink" },
 ];
 
 function BalloonSVG({ size = 30 }: { size?: number }) {
@@ -112,11 +119,14 @@ const ArrowBtn = styled.button`
   }
 `;
 
+const NAV_BTN_HEIGHT = "2rem";
+
 const DDMTrigger = styled.button<{ $open?: boolean }>`
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.375rem 0.75rem;
+  height: ${NAV_BTN_HEIGHT};
+  padding: 0 0.75rem;
   border-radius: 0.5rem;
   font-size: 0.6875rem;
   font-weight: 700;
@@ -154,21 +164,19 @@ const DDMMenu = styled.div`
 const DDMLink = styled(Link)<{ $active?: boolean }>`
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.625rem 1rem;
+  justify-content: flex-start;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.5rem 0.875rem;
   font-size: 0.6875rem;
   font-weight: 700;
+  text-align: left;
   text-transform: uppercase;
-  letter-spacing: 0.15em;
+  letter-spacing: 0.1em;
   text-decoration: none;
   transition: all 0.15s;
   color: ${(p) => (p.$active ? colors.pink : "var(--t-textFaint)")};
   background: ${(p) => (p.$active ? `rgba(${rgb.pink}, 0.1)` : "transparent")};
-  border-bottom: 1px solid rgba(${rgb.pink}, 0.08);
-
-  &:last-child {
-    border-bottom: none;
-  }
 
   &:hover {
     color: ${colors.pink};
@@ -185,13 +193,15 @@ const DDMDivider = styled.div`
 const DDMBtn = styled.button<{ $glow?: string }>`
   display: flex;
   align-items: center;
-  gap: 0.375rem;
+  justify-content: flex-start;
+  gap: 0.5rem;
   width: 100%;
-  padding: 0.375rem 0.75rem;
+  padding: 0.5rem 0.875rem;
   font-size: 0.6875rem;
-  font-weight: 600;
+  font-weight: 700;
+  text-align: left;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
   background: none;
   border: none;
   cursor: pointer;
@@ -225,7 +235,12 @@ const DesktopOnly = styled.span`
 
 const ChipBtn = styled.button<{ $accent: string; $isMe?: boolean }>`
   position: relative;
-  padding: 0.125rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: ${NAV_BTN_HEIGHT};
+  height: ${NAV_BTN_HEIGHT};
+  padding: 0;
   border-radius: 50%;
   border: none;
   background: none;
@@ -264,22 +279,22 @@ const PingBadge = styled.span<{ $accent: string }>`
 `;
 
 const OverflowBtn = styled.button<{ $open?: boolean }>`
-  height: 1.5rem;
-  padding: 0 0.5rem;
-  border-radius: 0.75rem;
+  height: ${NAV_BTN_HEIGHT};
+  padding: 0 0.625rem;
+  border-radius: 0.5rem;
   display: flex;
   align-items: center;
-  gap: 0.25rem;
-  font-size: 0.625rem;
+  gap: 0.3125rem;
+  font-size: 0.75rem;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.15s;
-  background: ${(p) => (p.$open ? `rgba(${rgb.pink}, 0.25)` : "var(--t-inputBg)")};
+  background: ${(p) => (p.$open ? `rgba(${rgb.pink}, 0.25)` : `rgba(${rgb.pink}, 0.08)`)};
   border: 1px solid rgba(${rgb.pink}, 0.4);
   color: ${colors.pink};
 
   &:hover {
-    background: rgba(${rgb.pink}, 0.18);
+    background: rgba(${rgb.pink}, 0.22);
   }
 `;
 
@@ -331,12 +346,14 @@ const OverflowName = styled.span<{ $accent: string }>`
 const SignOutBtn = styled.button`
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 0.375rem;
+  height: ${NAV_BTN_HEIGHT};
   font-size: 0.625rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  padding: 0.25rem 0.625rem;
+  padding: 0 0.75rem;
   border-radius: 0.5rem;
   cursor: pointer;
   transition: all 0.15s;
@@ -458,8 +475,8 @@ function TopNavInner() {
 
   useEffect(() => {
     // --nav-offset = total space to leave above page content.
-    // Includes navbar height + hide toggle pill + breathing gap (56px covers all three).
-    const CLEARANCE = 15;
+    // Includes navbar height + hide toggle pill + breathing gap.
+    const CLEARANCE = 56;
     document.documentElement.style.setProperty(
       "--nav-offset",
       hidden ? `${CLEARANCE}px` : `${navH + CLEARANCE}px`
@@ -510,7 +527,7 @@ function TopNavInner() {
         title={`${p.displayName}${myPingCount > 0 ? ` · ${myPingCount} unread ping${myPingCount !== 1 ? "s" : ""}` : ""}`}
       >
         <span style={{ position: "relative", display: "block", flexShrink: 0 }}>
-          <UserAvatar profile={p} size={20} />
+          <UserAvatar profile={p} size={26} />
           <PresenceDot $online={online} />
         </span>
         {myPingCount > 0 && (
@@ -561,24 +578,42 @@ function TopNavInner() {
                     const active = pathname === link.href;
                     return (
                       <DDMLink key={link.href} href={link.href} $active={active}>
-                        {active && <span style={{ color: colors.pink, fontSize: 7 }}>●</span>}
                         {link.label}
                       </DDMLink>
                     );
                   })}
                   <DDMDivider />
-                  {modalLinks.map((ml) => (
-                    <DDMBtn
-                      key={ml.event}
-                      $glow={colors[ml.glow as keyof typeof colors]}
-                      onClick={() => {
-                        window.dispatchEvent(new CustomEvent(ml.event));
-                        setMenuOpen(false);
-                      }}
-                    >
-                      {ml.label}
-                    </DDMBtn>
-                  ))}
+                  {modalLinks.map((ml) => {
+                    if (ml.href) {
+                      return (
+                        <DDMLink
+                          key={ml.label}
+                          href={ml.href}
+                          $active={pathname === ml.href}
+                          style={{ color: colors[ml.glow] }}
+                          onClick={() => setMenuOpen(false)}
+                        >
+                          {ml.label}
+                        </DDMLink>
+                      );
+                    }
+                    return (
+                      <DDMBtn
+                        key={ml.label}
+                        $glow={colors[ml.glow]}
+                        onClick={() => {
+                          if (ml.drawer) {
+                            window.dispatchEvent(new CustomEvent("tgv-drawer-open", { detail: ml.drawer }));
+                          } else if (ml.event) {
+                            window.dispatchEvent(new CustomEvent(ml.event));
+                          }
+                          setMenuOpen(false);
+                        }}
+                      >
+                        {ml.label}
+                      </DDMBtn>
+                    );
+                  })}
                 </DDMMenu>
               )}
             </div>
@@ -621,7 +656,7 @@ function TopNavInner() {
                 )}
               </div>
             )}
-            <LDM size={28} />
+            <LDM size={32} />
             <SignOutBtn onClick={() => signOut({ callbackUrl: "/login" })} title="Sign out of TGV Office">
               <span>⏏</span>
               <DesktopOnly>Sign out</DesktopOnly>
