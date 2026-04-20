@@ -12,7 +12,7 @@ const MUTED_TEXT = "rgba(255,255,255,0.35)";
 export type SandboxEntry = {
   key: string;
   name: string;
-  category: "Navigation" | "Toggles" | "Menus" | "Editor Controls";
+  category: "Buttons" | "Icons" | "Menus" | "Navigation" | "Toggles";
   summary: string;
   usage: string;
   code: string;
@@ -2524,8 +2524,8 @@ function ADLDemo() {
       <Highlight label="ADL">
         <AdlDemoWrap>
           <AdlDemoGroup label="Menus" defaultOpen={true} items={["AlertsDrawer", "ChatsDrawer", "Drawer", "Dropdown Menu"]} />
-          <AdlDemoGroup label="Navigation" defaultOpen={false} items={["ACR", "DTog", "GPG", "Scrollbar"]} />
-          <AdlDemoGroup label="Toggles" defaultOpen={true} items={["ECL", "Eyeball", "Lightswitch"]} />
+          <AdlDemoGroup label="Navigation" defaultOpen={false} items={["ACR", "GPG", "Scrollbar"]} />
+          <AdlDemoGroup label="Toggles" defaultOpen={true} items={["DTog", "ECL", "Eyeball", "Lightswitch"]} />
         </AdlDemoWrap>
       </Highlight>
       <DrawerCaption>Whole row is the hit target. Click anywhere on a header to toggle the mini Lightswitch AND collapse/expand the body together.</DrawerCaption>
@@ -3022,11 +3022,11 @@ function ScrollbarDemo() {
 // drives render order in SandboxModal, so keep new entries inserted in the
 // correct alphabetical position — don't just append.
 export const REGISTRY: SandboxEntry[] = [
-  // ── Editor Controls ───────────────────────────────────────────────────
+  // ── Buttons ───────────────────────────────────────────────────────────
   {
     key: "ResetButton",
     name: "Reset Button",
-    category: "Editor Controls",
+    category: "Buttons",
     summary: "20×20 cyan-bordered square with ↺ glyph. Canonical 'back to default' affordance. Sits left of editable value inputs.",
     usage: "Reuse this exact element anywhere an editor control needs a reset affordance. Don't invent a new look.",
     code: `<ResetBtn onClick={() => setValue(defaultValue)}>↺</ResetBtn>
@@ -3046,7 +3046,7 @@ const ResetBtn = styled.button\`
   {
     key: "SRT",
     name: "Sliding Resize Toggle",
-    category: "Editor Controls",
+    category: "Toggles",
     summary: "Editor slider with cyan gradient track + 3D radial-glow thumb. Four pieces: slider, Reset Button (↺), ValueInput (square, tabular numerals, typing moves slider), and ECL at far right. The canonical 3-axis block is Zoom / X-Axis / Y-Axis in that order.",
     usage: "Use resetValue prop or auto-pick (0 if range straddles 0, else 1 if covers 1, else midpoint). ValueInput is controlled — typing updates slider immediately.",
     code: `<SRT
@@ -3062,7 +3062,7 @@ const ResetBtn = styled.button\`
   {
     key: "TSG",
     name: "Tab Switch Group",
-    category: "Editor Controls",
+    category: "Toggles",
     summary: "Horizontal control row at the top of a dashboard tab. Contains: (1) Labels/Icons Lightswitch (toggles text labels vs. SVG icons), (2) Collapse-All Lightswitch (expands/collapses every collapsible section in the tab).",
     usage: "Both switches left-aligned. Tooltip on hover (mouse) or always visible (touch). Add a TSG to every new dashboard tab with collapsible sections.",
     code: `<TSG>
@@ -3213,7 +3213,7 @@ const AdlBody = styled.div<{ $open: boolean }>\`
   {
     key: "DrawerIcon",
     name: "DrawerIcon",
-    category: "Menus",
+    category: "Icons",
     summary: "Abstract styling pattern for the SVG glyph on a Drawer's tab pill + popout header. Rules: 13–14px, outline preferred, accent-colored, open-state swaps for 10×10 × close icon. Per-drawer specifics (bell/bubble/envelope/camera) live in the `<Name>Drawer` entries.",
     usage: "Every drawer needs an identity glyph — gold bell (Alerts), green speech bubble (Chats), cyan envelope (Inbox), pink video camera (Sessions). Use inline SVG with `stroke=\"currentColor\"` so it inherits the drawer accent. Never emoji.",
     code: `<TabPill $accent={accent}>
@@ -3225,7 +3225,7 @@ const AdlBody = styled.div<{ $open: boolean }>\`
   {
     key: "DrawerMenuButton",
     name: "DrawerMenuButton",
-    category: "Menus",
+    category: "Buttons",
     summary: "Abstract styling pattern for a Drawer's header control buttons. Rules: 2.125rem square, low-alpha accent bg + thin accent border + bold accent glyph + text-shadow glow (dark) + box-shadow glow on hover. One accent per drawer; destructive actions may stay red. Per-drawer button rosters in the concrete `<Name>Drawer` entries.",
     usage: "Use for every control in a drawer's header roster — zoom, popout, fullscreen, settings, close, etc. Match the drawer's accent. The only exception: destructive actions (leave, delete) may use `#ef4444` red. In a popout window, replace the `⧉` button with a `ReturnToMain` button using the same styling.",
     code: `<MenuBtnRow>
@@ -3282,7 +3282,7 @@ const AdlBody = styled.div<{ $open: boolean }>\`
   {
     key: "NeonButton",
     name: "NeonButton",
-    category: "Menus",
+    category: "Buttons",
     summary: "Rounded accent-pill button. Thin accent border (alpha ~0.3–0.4), low-alpha accent background (~0.1–0.14), full-strength accent text. Dark mode adds text-shadow glow; hover intensifies bg and adds box-shadow glow. Compact uppercase variant for toggle pills. Canonical CTA style inside any drawer/panel.",
     usage: "Use for primary and secondary actions inside drawers, modals, and panels. Pick one accent per drawer to stay visually consistent. Compact variant for toggle/pill rows. Light mode drops the text-shadow but keeps border + bg + box-shadow glow on hover.",
     code: `<NeonButton $accent="#ff4ecb" onClick={join}>Join Session</NeonButton>
@@ -3375,7 +3375,7 @@ const AdlBody = styled.div<{ $open: boolean }>\`
   {
     key: "TileButton",
     name: "TileButton",
-    category: "Menus",
+    category: "Buttons",
     summary: "Clickable launcher sibling of Tile. Same accent palette + border-radius, but icon + uppercase label + sub layout and hover-only outer glow (vs. Tile's always-on ambient glow). Canonical on the dashboard's 1→2→3→5 launcher grid. Dashed-border sub-variant (transparent bg + 2px dashed border) for '+Add' / SuggestionBox slots.",
     usage: "Use for launcher grids: dashboards, modal home screens, category pickers, shortcut panels. Pair with GPG/ACR for responsive pagination when the grid exceeds the viewport. Dashed variant for 'add new' slots. Do NOT use as a content container — use Tile.",
     code: `<TileButton $accent={colors.pink} onClick={openModal}>
@@ -3423,7 +3423,7 @@ const AdlBody = styled.div<{ $open: boolean }>\`
   {
     key: "DTog",
     name: "Drag Toggle",
-    category: "Navigation",
+    category: "Toggles",
     summary: "Grabbable divider between two resizable panels. ~8px **closed-rectangle** rail (1px hairline on all four sides) with a visible **neon SVG grip** (3 bars + up/down triangles) dead-center between the left/right hairlines, inheriting accent via `currentColor` for dark/light mode. **Whole rectangle glows on hover** (outer + inset box-shadow). **Drag to resize, plain click to collapse** (≤4px slop = click → snap). When a panel snaps fully collapsed, the restore tab shows a matching SVG `ExpandIcon` (bars + directional arrow) — never an emoji. When paired with an [RSD](#RSD) above/beside it, the RSD MUST align with the DTog's OUTSIDE (right) hairline AND that outside hairline adopts the RSD's accent color at rest (other three edges stay neutral), so one continuous neon line runs from the RSD straight through the DTog's outer edge.",
     usage: "Render `<DTog><DTogGrip /></DTog>` between any two resizable panels. Pointer handlers + width state live on the parent (see `useResizePanel` — track a `moved` flag and on pointerup, if `!moved`, snap to zero so click-only gestures also collapse). When a side snaps, show `<ExpandIcon side=\"left\" />` (or `\"right\"`) inside the restore `DrawerTab`. Grip and expand icon both use `fill=\"currentColor\"` so one `color` rule per surface drives hue + mode. Siblings that update with resize state (e.g. header column widths) must disable their CSS `transition` during active drag — otherwise they lag behind the pointer.",
     code: `function DTogGrip() {
@@ -3773,4 +3773,4 @@ function useNewKeys(currentKeys: string[]) {
   },
 ];
 
-export const CATEGORIES: Array<SandboxEntry["category"]> = ["Editor Controls", "Menus", "Navigation", "Toggles"];
+export const CATEGORIES: Array<SandboxEntry["category"]> = ["Buttons", "Icons", "Menus", "Navigation", "Toggles"];

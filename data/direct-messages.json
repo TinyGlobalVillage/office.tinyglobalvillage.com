@@ -8,6 +8,62 @@
         "content": "HI!",
         "createdAt": "2026-04-16T08:32:47.862Z"
       }
+    ],
+    "admin_claude": [
+      {
+        "id": "dm_1776644948010_kshs",
+        "from": "admin",
+        "to": "claude",
+        "content": "Hi Claude",
+        "createdAt": "2026-04-20T00:29:08.010Z",
+        "readBy": []
+      },
+      {
+        "id": "dm_1776644950292_5squ0",
+        "from": "claude",
+        "to": "admin",
+        "content": "Hey! How's it going? 👋 What can I help you with today?",
+        "createdAt": "2026-04-20T00:29:10.292Z",
+        "readBy": [
+          "admin"
+        ]
+      },
+      {
+        "id": "dm_1776645033221_h078",
+        "from": "admin",
+        "to": "claude",
+        "content": "Do you have access to the office tgv codebase?",
+        "createdAt": "2026-04-20T00:30:33.221Z",
+        "readBy": []
+      },
+      {
+        "id": "dm_1776645035936_zuwwh",
+        "from": "claude",
+        "to": "admin",
+        "content": "Nope, I don't have access to any codebase or internal systems — I'm just here in the chat to help out with questions, brainstorming, writing, debugging snippets, or whatever you need. If you paste code or describe something, I'm happy to dig in though! 😊",
+        "createdAt": "2026-04-20T00:30:35.936Z",
+        "readBy": [
+          "admin"
+        ]
+      },
+      {
+        "id": "dm_1776646325155_uhgp",
+        "from": "admin",
+        "to": "claude",
+        "content": "Tell me something else",
+        "createdAt": "2026-04-20T00:52:05.155Z",
+        "readBy": []
+      },
+      {
+        "id": "dm_1776646328106_al8dd",
+        "from": "claude",
+        "to": "admin",
+        "content": "Hmm, a fun fact then? 🤔 Octopuses have three hearts and blue blood. Two hearts pump blood to the gills, and one pumps it to the rest of the body. Pretty wild creatures! 🐙\n\nAnything specific you'd like to chat about though? I'm all ears.",
+        "createdAt": "2026-04-20T00:52:08.106Z",
+        "readBy": [
+          "admin"
+        ]
+      }
     ]
   }
 }

@@ -28,6 +28,16 @@ export const ModalContainer = styled.div<{ $accent?: GlowColor; $maxWidth?: stri
   border: 1px solid rgba(${(p) => rgb[p.$accent || "pink"]}, 0.25);
   box-shadow: 0 24px 80px rgba(0,0,0,0.7),
     0 0 40px rgba(${(p) => rgb[p.$accent || "pink"]}, 0.12);
+
+  @media (max-width: 768px) {
+    width: 100vw;
+    max-width: 100vw;
+    max-height: 100vh;
+    height: 100vh;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+  }
 `;
 
 export const ModalHeader = styled.div`
@@ -504,6 +514,17 @@ export const DrawerPanel = styled.div`
   [data-theme="light"] & {
     background: var(--t-surface);
     box-shadow: 0 0 40px rgba(0, 0, 0, 0.08);
+  }
+
+  @media (max-width: 768px) {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    min-width: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    border-left: none !important;
+    border-right: none !important;
+    border-radius: 0 !important;
   }
 `;
 

@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback, ChangeEvent, ReactNode } from
 import styled from "styled-components";
 import { colors, rgb } from "@/app/theme";
 import { ModalBackdrop, CloseBtn, PillButton } from "@/app/styled";
+import NeonX from "./NeonX";
 import { hexToRgb } from "./ProfileModal";
 import { useTheme } from "./ThemeProvider";
 import { TrashIcon } from "./icons";
@@ -155,6 +156,18 @@ const Modal = styled.div`
 
   [data-theme="light"] & {
     box-shadow: 0 24px 80px rgba(0, 0, 0, 0.12), 0 0 40px rgba(${rgb.pink}, 0.04);
+  }
+
+  @media (max-width: 768px) {
+    top: 0;
+    left: 0;
+    transform: none;
+    width: 100vw;
+    height: 100vh;
+    max-height: 100vh;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
   }
 `;
 
@@ -1737,7 +1750,7 @@ export default function ChatSettingsModal({
           </TabGroup>
           {tab === "members" && <CountBadge>{profiles.length}</CountBadge>}
           <div style={{ marginLeft: "auto" }}>
-            <CloseBtn onClick={onClose}>✕</CloseBtn>
+            <NeonX accent="green" onClick={onClose} title="Close" />
           </div>
         </Header>
 

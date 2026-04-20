@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 import { colors, rgb } from "../../theme";
 import { ModalBackdrop, CloseBtn } from "../../styled";
+import NeonX from "../NeonX";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -486,7 +487,7 @@ function RawMessageModal({ email, onClose }: { email: EmailDetail; onClose: () =
       <RawContainer onClick={(e) => e.stopPropagation()}>
         <RawHeader>
           <RawTitle>Raw Message</RawTitle>
-          <RawCloseBtn onClick={onClose}>{"✕"}</RawCloseBtn>
+          <NeonX accent="cyan" onClick={onClose} size="sm" title="Close raw view" />
         </RawHeader>
         <RawBody>{raw}</RawBody>
       </RawContainer>

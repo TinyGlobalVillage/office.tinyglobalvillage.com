@@ -3,12 +3,19 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 import { colors, rgb, glowRgba } from "../theme";
+import { DTogExpandIcon } from "./icons";
+import NeonX from "./NeonX";
 
 const STORAGE_HEIGHT = "tgv-editor-terminal-height";
 const STORAGE_OPEN = "tgv-editor-terminal-open";
 const DEFAULT_HEIGHT = 280;
 const MIN_HEIGHT = 150;
 const MAX_HEIGHT = 680;
+const DTOG_CLICK_SLOP = 4;
+
+const BC_NAME = "tgv-editor-terminal-popout";
+const POPOUT_HEARTBEAT_MS = 1200;
+const POPOUT_STALE_MS = 4000;
 
 type Line = { type: "cmd" | "out" | "err" | "exit" | "info"; text: string };
 
@@ -22,7 +29,7 @@ const Dock = styled.div<{ $h: number }>`
   display: flex;
   flex-direction: column;
   background: rgba(4, 5, 8, 0.98);
-  border-top: 1px solid rgba(${rgb.cyan}, 0.25);
+  border-top: 1px solid rgba(${rgb.gold}, 0.25);
   box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.6);
 
   [data-theme="light"] & {
@@ -31,31 +38,73 @@ const Dock = styled.div<{ $h: number }>`
   }
 `;
 
-const ResizeHandle = styled.div`
+// DTog horizontal variant — the 8px rail, 1px hairlines top + bottom,
+// accent-tinted closed-rectangle that lights up on hover + drag.
+const ResizeHandle = styled.div<{ $dragging?: boolean }>`
   position: absolute;
   top: -4px;
   left: 0;
   right: 0;
   height: 8px;
-  cursor: ns-resize;
+  cursor: row-resize;
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 2;
+  color: ${colors.gold};
+  background: ${(p) => (p.$dragging ? `rgba(${rgb.gold}, 0.2)` : "transparent")};
+  transition: background 0.15s, box-shadow 0.15s;
+  box-shadow: ${(p) =>
+    p.$dragging
+      ? `0 0 14px rgba(${rgb.gold}, 0.5), inset 0 0 8px rgba(${rgb.gold}, 0.25)`
+      : "none"};
 
+  &::before,
   &::after {
     content: "";
-    width: 48px;
-    height: 3px;
-    border-radius: 2px;
-    background: rgba(${rgb.cyan}, 0.3);
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: ${(p) =>
+      p.$dragging ? `rgba(${rgb.gold}, 0.6)` : "var(--t-border)"};
     transition: background 0.15s;
   }
+  &::before { top: 0; }
+  &::after  { bottom: 0; }
 
-  &:hover::after {
-    background: rgba(${rgb.cyan}, 0.6);
+  &:hover {
+    background: rgba(${rgb.gold}, 0.1);
+    box-shadow: 0 0 10px rgba(${rgb.gold}, 0.35),
+      inset 0 0 6px rgba(${rgb.gold}, 0.18);
+    &::before, &::after { background: rgba(${rgb.gold}, 0.4); }
+    > svg { opacity: 1; filter: drop-shadow(0 0 3px rgba(${rgb.gold}, 0.55)); }
+  }
+
+  > svg {
+    opacity: 0.85;
+    pointer-events: none;
+    transition: opacity 0.15s, filter 0.15s;
   }
 `;
+
+function DTogHorizontalGrip() {
+  return (
+    <svg
+      width="30"
+      height="14"
+      viewBox="0 0 30 14"
+      fill="currentColor"
+      aria-hidden="true"
+    >
+      <polygon points="0.5,7 5,2.5 5,11.5" />
+      <rect x="8.5" y="1" width="2" height="12" rx="1" />
+      <rect x="13" y="1" width="2" height="12" rx="1" />
+      <rect x="17.5" y="1" width="2" height="12" rx="1" />
+      <polygon points="29.5,7 25,2.5 25,11.5" />
+    </svg>
+  );
+}
 
 const Header = styled.div`
   display: flex;
@@ -63,7 +112,7 @@ const Header = styled.div`
   gap: 0.5rem;
   padding: 0.375rem 0.625rem;
   flex-shrink: 0;
-  border-bottom: 1px solid rgba(${rgb.cyan}, 0.12);
+  border-bottom: 1px solid rgba(${rgb.gold}, 0.12);
   min-height: 38px;
 `;
 
@@ -72,8 +121,8 @@ const Title = styled.span`
   font-weight: 800;
   letter-spacing: 0.2em;
   text-transform: uppercase;
-  color: ${colors.cyan};
-  text-shadow: 0 0 6px rgba(${rgb.cyan}, 0.5);
+  color: ${colors.gold};
+  text-shadow: 0 0 6px rgba(${rgb.gold}, 0.5);
 `;
 
 const Spacer = styled.div`flex: 1;`;
@@ -89,15 +138,15 @@ const ActionBtn = styled.button`
   font-weight: 800;
   line-height: 1;
   cursor: pointer;
-  background: rgba(${rgb.cyan}, 0.14);
-  border: 1px solid ${glowRgba("cyan", 0.45)};
-  color: ${colors.cyan};
-  text-shadow: 0 0 6px rgba(${rgb.cyan}, 0.7);
+  background: rgba(${rgb.gold}, 0.14);
+  border: 1px solid ${glowRgba("gold", 0.45)};
+  color: ${colors.gold};
+  text-shadow: 0 0 6px rgba(${rgb.gold}, 0.7);
   transition: background 0.15s, box-shadow 0.15s, transform 0.1s;
 
   &:hover {
-    background: rgba(${rgb.cyan}, 0.28);
-    box-shadow: 0 0 10px rgba(${rgb.cyan}, 0.5);
+    background: rgba(${rgb.gold}, 0.28);
+    box-shadow: 0 0 10px rgba(${rgb.gold}, 0.5);
   }
 
   &:active {
@@ -129,7 +178,7 @@ const LogLine = styled.pre<{ $kind: Line["type"] }>`
       : p.$kind === "exit"
       ? "#00dc64"
       : p.$kind === "cmd"
-      ? colors.cyan
+      ? colors.gold
       : p.$kind === "info"
       ? colors.gold
       : "var(--t-text)"};
@@ -141,15 +190,15 @@ const InputRow = styled.form`
   gap: 0.5rem;
   padding: 0.375rem 0.75rem;
   flex-shrink: 0;
-  border-top: 1px solid rgba(${rgb.cyan}, 0.12);
-  background: rgba(${rgb.cyan}, 0.03);
+  border-top: 1px solid rgba(${rgb.gold}, 0.12);
+  background: rgba(${rgb.gold}, 0.03);
 `;
 
 const Prompt = styled.span`
-  color: ${colors.cyan};
+  color: ${colors.gold};
   font-family: monospace;
   font-size: 12px;
-  text-shadow: 0 0 6px rgba(${rgb.cyan}, 0.5);
+  text-shadow: 0 0 6px rgba(${rgb.gold}, 0.5);
 `;
 
 const Input = styled.input`
@@ -177,28 +226,92 @@ const RestoreTab = styled.button`
   align-items: center;
   gap: 0.5rem;
   padding: 6px 18px;
-  border: 1px solid rgba(${rgb.cyan}, 0.45);
+  border: 1px solid rgba(${rgb.gold}, 0.45);
   border-bottom: none;
   border-radius: 10px 10px 0 0;
-  background: rgba(${rgb.cyan}, 0.14);
-  color: ${colors.cyan};
+  background: rgba(${rgb.gold}, 0.14);
+  color: ${colors.gold};
   font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.2em;
   text-transform: uppercase;
   cursor: pointer;
   backdrop-filter: blur(8px);
-  box-shadow: 0 -4px 20px rgba(${rgb.cyan}, 0.15);
-  text-shadow: 0 0 6px rgba(${rgb.cyan}, 0.5);
+  box-shadow: 0 -4px 20px rgba(${rgb.gold}, 0.15);
+  text-shadow: 0 0 6px rgba(${rgb.gold}, 0.5);
 
   &:hover {
-    background: rgba(${rgb.cyan}, 0.22);
+    background: rgba(${rgb.gold}, 0.22);
+  }
+
+  /* Rotate the canonical ExpandIcon 90° CCW so the arrow points UP —
+     the direction the dock will expand into. */
+  > svg {
+    transform: rotate(-90deg);
   }
 `;
 
-const Chevron = styled.svg`
-  width: 10px;
-  height: 10px;
+const Blackout = styled.div`
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.25rem;
+  padding: 1.5rem;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(2px);
+  animation: boIn 0.2s ease-out;
+
+  @keyframes boIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+`;
+
+const BlackoutMsg = styled.p`
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.75);
+  text-align: center;
+`;
+
+const BlackoutSub = styled.p`
+  margin: 0;
+  font-size: 0.6875rem;
+  color: rgba(${rgb.gold}, 0.7);
+  text-align: center;
+  max-width: 32ch;
+  line-height: 1.4;
+
+  [data-theme="light"] & {
+    color: rgba(${rgb.gold}, 0.85);
+  }
+`;
+
+const BlackoutCloseBtn = styled.button`
+  padding: 0.55rem 1.1rem;
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+  background: rgba(${rgb.gold}, 0.12);
+  border: 1px solid rgba(${rgb.gold}, 0.45);
+  color: ${colors.gold};
+  text-shadow: 0 0 6px rgba(${rgb.gold}, 0.5);
+  transition: background 0.15s, box-shadow 0.15s;
+
+  &:hover {
+    background: rgba(${rgb.gold}, 0.22);
+    box-shadow: 0 0 12px rgba(${rgb.gold}, 0.4);
+  }
 `;
 
 export default function EditorTerminalDock({ project }: { project?: string | null }) {
@@ -211,6 +324,8 @@ export default function EditorTerminalDock({ project }: { project?: string | nul
   const [history, setHistory] = useState<string[]>([]);
   const [histIdx, setHistIdx] = useState(-1);
   const [running, setRunning] = useState(false);
+  const [dragging, setDragging] = useState(false);
+  const [popoutActive, setPopoutActive] = useState(false);
   const logRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -238,6 +353,42 @@ export default function EditorTerminalDock({ project }: { project?: string | nul
     if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight;
   }, [lines]);
 
+  // POP: watch for a popout window and paint the Blackout placeholder here
+  // while it's alive. Origin-window heartbeat coordination.
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof BroadcastChannel === "undefined") return;
+    const bc = new BroadcastChannel(BC_NAME);
+    let lastSeen = 0;
+    const tick = setInterval(() => {
+      if (lastSeen && Date.now() - lastSeen > POPOUT_STALE_MS) {
+        setPopoutActive(false);
+        lastSeen = 0;
+      }
+    }, 1000);
+    bc.onmessage = (e) => {
+      const t = e.data?.type;
+      if (t === "popout-open") {
+        lastSeen = Date.now();
+        setPopoutActive(true);
+      } else if (t === "popout-close") {
+        lastSeen = 0;
+        setPopoutActive(false);
+      }
+    };
+    bc.postMessage({ type: "ping" });
+    return () => {
+      clearInterval(tick);
+      bc.close();
+    };
+  }, []);
+
+  const requestPopoutClose = useCallback(() => {
+    if (typeof BroadcastChannel === "undefined") return;
+    const bc = new BroadcastChannel(BC_NAME);
+    bc.postMessage({ type: "close-request" });
+    bc.close();
+  }, []);
+
   const persistOpen = (v: boolean) => {
     setOpen(v);
     localStorage.setItem(STORAGE_OPEN, v ? "1" : "0");
@@ -252,11 +403,16 @@ export default function EditorTerminalDock({ project }: { project?: string | nul
     e.preventDefault();
     const startY = e.clientY;
     const startH = height;
+    let moved = false;
     const onMove = (ev: MouseEvent) => {
       const delta = startY - ev.clientY;
+      if (Math.abs(delta) < DTOG_CLICK_SLOP) return;
+      moved = true;
+      setDragging(true);
       const next = startH + delta;
       if (next < MIN_HEIGHT - 30) {
         persistOpen(false);
+        setDragging(false);
         document.removeEventListener("mousemove", onMove);
         document.removeEventListener("mouseup", onUp);
         document.body.style.cursor = "";
@@ -265,11 +421,16 @@ export default function EditorTerminalDock({ project }: { project?: string | nul
       persistHeight(Math.max(MIN_HEIGHT, Math.min(MAX_HEIGHT, next)));
     };
     const onUp = () => {
+      if (!moved) {
+        // click-to-collapse (DTog convention)
+        persistOpen(false);
+      }
+      setDragging(false);
       document.body.style.cursor = "";
       document.removeEventListener("mousemove", onMove);
       document.removeEventListener("mouseup", onUp);
     };
-    document.body.style.cursor = "ns-resize";
+    document.body.style.cursor = "row-resize";
     document.addEventListener("mousemove", onMove);
     document.addEventListener("mouseup", onUp);
   }, [height]);
@@ -359,9 +520,7 @@ export default function EditorTerminalDock({ project }: { project?: string | nul
   if (!open) {
     return (
       <RestoreTab onClick={() => persistOpen(true)} title="Open terminal">
-        <Chevron viewBox="0 0 8 8" fill={colors.cyan}>
-          <path d="M4 2L7.5 6.5H0.5L4 2Z" />
-        </Chevron>
+        <DTogExpandIcon side="left" size={14} />
         Terminal
       </RestoreTab>
     );
@@ -369,12 +528,18 @@ export default function EditorTerminalDock({ project }: { project?: string | nul
 
   return (
     <Dock $h={height}>
-      <ResizeHandle onMouseDown={onDrag} title="Drag to resize · drop below to collapse" />
+      <ResizeHandle
+        onMouseDown={onDrag}
+        $dragging={dragging}
+        title="Drag to resize · click to collapse"
+      >
+        <DTogHorizontalGrip />
+      </ResizeHandle>
       <Header>
         <Title>Terminal</Title>
         <Spacer />
         <ActionBtn onClick={openPopout} title="Pop out to new window">⧉</ActionBtn>
-        <ActionBtn onClick={() => persistOpen(false)} title="Collapse terminal">✕</ActionBtn>
+        <NeonX accent="gold" onClick={() => persistOpen(false)} title="Collapse terminal" />
       </Header>
       <LogScroll ref={logRef} onClick={() => inputRef.current?.focus()}>
         {lines.map((l, i) => (
@@ -394,6 +559,19 @@ export default function EditorTerminalDock({ project }: { project?: string | nul
           autoComplete="off"
         />
       </InputRow>
+
+      {popoutActive && (
+        <Blackout>
+          <BlackoutMsg>Currently working in pop-out window</BlackoutMsg>
+          <BlackoutSub>
+            Your terminal session is live in the other window. Close the pop-out
+            to continue here.
+          </BlackoutSub>
+          <BlackoutCloseBtn type="button" onClick={requestPopoutClose}>
+            Close pop-out
+          </BlackoutCloseBtn>
+        </Blackout>
+      )}
     </Dock>
   );
 }

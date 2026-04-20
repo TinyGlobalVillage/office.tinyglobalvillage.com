@@ -4,7 +4,8 @@ import { useState, useEffect, useRef } from "react";
 import styled from "styled-components";
 import LogsModal, { type TabMode } from "./LogsModal";
 import { colors, rgb, glowRgba } from "../theme";
-import { CloseBtn, PillButton } from "../styled";
+import { PillButton } from "../styled";
+import NeonX from "./NeonX";
 
 type ActivityEvent = {
   timeLabel: string;
@@ -47,6 +48,16 @@ const Panel = styled.div<{ $fs: boolean }>`
   [data-theme="light"] & {
     border-color: ${glowRgba("cyan", 0.12)};
     box-shadow: 0 12px 40px rgba(0,0,0,0.1);
+  }
+
+  @media (max-width: 768px) {
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    border-radius: 0 !important;
+    border-left: none;
+    border-right: none;
   }
 `;
 
@@ -282,10 +293,10 @@ export default function ActivityModal({ onClose }: { onClose: () => void }) {
           <PageBtn onClick={() => setPage((p) => Math.max(0, p - 1))} disabled={page === 0}>←</PageBtn>
           <PageInfo>{page + 1} / {totalPages}</PageInfo>
           <PageBtn onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))} disabled={page >= totalPages - 1}>→</PageBtn>
-          <CloseBtn onClick={() => setFullscreen((p) => !p)} title={fullscreen ? "Exit fullscreen" : "Fullscreen"}>
+          <NeonX accent="cyan" onClick={() => setFullscreen((p) => !p)} title={fullscreen ? "Exit fullscreen" : "Fullscreen"}>
             {fullscreen ? "⊡" : "⊞"}
-          </CloseBtn>
-          <CloseBtn onClick={onClose} title="Close (Esc)">✕</CloseBtn>
+          </NeonX>
+          <NeonX accent="cyan" onClick={onClose} title="Close (Esc)" />
         </Header>
         <ListBody>
           {loading ? <Empty>Loading…</Empty>

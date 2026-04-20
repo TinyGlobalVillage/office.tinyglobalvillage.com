@@ -11,6 +11,7 @@ import {
 import styled from "styled-components";
 import { colors, rgb } from "../theme";
 import { DrawerBackdrop, DrawerPanel, DrawerHeader, PanelIconBtn } from "../styled";
+import NeonX from "./NeonX";
 
 // ── Context ──────────────────────────────────────────────────────
 type PreviewCtx = {
@@ -217,7 +218,7 @@ export default function PreviewDrawer() {
         }}
       >
         <Header>
-          <PanelIconBtn onClick={closePreview}>✕</PanelIconBtn>
+          <NeonX accent="pink" onClick={closePreview} title="Close preview" />
 
           <ProjectSelect
             value={domain ?? ""}

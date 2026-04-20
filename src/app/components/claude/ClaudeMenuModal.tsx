@@ -9,6 +9,7 @@ import ClaudeFilesModal from "./ClaudeFilesModal";
 import ClaudeVocabModal from "./ClaudeVocabModal";
 import { colors, rgb, glowRgba } from "../../theme";
 import { CloseBtn } from "../../styled";
+import NeonX from "../NeonX";
 
 type SubModal = null | "chat" | "guide" | "files" | "vocab";
 
@@ -127,7 +128,7 @@ export default function ClaudeMenuModal({ onClose }: { onClose: () => void }) {
             <Title>Claude</Title>
             <Sub>Pick a tool — chat, guide, file browser, or vocabulary.</Sub>
           </div>
-          <CloseBtn onClick={onClose} title="Close (Esc)">✕</CloseBtn>
+          <NeonX accent="pink" onClick={onClose} title="Close (Esc)" />
         </Header>
         <Grid>
           {tiles.map((t) => (

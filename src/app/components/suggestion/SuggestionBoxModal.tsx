@@ -8,6 +8,7 @@ import {
   ModalTitle, ModalSubtitle, ModalBody, CloseBtn, GlowButton,
   SubtleButton, Input, TextArea, GlassCard, AccentLabel, PulseText,
 } from "../../styled";
+import NeonX from "../NeonX";
 
 type Message = { role: "user" | "assistant"; content: string };
 type Phase = "form" | "chat" | "sent";
@@ -215,7 +216,7 @@ export default function SuggestionBoxModal({ onClose }: { onClose: () => void })
               </ModalSubtitle>
             </div>
           </ModalHeaderLeft>
-          <CloseBtn onClick={onClose} aria-label="Close">✕</CloseBtn>
+          <NeonX accent="pink" onClick={onClose} title="Close" />
         </ModalHeader>
         <ModalBody>
           {phase === "form" && (

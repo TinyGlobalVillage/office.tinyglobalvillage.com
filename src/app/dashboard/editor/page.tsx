@@ -645,6 +645,18 @@ function EditorPageInner() {
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const searchParams = useSearchParams();
   const requestedProject = searchParams?.get("project") ?? null;
+  const embedded = searchParams?.get("embedded") === "1";
+
+  useEffect(() => {
+    if (!embedded) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && window.parent && window.parent !== window) {
+        window.parent.postMessage({ type: "tgv-modal-close" }, "*");
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [embedded]);
 
   useEffect(() => {
     fetch("/api/projects")

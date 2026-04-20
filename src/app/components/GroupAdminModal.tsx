@@ -34,6 +34,15 @@ const Modal = styled.div`
   border-radius: 14px;
   box-shadow: 0 24px 64px rgba(0,0,0,0.55);
   overflow: hidden;
+
+  @media (max-width: 768px) {
+    width: 100vw;
+    height: 100vh;
+    max-height: 100vh;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+  }
 `;
 
 const Header = styled.div`

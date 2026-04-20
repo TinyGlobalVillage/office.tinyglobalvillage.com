@@ -14,6 +14,7 @@ import {
   ModalBody,
   CloseBtn,
 } from "../styled";
+import NeonX from "./NeonX";
 
 const SECTIONS = [
   { title: "Component Library", body: "Canonical TGV UI primitives — pulled from the Sandbox registry once they ship.", status: "in progress" },
@@ -104,7 +105,7 @@ export default function LibraryModal({ onClose }: { onClose: () => void }) {
               <ModalSubtitle>Catalog of every reusable asset across TGV + Refusionist</ModalSubtitle>
             </div>
           </ModalHeaderLeft>
-          <CloseBtn onClick={onClose} aria-label="Close">✕</CloseBtn>
+          <NeonX accent="pink" onClick={onClose} title="Close" />
         </ModalHeader>
         <ModalBody>
           <Grid>

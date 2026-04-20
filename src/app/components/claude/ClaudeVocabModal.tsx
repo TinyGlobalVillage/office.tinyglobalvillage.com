@@ -23,6 +23,7 @@ import {
   Input,
   Spacer,
 } from "@/app/styled";
+import NeonX from "../NeonX";
 
 type FileItem = {
   kind: "root" | "vocab";
@@ -277,9 +278,7 @@ export default function ClaudeVocabModal({ onClose }: { onClose: () => void }) {
           >
             {fullscreen ? "⊑" : "⊞"}
           </PanelIconBtn>
-          <PanelIconBtn onClick={onClose} title="Close (Esc)">
-            ✕
-          </PanelIconBtn>
+          <NeonX accent="pink" onClick={onClose} title="Close (Esc)" />
         </PanelHeader>
 
         <SplitLayout>

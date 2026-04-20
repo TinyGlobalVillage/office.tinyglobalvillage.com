@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import styled from "styled-components";
 import { colors, rgb } from "../../theme";
 import { ModalBackdrop, CloseBtn } from "../../styled";
+import NeonX from "../NeonX";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -463,7 +464,7 @@ export default function EmailSettings({ accounts = [], onClose, onSaved }: Props
       <Container>
         <Header>
           <HeaderTitle>⚙ Email Settings</HeaderTitle>
-          <CloseButton onClick={onClose}>✕</CloseButton>
+          <NeonX accent="cyan" onClick={onClose} title="Close" />
         </Header>
 
         <ScrollBody>

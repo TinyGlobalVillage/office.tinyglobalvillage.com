@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import styled from "styled-components";
 import { colors, rgb, glowRgba, type GlowColor } from "../theme";
+import NeonX from "./NeonX";
 
 type Props = {
   pageKey: string;
@@ -37,6 +38,12 @@ const Panel = styled.div<{ $glow: GlowColor; $fs: boolean }>`
   border-radius: ${(p) => (p.$fs ? "0" : "12px")};
   box-shadow: 0 24px 80px rgba(0, 0, 0, 0.75),
     0 0 40px ${(p) => glowRgba(p.$glow, 0.12)};
+
+  @media (max-width: 768px) {
+    inset: 0;
+    border: none;
+    border-radius: 0;
+  }
 `;
 
 const Header = styled.div<{ $glow: GlowColor }>`
@@ -47,6 +54,11 @@ const Header = styled.div<{ $glow: GlowColor }>`
   border-bottom: 1px solid ${(p) => glowRgba(p.$glow, 0.2)};
   flex-shrink: 0;
   background: ${(p) => glowRgba(p.$glow, 0.06)};
+
+  @media (max-width: 768px) {
+    gap: 0.375rem;
+    padding: 0.375rem 0.5rem;
+  }
 `;
 
 const Title = styled.h2<{ $glow: GlowColor }>`
@@ -56,6 +68,16 @@ const Title = styled.h2<{ $glow: GlowColor }>`
   text-transform: uppercase;
   margin: 0 0.25rem;
   color: ${(p) => colors[p.$glow]};
+
+  @media (max-width: 768px) {
+    font-size: 0.5625rem;
+    letter-spacing: 0.08em;
+    margin: 0;
+    max-width: 42vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 `;
 
 const Spacer = styled.div`flex: 1;`;
@@ -71,6 +93,7 @@ const CtrlBtn = styled.button<{ $glow: GlowColor; $active?: boolean }>`
   font-weight: 800;
   line-height: 1;
   cursor: pointer;
+  flex-shrink: 0;
   background: ${(p) =>
     p.$active ? `rgba(${rgb[p.$glow]}, 0.28)` : `rgba(${rgb[p.$glow]}, 0.14)`};
   border: 1px solid ${(p) => glowRgba(p.$glow, p.$active ? 0.6 : 0.45)};
@@ -94,6 +117,13 @@ const CtrlBtn = styled.button<{ $glow: GlowColor; $active?: boolean }>`
 
   [data-theme="light"] & {
     text-shadow: none;
+  }
+
+  @media (max-width: 768px) {
+    width: 2.75rem;
+    height: 2.75rem;
+    font-size: 1.1875rem;
+    border-radius: 0.625rem;
   }
 `;
 
@@ -125,6 +155,109 @@ const Separator = styled.div<{ $glow: GlowColor }>`
   height: 1.25rem;
   background: ${(p) => glowRgba(p.$glow, 0.3)};
   margin: 0 0.25rem;
+
+  @media (max-width: 768px) {
+    display: none;
+  }
+`;
+
+// Desktop-only trio (zoom-out, label, zoom-in). Hidden on mobile in favour of
+// the collapsed ZoomDDM below.
+const ZoomTrio = styled.div`
+  display: contents;
+
+  @media (max-width: 768px) {
+    display: none;
+  }
+`;
+
+// Mobile-only collapsed zoom control — tap to open a small DDM with −/reset/+.
+const ZoomDDMWrap = styled.div`
+  position: relative;
+  display: none;
+  flex-shrink: 0;
+
+  @media (max-width: 768px) {
+    display: block;
+  }
+`;
+
+const ZoomDDMTrigger = styled.button<{ $glow: GlowColor; $open: boolean }>`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  width: 3.25rem;
+  height: 2.75rem;
+  border-radius: 0.625rem;
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 0.6875rem;
+  font-weight: 800;
+  cursor: pointer;
+  background: ${(p) =>
+    p.$open ? `rgba(${rgb[p.$glow]}, 0.28)` : `rgba(${rgb[p.$glow]}, 0.14)`};
+  border: 1px solid ${(p) => glowRgba(p.$glow, p.$open ? 0.6 : 0.45)};
+  color: ${(p) => colors[p.$glow]};
+  text-shadow: 0 0 6px rgba(${(p) => rgb[p.$glow]}, 0.7);
+
+  [data-theme="light"] & {
+    text-shadow: none;
+  }
+`;
+
+const ZoomDDMArrow = styled.span<{ $open: boolean }>`
+  font-size: 9px;
+  transition: transform 0.2s;
+  transform: ${(p) => (p.$open ? "rotate(180deg)" : "rotate(0deg)")};
+  opacity: 0.8;
+`;
+
+const ZoomDDMPanel = styled.div<{ $glow: GlowColor }>`
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 90;
+  display: flex;
+  flex-direction: column;
+  min-width: 160px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--t-surface);
+  border: 1px solid ${(p) => glowRgba(p.$glow, 0.4)};
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.65),
+    0 0 20px ${(p) => glowRgba(p.$glow, 0.25)};
+`;
+
+const ZoomDDMItem = styled.button<{ $glow: GlowColor; $disabled?: boolean }>`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  font-family: var(--font-geist-mono), monospace;
+  text-align: left;
+  cursor: ${(p) => (p.$disabled ? "not-allowed" : "pointer")};
+  opacity: ${(p) => (p.$disabled ? 0.35 : 1)};
+  background: transparent;
+  border: none;
+  color: ${(p) => colors[p.$glow]};
+
+  & + & {
+    border-top: 1px solid ${(p) => glowRgba(p.$glow, 0.18)};
+  }
+
+  &:hover:not(:disabled) {
+    background: ${(p) => glowRgba(p.$glow, 0.12)};
+  }
+`;
+
+const ZoomDDMGlyph = styled.span`
+  font-size: 1rem;
+  font-weight: 900;
+  min-width: 1rem;
+  text-align: center;
 `;
 
 const Body = styled.div`
@@ -211,6 +344,7 @@ export default function DashboardPageModal({ pageKey, title, glow, onClose }: Pr
   const [sidebarShown, setSidebarShown] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
   const [zoom, setZoom] = useState(100);
+  const [zoomDDMOpen, setZoomDDMOpen] = useState(false);
   const [popoutActive, setPopoutActive] = useState(false);
   const [iframeKey, setIframeKey] = useState(0);
   const channelName = `tgv-dash-${pageKey}-popout`;
@@ -235,6 +369,30 @@ export default function DashboardPageModal({ pageKey, title, glow, onClose }: Pr
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  useEffect(() => {
+    if (!zoomDDMOpen) return;
+    const close = () => setZoomDDMOpen(false);
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setZoomDDMOpen(false); };
+    window.addEventListener("click", close);
+    window.addEventListener("touchstart", close, { passive: true });
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("click", close);
+      window.removeEventListener("touchstart", close);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [zoomDDMOpen]);
+
+  // ESC pressed inside the embedded iframe can't bubble up to the parent;
+  // the iframe forwards it as a postMessage so the modal still closes.
+  useEffect(() => {
+    const onMsg = (e: MessageEvent) => {
+      if (e.data?.type === "tgv-modal-close") onClose();
+    };
+    window.addEventListener("message", onMsg);
+    return () => window.removeEventListener("message", onMsg);
   }, [onClose]);
 
   // Popout ↔ main coordination via BroadcastChannel heartbeat.
@@ -296,32 +454,83 @@ export default function DashboardPageModal({ pageKey, title, glow, onClose }: Pr
           <Title $glow={glow}>{title}</Title>
           <Spacer />
 
-          <CtrlBtn
-            $glow={glow}
-            onClick={() => setZoom((z) => Math.max(ZOOM_MIN, z - ZOOM_STEP))}
-            disabled={zoom <= ZOOM_MIN}
-            aria-label="Zoom out"
-            title="Zoom out"
-          >
-            −
-          </CtrlBtn>
-          <ZoomLabel
-            $glow={glow}
-            onClick={() => setZoom(100)}
-            aria-label={`Zoom ${zoom}% (click to reset)`}
-            title="Reset zoom"
-          >
-            {zoom}%
-          </ZoomLabel>
-          <CtrlBtn
-            $glow={glow}
-            onClick={() => setZoom((z) => Math.min(ZOOM_MAX, z + ZOOM_STEP))}
-            disabled={zoom >= ZOOM_MAX}
-            aria-label="Zoom in"
-            title="Zoom in"
-          >
-            +
-          </CtrlBtn>
+          <ZoomTrio>
+            <CtrlBtn
+              $glow={glow}
+              onClick={() => setZoom((z) => Math.max(ZOOM_MIN, z - ZOOM_STEP))}
+              disabled={zoom <= ZOOM_MIN}
+              aria-label="Zoom out"
+              title="Zoom out"
+            >
+              −
+            </CtrlBtn>
+            <ZoomLabel
+              $glow={glow}
+              onClick={() => setZoom(100)}
+              aria-label={`Zoom ${zoom}% (click to reset)`}
+              title="Reset zoom"
+            >
+              {zoom}%
+            </ZoomLabel>
+            <CtrlBtn
+              $glow={glow}
+              onClick={() => setZoom((z) => Math.min(ZOOM_MAX, z + ZOOM_STEP))}
+              disabled={zoom >= ZOOM_MAX}
+              aria-label="Zoom in"
+              title="Zoom in"
+            >
+              +
+            </CtrlBtn>
+          </ZoomTrio>
+
+          <ZoomDDMWrap onClick={(e) => e.stopPropagation()} onTouchStart={(e) => e.stopPropagation()}>
+            <ZoomDDMTrigger
+              $glow={glow}
+              $open={zoomDDMOpen}
+              onClick={() => setZoomDDMOpen((v) => !v)}
+              aria-label={`Zoom ${zoom}%`}
+              title="Zoom"
+            >
+              {zoom}%
+              <ZoomDDMArrow $open={zoomDDMOpen}>▾</ZoomDDMArrow>
+            </ZoomDDMTrigger>
+            {zoomDDMOpen && (
+              <ZoomDDMPanel $glow={glow}>
+                <ZoomDDMItem
+                  $glow={glow}
+                  disabled={zoom <= ZOOM_MIN}
+                  $disabled={zoom <= ZOOM_MIN}
+                  onClick={() => {
+                    setZoom((z) => Math.max(ZOOM_MIN, z - ZOOM_STEP));
+                  }}
+                >
+                  <ZoomDDMGlyph>−</ZoomDDMGlyph>
+                  <span>Zoom out</span>
+                </ZoomDDMItem>
+                <ZoomDDMItem
+                  $glow={glow}
+                  onClick={() => {
+                    setZoom(100);
+                    setZoomDDMOpen(false);
+                  }}
+                >
+                  <ZoomDDMGlyph>⟳</ZoomDDMGlyph>
+                  <span>Reset · 100%</span>
+                </ZoomDDMItem>
+                <ZoomDDMItem
+                  $glow={glow}
+                  disabled={zoom >= ZOOM_MAX}
+                  $disabled={zoom >= ZOOM_MAX}
+                  onClick={() => {
+                    setZoom((z) => Math.min(ZOOM_MAX, z + ZOOM_STEP));
+                  }}
+                >
+                  <ZoomDDMGlyph>+</ZoomDDMGlyph>
+                  <span>Zoom in</span>
+                </ZoomDDMItem>
+              </ZoomDDMPanel>
+            )}
+          </ZoomDDMWrap>
 
           <Separator $glow={glow} />
 
@@ -355,14 +564,7 @@ export default function DashboardPageModal({ pageKey, title, glow, onClose }: Pr
             {fullscreen ? "⊡" : "⊞"}
           </CtrlBtn>
 
-          <CtrlBtn
-            $glow={glow}
-            onClick={onClose}
-            aria-label="Close"
-            title="Close (Esc)"
-          >
-            ✕
-          </CtrlBtn>
+          <NeonX accent={glow} onClick={onClose} title="Close (Esc)" />
         </Header>
 
         <Body>

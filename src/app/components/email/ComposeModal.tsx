@@ -5,6 +5,7 @@ import styled from "styled-components";
 import { colors, rgb } from "../../theme";
 import { ModalBackdrop, CloseBtn } from "../../styled";
 import { type AccountMeta } from "./AccountSwitcher";
+import NeonX from "../NeonX";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -838,9 +839,7 @@ export default function ComposeModal({
             <SendBtn onClick={send} disabled={sending || savingDraft || scheduling}>
               {sending ? "Sending…" : "Send ↑"}
             </SendBtn>
-            <CloseButton onClick={onClose} title="Discard (Esc)">
-              ✕
-            </CloseButton>
+            <NeonX accent="cyan" onClick={onClose} title="Discard (Esc)" />
           </ChromeActions>
         </Chrome>
 

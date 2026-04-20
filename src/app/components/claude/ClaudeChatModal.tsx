@@ -16,6 +16,7 @@ import {
   PanelTag,
   Spacer,
 } from "@/app/styled";
+import NeonX from "../NeonX";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
@@ -223,9 +224,7 @@ export default function ClaudeChatModal({ onClose }: { onClose: () => void }) {
           >
             {fullscreen ? "⊑" : "⊞"}
           </PanelIconBtn>
-          <PanelIconBtn onClick={onClose} title="Close (Esc)">
-            ✕
-          </PanelIconBtn>
+          <NeonX accent="pink" onClick={onClose} title="Close (Esc)" />
         </PanelHeader>
 
         <MsgArea ref={scrollRef}>

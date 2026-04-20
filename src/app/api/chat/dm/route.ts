@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/api-auth";
 import { getClearCutoff, dmChannelKey, filterByCutoff } from "@/lib/chat-clears";
+import { BOT_USERNAME, triggerClaudeForDm } from "@/lib/claude-bot";
 import fs from "fs";
 import path from "path";
 
@@ -71,6 +72,11 @@ export async function POST(req: NextRequest) {
   db.threads[key].push(msg);
   db.threads[key] = db.threads[key].slice(-500);
   writeDb(db);
+
+  if (body.to === BOT_USERNAME && username !== BOT_USERNAME) {
+    triggerClaudeForDm(username);
+  }
+
   return NextResponse.json({ ok: true, message: msg });
 }
 

@@ -14,6 +14,8 @@ import {
   PanelIconBtn,
 } from "../styled";
 import EmailErrorBoundary from "./email/EmailErrorBoundary";
+import { DrawerInboxIcon } from "./icons";
+import NeonX from "./NeonX";
 
 const EmailClient = dynamic(() => import("./email/EmailClient"), { ssr: false });
 
@@ -32,10 +34,16 @@ function getDefaultTabY() {
 
 // ── Styled ───────────────────────────────────────────────────────
 
-const SideTab = styled(DrawerTab).attrs({ $side: "left", $accent: "cyan" })`
-  left: 0;
-  z-index: 61;
+const SideTab = styled(DrawerTab).attrs({ $side: "left", $accent: "cyan" })<{ $openLeft: string; $open: boolean }>`
+  left: ${(p) => p.$openLeft};
+  z-index: 62;
   border-left: none;
+  transition: left 0.25s cubic-bezier(0.4, 0, 0.2, 1), background 0.2s;
+  backdrop-filter: ${(p) => (p.$open ? "none" : "blur(8px)")};
+
+  @media (max-width: 768px) {
+    left: ${(p) => (p.$openLeft === "0" ? "0" : "calc(100vw - 28px)")};
+  }
 `;
 
 const Backdrop = styled(DrawerBackdrop)`
@@ -179,6 +187,17 @@ export default function InboxDrawer() {
   }, []);
 
   useEffect(() => {
+    const handler = (e: Event) => {
+      if ((e as CustomEvent).detail === DRAWER_ID) {
+        setOpen(true);
+        window.dispatchEvent(new CustomEvent(DRAWER_EVENT, { detail: DRAWER_ID }));
+      }
+    };
+    window.addEventListener("tgv-drawer-open", handler);
+    return () => window.removeEventListener("tgv-drawer-open", handler);
+  }, []);
+
+  useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape" && fullscreen) { setFullscreen(false); return; }
       if (e.key === "Escape" && open) setOpen(false);
@@ -269,6 +288,8 @@ export default function InboxDrawer() {
       <SideTab
         onMouseDown={onTabMouseDown}
         title={open ? "Close inbox" : "Open inbox"}
+        $open={open && !fullscreen}
+        $openLeft={open && !fullscreen ? `min(${width}px, 85vw)` : "0"}
         style={{
           top: tabY,
           backgroundColor: open
@@ -277,16 +298,7 @@ export default function InboxDrawer() {
         }}
       >
         <span style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
-          {open ? (
-            <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-              <path d="M1 1l8 8M9 1l-8 8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
-            </svg>
-          ) : (
-            <svg width="13" height="11" viewBox="0 0 13 11" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="0.65" y="0.65" width="11.7" height="9.7" rx="1.4"/>
-              <path d="M0.65 2.8L6.5 6.2l5.85-3.4"/>
-            </svg>
-          )}
+          <DrawerInboxIcon size={16} />
         </span>
         <DrawerTabLabel>Inbox</DrawerTabLabel>
       </SideTab>
@@ -327,7 +339,7 @@ export default function InboxDrawer() {
             <ControlBtn onClick={() => setFullscreen((p) => !p)} title={fullscreen ? "Exit full screen (Esc)" : "Full screen"}>
               {fullscreen ? "⊡" : "⊞"}
             </ControlBtn>
-            <ControlBtn onClick={() => { setOpen(false); setFullscreen(false); }} title="Close (Esc)">✕</ControlBtn>
+            <NeonX accent="cyan" onClick={() => { setOpen(false); setFullscreen(false); }} title="Close (Esc)" />
           </ControlRow>
         </Header>
 

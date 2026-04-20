@@ -74,7 +74,12 @@
       "id": "c_1776588319795_1apxw",
       "from": "admin",
       "content": "https://media2.giphy.com/media/v1.Y2lkPTFkMjk2MzhmbWZxbHY3Y3FrZHIyaWZqdzdudWM3M3FxYzZmeXV4Y3Nienk4MHd3cCZlcD12MV9naWZzX3RyZW5kaW5nJmN0PWc/YaP3iYxN3T8nIEN5rD/giphy.gif",
-      "createdAt": "2026-04-19T08:45:19.795Z"
+      "createdAt": "2026-04-19T08:45:19.795Z",
+      "reactions": {
+        "😂": [
+          "admin"
+        ]
+      }
     },
     {
       "id": "c_1776590364291_4klvf",

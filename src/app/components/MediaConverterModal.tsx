@@ -3,6 +3,8 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import styled, { keyframes } from "styled-components";
 import { colors, rgb } from "../theme";
+import { CloudIcon } from "./icons";
+import NeonX from "./NeonX";
 
 export type MediaConverterModalProps = {
   defaultTab?: "image" | "video";
@@ -47,6 +49,16 @@ const Modal = styled.div`
   [data-theme="light"] & {
     background: #f4f4f8;
     border-color: rgba(${rgb.green}, 0.18);
+  }
+
+  @media (max-width: 768px) {
+    width: 100vw;
+    max-width: 100vw;
+    height: 100vh;
+    max-height: 100vh;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
   }
 `;
 
@@ -150,7 +162,11 @@ const DropZone = styled.label<{ $hasFile?: boolean }>`
 `;
 
 const DropIcon = styled.span`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   font-size: 1.75rem;
+  line-height: 1;
 `;
 
 const DropText = styled.p`
@@ -269,11 +285,19 @@ const PreviewPlaceholder = styled.span`
 
 // ── Progress + errors ─────────────────────────────────────────────────────────
 
+const ProgressRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+`;
+
 const ProgressBar = styled.div<{ $pct: number }>`
-  height: 6px;
-  border-radius: 3px;
+  flex: 1;
+  height: 10px;
+  border-radius: 5px;
   background: rgba(${rgb.green}, 0.15);
   overflow: hidden;
+  position: relative;
 
   &::after {
     content: "";
@@ -283,15 +307,24 @@ const ProgressBar = styled.div<{ $pct: number }>`
     background: ${colors.green};
     box-shadow: 0 0 8px rgba(${rgb.green}, 0.6);
     transition: width 0.3s ease;
-    border-radius: 3px;
+    border-radius: 5px;
   }
 `;
 
-const ProgressText = styled.p`
+const ProgressPct = styled.span`
   font-size: 0.6875rem;
+  font-weight: 700;
   color: ${colors.green};
-  margin: 0;
-  text-align: center;
+  font-variant-numeric: tabular-nums;
+  min-width: 2.25rem;
+  text-align: right;
+`;
+
+const PreviewClear = styled.span`
+  position: absolute;
+  top: 0.375rem;
+  right: 0.375rem;
+  z-index: 2;
 `;
 
 const ErrorBox = styled.div`
@@ -720,7 +753,9 @@ function ImageTab({ onFileConverted }: { onFileConverted: (f: File) => void }) {
           style={{ display: "none" }}
           onChange={(e) => { setFile(e.target.files?.[0] ?? null); setError(null); }}
         />
-        <DropIcon>{file ? "🖼️" : "📁"}</DropIcon>
+        <DropIcon>
+          {file ? "🖼️" : <CloudIcon size={30} style={{ color: colors.green }} />}
+        </DropIcon>
         <DropText>{file ? file.name : "Drop an image or click to browse"}</DropText>
         {file && <DropSub>{(file.size / 1024).toFixed(1)} KB</DropSub>}
       </DropZone>
@@ -769,6 +804,11 @@ function ImageTab({ onFileConverted }: { onFileConverted: (f: File) => void }) {
         </PreviewBox>
         <PreviewBox>
           <PreviewLabel>After{afterSize != null ? ` · ${(afterSize / 1024).toFixed(0)} KB` : ""}</PreviewLabel>
+          {file && (
+            <PreviewClear>
+              <NeonX accent="green" size="sm" onClick={() => { setFile(null); setError(null); }} title="Clear upload" />
+            </PreviewClear>
+          )}
           {afterPreviewUrl
             ? <PreviewImg src={afterPreviewUrl} alt="after" />
             : <PreviewPlaceholder>{file ? "Rendering preview…" : "No file selected"}</PreviewPlaceholder>
@@ -902,13 +942,29 @@ function VideoTab({ onFileConverted }: { onFileConverted: (f: File) => void }) {
     }
   }, [jobId, done, format, file, onFileConverted]);
 
-  const reset = () => {
+  const reset = useCallback(() => {
     setJobId(null);
     setPercent(0);
     setDone(false);
     setError(null);
     setMinimized(false);
-  };
+  }, []);
+
+  const cancelConversion = useCallback(async () => {
+    if (!jobId) { reset(); return; }
+    try {
+      await fetch(`/api/chat/convert/video/cancel?jobId=${jobId}`, { method: "POST" });
+    } catch { /* ignore */ }
+    reset();
+  }, [jobId, reset]);
+
+  const clearFile = useCallback(() => {
+    if (jobId && !done) { void cancelConversion(); }
+    setFile(null);
+    setGifPreviewUrl(null);
+    setThumbUrl(null);
+    reset();
+  }, [jobId, done, cancelConversion, reset]);
 
   const isRunning = !!jobId && !done;
 
@@ -929,7 +985,9 @@ function VideoTab({ onFileConverted }: { onFileConverted: (f: File) => void }) {
           style={{ display: "none" }}
           onChange={(e) => { setFile(e.target.files?.[0] ?? null); setError(null); reset(); }}
         />
-        <DropIcon>{file ? "🎬" : "📁"}</DropIcon>
+        <DropIcon>
+          {file ? "🎬" : <CloudIcon size={30} style={{ color: colors.green }} />}
+        </DropIcon>
         <DropText>{file ? file.name : "Drop a video or click to browse"}</DropText>
         {file && <DropSub>{(file.size / 1048576).toFixed(1)} MB</DropSub>}
       </DropZone>
@@ -981,6 +1039,11 @@ function VideoTab({ onFileConverted }: { onFileConverted: (f: File) => void }) {
         </PreviewBox>
         <PreviewBox>
           <PreviewLabel>After (GIF preview)</PreviewLabel>
+          {file && (
+            <PreviewClear>
+              <NeonX accent="green" size="sm" onClick={clearFile} title="Clear upload" />
+            </PreviewClear>
+          )}
           {gifPreviewUrl
             ? <PreviewImg src={gifPreviewUrl} alt="gif preview" />
             : <PreviewPlaceholder>{file ? "Generating preview…" : "No video selected"}</PreviewPlaceholder>
@@ -992,8 +1055,11 @@ function VideoTab({ onFileConverted }: { onFileConverted: (f: File) => void }) {
 
       {isRunning && (
         <>
-          <ProgressBar $pct={percent} />
-          <ProgressText>Converting… {percent}%</ProgressText>
+          <ProgressRow>
+            <ProgressBar $pct={percent} />
+            <ProgressPct>{percent}%</ProgressPct>
+            <NeonX accent="green" size="sm" onClick={cancelConversion} title="Cancel conversion" />
+          </ProgressRow>
           <ActionBtn onClick={() => setMinimized(true)} $disabled={false}>
             Minimize
           </ActionBtn>

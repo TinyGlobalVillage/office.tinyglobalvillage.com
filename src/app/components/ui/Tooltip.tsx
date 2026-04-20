@@ -94,7 +94,7 @@ type Props = {
 
 export default function Tooltip({ label, accent, disabled, children }: Props) {
   const [open, setOpen] = useState(false);
-  const [pos, setPos] = useState<{ left: number; top: number; arrowLeft: number; flipped: boolean } | null>(null);
+  const [pos, setPos] = useState<{ left: number; top: number; arrowLeft: number; flipped: boolean; maxWidth: number } | null>(null);
   const [autoAccent, setAutoAccent] = useState<string | null>(null);
   const triggerRef = useRef<HTMLSpanElement | null>(null);
   const bubbleRef = useRef<HTMLDivElement | null>(null);
@@ -120,9 +120,14 @@ export default function Tooltip({ label, accent, disabled, children }: Props) {
     const r = el.getBoundingClientRect();
     if (r.width === 0 && r.height === 0) return; // trigger not laid out yet
     const anchorX = r.left + r.width / 2;
-    const bubbleWidth = bubbleRef.current?.offsetWidth ?? Math.max(label.length * 7, 80);
-    const bubbleHeight = bubbleRef.current?.offsetHeight ?? 32;
     const margin = 8;
+
+    // Cap bubble width to viewport so it never renders off-screen. If the
+    // natural width exceeds the cap, the bubble shrinks and its label wraps.
+    const maxAllowed = Math.max(80, window.innerWidth - margin * 2);
+    const measuredWidth = bubbleRef.current?.offsetWidth ?? Math.max(label.length * 7, 80);
+    const bubbleWidth = Math.min(measuredWidth, maxAllowed);
+    const bubbleHeight = bubbleRef.current?.offsetHeight ?? 32;
 
     // Flip above trigger when there isn't room below (e.g. composer icons
     // near the viewport bottom get clipped otherwise).
@@ -131,12 +136,24 @@ export default function Tooltip({ label, accent, disabled, children }: Props) {
     const flipped = roomBelow < needed && r.top > needed;
     const top = flipped ? r.top - GAP - bubbleHeight : r.bottom + GAP;
 
-    let left = anchorX - bubbleWidth / 2;
+    // Horizontal auto-anchor: prefer centering, but when the trigger sits
+    // near an edge, bias the bubble toward the side with more room so it
+    // stays on-screen without just clamping to a hard margin.
+    const roomLeft = anchorX - margin;
+    const roomRight = window.innerWidth - anchorX - margin;
+    let left: number;
+    if (bubbleWidth / 2 <= Math.min(roomLeft, roomRight)) {
+      left = anchorX - bubbleWidth / 2;
+    } else if (roomRight > roomLeft) {
+      left = Math.max(margin, anchorX - bubbleWidth * 0.2);
+    } else {
+      left = Math.min(window.innerWidth - bubbleWidth - margin, anchorX - bubbleWidth * 0.8);
+    }
     const maxLeft = window.innerWidth - bubbleWidth - margin;
     if (left < margin) left = margin;
     if (left > maxLeft) left = maxLeft;
     const arrowLeft = Math.max(6, Math.min(bubbleWidth - 16, anchorX - left - 5));
-    setPos({ left, top, arrowLeft, flipped });
+    setPos({ left, top, arrowLeft, flipped, maxWidth: maxAllowed });
   }, [label]);
 
   useEffect(() => {
@@ -191,7 +208,7 @@ export default function Tooltip({ label, accent, disabled, children }: Props) {
             ref={bubbleRef}
             role="tooltip"
             $accent={effectiveAccent}
-            style={{ left: pos.left, top: pos.top }}
+            style={{ left: pos.left, top: pos.top, maxWidth: pos.maxWidth, whiteSpace: "normal" }}
           >
             <TooltipArrow $accent={effectiveAccent} $flipped={pos.flipped} style={{ left: pos.arrowLeft }} />
             {label}

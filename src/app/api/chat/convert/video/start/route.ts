@@ -8,7 +8,7 @@ import { promisify } from "util";
 import fs from "fs";
 import os from "os";
 import path from "path";
-import { videoJobs, pruneJobs, type VideoJob } from "@/lib/video-jobs";
+import { videoJobs, videoProcs, pruneJobs, type VideoJob } from "@/lib/video-jobs";
 
 const execFileAsync = promisify(execFile);
 
@@ -115,6 +115,7 @@ function spawnConversion(jobId: string, args: string[], inPath: string, outPath:
 
     getDuration(inPath).then(totalSecs => {
         const proc = spawn("ffmpeg", args, { stdio: ["ignore", "pipe", "ignore"] });
+        videoProcs.set(jobId, proc);
         let buf = "";
 
         proc.stdout.on("data", (chunk: Buffer) => {
@@ -134,7 +135,11 @@ function spawnConversion(jobId: string, args: string[], inPath: string, outPath:
         });
 
         proc.on("close", (code) => {
-            if (code === 0 && fs.existsSync(outPath)) {
+            videoProcs.delete(jobId);
+            if (job.cancelled) {
+                job.error = "Cancelled";
+                job.done = true;
+            } else if (code === 0 && fs.existsSync(outPath)) {
                 job.percent = 100;
                 job.done = true;
                 job.outPath = outPath;
@@ -144,9 +149,13 @@ function spawnConversion(jobId: string, args: string[], inPath: string, outPath:
                 job.done = true;
             }
             try { fs.unlinkSync(inPath); } catch { /* ignore */ }
+            if (job.cancelled) {
+                try { fs.unlinkSync(outPath); } catch { /* ignore */ }
+            }
         });
 
         proc.on("error", (err) => {
+            videoProcs.delete(jobId);
             job.error = err.message;
             job.done = true;
             try { fs.unlinkSync(inPath); } catch { /* ignore */ }

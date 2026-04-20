@@ -59,7 +59,7 @@ const ToggleButton = styled.button<{ $running: boolean }>`
     $running
       ? `linear-gradient(135deg, ${colors.gold}, #ff9900)`
       : `linear-gradient(135deg, ${colors.pink}, #7b2ff7)`};
-  color: #fff;
+  color: #000;
   border: none;
   cursor: pointer;
   transition: all 0.2s;
@@ -69,10 +69,19 @@ const ToggleButton = styled.button<{ $running: boolean }>`
   }
 
   [data-theme="light"] & {
+    color: #fff;
     box-shadow: ${({ $running }) =>
       $running
         ? `0 0 16px rgba(${rgb.gold}, 0.4)`
         : `0 0 16px rgba(${rgb.pink}, 0.35)`};
+  }
+
+  @media (max-width: 767px) {
+    padding: 0;
+    width: 44px;
+    height: 44px;
+    justify-content: center;
+    gap: 0;
   }
 
   body[data-dashboard-modal="open"][data-dashboard-sidebar="hidden"] & {
@@ -88,6 +97,18 @@ const ToggleButton = styled.button<{ $running: boolean }>`
 const ToggleIcon = styled.span`
   font-family: monospace;
   font-size: 14px;
+`;
+
+const ToggleLabel = styled.span`
+  @media (max-width: 767px) {
+    display: none;
+  }
+`;
+
+const ToggleBadgeWrap = styled.span`
+  @media (max-width: 767px) {
+    display: none;
+  }
 `;
 
 const LineBadge = styled.span`
@@ -1294,9 +1315,11 @@ export default function CliTerminal({ standalone = false }: { standalone?: boole
       {!standalone && (
         <ToggleButton onClick={toggleTerminal} title="Toggle Terminal" $running={isRunning}>
           <ToggleIcon>{isRunning ? "●" : ">_"}</ToggleIcon>
-          {isRunning ? `${currentScript?.slice(0, 18) ?? "running"}…` : isOpen ? "Hide" : "Terminal"}
+          <ToggleLabel>
+            {isRunning ? `${currentScript?.slice(0, 18) ?? "running"}…` : isOpen ? "Hide" : "Terminal"}
+          </ToggleLabel>
           {!isOpen && lines.length > 0 && !isRunning && (
-            <LineBadge>{lines.length}</LineBadge>
+            <ToggleBadgeWrap><LineBadge>{lines.length}</LineBadge></ToggleBadgeWrap>
           )}
         </ToggleButton>
       )}

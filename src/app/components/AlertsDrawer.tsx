@@ -13,6 +13,8 @@ import {
   PanelIconBtn,
 } from "../styled";
 import AnnouncementsPanel from "./AnnouncementsPanel";
+import { DrawerAlertsIcon } from "./icons";
+import NeonX from "./NeonX";
 
 const MIN_W = 420;
 const MAX_W = 1400;
@@ -29,10 +31,11 @@ function getDefaultTabY() {
 
 // ── Styled ───────────────────────────────────────────────────────
 
-const SideTab = styled(DrawerTab).attrs({ $side: "left", $accent: "gold" })`
-  left: 0;
+const SideTab = styled(DrawerTab).attrs({ $side: "left", $accent: "gold" })<{ $openOffset?: number }>`
+  left: ${(p) => p.$openOffset ?? 0}px;
   z-index: 61;
   border-left: none;
+  transition: left 0.25s cubic-bezier(0.4, 0, 0.2, 1), background 0.2s;
 `;
 
 const Backdrop = styled(DrawerBackdrop)`
@@ -190,6 +193,17 @@ export default function AlertsDrawer() {
   }, []);
 
   useEffect(() => {
+    const handler = (e: Event) => {
+      if ((e as CustomEvent).detail === DRAWER_ID) {
+        setOpen(true);
+        window.dispatchEvent(new CustomEvent(DRAWER_EVENT, { detail: DRAWER_ID }));
+      }
+    };
+    window.addEventListener("tgv-drawer-open", handler);
+    return () => window.removeEventListener("tgv-drawer-open", handler);
+  }, []);
+
+  useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape" && fullscreen) { setFullscreen(false); return; }
       if (e.key === "Escape" && open) setOpen(false);
@@ -280,6 +294,7 @@ export default function AlertsDrawer() {
       <SideTab
         onMouseDown={onTabMouseDown}
         title={open ? "Close alerts" : "Open alerts"}
+        $openOffset={open && !fullscreen ? width : 0}
         style={{
           top: tabY,
           backgroundColor: open
@@ -288,16 +303,7 @@ export default function AlertsDrawer() {
         }}
       >
         <span style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
-          {open ? (
-            <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-              <path d="M1 1l8 8M9 1l-8 8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
-            </svg>
-          ) : (
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-              <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-            </svg>
-          )}
+          <DrawerAlertsIcon size={16} />
         </span>
         <DrawerTabLabel>Alerts</DrawerTabLabel>
       </SideTab>
@@ -338,7 +344,7 @@ export default function AlertsDrawer() {
             <ControlBtn onClick={() => setFullscreen((p) => !p)} title={fullscreen ? "Exit full screen (Esc)" : "Full screen"}>
               {fullscreen ? "⊡" : "⊞"}
             </ControlBtn>
-            <ControlBtn onClick={() => { setOpen(false); setFullscreen(false); }} title="Close (Esc)">✕</ControlBtn>
+            <NeonX accent="gold" onClick={() => { setOpen(false); setFullscreen(false); }} title="Close (Esc)" />
           </ControlRow>
         </Header>
 

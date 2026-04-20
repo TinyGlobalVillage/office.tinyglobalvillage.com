@@ -14,7 +14,7 @@ import LibraryIcon from "../components/LibraryIcon";
 import LibraryModal from "../components/LibraryModal";
 import SuggestionBoxModal from "../components/suggestion/SuggestionBoxModal";
 import DashboardPageModal from "../components/DashboardPageModal";
-import { DatabaseIcon, StorageIcon, EditorIcon, UtilsIcon, SuggestionIcon, ProcessesIcon, DeployIcon } from "../components/icons";
+import { DatabaseIcon, StorageIcon, EditorIcon, UtilsIcon, SuggestionIcon, ProcessesIcon, DeployIcon, DrawerAlertsIcon, DrawerChatsIcon, DrawerInboxIcon, DrawerSessionsIcon } from "../components/icons";
 import { colors, rgb, type GlowColor } from "@/app/theme";
 
 type DashTile = {
@@ -52,10 +52,14 @@ const Main = styled.main`
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  padding: 0 1rem 4rem;
+  padding: 0 0.25rem 4rem;
   max-width: 80rem;
   margin: 0 auto;
   width: 100%;
+
+  @media (min-width: 768px) {
+    padding: 0 1rem 4rem;
+  }
 `;
 
 const Hero = styled.section`
@@ -379,10 +383,14 @@ const TileOuter = styled.div<{ $glow: GlowColor; $isSuggest?: boolean }>`
   justify-content: center;
   gap: 0.5rem;
   border-radius: 1rem;
-  padding: 1.25rem 0.75rem;
+  padding: 1rem 0.375rem;
   transition: all 0.2s;
   height: 100%;
   cursor: pointer;
+
+  @media (min-width: 768px) {
+    padding: 1.25rem 0.75rem;
+  }
   background: ${(p) => (p.$isSuggest ? "transparent" : `rgba(${rgb[p.$glow]}, 0.06)`)};
   border: ${(p) => (p.$isSuggest ? `2px dashed rgba(${rgb[p.$glow]}, 0.35)` : `1px solid rgba(${rgb[p.$glow]}, 0.18)`)};
 
@@ -638,6 +646,10 @@ export default function Home() {
     { key: "Sandbox", title: "Sandbox", subtitle: "Component Lab", glow: "pink", icon: <SandboxIcon size={28} color={colors.pink} />, onClick: () => setSandboxOpen(true) },
     { key: "Library", title: "Library", subtitle: "Catalog", glow: "violet", icon: <LibraryIcon size={28} color={colors.violet} />, onClick: () => setLibraryOpen(true) },
     { key: "Suggest", title: "Suggest", subtitle: "Feature ideas", glow: "pink", icon: <SuggestionIcon size={28} style={{ color: colors.pink }} />, onClick: () => setSuggestionOpen(true) },
+    { key: "Alerts", title: "Alerts", subtitle: "Announcements", glow: "gold", icon: <DrawerAlertsIcon size={28} style={{ color: colors.gold }} />, onClick: () => window.dispatchEvent(new CustomEvent("tgv-drawer-open", { detail: "alerts" })) },
+    { key: "Chats", title: "Chats", subtitle: "Team messaging", glow: "green", icon: <DrawerChatsIcon size={28} style={{ color: colors.green }} />, onClick: () => window.dispatchEvent(new CustomEvent("tgv-drawer-open", { detail: "chat" })) },
+    { key: "Inbox", title: "Inbox", subtitle: "Email", glow: "cyan", icon: <DrawerInboxIcon size={28} style={{ color: colors.cyan }} />, onClick: () => window.dispatchEvent(new CustomEvent("tgv-drawer-open", { detail: "inbox" })) },
+    { key: "Sessions", title: "Sessions", subtitle: "Video rooms", glow: "pink", icon: <DrawerSessionsIcon size={28} style={{ color: colors.pink }} />, onClick: () => window.dispatchEvent(new CustomEvent("tgv-drawer-open", { detail: "sessions" })) },
   ], []);
 
   const filteredTiles = useMemo(

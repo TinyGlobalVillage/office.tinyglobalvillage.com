@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/api-auth";
 import { getClearCutoff, tgvChannelKey, filterByCutoff } from "@/lib/chat-clears";
+import { BOT_USERNAME, messageTriggersClaude, triggerClaudeForTgv } from "@/lib/claude-bot";
 import fs from "fs";
 import path from "path";
 
@@ -124,6 +125,10 @@ export async function POST(req: NextRequest) {
   };
   db.messages.push(msg);
   writeDB(db);
+
+  if (username !== BOT_USERNAME && messageTriggersClaude(msg.content)) {
+    triggerClaudeForTgv();
+  }
 
   return NextResponse.json({ ok: true, message: msg });
 }

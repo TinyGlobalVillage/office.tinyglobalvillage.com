@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef, DragEvent, Suspense, KeyboardEvent } from "react";
+import { useState, useEffect, useCallback, useRef, DragEvent, Suspense, KeyboardEvent, ReactNode } from "react";
 import { useSearchParams } from "next/navigation";
 import styled from "styled-components";
 import { colors, rgb } from "../../theme";
 import TopNav from "../../components/TopNav";
+import { CloudIcon, AvatarIcon } from "../../components/icons";
 
 const CDN_BASE = "https://office.tinyglobalvillage.com/media";
 
@@ -37,13 +38,13 @@ function fmtDate(ms: number) {
 function isImage(type: string) { return type.startsWith("image/"); }
 function isVideo(type: string) { return type.startsWith("video/"); }
 
-function fileIcon(type: string) {
+function fileIcon(type: string): ReactNode {
   if (isImage(type)) return "🖼";
   if (isVideo(type)) return "🎬";
   if (type.startsWith("audio/")) return "🎵";
   if (type === "application/pdf") return "📄";
   if (type.startsWith("font/")) return "🔤";
-  return "📁";
+  return <AvatarIcon size={44} style={{ color: colors.pink }} />;
 }
 
 /* ── Styled Components ─────────────────────────────────────────── */
@@ -121,7 +122,24 @@ const DropZone = styled.div<{ $dragging: boolean }>`
 `;
 
 const DropIcon = styled.span`
-  font-size: 1.875rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+`;
+
+const Spinner = styled.span`
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  border: 2px solid rgba(${rgb.pink}, 0.25);
+  border-top-color: ${colors.pink};
+  border-radius: 50%;
+  animation: storage-spin 0.85s linear infinite;
+
+  @keyframes storage-spin {
+    to { transform: rotate(360deg); }
+  }
 `;
 
 const DropLabel = styled.p`
@@ -184,9 +202,14 @@ const CopyBtn = styled.button<{ $copied: boolean }>`
   border-radius: 0.5rem;
   transition: all 0.15s;
   cursor: pointer;
-  background: ${(p) => (p.$copied ? `rgba(${rgb.green}, 0.25)` : "var(--t-inputBg)")};
-  border: 1px solid rgba(${rgb.green}, 0.4);
-  color: ${(p) => (p.$copied ? "#00dc64" : "var(--t-text)")};
+  background: ${(p) => (p.$copied ? `rgba(${rgb.green}, 0.25)` : `rgba(${rgb.pink}, 0.1)`)};
+  border: 1px solid ${(p) => (p.$copied ? `rgba(${rgb.green}, 0.4)` : `rgba(${rgb.pink}, 0.4)`)};
+  color: ${(p) => (p.$copied ? "#00dc64" : colors.pink)};
+  box-shadow: ${(p) => (p.$copied ? `0 0 10px rgba(${rgb.green}, 0.35)` : `0 0 10px rgba(${rgb.pink}, 0.25)`)};
+
+  &:hover {
+    box-shadow: ${(p) => (p.$copied ? `0 0 14px rgba(${rgb.green}, 0.5)` : `0 0 14px rgba(${rgb.pink}, 0.45)`)};
+  }
 `;
 
 /* ── File card ─────────────────────────────────────────────────── */
@@ -269,9 +292,14 @@ const CardCopyBtn = styled.button<{ $copied: boolean }>`
   border-radius: 0.5rem;
   transition: all 0.15s;
   cursor: pointer;
-  background: ${(p) => (p.$copied ? `rgba(${rgb.green}, 0.15)` : `rgba(${rgb.cyan}, 0.1)`)};
-  border: 1px solid ${(p) => (p.$copied ? `rgba(${rgb.green}, 0.4)` : `rgba(${rgb.cyan}, 0.3)`)};
-  color: ${(p) => (p.$copied ? "#00dc64" : colors.cyan)};
+  background: ${(p) => (p.$copied ? `rgba(${rgb.green}, 0.15)` : `rgba(${rgb.pink}, 0.1)`)};
+  border: 1px solid ${(p) => (p.$copied ? `rgba(${rgb.green}, 0.4)` : `rgba(${rgb.pink}, 0.35)`)};
+  color: ${(p) => (p.$copied ? "#00dc64" : colors.pink)};
+  box-shadow: ${(p) => (p.$copied ? `0 0 8px rgba(${rgb.green}, 0.3)` : `0 0 8px rgba(${rgb.pink}, 0.25)`)};
+
+  &:hover {
+    box-shadow: ${(p) => (p.$copied ? `0 0 12px rgba(${rgb.green}, 0.45)` : `0 0 12px rgba(${rgb.pink}, 0.45)`)};
+  }
 `;
 
 const CardOpenBtn = styled.a`
@@ -280,9 +308,17 @@ const CardOpenBtn = styled.a`
   padding: 0.25rem 0.5rem;
   border-radius: 0.5rem;
   text-decoration: none;
+  transition: all 0.15s;
   background: var(--t-inputBg);
   border: 1px solid var(--t-borderStrong);
   color: var(--t-textGhost);
+  box-shadow: 0 0 6px rgba(${rgb.pink}, 0.18);
+
+  &:hover {
+    color: ${colors.pink};
+    border-color: rgba(${rgb.pink}, 0.35);
+    box-shadow: 0 0 10px rgba(${rgb.pink}, 0.35);
+  }
 `;
 
 const CardDeleteBtn = styled.button<{ $confirm?: boolean }>`
@@ -295,9 +331,12 @@ const CardDeleteBtn = styled.button<{ $confirm?: boolean }>`
   background: ${(p) => (p.$confirm ? `rgba(${rgb.red}, 0.2)` : "var(--t-inputBg)")};
   border: 1px solid ${(p) => (p.$confirm ? `rgba(${rgb.red}, 0.5)` : "var(--t-border)")};
   color: ${(p) => (p.$confirm ? colors.red : "var(--t-textGhost)")};
+  box-shadow: ${(p) => (p.$confirm ? `0 0 10px rgba(${rgb.red}, 0.4)` : `0 0 6px rgba(${rgb.red}, 0.15)`)};
 
   &:hover {
     color: ${colors.red};
+    border-color: rgba(${rgb.red}, 0.5);
+    box-shadow: 0 0 10px rgba(${rgb.red}, 0.4);
   }
 `;
 
@@ -319,13 +358,24 @@ const DDMTrigger = styled.button<{ $open: boolean }>`
   transition: all 0.15s;
   text-align: left;
   cursor: pointer;
-  background: ${(p) => (p.$open ? `rgba(${rgb.cyan}, 0.12)` : "var(--t-inputBg)")};
-  border: 1px solid ${(p) => (p.$open ? `rgba(${rgb.cyan}, 0.45)` : "var(--t-borderStrong)")};
-  color: ${colors.cyan};
-  box-shadow: ${(p) => (p.$open ? `0 0 0 3px rgba(${rgb.cyan}, 0.08)` : "none")};
+  background: ${(p) => (p.$open ? `rgba(${rgb.pink}, 0.12)` : "var(--t-inputBg)")};
+  border: 1px solid ${(p) => (p.$open ? `rgba(${rgb.pink}, 0.45)` : `rgba(${rgb.pink}, 0.3)`)};
+  color: ${colors.pink};
+  box-shadow: ${(p) =>
+    p.$open
+      ? `0 0 0 3px rgba(${rgb.pink}, 0.1), 0 0 14px rgba(${rgb.pink}, 0.35)`
+      : `0 0 8px rgba(${rgb.pink}, 0.2)`};
+
+  &:hover {
+    box-shadow: ${(p) =>
+      p.$open
+        ? `0 0 0 3px rgba(${rgb.pink}, 0.12), 0 0 18px rgba(${rgb.pink}, 0.45)`
+        : `0 0 12px rgba(${rgb.pink}, 0.35)`};
+    border-color: rgba(${rgb.pink}, 0.5);
+  }
 
   [data-theme="light"] & {
-    background: ${(p) => (p.$open ? `rgba(${rgb.cyan}, 0.08)` : "var(--t-surface)")};
+    background: ${(p) => (p.$open ? `rgba(${rgb.pink}, 0.08)` : "var(--t-surface)")};
   }
 `;
 
@@ -365,7 +415,7 @@ const DDMArrow = styled.span<{ $open: boolean }>`
   font-size: 10px;
   transition: transform 0.2s;
   transform: ${(p) => (p.$open ? "rotate(180deg)" : "rotate(0deg)")};
-  color: rgba(${rgb.cyan}, 0.6);
+  color: rgba(${rgb.pink}, 0.75);
 `;
 
 const DDMPanel = styled.div`
@@ -380,8 +430,9 @@ const DDMPanel = styled.div`
   border-radius: 14px;
   max-height: 320px;
   background: rgba(8, 10, 16, 0.99);
-  border: 1px solid rgba(${rgb.cyan}, 0.25);
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(${rgb.cyan}, 0.06);
+  border: 1px solid rgba(${rgb.pink}, 0.3);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(${rgb.pink}, 0.08),
+    0 0 24px rgba(${rgb.pink}, 0.2);
 
   [data-theme="light"] & {
     background: var(--t-surface);
@@ -452,13 +503,14 @@ const DDMItem = styled.button<{ $active: boolean }>`
   text-align: left;
   transition: background 0.15s;
   cursor: pointer;
-  background: ${(p) => (p.$active ? `rgba(${rgb.cyan}, 0.1)` : "transparent")};
+  background: ${(p) => (p.$active ? `rgba(${rgb.pink}, 0.12)` : "transparent")};
   border: none;
-  border-left: 2px solid ${(p) => (p.$active ? colors.cyan : "transparent")};
-  color: ${(p) => (p.$active ? colors.cyan : "var(--t-textMuted)")};
+  border-left: 2px solid ${(p) => (p.$active ? colors.pink : "transparent")};
+  color: ${(p) => (p.$active ? colors.pink : "var(--t-textMuted)")};
 
   &:hover {
-    background: ${(p) => (p.$active ? `rgba(${rgb.cyan}, 0.1)` : "var(--t-inputBg)")};
+    background: ${(p) => (p.$active ? `rgba(${rgb.pink}, 0.14)` : `rgba(${rgb.pink}, 0.06)`)};
+    color: ${colors.pink};
   }
 `;
 
@@ -501,9 +553,26 @@ const FilterInput = styled.input`
   font-size: 0.75rem;
   font-family: monospace;
   outline: none;
+  transition: all 0.15s;
   background: var(--t-inputBg);
-  border: 1px solid var(--t-borderStrong);
-  color: var(--t-text);
+  border: 1px solid rgba(${rgb.pink}, 0.35);
+  color: ${colors.pink};
+  box-shadow: 0 0 8px rgba(${rgb.pink}, 0.2);
+  caret-color: ${colors.pink};
+
+  &::placeholder {
+    color: rgba(${rgb.pink}, 0.45);
+  }
+
+  &:hover {
+    border-color: rgba(${rgb.pink}, 0.5);
+    box-shadow: 0 0 12px rgba(${rgb.pink}, 0.3);
+  }
+
+  &:focus {
+    border-color: rgba(${rgb.pink}, 0.65);
+    box-shadow: 0 0 0 3px rgba(${rgb.pink}, 0.1), 0 0 14px rgba(${rgb.pink}, 0.4);
+  }
 
   [data-theme="light"] & {
     background: var(--t-surface);
@@ -512,7 +581,9 @@ const FilterInput = styled.input`
 
 const FilterCount = styled.span`
   font-size: 0.75rem;
-  color: var(--t-textGhost);
+  font-weight: 700;
+  color: ${colors.pink};
+  text-shadow: 0 0 6px rgba(${rgb.pink}, 0.5);
 `;
 
 const FileGrid = styled.div`
@@ -553,8 +624,11 @@ const EmptyState = styled.div`
 `;
 
 const EmptyIcon = styled.span`
-  font-size: 2.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   margin-bottom: 0.75rem;
+  line-height: 1;
 `;
 
 const EmptyLabel = styled.p`
@@ -667,7 +741,13 @@ function UploadZone({
         onDragLeave={() => setDragging(false)}
         onDrop={onDrop}
       >
-        <DropIcon>{uploading.length ? "⏳" : "☁️"}</DropIcon>
+        <DropIcon>
+          {uploading.length ? (
+            <Spinner />
+          ) : (
+            <CloudIcon size={36} style={{ color: colors.pink }} />
+          )}
+        </DropIcon>
         {uploading.length ? (
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0.25rem" }}>
             <DropLabel>Uploading…</DropLabel>
@@ -891,6 +971,7 @@ export default function StoragePage() {
 
 function StoragePageInner() {
   const searchParams = useSearchParams();
+  const embedded = searchParams.get("embedded") === "1";
   const [cdnProjects, setCdnProjects] = useState<ProjectMeta[]>([]);
   const [deployedProjectNames, setDeployedProjectNames] = useState<string[]>([]);
   const [activeProject, setActiveProject] = useState(searchParams.get("project") ?? "office");
@@ -963,16 +1044,18 @@ function StoragePageInner() {
     <>
       <TopNav />
       <PageMain>
-        <HeaderRow>
-          <div>
-            <PageTitle>Storage</PageTitle>
-            <PageSubtitle>
-              Files are served at{" "}
-              <CdnPath>{CDN_BASE}/&#123;project&#125;/&#123;file&#125;</CdnPath>
-              {" "}— publicly accessible, immutable cache
-            </PageSubtitle>
-          </div>
-        </HeaderRow>
+        {!embedded && (
+          <HeaderRow>
+            <div>
+              <PageTitle>Storage</PageTitle>
+              <PageSubtitle>
+                Files are served at{" "}
+                <CdnPath>{CDN_BASE}/&#123;project&#125;/&#123;file&#125;</CdnPath>
+                {" "}— publicly accessible, immutable cache
+              </PageSubtitle>
+            </div>
+          </HeaderRow>
+        )}
 
         <ProjectDropdown
           projects={allProjects}
@@ -1003,7 +1086,9 @@ function StoragePageInner() {
           </FileGrid>
         ) : filteredFiles.length === 0 ? (
           <EmptyState>
-            <EmptyIcon>☁️</EmptyIcon>
+            <EmptyIcon>
+              <CloudIcon size={44} style={{ color: colors.pink }} />
+            </EmptyIcon>
             <EmptyLabel>No files yet</EmptyLabel>
             <EmptyHint>
               Drop files above to upload to the <EmptyBucket>{activeProject}</EmptyBucket> bucket

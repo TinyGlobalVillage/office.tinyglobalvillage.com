@@ -13,6 +13,7 @@ import {
   PanelTitle,
   Spacer,
 } from "@/app/styled";
+import NeonX from "./NeonX";
 
 type LiveDate = { date: string; bytes: number; archived: false };
 type ArchiveDate = { date: string; bytes: number; archived: true; decompressed: boolean };
@@ -457,9 +458,7 @@ export default function LogsModal({
               ? `${liveDates.length} day${liveDates.length !== 1 ? "s" : ""} · LA time`
               : `${archiveDates.length} archive${archiveDates.length !== 1 ? "s" : ""}`}
           </CountLabel>
-          <PanelIconBtn onClick={onClose} title="Close">
-            ✕
-          </PanelIconBtn>
+          <NeonX accent="pink" onClick={onClose} title="Close" />
         </PanelHeader>
 
         <BodySplit>

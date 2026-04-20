@@ -19,6 +19,8 @@ const LiveKitRoom = dynamic(() => import("@livekit/components-react").then(m => 
 const VideoConference = dynamic(() => import("@livekit/components-react").then(m => m.VideoConference), { ssr: false });
 
 import "@livekit/components-styles";
+import { DrawerSessionsIcon } from "./icons";
+import NeonX from "./NeonX";
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -40,10 +42,11 @@ function getDefaultTabY() {
 
 // ── Styled ───────────────────────────────────────────────────────────────────
 
-const SideTab = styled(DrawerTab).attrs({ $side: "left", $accent: "pink" })`
-  left: 0;
+const SideTab = styled(DrawerTab).attrs({ $side: "left", $accent: "pink" })<{ $openOffset?: number }>`
+  left: ${(p) => p.$openOffset ?? 0}px;
   z-index: 63;
   border-left: none;
+  transition: left 0.25s cubic-bezier(0.4, 0, 0.2, 1), background 0.2s;
 `;
 
 const Backdrop = styled(DrawerBackdrop)`
@@ -270,6 +273,17 @@ export default function SessionsDrawer() {
     return () => window.removeEventListener(DRAWER_EVENT, handler);
   }, [open]);
 
+  useEffect(() => {
+    const handler = (e: Event) => {
+      if ((e as CustomEvent).detail === DRAWER_ID) {
+        setOpen(true);
+        window.dispatchEvent(new CustomEvent(DRAWER_EVENT, { detail: DRAWER_ID }));
+      }
+    };
+    window.addEventListener("tgv-drawer-open", handler);
+    return () => window.removeEventListener("tgv-drawer-open", handler);
+  }, []);
+
   // ESC to close
   useEffect(() => {
     if (!open) return;
@@ -367,6 +381,7 @@ export default function SessionsDrawer() {
       <SideTab
         onMouseDown={onTabMouseDown}
         title={open ? "Close sessions" : "Open sessions"}
+        $openOffset={open ? width : 0}
         style={{
           top: tabY,
           backgroundColor: open
@@ -374,9 +389,7 @@ export default function SessionsDrawer() {
             : `rgba(${rgb.pink}, 0.12)`,
         }}
       >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/>
-        </svg>
+        <DrawerSessionsIcon size={16} />
         <DrawerTabLabel>Sessions</DrawerTabLabel>
       </SideTab>
 
@@ -411,9 +424,7 @@ export default function SessionsDrawer() {
             >
               ⧉
             </ControlBtn>
-            <ControlBtn onClick={() => setOpen(false)} title="Close (Esc)">
-              ✕
-            </ControlBtn>
+            <NeonX accent="pink" onClick={() => setOpen(false)} title="Close (Esc)" />
           </Header>
 
           <Body>

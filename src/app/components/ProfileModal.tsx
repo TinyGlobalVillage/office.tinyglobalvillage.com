@@ -10,6 +10,7 @@ import ChatSettingsModal, {
 } from "./ChatSettingsModal";
 import { colors, rgb } from "@/app/theme";
 import { ModalBackdrop, CloseBtn } from "@/app/styled";
+import NeonX from "./NeonX";
 
 export type Profile = {
   username: string;
@@ -95,6 +96,18 @@ const Card = styled.div<{ $accent: string; $hidden?: boolean }>`
 
   [data-theme="light"] & {
     box-shadow: 0 24px 80px rgba(0, 0, 0, 0.12), 0 0 40px ${(p) => p.$accent}08;
+  }
+
+  @media (max-width: 768px) {
+    top: 0;
+    left: 0;
+    transform: none;
+    width: 100vw;
+    height: 100vh;
+    max-height: 100vh;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
   }
 `;
 
@@ -698,7 +711,7 @@ export default function ProfileModal({
                 🔔 Ping
               </PingBtn>
             )}
-            <CloseBtn onClick={onClose}>✕</CloseBtn>
+            <NeonX accent="pink" onClick={onClose} title="Close" />
           </HeaderActions>
         </Header>
 

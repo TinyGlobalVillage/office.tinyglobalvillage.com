@@ -31,6 +31,7 @@ import TalkToText from "./TalkToText";
 import CreateGroupModal from "./CreateGroupModal";
 import GroupAdminModal from "./GroupAdminModal";
 import Tooltip from "./ui/Tooltip";
+import NeonX from "./NeonX";
 import {
   ChatIcon,
   MembersIcon,
@@ -52,6 +53,8 @@ import {
   WaveformIcon,
   VideoIcon,
   PhoneIcon,
+  DTogExpandIcon,
+  DrawerChatsIcon,
 } from "./icons";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -216,10 +219,16 @@ function loadSettings(): ChatSettings {
 
 // ── Styled: shared across sub-components ──────────────────────────────────────
 
-const SideTab = styled(DrawerTab).attrs({ $side: "left", $accent: "green" })`
-  left: 0;
-  z-index: 63;
+const SideTab = styled(DrawerTab).attrs({ $side: "left", $accent: "green" })<{ $openLeft: string; $open: boolean }>`
+  left: ${(p) => p.$openLeft};
+  z-index: 71;
   border-left: none;
+  transition: left 0.25s cubic-bezier(0.4, 0, 0.2, 1), background 0.2s, box-shadow 0.2s;
+  backdrop-filter: ${(p) => (p.$open ? "none" : "blur(8px)")};
+
+  @media (max-width: 768px) {
+    left: ${(p) => (p.$openLeft === "0" ? "0" : "calc(100vw - 28px)")};
+  }
 `;
 
 const UnreadBadge = styled.span`
@@ -1708,6 +1717,331 @@ const Sidebar = styled.div<{ $width: number }>`
   border-right: 1px solid var(--t-border);
   background: rgba(${rgb.green}, 0.02);
   overflow: hidden;
+
+  @media (max-width: 768px) {
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    z-index: 4;
+    background: rgba(7, 9, 13, 0.99);
+    border-right: 1px solid rgba(${rgb.green}, 0.35);
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.6);
+
+    [data-theme="light"] & {
+      background: var(--t-surface);
+    }
+  }
+`;
+
+// ── Mobile WhatsApp-style list view ───────────────────────────────────────────
+
+const MobileList = styled.div`
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--t-surface, rgba(7, 9, 13, 0.99));
+  overflow: hidden;
+`;
+
+const MobileListHeader = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 0.875rem 0.5rem;
+  flex-shrink: 0;
+`;
+
+const MobileTitle = styled.h2`
+  flex: 1;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: ${colors.green};
+  margin: 0;
+  letter-spacing: -0.01em;
+`;
+
+const MobileHeaderBtn = styled.button<{ $primary?: boolean }>`
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: ${(p) => (p.$primary ? `rgba(${rgb.green}, 0.25)` : "rgba(255,255,255,0.05)")};
+  border: 1px solid rgba(${rgb.green}, ${(p) => (p.$primary ? 0.55 : 0.18)});
+  color: ${colors.green};
+  cursor: pointer;
+  transition: background 0.15s;
+  &:hover { background: rgba(${rgb.green}, ${(p) => (p.$primary ? 0.35 : 0.14)}); }
+`;
+
+const MobileSearchWrap = styled.div`
+  padding: 0 0.875rem 0.5rem;
+  flex-shrink: 0;
+`;
+
+const MobileSearchInput = styled.input`
+  width: 100%;
+  padding: 0.5rem 0.75rem 0.5rem 2rem;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(${rgb.green}, 0.18);
+  color: var(--t-text);
+  font-size: 0.8125rem;
+  outline: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%2300ff87' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><circle cx='7' cy='7' r='5'/><path d='M11 11l3.5 3.5'/></svg>");
+  background-repeat: no-repeat;
+  background-position: 0.625rem center;
+  background-size: 14px 14px;
+
+  &:focus { border-color: rgba(${rgb.green}, 0.4); }
+  &::placeholder { color: var(--t-textGhost); }
+`;
+
+const MobilePillRow = styled.div`
+  display: flex;
+  gap: 0.375rem;
+  padding: 0 0.875rem 0.625rem;
+  overflow-x: auto;
+  flex-shrink: 0;
+  scrollbar-width: none;
+  &::-webkit-scrollbar { display: none; }
+`;
+
+const MobilePill = styled.button<{ $active?: boolean }>`
+  padding: 0.3125rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  border: 1px solid rgba(${rgb.green}, ${(p) => (p.$active ? 0.55 : 0.2)});
+  background: ${(p) => (p.$active ? `rgba(${rgb.green}, 0.2)` : "transparent")};
+  color: ${(p) => (p.$active ? colors.green : "var(--t-textMuted)")};
+  transition: all 0.15s;
+  &:hover { background: rgba(${rgb.green}, ${(p) => (p.$active ? 0.28 : 0.08)}); }
+`;
+
+const MobileScroll = styled.div`
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+`;
+
+const MobileArchivedBar = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.625rem 0.875rem;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid rgba(${rgb.green}, 0.1);
+  color: var(--t-textMuted);
+  font-size: 0.8125rem;
+  cursor: pointer;
+  text-align: left;
+  &:hover { background: rgba(${rgb.green}, 0.04); }
+`;
+
+const MobileArchivedIcon = styled.span`
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(${rgb.green}, 0.12);
+  color: ${colors.green};
+  flex-shrink: 0;
+`;
+
+const MobileRowWrap = styled.div<{ $active?: boolean }>`
+  position: relative;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+`;
+
+const MobileRow = styled.button<{ $active?: boolean }>`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.625rem 0.875rem;
+  background: ${(p) => (p.$active ? `rgba(${rgb.green}, 0.06)` : "transparent")};
+  border: none;
+  border-bottom: 1px solid rgba(${rgb.green}, 0.08);
+  color: var(--t-text);
+  cursor: pointer;
+  text-align: left;
+  &:hover { background: rgba(${rgb.green}, 0.05); }
+`;
+
+const MobileMoreBtn = styled.button<{ $open?: boolean }>`
+  position: absolute;
+  top: 50%;
+  right: 0.25rem;
+  transform: translateY(-50%);
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  border: none;
+  background: ${(p) => (p.$open ? `rgba(${rgb.green}, 0.18)` : "transparent")};
+  color: ${(p) => (p.$open ? colors.green : "var(--t-textGhost)")};
+  cursor: pointer;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  opacity: ${(p) => (p.$open ? 1 : 0)};
+  transition: opacity 0.15s, background 0.15s, color 0.15s;
+  z-index: 3;
+  @media (hover: hover) {
+    display: inline-flex;
+    ${MobileRowWrap}:hover & { opacity: 1; }
+  }
+  &:hover { color: ${colors.green}; background: rgba(${rgb.green}, 0.14); }
+`;
+
+const MobileRowMenu = styled.div`
+  position: absolute;
+  top: calc(100% - 6px);
+  right: 0.5rem;
+  z-index: 200;
+  min-width: 200px;
+  padding: 0.25rem 0;
+  border-radius: 10px;
+  background: var(--t-surface);
+  border: 1px solid var(--t-border);
+  box-shadow: 0 10px 32px rgba(0,0,0,0.5);
+`;
+
+const MobileRowAvatar = styled.span`
+  position: relative;
+  width: 2.75rem;
+  height: 2.75rem;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+`;
+
+const MobileRowBody = styled.div`
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+`;
+
+const MobileRowName = styled.span<{ $accent?: string }>`
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: ${(p) => p.$accent ?? "var(--t-text)"};
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
+
+const MobileRowSub = styled.span`
+  font-size: 0.75rem;
+  color: var(--t-textMuted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+`;
+
+const MobileRowMeta = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.25rem;
+  flex-shrink: 0;
+  min-width: 0;
+`;
+
+const MobileRowDot = styled.span<{ $online?: boolean }>`
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: ${(p) => (p.$online ? colors.green : "var(--t-textGhost)")};
+  box-shadow: ${(p) => (p.$online ? `0 0 6px rgba(${rgb.green}, 0.6)` : "none")};
+`;
+
+const MobileRowBadge = styled.span`
+  min-width: 1.25rem;
+  height: 1.25rem;
+  padding: 0 0.375rem;
+  border-radius: 999px;
+  background: ${colors.green};
+  color: #060810;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+`;
+
+const MobileRowEmpty = styled.div`
+  padding: 1.5rem 0.875rem;
+  text-align: center;
+  color: var(--t-textGhost);
+  font-size: 0.75rem;
+`;
+
+const MobileBackBtn = styled.button`
+  display: none;
+  @media (max-width: 768px) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    margin-right: 0.25rem;
+    border-radius: 50%;
+    background: rgba(${rgb.green}, 0.12);
+    border: 1px solid rgba(${rgb.green}, 0.3);
+    color: ${colors.green};
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+`;
+
+const SidebarMobileCollapse = styled.button`
+  display: none;
+
+  @media (max-width: 768px) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    flex-shrink: 0;
+    border-radius: 8px;
+    cursor: pointer;
+    border: 1px solid rgba(${rgb.green}, 0.35);
+    background: rgba(${rgb.green}, 0.12);
+    color: ${colors.green};
+    box-shadow: 0 0 8px rgba(${rgb.green}, 0.3);
+  }
+`;
+
+const SidebarBackdrop = styled.div`
+  display: none;
+
+  @media (max-width: 768px) {
+    display: block;
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    background: rgba(0, 0, 0, 0.45);
+  }
 `;
 
 const SidebarHeader = styled.div`
@@ -2149,8 +2483,13 @@ const SidebarDTog = styled.div<{ $dragging?: boolean }>`
   cursor: col-resize;
   flex-shrink: 0;
   position: relative;
+  touch-action: none;
   background: ${(p) => p.$dragging ? `rgba(${rgb.green}, 0.2)` : "transparent"};
   transition: background 0.15s, box-shadow 0.15s;
+
+  @media (max-width: 768px) {
+    width: 14px;
+  }
 
   /* left hairline */
   &::before {
@@ -2173,8 +2512,8 @@ const SidebarDTog = styled.div<{ $dragging?: boolean }>`
     position: absolute;
     top: 50%; left: 50%;
     transform: translate(-50%, -50%);
-    color: ${(p) => p.$dragging ? colors.green : `rgba(${rgb.green}, 0.75)`};
-    opacity: ${(p) => p.$dragging ? 1 : 0.8};
+    color: ${colors.green};
+    opacity: 1;
     pointer-events: none;
     ${(p) => p.$dragging && `filter: drop-shadow(0 0 3px rgba(${rgb.green}, 0.55));`}
   }
@@ -2207,12 +2546,23 @@ const DTogTab = styled.button`
   background: rgba(${rgb.green}, 0.12);
   color: ${colors.green};
   cursor: pointer;
-  z-index: 2;
+  z-index: 5;
   transition: background 0.15s, box-shadow 0.15s;
 
   &:hover {
     background: rgba(${rgb.green}, 0.22);
     box-shadow: 0 0 8px rgba(${rgb.green}, 0.35);
+  }
+
+  @media (max-width: 768px) {
+    width: 28px;
+    height: 56px;
+    box-shadow: 0 0 10px rgba(${rgb.green}, 0.3);
+
+    > svg {
+      width: 18px;
+      height: 18px;
+    }
   }
 `;
 
@@ -2224,19 +2574,6 @@ function DTogGrip() {
       <rect x="1" y="13" width="12" height="2" rx="1" />
       <rect x="1" y="17.5" width="12" height="2" rx="1" />
       <polygon points="7,29.5 2.5,25 11.5,25" />
-    </svg>
-  );
-}
-
-function DTogExpandIcon() {
-  // Sidebar is on the LEFT side; snapped tab sits at left edge → arrow points right (INTO the sidebar).
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-      <rect x="2" y="4" width="20" height="2" rx="1" />
-      <rect x="2" y="10" width="11" height="2" rx="1" />
-      <rect x="2" y="14" width="11" height="2" rx="1" />
-      <rect x="2" y="20" width="20" height="2" rx="1" />
-      <polygon points="17,8 17,18 22,13" />
     </svg>
   );
 }
@@ -2510,11 +2847,9 @@ function MessageBubble({
     if (onReact) onReact(id, emoji);
   };
 
-  const openMenu = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    const btn = chevronRef.current;
-    if (!btn) return;
-    const r = btn.getBoundingClientRect();
+  const openMenuAt = (anchor: HTMLElement | null) => {
+    if (!anchor) return;
+    const r = anchor.getBoundingClientRect();
     const MENU_WIDTH = 188;
     const MENU_HEIGHT_EST = 400;
     let left = r.right - MENU_WIDTH;
@@ -2527,7 +2862,55 @@ function MessageBubble({
     setMenuOpen(true);
   };
 
+  const openMenu = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    openMenuAt(chevronRef.current);
+  };
+
   const closeMenu = () => setMenuOpen(false);
+
+  // Long-press (touch-hold ~500ms) on the bubble → open action menu.
+  const longPressTimer = useRef<number | null>(null);
+  const longPressFired = useRef(false);
+  const longPressStart = useRef<{ x: number; y: number } | null>(null);
+  const LONG_PRESS_MS = 500;
+  const LONG_PRESS_SLOP = 10;
+  const onBubbleTouchStart = (e: React.TouchEvent) => {
+    if (editing) return;
+    const t = e.touches[0];
+    if (!t) return;
+    longPressFired.current = false;
+    longPressStart.current = { x: t.clientX, y: t.clientY };
+    if (longPressTimer.current) window.clearTimeout(longPressTimer.current);
+    longPressTimer.current = window.setTimeout(() => {
+      longPressFired.current = true;
+      if (navigator.vibrate) { try { navigator.vibrate(12); } catch { /* ignore */ } }
+      openMenuAt(chevronRef.current);
+    }, LONG_PRESS_MS);
+  };
+  const onBubbleTouchMove = (e: React.TouchEvent) => {
+    if (!longPressStart.current) return;
+    const t = e.touches[0];
+    if (!t) return;
+    const dx = t.clientX - longPressStart.current.x;
+    const dy = t.clientY - longPressStart.current.y;
+    if (Math.abs(dx) > LONG_PRESS_SLOP || Math.abs(dy) > LONG_PRESS_SLOP) {
+      if (longPressTimer.current) { window.clearTimeout(longPressTimer.current); longPressTimer.current = null; }
+    }
+  };
+  const onBubbleTouchEnd = (e: React.TouchEvent) => {
+    if (longPressTimer.current) { window.clearTimeout(longPressTimer.current); longPressTimer.current = null; }
+    longPressStart.current = null;
+    if (longPressFired.current) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  };
+  const onBubbleContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    openMenuAt(chevronRef.current);
+  };
 
   const saveEdit = () => {
     if (editVal.trim()) onEdit(editVal.trim());
@@ -2571,7 +2954,15 @@ function MessageBubble({
             />
           )}
         </BubbleMeta>
-        <BubbleCard $isMe={isMe} $accent={accent}>
+        <BubbleCard
+          $isMe={isMe}
+          $accent={accent}
+          onTouchStart={onBubbleTouchStart}
+          onTouchMove={onBubbleTouchMove}
+          onTouchEnd={onBubbleTouchEnd}
+          onTouchCancel={onBubbleTouchEnd}
+          onContextMenu={onBubbleContextMenu}
+        >
           {editing ? (
             <div style={{ display: "flex", gap: "0.5rem" }}>
               <EditInput value={editVal} onChange={(e) => setEditVal(e.target.value)}
@@ -2805,6 +3196,24 @@ export default function ChatDrawer() {
   const [sidebarTab, setSidebarTab] = useState<SidebarTab>("users");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(SIDEBAR_DEFAULT);
+  const [mobileCompact, setMobileCompact] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mq = window.matchMedia("(max-width: 768px)");
+    const apply = () => {
+      const isMobile = mq.matches;
+      setMobileCompact(isMobile);
+      setSidebarWidth((prev) => (isMobile ? 100 : prev < SIDEBAR_NARROW ? SIDEBAR_DEFAULT : prev));
+    };
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
+  }, []);
+
+  useEffect(() => {
+    if (mobileCompact && !open) setMobileView("list");
+  }, [mobileCompact, open]);
   const [groups, setGroups] = useState<GroupChat[]>([]);
   const [groupMessages, setGroupMessages] = useState<GroupMessage[]>([]);
   const [groupSending, setGroupSending] = useState(false);
@@ -2817,6 +3226,26 @@ export default function ChatDrawer() {
   const [muteSubmenuFor, setMuteSubmenuFor] = useState<string | null>(null);
   const [contactInfoFor, setContactInfoFor] = useState<string | null>(null);
   const [showArchived, setShowArchived] = useState(false);
+  const [mobileView, setMobileView] = useState<"list" | "chat">("list");
+  const [mobileFilter, setMobileFilter] = useState<"all" | "unread" | "favorites" | "groups">("all");
+  const [mobileSearch, setMobileSearch] = useState("");
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const longPressFired = useRef(false);
+  const startLongPress = useCallback((rowKey: string) => {
+    longPressFired.current = false;
+    if (longPressTimer.current) clearTimeout(longPressTimer.current);
+    longPressTimer.current = setTimeout(() => {
+      longPressFired.current = true;
+      setRowHoverMenu(rowKey);
+      setMuteSubmenuFor(null);
+      if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+        try { navigator.vibrate?.(15); } catch { /* ignore */ }
+      }
+    }, 450);
+  }, []);
+  const cancelLongPress = useCallback(() => {
+    if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; }
+  }, []);
   const [rowMeta, setRowMeta] = useState<Record<string, RowMetaEntry>>({});
   const [attachMenuOpen, setAttachMenuOpen] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -2946,6 +3375,17 @@ export default function ChatDrawer() {
     };
     window.addEventListener(DRAWER_EVENT, handler);
     return () => window.removeEventListener(DRAWER_EVENT, handler);
+  }, []);
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      if ((e as CustomEvent).detail === "chat") {
+        setOpen(true);
+        window.dispatchEvent(new CustomEvent(DRAWER_EVENT, { detail: "chat" }));
+      }
+    };
+    window.addEventListener("tgv-drawer-open", handler);
+    return () => window.removeEventListener("tgv-drawer-open", handler);
   }, []);
 
   useEffect(() => {
@@ -3136,12 +3576,28 @@ export default function ChatDrawer() {
     const onClick = () => setAttachMenuOpen(false);
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setAttachMenuOpen(false); };
     window.addEventListener("click", onClick);
+    window.addEventListener("touchstart", onClick, { passive: true });
     window.addEventListener("keydown", onKey);
     return () => {
       window.removeEventListener("click", onClick);
+      window.removeEventListener("touchstart", onClick);
       window.removeEventListener("keydown", onKey);
     };
   }, [attachMenuOpen]);
+
+  useEffect(() => {
+    if (!composerMoreOpen) return;
+    const onClick = () => setComposerMoreOpen(false);
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setComposerMoreOpen(false); };
+    window.addEventListener("click", onClick);
+    window.addEventListener("touchstart", onClick, { passive: true });
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("click", onClick);
+      window.removeEventListener("touchstart", onClick);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [composerMoreOpen]);
 
   useEffect(() => {
     loadGroups();
@@ -3307,49 +3763,73 @@ export default function ChatDrawer() {
   }, [width, maxW]);
 
   const [sidebarDragging, setSidebarDragging] = useState(false);
-  const onSidebarResizeStart = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    const startPx = e.clientX;
+  const beginSidebarResize = useCallback((startX: number, touch: boolean) => {
     const startWpx = sidebarWidth;
     let moved = false;
     let autoCollapsed = false;
-    const onMove = (ev: MouseEvent) => {
-      const dx = ev.clientX - startPx;
-      if (!moved && Math.abs(dx) < DTOG_CLICK_SLOP) return;
+    const commit = (clientX: number) => {
+      const dx = clientX - startX;
+      if (!moved && Math.abs(dx) < DTOG_CLICK_SLOP) return false;
       if (!moved) {
         moved = true;
         setSidebarDragging(true);
-        document.body.style.cursor = "col-resize";
-        document.body.style.userSelect = "none";
+        if (!touch) {
+          document.body.style.cursor = "col-resize";
+          document.body.style.userSelect = "none";
+        }
       }
       const raw = startWpx + dx;
       if (raw < SIDEBAR_COLLAPSE_AT) {
         autoCollapsed = true;
         setSidebarCollapsed(true);
-        document.body.style.cursor = "";
-        document.body.style.userSelect = "";
-        window.removeEventListener("mousemove", onMove);
-        window.removeEventListener("mouseup", onUp);
+        cleanup();
         setSidebarDragging(false);
-        return;
+        return true;
       }
       const next = Math.min(SIDEBAR_MAX, Math.max(SIDEBAR_MIN, raw));
       setSidebarWidth(next);
+      return false;
+    };
+    const onMoveMouse = (ev: MouseEvent) => { commit(ev.clientX); };
+    const onMoveTouch = (ev: TouchEvent) => {
+      const t = ev.touches[0];
+      if (!t) return;
+      if (commit(t.clientX) || moved) ev.preventDefault();
     };
     const onUp = () => {
+      cleanup();
+      setSidebarDragging(false);
+      if (!moved && !autoCollapsed) setSidebarCollapsed(true);
+    };
+    const cleanup = () => {
       document.body.style.cursor = "";
       document.body.style.userSelect = "";
-      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mousemove", onMoveMouse);
       window.removeEventListener("mouseup", onUp);
-      setSidebarDragging(false);
-      if (!moved && !autoCollapsed) {
-        // plain click → collapse
-        setSidebarCollapsed(true);
-      }
+      window.removeEventListener("touchmove", onMoveTouch);
+      window.removeEventListener("touchend", onUp);
+      window.removeEventListener("touchcancel", onUp);
     };
-    window.addEventListener("mousemove", onMove);
-    window.addEventListener("mouseup", onUp);
+    if (touch) {
+      window.addEventListener("touchmove", onMoveTouch, { passive: false });
+      window.addEventListener("touchend", onUp);
+      window.addEventListener("touchcancel", onUp);
+    } else {
+      window.addEventListener("mousemove", onMoveMouse);
+      window.addEventListener("mouseup", onUp);
+    }
   }, [sidebarWidth]);
+
+  const onSidebarResizeStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    beginSidebarResize(e.clientX, false);
+  }, [beginSidebarResize]);
+
+  const onSidebarResizeTouchStart = useCallback((e: React.TouchEvent) => {
+    const t = e.touches[0];
+    if (!t) return;
+    beginSidebarResize(t.clientX, true);
+  }, [beginSidebarResize]);
 
   const sendMessage = async () => {
     if ((!input.trim() && !uploadFile) || sending) return;
@@ -3514,35 +3994,34 @@ export default function ChatDrawer() {
 
   return (
     <>
-      {/* ── Side tab pill (hidden while drawer is open — use in-drawer ✕ instead) */}
-      {!open && (
-        <SideTab
-          onMouseDown={onTabMouseDown}
-          title="Open chat"
-          style={{
-            top: tabY,
-            background: unread > 0
+      {/* ── Side tab pill — DTog-style handle, floats to drawer's outer edge when open */}
+      <SideTab
+        onMouseDown={onTabMouseDown}
+        title={open ? "Close chat" : "Open chat"}
+        $open={open}
+        $openLeft={open ? `min(${width}px, 85vw)` : "0"}
+        style={{
+          top: tabY,
+          background: open
+            ? `rgba(${rgb.green}, 0.25)`
+            : unread > 0
               ? `rgba(${rgb.green}, 0.22)`
               : `rgba(${rgb.green}, 0.12)`,
-            boxShadow: unread > 0
+          boxShadow: open
+            ? `2px 0 14px rgba(${rgb.green}, 0.35)`
+            : unread > 0
               ? `2px 0 14px rgba(${rgb.green}, 0.35)`
               : `2px 0 10px rgba(${rgb.green}, 0.18)`,
-          }}
-        >
-          <span style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
-              <path d="M1 1h12v9H8l-3 3V10H1V1z" stroke="#4ade80" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
-              <circle cx="4.5" cy="5.5" r="0.8" fill="#4ade80"/>
-              <circle cx="7" cy="5.5" r="0.8" fill="#4ade80"/>
-              <circle cx="9.5" cy="5.5" r="0.8" fill="#4ade80"/>
-            </svg>
-            {unread > 0 && (
-              <UnreadBadge>{unread > 9 ? "9+" : unread}</UnreadBadge>
-            )}
-          </span>
-          <DrawerTabLabel>Chat</DrawerTabLabel>
-        </SideTab>
-      )}
+        }}
+      >
+        <span style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <DrawerChatsIcon size={16} />
+          {!open && unread > 0 && (
+            <UnreadBadge>{unread > 9 ? "9+" : unread}</UnreadBadge>
+          )}
+        </span>
+        <DrawerTabLabel>Chat</DrawerTabLabel>
+      </SideTab>
 
       {/* ── Backdrop ──────────────────────────────────────────────── */}
       {open && <Backdrop onClick={() => setOpen(false)} />}
@@ -3688,26 +4167,462 @@ export default function ChatDrawer() {
           </Tooltip>
 
           <Tooltip accent={colors.green} label="Close (Esc)">
-            <ControlBtn onClick={() => setOpen(false)}>
-              ✕
-            </ControlBtn>
+            <NeonX accent="green" onClick={() => setOpen(false)} title="Close (Esc)" />
           </Tooltip>
         </Header>
 
         <Body>
+          {/* ── Mobile WhatsApp-style list view ─────────────────── */}
+          {mobileCompact && mobileView === "list" && (() => {
+            const q = mobileSearch.trim().toLowerCase();
+            type Row =
+              | { kind: "tgv"; key: string; name: string; sub: string; pinned: boolean; unread: boolean; online?: boolean; onClick: () => void; avatar: React.ReactNode; accent?: string; meta?: RowMetaEntry }
+              | { kind: "dm"; key: string; name: string; sub: string; pinned: boolean; unread: boolean; online: boolean; onClick: () => void; avatar: React.ReactNode; accent?: string; meta?: RowMetaEntry; profile: MemberProfile }
+              | { kind: "group"; key: string; name: string; sub: string; pinned: boolean; unread: boolean; onClick: () => void; avatar: React.ReactNode; accent?: string; meta?: RowMetaEntry; group: GroupChat };
+            const rows: Row[] = [];
+
+            const matchFilter = (unread: boolean, pinned: boolean, kind: Row["kind"]) => {
+              if (mobileFilter === "unread") return unread;
+              if (mobileFilter === "favorites") return pinned;
+              if (mobileFilter === "groups") return kind === "group";
+              return true;
+            };
+
+            // TGV Chatroom pseudo-row
+            if (!q || "tgv chatroom".includes(q)) {
+              const tgvMeta = rowMeta["tgv:all"];
+              const tgvUnread = !!tgvMeta?.markedUnread;
+              const tgvPinned = !!tgvMeta?.pinned;
+              if (matchFilter(tgvUnread, tgvPinned, "tgv") && !tgvMeta?.archived) {
+                rows.push({
+                  kind: "tgv",
+                  key: "tgv:all",
+                  name: "TGV Chatroom",
+                  sub: "All members",
+                  pinned: tgvPinned,
+                  unread: tgvUnread,
+                  accent: colors.green,
+                  avatar: (
+                    <span style={{ width: "2.75rem", height: "2.75rem", borderRadius: "50%", display: "inline-flex", alignItems: "center", justifyContent: "center", background: `rgba(${rgb.green}, 0.18)`, color: colors.green, border: `1px solid rgba(${rgb.green}, 0.4)` }}>
+                      <ChatIcon size={18} />
+                    </span>
+                  ),
+                  onClick: () => { setSelection({ type: "tgv" }); setMobileView("chat"); },
+                });
+              }
+            }
+
+            // DMs
+            profiles
+              .filter((p) => p.username !== currentUser)
+              .forEach((p) => {
+                const rowKey = `u:${p.username}`;
+                const meta = rowMeta[rowKey];
+                if (meta?.deleted) return;
+                if (meta?.archived) return; // archived handled via showArchived section below
+                const online = presence.find((pr) => pr.sysUser === p.username)?.online ?? false;
+                const unread = !!meta?.markedUnread;
+                const pinned = !!meta?.pinned;
+                if (!matchFilter(unread, pinned, "dm")) return;
+                if (q && !(p.displayName.toLowerCase().includes(q) || p.username.toLowerCase().includes(q))) return;
+                rows.push({
+                  kind: "dm",
+                  key: rowKey,
+                  name: p.displayName,
+                  sub: p.title || `@${p.username}`,
+                  pinned,
+                  unread,
+                  online,
+                  accent: p.accentColor,
+                  avatar: <UserAvatar profile={p} size={44} />,
+                  meta,
+                  profile: p,
+                  onClick: () => {
+                    setSelection({ type: "dm", peer: p });
+                    setDmMessages([]);
+                    if (meta?.markedUnread) patchRowMeta(rowKey, { markedUnread: false });
+                    setMobileView("chat");
+                  },
+                });
+              });
+
+            // Groups
+            groups.forEach((g) => {
+              const rowKey = `g:${g.id}`;
+              const meta = rowMeta[rowKey];
+              if (meta?.archived) return;
+              const unread = !!meta?.markedUnread;
+              const pinned = !!meta?.pinned;
+              if (!matchFilter(unread, pinned, "group")) return;
+              if (q && !g.name.toLowerCase().includes(q)) return;
+              rows.push({
+                kind: "group",
+                key: rowKey,
+                name: g.name,
+                sub: `${(g.memberIds ?? []).length} members`,
+                pinned,
+                unread,
+                accent: colors.green,
+                avatar: (
+                  <span style={{ width: "2.75rem", height: "2.75rem", borderRadius: "50%", display: "inline-flex", alignItems: "center", justifyContent: "center", background: `rgba(${rgb.green}, 0.14)`, color: colors.green, border: `1px solid rgba(${rgb.green}, 0.28)` }}>
+                    <MembersIcon size={18} />
+                  </span>
+                ),
+                meta,
+                group: g,
+                onClick: () => {
+                  setSelection({ type: "group", groupId: g.id });
+                  if (meta?.markedUnread) patchRowMeta(rowKey, { markedUnread: false });
+                  setMobileView("chat");
+                },
+              });
+            });
+
+            rows.sort((a, b) => {
+              if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+              if (a.unread !== b.unread) return a.unread ? -1 : 1;
+              return a.name.localeCompare(b.name);
+            });
+
+            const archivedCount = Object.entries(rowMeta).filter(([, m]) => m.archived).length;
+
+            return (
+              <MobileList>
+                <MobileListHeader>
+                  <MobileTitle>Chat</MobileTitle>
+                  <Tooltip accent={colors.green} label="New group">
+                    <MobileHeaderBtn $primary onClick={() => setShowCreateGroup(true)} aria-label="New group">
+                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+                        <path d="M8 3v10M3 8h10"/>
+                      </svg>
+                    </MobileHeaderBtn>
+                  </Tooltip>
+                </MobileListHeader>
+                <MobileSearchWrap>
+                  <MobileSearchInput
+                    placeholder="Search"
+                    value={mobileSearch}
+                    onChange={(e) => setMobileSearch(e.target.value)}
+                  />
+                </MobileSearchWrap>
+                <MobilePillRow>
+                  <MobilePill $active={mobileFilter === "all"} onClick={() => setMobileFilter("all")}>All</MobilePill>
+                  <MobilePill $active={mobileFilter === "unread"} onClick={() => setMobileFilter("unread")}>Unread</MobilePill>
+                  <MobilePill $active={mobileFilter === "favorites"} onClick={() => setMobileFilter("favorites")}>Favorites</MobilePill>
+                  <MobilePill $active={mobileFilter === "groups"} onClick={() => setMobileFilter("groups")}>Groups</MobilePill>
+                </MobilePillRow>
+                <MobileScroll>
+                  {archivedCount > 0 && (
+                    <MobileArchivedBar onClick={() => setShowArchived((v) => !v)}>
+                      <MobileArchivedIcon><WaArchive/></MobileArchivedIcon>
+                      <span style={{ flex: 1 }}>Archived</span>
+                      <span style={{ color: colors.green, fontWeight: 600 }}>{archivedCount}</span>
+                    </MobileArchivedBar>
+                  )}
+                  {rows.length === 0 ? (
+                    <MobileRowEmpty>No chats match this filter.</MobileRowEmpty>
+                  ) : rows.map((r) => {
+                    const isActive = (
+                      (r.kind === "tgv" && selection.type === "tgv") ||
+                      (r.kind === "dm" && selection.type === "dm" && `u:${selection.peer.username}` === r.key) ||
+                      (r.kind === "group" && selection.type === "group" && `g:${selection.groupId}` === r.key)
+                    );
+                    const menuOpen = rowHoverMenu === r.key;
+                    const meta = r.meta;
+                    const muted = isMuted(meta);
+                    return (
+                      <MobileRowWrap key={r.key} $active={isActive}>
+                        <MobileRow
+                          $active={isActive}
+                          onClick={(e) => {
+                            if (longPressFired.current) { longPressFired.current = false; e.preventDefault(); e.stopPropagation(); return; }
+                            if (menuOpen) { setRowHoverMenu(null); setMuteSubmenuFor(null); return; }
+                            r.onClick();
+                          }}
+                          onContextMenu={(e) => {
+                            e.preventDefault();
+                            setRowHoverMenu(menuOpen ? null : r.key);
+                            setMuteSubmenuFor(null);
+                          }}
+                          onTouchStart={() => startLongPress(r.key)}
+                          onTouchEnd={cancelLongPress}
+                          onTouchMove={cancelLongPress}
+                          onTouchCancel={cancelLongPress}
+                        >
+                          <MobileRowAvatar>
+                            {r.avatar}
+                            {r.kind === "dm" && (r as { online: boolean }).online && (
+                              <span style={{ position: "absolute", right: 0, bottom: 0, width: 10, height: 10, borderRadius: "50%", background: colors.green, boxShadow: `0 0 6px rgba(${rgb.green}, 0.6)`, border: "2px solid var(--t-surface, #0a0c12)" }}/>
+                            )}
+                          </MobileRowAvatar>
+                          <MobileRowBody>
+                            <MobileRowName $accent={r.accent}>{r.name}</MobileRowName>
+                            <MobileRowSub>
+                              {r.sub}
+                            </MobileRowSub>
+                          </MobileRowBody>
+                          <MobileRowMeta>
+                            {r.pinned && <MobileRowDot style={{ background: colors.green }} title="Pinned" />}
+                            {r.unread && <MobileRowBadge>•</MobileRowBadge>}
+                          </MobileRowMeta>
+                        </MobileRow>
+                        <MobileMoreBtn
+                          $open={menuOpen}
+                          onClick={(e) => { e.stopPropagation(); setRowHoverMenu(menuOpen ? null : r.key); setMuteSubmenuFor(null); }}
+                          aria-label="Row actions"
+                          title="Row actions"
+                        >
+                          <svg width="14" height="14" viewBox="0 0 10 10" fill="currentColor" aria-hidden="true">
+                            <path d="M1 3l4 4 4-4" stroke="currentColor" strokeWidth="1.4" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        </MobileMoreBtn>
+                        {menuOpen && (
+                          <MobileRowMenu onClick={(e) => e.stopPropagation()}>
+                            {r.kind === "dm" && (() => {
+                              const p = r.profile;
+                              return (
+                                <>
+                                  {isActive && (
+                                    <RowHoverMenuItem onClick={() => { setSelection({ type: "tgv" }); setRowHoverMenu(null); }}>
+                                      <RowMenuGlyph><WaX/></RowMenuGlyph> Close chat
+                                    </RowHoverMenuItem>
+                                  )}
+                                  <RowHoverMenuItem onClick={() => {
+                                    const w = Math.round(window.screen.width * 0.7);
+                                    const h = Math.round(window.screen.height * 0.8);
+                                    const left = Math.round((window.screen.width - w) / 2);
+                                    const top = Math.round((window.screen.height - h) / 2);
+                                    window.open(`/dashboard/chat?popout=1&peer=${encodeURIComponent(p.username)}`, `tgv-chat-${p.username}`, `width=${w},height=${h},left=${left},top=${top}`);
+                                    setRowHoverMenu(null);
+                                  }}>
+                                    <RowMenuGlyph><WaPopout/></RowMenuGlyph> Open in New Window
+                                  </RowHoverMenuItem>
+                                  <RowHoverMenuItem onClick={() => { patchRowMeta(r.key, { markedUnread: !meta?.markedUnread }); setRowHoverMenu(null); }}>
+                                    <RowMenuGlyph><WaUnread/></RowMenuGlyph> {meta?.markedUnread ? "Mark as read" : "Mark as unread"}
+                                  </RowHoverMenuItem>
+                                  <RowHoverMenuItem onClick={() => { patchRowMeta(r.key, { archived: !meta?.archived }); if (isActive) setSelection({ type: "tgv" }); setRowHoverMenu(null); }}>
+                                    <RowMenuGlyph><WaArchive/></RowMenuGlyph> {meta?.archived ? "Unarchive" : "Archive"}
+                                  </RowHoverMenuItem>
+                                  <RowHoverMenuItem onClick={() => { patchRowMeta(r.key, { pinned: !meta?.pinned }); setRowHoverMenu(null); }}>
+                                    <RowMenuGlyph><WaPin/></RowMenuGlyph> {meta?.pinned ? "Unpin" : "Pin"}
+                                  </RowHoverMenuItem>
+                                  <RowHoverMenuItem onClick={() => {
+                                    if (!confirm(meta?.blocked ? `Unblock ${p.displayName}?` : `Block ${p.displayName}? They won't be able to message you.`)) return;
+                                    patchRowMeta(r.key, { blocked: !meta?.blocked });
+                                    setRowHoverMenu(null);
+                                  }}>
+                                    <RowMenuGlyph><WaBlock/></RowMenuGlyph> {meta?.blocked ? `Unblock ${p.displayName}` : `Block ${p.displayName}`}
+                                  </RowHoverMenuItem>
+                                  <RowHoverMenuItem
+                                    $highlight={muteSubmenuFor === r.key}
+                                    onMouseEnter={() => setMuteSubmenuFor(r.key)}
+                                    onClick={(e) => { e.stopPropagation(); setMuteSubmenuFor((cur) => cur === r.key ? null : r.key); }}
+                                  >
+                                    <RowMenuGlyph><WaMute/></RowMenuGlyph> {muted ? "Unmute" : "Mute"}
+                                    <RowMenuCaret>›</RowMenuCaret>
+                                    {muteSubmenuFor === r.key && (
+                                      <MuteSubmenu onClick={(e) => e.stopPropagation()}>
+                                        <RowHoverMenuItem onClick={() => { patchRowMeta(r.key, { muteUntil: Date.now() + 8 * 60 * 60 * 1000 }); setRowHoverMenu(null); setMuteSubmenuFor(null); }}>8 hours</RowHoverMenuItem>
+                                        <RowHoverMenuItem onClick={() => { patchRowMeta(r.key, { muteUntil: Date.now() + 7 * 24 * 60 * 60 * 1000 }); setRowHoverMenu(null); setMuteSubmenuFor(null); }}>1 week</RowHoverMenuItem>
+                                        <RowHoverMenuItem onClick={() => { patchRowMeta(r.key, { muteUntil: "always" }); setRowHoverMenu(null); setMuteSubmenuFor(null); }}>Always</RowHoverMenuItem>
+                                        {muted && (
+                                          <>
+                                            <RowMenuDivider />
+                                            <RowHoverMenuItem onClick={() => { patchRowMeta(r.key, { muteUntil: undefined }); setRowHoverMenu(null); setMuteSubmenuFor(null); }}>Unmute now</RowHoverMenuItem>
+                                          </>
+                                        )}
+                                      </MuteSubmenu>
+                                    )}
+                                  </RowHoverMenuItem>
+                                  <RowMenuDivider />
+                                  <RowHoverMenuItem onClick={() => { setContactInfoFor(p.username); setRowHoverMenu(null); }}>
+                                    <RowMenuGlyph><WaInfo/></RowMenuGlyph> Contact info
+                                  </RowHoverMenuItem>
+                                  <RowHoverMenuItem onClick={async () => {
+                                    setRowHoverMenu(null);
+                                    try {
+                                      const res = await fetch(`/api/chat/dm?with=${encodeURIComponent(p.username)}&limit=1000`);
+                                      const data = await res.json().catch(() => ({}));
+                                      exportChannel(`dm-${p.username}.json`, { peer: p.username, exportedAt: new Date().toISOString(), messages: data.messages ?? data });
+                                    } catch (e) { alert(e instanceof Error ? e.message : "Export failed"); }
+                                  }}>
+                                    <RowMenuGlyph><WaExport/></RowMenuGlyph> Export chat
+                                  </RowHoverMenuItem>
+                                  <RowHoverMenuItem onClick={() => { setSelection({ type: "dm", peer: p }); setDmMessages([]); setShowClearConfirm(true); setRowHoverMenu(null); }}>
+                                    <RowMenuGlyph><WaClear/></RowMenuGlyph> Clear chat
+                                  </RowHoverMenuItem>
+                                  <RowHoverMenuItem $danger onClick={() => {
+                                    if (!confirm(`Delete this chat with ${p.displayName}? This removes it from your list.`)) return;
+                                    patchRowMeta(r.key, { deleted: true });
+                                    if (isActive) setSelection({ type: "tgv" });
+                                    setRowHoverMenu(null);
+                                  }}>
+                                    <RowMenuGlyph><WaTrash/></RowMenuGlyph> Delete chat
+                                  </RowHoverMenuItem>
+                                </>
+                              );
+                            })()}
+                            {r.kind === "group" && (() => {
+                              const g = r.group;
+                              return (
+                                <>
+                                  <RowHoverMenuItem onClick={() => {
+                                    const w = Math.round(window.screen.width * 0.7);
+                                    const h = Math.round(window.screen.height * 0.8);
+                                    const left = Math.round((window.screen.width - w) / 2);
+                                    const top = Math.round((window.screen.height - h) / 2);
+                                    window.open(`/dashboard/chat?popout=1&group=${encodeURIComponent(g.id)}`, `tgv-chat-g-${g.id}`, `width=${w},height=${h},left=${left},top=${top}`);
+                                    setRowHoverMenu(null);
+                                  }}>
+                                    <RowMenuGlyph><WaPopout/></RowMenuGlyph> Open in New Window
+                                  </RowHoverMenuItem>
+                                  <RowHoverMenuItem onClick={() => { patchRowMeta(r.key, { markedUnread: !meta?.markedUnread }); setRowHoverMenu(null); }}>
+                                    <RowMenuGlyph><WaUnread/></RowMenuGlyph> {meta?.markedUnread ? "Mark as read" : "Mark as unread"}
+                                  </RowHoverMenuItem>
+                                  <RowHoverMenuItem onClick={() => { patchRowMeta(r.key, { archived: !meta?.archived }); if (isActive) setSelection({ type: "tgv" }); setRowHoverMenu(null); }}>
+                                    <RowMenuGlyph><WaArchive/></RowMenuGlyph> {meta?.archived ? "Unarchive" : "Archive"}
+                                  </RowHoverMenuItem>
+                                  <RowHoverMenuItem onClick={() => { patchRowMeta(r.key, { pinned: !meta?.pinned }); setRowHoverMenu(null); }}>
+                                    <RowMenuGlyph><WaPin/></RowMenuGlyph> {meta?.pinned ? "Unpin" : "Pin"}
+                                  </RowHoverMenuItem>
+                                  <RowHoverMenuItem
+                                    $highlight={muteSubmenuFor === r.key}
+                                    onMouseEnter={() => setMuteSubmenuFor(r.key)}
+                                    onClick={(e) => { e.stopPropagation(); setMuteSubmenuFor((cur) => cur === r.key ? null : r.key); }}
+                                  >
+                                    <RowMenuGlyph><WaMute/></RowMenuGlyph> {muted ? "Unmute" : "Mute"}
+                                    <RowMenuCaret>›</RowMenuCaret>
+                                    {muteSubmenuFor === r.key && (
+                                      <MuteSubmenu onClick={(e) => e.stopPropagation()}>
+                                        <RowHoverMenuItem onClick={() => { patchRowMeta(r.key, { muteUntil: Date.now() + 8 * 60 * 60 * 1000 }); setRowHoverMenu(null); setMuteSubmenuFor(null); }}>8 hours</RowHoverMenuItem>
+                                        <RowHoverMenuItem onClick={() => { patchRowMeta(r.key, { muteUntil: Date.now() + 7 * 24 * 60 * 60 * 1000 }); setRowHoverMenu(null); setMuteSubmenuFor(null); }}>1 week</RowHoverMenuItem>
+                                        <RowHoverMenuItem onClick={() => { patchRowMeta(r.key, { muteUntil: "always" }); setRowHoverMenu(null); setMuteSubmenuFor(null); }}>Always</RowHoverMenuItem>
+                                        {muted && (
+                                          <>
+                                            <RowMenuDivider />
+                                            <RowHoverMenuItem onClick={() => { patchRowMeta(r.key, { muteUntil: undefined }); setRowHoverMenu(null); setMuteSubmenuFor(null); }}>Unmute now</RowHoverMenuItem>
+                                          </>
+                                        )}
+                                      </MuteSubmenu>
+                                    )}
+                                  </RowHoverMenuItem>
+                                  <RowMenuDivider />
+                                  <RowHoverMenuItem onClick={() => { setGroupAdminId(g.id); setRowHoverMenu(null); }}>
+                                    <RowMenuGlyph><WaInfo/></RowMenuGlyph> Group info
+                                  </RowHoverMenuItem>
+                                  <RowHoverMenuItem onClick={async () => {
+                                    setRowHoverMenu(null);
+                                    try {
+                                      const res = await fetch(`/api/chat/group/messages?groupId=${encodeURIComponent(g.id)}&limit=1000`);
+                                      const data = await res.json().catch(() => ({}));
+                                      exportChannel(`group-${g.id}.json`, { group: g, exportedAt: new Date().toISOString(), messages: data.messages ?? data });
+                                    } catch (e) { alert(e instanceof Error ? e.message : "Export failed"); }
+                                  }}>
+                                    <RowMenuGlyph><WaExport/></RowMenuGlyph> Export chat
+                                  </RowHoverMenuItem>
+                                  <RowHoverMenuItem onClick={() => { setSelection({ type: "group", groupId: g.id }); setShowClearConfirm(true); setRowHoverMenu(null); }}>
+                                    <RowMenuGlyph><WaClear/></RowMenuGlyph> Clear chat
+                                  </RowHoverMenuItem>
+                                  <RowHoverMenuItem $danger onClick={async () => {
+                                    setRowHoverMenu(null);
+                                    if (!confirm(`Exit "${g.name}"? You'll need to be re-added to rejoin.`)) return;
+                                    await leaveGroup(g.id);
+                                  }}>
+                                    <RowMenuGlyph><WaExit/></RowMenuGlyph> Exit group
+                                  </RowHoverMenuItem>
+                                </>
+                              );
+                            })()}
+                            {r.kind === "tgv" && (
+                              <>
+                                <RowHoverMenuItem onClick={() => { patchRowMeta(r.key, { markedUnread: !meta?.markedUnread }); setRowHoverMenu(null); }}>
+                                  <RowMenuGlyph><WaUnread/></RowMenuGlyph> {meta?.markedUnread ? "Mark as read" : "Mark as unread"}
+                                </RowHoverMenuItem>
+                                <RowHoverMenuItem onClick={() => { patchRowMeta(r.key, { pinned: !meta?.pinned }); setRowHoverMenu(null); }}>
+                                  <RowMenuGlyph><WaPin/></RowMenuGlyph> {meta?.pinned ? "Unpin" : "Pin"}
+                                </RowHoverMenuItem>
+                                <RowHoverMenuItem
+                                  $highlight={muteSubmenuFor === r.key}
+                                  onMouseEnter={() => setMuteSubmenuFor(r.key)}
+                                  onClick={(e) => { e.stopPropagation(); setMuteSubmenuFor((cur) => cur === r.key ? null : r.key); }}
+                                >
+                                  <RowMenuGlyph><WaMute/></RowMenuGlyph> {muted ? "Unmute" : "Mute"}
+                                  <RowMenuCaret>›</RowMenuCaret>
+                                  {muteSubmenuFor === r.key && (
+                                    <MuteSubmenu onClick={(e) => e.stopPropagation()}>
+                                      <RowHoverMenuItem onClick={() => { patchRowMeta(r.key, { muteUntil: Date.now() + 8 * 60 * 60 * 1000 }); setRowHoverMenu(null); setMuteSubmenuFor(null); }}>8 hours</RowHoverMenuItem>
+                                      <RowHoverMenuItem onClick={() => { patchRowMeta(r.key, { muteUntil: Date.now() + 7 * 24 * 60 * 60 * 1000 }); setRowHoverMenu(null); setMuteSubmenuFor(null); }}>1 week</RowHoverMenuItem>
+                                      <RowHoverMenuItem onClick={() => { patchRowMeta(r.key, { muteUntil: "always" }); setRowHoverMenu(null); setMuteSubmenuFor(null); }}>Always</RowHoverMenuItem>
+                                      {muted && (
+                                        <>
+                                          <RowMenuDivider />
+                                          <RowHoverMenuItem onClick={() => { patchRowMeta(r.key, { muteUntil: undefined }); setRowHoverMenu(null); setMuteSubmenuFor(null); }}>Unmute now</RowHoverMenuItem>
+                                        </>
+                                      )}
+                                    </MuteSubmenu>
+                                  )}
+                                </RowHoverMenuItem>
+                              </>
+                            )}
+                          </MobileRowMenu>
+                        )}
+                      </MobileRowWrap>
+                    );
+                  })}
+                  {showArchived && archivedCount > 0 && (
+                    <>
+                      <div style={{ padding: "0.625rem 0.875rem 0.375rem", fontSize: "0.6875rem", color: "var(--t-textGhost)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                        Archived
+                      </div>
+                      {profiles.filter((p) => p.username !== currentUser && rowMeta[`u:${p.username}`]?.archived && !rowMeta[`u:${p.username}`]?.deleted).map((p) => (
+                        <MobileRow key={`arch-u-${p.username}`} onClick={() => { setSelection({ type: "dm", peer: p }); setDmMessages([]); setMobileView("chat"); }}>
+                          <MobileRowAvatar><UserAvatar profile={p} size={44} /></MobileRowAvatar>
+                          <MobileRowBody>
+                            <MobileRowName $accent={p.accentColor}>{p.displayName}</MobileRowName>
+                            <MobileRowSub>Archived · @{p.username}</MobileRowSub>
+                          </MobileRowBody>
+                        </MobileRow>
+                      ))}
+                      {groups.filter((g) => rowMeta[`g:${g.id}`]?.archived).map((g) => (
+                        <MobileRow key={`arch-g-${g.id}`} onClick={() => { setSelection({ type: "group", groupId: g.id }); setMobileView("chat"); }}>
+                          <MobileRowAvatar>
+                            <span style={{ width: "2.75rem", height: "2.75rem", borderRadius: "50%", display: "inline-flex", alignItems: "center", justifyContent: "center", background: `rgba(${rgb.green}, 0.14)`, color: colors.green, border: `1px solid rgba(${rgb.green}, 0.28)` }}>
+                              <MembersIcon size={18} />
+                            </span>
+                          </MobileRowAvatar>
+                          <MobileRowBody>
+                            <MobileRowName>{g.name}</MobileRowName>
+                            <MobileRowSub>Archived · {(g.memberIds ?? []).length} members</MobileRowSub>
+                          </MobileRowBody>
+                        </MobileRow>
+                      ))}
+                    </>
+                  )}
+                </MobileScroll>
+              </MobileList>
+            );
+          })()}
           {/* ── Sidebar ──────────────────────────────────────────── */}
-          {!sidebarCollapsed && (
+          {!sidebarCollapsed && !mobileCompact && (
             <>
+              <SidebarBackdrop onClick={() => setSidebarCollapsed(true)} />
               <Sidebar $width={sidebarWidth}>
                 <SidebarHeader>
+                  <SidebarMobileCollapse
+                    aria-label="Collapse sidebar"
+                    title="Collapse sidebar"
+                    onClick={() => setSidebarCollapsed(true)}
+                  >
+                    <DTogExpandIcon side="left" size={14} />
+                  </SidebarMobileCollapse>
                   <SidebarTabSwitch>
                     <Tooltip accent={colors.green} label="Show direct-message users">
                       <SidebarTabBtn
                         $active={sidebarTab === "users"}
-                        $narrow={sidebarWidth < SIDEBAR_NARROW}
+                        $narrow={sidebarWidth < SIDEBAR_NARROW || mobileCompact}
                         onClick={() => setSidebarTab("users")}
                       >
-                        {sidebarWidth < SIDEBAR_NARROW ? (
+                        {(sidebarWidth < SIDEBAR_NARROW || mobileCompact) ? (
                           <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
                             <circle cx="8" cy="5.5" r="2.75"/>
                             <path d="M2.75 13.5c.6-2.4 2.75-3.75 5.25-3.75s4.65 1.35 5.25 3.75"/>
@@ -3718,10 +4633,10 @@ export default function ChatDrawer() {
                     <Tooltip accent={colors.green} label="Show group chats">
                       <SidebarTabBtn
                         $active={sidebarTab === "groups"}
-                        $narrow={sidebarWidth < SIDEBAR_NARROW}
+                        $narrow={sidebarWidth < SIDEBAR_NARROW || mobileCompact}
                         onClick={() => setSidebarTab("groups")}
                       >
-                        {sidebarWidth < SIDEBAR_NARROW ? (
+                        {(sidebarWidth < SIDEBAR_NARROW || mobileCompact) ? (
                           <svg width="13" height="11" viewBox="0 0 20 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
                             <circle cx="7" cy="5.5" r="2.5"/>
                             <circle cx="14.5" cy="6" r="2"/>
@@ -4097,6 +5012,7 @@ export default function ChatDrawer() {
               <Tooltip accent={colors.green} label="Drag to resize · click to collapse">
                 <SidebarDTog
                   onMouseDown={onSidebarResizeStart}
+                  onTouchStart={onSidebarResizeTouchStart}
                   $dragging={sidebarDragging}
                 >
                   <DTogGrip />
@@ -4105,13 +5021,14 @@ export default function ChatDrawer() {
             </>
           )}
 
+          {(!mobileCompact || mobileView === "chat") && (
           <ConvPane>
-            {sidebarCollapsed && (
+            {sidebarCollapsed && !mobileCompact && (
               <Tooltip accent={colors.green} label="Show sidebar">
                 <DTogTab
                   onClick={() => setSidebarCollapsed(false)}
                 >
-                  <DTogExpandIcon />
+                  <DTogExpandIcon side="left" />
                 </DTogTab>
               </Tooltip>
             )}
@@ -4141,6 +5058,17 @@ export default function ChatDrawer() {
               return (
                 <div style={{ position: "relative" }}>
                   <ChatHeaderRow $accent={accent}>
+                    {mobileCompact && (
+                      <MobileBackBtn
+                        onClick={() => setMobileView("list")}
+                        aria-label="Back to chats"
+                        title="Back to chats"
+                      >
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M10 3L5 8l5 5"/>
+                        </svg>
+                      </MobileBackBtn>
+                    )}
                     {isDM && peer ? (
                       <ChatHeaderLeft
                         $accent={accent}
@@ -4532,7 +5460,7 @@ export default function ChatDrawer() {
 
                 <InputRow ref={inputRowRef}>
                   {!voiceActive && composerNarrow && (
-                    <ComposerMoreAnchor onClick={(e) => e.stopPropagation()}>
+                    <ComposerMoreAnchor onClick={(e) => e.stopPropagation()} onTouchStart={(e) => e.stopPropagation()}>
                       <Tooltip accent={colors.green} label="More options">
                         <ComposerMoreBtn
                           $open={composerMoreOpen}
@@ -4582,7 +5510,7 @@ export default function ChatDrawer() {
                   )}
                   {!voiceActive && !composerNarrow && isTGV && (
                     <>
-                      <AttachMenuAnchor onClick={(e) => e.stopPropagation()}>
+                      <AttachMenuAnchor onClick={(e) => e.stopPropagation()} onTouchStart={(e) => e.stopPropagation()}>
                         <Tooltip accent={colors.green} label="Attach">
                           <AttachBtn onClick={() => setAttachMenuOpen((p) => !p)}>
                             <AttachIcon size={14} />
@@ -4791,6 +5719,7 @@ export default function ChatDrawer() {
               </InputArea>
             )}
           </ConvPane>
+          )}
         </Body>
 
         <Resize onMouseDown={onResizeStart} />
@@ -4889,7 +5818,13 @@ export default function ChatDrawer() {
         return (
           <ContactInfoOverlay onMouseDown={() => setContactInfoFor(null)}>
             <ContactInfoCard $accent={p.accentColor} onMouseDown={(e) => e.stopPropagation()}>
-              <ContactInfoClose onClick={() => setContactInfoFor(null)} title="Close">✕</ContactInfoClose>
+              <NeonX
+                accent="green"
+                size="sm"
+                onClick={() => setContactInfoFor(null)}
+                title="Close"
+                style={{ position: "absolute", top: "0.4rem", right: "0.4rem", zIndex: 2 }}
+              />
               <ContactInfoHeader $accent={p.accentColor}>
                 <UserAvatar profile={p} size={72} />
                 <ContactInfoName>{p.displayName}</ContactInfoName>

@@ -146,6 +146,14 @@ const HeaderLeft = styled.div<{ $w: number; $edit?: boolean }>`
      follows the pointer instantly so the Rsd + DTog stay 1:1 with the
      cursor — matches FileSidebar's behaviour below. */
   transition: ${(p) => (p.$w === 0 ? "width 0.2s" : "none")};
+
+  /* Mobile: FileSidebar below clamps to 33vw at ≤640px; mirror that here so
+     HeaderLeft + Rsd + DTog stay at identical x-positions. Without this the
+     DTog's outside hairline and RSD drift apart on narrow viewports. */
+  @media (max-width: 640px) {
+    width: ${(p) => (p.$w === 0 ? "0" : "33vw")};
+    max-width: 33vw;
+  }
 `;
 
 // RSD — Row Section Divider. 1px neon-tinted vertical line separating the

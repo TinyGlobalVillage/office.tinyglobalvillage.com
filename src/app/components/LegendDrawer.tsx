@@ -5,6 +5,8 @@ import { usePathname } from "next/navigation";
 import styled from "styled-components";
 import { colors, rgb, glowRgba } from "../theme";
 import { DrawerBackdrop, DrawerPanel, DrawerHeader, DrawerTab, DrawerTabLabel, DrawerFooter } from "../styled";
+import { DTogExpandIcon } from "./icons";
+import NeonX from "./NeonX";
 
 type LegendItem = { glyph: string; label: string; desc: string };
 type PageLegend = { title: string; items: LegendItem[] };
@@ -310,7 +312,8 @@ export default function LegendDrawer() {
         title="Page legend"
         style={{ top: tabY }}
       >
-        {open ? "✕" : "?"}&nbsp;<DrawerTabLabel>Legend</DrawerTabLabel>
+        <DTogExpandIcon side={open ? "left" : "right"} size={14} />
+        <DrawerTabLabel>Legend</DrawerTabLabel>
       </Tab>
 
       {open && <Backdrop onClick={() => setOpen(false)} />}
@@ -326,7 +329,7 @@ export default function LegendDrawer() {
             <HeaderLabel>Page Legend</HeaderLabel>
             <HeaderTitle>{legend.title}</HeaderTitle>
           </div>
-          <ActionBtn onClick={() => setOpen(false)} title="Close legend">✕</ActionBtn>
+          <NeonX accent="gold" onClick={() => setOpen(false)} title="Close legend" />
         </Header>
 
         <ItemList>

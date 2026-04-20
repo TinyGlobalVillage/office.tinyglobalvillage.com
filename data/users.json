@@ -84,5 +84,18 @@
         "totpSecret": null,
         "totpEnabled": false,
         "webauthnCredentials": []
+    },
+    "claude": {
+        "displayName": "Claude",
+        "email": "claude@anthropic.com",
+        "role": "employee",
+        "avatarUrl": "",
+        "accentColor": "#d97757",
+        "title": "AI Assistant",
+        "bio": "Anthropic's Claude. Say \"hey claude\" or @claude in a chat he's a member of to start a conversation.",
+        "totpSecret": null,
+        "totpEnabled": false,
+        "webauthnCredentials": [],
+        "isBot": true
     }
 }

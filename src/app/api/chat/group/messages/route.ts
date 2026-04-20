@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/api-auth";
 import { getClearCutoff, groupChannelKey, filterByCutoff } from "@/lib/chat-clears";
+import { BOT_USERNAME, messageTriggersClaude, triggerClaudeForGroup } from "@/lib/claude-bot";
 import { readGroupDb, writeGroupDb, type GroupMessage } from "../route";
 
 export async function GET(req: NextRequest) {
@@ -48,6 +49,15 @@ export async function POST(req: NextRequest) {
   db.messages[groupId].push(msg);
   db.messages[groupId] = db.messages[groupId].slice(-500);
   writeGroupDb(db);
+
+  if (
+    username !== BOT_USERNAME &&
+    group.memberIds.includes(BOT_USERNAME) &&
+    messageTriggersClaude(msg.content)
+  ) {
+    triggerClaudeForGroup(groupId);
+  }
+
   return NextResponse.json({ ok: true, message: msg });
 }
 
