@@ -21,8 +21,8 @@
         "accentColor": "#00bfff",
         "title": "",
         "bio": "",
-        "totpSecret": "JTRU4XMEM2PLS4CGGLVS3YUSCZDITSBN",
-        "totpEnabled": true,
+        "totpSecret": null,
+        "totpEnabled": false,
         "webauthnCredentials": []
     },
     "employee1": {

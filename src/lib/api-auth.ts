@@ -9,6 +9,18 @@
 import { getToken } from "next-auth/jwt";
 import type { NextRequest } from "next/server";
 import { verify2faCookie } from "@/lib/twofa-cookie";
+import { readFileSync } from "fs";
+import path from "path";
+
+function isTotpEnrolled(username: string): boolean {
+  try {
+    const p = path.join(process.cwd(), "data", "users.json");
+    const store = JSON.parse(readFileSync(p, "utf8")) as Record<string, { totpEnabled?: boolean }>;
+    return store[username]?.totpEnabled === true;
+  } catch {
+    return false;
+  }
+}
 
 export type AuthToken = {
   name?: string;
@@ -41,6 +53,6 @@ export async function requireAuth(req: NextRequest): Promise<AuthToken | null> {
  */
 export function requirePersonalAccess(req: NextRequest, ownerUsername: string, loggedInUsername: string | undefined): "ok" | "access_denied" | "2fa_required" {
   if (loggedInUsername !== ownerUsername) return "access_denied";
-  if (!verify2faCookie(req, loggedInUsername)) return "2fa_required";
+  if (isTotpEnrolled(loggedInUsername) && !verify2faCookie(req, loggedInUsername)) return "2fa_required";
   return "ok";
 }

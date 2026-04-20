@@ -1,6 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 import { verify2faCookie } from "@/lib/twofa-cookie";
+import { readFileSync } from "fs";
+import path from "path";
+
+// Per-user TOTP enrollment check. Users with totpEnabled=false (not yet
+// enrolled, or opted out) pass the proxy on NextAuth JWT alone.
+function isTotpEnrolled(username: string): boolean {
+  try {
+    const p = path.join(process.cwd(), "data", "users.json");
+    const store = JSON.parse(readFileSync(p, "utf8")) as Record<string, { totpEnabled?: boolean }>;
+    return store[username]?.totpEnabled === true;
+  } catch {
+    return false;
+  }
+}
 
 // Paths that skip ALL checks
 // NOTE: /api/announcements handles its own auth (bearer token for POST, session for GET/PATCH)
@@ -36,12 +50,18 @@ export async function proxy(req: NextRequest) {
   const isAuthOnly = AUTH_ONLY.some((p) => pathname.startsWith(p));
   if (isAuthOnly) return NextResponse.next();
 
-  // All other paths require 2FA cookie
+  // All other paths require 2FA cookie — but only for users who have
+  // enrolled TOTP. Users with totpEnabled=false pass on JWT alone.
   const username = token.username as string | undefined;
-  if (!username || !verify2faCookie(req, username)) {
+  if (username && isTotpEnrolled(username) && !verify2faCookie(req, username)) {
     const twoFaUrl = new URL("/verify-2fa", req.url);
     twoFaUrl.searchParams.set("callbackUrl", pathname);
     return NextResponse.redirect(twoFaUrl);
+  }
+  if (!username) {
+    const loginUrl = new URL("/login", req.url);
+    loginUrl.searchParams.set("callbackUrl", pathname);
+    return NextResponse.redirect(loginUrl);
   }
 
   return NextResponse.next();
