@@ -1,0 +1,51 @@
+<include>
+  <!-- TGV Office front-desk context. Installed as dialplan/office.tinyglobalvillage.com.xml
+       by /srv/refusion-core/telephony/scripts/render-config.sh. -->
+  <context name="office.tinyglobalvillage.com">
+
+    <!-- Inbound: toll-free DID lands here via public-dispatcher transfer. -->
+    <extension name="frontdesk-inbound">
+      <condition field="destination_number" expression="^8772469848$">
+        <action application="answer"/>
+        <action application="set" data="hangup_after_bridge=true"/>
+        <action application="set" data="continue_on_fail=true"/>
+        <action application="set" data="RECORD_STEREO=true"/>
+        <action application="set" data="recording_file=${base_dir}/../../clients/office.tinyglobalvillage.com/telephony/data/recordings/${strftime(%Y-%m-%d-%H-%M-%S)}_${uuid}.wav"/>
+        <action application="record_session" data="${recording_file}"/>
+        <action application="bridge" data="user/1001@office.tinyglobalvillage.com"/>
+        <!-- Fallback to voicemail if no one answers. -->
+        <action application="voicemail" data="default office.tinyglobalvillage.com 1001"/>
+      </condition>
+    </extension>
+
+    <!-- Internal: extension-to-extension calls within this tenant. -->
+    <extension name="local-ext">
+      <condition field="destination_number" expression="^(10[0-9][0-9])$">
+        <action application="bridge" data="user/$1@office.tinyglobalvillage.com"/>
+      </condition>
+    </extension>
+
+    <!-- Outbound: softphone placing calls via Telnyx gateway.
+         Caller-ID selection: softphone sends `X-CID: +E164` to pick which DID
+         shows on the callee side. Falls back to the gateway default. Any
+         non-account number would be rejected by Telnyx (D51).
+         Codec: Telnyx SIP trunks only accept PCMU/PCMA. Chrome's WebRTC
+         INVITE offers OPUS, PCMU, PCMA — so we force PCMU on BOTH legs
+         (browser supports it alongside OPUS) to eliminate transcoding and
+         the codec re-negotiation that fails when the b-leg answers late on
+         a WebRTC channel. The {absolute_codec_string=PCMU,PCMA} prefix on
+         the bridge dial-string still scopes the b-leg explicitly; setting
+         it as a channel variable locks the a-leg too, and late-negotiation
+         will honor it when building the 200 OK SDP answer to the browser. -->
+    <extension name="outbound-telnyx">
+      <condition field="destination_number" expression="^\+?(1?\d{10,})$">
+        <action application="set" data="absolute_codec_string=PCMU,PCMA"/>
+        <action application="set" data="ignore_early_media=ring_ready"/>
+        <action application="set" data="instant_ringback=true"/>
+        <action application="set" data="effective_caller_id_number=${cond(${sip_h_X-CID} != '' ? ${sip_h_X-CID} : ${gw_tgv_office_caller_id})}"/>
+        <action application="bridge" data="{absolute_codec_string=PCMU,PCMA}sofia/gateway/telnyx-tgv-office/$1"/>
+      </condition>
+    </extension>
+
+  </context>
+</include>

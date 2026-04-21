@@ -11,7 +11,8 @@
       "admins": [],
       "banned": [],
       "invisible": [],
-      "updatedAt": "2026-04-20T00:00:00.000Z"
+      "updatedAt": "2026-04-20T19:30:06.039Z",
+      "presences": []
     },
     {
       "id": "study-1",
@@ -24,7 +25,8 @@
       "admins": [],
       "banned": [],
       "invisible": [],
-      "updatedAt": "2026-04-20T00:00:00.000Z"
+      "updatedAt": "2026-04-20T19:29:57.243Z",
+      "presences": []
     },
     {
       "id": "study-2",
@@ -37,7 +39,8 @@
       "admins": [],
       "banned": [],
       "invisible": [],
-      "updatedAt": "2026-04-20T00:00:00.000Z"
+      "updatedAt": "2026-04-20T19:30:00.648Z",
+      "presences": []
     },
     {
       "id": "pair-1",
@@ -50,7 +53,8 @@
       "admins": [],
       "banned": [],
       "invisible": [],
-      "updatedAt": "2026-04-20T00:00:00.000Z"
+      "updatedAt": "2026-04-20T19:29:44.597Z",
+      "presences": []
     },
     {
       "id": "pair-2",
@@ -63,7 +67,8 @@
       "admins": [],
       "banned": [],
       "invisible": [],
-      "updatedAt": "2026-04-20T00:00:00.000Z"
+      "updatedAt": "2026-04-20T19:29:46.378Z",
+      "presences": []
     }
   ]
 }

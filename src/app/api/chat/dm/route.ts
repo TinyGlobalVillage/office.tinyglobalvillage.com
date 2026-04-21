@@ -38,15 +38,14 @@ export async function GET(req: NextRequest) {
   const token = await requireAuth(req);
   if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const username = token.username ?? token.sub ?? "";
-  const isExec = username === "admin" || username === "marmar";
   const withUser = req.nextUrl.searchParams.get("with");
   if (!withUser) return NextResponse.json({ error: "Missing 'with'" }, { status: 400 });
   const db = readDb();
   let messages = db.threads[threadKey(username, withUser)] ?? [];
-  if (!isExec) {
-    const cutoff = getClearCutoff(username, dmChannelKey(username, withUser));
-    messages = filterByCutoff(messages, cutoff);
-  }
+  // Per-user cutoff applies to everyone, including execs — "clear for me"
+  // must hide messages from the clearing user's own view even if they're admin.
+  const cutoff = getClearCutoff(username, dmChannelKey(username, withUser));
+  messages = filterByCutoff(messages, cutoff);
   return NextResponse.json({ messages });
 }
 

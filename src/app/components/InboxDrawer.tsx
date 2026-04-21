@@ -14,12 +14,18 @@ import {
   DrawerTitle,
   PanelIconBtn,
 } from "../styled";
-import EmailErrorBoundary from "./email/EmailErrorBoundary";
 import { DrawerInboxIcon } from "./icons";
 import NeonX from "./NeonX";
 import { useKnobVisibility } from "../lib/drawerKnobs";
 
-const EmailClient = dynamic(() => import("./email/EmailClient"), { ssr: false });
+const EmailErrorBoundary = dynamic(
+  () => import("@tgv/module-inbox/components/EmailErrorBoundary"),
+  { ssr: false }
+);
+const EmailClient = dynamic(
+  () => import("@tgv/module-inbox/components/EmailClient"),
+  { ssr: false }
+);
 
 const MIN_W = 420;
 const MAX_W = 1400;
@@ -45,6 +51,7 @@ const SideTab = styled(DrawerTab).attrs({ $side: "left", $accent: "cyan" })<{ $o
 
   @media (max-width: 768px) {
     left: ${(p) => (p.$openLeft === "0" ? "0" : "calc(100vw - 28px)")};
+    ${(p) => (p.$open ? "display: none;" : "")}
   }
 `;
 

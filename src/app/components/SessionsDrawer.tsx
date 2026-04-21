@@ -600,38 +600,73 @@ export default function SessionsDrawer() {
   };
 
   // ── Presence heartbeat ────────────────────────────────────────────────────
+  //
+  // Each tab gets its own `deviceId` (mounted once, kept in a ref). The server
+  // stores one presence row per (user, device) so two tabs from the same user
+  // occupy two seats. If a tab is closed without firing `present: false`, the
+  // TTL sweep in lib/sessions.ts drops the row within ~30s.
 
   const activeId = selection.type === "room" ? selection.sessionId : null;
   const presenceId = useRef<string | null>(null);
+  const deviceId = useRef<string>("");
+  if (!deviceId.current) {
+    deviceId.current =
+      typeof crypto !== "undefined" && crypto.randomUUID
+        ? crypto.randomUUID()
+        : `dev-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+  }
 
   useEffect(() => {
+    const device = deviceId.current;
     if (!activeId) {
-      // Leaving: tell server we're gone.
+      // Leaving: tell server this device is gone. Use sendBeacon when available
+      // so the request survives tab close / navigation.
       const last = presenceId.current;
       presenceId.current = null;
       if (last) {
-        fetch(`/api/sessions/${encodeURIComponent(last)}/presence`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ present: false }),
-        }).catch(() => {});
+        const url = `/api/sessions/${encodeURIComponent(last)}/presence`;
+        const payload = JSON.stringify({ present: false, deviceId: device });
+        if (typeof navigator !== "undefined" && typeof navigator.sendBeacon === "function") {
+          try {
+            navigator.sendBeacon(url, new Blob([payload], { type: "application/json" }));
+          } catch {
+            fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: payload }).catch(() => {});
+          }
+        } else {
+          fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: payload }).catch(() => {});
+        }
       }
       return;
     }
     presenceId.current = activeId;
-    fetch(`/api/sessions/${encodeURIComponent(activeId)}/presence`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ present: true }),
-    }).catch(() => {});
-    const hb = window.setInterval(() => {
+    const beat = () => {
       fetch(`/api/sessions/${encodeURIComponent(activeId)}/presence`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ present: true }),
+        body: JSON.stringify({ present: true, deviceId: device }),
       }).catch(() => {});
-    }, 15_000);
-    return () => window.clearInterval(hb);
+    };
+    beat();
+    const hb = window.setInterval(beat, 15_000);
+
+    // On tab close / refresh, best-effort tell the server we're leaving so
+    // other devices see the seat free immediately instead of waiting on TTL.
+    const leaveOnUnload = () => {
+      const url = `/api/sessions/${encodeURIComponent(activeId)}/presence`;
+      const payload = JSON.stringify({ present: false, deviceId: device });
+      if (typeof navigator !== "undefined" && typeof navigator.sendBeacon === "function") {
+        try { navigator.sendBeacon(url, new Blob([payload], { type: "application/json" })); }
+        catch { /* ignore */ }
+      }
+    };
+    window.addEventListener("pagehide", leaveOnUnload);
+    window.addEventListener("beforeunload", leaveOnUnload);
+
+    return () => {
+      window.clearInterval(hb);
+      window.removeEventListener("pagehide", leaveOnUnload);
+      window.removeEventListener("beforeunload", leaveOnUnload);
+    };
   }, [activeId]);
 
   // ── Resize drag ───────────────────────────────────────────────────────────

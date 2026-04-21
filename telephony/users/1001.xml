@@ -1,0 +1,19 @@
+<include>
+  <!-- Softphone extension 1001 — Gio's front-desk handset. -->
+  <user id="1001">
+    <params>
+      <param name="password" value="0f56c4587ae9d99fbf7a8622d4918b41e42a0c3185acf859"/>
+      <param name="vm-password" value="1001"/>
+    </params>
+    <variables>
+      <variable name="toll_allow" value="domestic,international,local"/>
+      <variable name="accountcode" value="1001"/>
+      <variable name="user_context" value="office.tinyglobalvillage.com"/>
+      <variable name="effective_caller_id_name" value="TGV Front Desk"/>
+      <variable name="effective_caller_id_number" value="18772469848"/>
+      <variable name="outbound_caller_id_name" value="TGV Front Desk"/>
+      <variable name="outbound_caller_id_number" value="18772469848"/>
+      <variable name="callgroup" value="frontdesk"/>
+    </variables>
+  </user>
+</include>

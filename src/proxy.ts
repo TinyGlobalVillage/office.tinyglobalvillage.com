@@ -18,7 +18,16 @@ function isTotpEnrolled(username: string): boolean {
 
 // Paths that skip ALL checks
 // NOTE: /api/announcements handles its own auth (bearer token for POST, session for GET/PATCH)
-const PUBLIC = ["/login", "/api/auth", "/_next", "/favicon", "/og.png", "/api/auth/magic-link", "/api/announcements"];
+// NOTE: /api/frontdesk/{calls,sms}/webhook verify Telnyx Ed25519 signatures; the
+//       intake endpoint verifies a shared-secret header (FRONTDESK_INTAKE_TOKEN).
+const PUBLIC = [
+  "/login", "/api/auth", "/_next", "/favicon", "/og.png",
+  "/api/auth/magic-link", "/api/announcements",
+  "/api/frontdesk/calls/webhook",
+  "/api/frontdesk/sms/webhook",
+  "/api/frontdesk/sms/tfv-status",
+  "/api/frontdesk/alerts/intake",
+];
 
 // Paths that need auth but NOT 2FA (the 2FA setup/verify flow itself, plus internal API calls from authenticated sessions)
 const AUTH_ONLY = ["/verify-2fa", "/setup-2fa", "/setup-passkey",

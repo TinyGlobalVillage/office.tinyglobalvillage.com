@@ -1,0 +1,33 @@
+<!--
+  Internal SIP profile exposed over WSS for the browser softphone.
+  Rendered to /etc/freeswitch/sip_profiles/internal/webrtc.xml.
+-->
+<include>
+  <profile name="webrtc">
+    <settings>
+      <param name="context" value="frontdesk"/>
+      <param name="rtp-ip" value="auto"/>
+      <param name="sip-ip" value="auto"/>
+      <param name="ext-rtp-ip" value="auto"/>
+      <param name="ext-sip-ip" value="auto"/>
+      <param name="sip-port" value="5066"/>
+      <param name="ws-binding" value="0.0.0.0:5066"/>
+      <param name="wss-binding" value="0.0.0.0:7443"/>
+      <param name="tls" value="true"/>
+      <param name="tls-version" value="tlsv1.2,tlsv1.3"/>
+      <param name="tls-cert-dir" value="/etc/freeswitch/tls"/>
+      <param name="auth-calls" value="true"/>
+      <param name="inbound-codec-prefs" value="OPUS,PCMU,PCMA"/>
+      <param name="outbound-codec-prefs" value="OPUS,PCMU,PCMA"/>
+      <param name="dtmf-duration" value="2000"/>
+      <param name="dtmf-type" value="rfc2833"/>
+      <param name="enable-3pcc" value="true"/>
+      <param name="websocket-write-timeout-ms" value="500"/>
+      <!-- Advertise the public hostname so clients can reach the WSS port. -->
+      <param name="local-network-acl" value="localnet.auto"/>
+      <param name="apply-nat-acl" value="nat.auto"/>
+      <param name="ext-rtp-ip" value="$${external_rtp_ip}"/>
+      <param name="ext-sip-ip" value="${FRONTDESK_PUBLIC_HOSTNAME}"/>
+    </settings>
+  </profile>
+</include>

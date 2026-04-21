@@ -1,0 +1,20 @@
+<!--
+  External SIP profile → Telnyx trunk.
+  Rendered to /etc/freeswitch/sip_profiles/external/telnyx.xml by
+  render-freeswitch-config.sh.
+-->
+<include>
+  <gateway name="telnyx">
+    <param name="username" value="${TELNYX_SIP_USERNAME}"/>
+    <param name="realm" value="${TELNYX_SIP_REGISTRAR}"/>
+    <param name="password" value="${TELNYX_SIP_PASSWORD}"/>
+    <param name="proxy" value="${TELNYX_SIP_REGISTRAR}"/>
+    <param name="register" value="true"/>
+    <param name="expire-seconds" value="600"/>
+    <param name="retry-seconds" value="30"/>
+    <param name="context" value="public"/>
+    <param name="caller-id-in-from" value="true"/>
+    <param name="ping" value="25"/>
+    <param name="codec-prefs" value="OPUS,PCMU,PCMA"/>
+  </gateway>
+</include>

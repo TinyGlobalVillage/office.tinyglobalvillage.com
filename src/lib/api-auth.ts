@@ -46,13 +46,14 @@ export async function requireAuth(req: NextRequest): Promise<AuthToken | null> {
 }
 
 /**
- * For personal accounts: verifies the logged-in user IS the owner AND has a
- * valid tgv-2fa cookie (i.e. completed TOTP/passkey 2FA this session).
- * Since the proxy enforces 2FA for all dashboard routes, this will always
- * pass for the legitimate owner — and always fail for anyone else.
+ * For personal accounts: verifies the logged-in user has a valid tgv-2fa
+ * cookie (i.e. completed TOTP/passkey 2FA this session). Ownership is
+ * already enforced by the adapter's getTokenForUser() which only returns
+ * the Fastmail token scoped to the logged-in user — so the JMAP account
+ * IDs surfaced by enumerateAccounts() are inherently that user's accounts.
  */
-export function requirePersonalAccess(req: NextRequest, ownerUsername: string, loggedInUsername: string | undefined): "ok" | "access_denied" | "2fa_required" {
-  if (loggedInUsername !== ownerUsername) return "access_denied";
+export function requirePersonalAccess(req: NextRequest, _accountKey: string, loggedInUsername: string | undefined): "ok" | "access_denied" | "2fa_required" {
+  if (!loggedInUsername) return "access_denied";
   if (isTotpEnrolled(loggedInUsername) && !verify2faCookie(req, loggedInUsername)) return "2fa_required";
   return "ok";
 }

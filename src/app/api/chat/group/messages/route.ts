@@ -8,7 +8,6 @@ export async function GET(req: NextRequest) {
   const token = await requireAuth(req);
   if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const username = token.username ?? token.sub ?? "";
-  const isExec = username === "admin" || username === "marmar";
   const groupId = req.nextUrl.searchParams.get("groupId");
   if (!groupId) return NextResponse.json({ error: "Missing groupId" }, { status: 400 });
   const db = readGroupDb();
@@ -16,10 +15,9 @@ export async function GET(req: NextRequest) {
   if (!group) return NextResponse.json({ error: "Group not found" }, { status: 404 });
   if (!group.memberIds.includes(username)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   let messages = db.messages[groupId] ?? [];
-  if (!isExec) {
-    const cutoff = getClearCutoff(username, groupChannelKey(groupId));
-    messages = filterByCutoff(messages, cutoff);
-  }
+  // Per-user cutoff applies to everyone including execs.
+  const cutoff = getClearCutoff(username, groupChannelKey(groupId));
+  messages = filterByCutoff(messages, cutoff);
   return NextResponse.json({ messages });
 }
 

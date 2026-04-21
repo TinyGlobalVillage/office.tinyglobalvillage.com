@@ -1,0 +1,28 @@
+{
+  "dids": [
+    {
+      "id": "did_seed_ahoytgv",
+      "e164": "+18772469848",
+      "label": "TGV Front Desk (1-877-AHOY-TGV)",
+      "assignment": {
+        "kind": "unassigned"
+      },
+      "telnyxId": null,
+      "createdBy": "admin",
+      "createdAt": "2026-04-20T22:30:00.000Z",
+      "releasedAt": null
+    },
+    {
+      "id": "did_707_750_tiny",
+      "e164": "+17077508469",
+      "label": "TGV Local (707-750-TINY)",
+      "assignment": {
+        "kind": "frontdesk"
+      },
+      "telnyxId": "2942753858998241088",
+      "createdBy": "admin",
+      "createdAt": "2026-04-21T01:55:00.000Z",
+      "releasedAt": null
+    }
+  ]
+}

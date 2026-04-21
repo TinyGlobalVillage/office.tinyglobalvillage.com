@@ -10,7 +10,7 @@ import ClaudeIcon from "../components/claude/ClaudeIcon";
 import SandboxIcon from "../components/sandbox/SandboxIcon";
 import LibraryIcon from "../components/LibraryIcon";
 import DashboardPageModal from "../components/DashboardPageModal";
-import { DatabaseIcon, StorageIcon, EditorIcon, UtilsIcon, SuggestionIcon, ProcessesIcon, DeployIcon, DrawerAlertsIcon, DrawerChatsIcon, DrawerInboxIcon, DrawerSessionsIcon, LogsIcon, SearchIcon } from "../components/icons";
+import { DatabaseIcon, StorageIcon, EditorIcon, UtilsIcon, SuggestionIcon, ProcessesIcon, DeployIcon, DrawerFrontDeskIcon, DrawerChatsIcon, DrawerInboxIcon, DrawerSessionsIcon, LogsIcon, SearchIcon } from "../components/icons";
 import { colors, rgb, type GlowColor } from "@/app/theme";
 
 type DashTile = {
@@ -577,7 +577,7 @@ export default function Home() {
     { key: "Sandbox", title: "Sandbox", subtitle: "Component Lab", glow: "pink", icon: <SandboxIcon size={28} color={colors.pink} />, onClick: () => window.dispatchEvent(new CustomEvent("open-sandbox")) },
     { key: "Library", title: "Library", subtitle: "Catalog", glow: "violet", icon: <LibraryIcon size={28} color={colors.violet} />, onClick: () => window.dispatchEvent(new CustomEvent("open-library")) },
     { key: "Suggest", title: "Suggest", subtitle: "Feature ideas", glow: "pink", icon: <SuggestionIcon size={28} style={{ color: colors.pink }} />, onClick: () => window.dispatchEvent(new CustomEvent("open-suggestion")) },
-    { key: "Alerts", title: "Alerts", subtitle: "Announcements", glow: "gold", icon: <DrawerAlertsIcon size={28} style={{ color: colors.gold }} />, onClick: () => window.dispatchEvent(new CustomEvent("tgv-drawer-open", { detail: "alerts" })) },
+    { key: "FrontDesk", title: "Front Desk", subtitle: "Calls / SMS / Inquiries", glow: "gold", icon: <DrawerFrontDeskIcon size={28} style={{ color: colors.gold }} />, onClick: () => window.dispatchEvent(new CustomEvent("tgv-drawer-open", { detail: "frontdesk" })) },
     { key: "Chats", title: "Chats", subtitle: "Team messaging", glow: "green", icon: <DrawerChatsIcon size={28} style={{ color: colors.green }} />, onClick: () => window.dispatchEvent(new CustomEvent("tgv-drawer-open", { detail: "chat" })) },
     { key: "Inbox", title: "Inbox", subtitle: "Email", glow: "cyan", icon: <DrawerInboxIcon size={28} style={{ color: colors.cyan }} />, onClick: () => window.dispatchEvent(new CustomEvent("tgv-drawer-open", { detail: "inbox" })) },
     { key: "Sessions", title: "Sessions", subtitle: "Video rooms", glow: "pink", icon: <DrawerSessionsIcon size={28} style={{ color: colors.pink }} />, onClick: () => window.dispatchEvent(new CustomEvent("tgv-drawer-open", { detail: "sessions" })) },

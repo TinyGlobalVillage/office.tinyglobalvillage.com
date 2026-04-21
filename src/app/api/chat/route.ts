@@ -65,7 +65,6 @@ export async function GET(req: NextRequest) {
   const token = await requireAuth(req);
   if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const username = token.username ?? token.sub ?? "";
-  const isExec = username === "admin" || username === "marmar";
 
   const url = req.nextUrl;
   const limit = parseInt(url.searchParams.get("limit") ?? "50", 10);
@@ -74,10 +73,10 @@ export async function GET(req: NextRequest) {
   const db = readDB();
   let msgs = db.messages;
 
-  if (!isExec) {
-    const cutoff = getClearCutoff(username, tgvChannelKey());
-    msgs = filterByCutoff(msgs, cutoff);
-  }
+  // Per-user cutoff applies to everyone including execs — "clear for me"
+  // hides prior messages from the clearer's own view even when admin.
+  const cutoff = getClearCutoff(username, tgvChannelKey());
+  msgs = filterByCutoff(msgs, cutoff);
 
   if (before) {
     const idx = msgs.findIndex((m) => m.id === before);

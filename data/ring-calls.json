@@ -1,0 +1,20 @@
+{
+  "rings": [
+    {
+      "id": "admin::dm:admin_marmar",
+      "from": {
+        "id": "admin",
+        "name": "Gio"
+      },
+      "to": [
+        "marmar"
+      ],
+      "channel": {
+        "type": "dm",
+        "id": "admin_marmar",
+        "name": "Marthe"
+      },
+      "startedAt": "2026-04-20T23:09:34.491Z"
+    }
+  ]
+}

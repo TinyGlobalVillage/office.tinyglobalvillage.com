@@ -9,7 +9,8 @@ import PreviewDrawer from "./PreviewDrawer";
 import LegendDrawer from "./LegendDrawer";
 import PresenceHeartbeat from "./PresenceHeartbeat";
 import PingNotifier from "./PingNotifier";
-import AlertsDrawer from "./AlertsDrawer";
+import FrontDeskDrawer from "./FrontDeskDrawer";
+import IncomingCallOverlay from "./frontdesk/IncomingCallOverlay";
 import ChatDrawer from "./ChatDrawer";
 import InboxDrawer from "./InboxDrawer";
 import SessionsDrawer from "./SessionsDrawer";
@@ -65,7 +66,8 @@ function ShellInner({ children }: { children: ReactNode }) {
       <PreviewProvider>
         <PresenceHeartbeat />
         <PingNotifier />
-        <AlertsDrawer />
+        <FrontDeskDrawer />
+        <IncomingCallOverlay />
         <ChatDrawer />
         <InboxDrawer />
         <SessionsDrawer />

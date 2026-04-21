@@ -1,0 +1,11 @@
+<!-- TGV Office — DID → dialplan context routing fragment.
+     Merged into install/etc/freeswitch/dialplan/public/00-tgv-did-map.xml
+     by /srv/refusion-core/telephony/scripts/render-config.sh. -->
+<extension name="tgv-office-ahoy-tgv">
+  <!-- 1-877-AHOY-TGV / (877) 246-9848 — numerology 63 → 9 -->
+  <condition field="destination_number" expression="^\+?1?8772469848$">
+    <action application="set" data="domain_name=office.tinyglobalvillage.com"/>
+    <action application="set" data="tgv_client=office.tinyglobalvillage.com"/>
+    <action application="transfer" data="8772469848 XML office.tinyglobalvillage.com"/>
+  </condition>
+</extension>

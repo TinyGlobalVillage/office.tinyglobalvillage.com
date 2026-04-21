@@ -7,6 +7,16 @@ const FILE     = path.join(DATA_DIR, "sessions.json");
 
 export type SessionKind = "lounge" | "study" | "pair" | "user";
 
+/**
+ * A single live device-seat. Each browser tab generates its own `deviceId`,
+ * so one user on two devices occupies two seats (two presence rows).
+ */
+export type Presence = {
+  username: string;
+  deviceId: string;
+  lastBeatAt: string;
+};
+
 export type Session = {
   id: string;
   kind: SessionKind;
@@ -14,7 +24,10 @@ export type Session = {
   createdBy: string | null;
   createdAt: string;
   cap: number | null;
+  /** Derived from `presences` — unique usernames currently live. Kept for UI callers. */
   memberIds: string[];
+  /** Authoritative live-seat roster. One entry per (user, device). */
+  presences: Presence[];
   admins: string[];
   banned: string[];
   invisible: string[];
@@ -24,28 +37,31 @@ export type Session = {
 
 type Db = { sessions: Session[] };
 
+/** Heartbeat interval is 15s; TTL of 30s tolerates one missed beat before sweeping. */
+const PRESENCE_TTL_MS = 30_000;
+
 const ISO_EPOCH = "2026-04-20T00:00:00.000Z";
 
 const SEED: Session[] = [
   {
     id: "lounge",        kind: "lounge", name: "TGV Lounge", createdBy: null, createdAt: ISO_EPOCH,
-    cap: null, memberIds: [], admins: [], banned: [], invisible: [], updatedAt: ISO_EPOCH,
+    cap: null, memberIds: [], presences: [], admins: [], banned: [], invisible: [], updatedAt: ISO_EPOCH,
   },
   {
     id: "study-1",       kind: "study",  name: "Study 1",    createdBy: null, createdAt: ISO_EPOCH,
-    cap: null, memberIds: [], admins: [], banned: [], invisible: [], updatedAt: ISO_EPOCH,
+    cap: null, memberIds: [], presences: [], admins: [], banned: [], invisible: [], updatedAt: ISO_EPOCH,
   },
   {
     id: "study-2",       kind: "study",  name: "Study 2",    createdBy: null, createdAt: ISO_EPOCH,
-    cap: null, memberIds: [], admins: [], banned: [], invisible: [], updatedAt: ISO_EPOCH,
+    cap: null, memberIds: [], presences: [], admins: [], banned: [], invisible: [], updatedAt: ISO_EPOCH,
   },
   {
     id: "pair-1",        kind: "pair",   name: "Pair 1",     createdBy: null, createdAt: ISO_EPOCH,
-    cap: 4, memberIds: [], admins: [], banned: [], invisible: [], updatedAt: ISO_EPOCH,
+    cap: 4, memberIds: [], presences: [], admins: [], banned: [], invisible: [], updatedAt: ISO_EPOCH,
   },
   {
     id: "pair-2",        kind: "pair",   name: "Pair 2",     createdBy: null, createdAt: ISO_EPOCH,
-    cap: 4, memberIds: [], admins: [], banned: [], invisible: [], updatedAt: ISO_EPOCH,
+    cap: 4, memberIds: [], presences: [], admins: [], banned: [], invisible: [], updatedAt: ISO_EPOCH,
   },
 ];
 
@@ -58,6 +74,10 @@ function read(): Db {
     if (!fs.existsSync(FILE)) return { sessions: [...SEED] };
     const parsed = JSON.parse(fs.readFileSync(FILE, "utf8")) as Db;
     const sessions = Array.isArray(parsed.sessions) ? parsed.sessions : [];
+    // Migrate any pre-presence rows on the fly.
+    for (const s of sessions) {
+      if (!Array.isArray(s.presences)) s.presences = [];
+    }
     for (const seed of SEED) {
       if (!sessions.some(s => s.id === seed.id)) sessions.push({ ...seed });
     }
@@ -72,8 +92,49 @@ function write(db: Db): void {
   fs.writeFileSync(FILE, JSON.stringify(db, null, 2));
 }
 
+/**
+ * Drop presence rows older than `PRESENCE_TTL_MS`, re-derive `memberIds` from
+ * the surviving rows, and auto-delete user rooms that have gone quiet. Called
+ * on every read path so stale state can't outlive a missed heartbeat.
+ */
+function sweep(db: Db): Db {
+  const cutoffMs = Date.now() - PRESENCE_TTL_MS;
+  const keep: Session[] = [];
+  let mutated = false;
+  for (const s of db.sessions) {
+    const before = s.presences.length;
+    const beforeMemberCount = s.memberIds.length;
+    s.presences = s.presences.filter(p => {
+      const t = new Date(p.lastBeatAt).getTime();
+      return Number.isFinite(t) && t > cutoffMs;
+    });
+    const nextMembers = Array.from(new Set(s.presences.map(p => p.username)));
+    if (s.presences.length !== before || nextMembers.length !== beforeMemberCount) {
+      mutated = true;
+    }
+    s.memberIds = nextMembers;
+    // User-created rooms are cleaned up once they've been idle past the TTL.
+    // Seeded rooms (lounge/study/pair) are never swept out.
+    if (s.kind === "user" && s.presences.length === 0) {
+      const idleSince = new Date(s.updatedAt).getTime();
+      if (Number.isFinite(idleSince) && idleSince < cutoffMs) {
+        mutated = true;
+        continue;
+      }
+    }
+    keep.push(s);
+  }
+  if (mutated) {
+    db.sessions = keep;
+    write(db);
+  } else {
+    db.sessions = keep;
+  }
+  return db;
+}
+
 export function listSessions(viewer: string): Session[] {
-  const { sessions } = read();
+  const { sessions } = sweep(read());
   const viewerIsExec = isExec(viewer);
   return sessions
     .filter(s => viewerIsExec || !s.banned.includes(viewer))
@@ -86,7 +147,7 @@ export function listSessions(viewer: string): Session[] {
 }
 
 export function getSession(id: string): Session | null {
-  const { sessions } = read();
+  const { sessions } = sweep(read());
   return sessions.find(s => s.id === id) ?? null;
 }
 
@@ -106,6 +167,7 @@ export function createUserSession(params: {
     createdAt: now,
     cap: params.cap ?? null,
     memberIds: [],
+    presences: [],
     admins: [params.createdBy],
     banned: [],
     invisible: [],
@@ -128,37 +190,56 @@ export function checkJoinAccess(sessionId: string, username: string): AccessChec
     return { ok: false, code: "banned", message: "You were removed from this room" };
   }
   const viewerIsAdmin = isExec(username) || session.admins.includes(username);
-  // Pair-cap: hard 4-member limit for non-admins. Admins can join as a 5th occupant to monitor.
+  // Pair-cap: hard 4-seat limit for non-admins. Each live device counts as one
+  // seat, so the cap is enforced against active presences (excluding invisible
+  // users). Admins can always monitor as an overflow participant.
   if (
     session.kind === "pair" &&
     session.cap != null &&
-    !viewerIsAdmin &&
-    session.memberIds.filter(m => !session.invisible.includes(m)).length >= session.cap &&
-    !session.memberIds.includes(username)
+    !viewerIsAdmin
   ) {
-    return { ok: false, code: "full", message: "This pair room is full" };
+    const visibleSeats = session.presences.filter(p => !session.invisible.includes(p.username)).length;
+    const userIsAlreadyIn = session.presences.some(p => p.username === username);
+    if (visibleSeats >= session.cap && !userIsAlreadyIn) {
+      return { ok: false, code: "full", message: "This pair room is full" };
+    }
   }
   return { ok: true };
 }
 
 /**
- * Heartbeat: records that `username` is currently in `sessionId`. Also runs the
- * last-member-leaves sweep for user-created rooms. Returns the updated session
- * (or `null` if auto-deleted).
+ * Heartbeat: records that the (`username`, `deviceId`) pair is currently live
+ * in `sessionId`. Each tab generates its own `deviceId`, so two tabs from one
+ * user occupy two seats. Returns the updated session (or `null` if auto-deleted).
  */
-export function heartbeatPresence(sessionId: string, username: string, present: boolean): Session | null {
-  const db = read();
+export function heartbeatPresence(
+  sessionId: string,
+  username: string,
+  deviceId: string,
+  present: boolean,
+): Session | null {
+  const db = sweep(read());
   const idx = db.sessions.findIndex(s => s.id === sessionId);
   if (idx < 0) return null;
 
   const s = db.sessions[idx];
-  const had = s.memberIds.includes(username);
-  if (present && !had) s.memberIds.push(username);
-  if (!present && had) s.memberIds = s.memberIds.filter(m => m !== username);
-  s.updatedAt = new Date().toISOString();
+  const now = new Date().toISOString();
 
-  // Auto-delete user-created rooms when the last member leaves.
-  if (s.kind === "user" && s.memberIds.length === 0 && !present) {
+  if (present) {
+    const existing = s.presences.find(p => p.username === username && p.deviceId === deviceId);
+    if (existing) {
+      existing.lastBeatAt = now;
+    } else {
+      s.presences.push({ username, deviceId, lastBeatAt: now });
+    }
+  } else {
+    s.presences = s.presences.filter(p => !(p.username === username && p.deviceId === deviceId));
+  }
+  s.memberIds = Array.from(new Set(s.presences.map(p => p.username)));
+  s.updatedAt = now;
+
+  // Auto-delete user-created rooms the moment the last seat explicitly leaves.
+  if (s.kind === "user" && s.presences.length === 0 && !present) {
     db.sessions.splice(idx, 1);
     write(db);
     return null;
@@ -208,7 +289,8 @@ export function applyAdminOp(sessionId: string, actor: string, op: AdminOp): Adm
     }
     case "ban": {
       if (!s.banned.includes(op.user)) s.banned.push(op.user);
-      s.memberIds = s.memberIds.filter(m => m !== op.user);
+      s.presences = s.presences.filter(p => p.username !== op.user);
+      s.memberIds = Array.from(new Set(s.presences.map(p => p.username)));
       s.admins   = s.admins.filter(m => m !== op.user);
       break;
     }
@@ -233,6 +315,7 @@ export function applyAdminOp(sessionId: string, actor: string, op: AdminOp): Adm
       break;
     }
     case "forceEnd": {
+      s.presences = [];
       s.memberIds = [];
       if (s.kind === "user") {
         db.sessions.splice(idx, 1);

@@ -1,0 +1,18 @@
+<!--
+  Outbound dialplan: default context route for anything dialed via ESL's
+  originate command from the Node service. Mirrors the frontdesk→telnyx path
+  above but lives in 'default' so ESL originate targets like 'sofia/external/...'
+  don't need to specify a context explicitly.
+-->
+<include>
+  <context name="default">
+    <extension name="tgv_outbound">
+      <condition field="destination_number" expression="^(\+?\d{7,15})$">
+        <action application="set" data="hangup_after_bridge=true"/>
+        <action application="set" data="continue_on_fail=false"/>
+        <action application="set" data="effective_caller_id_number=${FRONTDESK_CALLER_ID_E164}"/>
+        <action application="bridge" data="sofia/gateway/telnyx/${destination_number}"/>
+      </condition>
+    </extension>
+  </context>
+</include>

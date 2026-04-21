@@ -240,6 +240,7 @@ const SideTab = styled(DrawerTab).attrs({ $side: "left", $accent: "green" })<{ $
 
   @media (max-width: 768px) {
     left: ${(p) => (p.$openLeft === "0" ? "0" : "calc(100vw - 28px)")};
+    ${(p) => (p.$open ? "display: none;" : "")}
   }
 `;
 
@@ -4674,6 +4675,26 @@ export default function ChatDrawer({ popout = false, popoutPeer = null, popoutGr
   };
 
   const doClearGlobal = async () => {
+    if (selection.type === "dm") {
+      await fetch("/api/chat/dm/clear", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ peer: selection.peer.username }),
+      });
+      setShowClearConfirm(false);
+      await loadDmMessages(selection.peer.username);
+      return;
+    }
+    if (selection.type === "group") {
+      await fetch("/api/chat/group/admin", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ groupId: selection.groupId, patch: { op: "truncateMessages" } }),
+      });
+      setShowClearConfirm(false);
+      await loadGroupMessages(selection.groupId);
+      return;
+    }
     await fetch("/api/chat/clear", { method: "POST" });
     setShowClearConfirm(false);
     await loadMessages();
@@ -6749,29 +6770,44 @@ export default function ChatDrawer({ popout = false, popoutPeer = null, popoutGr
         />
       )}
 
-      {showClearConfirm && (
-        <ClearConfirmOverlay onMouseDown={() => setShowClearConfirm(false)}>
-          <ClearConfirmCard onMouseDown={(e) => e.stopPropagation()}>
-            <ClearConfirmTitle>Clear chat</ClearConfirmTitle>
-            <ClearConfirmBody>
-              {selection.type === "dm"
-                ? `Hide this DM with ${selection.peer.displayName} for you only. Other users keep their view.`
-                : selection.type === "group"
-                  ? "Hide this group's messages for you only. Other members keep their view."
-                  : isExec
-                    ? "Choose scope: clear only your view, or wipe the global chat for everyone."
-                    : "Hide the TGV chat for you only. Other users keep their view."}
-            </ClearConfirmBody>
-            <ClearConfirmActions>
-              <GhostBtn onClick={() => setShowClearConfirm(false)}>Cancel</GhostBtn>
-              <PrimaryBtn onClick={doClearMine}>Clear for me</PrimaryBtn>
-              {isExec && selection.type === "tgv" && (
-                <DangerBtn onClick={doClearGlobal}>Wipe for everyone</DangerBtn>
-              )}
-            </ClearConfirmActions>
-          </ClearConfirmCard>
-        </ClearConfirmOverlay>
-      )}
+      {showClearConfirm && (() => {
+        const activeGroupForClear = selection.type === "group"
+          ? groups.find((gg) => gg.id === selection.groupId)
+          : null;
+        const viewerIsGroupAdmin =
+          !!activeGroupForClear && (activeGroupForClear.admins ?? []).includes(currentUser);
+        const canWipeForEveryone =
+          (selection.type === "tgv" && isExec) ||
+          (selection.type === "dm" && isExec) ||
+          (selection.type === "group" && (isExec || viewerIsGroupAdmin));
+        return (
+          <ClearConfirmOverlay onMouseDown={() => setShowClearConfirm(false)}>
+            <ClearConfirmCard onMouseDown={(e) => e.stopPropagation()}>
+              <ClearConfirmTitle>Clear chat</ClearConfirmTitle>
+              <ClearConfirmBody>
+                {selection.type === "dm"
+                  ? (canWipeForEveryone
+                      ? `Clear this DM with ${selection.peer.displayName}: hide from your own view, or wipe the thread for both sides.`
+                      : `Hide this DM with ${selection.peer.displayName} for you only. Other users keep their view.`)
+                  : selection.type === "group"
+                    ? (canWipeForEveryone
+                        ? "Clear this group: hide from your own view, or wipe the group's messages for every member."
+                        : "Hide this group's messages for you only. Other members keep their view.")
+                    : canWipeForEveryone
+                      ? "Choose scope: clear only your view, or wipe the global chat for everyone."
+                      : "Hide the TGV chat for you only. Other users keep their view."}
+              </ClearConfirmBody>
+              <ClearConfirmActions>
+                <GhostBtn onClick={() => setShowClearConfirm(false)}>Cancel</GhostBtn>
+                <PrimaryBtn onClick={doClearMine}>Clear for me</PrimaryBtn>
+                {canWipeForEveryone && (
+                  <DangerBtn onClick={doClearGlobal}>Wipe for everyone</DangerBtn>
+                )}
+              </ClearConfirmActions>
+            </ClearConfirmCard>
+          </ClearConfirmOverlay>
+        );
+      })()}
 
       {groupAdminId && (() => {
         const g = groups.find((gg) => gg.id === groupAdminId);

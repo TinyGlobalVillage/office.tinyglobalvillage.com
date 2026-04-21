@@ -1,0 +1,43 @@
+<!--
+  Inbound Front Desk dialplan. Called from the 'public' context when Telnyx
+  delivers an inbound call. Flow:
+    1. Play consent/recording notice (TCPA-safe).
+    2. Start recording.
+    3. Hand the call off to the Node service via `socket` ESL, which decides
+       who gets the ring based on DID assignment / shift worker.
+    4. Fall back to voicemail if nobody answers within 45s total (30s direct +
+       15s ring-all).
+-->
+<include>
+  <context name="public">
+    <extension name="frontdesk_inbound">
+      <condition field="destination_number" expression="^(\+?\d{10,15})$">
+        <action application="log" data="INFO Incoming FrontDesk call to ${destination_number} from ${caller_id_number}"/>
+        <action application="answer"/>
+        <action application="sleep" data="500"/>
+        <action application="playback" data="/var/lib/freeswitch/prompts/consent-notice.wav"/>
+        <action application="set" data="recording_file=/var/lib/freeswitch/recordings/${uuid}.wav"/>
+        <action application="record_session" data="${recording_file}"/>
+        <!--
+          Hand control to the Node service over ESL. The app logs the call,
+          picks the ring target, and issues `bridge user/<ext>` back to FS via
+          the ESL connection. The socket URL points at the Next.js
+          ESL bridge listener (see src/lib/frontdesk/esl.ts).
+        -->
+        <action application="socket" data="127.0.0.1:8040 async full"/>
+        <!-- Fallback if the socket handler returns control. -->
+        <action application="voicemail" data="default ${domain_name} frontdesk"/>
+      </condition>
+    </extension>
+  </context>
+
+  <context name="frontdesk">
+    <!-- WebRTC endpoints auth'd into the 'frontdesk' context can dial out. -->
+    <extension name="outbound_from_webrtc">
+      <condition field="destination_number" expression="^(\+?\d{7,15})$">
+        <action application="set" data="effective_caller_id_number=${FRONTDESK_CALLER_ID_E164}"/>
+        <action application="bridge" data="sofia/gateway/telnyx/${destination_number}"/>
+      </condition>
+    </extension>
+  </context>
+</include>

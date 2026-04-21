@@ -2319,6 +2319,21 @@ function DrawerIconDemo() {
   );
 }
 
+function DrawerKnobDemo() {
+  const accent = "#00bfff";
+  return (
+    <DrawerWrap>
+      <Highlight label="DrawerKnob">
+        <DrawerShell $accent={accent}>
+          <DrawerTabPill $accent={accent}><EnvelopeSvg /></DrawerTabPill>
+          <DrawerBodyHint>Drawer panel body</DrawerBodyHint>
+        </DrawerShell>
+      </Highlight>
+      <DrawerCaption>28px edge pill: stacks identity SVG + vertical label, whole pill is the hit target, drag Y to reposition (persisted).</DrawerCaption>
+    </DrawerWrap>
+  );
+}
+
 function DrawerMenuButtonDemo() {
   const accent = "#ff4ecb";
   return (
@@ -2523,7 +2538,7 @@ function ADLDemo() {
     <DrawerWrap>
       <Highlight label="ADL">
         <AdlDemoWrap>
-          <AdlDemoGroup label="Menus" defaultOpen={true} items={["AlertsDrawer", "ChatsDrawer", "Drawer", "Dropdown Menu"]} />
+          <AdlDemoGroup label="Menus" defaultOpen={true} items={["FrontDeskDrawer", "ChatsDrawer", "Drawer", "Dropdown Menu"]} />
           <AdlDemoGroup label="Navigation" defaultOpen={false} items={["ACR", "GPG", "Scrollbar"]} />
           <AdlDemoGroup label="Toggles" defaultOpen={true} items={["DTog", "ECL", "Eyeball", "Lightswitch"]} />
         </AdlDemoWrap>
@@ -2533,7 +2548,7 @@ function ADLDemo() {
   );
 }
 
-function AlertsDrawerDemo() {
+function FrontDeskDrawerDemo() {
   return (
     <ConcreteDrawerDemo
       accent="#f7b700"
@@ -3281,19 +3296,14 @@ const AdlBody = styled.div<{ $open: boolean }>\`
     Demo: ADLDemo,
   },
   {
-    key: "AlertsDrawer",
-    name: "AlertsDrawer",
+    key: "FrontDeskDrawer",
+    name: "FrontDeskDrawer",
     category: "Menus",
-    summary: "Concrete gold drawer for system announcements. Bell glyph; menu = zoom out, zoom %, zoom in, separator, popout, fullscreen, close — all gold accent-filled. Left edge, Y ~20%, default width 640px. Popout route /dashboard/announcements. Reference implementation for the accent-fill pattern.",
-    usage: "Mount at the app shell (dashboard layout). Wraps `AnnouncementsPanel`. Use this as the reference when adding a new drawer — roster, spacing, and accent application are canonical here.",
-    code: `<AlertsDrawer
-  side="left"
-  defaultY={0.2}
-  defaultWidth={640}
-  popoutRoute="/dashboard/announcements"
-/>`,
-    stylePath: "src/app/components/drawers/AlertsDrawer.tsx",
-    Demo: AlertsDrawerDemo,
+    summary: "Concrete gold drawer housing the Front Desk module: Phone / SMS / Contacts / Alerts tabs behind a desk-phone glyph. Menu roster mirrors AlertsDrawer — zoom out, %, zoom in, separator, popout, fullscreen, close — all gold accent-filled. Left edge, Y ~20%, default width 640px. Popout route /dashboard/frontdesk. Supersedes the legacy AlertsDrawer (announcements moved to the Alerts tab).",
+    usage: "Mount at the app shell. Exec-only admin bar inside Phone tab for setting today's shift worker and managing DIDs. Listens for `tgv-drawer-open` (detail: \"frontdesk\" or legacy \"alerts\"), `frontdesk-dial-prefill`, and `frontdesk-sms-open`.",
+    code: `<FrontDeskDrawer />`,
+    stylePath: "src/app/components/FrontDeskDrawer.tsx",
+    Demo: FrontDeskDrawerDemo,
   },
   {
     key: "ChatsDrawer",
@@ -3374,6 +3384,20 @@ const [name, setName] = useState("");
 </TabPill>`,
     stylePath: "src/app/components/drawers/icons/",
     Demo: DrawerIconDemo,
+  },
+  {
+    key: "DrawerKnob",
+    name: "DrawerKnob",
+    category: "Buttons",
+    summary: "The 28px edge-pinned tab pill that represents a closed Drawer and opens/closes it. Accent-tinted, rounded on the non-edge side only, stacks the drawer's identity SVG on top of a vertical-rl label. Whole pill is the hit target. Drag along Y to reposition; position persists to localStorage per drawer. One accent per drawer.",
+    usage: "Every Drawer needs exactly one DrawerKnob on its anchored edge. Use the drawer's accent color (gold/green/cyan/pink/orange/violet/red). Place the identity SVG above the vertical label using `writing-mode: vertical-rl`. Never emoji — always SVG from `components/icons/`. Do NOT bundle the expand/collapse edge toggle into the Knob — that's a separate adjacent control on the open panel's edge.",
+    code: `<DrawerTab $side="left" $accent="cyan" onClick={toggleOpen}>
+  <EnvelopeSvg />
+  <DrawerTabLabel>Inbox</DrawerTabLabel>
+</DrawerTab>`,
+    style: "const DrawerTab = styled.button<{ $side?: 'left' | 'right'; $accent?: GlowColor }>\`\n  position: fixed;\n  display: flex;\n  flex-direction: column;\n  align-items: center;\n  justify-content: center;\n  gap: 0.5rem;\n  user-select: none;\n  width: 28px;\n  padding: 12px 0;\n  transform: translateY(-50%);\n  border: 1px solid rgba(\\${(p) => rgb[p.$accent || 'pink']}, 0.45);\n  border-radius: \\${(p) => (p.$side === 'right' ? '10px 0 0 10px' : '0 10px 10px 0')};\n  color: \\${(p) => colors[p.$accent || 'pink']};\n  backdrop-filter: blur(8px);\n  cursor: grab;\n\`;\n\nconst DrawerTabLabel = styled.span\`\n  writing-mode: vertical-rl;\n  font-size: 9px;\n  font-weight: 800;\n  letter-spacing: 0.15em;\n  text-transform: uppercase;\n\`;",
+    stylePath: "src/app/styled.ts",
+    Demo: DrawerKnobDemo,
   },
   {
     key: "DrawerMenuButton",
