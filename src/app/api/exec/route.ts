@@ -60,10 +60,46 @@ const REGISTRY: Record<
     baseArgs: ["/srv/refusion-core/utils/scripts/git/gitdelrepo"],
     needsEnv: ["GITHUB_PAT"],
   },
+  "domain-cf-migrate": {
+    bin: "node",
+    baseArgs: [
+      "/srv/refusion-core/utils/scripts/domain-cf-migrate/domain-cf-migrate.js",
+    ],
+    needsEnv: [
+      "CF_API_TOKEN",
+      "HOSTINGER_API_TOKEN",
+      "GODADDY_API_KEY",
+      "GODADDY_API_SECRET",
+      "GODADDY_ENV",
+    ],
+  },
+  "mail-domain-setup": {
+    bin: "node",
+    baseArgs: [
+      "/srv/refusion-core/utils/scripts/mail-domain-setup/mail-domain-setup.js",
+    ],
+    needsEnv: [
+      "CF_API_TOKEN",
+      "FASTMAIL_TOKEN_GIO",
+      "FASTMAIL_TOKEN_MARMAR",
+    ],
+  },
+  "opensrs-domain-purchase": {
+    bin: "node",
+    baseArgs: [
+      "/srv/refusion-core/utils/scripts/opensrs-domain-purchase/opensrs-domain-purchase.js",
+    ],
+    needsEnv: ["OPENSRS_USERNAME", "OPENSRS_API_KEY", "OPENSRS_ENV"],
+  },
 };
 
-// Only allow safe argument characters
-const SAFE_ARG = /^[a-zA-Z0-9._\-\/]+$/;
+// Only allow safe argument characters. Allows alphanumeric, dot, underscore,
+// hyphen, slash, colon (provider keys), at-sign (emails), space (display names),
+// equals (key=val patterns), comma (lists), plus (TXT records like "v=spf1+all").
+// spawn() doesn't use a shell, so shell metachars are inert; this is defensive
+// only. If you need a char not here, add it — don't add `;`, `|`, `&`, `$`,
+// backticks, `>`, `<`, or newlines.
+const SAFE_ARG = /^[a-zA-Z0-9._\-\/:@= ,+?]+$/;
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null);
