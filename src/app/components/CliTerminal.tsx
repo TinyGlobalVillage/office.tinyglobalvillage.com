@@ -34,14 +34,19 @@ const pulse = keyframes`
 const Backdrop = styled.div`
   position: fixed;
   inset: 0;
-  z-index: 30;
+  /* Above DashboardPageModal (z-index 90) so the terminal can overlay the
+     popout modal — required when the >_terminal button inside the embedded
+     iframe postMessages to the parent. */
+  z-index: 100;
 `;
 
 const ToggleButton = styled.button<{ $running: boolean }>`
   position: fixed;
   bottom: 24px;
   right: 24px;
-  z-index: 50;
+  /* Above DashboardPageModal (z-index 90) so the floating Hide button is
+     reachable while a popout modal is open. */
+  z-index: 110;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -1157,10 +1162,10 @@ export default function CliTerminal({ standalone = false }: { standalone?: boole
 
   // ── Panel container style (dynamic positioning) ──────────────────────────
   const panelStyle: React.CSSProperties = standalone
-    ? { position: "fixed", inset: 0, zIndex: 40, display: "flex", flexDirection: "column" }
+    ? { position: "fixed", inset: 0, zIndex: 100, display: "flex", flexDirection: "column" }
     : pos === "bottom"
     ? {
-        position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 40,
+        position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 100,
         height: `${height}px`, display: "flex", flexDirection: "column",
         transform: open ? "translateY(0)" : "translateY(100%)",
         transition: "transform 0.25s cubic-bezier(0.4,0,0.2,1)",
@@ -1168,7 +1173,7 @@ export default function CliTerminal({ standalone = false }: { standalone?: boole
       }
     : pos === "right"
     ? {
-        position: "fixed", top: 0, right: 0, bottom: 0, zIndex: 40,
+        position: "fixed", top: 0, right: 0, bottom: 0, zIndex: 100,
         width: `${width}px`, display: "flex", flexDirection: "column",
         transform: open ? "translateX(0)" : "translateX(100%)",
         transition: "transform 0.25s cubic-bezier(0.4,0,0.2,1)",
@@ -1176,7 +1181,7 @@ export default function CliTerminal({ standalone = false }: { standalone?: boole
       }
     : pos === "left"
     ? {
-        position: "fixed", top: 0, left: 0, bottom: 0, zIndex: 40,
+        position: "fixed", top: 0, left: 0, bottom: 0, zIndex: 100,
         width: `${width}px`, display: "flex", flexDirection: "column",
         transform: open ? "translateX(0)" : "translateX(-100%)",
         transition: "transform 0.25s cubic-bezier(0.4,0,0.2,1)",
@@ -1188,7 +1193,7 @@ export default function CliTerminal({ standalone = false }: { standalone?: boole
         left:   `${floatRect.x}px`,
         width:  `${floatRect.w}px`,
         height: `${floatRect.h}px`,
-        zIndex: 40,
+        zIndex: 100,
         display: open ? "flex" : "none",
         flexDirection: "column",
         borderRadius: 10,

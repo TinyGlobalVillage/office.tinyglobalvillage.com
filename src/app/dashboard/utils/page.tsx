@@ -6,6 +6,13 @@ import { colors, rgb } from "../../theme";
 import TopNav from "../../components/TopNav";
 import { useTerminal } from "../../components/TerminalProvider";
 import SettingsIcon from "../../components/icons/SettingsIcon";
+import TelephonyControlModal from "../../components/hardening/telephony/TelephonyControlModal";
+import BackupsControlModal from "../../components/backups/BackupsControlModal";
+import {
+  TinyURLGenerator,
+  QRCodeGenerator,
+} from "@tgv/module-editor/editor/component-library/marketing/link-tools";
+import type { ShortLink } from "@tgv/module-editor/editor/component-library/marketing/link-tools";
 
 /* ── Types ────────────────────────────────────────────────────── */
 
@@ -1440,23 +1447,579 @@ const ActionTopRow = styled.div`
   gap: 0.5rem;
 `;
 
+/* ── Action lookup + ADL surface component ────────────────────────────── */
+
+const ACTIONS_BY_ID: Map<string, Action> = new Map();
+for (const g of GROUPS) for (const a of g.actions) ACTIONS_BY_ID.set(a.id, a);
+
+type UtilsAdlSurfaceProps = {
+  sections: Section[];
+  actionsById: Map<string, Action>;
+  isAdmin: boolean;
+  overlay: Record<string, Record<string, FieldValue>>;
+  onSaveDefaults: (actionId: string, defaults: Record<string, FieldValue>) => Promise<void>;
+  onOpenBackups: () => void;
+  onOpenHardening: (kind: HardeningKind) => void;
+  onOpenLinkTool: (kind: LinkTool) => void;
+};
+
+function UtilsAdlSurface({
+  sections, actionsById, isAdmin, overlay, onSaveDefaults,
+  onOpenBackups, onOpenHardening, onOpenLinkTool,
+}: UtilsAdlSurfaceProps) {
+  // Default open per ADL rule. Operator can collapse what they don't care about.
+  const [openMap, setOpenMap] = useState<Record<string, boolean>>(() =>
+    Object.fromEntries(sections.map((s) => [s.id, true]))
+  );
+
+  // TSG Collapse-All Lightswitch — ON when every section is open.
+  const allOpen = sections.every((s) => openMap[s.id] ?? true);
+  const setAll = (next: boolean) => {
+    setOpenMap(Object.fromEntries(sections.map((s) => [s.id, next])));
+  };
+
+  return (
+    <ParentTile>
+      <ParentHeader
+        role="button"
+        tabIndex={0}
+        aria-label={allOpen ? "Collapse all sections" : "Expand all sections"}
+        onClick={() => setAll(!allOpen)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setAll(!allOpen); }
+        }}
+      >
+        <AdlSwitchTrack $on={allOpen} aria-hidden="true">
+          <AdlSwitchThumb $on={allOpen} />
+        </AdlSwitchTrack>
+        <ParentTitle $allOpen={allOpen}>
+          {allOpen ? "All sections expanded" : "All sections collapsed"}
+        </ParentTitle>
+        <ParentHint>click row to {allOpen ? "collapse" : "expand"} all</ParentHint>
+      </ParentHeader>
+
+      {sections.map((section) => {
+        const open = openMap[section.id] ?? true;
+        const accent: SectionAccent = section.accent;
+        const count =
+          section.kind === "actions" ? section.actionIds.length :
+          section.kind === "tiles"   ? section.tiles.length :
+          0;
+
+        return (
+          <AdlSectionTile key={section.id} $accent={accent} $open={open}>
+            <AdlHeader
+              type="button"
+              $open={open}
+              $accent={accent}
+              aria-expanded={open}
+              onClick={() => setOpenMap((p) => ({ ...p, [section.id]: !open }))}
+            >
+              <AdlLabel>
+                <AdlLabelMain>{section.title}</AdlLabelMain>
+                {section.subtitle && <AdlLabelSub>{section.subtitle}</AdlLabelSub>}
+              </AdlLabel>
+              {section.kind === "placeholder"
+                ? <AdlCountSoon $accent={accent}>soon</AdlCountSoon>
+                : <AdlCount $accent={accent}>{count}</AdlCount>}
+              <AdlSwitchTrack $on={open} $accent={accent} aria-hidden="true">
+                <AdlSwitchThumb $on={open} $accent={accent} />
+              </AdlSwitchTrack>
+            </AdlHeader>
+
+            <AdlBody $open={open} $accent={accent}>
+              {section.kind === "placeholder" && (
+                <PlaceholderBody $accent={accent}>{section.hint}</PlaceholderBody>
+              )}
+
+              {section.kind === "tiles" && (
+                <HardeningGrid>
+                  {section.tiles.map((tile, i) => {
+                    if (tile.type === "backups") return (
+                      <HardeningTile key={i} type="button" onClick={onOpenBackups}>
+                        <HardeningTileTop>💾 Backups</HardeningTileTop>
+                        <HardeningTileSub>
+                          Off-site backup pipeline — rsync.net Lifetime 1 TB Zurich, restic over
+                          SFTP, GPG-encrypted secrets. Account info, connection state, last-run
+                          history, snapshot count, retention policy.
+                        </HardeningTileSub>
+                      </HardeningTile>
+                    );
+                    if (tile.type === "telephony") return (
+                      <HardeningTile key={i} type="button" onClick={() => onOpenHardening("telephony")}>
+                        <HardeningTileTop>📞 Telephony</HardeningTileTop>
+                        <HardeningTileSub>
+                          SIP trunk killswitch, fail2ban jail, dialplan auth gate, ringing
+                          rate-limit, SIP-attack watch, Telnyx alerts. RCS-wide UFW + fail2ban
+                          views included.
+                        </HardeningTileSub>
+                      </HardeningTile>
+                    );
+                    if (tile.type === "tinyurl") return (
+                      <LinkToolsTile key={i} type="button" onClick={() => onOpenLinkTool("tinyurl")}>
+                        <LinkToolsTileTop>🔗 TinyURL Generator</LinkToolsTileTop>
+                        <LinkToolsTileSub>
+                          Create custom short links on links.tinyglobalvillage.com. Personal or shared TGV
+                          Office bucket. Tags, expiry, click counts, rename, delete. Free — storage only.
+                        </LinkToolsTileSub>
+                      </LinkToolsTile>
+                    );
+                    if (tile.type === "qrcode") return (
+                      <LinkToolsTile key={i} type="button" onClick={() => onOpenLinkTool("qrcode")}>
+                        <LinkToolsTileTop>▦ QR Code Generator</LinkToolsTileTop>
+                        <LinkToolsTileSub>
+                          Live preview, multi-size PNG + vector SVG download. Shows the QR version so you
+                          know when to shorten further for small flyers. Fully client-side, free.
+                        </LinkToolsTileSub>
+                      </LinkToolsTile>
+                    );
+                    return null;
+                  })}
+                </HardeningGrid>
+              )}
+
+              {section.kind === "actions" && (
+                <ActionsGrid>
+                  {section.actionIds.map((id) => {
+                    const action = actionsById.get(id);
+                    if (!action) return null;
+                    return (
+                      <ActionCard
+                        key={action.id}
+                        action={action}
+                        isAdmin={isAdmin}
+                        overrides={overlay[action.id] ?? {}}
+                        onSaveDefaults={(d) => onSaveDefaults(action.id, d)}
+                      />
+                    );
+                  })}
+                </ActionsGrid>
+              )}
+            </AdlBody>
+          </AdlSectionTile>
+        );
+      })}
+    </ParentTile>
+  );
+}
+
 /* ── Page ──────────────────────────────────────────────────────── */
 
 type DefaultsOverlay = Record<string, Record<string, FieldValue>>;
 
+// ── Hardening tiles (admin-only "System Hardening" group on Utils) ────────
+//
+// Pattern: ~/.claude/CLAUDE.md §"Hardening UTILS Surfaces". Each tile here
+// represents one defensive mechanism we've installed on RCS — clicking
+// opens its HardeningControlModal. New hardenings get a new tile + a new
+// `kind` value below.
+
+type HardeningKind = "telephony";  // | "postgres" | "ssh" | "nginx" — future
+
+// ── Link Tools (TinyURL + QR generators) ──────────────────────────────────
+//
+// Pattern: `packages/@tgv/module-editor/.../marketing/link-tools/`. Both
+// modals are paired — the QR button on a TinyURL row hands its short URL
+// straight into the QR modal so the resulting QR drops from a dense
+// ~77×77 grid to a printable ~25×25.
+
+type LinkTool = "tinyurl" | "qrcode";
+
+const LINKS_ORIGIN =
+  process.env.NEXT_PUBLIC_LINKS_ORIGIN || "https://links.tinyglobalvillage.com";
+
+// ── ADL sections — alphabetical operator surface ─────────────────────────
+//
+// Vocabulary: ADL (Accordion Dropdown with Lightswitch). One accent per
+// surface (pink) — individual tiles + action cards keep their own per-item
+// glow inside the body. Placeholders flag categories with no live tooling
+// yet so operators can see the structural roadmap.
+//
+// Adding a section: pick the alphabetically correct slot. Adding actions
+// to an existing section: add the action to GROUPS above (preserves field
+// definitions and modal wiring) then reference its id in the section's
+// actionIds list.
+
+type TileSpec =
+  | { type: "backups" }
+  | { type: "telephony" }
+  | { type: "tinyurl" }
+  | { type: "qrcode" };
+
+type SectionAccent = "pink" | "cyan" | "gold";
+
+type Section =
+  | { id: string; title: string; subtitle?: string; accent: SectionAccent; kind: "tiles"; tiles: TileSpec[] }
+  | { id: string; title: string; subtitle?: string; accent: SectionAccent; kind: "actions"; actionIds: string[] }
+  | { id: string; title: string; subtitle?: string; accent: SectionAccent; kind: "placeholder"; hint: string };
+
+// Each section's accent matches the dominant color of its content.
+const SECTIONS: Section[] = [
+  { id: "automations", title: "Automations", accent: "cyan", kind: "placeholder",
+    hint: "Cron-driven scheduled tasks · milestone triggers · recurring announcements (coming with the tgv-automations registry)." },
+  { id: "backups", title: "Backups & Disaster Recovery", accent: "cyan",
+    subtitle: "off-site backup pipeline · restore drills · disaster-recovery posture",
+    kind: "tiles", tiles: [{ type: "backups" }] },
+  { id: "communications", title: "Communications / Relay", accent: "cyan", kind: "placeholder",
+    hint: "Telegram + WhatsApp relay operator UX · sessions, decisions, recipients, billing, dispatch attempts (coming with tgv-module-connect-relay-operator-ux)." },
+  { id: "database", title: "Database / Storage", accent: "cyan", kind: "placeholder",
+    hint: "Postgres admin views · R2 bucket browser · CDN cache controls · Drizzle migration runner (coming)." },
+  { id: "deployments", title: "Deployments", accent: "cyan",
+    subtitle: "scaffold, start, and retire client projects",
+    kind: "actions",
+    actionIds: ["new-nextjs", "new-static", "start-client", "erase-project"] },
+  { id: "domains", title: "Domains & DNS", accent: "cyan",
+    subtitle: "registrar automation · Cloudflare migration",
+    kind: "actions",
+    actionIds: ["domain-cf-migrate", "opensrs-domain-purchase"] },
+  { id: "git", title: "Git & Repositories", accent: "cyan",
+    subtitle: "create or remove GitHub repositories",
+    kind: "actions", actionIds: ["gitrepo", "gitdelrepo"] },
+  { id: "hardening", title: "Hardening", accent: "cyan",
+    subtitle: "defensive mechanisms installed on RCS — controls + status + audit log",
+    kind: "tiles", tiles: [{ type: "telephony" }] },
+  { id: "linktools", title: "Link Tools", accent: "cyan",
+    subtitle: "shorten URLs and generate scannable QR codes — pair them for printable mini-flyers",
+    kind: "tiles", tiles: [{ type: "tinyurl" }, { type: "qrcode" }] },
+  { id: "mail", title: "Mail & Identity", accent: "cyan",
+    subtitle: "mail provider domain + folder + alias setup",
+    kind: "actions", actionIds: ["mail-domain-setup"] },
+  { id: "pm2", title: "Process Manager (PM2)", accent: "cyan",
+    subtitle: "process manager — restart, stop, log, harden, alias",
+    kind: "actions",
+    actionIds: ["pm2-restart", "pm2-stop", "pm2-logs", "pm2-harden", "pm2-newpm2", "pm2-editpm2"] },
+  { id: "system", title: "System & Server Health", accent: "cyan",
+    subtitle: "server health, disk, and maintenance",
+    kind: "actions", actionIds: ["diskusage"] },
+  { id: "franchises", title: "Tenants & Franchises", accent: "cyan", kind: "placeholder",
+    hint: "Per-franchise admin surface · license issuance + revocation · per-tenant data scoping · update push (coming with tgv-franchise-rollout)." },
+];
+
+/* ── ADL styled-components ──────────────────────────────────────────────
+ * Pattern: ~/.claude/vocabulary/ADL.md. Each section is its own tile, its
+ * accent matching the dominant color of the content within (gold for
+ * Hardening + Backups, cyan for Link Tools + Domains, etc.).
+ */
+
+const AdlSectionTile = styled.div<{ $accent: SectionAccent; $open: boolean }>`
+  width: 100%;
+  border: 1px solid ${(p) => (p.$open
+    ? `rgba(${rgb[p.$accent]}, 0.28)`
+    : `rgba(${rgb[p.$accent]}, 0.12)`)};
+  border-radius: 0.625rem;
+  background: ${(p) => (p.$open
+    ? `rgba(${rgb[p.$accent]}, 0.04)`
+    : "rgba(0,0,0,0.18)")};
+  transition: border-color 0.15s, background 0.15s;
+  overflow: hidden;
+`;
+
+const AdlHeader = styled.button<{ $open: boolean; $accent: SectionAccent }>`
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 2.6rem;
+  padding: 0.55rem 0.875rem;
+  margin: 0;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  color: ${(p) => (p.$open
+    ? colors[p.$accent]
+    : `rgba(${rgb[p.$accent]}, 0.7)`)};
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  transition: background 0.15s, color 0.15s;
+
+  &:hover {
+    background: rgba(${(p) => rgb[p.$accent]}, 0.08);
+    color: ${(p) => colors[p.$accent]};
+  }
+`;
+
+const AdlLabel = styled.span`
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  text-align: left;
+`;
+
+const AdlLabelMain = styled.span``;
+
+const AdlLabelSub = styled.span`
+  font-size: 0.625rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: none;
+  color: var(--t-textFaint);
+`;
+
+const AdlCount = styled.span<{ $accent: SectionAccent }>`
+  font-size: 0.625rem;
+  color: rgba(${(p) => rgb[p.$accent]}, 0.55);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+`;
+
+const AdlCountSoon = styled.span<{ $accent: SectionAccent }>`
+  font-size: 0.55rem;
+  color: rgba(${(p) => rgb[p.$accent]}, 0.45);
+  font-style: italic;
+  font-weight: 500;
+  text-transform: lowercase;
+  letter-spacing: 0.04em;
+`;
+
+const AdlSwitchTrack = styled.span<{ $on: boolean; $accent?: SectionAccent }>`
+  position: relative;
+  display: inline-block;
+  width: 28px;
+  height: 14px;
+  border-radius: 999px;
+  border: 1px solid ${(p) => (p.$on
+    ? `rgba(${rgb[p.$accent || "pink"]}, 0.7)`
+    : "rgba(255,255,255,0.2)")};
+  background: ${(p) => (p.$on
+    ? `rgba(${rgb[p.$accent || "pink"]}, 0.2)`
+    : "rgba(255,255,255,0.05)")};
+  box-shadow: ${(p) => (p.$on
+    ? `0 0 8px rgba(${rgb[p.$accent || "pink"]}, 0.45)`
+    : "none")};
+  transition: all 0.18s;
+  flex-shrink: 0;
+`;
+
+const AdlSwitchThumb = styled.span<{ $on: boolean; $accent?: SectionAccent }>`
+  position: absolute;
+  top: 1px;
+  left: ${(p) => (p.$on ? "15px" : "1px")};
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: ${(p) => (p.$on
+    ? colors[p.$accent || "pink"]
+    : "rgba(255,255,255,0.35)")};
+  box-shadow: ${(p) =>
+    p.$on
+      ? `0 0 8px rgba(${rgb[p.$accent || "pink"]}, 0.85), 0 0 2px rgba(${rgb[p.$accent || "pink"]}, 1)`
+      : "0 1px 2px rgba(0,0,0,0.3)"};
+  transition: all 0.18s;
+`;
+
+const AdlBody = styled.div<{ $open: boolean; $accent: SectionAccent }>`
+  display: ${(p) => (p.$open ? "block" : "none")};
+  padding: 0.5rem 0.875rem 1rem;
+  border-top: 1px solid rgba(${(p) => rgb[p.$accent]}, 0.12);
+`;
+
+const PlaceholderBody = styled.div<{ $accent: SectionAccent }>`
+  font-size: 0.78rem;
+  line-height: 1.55;
+  color: var(--t-textFaint);
+  font-style: italic;
+  padding: 0.5rem 0.75rem;
+  border-left: 2px solid rgba(${(p) => rgb[p.$accent]}, 0.25);
+`;
+
+/* Outer parent tile — wraps all sections + houses the master Collapse-All.
+ * Cyan accent matches the UTILS surface (one accent per surface rule). */
+
+const ParentTile = styled.div`
+  width: 100%;
+  border: 1px solid rgba(${rgb.cyan}, 0.22);
+  border-radius: 0.875rem;
+  background: linear-gradient(180deg, rgba(${rgb.cyan}, 0.03), rgba(0,0,0,0.2));
+  padding: 0.875rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+`;
+
+const ParentHeader = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.4rem 0.625rem;
+  border: 1px dashed rgba(${rgb.cyan}, 0.25);
+  border-radius: 0.5rem;
+  background: rgba(${rgb.cyan}, 0.04);
+  cursor: pointer;
+  user-select: none;
+  &:hover {
+    background: rgba(${rgb.cyan}, 0.08);
+    border-color: rgba(${rgb.cyan}, 0.4);
+  }
+`;
+
+const ParentTitle = styled.span<{ $allOpen: boolean }>`
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: ${(p) => (p.$allOpen ? colors.cyan : `rgba(${rgb.cyan}, 0.6)`)};
+`;
+
+const ParentHint = styled.span`
+  font-size: 0.6rem;
+  color: var(--t-textGhost);
+  margin-left: auto;
+  font-style: italic;
+`;
+
+const ActionsGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 0.75rem;
+`;
+
+const LinkToolsGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+`;
+
+const LinkToolsTile = styled.button`
+  display: flex; flex-direction: column; gap: 0.4rem;
+  padding: 1rem;
+  text-align: left;
+  cursor: pointer;
+  background: rgba(${rgb.cyan}, 0.04);
+  border: 1px solid rgba(${rgb.cyan}, 0.3);
+  border-radius: 0.625rem;
+  color: var(--t-text);
+  transition: all 0.15s;
+  &:hover {
+    background: rgba(${rgb.cyan}, 0.1);
+    border-color: rgba(${rgb.cyan}, 0.55);
+    box-shadow: 0 0 18px rgba(${rgb.cyan}, 0.15);
+  }
+`;
+
+const LinkToolsTileTop = styled.div`
+  display: flex; align-items: center; gap: 0.5rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: ${colors.cyan};
+  letter-spacing: 0.04em;
+`;
+
+const LinkToolsTileSub = styled.div`
+  font-size: 0.75rem;
+  color: var(--t-textFaint);
+  line-height: 1.45;
+`;
+
+const LinkToolsGroupHeader = styled.div`
+  display: flex; align-items: center; gap: 0.5rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: ${colors.cyan};
+  margin: 0.25rem 0 0.625rem;
+`;
+
+const LinkToolsGroupSub = styled.span`
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: var(--t-textFaint);
+  text-transform: none;
+  letter-spacing: 0.04em;
+`;
+
+const HardeningGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+`;
+
+const HardeningTile = styled.button`
+  display: flex; flex-direction: column; gap: 0.4rem;
+  padding: 1rem;
+  text-align: left;
+  cursor: pointer;
+  background: rgba(${rgb.gold}, 0.04);
+  border: 1px solid rgba(${rgb.gold}, 0.3);
+  border-radius: 0.625rem;
+  color: var(--t-text);
+  transition: all 0.15s;
+  &:hover {
+    background: rgba(${rgb.gold}, 0.1);
+    border-color: rgba(${rgb.gold}, 0.55);
+    box-shadow: 0 0 18px rgba(${rgb.gold}, 0.15);
+  }
+`;
+
+const HardeningTileTop = styled.div`
+  display: flex; align-items: center; gap: 0.5rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: ${colors.gold};
+  letter-spacing: 0.04em;
+`;
+
+const HardeningTileSub = styled.div`
+  font-size: 0.75rem;
+  color: var(--t-textFaint);
+  line-height: 1.45;
+`;
+
+const HardeningGroupHeader = styled.div`
+  display: flex; align-items: center; gap: 0.5rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: ${colors.gold};
+  margin: 0.25rem 0 0.625rem;
+`;
+
+const HardeningGroupSub = styled.span`
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: var(--t-textFaint);
+  text-transform: none;
+  letter-spacing: 0.04em;
+`;
+
 export default function UtilsPage() {
   const { isRunning, lines, toggleTerminal } = useTerminal();
   const [userRole, setUserRole] = useState<string>("");
+  const [username, setUsername] = useState<string>("");
   const [overlay, setOverlay] = useState<DefaultsOverlay>({});
+  const [openHardening, setOpenHardening] = useState<HardeningKind | null>(null);
+  const [openBackups, setOpenBackups] = useState<boolean>(false);
+  const [openLinkTool, setOpenLinkTool] = useState<LinkTool | null>(null);
+  const [qrSeed, setQrSeed] = useState<string>("");
+  const [qrSeedName, setQrSeedName] = useState<string>("");
+  const [qrFilenameStem, setQrFilenameStem] = useState<string>("qr");
+  const [qrLinkedShortCode, setQrLinkedShortCode] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/users/me").then((r) => r.json()).then((d) => {
       if (d?.role) setUserRole(d.role);
+      if (d?.username) setUsername(d.username);
     }).catch(() => {});
     fetch("/api/utils/defaults").then((r) => r.json()).then((d) => {
       if (d?.overlay) setOverlay(d.overlay);
     }).catch(() => {});
   }, []);
+
+  const handleMakeQR = (shortUrl: string, link: ShortLink) => {
+    setQrSeed(shortUrl);
+    setQrSeedName(`QR for /${link.code}`);
+    setQrFilenameStem(`qr-${link.code}`);
+    setQrLinkedShortCode(link.code);
+    setOpenLinkTool("qrcode");
+  };
 
   const saveDefaults = async (actionId: string, defaults: Record<string, FieldValue>) => {
     const r = await fetch("/api/utils/defaults", {
@@ -1485,7 +2048,20 @@ export default function UtilsPage() {
             </PageSubtitle>
           </div>
 
-          <TerminalShortcut $running={isRunning} onClick={toggleTerminal}>
+          <TerminalShortcut
+            $running={isRunning}
+            onClick={() => {
+              // When rendered inside the dashboard popout iframe, position:fixed
+              // elements can't escape the iframe — postMessage to the parent so
+              // the parent's TerminalProvider opens its own CliTerminal on top
+              // of the modal instead.
+              if (typeof window !== "undefined" && window.parent !== window) {
+                window.parent.postMessage({ type: "tgv-toggle-terminal" }, "*");
+              } else {
+                toggleTerminal();
+              }
+            }}
+          >
             {isRunning ? "● running" : ">_ terminal"}
             {lines.length > 0 && (
               <TerminalLineCount>({lines.length} lines)</TerminalLineCount>
@@ -1493,18 +2069,53 @@ export default function UtilsPage() {
           </TerminalShortcut>
         </HeaderRow>
 
-        <GroupsColumn>
-          {GROUPS.map((group) => (
-            <GroupPanel
-              key={group.id}
-              group={group}
-              isAdmin={isAdmin}
-              overlay={overlay}
-              onSaveDefaults={saveDefaults}
-            />
-          ))}
-        </GroupsColumn>
+        <UtilsAdlSurface
+          sections={SECTIONS}
+          actionsById={ACTIONS_BY_ID}
+          isAdmin={isAdmin}
+          overlay={overlay}
+          onSaveDefaults={saveDefaults}
+          onOpenBackups={() => setOpenBackups(true)}
+          onOpenHardening={(kind) => setOpenHardening(kind)}
+          onOpenLinkTool={(kind) => {
+            if (kind === "qrcode") {
+              setQrSeed("");
+              setQrSeedName("");
+              setQrFilenameStem("qr");
+              setQrLinkedShortCode(null);
+            }
+            setOpenLinkTool(kind);
+          }}
+        />
       </PageMain>
+
+      {openHardening === "telephony" && (
+        <TelephonyControlModal onClose={() => setOpenHardening(null)} />
+      )}
+
+      {openBackups && (
+        <BackupsControlModal onClose={() => setOpenBackups(false)} />
+      )}
+
+      {openLinkTool === "tinyurl" && username && (
+        <TinyURLGenerator
+          username={username}
+          origin={LINKS_ORIGIN}
+          onClose={() => setOpenLinkTool(null)}
+          onMakeQR={handleMakeQR}
+        />
+      )}
+
+      {openLinkTool === "qrcode" && username && (
+        <QRCodeGenerator
+          username={username}
+          initialText={qrSeed}
+          initialName={qrSeedName}
+          linkedShortCode={qrLinkedShortCode}
+          filenameStem={qrFilenameStem}
+          onClose={() => setOpenLinkTool(null)}
+        />
+      )}
     </>
   );
 }

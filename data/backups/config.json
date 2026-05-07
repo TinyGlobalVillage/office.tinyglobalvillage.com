@@ -1,0 +1,60 @@
+{
+  "_comment": "Office Backups surface config. Read by BackupsControlModal + backup scripts.",
+  "_writtenBy": "office API + manual edits",
+  "provider": {
+    "name": "rsync.net",
+    "tier": "Experts Only No Support (Borg cell equivalent)",
+    "tierBilling": "1 TB Lifetime · $480 one-time",
+    "host": "zh6502.rsync.net",
+    "username": "zh6502",
+    "location": "Zurich CH",
+    "customerId": "2026-05-06_11-04-31",
+    "accountManagerUrl": "https://www.rsync.net/am/dashboard.html?u=zh6502",
+    "owner": "admin@tinyglobalvillage.com",
+    "billingContact": "marthe@tinyglobalvillage.com",
+    "technicalContact": "marthe@tinyglobalvillage.com"
+  },
+  "repo": {
+    "url": "sftp:zh6502@zh6502.rsync.net:restic",
+    "tool": "restic",
+    "encryption": "client-side AES-256 + Poly1305"
+  },
+  "encryption": {
+    "resticPasswordPath": "/home/admin/.restic/password",
+    "resticPasswordConfigured": true,
+    "gpgEscrowPubkeyPath": "/srv/refusion-core/secrets/backup-escrow.pub.asc",
+    "gpgEscrowFingerprint": "562F312036C5FEC1B9BF679426299CB41BE53BB9",
+    "gpgEscrowUid": "TGV Backup Escrow <admin@tinyglobalvillage.com>",
+    "gpgPrivateKeyLocation": "MacPass (operator's Mac) — never on RCS"
+  },
+  "schedule": {
+    "tier1": {"cron": "30 2 * * *", "desc": "Nightly 02:30 — DBs + JSON + cdn"},
+    "tier4": {"cron": "0 3 * * 0", "desc": "Weekly Sun 03:00 — encrypted secrets"},
+    "tier2": {"cron": "30 3 * * 0", "desc": "Weekly Sun 03:30 — system configs"},
+    "restoreTest": {"cron": "0 4 1 * *", "desc": "Monthly 1st 04:00 — auto Postgres restore"}
+  },
+  "retention": {
+    "tier1": {"keepDaily": 14, "keepWeekly": 8, "keepMonthly": 12, "keepYearly": 100},
+    "tier2": {"keepDaily": 0, "keepWeekly": 4, "keepMonthly": 6, "keepYearly": 0},
+    "tier4": {"keepDaily": 0, "keepWeekly": 4, "keepMonthly": 6, "keepYearly": 0}
+  },
+  "cron": {
+    "filePath": "/etc/cron.d/rcs-backups",
+    "disabledPath": "/etc/cron.d/rcs-backups.disabled",
+    "active": false,
+    "_note": "Master toggle in BackupsControlModal flips this between paths"
+  },
+  "idleAlert": {
+    "configuredInAm": true,
+    "thresholdHours": 36,
+    "recipients": ["admin@tinyglobalvillage.com", "marthe@tinyglobalvillage.com (Technical)"]
+  },
+  "appendOnly": {
+    "filesystemMode": false,
+    "_note": "Layered defense: command= restriction on SSH key + ZFS snapshots + GC key off-RCS"
+  },
+  "snapshots": {
+    "zfsSchedule": "(verify in Account Manager — Experts Only requires manual config)",
+    "_note": "rsync.net-side ZFS snapshots are belt-and-suspenders on top of restic's own versioning"
+  }
+}

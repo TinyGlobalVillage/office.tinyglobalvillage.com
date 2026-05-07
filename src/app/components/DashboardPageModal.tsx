@@ -7,6 +7,7 @@ import { DrawerTitle } from "../styled";
 import NeonX from "./NeonX";
 import Tooltip from "./ui/Tooltip";
 import { useModalLifecycle } from "../lib/drawerKnobs";
+import { useTerminal } from "./TerminalProvider";
 
 type Props = {
   pageKey: string;
@@ -385,13 +386,19 @@ export default function DashboardPageModal({ pageKey, title, glow, onClose }: Pr
 
   // ESC pressed inside the embedded iframe can't bubble up to the parent;
   // the iframe forwards it as a postMessage so the modal still closes.
+  // Same path is used by the iframe's `>_ terminal` button to open the
+  // parent's CliTerminal on top of this modal — position:fixed elements
+  // inside an iframe can't escape the iframe's bounds.
+  const { toggleTerminal } = useTerminal();
   useEffect(() => {
     const onMsg = (e: MessageEvent) => {
-      if (e.data?.type === "tgv-modal-close") onClose();
+      const t = e.data?.type;
+      if (t === "tgv-modal-close") onClose();
+      else if (t === "tgv-toggle-terminal") toggleTerminal();
     };
     window.addEventListener("message", onMsg);
     return () => window.removeEventListener("message", onMsg);
-  }, [onClose]);
+  }, [onClose, toggleTerminal]);
 
   // Popout ↔ main coordination via BroadcastChannel heartbeat.
   useEffect(() => {
