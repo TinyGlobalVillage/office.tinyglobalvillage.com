@@ -8,7 +8,6 @@ import { useTerminal } from "../../components/TerminalProvider";
 import SettingsIcon from "../../components/icons/SettingsIcon";
 import TelephonyControlModal from "../../components/hardening/telephony/TelephonyControlModal";
 import BackupsControlModal from "../../components/backups/BackupsControlModal";
-import RcsDiaryModal from "../../components/diary/RcsDiaryModal";
 import {
   TinyURLGenerator,
   QRCodeGenerator,
@@ -1462,12 +1461,11 @@ type UtilsAdlSurfaceProps = {
   onOpenBackups: () => void;
   onOpenHardening: (kind: HardeningKind) => void;
   onOpenLinkTool: (kind: LinkTool) => void;
-  onOpenDiary: () => void;
 };
 
 function UtilsAdlSurface({
   sections, actionsById, isAdmin, overlay, onSaveDefaults,
-  onOpenBackups, onOpenHardening, onOpenLinkTool, onOpenDiary,
+  onOpenBackups, onOpenHardening, onOpenLinkTool,
 }: UtilsAdlSurfaceProps) {
   // Default open per ADL rule. Operator can collapse what they don't care about.
   const [openMap, setOpenMap] = useState<Record<string, boolean>>(() =>
@@ -1575,16 +1573,6 @@ function UtilsAdlSurface({
                         </LinkToolsTileSub>
                       </LinkToolsTile>
                     );
-                    if (tile.type === "diary") return (
-                      <LinkToolsTile key={i} type="button" onClick={onOpenDiary}>
-                        <LinkToolsTileTop>📖 RCS Diary</LinkToolsTileTop>
-                        <LinkToolsTileSub>
-                          Reflective log of meaningful work — entries by date with type-tinted
-                          ADLs (log/decision/observation/learning/incident). Filter, search,
-                          add inline. Files at /srv/refusion-core/data/rcs-diary/.
-                        </LinkToolsTileSub>
-                      </LinkToolsTile>
-                    );
                     return null;
                   })}
                 </HardeningGrid>
@@ -1656,8 +1644,7 @@ type TileSpec =
   | { type: "backups" }
   | { type: "telephony" }
   | { type: "tinyurl" }
-  | { type: "qrcode" }
-  | { type: "diary" };
+  | { type: "qrcode" };
 
 type SectionAccent = "pink" | "cyan" | "gold";
 
@@ -1675,9 +1662,6 @@ const SECTIONS: Section[] = [
     kind: "tiles", tiles: [{ type: "backups" }] },
   { id: "communications", title: "Communications / Relay", accent: "cyan", kind: "placeholder",
     hint: "Telegram + WhatsApp relay operator UX · sessions, decisions, recipients, billing, dispatch attempts (coming with tgv-module-connect-relay-operator-ux)." },
-  { id: "diary", title: "RCS Diary", accent: "cyan",
-    subtitle: "reflective log of meaningful work — entries by date, ADL viewer, type-tinted",
-    kind: "tiles", tiles: [{ type: "diary" }] },
   { id: "database", title: "Database / Storage", accent: "cyan", kind: "placeholder",
     hint: "Postgres admin views · R2 bucket browser · CDN cache controls · Drizzle migration runner (coming)." },
   { id: "deployments", title: "Deployments", accent: "cyan",
@@ -2014,7 +1998,6 @@ export default function UtilsPage() {
   const [openHardening, setOpenHardening] = useState<HardeningKind | null>(null);
   const [openBackups, setOpenBackups] = useState<boolean>(false);
   const [openLinkTool, setOpenLinkTool] = useState<LinkTool | null>(null);
-  const [openDiary, setOpenDiary] = useState<boolean>(false);
   const [qrSeed, setQrSeed] = useState<string>("");
   const [qrSeedName, setQrSeedName] = useState<string>("");
   const [qrFilenameStem, setQrFilenameStem] = useState<string>("qr");
@@ -2103,7 +2086,6 @@ export default function UtilsPage() {
             }
             setOpenLinkTool(kind);
           }}
-          onOpenDiary={() => setOpenDiary(true)}
         />
       </PageMain>
 
@@ -2113,10 +2095,6 @@ export default function UtilsPage() {
 
       {openBackups && (
         <BackupsControlModal onClose={() => setOpenBackups(false)} />
-      )}
-
-      {openDiary && (
-        <RcsDiaryModal onClose={() => setOpenDiary(false)} />
       )}
 
       {openLinkTool === "tinyurl" && username && (

@@ -10,6 +10,8 @@ import ClaudeIcon from "../components/claude/ClaudeIcon";
 import SandboxIcon from "../components/sandbox/SandboxIcon";
 import LibraryIcon from "../components/LibraryIcon";
 import DashboardPageModal from "../components/DashboardPageModal";
+import MyAlertsAccess from "../components/MyAlertsAccess";
+import RcsDiaryModal from "../components/diary/RcsDiaryModal";
 import { DatabaseIcon, StorageIcon, EditorIcon, UtilsIcon, SuggestionIcon, ProcessesIcon, DeployIcon, DrawerFrontDeskIcon, DrawerChatsIcon, DrawerInboxIcon, DrawerSessionsIcon, LogsIcon, SearchIcon } from "../components/icons";
 import { colors, rgb, type GlowColor } from "@/app/theme";
 
@@ -505,6 +507,7 @@ const MoreLabel = styled.p`
 export default function Home() {
   const [activity, setActivity] = useState<ActivityEvent[]>([]);
   const [activityOpen, setActivityOpen] = useState(false);
+  const [diaryOpen, setDiaryOpen] = useState(false);
 
   const [filter, setFilter] = useState("");
   const [open, setOpen] = useState(false);
@@ -582,6 +585,8 @@ export default function Home() {
     { key: "Inbox", title: "Inbox", subtitle: "Email", glow: "cyan", icon: <DrawerInboxIcon size={28} style={{ color: colors.cyan }} />, onClick: () => window.dispatchEvent(new CustomEvent("tgv-drawer-open", { detail: "inbox" })) },
     { key: "Sessions", title: "Sessions", subtitle: "Video rooms", glow: "pink", icon: <DrawerSessionsIcon size={28} style={{ color: colors.pink }} />, onClick: () => window.dispatchEvent(new CustomEvent("tgv-drawer-open", { detail: "sessions" })) },
     { key: "Logs", title: "Logs", subtitle: "Recent Activity", glow: "cyan", icon: <LogsIcon size={28} style={{ color: colors.cyan }} />, onClick: () => setActivityOpen(true) },
+    { key: "MyAlerts", title: "My Alerts", subtitle: "Personal reminders", glow: "gold", icon: <span style={{ fontSize: 24 }}>🔔</span>, onClick: () => window.dispatchEvent(new CustomEvent("open-my-alerts")) },
+    { key: "Diary", title: "Diary", subtitle: "RCS log", glow: "violet", icon: <span style={{ fontSize: 24 }}>📖</span>, onClick: () => setDiaryOpen(true) },
   ], []);
 
   const filteredTiles = useMemo(() => {
@@ -609,6 +614,8 @@ export default function Home() {
   return (
     <>
       {activityOpen && <ActivityModal onClose={() => setActivityOpen(false)} />}
+      {diaryOpen && <RcsDiaryModal onClose={() => setDiaryOpen(false)} />}
+      <MyAlertsAccess headless />
       {modalPage && (
         <DashboardPageModal
           pageKey={modalPage.pageKey}
@@ -679,9 +686,9 @@ export default function Home() {
             type="button"
             onClick={() => setTilesExpanded((v) => !v)}
             aria-expanded={tilesExpanded}
-            aria-label={tilesExpanded ? "Collapse Office tiles" : "Expand Office tiles"}
+            aria-label={tilesExpanded ? "Collapse Tools tiles" : "Expand Tools tiles"}
           >
-            <TilesTitle $accent="orange">Office</TilesTitle>
+            <TilesTitle $accent="orange">Tools</TilesTitle>
             <EclRow>
               <EclLabel>{tilesExpanded ? "Collapse" : "Expand"}</EclLabel>
               <EclSwitch
