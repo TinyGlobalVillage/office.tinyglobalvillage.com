@@ -1,18 +1,24 @@
 "use client";
 
-import { useState, useEffect, useRef, ReactNode } from "react";
-import styled from "styled-components";
+import { useState, useEffect, useMemo, useRef, ReactNode } from "react";
+import { useRouter } from "next/navigation";
+import styled, { keyframes } from "styled-components";
 import { colors, rgb } from "../../theme";
 import TopNav from "../../components/TopNav";
 import { useTerminal } from "../../components/TerminalProvider";
 import SettingsIcon from "../../components/icons/SettingsIcon";
 import TelephonyControlModal from "../../components/hardening/telephony/TelephonyControlModal";
 import BackupsControlModal from "../../components/backups/BackupsControlModal";
+import AutomationsTab from "../../components/automations/AutomationsTab";
 import {
   TinyURLGenerator,
   QRCodeGenerator,
 } from "@tgv/module-editor/editor/component-library/marketing/link-tools";
 import type { ShortLink } from "@tgv/module-editor/editor/component-library/marketing/link-tools";
+import {
+  Transcriber,
+  useTranscriberJobs,
+} from "@tgv/module-connect/transcriber";
 
 /* ── Types ────────────────────────────────────────────────────── */
 
@@ -1461,12 +1467,45 @@ type UtilsAdlSurfaceProps = {
   onOpenBackups: () => void;
   onOpenHardening: (kind: HardeningKind) => void;
   onOpenLinkTool: (kind: LinkTool) => void;
+  onOpenTranscriber: () => void;
+  onOpenTranscriptions: () => void;
 };
 
 function UtilsAdlSurface({
   sections, actionsById, isAdmin, overlay, onSaveDefaults,
-  onOpenBackups, onOpenHardening, onOpenLinkTool,
+  onOpenBackups, onOpenHardening, onOpenLinkTool, onOpenTranscriber, onOpenTranscriptions,
 }: UtilsAdlSurfaceProps) {
+  // Live transcription jobs — drives the per-job queued tiles + the badge
+  // counter on the Transcriptions tile.
+  const jobs = useTranscriberJobs();
+  const pending = jobs.filter((j) => j.status === "pending" || j.status === "running");
+  const unseenFinished = jobs.filter(
+    (j) => (j.status === "done" || j.status === "error" || j.status === "interrupted") && !j.seen,
+  );
+
+  // Force a re-render every second while any job is pending so the elapsed
+  // counters on queued tiles tick. Cheap (single setState; React will skip
+  // tiles whose props haven't changed).
+  const [, forceTick] = useState(0);
+  useEffect(() => {
+    if (pending.length === 0) return;
+    const t = setInterval(() => forceTick((p) => p + 1), 1000);
+    return () => clearInterval(t);
+  }, [pending.length]);
+
+  // Inject one queued tile per pending job into the Media section so the
+  // operator sees a live "queued modal" tile next to the original Transcriber
+  // tile. We mutate a section copy, not the SECTIONS constant.
+  const sectionsWithQueued = useMemo(() => {
+    if (pending.length === 0) return sections;
+    return sections.map((s) => {
+      if (s.kind !== "tiles" || s.id !== "media") return s;
+      const queued: TileSpec[] = pending.map((j) => ({ type: "queued-job", job: j }));
+      // Original Transcriber tile + Transcriptions tile + per-pending-job tiles.
+      return { ...s, tiles: [...s.tiles, ...queued] };
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sections, pending.length, pending.map((j) => j.id + j.status).join(",")]);
   // Default open per ADL rule. Operator can collapse what they don't care about.
   const [openMap, setOpenMap] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(sections.map((s) => [s.id, true]))
@@ -1498,7 +1537,7 @@ function UtilsAdlSurface({
         <ParentHint>click row to {allOpen ? "collapse" : "expand"} all</ParentHint>
       </ParentHeader>
 
-      {sections.map((section) => {
+      {sectionsWithQueued.map((section) => {
         const open = openMap[section.id] ?? true;
         const accent: SectionAccent = section.accent;
         const count =
@@ -1528,7 +1567,10 @@ function UtilsAdlSurface({
             </AdlHeader>
 
             <AdlBody $open={open} $accent={accent}>
-              {section.kind === "placeholder" && (
+              {section.kind === "placeholder" && section.id === "automations" && (
+                <AutomationsTab />
+              )}
+              {section.kind === "placeholder" && section.id !== "automations" && (
                 <PlaceholderBody $accent={accent}>{section.hint}</PlaceholderBody>
               )}
 
@@ -1570,6 +1612,74 @@ function UtilsAdlSurface({
                         <LinkToolsTileSub>
                           Live preview, multi-size PNG + vector SVG download. Shows the QR version so you
                           know when to shorten further for small flyers. Fully client-side, free.
+                        </LinkToolsTileSub>
+                      </LinkToolsTile>
+                    );
+                    if (tile.type === "transcriber") {
+                      // Original Transcriber tile — ALWAYS present, never glows.
+                      // Clicking always opens a fresh modal so the operator can queue
+                      // another job while existing ones run. Per-job "queued" tiles
+                      // for in-flight jobs render alongside this one (see below).
+                      return (
+                        <LinkToolsTile
+                          key={i}
+                          type="button"
+                          onClick={onOpenTranscriber}
+                        >
+                          <LinkToolsTileTop>🎙️ Audio Transcriber</LinkToolsTileTop>
+                          <LinkToolsTileSub>
+                            Open-source speech-to-text via local whisper.cpp — 99 languages, translate-to-English,
+                            timestamps + SRT/VTT export. Personal or shared TGV Office bucket. No SaaS, no
+                            per-minute billing.
+                            {pending.length > 0 && (
+                              <> · <strong>{pending.length}</strong> running
+                                {pending.length === 1 ? "" : " in parallel"} →
+                              </>
+                            )}
+                          </LinkToolsTileSub>
+                        </LinkToolsTile>
+                      );
+                    }
+                    if (tile.type === "queued-job") {
+                      // One queued tile per in-flight job. Clicking reopens the modal —
+                      // the modal's in-flight panel surfaces the job state (filename,
+                      // elapsed, queued vs running). Closing the modal again leaves
+                      // the tile in place; the job keeps running.
+                      const job = tile.job;
+                      const elapsed = Math.floor((Date.now() - job.startedAt) / 1000);
+                      const verb = job.status === "running" ? "Transcribing" : "Queued";
+                      return (
+                        <LinkToolsTile
+                          key={`queued-${job.id}`}
+                          type="button"
+                          onClick={onOpenTranscriber}
+                          $transcribing
+                        >
+                          <LinkToolsTileTop>
+                            🎙️ {verb}
+                            <TileBadge>{elapsed}s</TileBadge>
+                          </LinkToolsTileTop>
+                          <LinkToolsTileSub>
+                            <strong>{job.filename}</strong> — survives modal close, page refresh, tab close.
+                            Click to reopen the live status.
+                          </LinkToolsTileSub>
+                        </LinkToolsTile>
+                      );
+                    }
+                    if (tile.type === "transcriptions") return (
+                      <LinkToolsTile key={i} type="button" onClick={onOpenTranscriptions}>
+                        <LinkToolsTileTop>
+                          📋 Transcriptions
+                          {unseenFinished.length > 0 && (
+                            <TileBadge>{unseenFinished.length}</TileBadge>
+                          )}
+                        </LinkToolsTileTop>
+                        <LinkToolsTileSub>
+                          Browse, edit, and export your saved transcripts. Inline editor + full-page doc editor with
+                          audio scrubber, click-to-jump segments, SRT/VTT/JSON export.
+                          {unseenFinished.length > 0 && (
+                            <> {unseenFinished.length} new — click to view.</>
+                          )}
                         </LinkToolsTileSub>
                       </LinkToolsTile>
                     );
@@ -1644,7 +1754,10 @@ type TileSpec =
   | { type: "backups" }
   | { type: "telephony" }
   | { type: "tinyurl" }
-  | { type: "qrcode" };
+  | { type: "qrcode" }
+  | { type: "transcriber" }
+  | { type: "transcriptions" }
+  | { type: "queued-job"; job: import("@tgv/module-connect/transcriber").TranscriptionJob };
 
 type SectionAccent = "pink" | "cyan" | "gold";
 
@@ -1656,7 +1769,8 @@ type Section =
 // Each section's accent matches the dominant color of its content.
 const SECTIONS: Section[] = [
   { id: "automations", title: "Automations", accent: "cyan", kind: "placeholder",
-    hint: "Cron-driven scheduled tasks · milestone triggers · recurring announcements (coming with the tgv-automations registry)." },
+    subtitle: "cron-driven scheduled tasks · milestone triggers · recurring announcements",
+    hint: "" },
   { id: "backups", title: "Backups & Disaster Recovery", accent: "cyan",
     subtitle: "off-site backup pipeline · restore drills · disaster-recovery posture",
     kind: "tiles", tiles: [{ type: "backups" }] },
@@ -1684,6 +1798,9 @@ const SECTIONS: Section[] = [
   { id: "mail", title: "Mail & Identity", accent: "cyan",
     subtitle: "mail provider domain + folder + alias setup",
     kind: "actions", actionIds: ["mail-domain-setup"] },
+  { id: "media", title: "Media & Transcription", accent: "cyan",
+    subtitle: "open-source audio transcription, subtitle export, voice utilities",
+    kind: "tiles", tiles: [{ type: "transcriber" }, { type: "transcriptions" }] },
   { id: "pm2", title: "Process Manager (PM2)", accent: "cyan",
     subtitle: "process manager — restart, stop, log, harden, alias",
     kind: "actions",
@@ -1885,7 +2002,20 @@ const LinkToolsGrid = styled.div`
   margin-bottom: 1.25rem;
 `;
 
-const LinkToolsTile = styled.button`
+const transcribingPulse = keyframes`
+  0%, 100% {
+    box-shadow: 0 0 12px rgba(185, 124, 255, 0.35),
+                inset 0 0 12px rgba(185, 124, 255, 0.06);
+    border-color: rgba(185, 124, 255, 0.55);
+  }
+  50% {
+    box-shadow: 0 0 28px rgba(185, 124, 255, 0.7),
+                inset 0 0 18px rgba(185, 124, 255, 0.12);
+    border-color: rgba(185, 124, 255, 0.95);
+  }
+`;
+
+const LinkToolsTile = styled.button<{ $transcribing?: boolean }>`
   display: flex; flex-direction: column; gap: 0.4rem;
   padding: 1rem;
   text-align: left;
@@ -1900,6 +2030,32 @@ const LinkToolsTile = styled.button`
     border-color: rgba(${rgb.cyan}, 0.55);
     box-shadow: 0 0 18px rgba(${rgb.cyan}, 0.15);
   }
+
+  ${(p) => p.$transcribing && `
+    border: 2px dashed rgba(185, 124, 255, 0.7);
+    background: rgba(185, 124, 255, 0.06);
+    animation: ${transcribingPulse.getName()} 2s ease-in-out infinite;
+    &:hover {
+      background: rgba(185, 124, 255, 0.1);
+      border-color: rgba(185, 124, 255, 0.95);
+    }
+  `}
+`;
+
+const TileBadge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  padding: 0 0.4rem;
+  border-radius: 999px;
+  background: rgba(185, 124, 255, 0.25);
+  border: 1px solid rgba(185, 124, 255, 0.6);
+  color: rgba(220, 200, 255, 0.95);
+  font-size: 0.7rem;
+  font-weight: 700;
+  margin-left: 0.5rem;
 `;
 
 const LinkToolsTileTop = styled.div`
@@ -1991,6 +2147,7 @@ const HardeningGroupSub = styled.span`
 `;
 
 export default function UtilsPage() {
+  const router = useRouter();
   const { isRunning, lines, toggleTerminal } = useTerminal();
   const [userRole, setUserRole] = useState<string>("");
   const [username, setUsername] = useState<string>("");
@@ -2002,6 +2159,7 @@ export default function UtilsPage() {
   const [qrSeedName, setQrSeedName] = useState<string>("");
   const [qrFilenameStem, setQrFilenameStem] = useState<string>("qr");
   const [qrLinkedShortCode, setQrLinkedShortCode] = useState<string | null>(null);
+  const [openTranscriber, setOpenTranscriber] = useState<null | "create" | "browse">(null);
 
   useEffect(() => {
     fetch("/api/users/me").then((r) => r.json()).then((d) => {
@@ -2011,6 +2169,21 @@ export default function UtilsPage() {
     fetch("/api/utils/defaults").then((r) => r.json()).then((d) => {
       if (d?.overlay) setOverlay(d.overlay);
     }).catch(() => {});
+  }, []);
+
+  // Deep-link from the dashboard-wide toast: ?transcripts=open lands the
+  // operator on the Transcriptions browse modal directly. We strip the
+  // query param after consuming it so the modal doesn't reopen on refresh.
+  // (Reading via window.location instead of useSearchParams to avoid the
+  // Suspense-boundary requirement during static prerender.)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("transcripts") === "open") {
+      setOpenTranscriber("browse");
+      router.replace("/dashboard/utils");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleMakeQR = (shortUrl: string, link: ShortLink) => {
@@ -2086,6 +2259,8 @@ export default function UtilsPage() {
             }
             setOpenLinkTool(kind);
           }}
+          onOpenTranscriber={() => setOpenTranscriber("create")}
+          onOpenTranscriptions={() => setOpenTranscriber("browse")}
         />
       </PageMain>
 
@@ -2116,6 +2291,20 @@ export default function UtilsPage() {
           onClose={() => setOpenLinkTool(null)}
         />
       )}
+
+      {openTranscriber && username && (
+        <Transcriber
+          username={username}
+          mode={openTranscriber}
+          onClose={() => setOpenTranscriber(null)}
+          onOpenEditor={(transcriptId) => {
+            setOpenTranscriber(null);
+            router.push(`/dashboard/utils/transcripts/${transcriptId}`);
+          }}
+        />
+      )}
+      {/* Toast lives in the dashboard layout (DashboardToastsHost) so it
+          pops anywhere in /dashboard, not just here. */}
     </>
   );
 }

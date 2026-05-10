@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import styled from "styled-components";
-import { colors, rgb } from "../../theme";
+import { rgb } from "../../theme";
 
 interface Automation {
   id: string;
@@ -13,14 +13,19 @@ interface Automation {
   threshold?: number;
   thresholdUsd?: number;
   leadDays?: number;
+  maxAttempts?: number;
   recipients: string[];
   readMeId?: string;
+  trigger?: string;
   lastRun?: string | null;
   lastFired?: string | null;
 }
 
 const Wrap = styled.div`
   padding: 1rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 `;
 
 const Row = styled.div`
@@ -29,10 +34,9 @@ const Row = styled.div`
   gap: 0.75rem;
   align-items: center;
   padding: 0.85rem 1rem;
-  border: 1px solid rgb(${rgb(colors.border)});
+  border: 1px solid var(--t-border);
   border-radius: 8px;
-  margin-bottom: 0.5rem;
-  background: rgb(${rgb(colors.surface)});
+  background: var(--t-surface);
 `;
 
 const Title = styled.div`
@@ -43,17 +47,18 @@ const Title = styled.div`
 
 const Subtle = styled.span`
   font-size: 0.78rem;
-  color: rgb(${rgb(colors.fgMuted)});
+  color: var(--t-textMuted);
 `;
 
 const Toggle = styled.button<{ $on: boolean }>`
   width: 42px;
   height: 24px;
   border-radius: 999px;
-  border: 1px solid rgb(${rgb(colors.border)});
-  background: ${(p) => (p.$on ? `rgb(${rgb(colors.accent)})` : `rgb(${rgb(colors.bg)})`)};
+  border: 1px solid var(--t-border);
+  background: ${(p) => (p.$on ? `rgb(${rgb.cyan})` : "var(--t-inputBg)")};
   position: relative;
   cursor: pointer;
+  flex-shrink: 0;
   &::after {
     content: "";
     position: absolute;
@@ -71,10 +76,13 @@ const TestBtn = styled.button`
   padding: 0.4rem 0.7rem;
   font-size: 0.78rem;
   border-radius: 6px;
-  border: 1px solid rgb(${rgb(colors.border)});
+  border: 1px solid var(--t-border);
   background: transparent;
-  color: rgb(${rgb(colors.fg)});
+  color: var(--t-text);
   cursor: pointer;
+  &:hover {
+    background: rgba(${rgb.cyan}, 0.08);
+  }
 `;
 
 export default function AutomationsTab() {
@@ -112,6 +120,14 @@ export default function AutomationsTab() {
     alert(`Test fired for ${a.id}: ${JSON.stringify(r, null, 2)}`);
   };
 
+  const detail = (a: Automation) => {
+    if (a.threshold !== undefined) return `threshold ${a.threshold}`;
+    if (a.thresholdUsd !== undefined) return `$${a.thresholdUsd}`;
+    if (a.leadDays !== undefined) return `${a.leadDays}d lead`;
+    if (a.maxAttempts !== undefined) return `max ${a.maxAttempts} attempts`;
+    return "—";
+  };
+
   return (
     <Wrap>
       {items.map((a) => (
@@ -119,15 +135,8 @@ export default function AutomationsTab() {
           <Title>
             <strong>{a.title}</strong>
             <Subtle>
-              {a.category} · {a.schedule ?? "event-driven"} ·{" "}
-              {a.threshold !== undefined
-                ? `threshold ${a.threshold}`
-                : a.thresholdUsd !== undefined
-                  ? `$${a.thresholdUsd}`
-                  : a.leadDays !== undefined
-                    ? `${a.leadDays}d lead`
-                    : "—"}{" "}
-              · {a.recipients.length} recipient(s)
+              {a.category} · {a.schedule ?? "event-driven"} · {detail(a)} ·{" "}
+              {a.recipients.length} recipient{a.recipients.length === 1 ? "" : "s"}
             </Subtle>
           </Title>
           <TestBtn onClick={() => test(a)} disabled={busy === a.id}>
