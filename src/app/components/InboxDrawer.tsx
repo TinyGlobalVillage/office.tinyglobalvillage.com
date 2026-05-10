@@ -5,7 +5,6 @@ import dynamic from "next/dynamic";
 import styled from "styled-components";
 import { rgb } from "../theme";
 import {
-  DrawerBackdrop,
   DrawerPanel,
   DrawerHeader,
   DrawerTab,
@@ -17,6 +16,8 @@ import {
 import { DrawerInboxIcon } from "./icons";
 import NeonX from "./NeonX";
 import { useKnobVisibility } from "../lib/drawerKnobs";
+import { useDrawerLifecycle, DRAWER_DATA_ATTR } from "../lib/drawerStack";
+import { useDrawerPersistedState } from "../lib/drawerPersist";
 
 const EmailErrorBoundary = dynamic(
   () => import("@tgv/module-inbox/components/EmailErrorBoundary"),
@@ -31,7 +32,6 @@ const MIN_W = 420;
 const MAX_W = 1400;
 const DEFAULT_W = 720;
 const TAB_STORAGE_KEY = "tgv-drawer-tab-inbox-y";
-const DRAWER_EVENT = "tgv-right-drawer";
 const DRAWER_ID = "inbox";
 
 // Alphabetical stack: Alerts=20%, Chats=40%, Inbox=60%, Sessions=80%
@@ -42,32 +42,33 @@ function getDefaultTabY() {
 
 // ── Styled ───────────────────────────────────────────────────────
 
-const SideTab = styled(DrawerTab).attrs({ $side: "left", $accent: "cyan" })<{ $openLeft: string; $open: boolean }>`
-  left: ${(p) => p.$openLeft};
+const SideTab = styled(DrawerTab).attrs<{ $anchor: "left" | "right" }>((p) => ({
+  $side: p.$anchor,
+  $accent: "cyan",
+}))<{ $openOffset: string; $open: boolean; $anchor: "left" | "right" }>`
+  ${(p) => (p.$anchor === "right" ? "right" : "left")}: ${(p) => p.$openOffset};
   z-index: 62;
-  border-left: none;
-  transition: left 0.25s cubic-bezier(0.4, 0, 0.2, 1), background 0.2s;
+  ${(p) => (p.$anchor === "right" ? "border-right: none;" : "border-left: none;")}
+  transition: left 0.25s cubic-bezier(0.4, 0, 0.2, 1), right 0.25s cubic-bezier(0.4, 0, 0.2, 1), background 0.2s;
   backdrop-filter: ${(p) => (p.$open ? "none" : "blur(8px)")};
 
   @media (max-width: 768px) {
-    left: ${(p) => (p.$openLeft === "0" ? "0" : "calc(100vw - 28px)")};
+    ${(p) => (p.$anchor === "right"
+      ? `right: ${p.$openOffset === "0" ? "0" : "calc(100vw - 28px)"};`
+      : `left: ${p.$openOffset === "0" ? "0" : "calc(100vw - 28px)"};`)}
     ${(p) => (p.$open ? "display: none;" : "")}
   }
 `;
 
-const Backdrop = styled(DrawerBackdrop)`
-  z-index: 55;
-  backdrop-filter: blur(1px);
-`;
-
-const Panel = styled(DrawerPanel)<{ $fs?: boolean }>`
-  left: 0;
-  z-index: 60;
+const Panel = styled(DrawerPanel)<{ $fs?: boolean; $anchor: "left" | "right" }>`
+  ${(p) => (p.$anchor === "right" ? "right: 0;" : "left: 0;")}
   max-width: ${(p) => (p.$fs ? "100vw" : "85vw")};
-  border-right: ${(p) => (p.$fs ? "none" : `1px solid rgba(${rgb.cyan}, 0.18)`)};
+  ${(p) => (p.$anchor === "right"
+    ? `border-left: ${p.$fs ? "none" : `1px solid rgba(${rgb.cyan}, 0.18)`};`
+    : `border-right: ${p.$fs ? "none" : `1px solid rgba(${rgb.cyan}, 0.18)`};`)}
 
   [data-theme="light"] & {
-    border-right-color: rgba(${rgb.cyan}, 0.1);
+    ${(p) => (p.$anchor === "right" ? "border-left-color" : "border-right-color")}: rgba(${rgb.cyan}, 0.1);
   }
 `;
 
@@ -159,69 +160,53 @@ const ContentWrap = styled.div`
   overflow: hidden;
 `;
 
-const Resize = styled(DrawerResizeHandle).attrs({ $accent: "cyan" })``;
+const Resize = styled(DrawerResizeHandle).attrs<{ $anchor: "left" | "right" }>((p) => ({
+  $accent: "cyan",
+  $anchor: p.$anchor,
+}))<{ $anchor: "left" | "right" }>``;
 
 // ── Component ────────────────────────────────────────────────────
 
 export default function InboxDrawer() {
   const [open, setOpen] = useState(false);
-  const [width, setWidth] = useState(DEFAULT_W);
-  const [fullscreen, setFullscreen] = useState(false);
-  const [zoom, setZoom] = useState(1.0);
+  const [width, setWidth] = useDrawerPersistedState<number>(DRAWER_ID, "width", DEFAULT_W);
+  const [fullscreen, setFullscreen] = useDrawerPersistedState<boolean>(DRAWER_ID, "fullscreen", false);
+  const [zoom, setZoom] = useDrawerPersistedState<number>(DRAWER_ID, "zoom", 1.0);
+  const [anchor, setAnchor] = useDrawerPersistedState<"left" | "right">(DRAWER_ID, "anchor", "left");
   const [tabY, setTabY] = useState<number>(540);
   const drawerRef = useRef<HTMLDivElement>(null);
   const resizing = useRef(false);
   const startX = useRef(0);
   const startW = useRef(0);
 
-  useEffect(() => {
-    setTabY(getDefaultTabY());
-    const savedZ = sessionStorage.getItem("inbox-drawer-zoom");
-    if (savedZ) setZoom(parseFloat(savedZ));
-    const savedW = sessionStorage.getItem("inbox-drawer-width");
-    if (savedW) setWidth(parseInt(savedW, 10));
-  }, []);
+  useEffect(() => { setTabY(getDefaultTabY()); }, []);
 
-  const [otherDrawerOpen, setOtherDrawerOpen] = useState(false);
   const { hideKnob } = useKnobVisibility();
-  useEffect(() => {
-    const handler = (e: Event) => {
-      const detail = (e as CustomEvent).detail;
-      if (detail === DRAWER_ID) {
-        setOtherDrawerOpen(false);
-      } else if (detail === "close") {
-        setOtherDrawerOpen(false);
-      } else {
-        if (open) setOpen(false);
-        setOtherDrawerOpen(true);
-      }
-    };
-    window.addEventListener(DRAWER_EVENT, handler);
-    return () => window.removeEventListener(DRAWER_EVENT, handler);
-  }, [open]);
 
-  useEffect(() => {
-    const handler = (e: Event) => {
-      if ((e as CustomEvent).detail === DRAWER_ID) {
-        setOpen(true);
-        window.dispatchEvent(new CustomEvent(DRAWER_EVENT, { detail: DRAWER_ID }));
-      }
-    };
-    window.addEventListener("tgv-drawer-open", handler);
-    return () => window.removeEventListener("tgv-drawer-open", handler);
-  }, []);
+  const { position: stackPosition } = useDrawerLifecycle({
+    id: DRAWER_ID,
+    open,
+    setOpen,
+    onClose: () => setFullscreen(false),
+  });
 
+  // Body flag so DrawerStackController suspends its ESC close while a drawer
+  // is fullscreen (the local handler exits fullscreen on ESC instead).
   useEffect(() => {
+    if (!open || !fullscreen) return;
+    document.body.dataset.drawerFullscreen = "1";
+    return () => { delete document.body.dataset.drawerFullscreen; };
+  }, [open, fullscreen]);
+
+  // Local ESC: exit fullscreen only — closing the top is the controller's job.
+  useEffect(() => {
+    if (!open || !fullscreen) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && fullscreen) { setFullscreen(false); return; }
-      if (e.key === "Escape" && open) {
-        setOpen(false);
-        window.dispatchEvent(new CustomEvent(DRAWER_EVENT, { detail: "close" }));
-      }
+      if (e.key === "Escape") setFullscreen(false);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open, fullscreen]);
+  }, [open, fullscreen, setFullscreen]);
 
   // Draggable tab pill
   const startTabY = useRef(0);
@@ -243,13 +228,7 @@ export default function InboxDrawer() {
       }
     };
     const onUp = () => {
-      if (!didDrag.current) {
-        setOpen((p) => {
-          const next = !p;
-          window.dispatchEvent(new CustomEvent(DRAWER_EVENT, { detail: next ? DRAWER_ID : "close" }));
-          return next;
-        });
-      }
+      if (!didDrag.current) setOpen((p) => !p);
       document.body.style.cursor = "";
       document.removeEventListener("mousemove", onMove);
       document.removeEventListener("mouseup", onUp);
@@ -269,10 +248,10 @@ export default function InboxDrawer() {
 
     const onMove = (ev: MouseEvent) => {
       if (!resizing.current) return;
-      const delta = ev.clientX - startX.current;
+      const rawDelta = ev.clientX - startX.current;
+      const delta = anchor === "right" ? -rawDelta : rawDelta;
       const newW = Math.min(MAX_W, Math.max(MIN_W, startW.current + delta));
       setWidth(newW);
-      sessionStorage.setItem("inbox-drawer-width", String(newW));
     };
     const onUp = () => {
       resizing.current = false;
@@ -287,9 +266,9 @@ export default function InboxDrawer() {
 
   // Zoom
   const ZOOM_STEPS = [0.8, 0.9, 1.0, 1.1, 1.25];
-  const zoomIn  = () => { const n = ZOOM_STEPS.find((z) => z > zoom) ?? zoom; setZoom(n); sessionStorage.setItem("inbox-drawer-zoom", String(n)); };
-  const zoomOut = () => { const n = [...ZOOM_STEPS].reverse().find((z) => z < zoom) ?? zoom; setZoom(n); sessionStorage.setItem("inbox-drawer-zoom", String(n)); };
-  const zoomReset = () => { setZoom(1); sessionStorage.setItem("inbox-drawer-zoom", "1"); };
+  const zoomIn  = () => { const n = ZOOM_STEPS.find((z) => z > zoom) ?? zoom; setZoom(n); };
+  const zoomOut = () => { const n = [...ZOOM_STEPS].reverse().find((z) => z < zoom) ?? zoom; setZoom(n); };
+  const zoomReset = () => { setZoom(1); };
 
   // Popout
   const popout = () => {
@@ -300,16 +279,24 @@ export default function InboxDrawer() {
     window.open("/dashboard/email?popout=1", "tgv-inbox-drawer", `width=${w},height=${h},left=${left},top=${top}`);
   };
 
+  const flipAnchor = () => setAnchor((p) => (p === "left" ? "right" : "left"));
+  const stackZ = 60 + Math.max(0, stackPosition) * 2;
+  const closedTransform = anchor === "right" ? "translateX(100%)" : "translateX(-100%)";
+  const flipTitle = anchor === "left" ? "Mirror to right edge" : "Mirror to left edge";
+
   return (
     <>
-      {!otherDrawerOpen && !hideKnob && (
+      {!hideKnob && (
         <SideTab
+          {...{ [DRAWER_DATA_ATTR]: DRAWER_ID }}
           onMouseDown={onTabMouseDown}
           title={open ? "Close inbox" : "Open inbox"}
           $open={open && !fullscreen}
-          $openLeft={open && !fullscreen ? `min(${width}px, 85vw)` : "0"}
+          $anchor={anchor}
+          $openOffset={open && !fullscreen ? `min(${width}px, 85vw)` : "0"}
           style={{
             top: tabY,
+            zIndex: open ? stackZ + 1 : 100,
             backgroundColor: open
               ? `rgba(${rgb.cyan}, 0.25)`
               : `rgba(${rgb.cyan}, 0.12)`,
@@ -322,18 +309,19 @@ export default function InboxDrawer() {
         </SideTab>
       )}
 
-      {open && !fullscreen && (
-        <Backdrop onClick={() => { setOpen(false); window.dispatchEvent(new CustomEvent(DRAWER_EVENT, { detail: "close" })); }} />
-      )}
-
       <Panel
+        {...{ [DRAWER_DATA_ATTR]: DRAWER_ID }}
         ref={drawerRef}
         $fs={fullscreen}
+        $anchor={anchor}
         style={{
           width: fullscreen ? "100vw" : width,
-          transform: open ? "translateX(0)" : "translateX(-100%)",
+          transform: open ? "translateX(0)" : closedTransform,
           transition: resizing.current ? "none" : "transform 0.25s cubic-bezier(0.4,0,0.2,1)",
-          boxShadow: open && !fullscreen ? "12px 0 60px rgba(0,0,0,0.7)" : "none",
+          boxShadow: open && !fullscreen
+            ? (anchor === "right" ? "-12px 0 60px rgba(0,0,0,0.7)" : "12px 0 60px rgba(0,0,0,0.7)")
+            : "none",
+          zIndex: stackZ,
         }}
       >
         <Header>
@@ -354,11 +342,12 @@ export default function InboxDrawer() {
 
             <Separator />
 
+            <ControlBtn onClick={flipAnchor} title={flipTitle} aria-label={flipTitle}>⇄</ControlBtn>
             <ControlBtn onClick={popout} title="Open in new window">⧉</ControlBtn>
             <ControlBtn onClick={() => setFullscreen((p) => !p)} title={fullscreen ? "Exit full screen (Esc)" : "Full screen"}>
               {fullscreen ? "⊡" : "⊞"}
             </ControlBtn>
-            <NeonX accent="cyan" onClick={() => { setOpen(false); setFullscreen(false); window.dispatchEvent(new CustomEvent(DRAWER_EVENT, { detail: "close" })); }} title="Close (Esc)" />
+            <NeonX accent="cyan" onClick={() => { setOpen(false); setFullscreen(false); }} title="Close (Esc)" />
           </ControlRow>
         </Header>
 
@@ -368,7 +357,7 @@ export default function InboxDrawer() {
           </EmailErrorBoundary>
         </ContentWrap>
 
-        {!fullscreen && <Resize onMouseDown={onResizeStart} title="Drag to resize" />}
+        {!fullscreen && <Resize $anchor={anchor} onMouseDown={onResizeStart} title="Drag to resize" />}
       </Panel>
     </>
   );

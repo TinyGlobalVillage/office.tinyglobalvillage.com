@@ -14,6 +14,7 @@ export async function GET(req: NextRequest) {
     count: t.count,
     unread: t.unreadFor(username),
     lastMessage: t.lastMessage,
+    ourDid: t.ourDid,
   }));
   return NextResponse.json({ threads });
 }

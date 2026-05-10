@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { createHmac, timingSafeEqual } from "crypto";
 import { encode } from "next-auth/jwt";
 import { getUser } from "@/lib/users";
+import { sessionCookieName } from "@/lib/auth-cookie";
 
-const COOKIE_NAME = "authjs.session-token";
+const COOKIE_NAME = sessionCookieName();
 
 export async function GET(req: NextRequest) {
   const token = req.nextUrl.searchParams.get("token");

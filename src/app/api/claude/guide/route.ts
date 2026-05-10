@@ -4,7 +4,7 @@ import { requireAuth } from "@/lib/api-auth";
 
 export const runtime = "nodejs";
 
-const GUIDE_PATH = "/srv/refusion-core/client/CLAUDE-GUIDE.md";
+const GUIDE_PATH = "/srv/refusion-core/clients/CLAUDE-GUIDE.md";
 
 export async function GET(req: NextRequest) {
   const token = await requireAuth(req);

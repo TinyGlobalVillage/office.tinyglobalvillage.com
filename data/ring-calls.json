@@ -14,7 +14,23 @@
         "id": "admin_marmar",
         "name": "Marthe"
       },
-      "startedAt": "2026-04-20T23:09:34.491Z"
+      "startedAt": "2026-04-22T14:36:10.233Z"
+    },
+    {
+      "id": "marmar::dm:admin_marmar",
+      "from": {
+        "id": "marmar",
+        "name": "Marthe"
+      },
+      "to": [
+        "admin"
+      ],
+      "channel": {
+        "type": "dm",
+        "id": "admin_marmar",
+        "name": "Gio"
+      },
+      "startedAt": "2026-04-22T14:36:19.279Z"
     }
   ]
 }

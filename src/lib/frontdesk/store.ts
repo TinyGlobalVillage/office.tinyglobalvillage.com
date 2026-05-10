@@ -23,9 +23,18 @@ export function writeJson<T>(name: string, data: T): void {
 }
 
 /**
- * Normalize a phone number to E.164. Accepts strings like "+1 (555) 123-4567",
- * "5551234567", or "555.123.4567". Defaults country code to `+1` (North America)
- * for 10-digit inputs. Returns null if the result can't be normalized.
+ * Normalize a phone number / SMS sender identifier to a routable form.
+ *
+ * Accepts:
+ *   - E.164: "+1 (555) 123-4567", "+1234567"
+ *   - 10/11-digit US/CA: "5551234567" → "+15551234567"
+ *   - 8+ digit international: returned as `+<digits>`
+ *   - Short codes (3-6 digits, no leading "+"): returned as the literal
+ *     digit string. SMS from Meta / Google / etc. arrives from short codes
+ *     like "32665" or "262966" — those aren't real phone numbers, so we keep
+ *     them verbatim instead of corrupting them with a +1 prefix.
+ *
+ * Returns null only if the input has no digits or is total garbage.
  */
 export function toE164(raw: string, defaultCountry: "1" = "1"): string | null {
   if (typeof raw !== "string") return null;
@@ -36,12 +45,13 @@ export function toE164(raw: string, defaultCountry: "1" = "1"): string | null {
   if (digitsOnly.startsWith("+")) {
     // Already in + form — keep digits, strip any stray +.
     const clean = "+" + digitsOnly.slice(1).replace(/\D/g, "");
-    return clean.length >= 8 ? clean : null;
+    return clean.length >= 5 ? clean : null;
   }
   const digits = digitsOnly.replace(/\D/g, "");
   if (digits.length === 10) return `+${defaultCountry}${digits}`;
   if (digits.length === 11 && digits.startsWith(defaultCountry)) return `+${digits}`;
-  if (digits.length >= 8) return `+${digits}`;
+  if (digits.length >= 3 && digits.length <= 6) return digits; // short code (e.g. Meta 32665)
+  if (digits.length >= 7) return `+${digits}`;
   return null;
 }
 

@@ -1,5 +1,6 @@
 import type { CallRecord, CallDirection, CallOutcome } from "./types";
 import { readJson, writeJson, shortId } from "./store";
+import { readTelephonyConfig } from "./telephony-config";
 
 const FILE = "calls.json";
 
@@ -25,6 +26,17 @@ export function getCall(id: string): CallRecord | null {
   return read().calls.find(c => c.id === id) ?? null;
 }
 
+/**
+ * Rate-limit window for ringing-record creation per (direction, fromE164).
+ * Defense against SIP-flood attacks creating thousands of zombie records —
+ * the fraudulent INVITE burst seen 2026-05-02 produced ~50 ringing records
+ * per second from the same spoofed origin before this guard existed.
+ *
+ * The window is admin-tunable from the Telephony modal (writes
+ * data/frontdesk/telephony-config.json). Reads are per-call so changes
+ * take effect immediately without restart.
+ */
+
 export function createCall(params: {
   didId: string | null;
   direction: CallDirection;
@@ -33,6 +45,22 @@ export function createCall(params: {
   telnyxCallControlId?: string | null;
   ringTarget?: string | "*" | null;
 }): CallRecord {
+  // Rate-limit: if there's already a ringing record from this origin within
+  // the window, return it instead of creating a duplicate. Inbound only —
+  // outbound CDRs are user-initiated and not abusable from outside.
+  if (params.direction === "inbound") {
+    const { ringingRateLimitMs } = readTelephonyConfig();
+    const cutoff = Date.now() - ringingRateLimitMs;
+    const existing = read().calls.find(c =>
+      c.direction === "inbound" &&
+      c.fromE164 === params.fromE164 &&
+      c.answeredAt === null &&
+      c.endedAt === null &&
+      Date.parse(c.startedAt) >= cutoff,
+    );
+    if (existing) return existing;
+  }
+
   const now = new Date().toISOString();
   const record: CallRecord = {
     id: shortId("call"),
@@ -52,6 +80,7 @@ export function createCall(params: {
     consentAcknowledged: false,
     ringTarget: params.ringTarget ?? null,
     ringStartedAt: params.ringTarget ? now : null,
+    notes: "",
   };
   const db = read();
   db.calls.push(record);
@@ -60,14 +89,29 @@ export function createCall(params: {
   return record;
 }
 
-/** Currently-ringing inbound calls targeted at `username` or ring-all ("*"). */
+/**
+ * Currently-ringing inbound calls targeted at `username` or ring-all ("*").
+ *
+ * Hardening: only treat a call as "ringing" if it ALSO started within the
+ * last RING_MAX_AGE_MS. This is a defense against stale records driving the
+ * IncomingCallOverlay forever (e.g. if a webhook crashes mid-flow and never
+ * sets endedAt, or under SIP-flood attack where the FS-side cleanup races
+ * with the database write).
+ *
+ * Real ring-all timeout in our dialplan is 25s (call_timeout), so 60s here
+ * is a safe ceiling that won't cut off legitimate slow rings.
+ */
+const RING_MAX_AGE_MS = 60 * 1000;
 export function ringingForUser(username: string): CallRecord[] {
-  return read().calls.filter(c =>
-    c.direction === "inbound" &&
-    c.answeredAt === null &&
-    c.endedAt === null &&
-    (c.ringTarget === username || c.ringTarget === "*"),
-  );
+  const now = Date.now();
+  return read().calls.filter(c => {
+    if (c.direction !== "inbound") return false;
+    if (c.answeredAt !== null || c.endedAt !== null) return false;
+    if (c.ringTarget !== username && c.ringTarget !== "*") return false;
+    const startedMs = c.startedAt ? new Date(c.startedAt).getTime() : 0;
+    if (!startedMs || now - startedMs > RING_MAX_AGE_MS) return false;
+    return true;
+  });
 }
 
 /** Promote a direct ring to ring-all ("*"). Called after 30s of no pickup. */

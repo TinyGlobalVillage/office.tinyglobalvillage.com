@@ -1,6 +1,6 @@
 /**
  * POST /api/editor/build
- * Body: { project: string }  — project name = folder name under /srv/refusion-core/client/
+ * Body: { project: string }  — project name = folder name under /srv/refusion-core/clients/
  * Streams SSE: build stdout/stderr, then pm2 restart result
  */
 import { NextRequest } from "next/server";
@@ -8,7 +8,7 @@ import { spawn } from "child_process";
 import path from "path";
 import { existsSync } from "fs";
 
-const CLIENT_ROOT = "/srv/refusion-core/client";
+const CLIENT_ROOT = "/srv/refusion-core/clients";
 
 function safe(name: string): string | null {
   if (!/^[a-zA-Z0-9._-]+$/.test(name)) return null;

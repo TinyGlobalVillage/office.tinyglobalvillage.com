@@ -1,6 +1,27 @@
 {
   "threads": {
-    "admin_marmar": [],
+    "admin_marmar": [
+      {
+        "id": "dm_1776868698024_fllp",
+        "from": "admin",
+        "to": "marmar",
+        "content": "But we can chat here",
+        "createdAt": "2026-04-22T14:38:18.024Z",
+        "readBy": [
+          "marmar"
+        ]
+      },
+      {
+        "id": "dm_1776868733029_txby",
+        "from": "marmar",
+        "to": "admin",
+        "content": "that's cool",
+        "createdAt": "2026-04-22T14:38:53.029Z",
+        "readBy": [
+          "admin"
+        ]
+      }
+    ],
     "admin_claude": [
       {
         "id": "dm_1776644948010_kshs",

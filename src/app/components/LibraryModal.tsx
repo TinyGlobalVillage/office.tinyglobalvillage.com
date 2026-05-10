@@ -16,6 +16,7 @@ import {
 } from "../styled";
 import NeonX from "./NeonX";
 import Tooltip from "./ui/Tooltip";
+import SkillLibraryModal from "./SkillLibraryModal";
 
 const FsContainer = styled(ModalContainer)<{ $fs: boolean }>`
   ${(p) => p.$fs && `
@@ -141,6 +142,7 @@ const CardBody = styled.p`
 export default function LibraryModal({ onClose }: { onClose: () => void }) {
   useModalLifecycle();
   const [fullscreen, setFullscreen] = useState(false);
+  const [skillsOpen, setSkillsOpen] = useState(false);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") { e.stopPropagation(); onClose(); } };
@@ -176,18 +178,29 @@ export default function LibraryModal({ onClose }: { onClose: () => void }) {
         </ModalHeader>
         <ModalBody>
           <Grid>
-            {SECTIONS.map((s) => (
-              <Card key={s.title}>
-                <CardHeader>
-                  <CardTitle>{s.title}</CardTitle>
-                  <StatusBadge $status={s.status}>{s.status}</StatusBadge>
-                </CardHeader>
-                <CardBody>{s.body}</CardBody>
-              </Card>
-            ))}
+            {SECTIONS.map((s) => {
+              const isClickable = s.title === "Skill Library" && s.status === "live";
+              return (
+                <Card
+                  key={s.title}
+                  onClick={isClickable ? () => setSkillsOpen(true) : undefined}
+                  style={{ cursor: isClickable ? "pointer" : "default" }}
+                  role={isClickable ? "button" : undefined}
+                  tabIndex={isClickable ? 0 : undefined}
+                  onKeyDown={isClickable ? (e) => { if (e.key === "Enter" || e.key === " ") setSkillsOpen(true); } : undefined}
+                >
+                  <CardHeader>
+                    <CardTitle>{s.title}</CardTitle>
+                    <StatusBadge $status={s.status}>{s.status}</StatusBadge>
+                  </CardHeader>
+                  <CardBody>{s.body}</CardBody>
+                </Card>
+              );
+            })}
           </Grid>
         </ModalBody>
       </FsContainer>
+      <SkillLibraryModal open={skillsOpen} onClose={() => setSkillsOpen(false)} />
     </ModalBackdrop>
   );
 }

@@ -4,10 +4,12 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { usePathname } from "next/navigation";
 import styled from "styled-components";
 import { colors, rgb, glowRgba } from "../theme";
-import { DrawerBackdrop, DrawerPanel, DrawerHeader, DrawerTab, DrawerTabLabel, DrawerTitle, DrawerFooter } from "../styled";
+import { DrawerPanel, DrawerHeader, DrawerTab, DrawerTabLabel, DrawerTitle, DrawerFooter } from "../styled";
 import { DTogExpandIcon } from "./icons";
 import NeonX from "./NeonX";
 import { useKnobVisibility } from "../lib/drawerKnobs";
+import { useDrawerLifecycle, DRAWER_DATA_ATTR } from "../lib/drawerStack";
+import { useDrawerPersistedState } from "../lib/drawerPersist";
 
 type LegendItem = { glyph: string; label: string; desc: string };
 type PageLegend = { title: string; items: LegendItem[] };
@@ -106,33 +108,35 @@ function getLegend(pathname: string): PageLegend | null {
 
 const PANEL_WIDTH = 300;
 
-const Tab = styled(DrawerTab).attrs({ $side: "right", $accent: "cyan" })<{ $open?: boolean }>`
-  right: ${(p) => (p.$open ? `${PANEL_WIDTH}px` : "0")};
-  z-index: 62;
-  border-right: none;
+const Tab = styled(DrawerTab).attrs<{ $anchor: "left" | "right" }>((p) => ({
+  $side: p.$anchor,
+  $accent: "cyan",
+}))<{ $open: boolean; $anchor: "left" | "right" }>`
+  ${(p) => p.$anchor === "right"
+    ? `right: ${p.$open ? `${PANEL_WIDTH}px` : "0"};`
+    : `left: ${p.$open ? `${PANEL_WIDTH}px` : "0"};`}
+  ${(p) => (p.$anchor === "right" ? "border-right: none;" : "border-left: none;")}
   padding-top: 14px;
   padding-bottom: 14px;
-  transition: right 0.25s cubic-bezier(0.4, 0, 0.2, 1), background 0.2s;
+  transition: left 0.25s cubic-bezier(0.4, 0, 0.2, 1), right 0.25s cubic-bezier(0.4, 0, 0.2, 1), background 0.2s;
   background: ${(p) => (p.$open ? `rgba(${rgb.cyan}, 0.22)` : `rgba(${rgb.cyan}, 0.08)`)};
-  box-shadow: ${(p) => (p.$open ? `-4px 0 16px rgba(${rgb.cyan}, 0.25)` : "none")};
+  box-shadow: ${(p) => (p.$open
+    ? (p.$anchor === "right" ? `-4px 0 16px rgba(${rgb.cyan}, 0.25)` : `4px 0 16px rgba(${rgb.cyan}, 0.25)`)
+    : "none")};
 `;
 
-const Backdrop = styled(DrawerBackdrop)`
-  z-index: 55;
-  background: rgba(0, 0, 0, 0.35);
-`;
-
-const Panel = styled(DrawerPanel)`
-  right: 0;
-  z-index: 60;
+const Panel = styled(DrawerPanel)<{ $anchor: "left" | "right" }>`
+  ${(p) => (p.$anchor === "right" ? "right: 0;" : "left: 0;")}
   width: ${PANEL_WIDTH}px;
   background: #07090d;
-  border-left: 1px solid rgba(${rgb.cyan}, 0.25);
+  ${(p) => (p.$anchor === "right"
+    ? `border-left: 1px solid rgba(${rgb.cyan}, 0.25);`
+    : `border-right: 1px solid rgba(${rgb.cyan}, 0.25);`)}
   transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 
   [data-theme="light"] & {
     background: var(--t-surface);
-    border-left-color: rgba(${rgb.cyan}, 0.2);
+    ${(p) => (p.$anchor === "right" ? "border-left-color" : "border-right-color")}: rgba(${rgb.cyan}, 0.2);
   }
 `;
 
@@ -228,7 +232,7 @@ const ActionBtn = styled.button`
 // ── Constants ────────────────────────────────────────────────────
 
 const TAB_STORAGE_KEY = "tgv-drawer-tab-legend-y";
-const DRAWER_EVENT = "tgv-right-drawer";
+const DRAWER_ID = "legend";
 
 function getDefaultTabY() {
   if (typeof window === "undefined") return 400;
@@ -240,6 +244,7 @@ function getDefaultTabY() {
 export default function LegendDrawer() {
   const [open, setOpen] = useState(false);
   const [tabY, setTabY] = useState<number>(400);
+  const [anchor, setAnchor] = useDrawerPersistedState<"left" | "right">(DRAWER_ID, "anchor", "right");
   const pathname = usePathname();
   const legend = getLegend(pathname ?? "");
   const { hideKnob } = useKnobVisibility();
@@ -253,19 +258,11 @@ export default function LegendDrawer() {
     setTabY(saved ? parseInt(saved, 10) : getDefaultTabY());
   }, []);
 
-  useEffect(() => {
-    const handler = (e: Event) => {
-      if ((e as CustomEvent).detail !== "legend") setOpen(false);
-    };
-    window.addEventListener(DRAWER_EVENT, handler);
-    return () => window.removeEventListener(DRAWER_EVENT, handler);
-  }, []);
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape" && open) setOpen(false); };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open]);
+  const { position: stackPosition } = useDrawerLifecycle({
+    id: DRAWER_ID,
+    open,
+    setOpen,
+  });
 
   const onTabMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -283,13 +280,7 @@ export default function LegendDrawer() {
       }
     };
     const onUp = () => {
-      if (!didDrag.current) {
-        setOpen((p) => {
-          const next = !p;
-          if (next) window.dispatchEvent(new CustomEvent(DRAWER_EVENT, { detail: "legend" }));
-          return next;
-        });
-      }
+      if (!didDrag.current) setOpen((p) => !p);
       document.body.style.cursor = "";
       document.removeEventListener("mousemove", onMove);
       document.removeEventListener("mouseup", onUp);
@@ -301,26 +292,39 @@ export default function LegendDrawer() {
 
   if (!legend) return null;
 
+  const flipAnchor = () => setAnchor((p) => (p === "left" ? "right" : "left"));
+  const stackZ = 60 + Math.max(0, stackPosition) * 2;
+  const closedTransform = anchor === "right" ? "translateX(100%)" : "translateX(-100%)";
+  const flipTitle = anchor === "right" ? "Mirror to left edge" : "Mirror to right edge";
+  const arrowSide: "left" | "right" = anchor === "right"
+    ? (open ? "left" : "right")
+    : (open ? "right" : "left");
+
   return (
     <>
       {!hideKnob && (
         <Tab
+          {...{ [DRAWER_DATA_ATTR]: DRAWER_ID }}
           $open={open}
+          $anchor={anchor}
           onMouseDown={onTabMouseDown}
           title="Page legend"
-          style={{ top: tabY }}
+          style={{ top: tabY, zIndex: open ? stackZ + 1 : 100 }}
         >
-          <DTogExpandIcon side={open ? "left" : "right"} size={14} />
+          <DTogExpandIcon side={arrowSide} size={14} />
           <DrawerTabLabel>Legend</DrawerTabLabel>
         </Tab>
       )}
 
-      {open && <Backdrop onClick={() => setOpen(false)} />}
-
       <Panel
+        {...{ [DRAWER_DATA_ATTR]: DRAWER_ID }}
+        $anchor={anchor}
         style={{
-          transform: open ? "translateX(0)" : "translateX(100%)",
-          boxShadow: open ? "-8px 0 40px rgba(0,0,0,0.6)" : "none",
+          transform: open ? "translateX(0)" : closedTransform,
+          boxShadow: open
+            ? (anchor === "right" ? "-8px 0 40px rgba(0,0,0,0.6)" : "8px 0 40px rgba(0,0,0,0.6)")
+            : "none",
+          zIndex: stackZ,
         }}
       >
         <Header>
@@ -328,7 +332,10 @@ export default function LegendDrawer() {
             <HeaderLabel>Page Legend</HeaderLabel>
             <HeaderTitle>{legend.title}</HeaderTitle>
           </div>
-          <NeonX accent="gold" onClick={() => setOpen(false)} title="Close legend" />
+          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+            <ActionBtn onClick={flipAnchor} title={flipTitle} aria-label={flipTitle}>⇄</ActionBtn>
+            <NeonX accent="gold" onClick={() => setOpen(false)} title="Close legend" />
+          </div>
         </Header>
 
         <ItemList>

@@ -3,6 +3,7 @@ import { verifyAuthenticationResponse } from "@simplewebauthn/server";
 import { readUsers, updateUser } from "@/lib/users";
 import { authChallenges } from "../passkey-auth-options/route";
 import { encode } from "next-auth/jwt";
+import { sessionCookieName } from "@/lib/auth-cookie";
 
 const RP_ID = "office.tinyglobalvillage.com";
 const ORIGIN = "https://office.tinyglobalvillage.com";
@@ -52,8 +53,8 @@ export async function POST(req: NextRequest) {
       ),
     });
 
-    // Issue a NextAuth-compatible JWT so the proxy's getToken() sees this as authenticated
-    const COOKIE_NAME = "authjs.session-token";
+    // Issue a NextAuth-compatible JWT so proxy/auth()/useSession all see this as authenticated.
+    const COOKIE_NAME = sessionCookieName();
     const token = await encode({
       token: {
         sub: username,

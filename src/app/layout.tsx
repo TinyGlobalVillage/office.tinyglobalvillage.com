@@ -5,6 +5,7 @@ import "@/lib/inbox-setup";
 import SessionWrapper from "./components/SessionWrapper";
 import ThemeProvider from "./components/ThemeProvider";
 import StyledRegistry from "./StyledRegistry";
+import DevModeMount from "./components/dev/DevModeMount";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -62,7 +63,7 @@ export default function RootLayout({
       style={{ minHeight: "100%", WebkitFontSmoothing: "antialiased" }}
     >
       <body style={{ minHeight: "100%", display: "flex", flexDirection: "column" }}>
-        <StyledRegistry><SessionWrapper><ThemeProvider>{children}</ThemeProvider></SessionWrapper></StyledRegistry>
+        <StyledRegistry><SessionWrapper><ThemeProvider>{children}<DevModeMount /></ThemeProvider></SessionWrapper></StyledRegistry>
       </body>
     </html>
   );

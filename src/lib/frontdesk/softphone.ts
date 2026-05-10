@@ -63,6 +63,7 @@ let registerer: Registerer | null = null;
 let currentSession: Session | null = null;
 let audioSink: HTMLAudioElement | null = null;
 let status: SoftphoneStatus = "idle";
+let cachedConfig: SoftphoneConfig | null = null;
 const listeners = new Set<Listener>();
 
 function emit(event: SoftphoneEvent) {
@@ -139,14 +140,33 @@ function wireSession(session: Session, direction: CallDirection) {
   });
 }
 
-function readConfig(): SoftphoneConfig | null {
-  const wsUrl = process.env.NEXT_PUBLIC_SIP_WS_URL;
-  const domain = process.env.NEXT_PUBLIC_SIP_DOMAIN;
-  const user = process.env.NEXT_PUBLIC_SIP_USER;
-  const password = process.env.NEXT_PUBLIC_SIP_PASSWORD;
-  const displayName = process.env.NEXT_PUBLIC_SIP_DISPLAY_NAME ?? "TGV Front Desk";
-  if (!wsUrl || !domain || !user || !password) return null;
-  return { wsUrl, domain, user, password, displayName };
+async function fetchConfig(): Promise<SoftphoneConfig | null> {
+  // Fetch SIP credentials from the auth-gated server endpoint. Cookies
+  // (NextAuth session + 2FA proof) ride along — the endpoint replays
+  // requireAuth() and returns 401 if the user isn't logged in. Replaced
+  // the prior `process.env.NEXT_PUBLIC_SIP_*` reads (telephony-security
+  // Item 1, 2026-05-01) which leaked the SIP password into the bundle.
+  if (cachedConfig) return cachedConfig;
+  try {
+    const res = await fetch("/api/frontdesk/sip-creds", {
+      method: "GET",
+      credentials: "same-origin",
+      cache: "no-store",
+    });
+    if (!res.ok) return null;
+    const data = (await res.json()) as Partial<SoftphoneConfig>;
+    if (!data.wsUrl || !data.domain || !data.user || !data.password) return null;
+    cachedConfig = {
+      wsUrl: data.wsUrl,
+      domain: data.domain,
+      user: data.user,
+      password: data.password,
+      displayName: data.displayName ?? "TGV Front Desk",
+    };
+    return cachedConfig;
+  } catch {
+    return null;
+  }
 }
 
 export function getSoftphoneStatus(): SoftphoneStatus {
@@ -160,9 +180,9 @@ export function onEvent(cb: Listener): () => void {
 
 export async function initSoftphone(): Promise<void> {
   if (ua) return;
-  const cfg = readConfig();
+  const cfg = await fetchConfig();
   if (!cfg) {
-    setStatus("failed", "NEXT_PUBLIC_SIP_* env vars not set");
+    setStatus("failed", "SIP credentials unavailable (not authenticated or server not configured)");
     return;
   }
 
@@ -242,23 +262,33 @@ export async function unregisterSoftphone(): Promise<void> {
   try { await registerer.unregister(); } catch { /* ignore */ }
 }
 
-export async function invite(target: string, fromCid?: string): Promise<void> {
+export async function invite(
+  target: string,
+  fromCid?: string,
+  record: boolean = true,
+): Promise<void> {
   if (!ua) {
     emit({ kind: "error", detail: "softphone not initialized" });
     return;
   }
-  const cfg = readConfig();
+  const cfg = await fetchConfig();
   if (!cfg) return;
   const targetUri: URI | undefined = UserAgent.makeURI(`sip:${target}@${cfg.domain}`);
   if (!targetUri) {
     emit({ kind: "error", detail: `invalid target ${target}` });
     return;
   }
+  // Pass the per-call consent decision into the dialplan via an X-* header.
+  // Default is record=true (opt-OUT model — user toggles off if they don't
+  // want recording for a specific call). The outbound-telnyx extension reads
+  // ${sip_h_X-Record} and only invokes record_session when it equals "true".
+  const extraHeaders: string[] = [`X-Record: ${record ? "true" : "false"}`];
+  if (fromCid) extraHeaders.unshift(`X-CID: ${fromCid}`);
   const inviter = new Inviter(ua, targetUri, {
     sessionDescriptionHandlerOptions: {
       constraints: { audio: true, video: false },
     },
-    extraHeaders: fromCid ? [`X-CID: ${fromCid}`] : [],
+    extraHeaders,
   });
   currentSession = inviter;
   wireSession(inviter, "outbound");

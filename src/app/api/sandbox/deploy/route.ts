@@ -17,7 +17,7 @@ function isAdmin(username: string | undefined): boolean {
 
 /**
  * POST /api/sandbox/deploy
- * Body: { components: ["@tgv/ui"], targets?: ["refusionist.com"], preview?: boolean }
+ * Body: { components: ["@tgv/module-ui"], targets?: ["refusionist.com"], preview?: boolean }
  *
  * Admin-only. Proxies to tgv-component-webhook /trigger so the bearer token
  * never leaves the server.

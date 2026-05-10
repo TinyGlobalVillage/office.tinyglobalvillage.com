@@ -67,6 +67,7 @@ export type CallRecord = {
    */
   ringTarget: string | "*" | null;
   ringStartedAt: string | null; // ISO; used by clients to drive the 30s countdown
+  notes: string;                // admin-editable free-form notes (Saved Calls modal)
 };
 
 export type SmsDirection = "inbound" | "outbound";

@@ -2,19 +2,32 @@
   External SIP profile → Telnyx trunk.
   Rendered to /etc/freeswitch/sip_profiles/external/telnyx.xml by
   render-freeswitch-config.sh.
+
+  TLS + SRTP variant (telephony-security Item 2, 2026-05-01). Activation
+  is gated on Telnyx-portal-side TLS enablement on the SIP Credential
+  Connection — see tgv-telephony-security.md §Item 2 for the cutover steps.
+  Until then, the live config (telnyx-tgv-office.xml) keeps register-transport=udp
+  and the trunk continues working.
 -->
 <include>
   <gateway name="telnyx">
     <param name="username" value="${TELNYX_SIP_USERNAME}"/>
     <param name="realm" value="${TELNYX_SIP_REGISTRAR}"/>
     <param name="password" value="${TELNYX_SIP_PASSWORD}"/>
-    <param name="proxy" value="${TELNYX_SIP_REGISTRAR}"/>
+    <param name="proxy" value="${TELNYX_SIP_REGISTRAR}:5061;transport=tls"/>
     <param name="register" value="true"/>
+    <param name="register-transport" value="tls"/>
     <param name="expire-seconds" value="600"/>
     <param name="retry-seconds" value="30"/>
     <param name="context" value="public"/>
     <param name="caller-id-in-from" value="true"/>
     <param name="ping" value="25"/>
     <param name="codec-prefs" value="OPUS,PCMU,PCMA"/>
+    <!-- SRTP on the b-leg (FS ↔ Telnyx). The dialplan sets
+         rtp_secure_media=mandatory on outbound bridges so a TLS-fail does
+         not silently fall back to plaintext RTP. -->
+    <variables>
+      <variable name="rtp_secure_media" value="mandatory"/>
+    </variables>
   </gateway>
 </include>

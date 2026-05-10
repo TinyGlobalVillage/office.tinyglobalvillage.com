@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getToken } from "next-auth/jwt";
+import { getAuthToken } from "@/lib/auth-cookie";
 import { verify2faCookie } from "@/lib/twofa-cookie";
 import { readFileSync } from "fs";
 import path from "path";
@@ -20,6 +20,9 @@ function isTotpEnrolled(username: string): boolean {
 // NOTE: /api/announcements handles its own auth (bearer token for POST, session for GET/PATCH)
 // NOTE: /api/frontdesk/{calls,sms}/webhook verify Telnyx Ed25519 signatures; the
 //       intake endpoint verifies a shared-secret header (FRONTDESK_INTAKE_TOKEN).
+// NOTE: /api/relay/webhook/* verify their own signatures (Telegram secret-token
+//       header, WhatsApp X-Hub-Signature-256). They MUST be public so Meta and
+//       Telegram can POST without a session cookie.
 const PUBLIC = [
   "/login", "/api/auth", "/_next", "/favicon", "/og.png",
   "/api/auth/magic-link", "/api/announcements",
@@ -27,6 +30,13 @@ const PUBLIC = [
   "/api/frontdesk/sms/webhook",
   "/api/frontdesk/sms/tfv-status",
   "/api/frontdesk/alerts/intake",
+  "/api/relay/webhook/telegram",
+  "/api/relay/webhook/whatsapp",
+  // Transcription upload bypass: served on direct.tinyglobalvillage.com
+  // (DNS-only, bypasses Cloudflare's 100MB body limit). Authentication is
+  // via HMAC ticket minted by /api/transcripts/jobs/ticket on the main
+  // host, so this endpoint MUST be exempt from cookie middleware.
+  "/api/transcripts/jobs/upload-with-ticket",
 ];
 
 // Paths that need auth but NOT 2FA (the 2FA setup/verify flow itself, plus internal API calls from authenticated sessions)
@@ -48,7 +58,7 @@ export async function proxy(req: NextRequest) {
   if (isPublic) return NextResponse.next();
 
   // Require NextAuth JWT
-  const token = await getToken({ req, secret: process.env.AUTH_SECRET });
+  const token = await getAuthToken(req);
   if (!token) {
     const loginUrl = new URL("/login", req.url);
     loginUrl.searchParams.set("callbackUrl", pathname);
@@ -59,18 +69,24 @@ export async function proxy(req: NextRequest) {
   const isAuthOnly = AUTH_ONLY.some((p) => pathname.startsWith(p));
   if (isAuthOnly) return NextResponse.next();
 
-  // All other paths require 2FA cookie — but only for users who have
-  // enrolled TOTP. Users with totpEnabled=false pass on JWT alone.
+  // 2FA is MANDATORY for all users. Non-enrolled users get bounced to
+  // /setup-2fa; enrolled users without a valid 2FA cookie this session get
+  // bounced to /verify-2fa. No opt-out.
   const username = token.username as string | undefined;
-  if (username && isTotpEnrolled(username) && !verify2faCookie(req, username)) {
-    const twoFaUrl = new URL("/verify-2fa", req.url);
-    twoFaUrl.searchParams.set("callbackUrl", pathname);
-    return NextResponse.redirect(twoFaUrl);
-  }
   if (!username) {
     const loginUrl = new URL("/login", req.url);
     loginUrl.searchParams.set("callbackUrl", pathname);
     return NextResponse.redirect(loginUrl);
+  }
+  if (!isTotpEnrolled(username)) {
+    const setupUrl = new URL("/setup-2fa", req.url);
+    setupUrl.searchParams.set("callbackUrl", pathname);
+    return NextResponse.redirect(setupUrl);
+  }
+  if (!verify2faCookie(req, username)) {
+    const twoFaUrl = new URL("/verify-2fa", req.url);
+    twoFaUrl.searchParams.set("callbackUrl", pathname);
+    return NextResponse.redirect(twoFaUrl);
   }
 
   return NextResponse.next();

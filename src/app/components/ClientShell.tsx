@@ -16,6 +16,7 @@ import InboxDrawer from "./InboxDrawer";
 import SessionsDrawer from "./SessionsDrawer";
 import DashboardPopoutBeacon from "./DashboardPopoutBeacon";
 import GlobalModals from "./GlobalModals";
+import DrawerStackController from "./DrawerStackController";
 import { IncomingCallToast } from "./call";
 import type { RingChannel } from "./call";
 
@@ -66,6 +67,7 @@ function ShellInner({ children }: { children: ReactNode }) {
       <PreviewProvider>
         <PresenceHeartbeat />
         <PingNotifier />
+        <DrawerStackController />
         <FrontDeskDrawer />
         <IncomingCallOverlay />
         <ChatDrawer />

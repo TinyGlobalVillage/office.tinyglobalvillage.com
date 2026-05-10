@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getToken } from "next-auth/jwt";
+import { getAuthToken } from "@/lib/auth-cookie";
 import { generateRegistrationOptions } from "@simplewebauthn/server";
 import { readUsers } from "@/lib/users";
 
@@ -14,7 +14,7 @@ function b64toUint8(str: string): Uint8Array {
 }
 
 export async function POST(req: NextRequest) {
-  const token = await getToken({ req, secret: process.env.AUTH_SECRET });
+  const token = await getAuthToken(req);
   const username = token?.username as string | undefined;
   if (!username) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 

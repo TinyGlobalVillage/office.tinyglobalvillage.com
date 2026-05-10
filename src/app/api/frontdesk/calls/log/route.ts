@@ -31,12 +31,22 @@ export async function POST(req: NextRequest) {
     fromE164: fromE164Num,
     toE164: toE164Num,
   });
+  // The dialplan decides whether to record (consent IVR result for inbound,
+  // X-Record header for outbound). The browser mirrors that decision into
+  // the CDR via these two fields so the Saved Calls modal can list playable
+  // recordings without re-querying FreeSWITCH.
+  const consentAcknowledged = body.consentAcknowledged === true;
+  const recordingPath = typeof body.recordingPath === "string" && body.recordingPath
+    ? body.recordingPath
+    : null;
   patchCall(record.id, {
     answeredAt,
     endedAt,
     outcome,
     answeredBy: token.username ?? null,
     ringTarget: null,
+    consentAcknowledged,
+    recordingPath,
   });
 
   return NextResponse.json({ ok: true, id: record.id });

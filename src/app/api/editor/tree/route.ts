@@ -1,12 +1,12 @@
 /**
- * GET /api/editor/tree?path=/srv/refusion-core/client/projectname
- * Returns directory listing. Restricted to /srv/refusion-core/client/
+ * GET /api/editor/tree?path=/srv/refusion-core/clients/projectname
+ * Returns directory listing. Restricted to /srv/refusion-core/clients/
  */
 import { NextRequest, NextResponse } from "next/server";
 import { readdirSync, statSync } from "fs";
 import path from "path";
 
-const ROOT = "/srv/refusion-core/client";
+const ROOT = "/srv/refusion-core/clients";
 
 const IGNORE = new Set([
   "node_modules", ".next", ".git", ".turbo", "dist", "build", ".cache",

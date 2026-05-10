@@ -9,8 +9,15 @@ import { useEffect, useState } from "react";
 let modalCount = 0;
 const MODAL_EVENT = "tgv-modal-count";
 
+function syncBodyFlag() {
+  if (typeof document === "undefined") return;
+  if (modalCount > 0) document.body.dataset.modalOpen = "1";
+  else delete document.body.dataset.modalOpen;
+}
+
 export function pushModal() {
   modalCount++;
+  syncBodyFlag();
   if (typeof window !== "undefined") {
     window.dispatchEvent(new CustomEvent(MODAL_EVENT, { detail: modalCount }));
   }
@@ -18,6 +25,7 @@ export function pushModal() {
 
 export function popModal() {
   modalCount = Math.max(0, modalCount - 1);
+  syncBodyFlag();
   if (typeof window !== "undefined") {
     window.dispatchEvent(new CustomEvent(MODAL_EVENT, { detail: modalCount }));
   }

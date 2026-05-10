@@ -3,25 +3,94 @@
        by /srv/refusion-core/telephony/scripts/render-config.sh. -->
   <context name="office.tinyglobalvillage.com">
 
-    <!-- Inbound: toll-free DID lands here via public-dispatcher transfer. -->
+    <!-- Inbound: every Front Desk DID (8772469848 toll-free + 7077508469
+         Telnyx) lands here via public-dispatcher transfer.
+
+         Flat flow (no execute_extension recursion):
+           1. Answer + set ringback so caller hears US ring tone during bridge.
+           2. Consent IVR — pre-recorded WAV ("this call may be recorded;
+              press 1 to continue with recording, any other key to continue
+              without"). One digit, 5s window. Result lands in
+              ${consent_digit} ('1' = consent, anything else = no consent).
+           3. Conditional record_session (record-if-consented sub-extension).
+           4. Voicemail-mode check via mod_db `office/voicemail_mode`:
+                "always"   — skip bridge entirely (timeout=1).
+                "fallback" — try bridging to user/1001 for 25s. (default)
+           5. After bridge ends (success → hangup_after_bridge; failure →
+              continue_on_fail), play the voicemail greeting (custom if
+              recorded, else default), beep, record caller message, encrypt
+              on hangup. -->
     <extension name="frontdesk-inbound">
-      <condition field="destination_number" expression="^8772469848$">
+      <condition field="destination_number" expression="^(8772469848|7077508469)$">
         <action application="answer"/>
+        <action application="sleep" data="300"/>
         <action application="set" data="hangup_after_bridge=true"/>
         <action application="set" data="continue_on_fail=true"/>
         <action application="set" data="RECORD_STEREO=true"/>
+        <!-- US-style ring tone played to caller during the bridge attempt. -->
+        <action application="set" data="ringback=%(2000,4000,440,480)"/>
+        <action application="set" data="transfer_ringback=%(2000,4000,440,480)"/>
+        <action application="set" data="instant_ringback=true"/>
+
+        <!-- Consent IVR. -->
+        <action application="play_and_get_digits" data="1 1 1 5000 # ${base_dir}/../../clients/office.tinyglobalvillage.com/telephony/data/prompts/consent-recording.wav silence_stream://250 consent_digit \d 1000"/>
+        <action application="set" data="consent_acknowledged=${cond(${consent_digit} == 1 ? true : false)}"/>
         <action application="set" data="recording_file=${base_dir}/../../clients/office.tinyglobalvillage.com/telephony/data/recordings/${strftime(%Y-%m-%d-%H-%M-%S)}_${uuid}.wav"/>
-        <action application="record_session" data="${recording_file}"/>
+        <action application="execute_extension" data="record-if-consented XML office.tinyglobalvillage.com"/>
+
+        <!-- Voicemail-mode toggle: shrinks the call_timeout to 1s when set
+             to "always", so the bridge fails fast and we fall through to
+             the voicemail flow. Default is "fallback" → 25s ring. -->
+        <action application="set" data="vm_mode=${db(select/office/voicemail_mode)}"/>
+        <action application="set" data="call_timeout=${cond(${vm_mode} == always ? 1 : 25)}"/>
         <action application="bridge" data="user/1001@office.tinyglobalvillage.com"/>
-        <!-- Fallback to voicemail if no one answers. -->
-        <action application="voicemail" data="default office.tinyglobalvillage.com 1001"/>
+
+        <!-- Voicemail flow (only reached on bridge fail / no-answer). -->
+        <action application="set" data="vm_greeting=${base_dir}/../../clients/office.tinyglobalvillage.com/telephony/data/voicemails/greeting.wav"/>
+        <action application="set" data="vm_default_greeting=${base_dir}/../../clients/office.tinyglobalvillage.com/telephony/data/prompts/voicemail-default.wav"/>
+        <action application="set" data="vm_message_file=${base_dir}/../../clients/office.tinyglobalvillage.com/telephony/data/voicemails/${strftime(%Y-%m-%d-%H-%M-%S)}_${uuid}.wav"/>
+        <!-- Pick custom greeting if it exists; else default. file_exists()
+             returns "true" or "false" as a string. -->
+        <action application="set" data="vm_play=${cond(${file_exists(${vm_greeting})} == true ? ${vm_greeting} : ${vm_default_greeting})}"/>
+        <action application="playback" data="${vm_play}"/>
+        <action application="playback" data="tone_stream://%(500,0,800)"/>
+        <action application="set" data="api_hangup_hook=system /srv/refusion-core/telephony/scripts/encrypt-recording.sh ${vm_message_file}"/>
+        <action application="record" data="${vm_message_file} 120 200 3"/>
+        <action application="playback" data="${sounds_dir}/en/us/callie/voicemail/8000/vm-goodbye.wav"/>
+        <action application="hangup" data="NORMAL_CLEARING"/>
       </condition>
     </extension>
 
-    <!-- Internal: extension-to-extension calls within this tenant. -->
+    <!-- Conditional recording — fired by frontdesk-inbound after consent IVR.
+         Only starts record_session if ${consent_acknowledged} == true. Kept
+         as a sub-extension (not a `<condition>` branch on the parent) so the
+         non-consenting branch still falls through to `bridge` cleanly without
+         a `<anti-action>` block.
+
+         api_hangup_hook: on hangup FS runs `system <script> <wav>` which
+         encrypts the recording with the TGV Recordings GPG public key and
+         removes the plaintext (telephony-security Item 3, 2026-05-01). The
+         /api/frontdesk/calls/recordings/[id]/audio endpoint decrypts on
+         playback. Failure is logged to /var/log/freeswitch/recording-encrypt.log;
+         on failure the plaintext is preserved (better than losing the
+         recording entirely). -->
+    <extension name="record-if-consented" continue="true">
+      <condition field="${consent_acknowledged}" expression="^true$">
+        <action application="record_session" data="${recording_file}"/>
+        <action application="set" data="api_hangup_hook=system /srv/refusion-core/telephony/scripts/encrypt-recording.sh ${recording_file}"/>
+      </condition>
+    </extension>
+
+    <!-- Internal: extension-to-extension calls within this tenant.
+         Auth-gated (telephony-security Item 5, 2026-05-02): only callers
+         with ${sip_authorized}=="true" (set in user/<id>.xml variables)
+         may reach this extension. Spoofed inbound trunk traffic does not
+         set this var and falls through. -->
     <extension name="local-ext">
-      <condition field="destination_number" expression="^(10[0-9][0-9])$">
-        <action application="bridge" data="user/$1@office.tinyglobalvillage.com"/>
+      <condition field="${sip_authorized}" expression="^true$" break="on-false">
+        <condition field="destination_number" expression="^(10[0-9][0-9])$">
+          <action application="bridge" data="user/$1@office.tinyglobalvillage.com"/>
+        </condition>
       </condition>
     </extension>
 
@@ -37,13 +106,35 @@
          the bridge dial-string still scopes the b-leg explicitly; setting
          it as a channel variable locks the a-leg too, and late-negotiation
          will honor it when building the 200 OK SDP answer to the browser. -->
+    <!-- Auth-gated (telephony-security Item 5, 2026-05-02): only callers with
+         ${sip_authorized}=="true" (set in user/<id>.xml variables) may reach
+         the outbound bridge. Toll-fraud INVITEs from the public internet do
+         not set this variable, so even if a destination regex slips, the
+         attacker cannot reach the Telnyx bridge. This is the single most
+         important defense against toll fraud at the dialplan layer. -->
     <extension name="outbound-telnyx">
-      <condition field="destination_number" expression="^\+?(1?\d{10,})$">
+      <condition field="${sip_authorized}" expression="^true$" break="on-false">
+        <condition field="destination_number" expression="^\+?(1?\d{10,})$">
         <action application="set" data="absolute_codec_string=PCMU,PCMA"/>
         <action application="set" data="ignore_early_media=ring_ready"/>
         <action application="set" data="instant_ringback=true"/>
         <action application="set" data="effective_caller_id_number=${cond(${sip_h_X-CID} != '' ? ${sip_h_X-CID} : ${gw_tgv_office_caller_id})}"/>
+        <!-- Outbound recording is OPT-OUT: default record unless the softphone
+             explicitly sent X-Record: false. consent_acknowledged tracks the
+             user's decision and propagates to the CDR via /api/frontdesk/calls/log. -->
+        <action application="set" data="consent_acknowledged=${cond(${sip_h_X-Record} == false ? false : true)}"/>
+        <action application="set" data="recording_file=${base_dir}/../../clients/office.tinyglobalvillage.com/telephony/data/recordings/${strftime(%Y-%m-%d-%H-%M-%S)}_${uuid}.wav"/>
+        <action application="execute_extension" data="record-if-consented XML office.tinyglobalvillage.com"/>
+        <!-- rtp_secure_media=mandatory is gated on Telnyx-side TLS+SRTP
+             being live. While the trunk is still on plain UDP/RTP, leave
+             this commented out — flipping it on without the TLS gateway
+             will fail every outbound bridge with an SDP-encryption error.
+             Cutover step ships with telephony-security Item 2 (see
+             telnyx-tgv-office.xml.tls.disabled cutover comment).
+        <action application="set" data="rtp_secure_media=mandatory"/>
+        -->
         <action application="bridge" data="{absolute_codec_string=PCMU,PCMA}sofia/gateway/telnyx-tgv-office/$1"/>
+        </condition>
       </condition>
     </extension>
 

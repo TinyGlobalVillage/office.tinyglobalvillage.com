@@ -13,7 +13,6 @@ import { createPortal } from "react-dom";
 import styled, { keyframes } from "styled-components";
 import { colors, rgb } from "../theme";
 import {
-  DrawerBackdrop,
   DrawerPanel,
   DrawerHeader,
   DrawerTab,
@@ -22,6 +21,8 @@ import {
   PanelIconBtn,
   Input,
 } from "../styled";
+import { useDrawerLifecycle, DRAWER_DATA_ATTR } from "../lib/drawerStack";
+import { useDrawerPersistedState } from "../lib/drawerPersist";
 import ChatSettingsModal, { UserAvatar, resolveTimezone, type MemberProfile, type ChatSettings as ModalChatSettings } from "./ChatSettingsModal";
 import MediaConverterModal, { type MinimizedConversionInfo } from "./MediaConverterModal";
 import ChatPicker from "./ChatPicker";
@@ -58,6 +59,7 @@ import {
   DrawerChatsIcon,
 } from "./icons";
 import { CallSurface, type RingChannel } from "./call";
+import { ChatBar } from "@tgv/module-connect/components/ChatBar";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -142,7 +144,7 @@ const DEFAULT_SETTINGS: ChatSettings = {
 
 const SETTINGS_KEY    = "tgv_chat_settings";
 const TAB_STORAGE_KEY = "tgv-drawer-tab-chat-y";
-const DRAWER_EVENT    = "tgv-right-drawer";
+const DRAWER_ID       = "chat";
 const MIN_W           = 420;
 const SIDEBAR_MIN     = 96;
 const SIDEBAR_NARROW  = 172;
@@ -231,15 +233,19 @@ function loadSettings(): ChatSettings {
 
 // ── Styled: shared across sub-components ──────────────────────────────────────
 
-const SideTab = styled(DrawerTab).attrs({ $side: "left", $accent: "green" })<{ $openLeft: string; $open: boolean }>`
-  left: ${(p) => p.$openLeft};
-  z-index: 71;
-  border-left: none;
-  transition: left 0.25s cubic-bezier(0.4, 0, 0.2, 1), background 0.2s, box-shadow 0.2s;
+const SideTab = styled(DrawerTab).attrs<{ $anchor: "left" | "right" }>((p) => ({
+  $side: p.$anchor,
+  $accent: "green",
+}))<{ $openOffset: string; $open: boolean; $anchor: "left" | "right" }>`
+  ${(p) => (p.$anchor === "right" ? "right" : "left")}: ${(p) => p.$openOffset};
+  ${(p) => (p.$anchor === "right" ? "border-right: none;" : "border-left: none;")}
+  transition: left 0.25s cubic-bezier(0.4, 0, 0.2, 1), right 0.25s cubic-bezier(0.4, 0, 0.2, 1), background 0.2s, box-shadow 0.2s;
   backdrop-filter: ${(p) => (p.$open ? "none" : "blur(8px)")};
 
   @media (max-width: 768px) {
-    left: ${(p) => (p.$openLeft === "0" ? "0" : "calc(100vw - 28px)")};
+    ${(p) => (p.$anchor === "right"
+      ? `right: ${p.$openOffset === "0" ? "0" : "calc(100vw - 28px)"};`
+      : `left: ${p.$openOffset === "0" ? "0" : "calc(100vw - 28px)"};`)}
     ${(p) => (p.$open ? "display: none;" : "")}
   }
 `;
@@ -260,19 +266,15 @@ const UnreadBadge = styled.span`
   color: #060810;
 `;
 
-const Backdrop = styled(DrawerBackdrop)`
-  z-index: 69;
-  backdrop-filter: blur(1px);
-`;
-
-const Panel = styled(DrawerPanel)`
-  left: 0;
-  z-index: 70;
+const Panel = styled(DrawerPanel)<{ $anchor: "left" | "right" }>`
+  ${(p) => (p.$anchor === "right" ? "right: 0;" : "left: 0;")}
   max-width: 85vw;
-  border-right: 1px solid rgba(${rgb.green}, 0.18);
+  ${(p) => (p.$anchor === "right"
+    ? `border-left: 1px solid rgba(${rgb.green}, 0.18);`
+    : `border-right: 1px solid rgba(${rgb.green}, 0.18);`)}
 
   [data-theme="light"] & {
-    border-right-color: rgba(${rgb.green}, 0.1);
+    ${(p) => (p.$anchor === "right" ? "border-left-color" : "border-right-color")}: rgba(${rgb.green}, 0.1);
   }
 `;
 
@@ -450,7 +452,10 @@ const OnlinePresenceDot = styled.span<{ $online?: boolean }>`
   box-shadow: ${(p) => (p.$online ? `0 0 4px ${colors.green}` : "none")};
 `;
 
-const Resize = styled(DrawerResizeHandle).attrs({ $accent: "green" })``;
+const Resize = styled(DrawerResizeHandle).attrs<{ $anchor: "left" | "right" }>((p) => ({
+  $accent: "green",
+  $anchor: p.$anchor,
+}))<{ $anchor: "left" | "right" }>``;
 
 const MsgScroll = styled.div`
   flex: 1;
@@ -3706,15 +3711,22 @@ type ChatDrawerProps = {
 
 export default function ChatDrawer({ popout = false, popoutPeer = null, popoutGroup = null }: ChatDrawerProps = {}) {
   const [open, setOpen]           = useState(popout);
-  const [width, setWidth]         = useState(800);
+  const [width, setWidth]         = useDrawerPersistedState<number>(DRAWER_ID, "width", 800);
+  const [anchor, setAnchor]       = useDrawerPersistedState<"left" | "right">(DRAWER_ID, "anchor", "left");
   const [maxW, setMaxW]           = useState(1400);
   const [tabY, setTabY]           = useState<number>(480);
-  const [selection, setSelection] = useState<Selection>({ type: "tgv" });
+  const [selection, setSelection] = useDrawerPersistedState<Selection>(DRAWER_ID, "selection", { type: "tgv" });
   const [activeCall, setActiveCall] = useState<ActiveCall | null>(null);
-  const [sidebarTab, setSidebarTab] = useState<SidebarTab>("users");
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [sidebarWidth, setSidebarWidth] = useState(SIDEBAR_DEFAULT);
+  const [sidebarTab, setSidebarTab] = useDrawerPersistedState<SidebarTab>(DRAWER_ID, "sidebarTab", "users");
+  const [sidebarCollapsed, setSidebarCollapsed] = useDrawerPersistedState<boolean>(DRAWER_ID, "sidebarCollapsed", false);
+  const [sidebarWidth, setSidebarWidth] = useDrawerPersistedState<number>(DRAWER_ID, "sidebarWidth", SIDEBAR_DEFAULT);
   const [mobileCompact, setMobileCompact] = useState(false);
+
+  const { position: stackPosition } = useDrawerLifecycle({
+    id: DRAWER_ID,
+    open,
+    setOpen,
+  });
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -3735,7 +3747,7 @@ export default function ChatDrawer({ popout = false, popoutPeer = null, popoutGr
   const [groups, setGroups] = useState<GroupChat[]>([]);
   const [groupMessages, setGroupMessages] = useState<GroupMessage[]>([]);
   const [groupSending, setGroupSending] = useState(false);
-  const [groupInput, setGroupInput] = useState("");
+  const [groupInput, setGroupInput] = useDrawerPersistedState<string>(DRAWER_ID, "groupInput", "");
   const groupBottomRef = useRef<HTMLDivElement>(null);
   const [showCreateGroup, setShowCreateGroup] = useState(false);
   const [groupAdminId, setGroupAdminId] = useState<string | null>(null);
@@ -3743,10 +3755,10 @@ export default function ChatDrawer({ popout = false, popoutPeer = null, popoutGr
   const [rowHoverMenu, setRowHoverMenu] = useState<string | null>(null);
   const [muteSubmenuFor, setMuteSubmenuFor] = useState<string | null>(null);
   const [contactInfoFor, setContactInfoFor] = useState<string | null>(null);
-  const [showArchived, setShowArchived] = useState(false);
-  const [mobileView, setMobileView] = useState<"list" | "chat">("list");
-  const [mobileFilter, setMobileFilter] = useState<"all" | "unread" | "favorites" | "groups">("all");
-  const [mobileSearch, setMobileSearch] = useState("");
+  const [showArchived, setShowArchived] = useDrawerPersistedState<boolean>(DRAWER_ID, "showArchived", false);
+  const [mobileView, setMobileView] = useDrawerPersistedState<"list" | "chat">(DRAWER_ID, "mobileView", "list");
+  const [mobileFilter, setMobileFilter] = useDrawerPersistedState<"all" | "unread" | "favorites" | "groups">(DRAWER_ID, "mobileFilter", "all");
+  const [mobileSearch, setMobileSearch] = useDrawerPersistedState<string>(DRAWER_ID, "mobileSearch", "");
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const longPressFired = useRef(false);
   const startLongPress = useCallback((rowKey: string) => {
@@ -3765,13 +3777,12 @@ export default function ChatDrawer({ popout = false, popoutPeer = null, popoutGr
     if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; }
   }, []);
   const [rowMeta, setRowMeta] = useState<Record<string, RowMetaEntry>>({});
-  const [attachMenuOpen, setAttachMenuOpen] = useState(false);
+  // attachMenuOpen / composerMoreOpen are now owned by ChatBar (@tgv/module-connect).
   const [pickerOpen, setPickerOpen] = useState(false);
   const [onlineOverflowOpen, setOnlineOverflowOpen] = useState(false);
   const [voiceActive, setVoiceActive] = useState(false);
   const [talkActive, setTalkActive] = useState(false);
   const [composerNarrow, setComposerNarrow] = useState(false);
-  const [composerMoreOpen, setComposerMoreOpen] = useState(false);
   const [headerMembersOpen, setHeaderMembersOpen] = useState(false);
   const [headerMenuLatched, setHeaderMenuLatched] = useState(false);
   const [headerMemberQuery, setHeaderMemberQuery] = useState("");
@@ -3815,7 +3826,7 @@ export default function ChatDrawer({ popout = false, popoutPeer = null, popoutGr
   const [presence, setPresence]   = useState<{ sysUser: string; online: boolean }[]>([]);
   const [currentUser, setCurrentUser] = useState<string>("");
   const isExec = currentUser === "admin" || currentUser === "marmar";
-  const [input, setInput]         = useState("");
+  const [input, setInput]         = useDrawerPersistedState<string>(DRAWER_ID, "input", "");
   const [sending, setSending]     = useState(false);
   const [uploading, setUploading] = useState(false);
   const [storagePercent, setStoragePercent] = useState(0);
@@ -3910,54 +3921,15 @@ export default function ChatDrawer({ popout = false, popoutPeer = null, popoutGr
     setTabY(getDefaultTabY());
     const initialMax = getMaxDrawerWidth();
     setMaxW(initialMax);
-    const savedW = sessionStorage.getItem("chat-drawer-width");
-    setWidth(savedW ? Math.min(initialMax, parseInt(savedW, 10)) : getDefaultDrawerWidth());
+    setWidth((prev) => Math.min(initialMax, prev || getDefaultDrawerWidth()));
     const savedLastSeen = localStorage.getItem("tgv_chat_last_seen_id");
     if (savedLastSeen) lastSeenId.current = savedLastSeen;
     const onResize = () => setMaxW(getMaxDrawerWidth());
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
-  }, []);
+  }, [setWidth]);
 
-  const [otherDrawerOpen, setOtherDrawerOpen] = useState(false);
   const { hideKnob } = useKnobVisibility();
-  useEffect(() => {
-    const handler = (e: Event) => {
-      const detail = (e as CustomEvent).detail;
-      if (detail === "chat") {
-        setOtherDrawerOpen(false);
-      } else if (detail === "close") {
-        setOtherDrawerOpen(false);
-      } else {
-        setOpen(false);
-        setOtherDrawerOpen(true);
-      }
-    };
-    window.addEventListener(DRAWER_EVENT, handler);
-    return () => window.removeEventListener(DRAWER_EVENT, handler);
-  }, []);
-
-  useEffect(() => {
-    const handler = (e: Event) => {
-      if ((e as CustomEvent).detail === "chat") {
-        setOpen(true);
-        window.dispatchEvent(new CustomEvent(DRAWER_EVENT, { detail: "chat" }));
-      }
-    };
-    window.addEventListener("tgv-drawer-open", handler);
-    return () => window.removeEventListener("tgv-drawer-open", handler);
-  }, []);
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && open) {
-        setOpen(false);
-        window.dispatchEvent(new CustomEvent(DRAWER_EVENT, { detail: "close" }));
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open]);
 
   const loadProfiles = useCallback(async () => {
     const [profRes, presRes] = await Promise.all([
@@ -4177,34 +4149,6 @@ export default function ChatDrawer({ popout = false, popoutPeer = null, popoutGr
   }, [onlineOverflowOpen]);
 
   useEffect(() => {
-    if (!attachMenuOpen) return;
-    const onClick = () => setAttachMenuOpen(false);
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setAttachMenuOpen(false); };
-    window.addEventListener("click", onClick);
-    window.addEventListener("touchstart", onClick, { passive: true });
-    window.addEventListener("keydown", onKey);
-    return () => {
-      window.removeEventListener("click", onClick);
-      window.removeEventListener("touchstart", onClick);
-      window.removeEventListener("keydown", onKey);
-    };
-  }, [attachMenuOpen]);
-
-  useEffect(() => {
-    if (!composerMoreOpen) return;
-    const onClick = () => setComposerMoreOpen(false);
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setComposerMoreOpen(false); };
-    window.addEventListener("click", onClick);
-    window.addEventListener("touchstart", onClick, { passive: true });
-    window.addEventListener("keydown", onKey);
-    return () => {
-      window.removeEventListener("click", onClick);
-      window.removeEventListener("touchstart", onClick);
-      window.removeEventListener("keydown", onKey);
-    };
-  }, [composerMoreOpen]);
-
-  useEffect(() => {
     loadGroups();
     const id = setInterval(loadGroups, 15_000);
     return () => clearInterval(id);
@@ -4337,13 +4281,7 @@ export default function ChatDrawer({ popout = false, popoutPeer = null, popoutGr
       }
     };
     const onUp = () => {
-      if (!didDrag.current) {
-        setOpen((p) => {
-          const next = !p;
-          window.dispatchEvent(new CustomEvent(DRAWER_EVENT, { detail: next ? "chat" : "close" }));
-          return next;
-        });
-      }
+      if (!didDrag.current) setOpen((p) => !p);
       document.body.style.cursor = "";
       document.removeEventListener("mousemove", onMove);
       document.removeEventListener("mouseup", onUp);
@@ -4362,10 +4300,10 @@ export default function ChatDrawer({ popout = false, popoutPeer = null, popoutGr
 
     const onMove = (ev: MouseEvent) => {
       if (!resizing.current) return;
-      const delta = ev.clientX - startX.current;
+      const rawDelta = ev.clientX - startX.current;
+      const delta = anchor === "right" ? -rawDelta : rawDelta;
       const newW = Math.min(maxW, Math.max(MIN_W, startW.current + delta));
       setWidth(newW);
-      sessionStorage.setItem("chat-drawer-width", String(newW));
     };
     const onUp = () => {
       resizing.current = false;
@@ -4376,7 +4314,7 @@ export default function ChatDrawer({ popout = false, popoutPeer = null, popoutGr
     };
     window.addEventListener("mousemove", onMove);
     window.addEventListener("mouseup", onUp);
-  }, [width, maxW]);
+  }, [width, maxW, anchor, setWidth]);
 
   const [sidebarDragging, setSidebarDragging] = useState(false);
   const beginSidebarResize = useCallback((startX: number, touch: boolean) => {
@@ -4836,17 +4774,25 @@ export default function ChatDrawer({ popout = false, popoutPeer = null, popoutGr
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selection.type, selection]);
 
+  const flipAnchor = () => setAnchor((p) => (p === "left" ? "right" : "left"));
+  const stackZ = 60 + Math.max(0, stackPosition) * 2;
+  const closedTransform = anchor === "right" ? "translateX(100%)" : "translateX(-100%)";
+  const flipTitle = anchor === "left" ? "Mirror to right edge" : "Mirror to left edge";
+
   return (
     <>
       {/* ── Side tab pill — DTog-style handle, floats to drawer's outer edge when open */}
-      {!popout && !otherDrawerOpen && !hideKnob && (
+      {!popout && !hideKnob && (
       <SideTab
+        {...{ [DRAWER_DATA_ATTR]: DRAWER_ID }}
         onMouseDown={onTabMouseDown}
         title={open ? "Close chat" : "Open chat"}
         $open={open}
-        $openLeft={open ? `min(${width}px, 85vw)` : "0"}
+        $anchor={anchor}
+        $openOffset={open ? `min(${width}px, 85vw)` : "0"}
         style={{
           top: tabY,
+          zIndex: open ? stackZ + 1 : 100,
           background: open
             ? `rgba(${rgb.green}, 0.25)`
             : unread > 0
@@ -4869,14 +4815,10 @@ export default function ChatDrawer({ popout = false, popoutPeer = null, popoutGr
       </SideTab>
       )}
 
-      {/* ── Backdrop ──────────────────────────────────────────────── */}
-      {!popout && open && <Backdrop onClick={() => {
-        setOpen(false);
-        window.dispatchEvent(new CustomEvent(DRAWER_EVENT, { detail: "close" }));
-      }} />}
-
       {/* ── Drawer ────────────────────────────────────────────────── */}
       <Panel
+        {...{ [DRAWER_DATA_ATTR]: DRAWER_ID }}
+        $anchor={anchor}
         style={popout ? {
           width: "100vw",
           maxWidth: "100vw",
@@ -4885,9 +4827,12 @@ export default function ChatDrawer({ popout = false, popoutPeer = null, popoutGr
           borderRight: "none",
         } : {
           width,
-          transform: open ? "translateX(0)" : "translateX(-100%)",
+          transform: open ? "translateX(0)" : closedTransform,
           transition: resizing.current ? "none" : "transform 0.25s cubic-bezier(0.4,0,0.2,1)",
-          boxShadow: open ? "12px 0 60px rgba(0,0,0,0.7)" : "none",
+          boxShadow: open
+            ? (anchor === "right" ? "-12px 0 60px rgba(0,0,0,0.7)" : "12px 0 60px rgba(0,0,0,0.7)")
+            : "none",
+          zIndex: stackZ,
         }}
       >
         {/* ── Header ──────────────────────────────────────────────── */}
@@ -4992,12 +4937,14 @@ export default function ChatDrawer({ popout = false, popoutPeer = null, popoutGr
           </Tooltip>
 
           {!popout && (
-            <Tooltip accent={colors.green} label="Close (Esc)">
-              <NeonX accent="green" onClick={() => {
-                setOpen(false);
-                window.dispatchEvent(new CustomEvent(DRAWER_EVENT, { detail: "close" }));
-              }} title="Close (Esc)" />
-            </Tooltip>
+            <>
+              <Tooltip accent={colors.green} label={flipTitle}>
+                <ControlBtn onClick={flipAnchor} title={flipTitle} aria-label={flipTitle}>⇄</ControlBtn>
+              </Tooltip>
+              <Tooltip accent={colors.green} label="Close (Esc)">
+                <NeonX accent="green" onClick={() => setOpen(false)} title="Close (Esc)" />
+              </Tooltip>
+            </>
           )}
         </Header>
 
@@ -6464,271 +6411,171 @@ export default function ChatDrawer({ popout = false, popoutPeer = null, popoutGr
                   </TypingRow>
                 )}
 
-                <InputRow ref={inputRowRef}>
-                  {!voiceActive && composerNarrow && (
-                    <ComposerMoreAnchor onClick={(e) => e.stopPropagation()} onTouchStart={(e) => e.stopPropagation()}>
-                      <Tooltip accent={colors.green} label="More options">
-                        <ComposerMoreBtn
-                          $open={composerMoreOpen}
-                          onClick={() => setComposerMoreOpen((p) => !p)}
-                        >
-                          ⋯
-                        </ComposerMoreBtn>
-                      </Tooltip>
-                      {composerMoreOpen && (
-                        <ComposerMorePopup>
-                          {isTGV && (
-                            <>
-                              <ComposerMoreItem onClick={() => { setComposerMoreOpen(false); fileRef.current?.click(); }}>
-                                <AttachMenuIcon><FileIcon size={16} /></AttachMenuIcon> File
-                              </ComposerMoreItem>
-                              <ComposerMoreItem onClick={() => { setComposerMoreOpen(false); photoRef.current?.click(); }}>
-                                <AttachMenuIcon><PhotosIcon size={16} /></AttachMenuIcon> Photos &amp; videos
-                              </ComposerMoreItem>
-                              <ComposerMoreItem onClick={() => { setComposerMoreOpen(false); setConverterType("image"); }}>
-                                <AttachMenuIcon><ConvertImageIcon size={16} /></AttachMenuIcon> Convert image
-                              </ComposerMoreItem>
-                              <ComposerMoreItem onClick={() => { setComposerMoreOpen(false); setConverterType("video"); }}>
-                                <AttachMenuIcon><ConvertVideoIcon size={16} /></AttachMenuIcon> Convert video
-                              </ComposerMoreItem>
-                            </>
-                          )}
-                          <ComposerMoreItem onClick={() => { setComposerMoreOpen(false); setPickerOpen(true); }}>
-                            <AttachMenuIcon><SmileIcon size={16} /></AttachMenuIcon> Emoji · GIFs · Stickers
-                          </ComposerMoreItem>
-                          <ComposerMoreItem onClick={() => {
-                            setComposerMoreOpen(false);
-                            talkTriggerRef.current?.querySelector("button")?.click();
-                          }}>
-                            <AttachMenuIcon><MicIcon size={16} /></AttachMenuIcon> Talk to text
-                          </ComposerMoreItem>
-                          {isTGV && (
-                            <ComposerMoreItem onClick={() => {
-                              setComposerMoreOpen(false);
-                              voiceTriggerRef.current?.querySelector("button")?.click();
-                            }}>
-                              <AttachMenuIcon><WaveformIcon size={16} /></AttachMenuIcon> Voice memo
-                            </ComposerMoreItem>
-                          )}
-                        </ComposerMorePopup>
-                      )}
-                    </ComposerMoreAnchor>
-                  )}
-                  {!voiceActive && !composerNarrow && isTGV && (
-                    <>
-                      <AttachMenuAnchor onClick={(e) => e.stopPropagation()} onTouchStart={(e) => e.stopPropagation()}>
-                        <Tooltip accent={colors.green} label="Attach">
-                          <AttachBtn onClick={() => setAttachMenuOpen((p) => !p)}>
-                            <AttachIcon size={14} />
-                          </AttachBtn>
-                        </Tooltip>
-                        {attachMenuOpen && (
-                          <AttachMenuPopup>
-                            <AttachMenuItem onClick={() => { setAttachMenuOpen(false); fileRef.current?.click(); }}>
-                              <AttachMenuIcon><FileIcon size={16} /></AttachMenuIcon> File
-                            </AttachMenuItem>
-                            <AttachMenuItem onClick={() => { setAttachMenuOpen(false); photoRef.current?.click(); }}>
-                              <AttachMenuIcon><PhotosIcon size={16} /></AttachMenuIcon> Photos &amp; videos
-                            </AttachMenuItem>
-                            <AttachMenuItem $disabled onClick={() => setAttachMenuOpen(false)}>
-                              <AttachMenuIcon><ContactIcon size={16} /></AttachMenuIcon> Contact
-                              <AttachMenuSoon>soon</AttachMenuSoon>
-                            </AttachMenuItem>
-                            <AttachMenuItem $disabled onClick={() => setAttachMenuOpen(false)}>
-                              <AttachMenuIcon><PollIcon size={16} /></AttachMenuIcon> Poll
-                              <AttachMenuSoon>soon</AttachMenuSoon>
-                            </AttachMenuItem>
-                            <AttachMenuItem $disabled onClick={() => setAttachMenuOpen(false)}>
-                              <AttachMenuIcon><EventIcon size={16} /></AttachMenuIcon> Event
-                              <AttachMenuSoon>soon</AttachMenuSoon>
-                            </AttachMenuItem>
-                            <AttachMenuItem onClick={() => { setAttachMenuOpen(false); setConverterType("image"); }}>
-                              <AttachMenuIcon><ConvertImageIcon size={16} /></AttachMenuIcon> Convert image
-                            </AttachMenuItem>
-                            <AttachMenuItem onClick={() => { setAttachMenuOpen(false); setConverterType("video"); }}>
-                              <AttachMenuIcon><ConvertVideoIcon size={16} /></AttachMenuIcon> Convert video
-                            </AttachMenuItem>
-                          </AttachMenuPopup>
-                        )}
-                      </AttachMenuAnchor>
-                    </>
-                  )}
-                  {!voiceActive && (
-                    <>
-                      <input ref={fileRef} type="file" style={{ display: "none" }} onChange={handleFileChange} />
-                      <input ref={photoRef} type="file" accept="image/*,video/*" style={{ display: "none" }} onChange={handleFileChange} />
-                    </>
-                  )}
+                {(() => {
+                  // ── Composer wiring (now using shared ChatBar from @tgv/module-connect) ─
+                  // Selection-aware value/setters/send so DM, group, and TGV Chatroom each
+                  // get their own input state but share the same canonical bar.
+                  const composerValue =
+                    selection.type === "dm" ? dmInput
+                      : selection.type === "group" ? groupInput
+                      : input;
+                  const setComposerValue = (v: string) => {
+                    if (selection.type === "dm") setDmInput(v);
+                    else if (selection.type === "group") setGroupInput(v);
+                    else setInput(v);
+                    if (v.trim()) signalTyping();
+                  };
+                  const send =
+                    selection.type === "dm" ? sendDm
+                      : selection.type === "group" ? sendGroupMessage
+                      : sendMessage;
+                  const isSending =
+                    selection.type === "dm" ? dmSending
+                      : selection.type === "group" ? groupSending
+                      : (sending || uploading);
+                  const sendDisabled =
+                    selection.type === "dm" ? (!dmInput.trim() || dmSending)
+                      : selection.type === "group" ? (!groupInput.trim() || groupSending)
+                      : ((sending || uploading) || (!input.trim() && !uploadFile));
+                  const accent =
+                    selection.type === "dm" ? (peer?.accentColor ?? VIOLET)
+                      : colors.green;
+                  const placeholder =
+                    selection.type === "dm" && peer ? `Message ${peer.displayName}…`
+                      : selection.type === "group" ? "Message group…"
+                      : "Enter to send · Shift+Enter for newline";
 
-                  {!voiceActive && (
-                  <>
-                  {!composerNarrow && (
-                  <PickerAnchor onClick={(e) => e.stopPropagation()}>
-                    <Tooltip accent={colors.green} label="Emoji · GIFs · Stickers">
-                      <PickerBtn onClick={() => setPickerOpen((p) => !p)}>
-                        <SmileIcon size={16} />
-                      </PickerBtn>
-                    </Tooltip>
-                    {pickerOpen && (
-                      <ChatPicker
-                        onClose={() => setPickerOpen(false)}
-                        onEmoji={(e) => {
-                          if (selection.type === "dm") setDmInput((prev) => prev + e);
-                          else if (selection.type === "group") setGroupInput((prev) => prev + e);
-                          else setInput((prev) => prev + e);
-                        }}
-                        onGif={(url) => {
-                          if (selection.type === "dm") setDmInput((prev) => (prev ? `${prev} ${url}` : url));
-                          else if (selection.type === "group") setGroupInput((prev) => (prev ? `${prev} ${url}` : url));
-                          else setInput((prev) => (prev ? `${prev} ${url}` : url));
-                        }}
-                        onSticker={(url) => {
-                          if (selection.type === "dm") setDmInput((prev) => (prev ? `${prev} ${url}` : url));
-                          else if (selection.type === "group") setGroupInput((prev) => (prev ? `${prev} ${url}` : url));
-                          else setInput((prev) => (prev ? `${prev} ${url}` : url));
-                        }}
-                      />
-                    )}
-                  </PickerAnchor>
-                  )}
-                  {composerNarrow && pickerOpen && (
-                    <ChatPicker
-                      onClose={() => setPickerOpen(false)}
-                      onEmoji={(e) => {
-                        if (selection.type === "dm") setDmInput((prev) => prev + e);
-                        else if (selection.type === "group") setGroupInput((prev) => prev + e);
-                        else setInput((prev) => prev + e);
-                      }}
-                      onGif={(url) => {
-                        if (selection.type === "dm") setDmInput((prev) => (prev ? `${prev} ${url}` : url));
-                        else if (selection.type === "group") setGroupInput((prev) => (prev ? `${prev} ${url}` : url));
-                        else setInput((prev) => (prev ? `${prev} ${url}` : url));
-                      }}
-                      onSticker={(url) => {
-                        if (selection.type === "dm") setDmInput((prev) => (prev ? `${prev} ${url}` : url));
-                        else if (selection.type === "group") setGroupInput((prev) => (prev ? `${prev} ${url}` : url));
-                        else setInput((prev) => (prev ? `${prev} ${url}` : url));
-                      }}
-                    />
-                  )}
+                  // Picker action handlers (shared between wide PickerBtn + narrow more-menu).
+                  const onEmoji = (e: string) => {
+                    if (selection.type === "dm") setDmInput((prev) => prev + e);
+                    else if (selection.type === "group") setGroupInput((prev) => prev + e);
+                    else setInput((prev) => prev + e);
+                  };
+                  const onMedia = (url: string) => {
+                    if (selection.type === "dm") setDmInput((prev) => (prev ? `${prev} ${url}` : url));
+                    else if (selection.type === "group") setGroupInput((prev) => (prev ? `${prev} ${url}` : url));
+                    else setInput((prev) => (prev ? `${prev} ${url}` : url));
+                  };
 
-                  <ChatTextarea
-                    value={
-                      selection.type === "dm"
-                        ? dmInput
-                        : selection.type === "group"
-                          ? groupInput
-                          : input
-                    }
-                    onChange={(e) => {
-                      if (selection.type === "dm") setDmInput(e.target.value);
-                      else if (selection.type === "group") setGroupInput(e.target.value);
-                      else setInput(e.target.value);
-                      if (e.target.value.trim()) signalTyping();
-                    }}
-                    onKeyDown={(e: ReactKeyboardEvent<HTMLTextAreaElement>) => {
-                      if (e.key === "Enter" && !e.shiftKey) {
-                        e.preventDefault();
-                        if (selection.type === "dm") sendDm();
-                        else if (selection.type === "group") sendGroupMessage();
-                        else sendMessage();
+                  // Attach menu (TGV-only). Drives both wide popup AND narrow more-menu.
+                  const attachItems = isTGV ? [
+                    { key: "file", icon: <FileIcon size={16} />, label: "File", onClick: () => fileRef.current?.click() },
+                    { key: "photos", icon: <PhotosIcon size={16} />, label: "Photos & videos", onClick: () => photoRef.current?.click() },
+                    { key: "contact", icon: <ContactIcon size={16} />, label: "Contact", soon: true, disabled: true },
+                    { key: "poll", icon: <PollIcon size={16} />, label: "Poll", soon: true, disabled: true },
+                    { key: "event", icon: <EventIcon size={16} />, label: "Event", soon: true, disabled: true },
+                    { key: "convertImage", icon: <ConvertImageIcon size={16} />, label: "Convert image", onClick: () => setConverterType("image") },
+                    { key: "convertVideo", icon: <ConvertVideoIcon size={16} />, label: "Convert video", onClick: () => setConverterType("video") },
+                  ] : undefined;
+
+                  // Narrow-mode extras (picker + talk + voice). When the bar collapses
+                  // below the threshold, ChatBar surfaces these in a single "More ⋯" menu.
+                  const narrowExtraItems = [
+                    { key: "picker", icon: <SmileIcon size={16} />, label: "Emoji · GIFs · Stickers", onClick: () => setPickerOpen(true) },
+                    { key: "talk", icon: <MicIcon size={16} />, label: "Talk to text", onClick: () => talkTriggerRef.current?.querySelector("button")?.click() },
+                    ...(isTGV ? [{ key: "voice", icon: <WaveformIcon size={16} />, label: "Voice memo", onClick: () => voiceTriggerRef.current?.querySelector("button")?.click() }] : []),
+                  ];
+
+                  return (
+                    <ChatBar
+                      value={composerValue}
+                      onChange={setComposerValue}
+                      onSend={send}
+                      sending={isSending}
+                      disabled={sendDisabled}
+                      placeholder={placeholder}
+                      accent={accent}
+                      fontSize={settings.fontSize === "xs" ? 11 : settings.fontSize === "sm" ? 13 : 15}
+                      features={{ attach: isTGV, picker: true, voice: isTGV, talk: true }}
+                      voiceActive={voiceActive}
+                      attachItems={attachItems}
+                      narrowExtraItems={narrowExtraItems}
+                      attachIcon={<AttachIcon size={14} />}
+                      sendIcon={<SendIcon size={14} />}
+                      inputRowRef={inputRowRef}
+                      pickerSlot={
+                        <PickerAnchor onClick={(e) => e.stopPropagation()} style={composerNarrow ? { display: "none" } : undefined}>
+                          <Tooltip accent={colors.green} label="Emoji · GIFs · Stickers">
+                            <PickerBtn onClick={() => setPickerOpen((p) => !p)}>
+                              <SmileIcon size={16} />
+                            </PickerBtn>
+                          </Tooltip>
+                          {pickerOpen && !composerNarrow && (
+                            <ChatPicker
+                              onClose={() => setPickerOpen(false)}
+                              onEmoji={onEmoji}
+                              onGif={onMedia}
+                              onSticker={onMedia}
+                            />
+                          )}
+                        </PickerAnchor>
                       }
+                      talkSlot={
+                        <div
+                          ref={talkTriggerRef}
+                          style={{ display: composerNarrow && !talkActive ? "none" : "contents" }}
+                        >
+                          <TalkToText
+                            accent={colors.green}
+                            model={settings.whisperModel ?? "base.en"}
+                            onTranscript={(text) => {
+                              if (selection.type === "dm") setDmInput((prev) => (prev ? `${prev} ${text}` : text));
+                              else if (selection.type === "group") setGroupInput((prev) => (prev ? `${prev} ${text}` : text));
+                              else setInput((prev) => (prev ? `${prev} ${text}` : text));
+                            }}
+                            onError={(msg) => alert(`Transcribe: ${msg}`)}
+                            onActiveChange={setTalkActive}
+                            disabled={sending || uploading || dmSending || groupSending}
+                          />
+                        </div>
+                      }
+                      voiceSlot={
+                        isTGV ? (
+                          <div
+                            ref={voiceTriggerRef}
+                            style={{ display: composerNarrow && !voiceActive ? "none" : "contents" }}
+                          >
+                            <VoiceRecorder accent={colors.green} onSend={sendVoice} onActiveChange={setVoiceActive} disabled={sending || uploading} />
+                          </div>
+                        ) : null
+                      }
+                      hiddenInputs={
+                        <>
+                          <input ref={fileRef} type="file" style={{ display: "none" }} onChange={handleFileChange} />
+                          <input ref={photoRef} type="file" accept="image/*,video/*" style={{ display: "none" }} onChange={handleFileChange} />
+                        </>
+                      }
+                    />
+                  );
+                })()}
+                {/* Narrow-mode picker — rendered as a sibling so it can take the full width. */}
+                {composerNarrow && pickerOpen && !voiceActive && (
+                  <ChatPicker
+                    onClose={() => setPickerOpen(false)}
+                    onEmoji={(e) => {
+                      if (selection.type === "dm") setDmInput((prev) => prev + e);
+                      else if (selection.type === "group") setGroupInput((prev) => prev + e);
+                      else setInput((prev) => prev + e);
                     }}
-                    placeholder={
-                      composerNarrow
-                        ? "Enter to send"
-                        : selection.type === "dm" && peer
-                          ? `Message ${peer.displayName}…`
-                          : selection.type === "group"
-                            ? "Message group…"
-                            : "Enter to send · Shift+Enter for newline"
-                    }
-                    rows={1}
-                    $accent={
-                      selection.type === "dm"
-                        ? (peer?.accentColor ?? VIOLET)
-                        : selection.type === "group"
-                          ? colors.green
-                          : undefined
-                    }
-                    style={{
-                      fontSize: settings.fontSize === "xs" ? 11 : settings.fontSize === "sm" ? 13 : 15,
+                    onGif={(url) => {
+                      if (selection.type === "dm") setDmInput((prev) => (prev ? `${prev} ${url}` : url));
+                      else if (selection.type === "group") setGroupInput((prev) => (prev ? `${prev} ${url}` : url));
+                      else setInput((prev) => (prev ? `${prev} ${url}` : url));
+                    }}
+                    onSticker={(url) => {
+                      if (selection.type === "dm") setDmInput((prev) => (prev ? `${prev} ${url}` : url));
+                      else if (selection.type === "group") setGroupInput((prev) => (prev ? `${prev} ${url}` : url));
+                      else setInput((prev) => (prev ? `${prev} ${url}` : url));
                     }}
                   />
-
-                  <div
-                    ref={talkTriggerRef}
-                    style={{ display: composerNarrow && !talkActive ? "none" : "contents" }}
-                  >
-                    <TalkToText
-                      accent={colors.green}
-                      model={settings.whisperModel ?? "base.en"}
-                      onTranscript={(text) => {
-                        if (selection.type === "dm") {
-                          setDmInput((prev) => (prev ? `${prev} ${text}` : text));
-                        } else if (selection.type === "group") {
-                          setGroupInput((prev) => (prev ? `${prev} ${text}` : text));
-                        } else {
-                          setInput((prev) => (prev ? `${prev} ${text}` : text));
-                        }
-                      }}
-                      onError={(msg) => alert(`Transcribe: ${msg}`)}
-                      onActiveChange={setTalkActive}
-                      disabled={sending || uploading || dmSending || groupSending}
-                    />
-                  </div>
-                  </>
-                  )}
-                  {isTGV && (
-                    <div
-                      ref={voiceTriggerRef}
-                      style={{ display: composerNarrow && !voiceActive ? "none" : "contents" }}
-                    >
-                      <VoiceRecorder accent={colors.green} onSend={sendVoice} onActiveChange={setVoiceActive} disabled={sending || uploading} />
-                    </div>
-                  )}
-
-                  {!voiceActive && (
-                  <Tooltip accent={colors.green} label="Send (Enter)">
-                    <SendBtn
-                      onClick={
-                        selection.type === "dm"
-                          ? sendDm
-                          : selection.type === "group"
-                            ? sendGroupMessage
-                            : sendMessage
-                      }
-                      disabled={
-                        selection.type === "dm"
-                          ? (!dmInput.trim() || dmSending)
-                          : selection.type === "group"
-                            ? (!groupInput.trim() || groupSending)
-                            : ((sending || uploading) || (!input.trim() && !uploadFile))
-                      }
-                      $color={
-                        selection.type === "dm"
-                          ? (peer?.accentColor ?? VIOLET)
-                          : selection.type === "group"
-                            ? colors.green
-                            : undefined
-                      }
-                    >
-                      {(sending || uploading || dmSending || groupSending) ? (
-                        <span style={{ fontSize: "0.5625rem" }}>…</span>
-                      ) : (
-                        <SendIcon size={14} />
-                      )}
-                    </SendBtn>
-                  </Tooltip>
-                  )}
-                </InputRow>
+                )}
               </InputArea>
             )}
           </ConvPane>
           )}
         </Body>
 
-        {!popout && <Resize onMouseDown={onResizeStart} />}
+        {!popout && <Resize $anchor={anchor} onMouseDown={onResizeStart} />}
       </Panel>
 
       {showSettingsModal && (

@@ -16,18 +16,33 @@ export type ProjectUpdates = {
   updates: DepUpdate[];
 };
 
+// Per-type payload shapes. dep-update is the original automation;
+// recordings-storage is the Front Desk recordings storage-threshold alert
+// (telephony-security Item 3 / C2, 2026-05-01).
+export type DepUpdatePayload = {
+  projects: ProjectUpdates[];
+  total_updates: number;
+};
+
+export type RecordingsStoragePayload = {
+  sizeBytes: number;
+  sizeGB: number;        // rounded to 2 decimals
+  thresholdGB: number;   // which integer-GB threshold triggered this alert
+  recordingCount: number;
+  recordingsDir: string;
+};
+
 export type Announcement = {
   id: string;
   created_at: string;
   title: string;
-  type: "dep-update";
+  type: "dep-update" | "recordings-storage" | "sip-attack";
   status: "pending" | "dismissed";
   dismissed_by?: string;
   dismissed_at?: string;
-  data: {
-    projects: ProjectUpdates[];
-    total_updates: number;
-  };
+  // Untyped on the wire — narrow on `type` at the read-site (panel + email
+  // fan-out branch on type before reaching for projects/sizeGB/etc.).
+  data: DepUpdatePayload | RecordingsStoragePayload | Record<string, unknown>;
 };
 
 function readAll(): Announcement[] {

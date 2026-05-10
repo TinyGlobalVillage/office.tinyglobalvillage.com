@@ -4,7 +4,6 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import styled from "styled-components";
 import { rgb } from "../theme";
 import {
-  DrawerBackdrop,
   DrawerPanel,
   DrawerHeader,
   DrawerTab,
@@ -17,6 +16,7 @@ import PhoneTab from "./frontdesk/PhoneTab";
 import SmsTab from "./frontdesk/SmsTab";
 import ContactsTab from "./frontdesk/ContactsTab";
 import AlertsTab from "./frontdesk/AlertsTab";
+import FrontDeskShiftBar from "./frontdesk/FrontDeskShiftBar";
 import {
   DrawerFrontDeskIcon,
   PhoneIcon,
@@ -26,16 +26,16 @@ import {
 } from "./icons";
 import NeonX from "./NeonX";
 import { useKnobVisibility } from "../lib/drawerKnobs";
+import { useDrawerLifecycle, DRAWER_DATA_ATTR } from "../lib/drawerStack";
+import { useDrawerPersistedState } from "../lib/drawerPersist";
 
 const MIN_W = 420;
 const MAX_W = 1400;
 const DEFAULT_W = 640;
-const DRAWER_EVENT = "tgv-right-drawer";
 const DRAWER_ID = "frontdesk";
 
 type FrontDeskTab = "phone" | "sms" | "contacts" | "alerts";
 const TAB_ORDER: FrontDeskTab[] = ["phone", "sms", "contacts", "alerts"];
-const TAB_STORAGE_KEY = "frontdesk-drawer-tab";
 
 // Alphabetical stack with Alerts slot (gold, ~20% from top).
 function getDefaultTabY() {
@@ -45,30 +45,28 @@ function getDefaultTabY() {
 
 // ── Styled ───────────────────────────────────────────────────────
 
-const SideTab = styled(DrawerTab).attrs({ $side: "left", $accent: "gold" })<{ $openOffset?: number; $open?: boolean }>`
-  left: ${(p) => p.$openOffset ?? 0}px;
-  z-index: 61;
-  border-left: none;
-  transition: left 0.25s cubic-bezier(0.4, 0, 0.2, 1), background 0.2s;
+const SideTab = styled(DrawerTab).attrs<{ $anchor: "left" | "right" }>((p) => ({
+  $side: p.$anchor,
+  $accent: "gold",
+}))<{ $openOffset: number; $open: boolean; $anchor: "left" | "right" }>`
+  ${(p) => (p.$anchor === "right" ? "right" : "left")}: ${(p) => p.$openOffset}px;
+  ${(p) => (p.$anchor === "right" ? "border-right: none;" : "border-left: none;")}
+  transition: left 0.25s cubic-bezier(0.4, 0, 0.2, 1), right 0.25s cubic-bezier(0.4, 0, 0.2, 1), background 0.2s;
 
   @media (max-width: 768px) {
     ${(p) => (p.$open ? "display: none;" : "")}
   }
 `;
 
-const Backdrop = styled(DrawerBackdrop)`
-  z-index: 55;
-  backdrop-filter: blur(1px);
-`;
-
-const Panel = styled(DrawerPanel)<{ $fs?: boolean }>`
-  left: 0;
-  z-index: 60;
+const Panel = styled(DrawerPanel)<{ $fs?: boolean; $anchor: "left" | "right" }>`
+  ${(p) => (p.$anchor === "right" ? "right: 0;" : "left: 0;")}
   max-width: ${(p) => (p.$fs ? "100vw" : "85vw")};
-  border-right: ${(p) => (p.$fs ? "none" : `1px solid rgba(${rgb.gold}, 0.18)`)};
+  ${(p) => (p.$anchor === "right"
+    ? `border-left: ${p.$fs ? "none" : `1px solid rgba(${rgb.gold}, 0.18)`};`
+    : `border-right: ${p.$fs ? "none" : `1px solid rgba(${rgb.gold}, 0.18)`};`)}
 
   [data-theme="light"] & {
-    border-right-color: rgba(${rgb.gold}, 0.1);
+    ${(p) => (p.$anchor === "right" ? "border-left-color" : "border-right-color")}: rgba(${rgb.gold}, 0.1);
   }
 `;
 
@@ -290,7 +288,10 @@ const ContentWrap = styled.div`
   flex-direction: column;
 `;
 
-const Resize = styled(DrawerResizeHandle).attrs({ $accent: "gold" })``;
+const Resize = styled(DrawerResizeHandle).attrs<{ $anchor: "left" | "right" }>((p) => ({
+  $accent: "gold",
+  $anchor: p.$anchor,
+}))<{ $anchor: "left" | "right" }>``;
 
 // ── Tab metadata ─────────────────────────────────────────────────
 
@@ -305,94 +306,68 @@ const TAB_META: Record<FrontDeskTab, { label: string; Icon: React.ComponentType<
 
 export default function FrontDeskDrawer() {
   const [open, setOpen] = useState(false);
-  const [width, setWidth] = useState(DEFAULT_W);
-  const [fullscreen, setFullscreen] = useState(false);
-  const [zoom, setZoom] = useState(1.0);
+  const [width, setWidth] = useDrawerPersistedState<number>(DRAWER_ID, "width", DEFAULT_W);
+  const [fullscreen, setFullscreen] = useDrawerPersistedState<boolean>(DRAWER_ID, "fullscreen", false);
+  const [zoom, setZoom] = useDrawerPersistedState<number>(DRAWER_ID, "zoom", 1.0);
+  const [anchor, setAnchor] = useDrawerPersistedState<"left" | "right">(DRAWER_ID, "anchor", "left");
+  const [activeTab, setActiveTab] = useDrawerPersistedState<FrontDeskTab>(DRAWER_ID, "activeTab", "phone");
   const [zoomDDMOpen, setZoomDDMOpen] = useState(false);
   const [tabY, setTabY] = useState<number>(180);
-  const [activeTab, setActiveTab] = useState<FrontDeskTab>("phone");
   const drawerRef = useRef<HTMLDivElement>(null);
   const resizing = useRef(false);
   const startX = useRef(0);
   const startW = useRef(0);
 
-  useEffect(() => {
-    setTabY(getDefaultTabY());
-    const savedZ = sessionStorage.getItem("frontdesk-drawer-zoom");
-    if (savedZ) setZoom(parseFloat(savedZ));
-    const savedW = sessionStorage.getItem("frontdesk-drawer-width");
-    if (savedW) setWidth(parseInt(savedW, 10));
-    const savedT = sessionStorage.getItem(TAB_STORAGE_KEY);
-    if (savedT && (TAB_ORDER as string[]).includes(savedT)) {
-      setActiveTab(savedT as FrontDeskTab);
-    }
-  }, []);
+  useEffect(() => { setTabY(getDefaultTabY()); }, []);
 
-  const [otherDrawerOpen, setOtherDrawerOpen] = useState(false);
   const { hideKnob } = useKnobVisibility();
-  useEffect(() => {
-    const handler = (e: Event) => {
-      const detail = (e as CustomEvent).detail;
-      if (detail === DRAWER_ID) {
-        setOtherDrawerOpen(false);
-      } else if (detail === "close") {
-        setOtherDrawerOpen(false);
-      } else {
-        if (open) setOpen(false);
-        setOtherDrawerOpen(true);
-      }
-    };
-    window.addEventListener(DRAWER_EVENT, handler);
-    return () => window.removeEventListener(DRAWER_EVENT, handler);
-  }, [open]);
 
+  const { position: stackPosition } = useDrawerLifecycle({
+    id: DRAWER_ID,
+    open,
+    setOpen,
+    onClose: () => setFullscreen(false),
+  });
+
+  // Legacy openers: the dashboard tile fires "alerts" and "frontdesk-dial-prefill"
+  // / "frontdesk-sms-open" custom events; route them into this drawer + the
+  // appropriate tab without going through the global stack lifecycle.
   useEffect(() => {
     const handler = (e: Event) => {
-      const detail = (e as CustomEvent).detail;
-      // Accept both the new "frontdesk" id and the legacy "alerts" id so older
-      // dispatchers (tile buttons, deep links) keep working until migrated.
-      if (detail === DRAWER_ID || detail === "alerts") {
+      if ((e as CustomEvent).detail === "alerts") {
         setOpen(true);
-        if (detail === "alerts") setActiveTab("alerts");
-        window.dispatchEvent(new CustomEvent(DRAWER_EVENT, { detail: DRAWER_ID }));
+        setActiveTab("alerts");
       }
     };
     window.addEventListener("tgv-drawer-open", handler);
     return () => window.removeEventListener("tgv-drawer-open", handler);
-  }, []);
+  }, [setActiveTab]);
 
   useEffect(() => {
-    const openToPhone = () => {
-      setOpen(true);
-      window.dispatchEvent(new CustomEvent(DRAWER_EVENT, { detail: DRAWER_ID }));
-      setActiveTab("phone");
-      sessionStorage.setItem(TAB_STORAGE_KEY, "phone");
-    };
-    const openToSms = () => {
-      setOpen(true);
-      window.dispatchEvent(new CustomEvent(DRAWER_EVENT, { detail: DRAWER_ID }));
-      setActiveTab("sms");
-      sessionStorage.setItem(TAB_STORAGE_KEY, "sms");
-    };
+    const openToPhone = () => { setOpen(true); setActiveTab("phone"); };
+    const openToSms   = () => { setOpen(true); setActiveTab("sms"); };
     window.addEventListener("frontdesk-dial-prefill", openToPhone);
     window.addEventListener("frontdesk-sms-open", openToSms);
     return () => {
       window.removeEventListener("frontdesk-dial-prefill", openToPhone);
       window.removeEventListener("frontdesk-sms-open", openToSms);
     };
-  }, []);
+  }, [setActiveTab]);
 
   useEffect(() => {
+    if (!open || !fullscreen) return;
+    document.body.dataset.drawerFullscreen = "1";
+    return () => { delete document.body.dataset.drawerFullscreen; };
+  }, [open, fullscreen]);
+
+  useEffect(() => {
+    if (!open || !fullscreen) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && fullscreen) { setFullscreen(false); return; }
-      if (e.key === "Escape" && open) {
-        setOpen(false);
-        window.dispatchEvent(new CustomEvent(DRAWER_EVENT, { detail: "close" }));
-      }
+      if (e.key === "Escape") setFullscreen(false);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open, fullscreen]);
+  }, [open, fullscreen, setFullscreen]);
 
   // Draggable tab pill
   const startTabY = useRef(0);
@@ -414,13 +389,7 @@ export default function FrontDeskDrawer() {
       }
     };
     const onUp = () => {
-      if (!didDrag.current) {
-        setOpen((p) => {
-          const next = !p;
-          window.dispatchEvent(new CustomEvent(DRAWER_EVENT, { detail: next ? DRAWER_ID : "close" }));
-          return next;
-        });
-      }
+      if (!didDrag.current) setOpen((p) => !p);
       document.body.style.cursor = "";
       document.removeEventListener("mousemove", onMove);
       document.removeEventListener("mouseup", onUp);
@@ -440,10 +409,10 @@ export default function FrontDeskDrawer() {
 
     const onMove = (ev: MouseEvent) => {
       if (!resizing.current) return;
-      const delta = ev.clientX - startX.current;
+      const rawDelta = ev.clientX - startX.current;
+      const delta = anchor === "right" ? -rawDelta : rawDelta;
       const newW = Math.min(MAX_W, Math.max(MIN_W, startW.current + delta));
       setWidth(newW);
-      sessionStorage.setItem("frontdesk-drawer-width", String(newW));
     };
     const onUp = () => {
       resizing.current = false;
@@ -458,9 +427,9 @@ export default function FrontDeskDrawer() {
 
   // Zoom
   const ZOOM_STEPS = [0.8, 0.9, 1.0, 1.1, 1.25];
-  const zoomIn  = () => { const n = ZOOM_STEPS.find((z) => z > zoom) ?? zoom; setZoom(n); sessionStorage.setItem("frontdesk-drawer-zoom", String(n)); };
-  const zoomOut = () => { const n = [...ZOOM_STEPS].reverse().find((z) => z < zoom) ?? zoom; setZoom(n); sessionStorage.setItem("frontdesk-drawer-zoom", String(n)); };
-  const zoomReset = () => { setZoom(1); sessionStorage.setItem("frontdesk-drawer-zoom", "1"); };
+  const zoomIn  = () => { const n = ZOOM_STEPS.find((z) => z > zoom) ?? zoom; setZoom(n); };
+  const zoomOut = () => { const n = [...ZOOM_STEPS].reverse().find((z) => z < zoom) ?? zoom; setZoom(n); };
+  const zoomReset = () => { setZoom(1); };
 
   // Popout
   const popout = () => {
@@ -471,10 +440,7 @@ export default function FrontDeskDrawer() {
     window.open(`/dashboard/frontdesk?popout=1&tab=${activeTab}`, "tgv-frontdesk-drawer", `width=${w},height=${h},left=${left},top=${top}`);
   };
 
-  const switchTab = (t: FrontDeskTab) => {
-    setActiveTab(t);
-    sessionStorage.setItem(TAB_STORAGE_KEY, t);
-  };
+  const switchTab = (t: FrontDeskTab) => setActiveTab(t);
 
   useEffect(() => {
     if (!zoomDDMOpen) return;
@@ -490,16 +456,24 @@ export default function FrontDeskDrawer() {
     };
   }, [zoomDDMOpen]);
 
+  const flipAnchor = () => setAnchor((p) => (p === "left" ? "right" : "left"));
+  const stackZ = 60 + Math.max(0, stackPosition) * 2;
+  const closedTransform = anchor === "right" ? "translateX(100%)" : "translateX(-100%)";
+  const flipTitle = anchor === "left" ? "Mirror to right edge" : "Mirror to left edge";
+
   return (
     <>
-      {!otherDrawerOpen && !hideKnob && (
+      {!hideKnob && (
         <SideTab
+          {...{ [DRAWER_DATA_ATTR]: DRAWER_ID }}
           onMouseDown={onTabMouseDown}
           title={open ? "Close front desk" : "Open front desk"}
           $openOffset={open && !fullscreen ? width : 0}
           $open={open}
+          $anchor={anchor}
           style={{
             top: tabY,
+            zIndex: open ? stackZ + 1 : 100,
             backgroundColor: open
               ? `rgba(${rgb.gold}, 0.25)`
               : `rgba(${rgb.gold}, 0.12)`,
@@ -512,18 +486,19 @@ export default function FrontDeskDrawer() {
         </SideTab>
       )}
 
-      {open && !fullscreen && (
-        <Backdrop onClick={() => { setOpen(false); window.dispatchEvent(new CustomEvent(DRAWER_EVENT, { detail: "close" })); }} />
-      )}
-
       <Panel
+        {...{ [DRAWER_DATA_ATTR]: DRAWER_ID }}
         ref={drawerRef}
         $fs={fullscreen}
+        $anchor={anchor}
         style={{
           width: fullscreen ? "100vw" : width,
-          transform: open ? "translateX(0)" : "translateX(-100%)",
+          transform: open ? "translateX(0)" : closedTransform,
           transition: resizing.current ? "none" : "transform 0.25s cubic-bezier(0.4,0,0.2,1)",
-          boxShadow: open && !fullscreen ? "12px 0 60px rgba(0,0,0,0.7)" : "none",
+          boxShadow: open && !fullscreen
+            ? (anchor === "right" ? "-12px 0 60px rgba(0,0,0,0.7)" : "12px 0 60px rgba(0,0,0,0.7)")
+            : "none",
+          zIndex: stackZ,
         }}
       >
         <Header>
@@ -581,11 +556,12 @@ export default function FrontDeskDrawer() {
 
             <Separator />
 
+            <ControlBtn onClick={flipAnchor} title={flipTitle} aria-label={flipTitle}>⇄</ControlBtn>
             <ControlBtn onClick={popout} title="Open in new window">⧉</ControlBtn>
             <ControlBtn onClick={() => setFullscreen((p) => !p)} title={fullscreen ? "Exit full screen (Esc)" : "Full screen"}>
               {fullscreen ? "⊡" : "⊞"}
             </ControlBtn>
-            <NeonX accent="gold" onClick={() => { setOpen(false); setFullscreen(false); window.dispatchEvent(new CustomEvent(DRAWER_EVENT, { detail: "close" })); }} title="Close (Esc)" />
+            <NeonX accent="gold" onClick={() => { setOpen(false); setFullscreen(false); }} title="Close (Esc)" />
           </ControlRow>
         </Header>
 
@@ -601,6 +577,8 @@ export default function FrontDeskDrawer() {
           })}
         </TabBar>
 
+        <FrontDeskShiftBar />
+
         <ContentWrap style={{ fontSize: `${zoom}rem` }}>
           {activeTab === "phone" && <PhoneTab />}
           {activeTab === "sms" && <SmsTab />}
@@ -608,7 +586,7 @@ export default function FrontDeskDrawer() {
           {activeTab === "alerts" && <AlertsTab />}
         </ContentWrap>
 
-        {!fullscreen && <Resize onMouseDown={onResizeStart} title="Drag to resize" />}
+        {!fullscreen && <Resize $anchor={anchor} onMouseDown={onResizeStart} title="Drag to resize" />}
       </Panel>
     </>
   );

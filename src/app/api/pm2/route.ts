@@ -5,7 +5,7 @@ import path from "path";
 
 const execAsync = promisify(exec);
 
-const CLIENT_ROOT = "/srv/refusion-core/client";
+const CLIENT_ROOT = "/srv/refusion-core/clients";
 
 type Pm2Process = {
   pm_id: number;

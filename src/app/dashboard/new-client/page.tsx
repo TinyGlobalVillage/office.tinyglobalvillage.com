@@ -1,5 +1,10 @@
 "use client";
 
+// Bypass static prerender — getPrice() runs in render and the static export
+// fails when any registry tier is missing fields. Admin-only page; no benefit
+// from static caching.
+export const dynamic = "force-dynamic";
+
 import { useState, useMemo } from "react";
 import styled from "styled-components";
 import { colors, rgb } from "@/app/theme";
@@ -18,7 +23,7 @@ import {
   type VerticalId,
   type ModuleId,
   type TierId,
-} from "@/lib/registry";
+} from "@tgv/module-registry";
 
 type WizardState = {
   clientName: string;
@@ -46,7 +51,7 @@ const INITIAL: WizardState = {
   contactEmail: "",
   contactPhone: "",
   vertical: "",
-  tier: "basic",
+  tier: "tgv",
   modules: [],
   storageGB: STORAGE.includedGB,
   customFlag: false,

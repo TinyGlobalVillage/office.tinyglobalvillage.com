@@ -1,0 +1,86 @@
+{
+  "threads": {
+    "+19283010964": [
+      {
+        "id": "sms_1778194009217_d8j34g",
+        "createdAt": "2026-05-07T22:46:49.217Z",
+        "readBy": [],
+        "direction": "outbound",
+        "fromE164": "+17077508469",
+        "toE164": "+19283010964",
+        "body": "Greetings Blue Sage, are you still offering your Blue Sage Holistic Package?",
+        "sentBy": "admin",
+        "telnyxMessageId": "40319e04-9f4b-4621-ae8d-df5a6aaff587"
+      }
+    ]
+  },
+  "deletedThreads": {
+    "29283": {
+      "messages": [
+        {
+          "id": "sms_1777747770566_45e51g",
+          "createdAt": "2026-05-02T18:49:30.566Z",
+          "readBy": [
+            "admin"
+          ],
+          "direction": "inbound",
+          "fromE164": "29283",
+          "toE164": "+17077508469",
+          "body": "Your WhatsApp code: 859-288\n\nDon't share this code with others",
+          "sentBy": null,
+          "telnyxMessageId": "c8cda9b3-07db-4658-a846-69c8db79b101"
+        }
+      ],
+      "deletedAt": "2026-05-02T22:34:51.722Z"
+    },
+    "+17074999420": {
+      "messages": [
+        {
+          "id": "sms_1778192697531_jgf6df",
+          "createdAt": "2026-05-07T22:24:57.531Z",
+          "readBy": [],
+          "direction": "outbound",
+          "fromE164": "+17077508469",
+          "toE164": "+17074999420",
+          "body": "Hi",
+          "sentBy": "admin",
+          "telnyxMessageId": "40319e04-8b46-498b-b9d6-632454147c97"
+        },
+        {
+          "id": "sms_1778194016327_j42ftq",
+          "createdAt": "2026-05-07T22:46:56.327Z",
+          "readBy": [],
+          "direction": "outbound",
+          "fromE164": "+17077508469",
+          "toE164": "+17074999420",
+          "body": "Hi",
+          "sentBy": "admin",
+          "telnyxMessageId": "40319e04-9f67-4b9e-a94e-f6c8704ec79a"
+        },
+        {
+          "id": "sms_1778194354379_uh6ojr",
+          "createdAt": "2026-05-07T22:52:34.380Z",
+          "readBy": [],
+          "direction": "outbound",
+          "fromE164": "+17077508469",
+          "toE164": "+17074999420",
+          "body": "Hello",
+          "sentBy": "admin",
+          "telnyxMessageId": "40319e04-a490-414d-b6ec-f835e1cc4342"
+        },
+        {
+          "id": "sms_1778344625111_vziijq",
+          "createdAt": "2026-05-09T16:37:05.111Z",
+          "readBy": [],
+          "direction": "outbound",
+          "fromE164": "+17077508469",
+          "toE164": "+17074999420",
+          "body": "Yo",
+          "sentBy": "admin",
+          "telnyxMessageId": "40319e0d-9982-499c-b89e-d86d5f642736"
+        }
+      ],
+      "deletedAt": "2026-05-09T16:37:21.963Z"
+    }
+  }
+}

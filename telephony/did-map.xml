@@ -9,3 +9,12 @@
     <action application="transfer" data="8772469848 XML office.tinyglobalvillage.com"/>
   </condition>
 </extension>
+<extension name="tgv-office-relay-707">
+  <!-- 1-707-750-8469 — Telnyx voice-enabled DID. Inbound Front Desk calls
+       (and Meta verification calls for the WhatsApp Cloud API) land here. -->
+  <condition field="destination_number" expression="^\+?1?7077508469$">
+    <action application="set" data="domain_name=office.tinyglobalvillage.com"/>
+    <action application="set" data="tgv_client=office.tinyglobalvillage.com"/>
+    <action application="transfer" data="7077508469 XML office.tinyglobalvillage.com"/>
+  </condition>
+</extension>

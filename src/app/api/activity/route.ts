@@ -48,7 +48,7 @@ async function getPm2Events(): Promise<Event[]> {
 
 // ── Git log parser ────────────────────────────────────────────────
 async function getGitEvents(): Promise<Event[]> {
-  const clientRoot = "/srv/refusion-core/client";
+  const clientRoot = "/srv/refusion-core/clients";
   const events: Event[] = [];
 
   let dirs: string[] = [];

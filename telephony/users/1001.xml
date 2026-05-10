@@ -2,7 +2,7 @@
   <!-- Softphone extension 1001 — Gio's front-desk handset. -->
   <user id="1001">
     <params>
-      <param name="password" value="0f56c4587ae9d99fbf7a8622d4918b41e42a0c3185acf859"/>
+      <param name="password" value="cb35669fdcd8cb2b60053558214c2dbe9e3adea270b6e007d356cfa6405c576c"/>
       <param name="vm-password" value="1001"/>
     </params>
     <variables>
@@ -14,6 +14,13 @@
       <variable name="outbound_caller_id_name" value="TGV Front Desk"/>
       <variable name="outbound_caller_id_number" value="18772469848"/>
       <variable name="callgroup" value="frontdesk"/>
+      <!-- Toll-fraud auth gate (telephony-security Item 5, 2026-05-02). Set
+           on every authenticated user; absent on inbound trunk traffic. The
+           outbound-telnyx and local-ext extensions in context.xml refuse to
+           bridge unless this is "true", so an attacker who reaches the
+           dialplan via spoofed From URIs from the public internet cannot
+           reach the outbound bridge even if a destination regex slips. -->
+      <variable name="sip_authorized" value="true"/>
     </variables>
   </user>
 </include>

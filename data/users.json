@@ -21,9 +21,10 @@
         "accentColor": "#00bfff",
         "title": "",
         "bio": "",
-        "totpSecret": null,
-        "totpEnabled": false,
-        "webauthnCredentials": []
+        "totpSecret": "JTRU4XMEM2PLS4CGGLVS3YUSCZDITSBN",
+        "totpEnabled": true,
+        "webauthnCredentials": [],
+        "lightAccent": "#d6336c"
     },
     "employee1": {
         "displayName": "Employee 1",

@@ -3,12 +3,10 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import styled from "styled-components";
 import { colors, rgb } from "../../theme";
-import type { CallRecord, Did, ShiftAssignment } from "@/lib/frontdesk/types";
-import ShiftWorkerModal from "./ShiftWorkerModal";
-import DidManagerModal from "./DidManagerModal";
-import SystemToolsModal from "./SystemToolsModal";
+import type { CallRecord, Did } from "@/lib/frontdesk/types";
 import NeonLineDDM from "./NeonLineDDM";
-import { EditIcon, TrashIcon, SettingsIcon } from "../icons";
+import { TrashIcon } from "../icons";
+import { FRONTDESK_DATA_CHANGED_EVENT } from "./FrontDeskShiftBar";
 import { useSoftphone } from "@/lib/frontdesk/useSoftphone";
 import { playDtmf } from "@/lib/frontdesk/ringTones";
 
@@ -317,55 +315,6 @@ const Empty = styled.div`
   font-size: 0.8125rem;
 `;
 
-const ShiftBar = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-  padding: 0.45rem 0.6rem;
-  border-radius: 0.5rem;
-  background: rgba(${rgb.gold}, 0.05);
-  border: 1px solid rgba(${rgb.gold}, 0.2);
-  font-size: 0.8125rem;
-`;
-
-const ShiftLabel = styled.span`
-  color: var(--t-textFaint);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  font-size: 0.6875rem;
-  font-weight: 700;
-`;
-
-const ShiftName = styled.span`
-  color: ${colors.gold};
-  font-weight: 600;
-  margin-left: 0.35rem;
-`;
-
-const AdminRow = styled.div`
-  display: flex;
-  gap: 0.35rem;
-`;
-
-const AdminBtn = styled.button`
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  padding: 0.3rem 0.55rem;
-  font-size: 0.6875rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  background: transparent;
-  border: 1px solid rgba(${rgb.gold}, 0.4);
-  border-radius: 0.35rem;
-  color: ${colors.gold};
-  cursor: pointer;
-  &:hover { background: rgba(${rgb.gold}, 0.14); }
-  svg { width: 10px; height: 10px; }
-`;
-
 // ── Helpers ──────────────────────────────────────────────────────
 
 const KEYPAD: Array<{ digit: string; letters: string }> = [
@@ -441,14 +390,17 @@ export default function PhoneTab() {
   const [fromDidId, setFromDidId] = useState<string | null>(null);
   const [calls, setCalls] = useState<CallRecord[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [shift, setShift] = useState<ShiftAssignment | null>(null);
   const [me, setMe] = useState<{ username: string; displayName: string } | null>(null);
   const [profiles, setProfiles] = useState<Array<{
     username: string;
     displayName: string;
     accentColor?: string;
   }>>([]);
-  const [modal, setModal] = useState<"tools" | "shift" | "dids" | null>(null);
+  // Outbound recording is OPT-OUT (telephony-security Item 4 / B2). Per-call
+  // toggle defaults to "on"; user can flip it off before pressing Call.
+  // The flag rides as `X-Record: true|false` into the FreeSWITCH dialplan
+  // and is also mirrored into the CDR consentAcknowledged field.
+  const [recordCall, setRecordCall] = useState(true);
   const isExec = me ? EXEC_USERNAMES.has(me.username) : false;
 
   const softphone = useSoftphone();
@@ -471,16 +423,14 @@ export default function PhoneTab() {
 
   const loadAll = useCallback(async () => {
     try {
-      const [didsRes, callsRes, shiftRes, meRes, profilesRes] = await Promise.all([
+      const [didsRes, callsRes, meRes, profilesRes] = await Promise.all([
         fetch("/api/frontdesk/dids"),
         fetch("/api/frontdesk/calls/history?limit=50"),
-        fetch("/api/frontdesk/shift"),
         fetch("/api/users/me"),
         fetch("/api/users/profile"),
       ]);
       if (didsRes.ok) setDids((await didsRes.json()).dids ?? []);
       if (callsRes.ok) setCalls((await callsRes.json()).calls ?? []);
-      if (shiftRes.ok) setShift((await shiftRes.json()).shift ?? null);
       if (meRes.ok) {
         const j = await meRes.json();
         setMe({ username: j.username, displayName: j.displayName });
@@ -497,7 +447,14 @@ export default function PhoneTab() {
   useEffect(() => {
     loadAll();
     const id = setInterval(loadAll, 15_000);
-    return () => clearInterval(id);
+    // Listen for shift/DID/profile changes from the lifted ShiftBar so the
+    // calls log + outbound DID picker stay in sync without a full re-mount.
+    const onChanged = () => void loadAll();
+    window.addEventListener(FRONTDESK_DATA_CHANGED_EVENT, onChanged);
+    return () => {
+      clearInterval(id);
+      window.removeEventListener(FRONTDESK_DATA_CHANGED_EVENT, onChanged);
+    };
   }, [loadAll]);
 
   useEffect(() => {
@@ -527,6 +484,7 @@ export default function PhoneTab() {
     direction: "inbound" | "outbound";
     startedAt: string;
     answeredAt: string | null;
+    recordCall: boolean;
   } | null>(null);
   const prevCallStateRef = useRef(softphone.callState);
 
@@ -553,6 +511,10 @@ export default function PhoneTab() {
           answeredAt: call.answeredAt,
           endedAt: new Date().toISOString(),
           outcome,
+          // Outbound consent reflects the user's per-call toggle. Inbound
+          // consent comes from the dialplan IVR result (press 1) and is
+          // patched in by the FreeSWITCH webhook path, not from here.
+          consentAcknowledged: call.direction === "outbound" ? call.recordCall : false,
         }),
       }).then(() => loadAll()).catch(() => { /* offline — skip */ });
     }
@@ -581,8 +543,9 @@ export default function PhoneTab() {
         direction: "outbound",
         startedAt: new Date().toISOString(),
         answeredAt: null,
+        recordCall,
       };
-      await softphone.dial(normalized.replace(/^\+/, ""), selectedDid.e164);
+      await softphone.dial(normalized.replace(/^\+/, ""), selectedDid.e164, recordCall);
       setInput("");
     } catch (err) {
       activeCallRef.current = null;
@@ -594,26 +557,6 @@ export default function PhoneTab() {
 
   return (
     <Wrap>
-      <ShiftBar>
-        <div>
-          <ShiftLabel>On shift</ShiftLabel>
-          <ShiftName>{shift?.username ?? "— (ring all online)"}</ShiftName>
-        </div>
-        {isExec && (
-          <AdminRow>
-            <AdminBtn type="button" onClick={() => setModal("tools")} title="System tools">
-              <SettingsIcon size={10} /> Tools
-            </AdminBtn>
-            <AdminBtn type="button" onClick={() => setModal("shift")}>
-              <EditIcon size={10} /> Shift
-            </AdminBtn>
-            <AdminBtn type="button" onClick={() => setModal("dids")}>
-              <EditIcon size={10} /> DIDs
-            </AdminBtn>
-          </AdminRow>
-        )}
-      </ShiftBar>
-
       <SectionHead>Outbound Line</SectionHead>
       {activeDids.length === 0 ? (
         <Empty>No DID assigned. Admin can provision one in the Admin modal.</Empty>
@@ -654,6 +597,21 @@ export default function PhoneTab() {
           </Key>
         ))}
       </KeypadGrid>
+
+      <label style={{
+        display: "flex", alignItems: "center", gap: "0.5rem",
+        fontSize: "0.6875rem", color: "var(--t-textFaint)",
+        textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 600,
+        cursor: onCall ? "default" : "pointer", opacity: onCall ? 0.5 : 1,
+      }}>
+        <input
+          type="checkbox"
+          checked={recordCall}
+          disabled={onCall}
+          onChange={(e) => setRecordCall(e.target.checked)}
+        />
+        Record this call (consent assumed; uncheck to opt out)
+      </label>
 
       <ActionRow>
         <EraseBtn onClick={backspace} type="button" title="Backspace" disabled={onCall}>⌫</EraseBtn>
@@ -745,24 +703,6 @@ export default function PhoneTab() {
         </Log>
       )}
 
-      {modal === "tools" && (
-        <SystemToolsModal
-          onClose={() => { setModal(null); loadAll(); }}
-          onShiftSaved={(s) => setShift(s)}
-          onDidsChanged={() => loadAll()}
-        />
-      )}
-      {modal === "shift" && (
-        <ShiftWorkerModal
-          onClose={() => setModal(null)}
-          onSaved={(s) => setShift(s)}
-        />
-      )}
-      {modal === "dids" && (
-        <DidManagerModal
-          onClose={() => { setModal(null); loadAll(); }}
-        />
-      )}
     </Wrap>
   );
 }

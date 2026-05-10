@@ -12,7 +12,7 @@ import EditorTerminalDock from "../../components/EditorTerminalDock";
 
 const MonacoEditor = dynamic(() => import("@monaco-editor/react"), { ssr: false });
 
-const CLIENT_ROOT = "/srv/refusion-core/client";
+const CLIENT_ROOT = "/srv/refusion-core/clients";
 
 /* ── Types ─────────────────────────────────────────────────────── */
 

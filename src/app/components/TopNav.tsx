@@ -8,6 +8,7 @@ import ProfileModal, { type Profile, type Memo, type Ping } from "./ProfileModal
 import { UserAvatar } from "./ChatSettingsModal";
 import { signOut } from "next-auth/react";
 import { useNavHistory } from "./useNavHistory";
+import { clearAllDrawerState } from "../lib/drawerPersist";
 import LDM from "./LDM";
 import { colors, rgb } from "@/app/theme";
 import { MembersIcon } from "./icons";
@@ -657,7 +658,7 @@ function TopNavInner() {
               </div>
             )}
             <LDM size={32} />
-            <SignOutBtn onClick={() => signOut({ callbackUrl: "/login" })} title="Sign out of TGV Office">
+            <SignOutBtn onClick={() => { clearAllDrawerState(); signOut({ callbackUrl: "/login" }); }} title="Sign out of TGV Office">
               <span>⏏</span>
               <DesktopOnly>Sign out</DesktopOnly>
             </SignOutBtn>

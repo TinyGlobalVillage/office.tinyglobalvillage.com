@@ -15,6 +15,11 @@ import {
 import type { Did, DidAssignment, ShiftAssignment } from "@/lib/frontdesk/types";
 import { TrashIcon } from "../icons";
 import NeonLineDDM from "./NeonLineDDM";
+import VoicemailSection from "./VoicemailSection";
+import RingtoneSection from "./RingtoneSection";
+import TrashModal from "./TrashModal";
+import WhatsappRelayReadmeModal from "./WhatsappRelayReadmeModal";
+import SipKillswitchSection from "./SipKillswitchSection";
 
 type Profile = { username: string; displayName: string; role?: "admin" | "employee" };
 
@@ -225,6 +230,27 @@ export default function SystemToolsModal(props: {
   const [provision, setProvision] = useState(false);
   const [addBusy, setAddBusy] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
+
+  // Trash
+  const [trashOpen, setTrashOpen] = useState(false);
+  const [trashCount, setTrashCount] = useState<number | null>(null);
+
+  // Claude-via-WhatsApp reference modal
+  const [whatsappRefOpen, setWhatsappRefOpen] = useState(false);
+
+  useEffect(() => {
+    void (async () => {
+      try {
+        const res = await fetch("/api/frontdesk/sms/trash");
+        if (res.ok) {
+          const j = await res.json();
+          setTrashCount(j.trashed?.length ?? 0);
+        }
+      } catch {
+        /* ignore */
+      }
+    })();
+  }, [trashOpen]);
 
   const load = useCallback(async () => {
     const [didsRes, usersRes, shiftRes] = await Promise.all([
@@ -509,8 +535,64 @@ export default function SystemToolsModal(props: {
               </Btn>
             </div>
           </Section>
+
+          <Section>
+            <SectionHead>Voicemail</SectionHead>
+            <SectionHint>
+              Record the greeting callers hear and choose whether inbound calls
+              ring the softphone first or go straight to voicemail.
+            </SectionHint>
+            <VoicemailSection />
+          </Section>
+
+          <Section>
+            <SectionHead>Ringtone &amp; notifications</SectionHead>
+            <SectionHint>
+              Pick the audible ring and enable browser pop-up alerts when a
+              call comes in.
+            </SectionHint>
+            <RingtoneSection />
+          </Section>
+
+          <Section>
+            <SectionHead>SMS Trash</SectionHead>
+            <SectionHint>
+              Threads you delete are kept for 30 days before being purged
+              automatically. Open the trash to restore or permanently delete.
+            </SectionHint>
+            <Btn $variant="ghost" onClick={() => setTrashOpen(true)} type="button">
+              🗑 Open SMS Trash
+              {trashCount !== null && trashCount > 0 ? ` (${trashCount})` : ""}
+            </Btn>
+          </Section>
+
+          <Section>
+            <SectionHead>SIP Trunk (Killswitch)</SectionHead>
+            <SectionHint>
+              Emergency lockdown for the SIP trunk. Engage if you spot a
+              toll-fraud scanner attack, unexpected billing, or any time
+              voice should be silenced fast. Restore re-enables only the
+              Telnyx allowlist — no public exposure.
+            </SectionHint>
+            <SipKillswitchSection />
+          </Section>
+
+          <Section>
+            <SectionHead>Claude-via-WhatsApp</SectionHead>
+            <SectionHint>
+              Quick reference for the Claude-via-WhatsApp agent: command
+              grammar (#tag, #save, #cd, etc.), how the 24h session window
+              affects cost, what tools the agent can use, and where to
+              configure or disable it.
+            </SectionHint>
+            <Btn $variant="ghost" onClick={() => setWhatsappRefOpen(true)} type="button">
+              📱 Open WhatsApp Reference
+            </Btn>
+          </Section>
         </ModalBody>
       </ModalContainer>
+      <TrashModal open={trashOpen} onClose={() => setTrashOpen(false)} />
+      <WhatsappRelayReadmeModal open={whatsappRefOpen} onClose={() => setWhatsappRefOpen(false)} />
     </ModalBackdrop>
   );
 }

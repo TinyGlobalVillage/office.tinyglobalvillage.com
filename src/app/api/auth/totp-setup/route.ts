@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getToken } from "next-auth/jwt";
+import { getAuthToken } from "@/lib/auth-cookie";
 import QRCode from "qrcode";
 import { generateTotpSecret, generateTotpUri, verifyTotp } from "@/lib/totp";
 import { getUser, updateUser } from "@/lib/users";
+import { set2faCookie } from "@/lib/twofa-cookie";
 
 export async function GET(req: NextRequest) {
-  const token = await getToken({ req, secret: process.env.AUTH_SECRET });
+  const token = await getAuthToken(req);
   const username = token?.username as string | undefined;
   if (!username) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -20,7 +21,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const token = await getToken({ req, secret: process.env.AUTH_SECRET });
+  const token = await getAuthToken(req);
   const username = token?.username as string | undefined;
   if (!username) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -32,5 +33,9 @@ export async function POST(req: NextRequest) {
   }
 
   updateUser(username, { totpSecret: secret, totpEnabled: true });
-  return NextResponse.json({ ok: true });
+  // User just proved possession of the authenticator — issue the 2FA cookie
+  // immediately so they don't have to re-enter a code on the next request.
+  const res = NextResponse.json({ ok: true });
+  set2faCookie(res, username);
+  return res;
 }

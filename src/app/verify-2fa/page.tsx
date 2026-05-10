@@ -223,6 +223,9 @@ function VerifyForm() {
     })
       .then((r) => r.json())
       .then((d) => {
+        // In the mandatory-2FA model, the proxy sends non-enrolled users to
+        // /setup-2fa, so this page should only be reached by enrolled users.
+        // If somehow reached without enrollment, surface the setup prompt.
         if (d.error === "2FA not configured") setNeedsSetup(true);
       })
       .catch(() => {});
@@ -313,6 +316,8 @@ function VerifyForm() {
       <SignOutLink
         onClick={async () => {
           const { signOut } = await import("next-auth/react");
+          const { clearAllDrawerState } = await import("@/app/lib/drawerPersist");
+          clearAllDrawerState();
           signOut({ callbackUrl: "/login" });
         }}
       >

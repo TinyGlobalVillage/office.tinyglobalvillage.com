@@ -4,13 +4,13 @@
  * Reads the JWT directly (same as middleware) to identify who is pinging.
  */
 import { type NextRequest, NextResponse } from "next/server";
-import { getToken } from "next-auth/jwt";
+import { getAuthToken } from "@/lib/auth-cookie";
 import { recordHeartbeat } from "@/lib/presence-store";
 
 const USERS: Record<string, string> = { "1": "admin", "2": "marmar" };
 
 export async function POST(req: NextRequest) {
-  const token = await getToken({ req, secret: process.env.AUTH_SECRET });
+  const token = await getAuthToken(req);
 
   // token.username is set by the jwt callback; fall back to sub (user id) lookup
   const username =

@@ -4,7 +4,6 @@ import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import styled, { css } from "styled-components";
 import { colors, rgb } from "../theme";
 import {
-  DrawerBackdrop,
   DrawerPanel,
   DrawerHeader,
   DrawerTab,
@@ -17,6 +16,8 @@ import {
 import { DrawerSessionsIcon, SearchIcon, EditIcon } from "./icons";
 import NeonX from "./NeonX";
 import { useKnobVisibility } from "../lib/drawerKnobs";
+import { useDrawerLifecycle, DRAWER_DATA_ATTR } from "../lib/drawerStack";
+import { useDrawerPersistedState } from "../lib/drawerPersist";
 import { CallSurface, CallButton } from "./call";
 import type { RingChannel } from "./call";
 import SessionSettingsModal from "./SessionSettingsModal";
@@ -50,7 +51,6 @@ const PINK_RGB = rgb.pink;
 const DEFAULT_W       = 760;
 const MIN_W           = 480;
 const MAX_W           = 1200;
-const DRAWER_EVENT    = "tgv-right-drawer";
 const DRAWER_ID       = "sessions";
 const MOBILE_BREAK    = 768;
 const POLL_MS         = 8000;
@@ -70,28 +70,28 @@ const CATEGORY_META: Record<SessionKind, { label: string; accent: string; order:
 
 // ── Styled ───────────────────────────────────────────────────────────────────
 
-const SideTab = styled(DrawerTab).attrs({ $side: "left", $accent: "pink" })<{ $openOffset?: number }>`
-  left: ${(p) => p.$openOffset ?? 0}px;
-  z-index: 63;
-  border-left: none;
-  transition: left 0.25s cubic-bezier(0.4, 0, 0.2, 1), background 0.2s;
+const SideTab = styled(DrawerTab).attrs<{ $anchor: "left" | "right" }>((p) => ({
+  $side: p.$anchor,
+  $accent: "pink",
+}))<{ $openOffset: number; $anchor: "left" | "right" }>`
+  ${(p) => (p.$anchor === "right" ? "right" : "left")}: ${(p) => p.$openOffset}px;
+  ${(p) => (p.$anchor === "right" ? "border-right: none;" : "border-left: none;")}
+  transition: left 0.25s cubic-bezier(0.4, 0, 0.2, 1), right 0.25s cubic-bezier(0.4, 0, 0.2, 1), background 0.2s;
 `;
 
-const Backdrop = styled(DrawerBackdrop)`
-  z-index: 59;
-  backdrop-filter: blur(1px);
-`;
-
-const Panel = styled(DrawerPanel)`
-  left: 0;
-  z-index: 64;
+const Panel = styled(DrawerPanel)<{ $anchor: "left" | "right" }>`
+  ${(p) => (p.$anchor === "right" ? "right: 0;" : "left: 0;")}
   max-width: 85vw;
-  border-right: 1px solid rgba(${PINK_RGB}, 0.18);
+  ${(p) => (p.$anchor === "right"
+    ? `border-left: 1px solid rgba(${PINK_RGB}, 0.18);`
+    : `border-right: 1px solid rgba(${PINK_RGB}, 0.18);`)}
   display: flex;
   flex-direction: column;
   overflow: hidden;
 
-  [data-theme="light"] & { border-right-color: rgba(${PINK_RGB}, 0.1); }
+  [data-theme="light"] & {
+    ${(p) => (p.$anchor === "right" ? "border-left-color" : "border-right-color")}: rgba(${PINK_RGB}, 0.1);
+  }
 
   @media (max-width: ${MOBILE_BREAK}px) {
     width: 100vw !important;
@@ -143,7 +143,10 @@ const ControlBtn = styled(PanelIconBtn)`
   }
 `;
 
-const Resize = styled(DrawerResizeHandle).attrs({ $accent: "pink" })``;
+const Resize = styled(DrawerResizeHandle).attrs<{ $anchor: "left" | "right" }>((p) => ({
+  $accent: "pink",
+  $anchor: p.$anchor,
+}))<{ $anchor: "left" | "right" }>``;
 
 const Body = styled.div`
   flex: 1;
@@ -500,24 +503,30 @@ const ErrorPad = styled.div`
 
 export default function SessionsDrawer() {
   const [open, setOpen] = useState(false);
-  const [width, setWidth] = useState(DEFAULT_W);
+  const [width, setWidth] = useDrawerPersistedState<number>(DRAWER_ID, "width", DEFAULT_W);
+  const [anchor, setAnchor] = useDrawerPersistedState<"left" | "right">(DRAWER_ID, "anchor", "left");
   const [tabY, setTabY] = useState<number>(720);
-  const [otherDrawerOpen, setOtherDrawerOpen] = useState(false);
   const { hideKnob } = useKnobVisibility();
 
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [selection, setSelection] = useState<Selection>({ type: "none" });
-  const [mobileView, setMobileView] = useState<MobileView>("list");
-  const [observerMode, setObserverMode] = useState(false);
+  const [selection, setSelection] = useDrawerPersistedState<Selection>(DRAWER_ID, "selection", { type: "none" });
+  const [mobileView, setMobileView] = useDrawerPersistedState<MobileView>(DRAWER_ID, "mobileView", "list");
+  const [observerMode, setObserverMode] = useDrawerPersistedState<boolean>(DRAWER_ID, "observerMode", false);
   const [micOff, setMicOff] = useState(false);
   const [camOff, setCamOff] = useState(false);
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useDrawerPersistedState<string>(DRAWER_ID, "search", "");
   const [daBMode, setDaBMode] = useState<"rest" | "editing">("rest");
   const [daBName, setDaBName] = useState("");
   const [settingsFor, setSettingsFor] = useState<string | null>(null);
 
   useEffect(() => { setTabY(getDefaultTabY()); }, []);
+
+  const { position: stackPosition } = useDrawerLifecycle({
+    id: DRAWER_ID,
+    open,
+    setOpen,
+  });
 
   // ── Sessions fetch ────────────────────────────────────────────────────────
 
@@ -540,31 +549,6 @@ export default function SessionsDrawer() {
     return () => window.clearInterval(id);
   }, [open, loadSessions]);
 
-  // ── Drawer mutex + open/close ─────────────────────────────────────────────
-
-  useEffect(() => {
-    const handler = (e: Event) => {
-      const detail = (e as CustomEvent).detail;
-      if (detail === DRAWER_ID) { setOtherDrawerOpen(false); return; }
-      if (detail === "close")   { setOtherDrawerOpen(false); return; }
-      if (open) setOpen(false);
-      setOtherDrawerOpen(true);
-    };
-    window.addEventListener(DRAWER_EVENT, handler);
-    return () => window.removeEventListener(DRAWER_EVENT, handler);
-  }, [open]);
-
-  useEffect(() => {
-    const handler = (e: Event) => {
-      if ((e as CustomEvent).detail === DRAWER_ID) {
-        setOpen(true);
-        window.dispatchEvent(new CustomEvent(DRAWER_EVENT, { detail: DRAWER_ID }));
-      }
-    };
-    window.addEventListener("tgv-drawer-open", handler);
-    return () => window.removeEventListener("tgv-drawer-open", handler);
-  }, []);
-
   // ── Accept-ring handoff from IncomingCallToast ────────────────────────────
 
   useEffect(() => {
@@ -582,22 +566,7 @@ export default function SessionsDrawer() {
     return () => window.removeEventListener("tgv-call-accept", handler);
   }, []);
 
-  // ESC
-  useEffect(() => {
-    if (!open) return;
-    const handler = (e: KeyboardEvent) => {
-      if (e.key !== "Escape") return;
-      setOpen(false);
-      window.dispatchEvent(new CustomEvent(DRAWER_EVENT, { detail: "close" }));
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [open]);
-
-  const handleClose = () => {
-    setOpen(false);
-    window.dispatchEvent(new CustomEvent(DRAWER_EVENT, { detail: "close" }));
-  };
+  const handleClose = () => setOpen(false);
 
   // ── Presence heartbeat ────────────────────────────────────────────────────
   //
@@ -681,7 +650,11 @@ export default function SessionsDrawer() {
     startW.current = width;
     const onMove = (ev: MouseEvent) => {
       if (!resizing.current) return;
-      const delta = startX.current - ev.clientX;
+      // Sessions panel grows toward the inner edge: dragging "in" widens it.
+      // For a left-anchored panel the inner edge is on the right (drag right
+      // = wider). For a right-anchored panel it's the opposite.
+      const rawDelta = ev.clientX - startX.current;
+      const delta = anchor === "right" ? -rawDelta : rawDelta;
       setWidth(Math.min(MAX_W, Math.max(MIN_W, startW.current + delta)));
     };
     const onUp = () => {
@@ -691,7 +664,7 @@ export default function SessionsDrawer() {
     };
     window.addEventListener("mousemove", onMove);
     window.addEventListener("mouseup", onUp);
-  }, [width]);
+  }, [width, anchor, setWidth]);
 
   // Tab drag / toggle
   const tabDragging = useRef(false);
@@ -716,13 +689,7 @@ export default function SessionsDrawer() {
     };
     const onUp = () => {
       tabDragging.current = false;
-      if (!didDrag.current) {
-        setOpen(p => {
-          const next = !p;
-          window.dispatchEvent(new CustomEvent(DRAWER_EVENT, { detail: next ? DRAWER_ID : "close" }));
-          return next;
-        });
-      }
+      if (!didDrag.current) setOpen(p => !p);
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("mouseup", onUp);
     };
@@ -832,15 +799,22 @@ export default function SessionsDrawer() {
     );
   };
 
+  const flipAnchor = () => setAnchor((p) => (p === "left" ? "right" : "left"));
+  const stackZ = 60 + Math.max(0, stackPosition) * 2;
+  const flipTitle = anchor === "left" ? "Mirror to right edge" : "Mirror to left edge";
+
   return (
     <>
-      {!otherDrawerOpen && !hideKnob && (
+      {!hideKnob && (
         <SideTab
+          {...{ [DRAWER_DATA_ATTR]: DRAWER_ID }}
           onMouseDown={onTabMouseDown}
           title={open ? "Close sessions" : "Open sessions"}
           $openOffset={open ? width : 0}
+          $anchor={anchor}
           style={{
             top: tabY,
+            zIndex: open ? stackZ + 1 : 100,
             backgroundColor: open
               ? `rgba(${PINK_RGB}, 0.25)`
               : `rgba(${PINK_RGB}, 0.12)`,
@@ -851,16 +825,19 @@ export default function SessionsDrawer() {
         </SideTab>
       )}
 
-      {open && <Backdrop onClick={handleClose} />}
-
       {open && (
-        <Panel style={{ width }}>
-          <Resize onMouseDown={onResizeStart} />
+        <Panel
+          {...{ [DRAWER_DATA_ATTR]: DRAWER_ID }}
+          $anchor={anchor}
+          style={{ width, zIndex: stackZ }}
+        >
+          <Resize $anchor={anchor} onMouseDown={onResizeStart} />
 
           <Header>
             <TitleText>
               {connected && activeSession ? `🟢 ${activeSession.name}` : "Sessions"}
             </TitleText>
+            <ControlBtn onClick={flipAnchor} title={flipTitle} aria-label={flipTitle}>⇄</ControlBtn>
             <ControlBtn
               onClick={() => {
                 const w = window.screen.width * 0.8;

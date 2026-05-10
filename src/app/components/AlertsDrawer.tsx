@@ -4,7 +4,6 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import styled from "styled-components";
 import { rgb } from "../theme";
 import {
-  DrawerBackdrop,
   DrawerPanel,
   DrawerHeader,
   DrawerTab,
@@ -17,12 +16,13 @@ import AnnouncementsPanel from "./AnnouncementsPanel";
 import { DrawerAlertsIcon } from "./icons";
 import NeonX from "./NeonX";
 import { useKnobVisibility } from "../lib/drawerKnobs";
+import { useDrawerLifecycle, DRAWER_DATA_ATTR } from "../lib/drawerStack";
+import { useDrawerPersistedState } from "../lib/drawerPersist";
 
 const MIN_W = 420;
 const MAX_W = 1400;
 const DEFAULT_W = 640;
 const TAB_STORAGE_KEY = "tgv-drawer-tab-alerts-y";
-const DRAWER_EVENT = "tgv-right-drawer";
 const DRAWER_ID = "alerts";
 
 // Alphabetical stack: Alerts=20%, Chats=40%, Inbox=60%, Sessions=80%
@@ -33,26 +33,24 @@ function getDefaultTabY() {
 
 // ── Styled ───────────────────────────────────────────────────────
 
-const SideTab = styled(DrawerTab).attrs({ $side: "left", $accent: "gold" })<{ $openOffset?: number }>`
-  left: ${(p) => p.$openOffset ?? 0}px;
-  z-index: 61;
-  border-left: none;
-  transition: left 0.25s cubic-bezier(0.4, 0, 0.2, 1), background 0.2s;
+const SideTab = styled(DrawerTab).attrs<{ $anchor: "left" | "right" }>((p) => ({
+  $side: p.$anchor,
+  $accent: "gold",
+}))<{ $openOffset: number; $anchor: "left" | "right" }>`
+  ${(p) => (p.$anchor === "right" ? "right" : "left")}: ${(p) => p.$openOffset}px;
+  ${(p) => (p.$anchor === "right" ? "border-right: none;" : "border-left: none;")}
+  transition: left 0.25s cubic-bezier(0.4, 0, 0.2, 1), right 0.25s cubic-bezier(0.4, 0, 0.2, 1), background 0.2s;
 `;
 
-const Backdrop = styled(DrawerBackdrop)`
-  z-index: 55;
-  backdrop-filter: blur(1px);
-`;
-
-const Panel = styled(DrawerPanel)<{ $fs?: boolean }>`
-  left: 0;
-  z-index: 60;
+const Panel = styled(DrawerPanel)<{ $fs?: boolean; $anchor: "left" | "right" }>`
+  ${(p) => (p.$anchor === "right" ? "right: 0;" : "left: 0;")}
   max-width: ${(p) => (p.$fs ? "100vw" : "85vw")};
-  border-right: ${(p) => (p.$fs ? "none" : `1px solid rgba(${rgb.gold}, 0.18)`)};
+  ${(p) => (p.$anchor === "right"
+    ? `border-left: ${p.$fs ? "none" : `1px solid rgba(${rgb.gold}, 0.18)`};`
+    : `border-right: ${p.$fs ? "none" : `1px solid rgba(${rgb.gold}, 0.18)`};`)}
 
   [data-theme="light"] & {
-    border-right-color: rgba(${rgb.gold}, 0.1);
+    ${(p) => (p.$anchor === "right" ? "border-left-color" : "border-right-color")}: rgba(${rgb.gold}, 0.1);
   }
 `;
 
@@ -158,69 +156,50 @@ const EmptyNote = styled.div`
   user-select: none;
 `;
 
-const Resize = styled(DrawerResizeHandle).attrs({ $accent: "gold" })``;
+const Resize = styled(DrawerResizeHandle).attrs<{ $anchor: "left" | "right" }>((p) => ({
+  $accent: "gold",
+  $anchor: p.$anchor,
+}))<{ $anchor: "left" | "right" }>``;
 
 // ── Component ────────────────────────────────────────────────────
 
 export default function AlertsDrawer() {
   const [open, setOpen] = useState(false);
-  const [width, setWidth] = useState(DEFAULT_W);
-  const [fullscreen, setFullscreen] = useState(false);
-  const [zoom, setZoom] = useState(1.0);
+  const [width, setWidth] = useDrawerPersistedState<number>(DRAWER_ID, "width", DEFAULT_W);
+  const [fullscreen, setFullscreen] = useDrawerPersistedState<boolean>(DRAWER_ID, "fullscreen", false);
+  const [zoom, setZoom] = useDrawerPersistedState<number>(DRAWER_ID, "zoom", 1.0);
+  const [anchor, setAnchor] = useDrawerPersistedState<"left" | "right">(DRAWER_ID, "anchor", "left");
   const [tabY, setTabY] = useState<number>(180);
   const drawerRef = useRef<HTMLDivElement>(null);
   const resizing = useRef(false);
   const startX = useRef(0);
   const startW = useRef(0);
 
-  useEffect(() => {
-    setTabY(getDefaultTabY());
-    const savedZ = sessionStorage.getItem("alerts-drawer-zoom");
-    if (savedZ) setZoom(parseFloat(savedZ));
-    const savedW = sessionStorage.getItem("alerts-drawer-width");
-    if (savedW) setWidth(parseInt(savedW, 10));
-  }, []);
+  useEffect(() => { setTabY(getDefaultTabY()); }, []);
 
-  const [otherDrawerOpen, setOtherDrawerOpen] = useState(false);
   const { hideKnob } = useKnobVisibility();
-  useEffect(() => {
-    const handler = (e: Event) => {
-      const detail = (e as CustomEvent).detail;
-      if (detail === DRAWER_ID) {
-        setOtherDrawerOpen(false);
-      } else if (detail === "close") {
-        setOtherDrawerOpen(false);
-      } else {
-        if (open) setOpen(false);
-        setOtherDrawerOpen(true);
-      }
-    };
-    window.addEventListener(DRAWER_EVENT, handler);
-    return () => window.removeEventListener(DRAWER_EVENT, handler);
-  }, [open]);
+
+  const { position: stackPosition } = useDrawerLifecycle({
+    id: DRAWER_ID,
+    open,
+    setOpen,
+    onClose: () => setFullscreen(false),
+  });
 
   useEffect(() => {
-    const handler = (e: Event) => {
-      if ((e as CustomEvent).detail === DRAWER_ID) {
-        setOpen(true);
-        window.dispatchEvent(new CustomEvent(DRAWER_EVENT, { detail: DRAWER_ID }));
-      }
-    };
-    window.addEventListener("tgv-drawer-open", handler);
-    return () => window.removeEventListener("tgv-drawer-open", handler);
-  }, []);
+    if (!open || !fullscreen) return;
+    document.body.dataset.drawerFullscreen = "1";
+    return () => { delete document.body.dataset.drawerFullscreen; };
+  }, [open, fullscreen]);
 
   useEffect(() => {
+    if (!open || !fullscreen) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && fullscreen) { setFullscreen(false); return; }
-      if (e.key === "Escape" && open) {
-        setOpen(false);
-        window.dispatchEvent(new CustomEvent(DRAWER_EVENT, { detail: "close" }));
-      }
+      if (e.key === "Escape") setFullscreen(false);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open, fullscreen]);
+  }, [open, fullscreen, setFullscreen]);
 
   // Draggable tab pill
   const startTabY = useRef(0);
@@ -242,13 +221,7 @@ export default function AlertsDrawer() {
       }
     };
     const onUp = () => {
-      if (!didDrag.current) {
-        setOpen((p) => {
-          const next = !p;
-          window.dispatchEvent(new CustomEvent(DRAWER_EVENT, { detail: next ? DRAWER_ID : "close" }));
-          return next;
-        });
-      }
+      if (!didDrag.current) setOpen((p) => !p);
       document.body.style.cursor = "";
       document.removeEventListener("mousemove", onMove);
       document.removeEventListener("mouseup", onUp);
@@ -268,10 +241,10 @@ export default function AlertsDrawer() {
 
     const onMove = (ev: MouseEvent) => {
       if (!resizing.current) return;
-      const delta = ev.clientX - startX.current;
+      const rawDelta = ev.clientX - startX.current;
+      const delta = anchor === "right" ? -rawDelta : rawDelta;
       const newW = Math.min(MAX_W, Math.max(MIN_W, startW.current + delta));
       setWidth(newW);
-      sessionStorage.setItem("alerts-drawer-width", String(newW));
     };
     const onUp = () => {
       resizing.current = false;
@@ -286,9 +259,9 @@ export default function AlertsDrawer() {
 
   // Zoom
   const ZOOM_STEPS = [0.8, 0.9, 1.0, 1.1, 1.25];
-  const zoomIn  = () => { const n = ZOOM_STEPS.find((z) => z > zoom) ?? zoom; setZoom(n); sessionStorage.setItem("alerts-drawer-zoom", String(n)); };
-  const zoomOut = () => { const n = [...ZOOM_STEPS].reverse().find((z) => z < zoom) ?? zoom; setZoom(n); sessionStorage.setItem("alerts-drawer-zoom", String(n)); };
-  const zoomReset = () => { setZoom(1); sessionStorage.setItem("alerts-drawer-zoom", "1"); };
+  const zoomIn  = () => { const n = ZOOM_STEPS.find((z) => z > zoom) ?? zoom; setZoom(n); };
+  const zoomOut = () => { const n = [...ZOOM_STEPS].reverse().find((z) => z < zoom) ?? zoom; setZoom(n); };
+  const zoomReset = () => { setZoom(1); };
 
   // Popout
   const popout = () => {
@@ -299,15 +272,23 @@ export default function AlertsDrawer() {
     window.open("/dashboard/announcements?popout=1", "tgv-alerts-drawer", `width=${w},height=${h},left=${left},top=${top}`);
   };
 
+  const flipAnchor = () => setAnchor((p) => (p === "left" ? "right" : "left"));
+  const stackZ = 60 + Math.max(0, stackPosition) * 2;
+  const closedTransform = anchor === "right" ? "translateX(100%)" : "translateX(-100%)";
+  const flipTitle = anchor === "left" ? "Mirror to right edge" : "Mirror to left edge";
+
   return (
     <>
-      {!otherDrawerOpen && !hideKnob && (
+      {!hideKnob && (
         <SideTab
+          {...{ [DRAWER_DATA_ATTR]: DRAWER_ID }}
           onMouseDown={onTabMouseDown}
           title={open ? "Close alerts" : "Open alerts"}
           $openOffset={open && !fullscreen ? width : 0}
+          $anchor={anchor}
           style={{
             top: tabY,
+            zIndex: open ? stackZ + 1 : 100,
             backgroundColor: open
               ? `rgba(${rgb.gold}, 0.25)`
               : `rgba(${rgb.gold}, 0.12)`,
@@ -320,18 +301,19 @@ export default function AlertsDrawer() {
         </SideTab>
       )}
 
-      {open && !fullscreen && (
-        <Backdrop onClick={() => { setOpen(false); window.dispatchEvent(new CustomEvent(DRAWER_EVENT, { detail: "close" })); }} />
-      )}
-
       <Panel
+        {...{ [DRAWER_DATA_ATTR]: DRAWER_ID }}
         ref={drawerRef}
         $fs={fullscreen}
+        $anchor={anchor}
         style={{
           width: fullscreen ? "100vw" : width,
-          transform: open ? "translateX(0)" : "translateX(-100%)",
+          transform: open ? "translateX(0)" : closedTransform,
           transition: resizing.current ? "none" : "transform 0.25s cubic-bezier(0.4,0,0.2,1)",
-          boxShadow: open && !fullscreen ? "12px 0 60px rgba(0,0,0,0.7)" : "none",
+          boxShadow: open && !fullscreen
+            ? (anchor === "right" ? "-12px 0 60px rgba(0,0,0,0.7)" : "12px 0 60px rgba(0,0,0,0.7)")
+            : "none",
+          zIndex: stackZ,
         }}
       >
         <Header>
@@ -352,11 +334,12 @@ export default function AlertsDrawer() {
 
             <Separator />
 
+            <ControlBtn onClick={flipAnchor} title={flipTitle} aria-label={flipTitle}>⇄</ControlBtn>
             <ControlBtn onClick={popout} title="Open in new window">⧉</ControlBtn>
             <ControlBtn onClick={() => setFullscreen((p) => !p)} title={fullscreen ? "Exit full screen (Esc)" : "Full screen"}>
               {fullscreen ? "⊡" : "⊞"}
             </ControlBtn>
-            <NeonX accent="gold" onClick={() => { setOpen(false); setFullscreen(false); window.dispatchEvent(new CustomEvent(DRAWER_EVENT, { detail: "close" })); }} title="Close (Esc)" />
+            <NeonX accent="gold" onClick={() => { setOpen(false); setFullscreen(false); }} title="Close (Esc)" />
           </ControlRow>
         </Header>
 
@@ -367,7 +350,7 @@ export default function AlertsDrawer() {
           </AnnounceWrap>
         </ContentWrap>
 
-        {!fullscreen && <Resize onMouseDown={onResizeStart} title="Drag to resize" />}
+        {!fullscreen && <Resize $anchor={anchor} onMouseDown={onResizeStart} title="Drag to resize" />}
       </Panel>
     </>
   );

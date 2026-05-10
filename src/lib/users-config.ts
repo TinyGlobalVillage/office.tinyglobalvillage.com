@@ -6,6 +6,7 @@ const USERS_FILE = path.join(process.cwd(), "data", "users.json");
 type UserRecord = {
   displayName: string;
   email: string;
+  isBot?: boolean;
   [key: string]: unknown;
 };
 
@@ -27,6 +28,7 @@ export function getUserEmail(username: string): string {
 export function getAllUserEmails(): string[] {
   const db = readUsers();
   return Object.values(db)
+    .filter((u) => !u.isBot)
     .map((u) => u.email)
     .filter(Boolean);
 }

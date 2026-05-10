@@ -199,12 +199,38 @@ export async function verifyWebhookSignature(params: {
   if (Math.abs(Date.now() / 1000 - ts) > tolerance) return false;
 
   const { createPublicKey, verify } = await import("node:crypto");
-  const keyMaterial = env.publicKey.includes("BEGIN PUBLIC KEY")
-    ? env.publicKey
-    : `-----BEGIN PUBLIC KEY-----\n${env.publicKey.replace(/(.{64})/g, "$1\n")}\n-----END PUBLIC KEY-----`;
+
+  // Telnyx publishes the webhook public key as a base64-encoded *raw* 32-byte
+  // Ed25519 key. Node's createPublicKey() needs either PEM-wrapped DER or a
+  // DER buffer with the SPKI ASN.1 prefix — raw 32 bytes won't parse on its
+  // own. Construct the SPKI-wrapped DER here.
+  //
+  // SPKI prefix for Ed25519 (RFC 8410):
+  //   30 2a 30 05 06 03 2b 65 70 03 21 00  (12 bytes)
+  // followed by the 32-byte raw public key = 44 bytes total.
+  const rawKey = env.publicKey.trim();
   let pubKey;
-  try { pubKey = createPublicKey(keyMaterial); }
-  catch { return false; }
+  try {
+    if (rawKey.includes("BEGIN PUBLIC KEY")) {
+      pubKey = createPublicKey(rawKey);
+    } else {
+      const rawKeyBuf = Buffer.from(rawKey, "base64");
+      if (rawKeyBuf.length === 32) {
+        const spkiPrefix = Buffer.from("302a300506032b6570032100", "hex");
+        const der = Buffer.concat([spkiPrefix, rawKeyBuf]);
+        pubKey = createPublicKey({ key: der, format: "der", type: "spki" });
+      } else {
+        // Fallback: wrap as PEM and try (older PEM-encoded DER format).
+        const pem = `-----BEGIN PUBLIC KEY-----\n${rawKey.replace(/(.{64})/g, "$1\n")}\n-----END PUBLIC KEY-----`;
+        pubKey = createPublicKey(pem);
+      }
+    }
+  } catch (err) {
+    console.warn(
+      `[telnyx.verifyWebhookSignature] createPublicKey failed: ${err instanceof Error ? err.message : String(err)}; key length=${rawKey.length}`
+    );
+    return false;
+  }
   const signedMessage = Buffer.from(`${params.timestampHeader}|${params.rawBody}`);
   const sig = Buffer.from(params.signatureHeader, "base64");
   try {

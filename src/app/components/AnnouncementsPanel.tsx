@@ -19,18 +19,26 @@ type ProjectUpdates = {
   updates: DepUpdate[];
 };
 
+type RecordingsStorageData = {
+  sizeBytes: number;
+  sizeGB: number;
+  thresholdGB: number;
+  recordingCount: number;
+  recordingsDir: string;
+};
+
 type Announcement = {
   id: string;
   created_at: string;
   title: string;
-  type: "dep-update";
+  type: "dep-update" | "recordings-storage" | "sip-attack";
   status: "pending" | "dismissed";
   dismissed_by?: string;
   dismissed_at?: string;
-  data: {
-    projects: ProjectUpdates[];
-    total_updates: number;
-  };
+  data:
+    | { projects: ProjectUpdates[]; total_updates: number }
+    | RecordingsStorageData
+    | Record<string, unknown>;
 };
 
 /* ── Animations ────────────────────────────────────────────── */
@@ -305,9 +313,11 @@ export default function AnnouncementsPanel({
               </HeaderRow>
 
               {ann.type === "dep-update" &&
-                ann.data?.projects?.length > 0 && (
+                "projects" in ann.data &&
+                Array.isArray((ann.data as { projects?: unknown }).projects) &&
+                (ann.data as { projects: ProjectUpdates[] }).projects.length > 0 && (
                   <ProjectGroup>
-                    {ann.data.projects.map((proj) => (
+                    {(ann.data as { projects: ProjectUpdates[] }).projects.map((proj) => (
                       <div key={proj.name}>
                         <ProjectName>{proj.name}</ProjectName>
                         <PillWrap>
@@ -333,6 +343,48 @@ export default function AnnouncementsPanel({
                     ))}
                   </ProjectGroup>
                 )}
+              {ann.type === "sip-attack" && "totalHits" in ann.data && (
+                <div style={{
+                  padding: "0.75rem 1rem",
+                  border: `1px solid rgba(${rgb.pink}, 0.45)`,
+                  borderRadius: "0.5rem",
+                  background: `rgba(${rgb.pink}, 0.06)`,
+                  fontFamily: "var(--font-geist-mono), monospace",
+                  fontSize: "0.8125rem",
+                  lineHeight: 1.6,
+                  color: "var(--t-text)",
+                }}>
+                  <div>
+                    <strong>{(ann.data as { totalHits: number }).totalHits}</strong> SIP INVITEs from{" "}
+                    <strong>{(ann.data as { uniqueIps: number }).uniqueIps}</strong> non-Telnyx IP
+                    {(ann.data as { uniqueIps: number }).uniqueIps === 1 ? "" : "s"} in last 5 min.
+                  </div>
+                  {Array.isArray((ann.data as { topSources?: unknown }).topSources) && (
+                    <div style={{ opacity: 0.85, marginTop: "0.4rem" }}>
+                      Top sources: {(ann.data as { topSources: Array<{ ip: string; count: number }> }).topSources
+                        .map(s => `${s.ip} (${s.count})`).join(", ")}
+                    </div>
+                  )}
+                  <div style={{ opacity: 0.7, marginTop: "0.4rem" }}>
+                    fail2ban auto-bans on 3 hits / 10min. Manual lockdown via Front Desk → System Tools → SIP Killswitch.
+                  </div>
+                </div>
+              )}
+              {ann.type === "recordings-storage" && "sizeGB" in ann.data && (
+                <div style={{
+                  padding: "0.75rem 1rem",
+                  border: `1px solid rgba(${rgb.gold}, 0.3)`,
+                  borderRadius: "0.5rem",
+                  background: `rgba(${rgb.gold}, 0.04)`,
+                  fontFamily: "var(--font-geist-mono), monospace",
+                  fontSize: "0.8125rem",
+                  lineHeight: 1.6,
+                  color: "var(--t-text)",
+                }}>
+                  <div><strong>{(ann.data as RecordingsStorageData).sizeGB.toFixed(2)} GB</strong> across {(ann.data as RecordingsStorageData).recordingCount} call recording{(ann.data as RecordingsStorageData).recordingCount === 1 ? "" : "s"}.</div>
+                  <div style={{ opacity: 0.7 }}>Threshold: {(ann.data as RecordingsStorageData).thresholdGB} GB. Recording continues — clear unneeded recordings via Front Desk → Saved.</div>
+                </div>
+              )}
             </AnnouncementCard>
           ))}
         </ItemList>

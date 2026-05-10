@@ -22,7 +22,12 @@
       "id": "c_1776328690844_rxb4m",
       "from": "marmar",
       "content": "amazing",
-      "createdAt": "2026-04-16T08:38:10.844Z"
+      "createdAt": "2026-04-16T08:38:10.844Z",
+      "reactions": {
+        "❤️": [
+          "admin"
+        ]
+      }
     },
     {
       "id": "c_1776328696080_oxe5e",
@@ -116,6 +121,38 @@
       "fileSize": 22431841,
       "fileMime": "image/gif",
       "createdAt": "2026-04-20T07:48:28.145Z",
+      "readBy": [],
+      "reactions": {
+        "😮": [
+          "marmar"
+        ]
+      }
+    },
+    {
+      "id": "c_1776870114507_jcunn",
+      "from": "admin",
+      "content": "",
+      "fileUrl": "https://office.tinyglobalvillage.com/media/chat/group/admin/images/2026_APR_22_file-7YcvqMtx4xWkEZzJuNaekS-58266eb5-cfc2-4011-8b4a-6b11247ece79-converted.webp",
+      "fileName": "file-7YcvqMtx4xWkEZzJuNaekS-58266eb5-cfc2-4011-8b4a-6b11247ece79-converted.webp",
+      "fileSize": 61234,
+      "fileMime": "image/webp",
+      "createdAt": "2026-04-22T15:01:54.507Z",
+      "readBy": [],
+      "reactions": {
+        "❤️": [
+          "marmar"
+        ],
+        "🙏": [
+          "marmar",
+          "admin"
+        ]
+      }
+    },
+    {
+      "id": "c_1776870230486_f8zh0",
+      "from": "admin",
+      "content": "https://media4.giphy.com/media/v1.Y2lkPTFkMjk2MzhmeGplczRsYW1iYWY5c2x4MWp6eTJmb2tnbmpkNGV0dXk3N2dlZXQwdyZlcD12MV9naWZzX3RyZW5kaW5nJmN0PWc/dsngJ31iGCnatIHe4w/giphy.gif",
+      "createdAt": "2026-04-22T15:03:50.486Z",
       "readBy": []
     }
   ],

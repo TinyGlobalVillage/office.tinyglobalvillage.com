@@ -4,7 +4,7 @@ import { exec } from "child_process";
 import { promisify } from "util";
 
 const execAsync = promisify(exec);
-const CLIENT_ROOT = "/srv/refusion-core/client";
+const CLIENT_ROOT = "/srv/refusion-core/clients";
 
 type Pm2Proc = {
   name: string;

@@ -330,7 +330,7 @@ export default function EditorTerminalDock({ project }: { project?: string | nul
   const inputRef = useRef<HTMLInputElement>(null);
   const abortRef = useRef<AbortController | null>(null);
 
-  const cwd = project ? `/srv/refusion-core/client/${project}` : "/srv/refusion-core";
+  const cwd = project ? `/srv/refusion-core/clients/${project}` : "/srv/refusion-core";
 
   useEffect(() => {
     const savedH = localStorage.getItem(STORAGE_HEIGHT);

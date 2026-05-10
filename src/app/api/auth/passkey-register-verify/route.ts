@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getToken } from "next-auth/jwt";
+import { getAuthToken } from "@/lib/auth-cookie";
 import { verifyRegistrationResponse } from "@simplewebauthn/server";
 import { readUsers, updateUser } from "@/lib/users";
 import { registrationChallenges } from "../passkey-register-options/route";
@@ -8,7 +8,7 @@ const RP_ID = "office.tinyglobalvillage.com";
 const ORIGIN = "https://office.tinyglobalvillage.com";
 
 export async function POST(req: NextRequest) {
-  const token = await getToken({ req, secret: process.env.AUTH_SECRET });
+  const token = await getAuthToken(req);
   const username = token?.username as string | undefined;
   if (!username) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 

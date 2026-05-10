@@ -588,10 +588,10 @@ export const DrawerTabLabel = styled.span`
   text-transform: uppercase;
 `;
 
-export const DrawerResizeHandle = styled.div<{ $accent?: GlowColor }>`
+export const DrawerResizeHandle = styled.div<{ $accent?: GlowColor; $anchor?: "left" | "right" }>`
   position: absolute;
   top: 0;
-  right: 0;
+  ${(p) => (p.$anchor === "right" ? "left: 0;" : "right: 0;")}
   height: 100%;
   width: 6px;
   cursor: ew-resize;
@@ -602,7 +602,7 @@ export const DrawerResizeHandle = styled.div<{ $accent?: GlowColor }>`
     content: "";
     position: absolute;
     inset-block: 0;
-    right: 0;
+    ${(p) => (p.$anchor === "right" ? "left: 0;" : "right: 0;")}
     width: 1px;
     background: rgba(${(p) => rgb[p.$accent || "cyan"]}, 0.15);
     transition: width 0.15s;

@@ -1,13 +1,13 @@
 /**
  * GET  /api/editor/file?path=...  → read file content
  * POST /api/editor/file           → { path, content } → write file
- * Both restricted to /srv/refusion-core/client/
+ * Both restricted to /srv/refusion-core/clients/
  */
 import { NextRequest, NextResponse } from "next/server";
 import { readFileSync, writeFileSync, statSync } from "fs";
 import path from "path";
 
-const ROOT = "/srv/refusion-core/client";
+const ROOT = "/srv/refusion-core/clients";
 const MAX_READ = 2 * 1024 * 1024; // 2 MB
 
 function safe(p: string): string | null {

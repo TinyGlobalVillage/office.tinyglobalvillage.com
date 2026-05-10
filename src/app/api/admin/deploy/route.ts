@@ -4,7 +4,8 @@ import {
   ClientSpecSchema,
   validateModuleCompatibility,
   getPrice,
-} from "@/lib/registry";
+} from "@tgv/module-registry";
+import { db, schema } from "@/lib/db-drizzle";
 
 export const runtime = "nodejs";
 
@@ -47,29 +48,42 @@ export async function POST(req: Request) {
   }
 
   const price = getPrice(spec);
-  const deployId = `dep_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 
-  // TODO Phase 2 Step 3: persist members row via Drizzle
-  // TODO Phase 2 Step 4: dispatch to @tgv/deploy-engine
-  console.log("[admin/deploy] accepted spec", {
-    deployId,
+  const [row] = await db
+    .insert(schema.members)
+    .values({
+      clientName: spec.clientName,
+      domain: spec.domain,
+      subdomain: spec.subdomain,
+      vertical: spec.vertical,
+      tier: spec.tier,
+      modules: spec.modules,
+      storageGb: spec.storageGB,
+      customFlag: spec.customFlag,
+      customDescription: spec.customDescription,
+      contact: spec.contact,
+      branding: spec.branding,
+      stripeMode: "connect_v2",
+      deployStatus: "pending",
+    })
+    .returning({ id: schema.members.id });
+
+  // TODO Phase 2 Step 4: dispatch to @tgv/deploy-engine with row.id
+  console.log("[admin/deploy] persisted member", {
+    id: row.id,
     by: session.user.name,
     clientName: spec.clientName,
     vertical: spec.vertical,
     tier: spec.tier,
-    modules: spec.modules,
-    storageGB: spec.storageGB,
-    customFlag: spec.customFlag,
     monthlyUsd: price.monthlyUsd,
     oneTimeUsd: price.oneTimeUsd,
   });
 
   return NextResponse.json({
     ok: true,
-    deployId,
+    deployId: row.id,
     status: "pending",
     price,
-    stub: true,
-    note: "Deploy engine not yet wired up — this spec was accepted and logged. See Phase 2 Step 4.",
+    note: "Members row persisted. Deploy engine dispatch pending — see Phase 2 Step 4.",
   });
 }

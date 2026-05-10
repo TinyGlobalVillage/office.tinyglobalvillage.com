@@ -1881,7 +1881,7 @@ export default function SandboxModal({
     const res = await fetch("/api/sandbox/deploy", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ components: ["@tgv/ui"], targets, preview }),
+      body: JSON.stringify({ components: ["@tgv/module-ui"], targets, preview }),
     });
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));

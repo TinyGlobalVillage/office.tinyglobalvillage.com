@@ -3465,7 +3465,7 @@ const [name, setName] = useState("");
     code: `<NeonButton $accent="#ff4ecb" onClick={join}>Join Session</NeonButton>
 <NeonButton $accent="#00bfff" $compact>On</NeonButton>`,
     style: "const NeonButton = styled.button<{ $accent: string; $compact?: boolean }>\`\n  --acc: \\${(p) => p.$accent};\n  --acc-bg: color-mix(in srgb, var(--acc) 12%, transparent);\n  --acc-bg-hover: color-mix(in srgb, var(--acc) 22%, transparent);\n  --acc-border: color-mix(in srgb, var(--acc) 45%, transparent);\n  --acc-text: color-mix(in srgb, var(--acc) 75%, white 25%);\n  --acc-glow: color-mix(in srgb, var(--acc) 50%, transparent);\n  padding: \\${(p) => (p.$compact ? \"0.3rem 0.75rem\" : \"0.5rem 1rem\")};\n  border-radius: 999px;\n  font-size: \\${(p) => (p.$compact ? \"0.625rem\" : \"0.75rem\")};\n  font-weight: 700;\n  letter-spacing: 0.1em;\n  text-transform: uppercase;\n  cursor: pointer;\n  background: var(--acc-bg);\n  border: 1px solid var(--acc-border);\n  color: var(--acc-text);\n  text-shadow: 0 0 6px var(--acc-glow);\n  &:hover {\n    background: var(--acc-bg-hover);\n    box-shadow: 0 0 10px var(--acc-glow);\n  }\n\`;",
-    stylePath: "packages/@tgv/core/src/components/ui/NeonButton.tsx",
+    stylePath: "packages/@tgv/module-core/components/ui/NeonButton.tsx",
     Demo: NeonButtonDemo,
   },
   {
@@ -3578,7 +3578,7 @@ const [name, setName] = useState("");
   <IconBtn>⚙</IconBtn>
 </Tooltip>`,
     style: "const Bubble = styled.div\`\n  position: fixed;\n  z-index: 10000;\n  padding: 8px 14px;\n  border-radius: 10px;\n  font-size: 11.5px;\n  font-weight: 600;\n  letter-spacing: 0.6px;\n  line-height: 1.3;\n  text-transform: uppercase;\n  white-space: nowrap;\n  background: linear-gradient(160deg, \\${bgTop}, \\${bgBottom});\n  border: 1px solid \\${borderAlpha};\n  color: \\${textColor};\n  box-shadow: 0 6px 20px rgba(0,0,0,0.5), 0 0 18px \\${glow};\n  animation: tt-in 0.14s ease-out;\n\`;\n\nconst Arrow = styled.div\`\n  position: absolute;\n  top: -5px;\n  width: 10px;\n  height: 10px;\n  background: \\${bgTop};\n  border-top: 1px solid \\${borderAlpha};\n  border-left: 1px solid \\${borderAlpha};\n  transform: rotate(45deg);\n\`;",
-    stylePath: "packages/@tgv/core/src/components/ui/Tooltip.tsx",
+    stylePath: "packages/@tgv/module-core/components/ui/Tooltip.tsx",
     Demo: TooltipDemo,
   },
 

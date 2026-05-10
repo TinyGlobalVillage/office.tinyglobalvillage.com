@@ -53,19 +53,22 @@ export async function POST(req: NextRequest) {
 
   if (to.length > 0) {
     const officeUrl = process.env.AUTH_URL ?? "https://office.tinyglobalvillage.com";
-    const projectLines = (body.data.projects as ProjectUpdates[])
-      .map(
-        (p) =>
-          `${p.name}:\n` +
-          p.updates
-            .map((u) => `  • ${u.package}: ${u.current} → ${u.latest} [${u.type.toUpperCase()}]`)
-            .join("\n")
-      )
-      .join("\n\n");
+    let text: string;
+    let html: string;
 
-    const text = `${body.title}\n\n${projectLines}\n\nView in TGV Office: ${officeUrl}/dashboard`;
+    if (body.type === "dep-update") {
+      const projectLines = (body.data.projects as ProjectUpdates[])
+        .map(
+          (p) =>
+            `${p.name}:\n` +
+            p.updates
+              .map((u) => `  • ${u.package}: ${u.current} → ${u.latest} [${u.type.toUpperCase()}]`)
+              .join("\n")
+        )
+        .join("\n\n");
 
-    const html = `
+      text = `${body.title}\n\n${projectLines}\n\nView in TGV Office: ${officeUrl}/dashboard`;
+      html = `
 <h2 style="font-family:sans-serif;color:#f7b700;">${body.title}</h2>
 ${(body.data.projects as ProjectUpdates[])
   .map(
@@ -84,6 +87,16 @@ ${(body.data.projects as ProjectUpdates[])
 <p style="font-family:sans-serif;margin-top:20px;">
   <a href="${officeUrl}/dashboard" style="color:#f7b700;">Open TGV Office →</a>
 </p>`;
+    } else {
+      // Generic fallback used by recordings-storage and any future types.
+      // Title carries the message; body just links to the dashboard.
+      text = `${body.title}\n\nView in TGV Office: ${officeUrl}/dashboard`;
+      html = `
+<h2 style="font-family:sans-serif;color:#f7b700;">${body.title}</h2>
+<p style="font-family:sans-serif;margin-top:20px;">
+  <a href="${officeUrl}/dashboard" style="color:#f7b700;">Open TGV Office →</a>
+</p>`;
+    }
 
     await getTransport()
       .sendMail({

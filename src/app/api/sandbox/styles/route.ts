@@ -3,7 +3,7 @@ import { readFileSync, writeFileSync } from "fs";
 import path from "path";
 import { requireAuth } from "@/lib/api-auth";
 
-const ROOT = "/srv/refusion-core/client";
+const ROOT = "/srv/refusion-core/clients";
 
 function safe(p: string): string | null {
   const resolved = path.resolve(p);

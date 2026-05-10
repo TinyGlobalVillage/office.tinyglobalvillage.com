@@ -1,16 +1,20 @@
 /**
  * Shared auth helpers for email API routes.
  *
- * Uses getToken() from next-auth/jwt (reads JWT directly from session cookie)
- * and verify2faCookie() (checks HMAC-signed 2FA proof cookie) for personal
- * inbox gating. No PINs, no env vars — just the same 2FA the user already
- * completed at login.
+ * Uses getEffectiveUser() (which wraps getToken + dev-mode impersonation
+ * cookie) and verify2faCookie() (checks HMAC-signed 2FA proof cookie) for
+ * personal inbox gating. No PINs, no env vars — just the same 2FA the user
+ * already completed at login.
+ *
+ * Because every user-gated route funnels through requireAuth(), the
+ * impersonation swap in getEffectiveUser() propagates to the inbox adapter,
+ * chat, presence, etc. automatically. See src/lib/dev/getEffectiveUser.ts.
  */
-import { getToken } from "next-auth/jwt";
 import type { NextRequest } from "next/server";
 import { verify2faCookie } from "@/lib/twofa-cookie";
 import { readFileSync } from "fs";
 import path from "path";
+import { getEffectiveUser } from "@/lib/dev/getEffectiveUser";
 
 function isTotpEnrolled(username: string): boolean {
   try {
@@ -29,17 +33,14 @@ export type AuthToken = {
 };
 
 /**
- * Returns the decoded JWT token if the request is authenticated, or null.
+ * Returns the effective auth token — respects dev-mode impersonation when
+ * the real JWT belongs to an admin and the impersonation cookie is set.
  */
 export async function requireAuth(req: NextRequest): Promise<AuthToken | null> {
   try {
-    const token = await getToken({ req, secret: process.env.AUTH_SECRET });
-    if (!token) return null;
-    return {
-      name: token.name as string | undefined,
-      username: (token as { username?: string }).username,
-      sub: token.sub,
-    };
+    const eff = await getEffectiveUser(req);
+    if (!eff) return null;
+    return { name: eff.name, username: eff.username, sub: eff.sub };
   } catch {
     return null;
   }

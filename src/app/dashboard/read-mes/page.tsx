@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import styled from "styled-components";
-import { colors, rgb } from "../../theme";
+import { rgb } from "../../theme";
 import TopNav from "../../components/TopNav";
 
 interface ReadMe {
@@ -14,8 +14,8 @@ interface ReadMe {
 
 const Page = styled.div`
   min-height: 100vh;
-  background: rgb(${rgb(colors.bg)});
-  color: rgb(${rgb(colors.fg)});
+  background: var(--t-bg);
+  color: var(--t-text);
   padding: 2rem;
 `;
 
@@ -29,8 +29,8 @@ const Table = styled.table`
   max-width: 1100px;
   border-collapse: separate;
   border-spacing: 0;
-  background: rgb(${rgb(colors.surface)});
-  border: 1px solid rgb(${rgb(colors.border)});
+  background: var(--t-surface);
+  border: 1px solid var(--t-border);
   border-radius: 8px;
   overflow: hidden;
 `;
@@ -41,28 +41,28 @@ const Th = styled.th`
   font-size: 0.85rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: rgb(${rgb(colors.fgMuted)});
+  color: var(--t-textMuted);
   padding: 0.75rem 1rem;
-  border-bottom: 1px solid rgb(${rgb(colors.border)});
+  border-bottom: 1px solid var(--t-border);
 `;
 
 const Tr = styled.tr`
   cursor: pointer;
   transition: background 120ms;
   &:hover {
-    background: rgba(${rgb(colors.accent)}, 0.08);
+    background: rgba(${rgb.pink}, 0.08);
   }
 `;
 
 const Td = styled.td`
   padding: 0.85rem 1rem;
-  border-bottom: 1px solid rgba(${rgb(colors.border)}, 0.4);
+  border-bottom: 1px solid var(--t-border);
 `;
 
 const ModalBackdrop = styled.div`
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: var(--t-overlay);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -73,8 +73,8 @@ const ModalBody = styled.div`
   width: min(720px, 92vw);
   max-height: 84vh;
   overflow-y: auto;
-  background: rgb(${rgb(colors.surface)});
-  border: 1px solid rgb(${rgb(colors.border)});
+  background: var(--t-surface);
+  border: 1px solid var(--t-border);
   border-radius: 10px;
   padding: 1.75rem 2rem;
   pre, code {
@@ -88,8 +88,8 @@ const ModalBody = styled.div`
 
 const CloseBtn = styled.button`
   background: transparent;
-  border: 1px solid rgb(${rgb(colors.border)});
-  color: rgb(${rgb(colors.fg)});
+  border: 1px solid var(--t-border);
+  color: var(--t-text);
   padding: 0.4rem 0.85rem;
   border-radius: 6px;
   cursor: pointer;
