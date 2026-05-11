@@ -29,12 +29,24 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: `pm2 jlist: ${String(e)}` }, { status: 500 });
   }
 
-  // Authorized sets
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  delete require.cache[require.resolve(ECOSYSTEM)];
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const eco = require(ECOSYSTEM) as { apps?: Array<{ name: string }> };
-  const infra = new Set((eco.apps ?? []).map((a) => a.name));
+  // Authorized infra set — shell out to node to evaluate ecosystem.config.cjs,
+  // since webpack tries to bundle any in-process require(<variable>) call.
+  // The child process gets a fresh module cache for free.
+  let infra: Set<string>;
+  try {
+    const { stdout } = await exec(
+      "node",
+      [
+        "-e",
+        `const c = require(${JSON.stringify(ECOSYSTEM)}); ` +
+          `process.stdout.write(JSON.stringify((c.apps || []).map(a => a.name)));`,
+      ],
+      { timeout: 5_000 },
+    );
+    infra = new Set(JSON.parse(stdout) as string[]);
+  } catch (e) {
+    return NextResponse.json({ error: `ecosystem read: ${String(e)}` }, { status: 500 });
+  }
 
   const tenants = await db
     .select({ pm2Name: schema.tenantApps.pm2Name })
