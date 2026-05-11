@@ -44,6 +44,9 @@ export type HCMSection = {
 export type HardeningControlModalProps = {
   title: string;
   subtitle?: string;
+  /** Optional QMBM next to the modal title — explains the whole surface, not a section.
+      Section-level qmbms still live on each HCMSection. */
+  qmbm?: string;
   /** Hardening-specific sections rendered between the audit log and the global system views. */
   sections: HCMSection[];
   /** The two always-rendered RCS-wide system views; consumer passes them in so we don't
@@ -138,6 +141,7 @@ function Section({ section }: { section: HCMSection }) {
 }
 
 export default function HardeningControlModal(props: HardeningControlModalProps) {
+  const [qmbmOpen, setQmbmOpen] = useState(false);
   return (
     <ModalBackdrop onClick={props.onClose}>
       <ModalContainer
@@ -148,8 +152,21 @@ export default function HardeningControlModal(props: HardeningControlModalProps)
         <ModalHeader>
           <ModalHeaderLeft>
             <div>
-              <ModalTitle>{props.title}</ModalTitle>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                <ModalTitle>{props.title}</ModalTitle>
+                {props.qmbm && (
+                  <QmbmBubble
+                    type="button"
+                    onClick={() => setQmbmOpen(o => !o)}
+                    aria-label={`Explain ${props.title}`}
+                    title={`Explain ${props.title}`}
+                  >
+                    ?
+                  </QmbmBubble>
+                )}
+              </div>
               {props.subtitle && <Sub>{props.subtitle}</Sub>}
+              {qmbmOpen && props.qmbm && <QmbmCard>{props.qmbm}</QmbmCard>}
             </div>
           </ModalHeaderLeft>
           <NeonX onClick={props.onClose} />

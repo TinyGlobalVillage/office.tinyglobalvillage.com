@@ -95,6 +95,26 @@ export default function TenantAppsControlModal({ onClose }: TenantAppsControlMod
     <HardeningControlModal
       title="Tenant Apps Registry"
       subtitle="Source-of-truth tenant pm2 registry + drift detection. Provision and deprovision tenants without ever touching pm2 directly."
+      qmbm={
+        "What is this?\n\n" +
+        "Every tenant we host on RCS runs as a pm2 process behind nginx. Before this " +
+        "hardening existed, anyone with shell access could `pm2 start` a new app, pick " +
+        "a port by hand, and run it forever — there was no central record. On 2026-05-10 " +
+        "that bypass actually happened: a parallel session squatted refusionist's port " +
+        "and crashed it.\n\n" +
+        "This surface fixes that with two sources of truth:\n" +
+        "  • Platform infra (TGV.com, Office, refusionist, webhooks, automations) — " +
+        "lives in /srv/refusion-core/ecosystem.config.cjs, ports 3000–3019.\n" +
+        "  • Tenants — live in the tenant_apps Postgres table, ports 3101+, " +
+        "auto-allocated by the provisionTenant CLI (the ONLY authorized path to " +
+        "creating a tenant pm2 app).\n\n" +
+        "An hourly cron (pm2-drift-check) diffs `pm2 jlist` against both sets. " +
+        "Anything outside both = drift. New drift = audit row + Office announcement. " +
+        "From here you can Adopt the offender into the registry, or Stop & remove it.\n\n" +
+        "Day-to-day, this is where you Restart a misbehaving tenant, soft-deprovision " +
+        "one (status flips to deprovisioning; reversible), or Finalize the teardown " +
+        "(pm2 delete + nginx rm + clients/<slug>/ rm + DB row delete; irreversible)."
+      }
       onClose={onClose}
       sections={sections}
       auditLogView={<AuditLogTimeline endpoint="/api/admin/tenant-apps/audit-log" />}
