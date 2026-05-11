@@ -8,6 +8,7 @@ import TopNav from "../../components/TopNav";
 import { useTerminal } from "../../components/TerminalProvider";
 import SettingsIcon from "../../components/icons/SettingsIcon";
 import TelephonyControlModal from "../../components/hardening/telephony/TelephonyControlModal";
+import TenantAppsControlModal from "../../components/hardening/tenant-apps/TenantAppsControlModal";
 import BackupsControlModal from "../../components/backups/BackupsControlModal";
 import AutomationsTab from "../../components/automations/AutomationsTab";
 import {
@@ -1597,6 +1598,15 @@ function UtilsAdlSurface({
                         </HardeningTileSub>
                       </HardeningTile>
                     );
+                    if (tile.type === "tenant-apps") return (
+                      <HardeningTile key={i} type="button" onClick={() => onOpenHardening("tenant-apps")}>
+                        <HardeningTileTop>🏘 Tenant Apps</HardeningTileTop>
+                        <HardeningTileSub>
+                          Tenant pm2 registry (3101+), hourly drift check vs ecosystem.config.cjs,
+                          per-row Restart / Stop / Finalize, Adopt for hand-started apps.
+                        </HardeningTileSub>
+                      </HardeningTile>
+                    );
                     if (tile.type === "tinyurl") return (
                       <LinkToolsTile key={i} type="button" onClick={() => onOpenLinkTool("tinyurl")}>
                         <LinkToolsTileTop>🔗 TinyURL Generator</LinkToolsTileTop>
@@ -1724,7 +1734,7 @@ type DefaultsOverlay = Record<string, Record<string, FieldValue>>;
 // opens its HardeningControlModal. New hardenings get a new tile + a new
 // `kind` value below.
 
-type HardeningKind = "telephony";  // | "postgres" | "ssh" | "nginx" — future
+type HardeningKind = "telephony" | "tenant-apps";  // | "postgres" | "ssh" | "nginx" — future
 
 // ── Link Tools (TinyURL + QR generators) ──────────────────────────────────
 //
@@ -1753,6 +1763,7 @@ const LINKS_ORIGIN =
 type TileSpec =
   | { type: "backups" }
   | { type: "telephony" }
+  | { type: "tenant-apps" }
   | { type: "tinyurl" }
   | { type: "qrcode" }
   | { type: "transcriber" }
@@ -1791,7 +1802,7 @@ const SECTIONS: Section[] = [
     kind: "actions", actionIds: ["gitrepo", "gitdelrepo"] },
   { id: "hardening", title: "Hardening", accent: "cyan",
     subtitle: "defensive mechanisms installed on RCS — controls + status + audit log",
-    kind: "tiles", tiles: [{ type: "telephony" }] },
+    kind: "tiles", tiles: [{ type: "telephony" }, { type: "tenant-apps" }] },
   { id: "linktools", title: "Link Tools", accent: "cyan",
     subtitle: "shorten URLs and generate scannable QR codes — pair them for printable mini-flyers",
     kind: "tiles", tiles: [{ type: "tinyurl" }, { type: "qrcode" }] },
@@ -2266,6 +2277,10 @@ export default function UtilsPage() {
 
       {openHardening === "telephony" && (
         <TelephonyControlModal onClose={() => setOpenHardening(null)} />
+      )}
+
+      {openHardening === "tenant-apps" && (
+        <TenantAppsControlModal onClose={() => setOpenHardening(null)} />
       )}
 
       {openBackups && (
