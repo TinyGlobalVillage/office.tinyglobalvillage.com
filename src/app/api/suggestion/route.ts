@@ -5,6 +5,12 @@ import { getAccount, sendEmail } from "@/lib/fastmail";
 import { loadTGVContext } from "@/lib/claude-context";
 
 export const runtime = "nodejs";
+// Turbopack 16.2.4 fails to emit the runtime chunk during static analysis
+// of this route, then crashes the prerender phase trying to require a
+// missing `[turbopack]_runtime.js`. Forcing dynamic rendering skips the
+// prerender attempt entirely. Functionally a no-op — this route is
+// already always-dynamic at runtime (auth-gated POST handler).
+export const dynamic = "force-dynamic";
 
 type Message = { role: "user" | "assistant"; content: string };
 

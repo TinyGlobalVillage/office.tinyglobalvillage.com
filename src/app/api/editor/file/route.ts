@@ -7,6 +7,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { readFileSync, writeFileSync, statSync } from "fs";
 import path from "path";
 
+export const runtime = "nodejs";
+// Turbopack 16.2.4 fails to emit the runtime chunk during static analysis
+// of this route. Forcing dynamic skips the prerender attempt. Functionally
+// a no-op — both handlers read query/body at request time.
+export const dynamic = "force-dynamic";
+
 const ROOT = "/srv/refusion-core/clients";
 const MAX_READ = 2 * 1024 * 1024; // 2 MB
 
