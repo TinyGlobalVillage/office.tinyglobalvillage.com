@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import styled from "styled-components";
 import { colors, rgb } from "../../theme";
 
+import TPG from "@tgv/module-component-library/components/ui/TPG";
+
 const PINK = colors.pink;
 const PINK_RGB = rgb.pink;
 const MUTED = "rgba(255,255,255,0.18)";
@@ -1216,47 +1218,6 @@ function GPGDemo() {
   );
 }
 
-// ── TPG demo ────────────────────────────────────────────────────────────
-function TPGDemo() {
-  const [page, setPage] = useState(1);
-  const [size, setSize] = useState(10);
-  const total = 3;
-  return (
-    <DemoCol>
-      <TpgTable>
-        {["Row A", "Row B", "Row C", "Row D"].map((r, i) => (
-          <TpgTableRow key={i} $alt={!!(i % 2)} $last={i === 3}>
-            <TpgMono>{r}</TpgMono>
-            <Spacer />
-            <TpgDash>—</TpgDash>
-          </TpgTableRow>
-        ))}
-      </TpgTable>
-
-      <Highlight label="TPG">
-        <TpgControlRow>
-          <TpgPageInfo>Page {page} of {total} · 24 results</TpgPageInfo>
-          <Spacer />
-          <TpgSmallBtn onClick={() => setSize(10)} title="Reset">↺</TpgSmallBtn>
-          <TpgSelect value={size} onChange={(e) => setSize(Number(e.target.value))}>
-            {[5, 10, 25, 50].map((n) => <option key={n} value={n}>{n}</option>)}
-          </TpgSelect>
-          <TpgNavBtn
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={page === 1}
-            $disabled={page === 1}
-          >‹</TpgNavBtn>
-          <TpgNavBtn
-            onClick={() => setPage((p) => Math.min(total, p + 1))}
-            disabled={page === total}
-            $disabled={page === total}
-          >›</TpgNavBtn>
-        </TpgControlRow>
-      </Highlight>
-    </DemoCol>
-  );
-}
-
 // ── ACR demo ────────────────────────────────────────────────────────────
 function ACRDemo() {
   const [cols, setCols] = useState(3);
@@ -1585,6 +1546,59 @@ function QMBMDemo() {
 }
 
 // ── DDM demo ────────────────────────────────────────────────────────────
+// ── TPG demo — canonical Table Pagination Group ───────────────────────
+const TpgDemoWrap = styled.div`
+  --tpg-accent: ${colors.cyan};
+  --tpg-accent-rgb: ${rgb.cyan};
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 360px;
+  padding: 0.75rem 1rem;
+  border-radius: 0.625rem;
+  background: rgba(${rgb.cyan}, 0.05);
+  border: 1px solid rgba(${rgb.cyan}, 0.2);
+`;
+const TpgDemoRow = styled.div`
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: var(--t-textMuted);
+  padding: 0.25rem 0;
+  border-bottom: 1px dashed rgba(${rgb.cyan}, 0.15);
+  &:last-of-type { border-bottom: none; }
+`;
+function TPGDemo() {
+  const [page, setPage] = useState(1);
+  const [size, setSize] = useState(5);
+  const TOTAL = 27;
+  // Sample slice indicator (rows omitted — we just show the start/end of the page).
+  const start = (page - 1) * size + 1;
+  const end = Math.min(page * size, TOTAL);
+  return (
+    <TpgDemoWrap>
+      <TpgDemoRow>
+        <span>Row {start}</span>
+        <span>…showing {end - start + 1} of {TOTAL}</span>
+      </TpgDemoRow>
+      <TpgDemoRow>
+        <span>Row {end}</span>
+        <span>page {page}</span>
+      </TpgDemoRow>
+      <TPG
+        total={TOTAL}
+        page={page}
+        pageSize={size}
+        defaultPageSize={5}
+        pageSizeOptions={[5, 10, 25, 50]}
+        itemNoun="row"
+        onPageChange={setPage}
+        onPageSizeChange={setSize}
+      />
+    </TpgDemoWrap>
+  );
+}
+
 function DDMDemo() {
   const [open, setOpen] = useState(false);
   const [val, setVal] = useState("Markdown");
@@ -3465,7 +3479,7 @@ const [name, setName] = useState("");
     code: `<NeonButton $accent="#ff4ecb" onClick={join}>Join Session</NeonButton>
 <NeonButton $accent="#00bfff" $compact>On</NeonButton>`,
     style: "const NeonButton = styled.button<{ $accent: string; $compact?: boolean }>\`\n  --acc: \\${(p) => p.$accent};\n  --acc-bg: color-mix(in srgb, var(--acc) 12%, transparent);\n  --acc-bg-hover: color-mix(in srgb, var(--acc) 22%, transparent);\n  --acc-border: color-mix(in srgb, var(--acc) 45%, transparent);\n  --acc-text: color-mix(in srgb, var(--acc) 75%, white 25%);\n  --acc-glow: color-mix(in srgb, var(--acc) 50%, transparent);\n  padding: \\${(p) => (p.$compact ? \"0.3rem 0.75rem\" : \"0.5rem 1rem\")};\n  border-radius: 999px;\n  font-size: \\${(p) => (p.$compact ? \"0.625rem\" : \"0.75rem\")};\n  font-weight: 700;\n  letter-spacing: 0.1em;\n  text-transform: uppercase;\n  cursor: pointer;\n  background: var(--acc-bg);\n  border: 1px solid var(--acc-border);\n  color: var(--acc-text);\n  text-shadow: 0 0 6px var(--acc-glow);\n  &:hover {\n    background: var(--acc-bg-hover);\n    box-shadow: 0 0 10px var(--acc-glow);\n  }\n\`;",
-    stylePath: "packages/@tgv/module-core/components/ui/NeonButton.tsx",
+    stylePath: "packages/@tgv/module-core/module-component-library/components/ui/NeonButton.tsx",
     Demo: NeonButtonDemo,
   },
   {
@@ -3578,7 +3592,7 @@ const [name, setName] = useState("");
   <IconBtn>⚙</IconBtn>
 </Tooltip>`,
     style: "const Bubble = styled.div\`\n  position: fixed;\n  z-index: 10000;\n  padding: 8px 14px;\n  border-radius: 10px;\n  font-size: 11.5px;\n  font-weight: 600;\n  letter-spacing: 0.6px;\n  line-height: 1.3;\n  text-transform: uppercase;\n  white-space: nowrap;\n  background: linear-gradient(160deg, \\${bgTop}, \\${bgBottom});\n  border: 1px solid \\${borderAlpha};\n  color: \\${textColor};\n  box-shadow: 0 6px 20px rgba(0,0,0,0.5), 0 0 18px \\${glow};\n  animation: tt-in 0.14s ease-out;\n\`;\n\nconst Arrow = styled.div\`\n  position: absolute;\n  top: -5px;\n  width: 10px;\n  height: 10px;\n  background: \\${bgTop};\n  border-top: 1px solid \\${borderAlpha};\n  border-left: 1px solid \\${borderAlpha};\n  transform: rotate(45deg);\n\`;",
-    stylePath: "packages/@tgv/module-core/components/ui/Tooltip.tsx",
+    stylePath: "packages/@tgv/module-core/module-component-library/components/ui/Tooltip.tsx",
     Demo: TooltipDemo,
   },
 
@@ -3789,26 +3803,9 @@ const FileSidebar = styled.aside\`
     stylePath: "src/app/components/suggestion/SuggestionBoxModal.tsx",
     Demo: SuggestionBoxDemo,
   },
-  {
-    key: "TPG",
-    name: "Table Pagination Group",
-    category: "Navigation",
-    summary: "Full pagination bar: page info (left), controls (right) = reset + page-size selector + prev/next. Used for grid/table views on tablet+. Two modes: standalone (fixed sizes 5/10/25/50) or inside ACR (column-count multiples).",
-    usage: "Place below a table/grid. Show reset button only when custom page size is active. `TpgBtn` is 5×10 padding, radius 8. Dropdown options reflect mode.",
-    code: `<TpgRow>
-  <TpgInfo>Page {page} of {total} · {count} results</TpgInfo>
-  <TpgControls>
-    {custom && <ResetBtn onClick={resetSize}>↺</ResetBtn>}
-    <TpgSelect value={size} onChange={setSize}>
-      {sizes.map(n => <option key={n}>{n}</option>)}
-    </TpgSelect>
-    <TpgBtn onClick={prev} disabled={page === 1}>‹</TpgBtn>
-    <TpgBtn onClick={next} disabled={page === total}>›</TpgBtn>
-  </TpgControls>
-</TpgRow>`,
-    stylePath: "src/app/dashboard/page.tsx",
-    Demo: TPGDemo,
-  },
+  // (Legacy inline-mockup TPG entry removed — the canonical TPG entry now
+  // lives at the bottom of the Navigation group below, importing from
+  // @tgv/module-component-library/components/ui/TPG.)
 
   // ── Toggles ───────────────────────────────────────────────────────────
   {
@@ -3947,6 +3944,36 @@ function useNewKeys(currentKeys: string[]) {
 \`;`,
     stylePath: "src/app/components/sandbox/SandboxModal.tsx",
     Demo: RRTDemo,
+  },
+  {
+    key: "TPG",
+    name: "Table Pagination Group",
+    category: "Navigation",
+    summary: "Full pagination bar: 'Page N of M · total results' on the left; reset + page-size DDM + optional inline custom-N input + prev/next on the right. Replaces the legacy native <select> page-size picker with a portal-rendered DDM, plus a 'Custom…' item that reveals a number input for arbitrary N (1–500). Themed via --tpg-accent / --tpg-accent-rgb (defaults to cyan); the inner DDM picks up the same accent.",
+    usage: "Drop into any table/grid footer. Pass `total`, `page`, `pageSize`, plus the two change callbacks. Override `pageSizeOptions` for column-aware galleries (e.g. [N, 2N, 3N, 5N]). The reset button auto-shows when pageSize !== defaultPageSize.",
+    code: `import TPG from "@tgv/module-component-library/components/ui/TPG";
+
+function MyTable() {
+  const [page, setPage] = useState(1);
+  const [size, setSize] = useState(10);
+  return (
+    <>
+      {/* rows here, sliced by page/size */}
+      <TPG
+        total={items.length}
+        page={page}
+        pageSize={size}
+        defaultPageSize={10}
+        pageSizeOptions={[5, 10, 25, 50]}
+        itemNoun="member"
+        onPageChange={setPage}
+        onPageSizeChange={setSize}
+      />
+    </>
+  );
+}`,
+    stylePath: "packages/@tgv/module-core/module-component-library/components/ui/TPG.tsx",
+    Demo: TPGDemo,
   },
 ];
 
