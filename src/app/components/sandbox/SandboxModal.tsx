@@ -1592,6 +1592,10 @@ export default function SandboxModal({
   const toggleAllCats = () =>
     setCatOpen(Object.fromEntries(CATEGORIES.map((c) => [c, !allCatsOpen])));
   const [summaryOpen, setSummaryOpen] = useState(true);
+  // Gates the entire CenterPane (summary header + demo + claude drawer)
+  // via the header-toolbar Summary button. Distinct from `summaryOpen`,
+  // which only collapses the inline summary body within the SummaryBar.
+  const [previewOpen, setPreviewOpen] = useState(true);
   const [codeOpen, setCodeOpen] = useState(false);
   const [codeTab, setCodeTab] = useState<"component" | "style">("component");
   const [liveStyle, setLiveStyle] = useState<string | null>(null);
@@ -2035,9 +2039,9 @@ export default function SandboxModal({
               </ToggleBtn>
 
               <ToggleBtn
-                $active={summaryOpen}
-                onClick={() => setSummaryOpen((p) => !p)}
-                aria-label="Toggle summary"
+                $active={previewOpen}
+                onClick={() => setPreviewOpen((p) => !p)}
+                aria-label="Toggle preview column"
               >
                 <SummaryIcon />
                 <BtnLabel>Summary</BtnLabel>
@@ -2123,9 +2127,9 @@ export default function SandboxModal({
                       <span>Files</span>
                     </MenuDdmItem>
                     <MenuDdmItem
-                      $active={summaryOpen}
+                      $active={previewOpen}
                       onClick={() => {
-                        setSummaryOpen((p) => !p);
+                        setPreviewOpen((p) => !p);
                         setToolbarMenuOpen(false);
                       }}
                     >
@@ -2254,6 +2258,7 @@ export default function SandboxModal({
             </Tooltip>
           )}
 
+          {previewOpen && (
           <CenterPane>
             {active ? (
               <>
@@ -2316,6 +2321,7 @@ export default function SandboxModal({
               <EmptyCenter>Select a component.</EmptyCenter>
             )}
           </CenterPane>
+          )}
 
           {codeOpen && active && !codePanel.snapped && (
             <ResizeHandle
