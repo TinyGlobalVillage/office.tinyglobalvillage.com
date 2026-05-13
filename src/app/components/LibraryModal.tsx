@@ -224,6 +224,7 @@ export default function LibraryModal({ onClose }: { onClose: () => void }) {
         <SandboxModal
           onClose={() => setComponentLibraryOpen(false)}
           title="Component Library"
+          surface="library"
         />
       )}
     </>

@@ -1545,6 +1545,7 @@ export default function SandboxModal({
   onClose,
   mode = "main",
   title = "Sandbox",
+  surface = "workshop",
 }: {
   onClose: () => void;
   mode?: SandboxMode;
@@ -1552,10 +1553,16 @@ export default function SandboxModal({
    * Drawer/header title. Defaults to "Sandbox" (opened from the dashboard
    * Sandbox tile). Pass "Component Library" when opening from the Library
    * modal so the same modal reads as a catalog rather than a workshop.
-   * Library/workshop visual mode comes in a follow-up commit; for now this
-   * is purely a labeling switch.
    */
   title?: string;
+  /**
+   * 'workshop' (default) = full edit/draft/deploy UI for admins (the
+   * Sandbox tile entry point). 'library' = read-only browse mode, hides
+   * edit toggle, draft picker, edit toolbar, and admin-only menu items.
+   * Same underlying registry; different capabilities. Launched from the
+   * LibraryModal's Component Library tile.
+   */
+  surface?: "library" | "workshop";
 }) {
   useModalLifecycle();
   const [activeKey, setActiveKey] = useState<string>(REGISTRY[0]?.key ?? "");
@@ -1589,6 +1596,10 @@ export default function SandboxModal({
   const codeEditorRef = useRef<HTMLTextAreaElement | null>(null);
 
   const [isAdmin, setIsAdmin] = useState(false);
+  // Edit affordances require BOTH admin auth AND workshop surface. The
+  // Library surface (launched from LibraryModal) is always read-only,
+  // even for admins.
+  const canEdit = surface === "workshop" && isAdmin;
   const [editMode, setEditMode] = useState(false);
   const [autoSave, setAutoSave] = useState(true);
   const [unsavedCode, setUnsavedCode] = useState<string | null>(null);
@@ -1917,7 +1928,7 @@ export default function SandboxModal({
             <SandboxIcon size={22} color={editMode ? GOLD : PINK} />
             <Title $edit={editMode}>{title}{editMode ? " · Editing" : ""}</Title>
 
-            {isAdmin && drafts.drafts.length > 0 && (
+            {canEdit && drafts.drafts.length > 0 && (
               <DraftSbdmWrap ref={draftSbdmRef}>
                 <Tooltip label="Pick a draft or live" accent={TT_ACCENT}>
                   <DraftTrigger onClick={() => setDraftPickerOpen((v) => !v)}>
@@ -1985,7 +1996,7 @@ export default function SandboxModal({
               </>
             )}
             <WideControls>
-              {isAdmin && (
+              {canEdit && (
                 <ToggleBtn
                   $active={editMode}
                   $color={GOLD_RGB}
@@ -2061,7 +2072,7 @@ export default function SandboxModal({
                 </Tooltip>
                 {toolbarMenuOpen && (
                   <MenuDdmPanel role="menu">
-                    {isAdmin && (
+                    {canEdit && (
                       <MenuDdmItem
                         $active={editMode}
                         $color={GOLD_RGB}
@@ -2133,7 +2144,7 @@ export default function SandboxModal({
           </HeaderRight>
         </Header>
 
-        {isAdmin && editMode && (
+        {canEdit && editMode && (
           <SandboxEditToolbar
             active={drafts.active}
             autoSave={autoSave}
@@ -2253,7 +2264,7 @@ export default function SandboxModal({
                       {Demo && <Demo />}
                     </DemoWrap>
                   </DemoArea>
-                  {isAdmin && editMode && active && (
+                  {canEdit && editMode && active && (
                     <ClaudeWrap>
                       <SandboxClaudeDrawer
                         componentKey={activeKey}
