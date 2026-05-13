@@ -155,60 +155,62 @@ export default function LibraryModal({ onClose }: { onClose: () => void }) {
   }, [onClose]);
 
   return (
-    <ModalBackdrop onClick={onClose}>
-      <FsContainer $fs={fullscreen} $accent="violet" $maxWidth="48rem" onClick={(e) => e.stopPropagation()}>
-        <ModalHeader>
-          <ModalHeaderLeft>
-            <LibraryIcon size={28} color={colors.violet} />
-            <div>
-              <DrawerTitle $accent="violet">Library</DrawerTitle>
-              <ModalSubtitle>Catalog of every reusable asset across TGV + Refusionist</ModalSubtitle>
-            </div>
-          </ModalHeaderLeft>
-          <HeaderRight>
-            <Tooltip accent={colors.violet} label={fullscreen ? "Exit fullscreen" : "Fullscreen"}>
-              <CtrlBtn
-                $active={fullscreen}
-                onClick={() => setFullscreen((v) => !v)}
-                aria-label={fullscreen ? "Exit fullscreen" : "Fullscreen"}
-              >
-                {fullscreen ? "⊡" : "⊞"}
-              </CtrlBtn>
-            </Tooltip>
-            <Tooltip accent={colors.violet} label="Close (Esc)">
-              <NeonX accent="violet" onClick={onClose} />
-            </Tooltip>
-          </HeaderRight>
-        </ModalHeader>
-        <ModalBody>
-          <Grid>
-            {SECTIONS.map((s) => {
-              const onOpen =
-                s.title === "Component Library" && s.status === "live" ? () => setComponentLibraryOpen(true)
-                : s.title === "Skill Library" && s.status === "live" ? () => setSkillsOpen(true)
-                : s.title === "Playbook Library" && s.status === "live" ? () => setPlaybooksOpen(true)
-                : null;
-              const isClickable = onOpen !== null;
-              return (
-                <Card
-                  key={s.title}
-                  onClick={isClickable ? onOpen : undefined}
-                  style={{ cursor: isClickable ? "pointer" : "default" }}
-                  role={isClickable ? "button" : undefined}
-                  tabIndex={isClickable ? 0 : undefined}
-                  onKeyDown={isClickable ? (e) => { if (e.key === "Enter" || e.key === " ") onOpen!(); } : undefined}
+    <>
+      <ModalBackdrop onClick={onClose}>
+        <FsContainer $fs={fullscreen} $accent="violet" $maxWidth="48rem" onClick={(e) => e.stopPropagation()}>
+          <ModalHeader>
+            <ModalHeaderLeft>
+              <LibraryIcon size={28} color={colors.violet} />
+              <div>
+                <DrawerTitle $accent="violet">Library</DrawerTitle>
+                <ModalSubtitle>Catalog of every reusable asset across TGV + Refusionist</ModalSubtitle>
+              </div>
+            </ModalHeaderLeft>
+            <HeaderRight>
+              <Tooltip accent={colors.violet} label={fullscreen ? "Exit fullscreen" : "Fullscreen"}>
+                <CtrlBtn
+                  $active={fullscreen}
+                  onClick={() => setFullscreen((v) => !v)}
+                  aria-label={fullscreen ? "Exit fullscreen" : "Fullscreen"}
                 >
-                  <CardHeader>
-                    <CardTitle>{s.title}</CardTitle>
-                    <StatusBadge $status={s.status}>{s.status}</StatusBadge>
-                  </CardHeader>
-                  <CardBody>{s.body}</CardBody>
-                </Card>
-              );
-            })}
-          </Grid>
-        </ModalBody>
-      </FsContainer>
+                  {fullscreen ? "⊡" : "⊞"}
+                </CtrlBtn>
+              </Tooltip>
+              <Tooltip accent={colors.violet} label="Close (Esc)">
+                <NeonX accent="violet" onClick={onClose} />
+              </Tooltip>
+            </HeaderRight>
+          </ModalHeader>
+          <ModalBody>
+            <Grid>
+              {SECTIONS.map((s) => {
+                const onOpen =
+                  s.title === "Component Library" && s.status === "live" ? () => setComponentLibraryOpen(true)
+                  : s.title === "Skill Library" && s.status === "live" ? () => setSkillsOpen(true)
+                  : s.title === "Playbook Library" && s.status === "live" ? () => setPlaybooksOpen(true)
+                  : null;
+                const isClickable = onOpen !== null;
+                return (
+                  <Card
+                    key={s.title}
+                    onClick={isClickable ? onOpen : undefined}
+                    style={{ cursor: isClickable ? "pointer" : "default" }}
+                    role={isClickable ? "button" : undefined}
+                    tabIndex={isClickable ? 0 : undefined}
+                    onKeyDown={isClickable ? (e) => { if (e.key === "Enter" || e.key === " ") onOpen!(); } : undefined}
+                  >
+                    <CardHeader>
+                      <CardTitle>{s.title}</CardTitle>
+                      <StatusBadge $status={s.status}>{s.status}</StatusBadge>
+                    </CardHeader>
+                    <CardBody>{s.body}</CardBody>
+                  </Card>
+                );
+              })}
+            </Grid>
+          </ModalBody>
+        </FsContainer>
+      </ModalBackdrop>
       <SkillLibraryModal open={skillsOpen} onClose={() => setSkillsOpen(false)} />
       {playbooksOpen && <PlaybookLibraryModal onClose={() => setPlaybooksOpen(false)} />}
       {componentLibraryOpen && (
@@ -217,6 +219,6 @@ export default function LibraryModal({ onClose }: { onClose: () => void }) {
           title="Component Library"
         />
       )}
-    </ModalBackdrop>
+    </>
   );
 }
