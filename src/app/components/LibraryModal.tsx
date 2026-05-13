@@ -18,6 +18,7 @@ import NeonX from "./NeonX";
 import Tooltip from "./ui/Tooltip";
 import SkillLibraryModal from "./SkillLibraryModal";
 import PlaybookLibraryModal from "./PlaybookLibraryModal";
+import SandboxModal from "./sandbox/SandboxModal";
 
 const FsContainer = styled(ModalContainer)<{ $fs: boolean }>`
   ${(p) => p.$fs && `
@@ -70,7 +71,7 @@ const HeaderRight = styled.div`
 `;
 
 const SECTIONS = [
-  { title: "Component Library", body: "Canonical TGV UI primitives — pulled from the Sandbox registry once they ship.", status: "in progress" },
+  { title: "Component Library", body: "Canonical TGV UI primitives — shared catalog with the Sandbox. Open from here to browse; use the Sandbox tile on the dashboard to author.", status: "live" },
   { title: "Skill Library", body: "Domain skills the agent can consult: opensrs, fastmail, swisseph, and more as they're added.", status: "live" },
   { title: "Playbook Library", body: "Reusable runbooks: gitrefuse, dep-check, deploy flows, incident response.", status: "live" },
   { title: "Asset Library", body: "Logos, icons, brand colors, copy snippets — single source of truth for TGV + Refusionist.", status: "planned" },
@@ -145,6 +146,7 @@ export default function LibraryModal({ onClose }: { onClose: () => void }) {
   const [fullscreen, setFullscreen] = useState(false);
   const [skillsOpen, setSkillsOpen] = useState(false);
   const [playbooksOpen, setPlaybooksOpen] = useState(false);
+  const [componentLibraryOpen, setComponentLibraryOpen] = useState(false);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") { e.stopPropagation(); onClose(); } };
@@ -182,7 +184,8 @@ export default function LibraryModal({ onClose }: { onClose: () => void }) {
           <Grid>
             {SECTIONS.map((s) => {
               const onOpen =
-                s.title === "Skill Library" && s.status === "live" ? () => setSkillsOpen(true)
+                s.title === "Component Library" && s.status === "live" ? () => setComponentLibraryOpen(true)
+                : s.title === "Skill Library" && s.status === "live" ? () => setSkillsOpen(true)
                 : s.title === "Playbook Library" && s.status === "live" ? () => setPlaybooksOpen(true)
                 : null;
               const isClickable = onOpen !== null;
@@ -208,6 +211,12 @@ export default function LibraryModal({ onClose }: { onClose: () => void }) {
       </FsContainer>
       <SkillLibraryModal open={skillsOpen} onClose={() => setSkillsOpen(false)} />
       {playbooksOpen && <PlaybookLibraryModal onClose={() => setPlaybooksOpen(false)} />}
+      {componentLibraryOpen && (
+        <SandboxModal
+          onClose={() => setComponentLibraryOpen(false)}
+          title="Component Library"
+        />
+      )}
     </ModalBackdrop>
   );
 }

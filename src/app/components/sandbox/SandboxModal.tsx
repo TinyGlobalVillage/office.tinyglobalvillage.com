@@ -1544,9 +1544,18 @@ const POPOUT_HEARTBEAT_MS = 1200;
 export default function SandboxModal({
   onClose,
   mode = "main",
+  title = "Sandbox",
 }: {
   onClose: () => void;
   mode?: SandboxMode;
+  /**
+   * Drawer/header title. Defaults to "Sandbox" (opened from the dashboard
+   * Sandbox tile). Pass "Component Library" when opening from the Library
+   * modal so the same modal reads as a catalog rather than a workshop.
+   * Library/workshop visual mode comes in a follow-up commit; for now this
+   * is purely a labeling switch.
+   */
+  title?: string;
 }) {
   useModalLifecycle();
   const [activeKey, setActiveKey] = useState<string>(REGISTRY[0]?.key ?? "");
@@ -1906,7 +1915,7 @@ export default function SandboxModal({
         <Header $edit={editMode}>
           <HeaderLeft $w={sidebar.snapped ? 0 : sidebar.width} $edit={editMode}>
             <SandboxIcon size={22} color={editMode ? GOLD : PINK} />
-            <Title $edit={editMode}>Sandbox{editMode ? " · Editing" : ""}</Title>
+            <Title $edit={editMode}>{title}{editMode ? " · Editing" : ""}</Title>
 
             {isAdmin && drafts.drafts.length > 0 && (
               <DraftSbdmWrap ref={draftSbdmRef}>
@@ -1971,7 +1980,7 @@ export default function SandboxModal({
               <>
                 <SandboxIcon size={22} color={editMode ? GOLD : PINK} />
                 <Title $edit={editMode}>
-                  Sandbox{editMode ? " · Editing" : ""}
+                  {title}{editMode ? " · Editing" : ""}
                 </Title>
               </>
             )}
