@@ -154,9 +154,16 @@ export default function LibraryModal({ onClose }: { onClose: () => void }) {
     return () => document.removeEventListener("keydown", onKey);
   }, [onClose]);
 
+  // When a nested modal (Component Library / Skill / Playbook) is open,
+  // drop the LibraryModal backdrop below the nested PanelBackdrop (z-index
+  // 65 in styled.ts) so the nested modal renders ON TOP. Without this,
+  // LibraryModal's z-index 100 covers the nested one.
+  const nestedOpen = componentLibraryOpen || skillsOpen || playbooksOpen;
+  const backdropStyle = nestedOpen ? { zIndex: 50 } : undefined;
+
   return (
     <>
-      <ModalBackdrop onClick={onClose}>
+      <ModalBackdrop onClick={onClose} style={backdropStyle}>
         <FsContainer $fs={fullscreen} $accent="violet" $maxWidth="48rem" onClick={(e) => e.stopPropagation()}>
           <ModalHeader>
             <ModalHeaderLeft>
