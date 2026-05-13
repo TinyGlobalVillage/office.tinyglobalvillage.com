@@ -17,6 +17,7 @@ import {
 import NeonX from "./NeonX";
 import Tooltip from "./ui/Tooltip";
 import SkillLibraryModal from "./SkillLibraryModal";
+import PlaybookLibraryModal from "./PlaybookLibraryModal";
 
 const FsContainer = styled(ModalContainer)<{ $fs: boolean }>`
   ${(p) => p.$fs && `
@@ -143,6 +144,7 @@ export default function LibraryModal({ onClose }: { onClose: () => void }) {
   useModalLifecycle();
   const [fullscreen, setFullscreen] = useState(false);
   const [skillsOpen, setSkillsOpen] = useState(false);
+  const [playbooksOpen, setPlaybooksOpen] = useState(false);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") { e.stopPropagation(); onClose(); } };
@@ -179,15 +181,19 @@ export default function LibraryModal({ onClose }: { onClose: () => void }) {
         <ModalBody>
           <Grid>
             {SECTIONS.map((s) => {
-              const isClickable = s.title === "Skill Library" && s.status === "live";
+              const onOpen =
+                s.title === "Skill Library" && s.status === "live" ? () => setSkillsOpen(true)
+                : s.title === "Playbook Library" && s.status === "live" ? () => setPlaybooksOpen(true)
+                : null;
+              const isClickable = onOpen !== null;
               return (
                 <Card
                   key={s.title}
-                  onClick={isClickable ? () => setSkillsOpen(true) : undefined}
+                  onClick={isClickable ? onOpen : undefined}
                   style={{ cursor: isClickable ? "pointer" : "default" }}
                   role={isClickable ? "button" : undefined}
                   tabIndex={isClickable ? 0 : undefined}
-                  onKeyDown={isClickable ? (e) => { if (e.key === "Enter" || e.key === " ") setSkillsOpen(true); } : undefined}
+                  onKeyDown={isClickable ? (e) => { if (e.key === "Enter" || e.key === " ") onOpen!(); } : undefined}
                 >
                   <CardHeader>
                     <CardTitle>{s.title}</CardTitle>
@@ -201,6 +207,7 @@ export default function LibraryModal({ onClose }: { onClose: () => void }) {
         </ModalBody>
       </FsContainer>
       <SkillLibraryModal open={skillsOpen} onClose={() => setSkillsOpen(false)} />
+      {playbooksOpen && <PlaybookLibraryModal onClose={() => setPlaybooksOpen(false)} />}
     </ModalBackdrop>
   );
 }
