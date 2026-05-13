@@ -652,6 +652,23 @@ function CodeBracketsIcon({ size = 14 }: { size?: number }) {
   );
 }
 
+// Summary icon — document with lines (matches the SummaryBar/SummaryText
+// content shown above the Demo area).
+function SummaryIcon({ size = 14 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M6 3h9l4 4v14a1 1 0 01-1 1H6a1 1 0 01-1-1V4a1 1 0 011-1z"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+      />
+      <path d="M15 3v4h4" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+      <path d="M8 12h8M8 16h8M8 8h4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 // Hamburger/menu icon for the narrow-screen DDM trigger.
 function MenuIcon({ size = 14 }: { size?: number }) {
   return (
@@ -2018,6 +2035,15 @@ export default function SandboxModal({
               </ToggleBtn>
 
               <ToggleBtn
+                $active={summaryOpen}
+                onClick={() => setSummaryOpen((p) => !p)}
+                aria-label="Toggle summary"
+              >
+                <SummaryIcon />
+                <BtnLabel>Summary</BtnLabel>
+              </ToggleBtn>
+
+              <ToggleBtn
                 $active={codeOpen && !codePanel.snapped}
                 onClick={() => { if (codePanel.snapped) { codePanel.restore(); } else { setCodeOpen((p) => !p); } }}
                 aria-label="Toggle code panel"
@@ -2095,6 +2121,16 @@ export default function SandboxModal({
                     >
                       <FolderIcon />
                       <span>Files</span>
+                    </MenuDdmItem>
+                    <MenuDdmItem
+                      $active={summaryOpen}
+                      onClick={() => {
+                        setSummaryOpen((p) => !p);
+                        setToolbarMenuOpen(false);
+                      }}
+                    >
+                      <SummaryIcon />
+                      <span>Summary</span>
                     </MenuDdmItem>
                     <MenuDdmItem
                       $active={codeOpen && !codePanel.snapped}
