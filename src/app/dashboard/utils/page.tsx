@@ -9,17 +9,18 @@ import { useTerminal } from "../../components/TerminalProvider";
 import SettingsIcon from "../../components/icons/SettingsIcon";
 import TelephonyControlModal from "../../components/hardening/telephony/TelephonyControlModal";
 import TenantAppsControlModal from "../../components/hardening/tenant-apps/TenantAppsControlModal";
+import MemberAuthControlModal from "../../components/hardening/member-auth/MemberAuthControlModal";
 import BackupsControlModal from "../../components/backups/BackupsControlModal";
 import AutomationsTab from "../../components/automations/AutomationsTab";
 import {
   TinyURLGenerator,
   QRCodeGenerator,
-} from "@tgv/module-editor/editor/component-library/marketing/link-tools";
-import type { ShortLink } from "@tgv/module-editor/editor/component-library/marketing/link-tools";
+} from "@tgv/module-page-editor/editor/component-library/marketing/link-tools";
+import type { ShortLink } from "@tgv/module-page-editor/editor/component-library/marketing/link-tools";
 import {
   Transcriber,
   useTranscriberJobs,
-} from "@tgv/module-connect/transcriber";
+} from "@tgv/module-transcriber";
 
 /* ── Types ────────────────────────────────────────────────────── */
 
@@ -1607,6 +1608,16 @@ function UtilsAdlSurface({
                         </HardeningTileSub>
                       </HardeningTile>
                     );
+                    if (tile.type === "member-auth") return (
+                      <HardeningTile key={i} type="button" onClick={() => onOpenHardening("member-auth")}>
+                        <HardeningTileTop>🔐 Member Auth</HardeningTileTop>
+                        <HardeningTileSub>
+                          Magic-link + TOTP + passkeys for TGV.com members. Admin-mediated 2FA
+                          recovery (when a user loses authenticator + recovery codes), audit
+                          trail, jump-off to per-user management page.
+                        </HardeningTileSub>
+                      </HardeningTile>
+                    );
                     if (tile.type === "tinyurl") return (
                       <LinkToolsTile key={i} type="button" onClick={() => onOpenLinkTool("tinyurl")}>
                         <LinkToolsTileTop>🔗 TinyURL Generator</LinkToolsTileTop>
@@ -1734,11 +1745,11 @@ type DefaultsOverlay = Record<string, Record<string, FieldValue>>;
 // opens its HardeningControlModal. New hardenings get a new tile + a new
 // `kind` value below.
 
-type HardeningKind = "telephony" | "tenant-apps";  // | "postgres" | "ssh" | "nginx" — future
+type HardeningKind = "telephony" | "tenant-apps" | "member-auth";  // | "postgres" | "ssh" | "nginx" — future
 
 // ── Link Tools (TinyURL + QR generators) ──────────────────────────────────
 //
-// Pattern: `packages/@tgv/module-editor/.../marketing/link-tools/`. Both
+// Pattern: `packages/@tgv/module-core/module-page-editor/.../marketing/link-tools/`. Both
 // modals are paired — the QR button on a TinyURL row hands its short URL
 // straight into the QR modal so the resulting QR drops from a dense
 // ~77×77 grid to a printable ~25×25.
@@ -1764,11 +1775,12 @@ type TileSpec =
   | { type: "backups" }
   | { type: "telephony" }
   | { type: "tenant-apps" }
+  | { type: "member-auth" }
   | { type: "tinyurl" }
   | { type: "qrcode" }
   | { type: "transcriber" }
   | { type: "transcriptions" }
-  | { type: "queued-job"; job: import("@tgv/module-connect/transcriber").TranscriptionJob };
+  | { type: "queued-job"; job: import("@tgv/module-transcriber").TranscriptionJob };
 
 type SectionAccent = "pink" | "cyan" | "gold";
 
@@ -1802,7 +1814,7 @@ const SECTIONS: Section[] = [
     kind: "actions", actionIds: ["gitrepo", "gitdelrepo"] },
   { id: "hardening", title: "Hardening", accent: "cyan",
     subtitle: "defensive mechanisms installed on RCS — controls + status + audit log",
-    kind: "tiles", tiles: [{ type: "telephony" }, { type: "tenant-apps" }] },
+    kind: "tiles", tiles: [{ type: "telephony" }, { type: "tenant-apps" }, { type: "member-auth" }] },
   { id: "linktools", title: "Link Tools", accent: "cyan",
     subtitle: "shorten URLs and generate scannable QR codes — pair them for printable mini-flyers",
     kind: "tiles", tiles: [{ type: "tinyurl" }, { type: "qrcode" }] },
@@ -2281,6 +2293,10 @@ export default function UtilsPage() {
 
       {openHardening === "tenant-apps" && (
         <TenantAppsControlModal onClose={() => setOpenHardening(null)} />
+      )}
+
+      {openHardening === "member-auth" && (
+        <MemberAuthControlModal onClose={() => setOpenHardening(null)} />
       )}
 
       {openBackups && (
