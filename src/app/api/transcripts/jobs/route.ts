@@ -39,11 +39,11 @@ import { createTranscript } from "@/lib/transcripts-store";
 import {
   transcribe,
   WhisperEngineError,
-} from "@tgv/module-connect/whisper-client";
+} from "@tgv/module-transcriber/engine";
 import type {
   CreateTranscriptInput,
   TranscriptContext,
-} from "@tgv/module-connect/transcriber/types";
+} from "@tgv/module-transcriber/types";
 import fs from "fs";
 
 export const runtime = "nodejs";

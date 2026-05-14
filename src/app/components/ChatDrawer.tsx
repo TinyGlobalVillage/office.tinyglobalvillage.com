@@ -59,7 +59,7 @@ import {
   DrawerChatsIcon,
 } from "./icons";
 import { CallSurface, type RingChannel } from "./call";
-import { ChatBar } from "@tgv/module-connect/components/ChatBar";
+import { ChatBar } from "@tgv/module-component-library/components/chat";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 

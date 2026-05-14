@@ -8,7 +8,7 @@
  *   const tasks = await listActiveTasks(connectDb);
  */
 import "server-only";
-import { createConnectDb, ensureBootstrapped } from "@tgv/module-connect";
+import { createConnectDb, ensureBootstrapped } from "@tgv/module-relay";
 import { pgPool } from "./pg-pool";
 
 export const connectDb = createConnectDb(pgPool);

@@ -91,6 +91,23 @@ const REGISTRY: Record<
     ],
     needsEnv: ["OPENSRS_USERNAME", "OPENSRS_API_KEY", "OPENSRS_ENV"],
   },
+  "opensrs-doc-sync": {
+    bin: "python3",
+    baseArgs: [
+      "/srv/refusion-core/utils/scripts/automations/opensrs-doc-sync/sync.py",
+    ],
+  },
+  "opensrs-provision-mailbox": {
+    bin: "node",
+    baseArgs: [
+      "/srv/refusion-core/utils/scripts/oma/provision-mailbox.mjs",
+    ],
+    needsEnv: [
+      "OPENSRS_OMA_ENDPOINT_LIVE",
+      "OPENSRS_OMA_USER_LIVE",
+      "OPENSRS_OMA_PASSWORD_LIVE",
+    ],
+  },
 };
 
 // Only allow safe argument characters. Allows alphanumeric, dot, underscore,

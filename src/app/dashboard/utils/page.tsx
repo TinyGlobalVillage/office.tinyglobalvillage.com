@@ -9,17 +9,18 @@ import { useTerminal } from "../../components/TerminalProvider";
 import SettingsIcon from "../../components/icons/SettingsIcon";
 import TelephonyControlModal from "../../components/hardening/telephony/TelephonyControlModal";
 import TenantAppsControlModal from "../../components/hardening/tenant-apps/TenantAppsControlModal";
+import MemberAuthControlModal from "../../components/hardening/member-auth/MemberAuthControlModal";
 import BackupsControlModal from "../../components/backups/BackupsControlModal";
 import AutomationsTab from "../../components/automations/AutomationsTab";
 import {
   TinyURLGenerator,
   QRCodeGenerator,
-} from "@tgv/module-editor/editor/component-library/marketing/link-tools";
-import type { ShortLink } from "@tgv/module-editor/editor/component-library/marketing/link-tools";
+} from "@tgv/module-page-editor/editor/component-library/marketing/link-tools";
+import type { ShortLink } from "@tgv/module-page-editor/editor/component-library/marketing/link-tools";
 import {
   Transcriber,
   useTranscriberJobs,
-} from "@tgv/module-connect/transcriber";
+} from "@tgv/module-transcriber";
 
 /* ── Types ────────────────────────────────────────────────────── */
 
@@ -270,6 +271,114 @@ const GROUPS: Group[] = [
           },
         ],
         glow: "gold",
+      },
+      {
+        id: "opensrs-doc-sync",
+        label: "Refresh OpenSRS documentation",
+        description: "Pulls fresh copies of every OpenSRS doc page (domains.opensrs.guide + email.opensrs.guide + support.opensrs.com — ~570 URLs total) into the local skills mirror. Normally TTL-guarded (skipped if last sync < 6h); use Force to override.",
+        script: "opensrs-doc-sync",
+        buildArgs: (v) => {
+          const args: FieldValue[] = [];
+          if (v.force === "yes") args.push("--force");
+          const prop = String(v.property ?? "all");
+          if (prop !== "all") args.push("--property", prop);
+          const ttl = String(v.maxAgeHours ?? "").trim();
+          if (ttl !== "") args.push("--max-age-hours", ttl);
+          return args;
+        },
+        fields: [
+          {
+            key: "property",
+            label: "Which property to sync",
+            type: "select",
+            default: "all",
+            options: [
+              { value: "all", label: "All (domains + email + support)" },
+              { value: "support", label: "support.opensrs.com (sitemap-driven, ~425 URLs)" },
+              { value: "domains", label: "domains.opensrs.guide (sidebar crawl, ~150 URLs)" },
+              { value: "email", label: "email.opensrs.guide (sidebar crawl)" },
+            ],
+            help: "Limit the sync to one property when you only need fresh API ref or fresh KB articles.",
+          },
+          {
+            key: "force",
+            label: "Force full re-sync",
+            type: "toggle",
+            default: "no",
+            help: "Bypasses both the TTL cooldown and per-URL sitemap/hash diff signals. Re-fetches and re-writes every page (~10–15 min). Use when you suspect the local cache is corrupt or want a guaranteed-fresh snapshot.",
+          },
+          {
+            key: "maxAgeHours",
+            label: "TTL cooldown hours",
+            type: "text",
+            placeholder: "6",
+            help: "Skip the run if the previous successful sync finished within this many hours. Default 6. Ignored when Force is on.",
+          },
+        ],
+        glow: "cyan",
+      },
+      {
+        id: "opensrs-provision-mailbox",
+        label: "Provision OMA mailbox",
+        description: "Create a tenant mailbox via the OpenSRS Mail Admin (OMA) JSON API. Generates a strong password if none provided. Returns the connection info (IMAP/SMTP host + password) for handoff to module-inbox.",
+        script: "opensrs-provision-mailbox",
+        buildArgs: (v) => {
+          const args: FieldValue[] = [String(v.local ?? ""), String(v.domain ?? "")];
+          const push = (flag: string, val: FieldValue | undefined) => {
+            const s = val == null ? "" : String(val);
+            if (s !== "") args.push(flag, s);
+          };
+          push("--storage-gb", v.storageGb);
+          push("--display-name", v.displayName);
+          push("--password", v.password);
+          return args;
+        },
+        fields: [
+          {
+            key: "local",
+            label: "Mailbox local-part",
+            type: "text",
+            placeholder: "alice",
+            required: true,
+            help: "The part before the @. e.g. 'alice' becomes alice@<domain>.",
+          },
+          {
+            key: "domain",
+            label: "Email domain",
+            type: "text",
+            placeholder: "tinyglobalvillage.com",
+            required: true,
+            help: "Must already exist in OMA AND have the API user as Domain admin on it. New domains require RCP-side creation first.",
+          },
+          {
+            key: "storageGb",
+            label: "Storage limit (GB)",
+            type: "select",
+            default: "5",
+            options: [
+              { value: "5", label: "5 GB" },
+              { value: "10", label: "10 GB" },
+              { value: "25", label: "25 GB" },
+              { value: "50", label: "50 GB" },
+              { value: "100", label: "100 GB" },
+            ],
+          },
+          {
+            key: "displayName",
+            label: "Display name (optional)",
+            type: "text",
+            placeholder: "Alice Smith",
+            help: "Shows in the From: header on outbound mail. Optional.",
+          },
+          {
+            key: "password",
+            label: "Password (optional)",
+            type: "text",
+            placeholder: "leave blank to auto-generate",
+            help: "If blank, a 20-char CSPRNG password is generated and returned in the response. Otherwise must be >=8 chars.",
+          },
+        ],
+        glow: "pink",
       },
     ],
   },
@@ -1607,6 +1716,16 @@ function UtilsAdlSurface({
                         </HardeningTileSub>
                       </HardeningTile>
                     );
+                    if (tile.type === "member-auth") return (
+                      <HardeningTile key={i} type="button" onClick={() => onOpenHardening("member-auth")}>
+                        <HardeningTileTop>🔐 Member Auth</HardeningTileTop>
+                        <HardeningTileSub>
+                          Magic-link + TOTP + passkeys for TGV.com members. Admin-mediated 2FA
+                          recovery (when a user loses authenticator + recovery codes), audit
+                          trail, jump-off to per-user management page.
+                        </HardeningTileSub>
+                      </HardeningTile>
+                    );
                     if (tile.type === "tinyurl") return (
                       <LinkToolsTile key={i} type="button" onClick={() => onOpenLinkTool("tinyurl")}>
                         <LinkToolsTileTop>🔗 TinyURL Generator</LinkToolsTileTop>
@@ -1734,11 +1853,11 @@ type DefaultsOverlay = Record<string, Record<string, FieldValue>>;
 // opens its HardeningControlModal. New hardenings get a new tile + a new
 // `kind` value below.
 
-type HardeningKind = "telephony" | "tenant-apps";  // | "postgres" | "ssh" | "nginx" — future
+type HardeningKind = "telephony" | "tenant-apps" | "member-auth";  // | "postgres" | "ssh" | "nginx" — future
 
 // ── Link Tools (TinyURL + QR generators) ──────────────────────────────────
 //
-// Pattern: `packages/@tgv/module-editor/.../marketing/link-tools/`. Both
+// Pattern: `packages/@tgv/module-core/module-page-editor/.../marketing/link-tools/`. Both
 // modals are paired — the QR button on a TinyURL row hands its short URL
 // straight into the QR modal so the resulting QR drops from a dense
 // ~77×77 grid to a printable ~25×25.
@@ -1764,11 +1883,12 @@ type TileSpec =
   | { type: "backups" }
   | { type: "telephony" }
   | { type: "tenant-apps" }
+  | { type: "member-auth" }
   | { type: "tinyurl" }
   | { type: "qrcode" }
   | { type: "transcriber" }
   | { type: "transcriptions" }
-  | { type: "queued-job"; job: import("@tgv/module-connect/transcriber").TranscriptionJob };
+  | { type: "queued-job"; job: import("@tgv/module-transcriber").TranscriptionJob };
 
 type SectionAccent = "pink" | "cyan" | "gold";
 
@@ -1802,7 +1922,7 @@ const SECTIONS: Section[] = [
     kind: "actions", actionIds: ["gitrepo", "gitdelrepo"] },
   { id: "hardening", title: "Hardening", accent: "cyan",
     subtitle: "defensive mechanisms installed on RCS — controls + status + audit log",
-    kind: "tiles", tiles: [{ type: "telephony" }, { type: "tenant-apps" }] },
+    kind: "tiles", tiles: [{ type: "telephony" }, { type: "tenant-apps" }, { type: "member-auth" }] },
   { id: "linktools", title: "Link Tools", accent: "cyan",
     subtitle: "shorten URLs and generate scannable QR codes — pair them for printable mini-flyers",
     kind: "tiles", tiles: [{ type: "tinyurl" }, { type: "qrcode" }] },
@@ -2281,6 +2401,10 @@ export default function UtilsPage() {
 
       {openHardening === "tenant-apps" && (
         <TenantAppsControlModal onClose={() => setOpenHardening(null)} />
+      )}
+
+      {openHardening === "member-auth" && (
+        <MemberAuthControlModal onClose={() => setOpenHardening(null)} />
       )}
 
       {openBackups && (

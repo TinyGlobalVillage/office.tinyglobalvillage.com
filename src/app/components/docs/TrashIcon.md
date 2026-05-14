@@ -5,7 +5,7 @@ Canonical trash/delete SVG. Use this anywhere a delete/clear/trash action needs 
 ## Source
 
 - File: [../icons/TrashIcon.tsx](../icons/TrashIcon.tsx)
-- Ported from: `/srv/refusion-core/packages/@tgv/module-core/components/icons/IconTrash.tsx`
+- Ported from: `/srv/refusion-core/packages/@tgv/module-core/module-component-library/components/icons/IconTrash.tsx`
 
 ## Import
 

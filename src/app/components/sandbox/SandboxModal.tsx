@@ -652,6 +652,23 @@ function CodeBracketsIcon({ size = 14 }: { size?: number }) {
   );
 }
 
+// Summary icon — document with lines (matches the SummaryBar/SummaryText
+// content shown above the Demo area).
+function SummaryIcon({ size = 14 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M6 3h9l4 4v14a1 1 0 01-1 1H6a1 1 0 01-1-1V4a1 1 0 011-1z"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+      />
+      <path d="M15 3v4h4" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+      <path d="M8 12h8M8 16h8M8 8h4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 // Hamburger/menu icon for the narrow-screen DDM trigger.
 function MenuIcon({ size = 14 }: { size?: number }) {
   return (
@@ -1544,9 +1561,25 @@ const POPOUT_HEARTBEAT_MS = 1200;
 export default function SandboxModal({
   onClose,
   mode = "main",
+  title = "Sandbox",
+  surface = "workshop",
 }: {
   onClose: () => void;
   mode?: SandboxMode;
+  /**
+   * Drawer/header title. Defaults to "Sandbox" (opened from the dashboard
+   * Sandbox tile). Pass "Component Library" when opening from the Library
+   * modal so the same modal reads as a catalog rather than a workshop.
+   */
+  title?: string;
+  /**
+   * 'workshop' (default) = full edit/draft/deploy UI for admins (the
+   * Sandbox tile entry point). 'library' = read-only browse mode, hides
+   * edit toggle, draft picker, edit toolbar, and admin-only menu items.
+   * Same underlying registry; different capabilities. Launched from the
+   * LibraryModal's Component Library tile.
+   */
+  surface?: "library" | "workshop";
 }) {
   useModalLifecycle();
   const [activeKey, setActiveKey] = useState<string>(REGISTRY[0]?.key ?? "");
@@ -1559,6 +1592,10 @@ export default function SandboxModal({
   const toggleAllCats = () =>
     setCatOpen(Object.fromEntries(CATEGORIES.map((c) => [c, !allCatsOpen])));
   const [summaryOpen, setSummaryOpen] = useState(true);
+  // Gates the entire CenterPane (summary header + demo + claude drawer)
+  // via the header-toolbar Summary button. Distinct from `summaryOpen`,
+  // which only collapses the inline summary body within the SummaryBar.
+  const [previewOpen, setPreviewOpen] = useState(true);
   const [codeOpen, setCodeOpen] = useState(false);
   const [codeTab, setCodeTab] = useState<"component" | "style">("component");
   const [liveStyle, setLiveStyle] = useState<string | null>(null);
@@ -1580,6 +1617,10 @@ export default function SandboxModal({
   const codeEditorRef = useRef<HTMLTextAreaElement | null>(null);
 
   const [isAdmin, setIsAdmin] = useState(false);
+  // Edit affordances require BOTH admin auth AND workshop surface. The
+  // Library surface (launched from LibraryModal) is always read-only,
+  // even for admins.
+  const canEdit = surface === "workshop" && isAdmin;
   const [editMode, setEditMode] = useState(false);
   const [autoSave, setAutoSave] = useState(true);
   const [unsavedCode, setUnsavedCode] = useState<string | null>(null);
@@ -1906,9 +1947,9 @@ export default function SandboxModal({
         <Header $edit={editMode}>
           <HeaderLeft $w={sidebar.snapped ? 0 : sidebar.width} $edit={editMode}>
             <SandboxIcon size={22} color={editMode ? GOLD : PINK} />
-            <Title $edit={editMode}>Sandbox{editMode ? " · Editing" : ""}</Title>
+            <Title $edit={editMode}>{title}{editMode ? " · Editing" : ""}</Title>
 
-            {isAdmin && drafts.drafts.length > 0 && (
+            {canEdit && drafts.drafts.length > 0 && (
               <DraftSbdmWrap ref={draftSbdmRef}>
                 <Tooltip label="Pick a draft or live" accent={TT_ACCENT}>
                   <DraftTrigger onClick={() => setDraftPickerOpen((v) => !v)}>
@@ -1971,12 +2012,12 @@ export default function SandboxModal({
               <>
                 <SandboxIcon size={22} color={editMode ? GOLD : PINK} />
                 <Title $edit={editMode}>
-                  Sandbox{editMode ? " · Editing" : ""}
+                  {title}{editMode ? " · Editing" : ""}
                 </Title>
               </>
             )}
             <WideControls>
-              {isAdmin && (
+              {canEdit && (
                 <ToggleBtn
                   $active={editMode}
                   $color={GOLD_RGB}
@@ -1995,6 +2036,15 @@ export default function SandboxModal({
               >
                 <FolderIcon />
                 <BtnLabel>Files</BtnLabel>
+              </ToggleBtn>
+
+              <ToggleBtn
+                $active={previewOpen}
+                onClick={() => setPreviewOpen((p) => !p)}
+                aria-label="Toggle preview column"
+              >
+                <SummaryIcon />
+                <BtnLabel>Summary</BtnLabel>
               </ToggleBtn>
 
               <ToggleBtn
@@ -2052,7 +2102,7 @@ export default function SandboxModal({
                 </Tooltip>
                 {toolbarMenuOpen && (
                   <MenuDdmPanel role="menu">
-                    {isAdmin && (
+                    {canEdit && (
                       <MenuDdmItem
                         $active={editMode}
                         $color={GOLD_RGB}
@@ -2075,6 +2125,16 @@ export default function SandboxModal({
                     >
                       <FolderIcon />
                       <span>Files</span>
+                    </MenuDdmItem>
+                    <MenuDdmItem
+                      $active={previewOpen}
+                      onClick={() => {
+                        setPreviewOpen((p) => !p);
+                        setToolbarMenuOpen(false);
+                      }}
+                    >
+                      <SummaryIcon />
+                      <span>Summary</span>
                     </MenuDdmItem>
                     <MenuDdmItem
                       $active={codeOpen && !codePanel.snapped}
@@ -2124,7 +2184,7 @@ export default function SandboxModal({
           </HeaderRight>
         </Header>
 
-        {isAdmin && editMode && (
+        {canEdit && editMode && (
           <SandboxEditToolbar
             active={drafts.active}
             autoSave={autoSave}
@@ -2198,6 +2258,7 @@ export default function SandboxModal({
             </Tooltip>
           )}
 
+          {previewOpen && (
           <CenterPane>
             {active ? (
               <>
@@ -2244,7 +2305,7 @@ export default function SandboxModal({
                       {Demo && <Demo />}
                     </DemoWrap>
                   </DemoArea>
-                  {isAdmin && editMode && active && (
+                  {canEdit && editMode && active && (
                     <ClaudeWrap>
                       <SandboxClaudeDrawer
                         componentKey={activeKey}
@@ -2260,6 +2321,7 @@ export default function SandboxModal({
               <EmptyCenter>Select a component.</EmptyCenter>
             )}
           </CenterPane>
+          )}
 
           {codeOpen && active && !codePanel.snapped && (
             <ResizeHandle

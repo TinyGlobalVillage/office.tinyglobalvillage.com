@@ -94,7 +94,7 @@ export default function AdminDashboardClient({ adminUsername }: Props) {
       <Card>
         <CardTitle>Signed in as {adminUsername}</CardTitle>
         <CardBody>
-          This scaffold is where the <code>@tgv/module-dashboards</code> Dashboard
+          This scaffold is where the <code>@tgv/module-dashboard</code> Dashboard
           component will mount once its auth + data sources are wired for office&apos;s
           JSON-store shape. For now, use the DEV MODE drawer (left edge) to switch
           effective user — every API route and server component will see the

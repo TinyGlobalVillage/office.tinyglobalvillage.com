@@ -2,7 +2,7 @@
 
 import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import styled from "styled-components";
-import { ChatBar, type ChatBarHandle } from "@tgv/module-connect/components/ChatBar";
+import { ChatBar, type ChatBarHandle } from "@tgv/module-component-library/components/chat";
 import { colors, rgb } from "../../theme";
 import type { SmsMessage } from "@/lib/frontdesk/types";
 import { SendIcon, PhoneIcon } from "../icons";

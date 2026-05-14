@@ -9,6 +9,7 @@ import { UserAvatar } from "./ChatSettingsModal";
 import type { UserPresence } from "./PresenceDots";
 import { ArrowRightIcon } from "./icons";
 import Tooltip from "./ui/Tooltip";
+import TPG from "@tgv/module-component-library/components/ui/TPG";
 
 const TILE_MIN_WIDTH = 200;
 const DEFAULT_PAGE_SIZE = 5;
@@ -789,104 +790,16 @@ export default function UsersCard({
         })}
       </UserList>
 
-      <TpgRow>
-        <TpgInfo>
-          Page {page + 1} of {totalPages} · {totalResults} result{totalResults === 1 ? "" : "s"}
-        </TpgInfo>
-        <TpgControls>
-          {!isDefaultSize && (
-            <ResetBtn
-              type="button"
-              aria-label="Reset page size"
-              title="Reset to default"
-              onClick={() => {
-                setPageSize(DEFAULT_PAGE_SIZE);
-                setCustomMode(false);
-                setPage(0);
-              }}
-            >
-              ↺
-            </ResetBtn>
-          )}
-          {customMode ? (
-            <TpgCustomInput
-              type="number"
-              min={1}
-              max={500}
-              value={pageSize}
-              onChange={(e) => {
-                const v = parseInt(e.target.value, 10);
-                if (Number.isFinite(v) && v > 0) {
-                  setPageSize(v);
-                  setPage(0);
-                }
-              }}
-              onBlur={(e) => {
-                if (!e.target.value) {
-                  setPageSize(DEFAULT_PAGE_SIZE);
-                  setCustomMode(false);
-                }
-              }}
-              aria-label="Custom page size"
-            />
-          ) : (
-            <TpgDropWrap ref={teamDropRef}>
-              <TpgDropTrigger
-                type="button"
-                $open={teamDropOpen}
-                onClick={() => setTeamDropOpen((v) => !v)}
-                aria-label="Page size"
-                aria-expanded={teamDropOpen}
-              >
-                {pageSize} / page
-              </TpgDropTrigger>
-              {teamDropOpen && (
-                <TpgDropMenu>
-                  {PAGE_SIZE_OPTIONS.map((n) => (
-                    <TpgDropItem
-                      key={n}
-                      type="button"
-                      $active={pageSize === n && !customMode}
-                      onClick={() => {
-                        setPageSize(n);
-                        setPage(0);
-                        setCustomMode(false);
-                        setTeamDropOpen(false);
-                      }}
-                    >
-                      {n} / page
-                    </TpgDropItem>
-                  ))}
-                  <TpgDropItem
-                    type="button"
-                    $active={customMode}
-                    onClick={() => {
-                      setCustomMode(true);
-                      setTeamDropOpen(false);
-                    }}
-                  >
-                    Custom…
-                  </TpgDropItem>
-                </TpgDropMenu>
-              )}
-            </TpgDropWrap>
-          )}
-          <TpgBtn
-            disabled={page === 0}
-            onClick={() => setPage((p) => Math.max(0, p - 1))}
-            aria-label="Previous page"
-          >
-            ‹
-          </TpgBtn>
-          <TpgBtn
-            disabled={page >= totalPages - 1}
-            onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
-            aria-label="Next page"
-          >
-            ›
-          </TpgBtn>
-        </TpgControls>
-      </TpgRow>
+      <TPG
+        total={totalResults}
+        page={page + 1}
+        pageSize={pageSize}
+        defaultPageSize={DEFAULT_PAGE_SIZE}
+        pageSizeOptions={[...PAGE_SIZE_OPTIONS]}
+        itemNoun="result"
+        onPageChange={(p) => setPage(p - 1)}
+        onPageSizeChange={(n) => { setPageSize(n); setPage(0); }}
+      />
 
       <MemoDivider>
         <MemoHeaderRow>
@@ -992,103 +905,16 @@ export default function UsersCard({
                 );
               })}
             </MemoList>
-            <TpgRow>
-              <TpgInfo>
-                Page {memoPage + 1} of {memoTotalPages} · {filteredMemos.length} memo{filteredMemos.length === 1 ? "" : "s"}
-              </TpgInfo>
-              <TpgControls>
-                {!memoIsDefaultSize && (
-                  <ResetBtn
-                    type="button"
-                    aria-label="Reset memo page size"
-                    title="Reset to default"
-                    onClick={() => {
-                      setMemoPageSize(DEFAULT_PAGE_SIZE);
-                      setMemoCustomMode(false);
-                      setMemoPage(0);
-                    }}
-                  >
-                    ↺
-                  </ResetBtn>
-                )}
-                {memoCustomMode ? (
-                  <TpgCustomInput
-                    type="number"
-                    min={1}
-                    max={500}
-                    value={memoPageSize}
-                    onChange={(e) => {
-                      const v = parseInt(e.target.value, 10);
-                      if (Number.isFinite(v) && v > 0) {
-                        setMemoPageSize(v);
-                        setMemoPage(0);
-                      }
-                    }}
-                    onBlur={(e) => {
-                      if (!e.target.value) {
-                        setMemoPageSize(DEFAULT_PAGE_SIZE);
-                        setMemoCustomMode(false);
-                      }
-                    }}
-                  />
-                ) : (
-                  <TpgDropWrap ref={memoDropRef}>
-                    <TpgDropTrigger
-                      type="button"
-                      $open={memoDropOpen}
-                      onClick={() => setMemoDropOpen((v) => !v)}
-                      aria-label="Memos per page"
-                      aria-expanded={memoDropOpen}
-                    >
-                      {memoPageSize} / page
-                    </TpgDropTrigger>
-                    {memoDropOpen && (
-                      <TpgDropMenu>
-                        {PAGE_SIZE_OPTIONS.map((n) => (
-                          <TpgDropItem
-                            key={n}
-                            type="button"
-                            $active={memoPageSize === n && !memoCustomMode}
-                            onClick={() => {
-                              setMemoPageSize(n);
-                              setMemoPage(0);
-                              setMemoCustomMode(false);
-                              setMemoDropOpen(false);
-                            }}
-                          >
-                            {n} / page
-                          </TpgDropItem>
-                        ))}
-                        <TpgDropItem
-                          type="button"
-                          $active={memoCustomMode}
-                          onClick={() => {
-                            setMemoCustomMode(true);
-                            setMemoDropOpen(false);
-                          }}
-                        >
-                          Custom…
-                        </TpgDropItem>
-                      </TpgDropMenu>
-                    )}
-                  </TpgDropWrap>
-                )}
-                <TpgBtn
-                  disabled={memoPage === 0}
-                  onClick={() => setMemoPage((p) => Math.max(0, p - 1))}
-                  aria-label="Previous memo page"
-                >
-                  ‹
-                </TpgBtn>
-                <TpgBtn
-                  disabled={memoPage >= memoTotalPages - 1}
-                  onClick={() => setMemoPage((p) => Math.min(memoTotalPages - 1, p + 1))}
-                  aria-label="Next memo page"
-                >
-                  ›
-                </TpgBtn>
-              </TpgControls>
-            </TpgRow>
+            <TPG
+              total={filteredMemos.length}
+              page={memoPage + 1}
+              pageSize={memoPageSize}
+              defaultPageSize={DEFAULT_PAGE_SIZE}
+              pageSizeOptions={[...PAGE_SIZE_OPTIONS]}
+              itemNoun="memo"
+              onPageChange={(p) => setMemoPage(p - 1)}
+              onPageSizeChange={(n) => { setMemoPageSize(n); setMemoPage(0); }}
+            />
           </>
         )}
         </>)}

@@ -8,8 +8,8 @@
  *          HMAC against WHATSAPP_APP_SECRET, parse messages, and resume Claude.
  */
 import { NextRequest, NextResponse } from "next/server";
-import { whatsappTransport, handleInboundReply } from "@tgv/module-connect";
-import { verifyWhatsappGetHandshake } from "@tgv/module-connect/apps/whatsapp/webhook";
+import { whatsappTransport, handleInboundReply } from "@tgv/module-relay";
+import { verifyWhatsappGetHandshake } from "@tgv/module-relay/apps/whatsapp/webhook";
 import { connectDb, ensureConnectBootstrapped } from "@/lib/connect-db";
 
 export const runtime = "nodejs";

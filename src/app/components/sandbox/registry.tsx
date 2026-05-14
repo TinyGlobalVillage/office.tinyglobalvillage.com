@@ -1,8 +1,73 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Suspense, useState, useEffect } from "react";
 import styled from "styled-components";
 import { colors, rgb } from "../../theme";
+
+import dynamic from "next/dynamic";
+import TPG from "@tgv/module-component-library/components/ui/TPG";
+
+// React-Three-Fiber primitives — dynamic-imported with SSR off because they
+// touch WebGL / window. They live in @tgv/module-component-library and are
+// the canonical homes for AnchorPortal, EnergyThreads, PortalCanvas/Section,
+// PlanetBackground, and the tgvPlanet subtree (with UFO).
+const AnchorPortalDyn = dynamic(
+  () => import("@tgv/module-component-library").then((m) => m.AnchorPortal),
+  { ssr: false }
+);
+const PortalSectionDyn = dynamic(
+  () => import("@tgv/module-component-library").then((m) => m.PortalSection),
+  { ssr: false }
+);
+const PortalCanvasDyn = dynamic(
+  () => import("@tgv/module-component-library/components/react-three-fiber/energy-thread-portal/PortalCanvas"),
+  { ssr: false }
+);
+const EnergyThreads2Dyn = dynamic(
+  () => import("@tgv/module-component-library").then((m) => m.EnergyThreads2 as React.ComponentType<Record<string, unknown>>),
+  { ssr: false }
+);
+const EnergyThreads3Dyn = dynamic(
+  () => import("@tgv/module-component-library").then((m) => m.EnergyThreads3 as React.ComponentType<Record<string, unknown>>),
+  { ssr: false }
+);
+const EnergyThreads4Dyn = dynamic(
+  () => import("@tgv/module-component-library").then((m) => m.EnergyThreads4 as React.ComponentType<Record<string, unknown>>),
+  { ssr: false }
+);
+const AnchorMorphThreadsDyn = dynamic(
+  () => import("@tgv/module-component-library").then((m) => m.AnchorMorphThreads as React.ComponentType<Record<string, unknown>>),
+  { ssr: false }
+);
+
+// Modal viewer + scene primitives for the planet demos. The fullscreen
+// PlanetCanvas wrapper uses position:fixed inset:0, so we bypass it and
+// compose the scene directly inside a modal-sized Canvas.
+const R3FPreviewModal = dynamic(() => import("./R3FPreviewModal"), { ssr: false });
+const Canvas3DDyn = dynamic(
+  () => import("@react-three/fiber").then((m) => m.Canvas as React.ComponentType<Record<string, unknown>>),
+  { ssr: false }
+);
+const PlanetSceneDyn = dynamic(
+  () => import("@tgv/module-component-library/components/react-three-fiber/tgvPlanet/PlanetScene"),
+  { ssr: false }
+);
+const PlanetStarsDyn = dynamic(
+  () => import("@tgv/module-component-library/components/react-three-fiber/tgvPlanet/Stars"),
+  { ssr: false }
+);
+const PlanetUFODyn = dynamic(
+  () => import("@tgv/module-component-library/components/react-three-fiber/tgvPlanet/UFO").then((m) => m.UFO as React.ComponentType<Record<string, unknown>>),
+  { ssr: false }
+);
+const PlanetScene2Dyn = dynamic(
+  () => import("@tgv/module-component-library/components/react-three-fiber/tgvPlanet/alt-versions/tgvPlanet2/PlanetScene"),
+  { ssr: false }
+);
+const PlanetStars2Dyn = dynamic(
+  () => import("@tgv/module-component-library/components/react-three-fiber/tgvPlanet/alt-versions/tgvPlanet2/Stars"),
+  { ssr: false }
+);
 
 const PINK = colors.pink;
 const PINK_RGB = rgb.pink;
@@ -12,7 +77,7 @@ const MUTED_TEXT = "rgba(255,255,255,0.35)";
 export type SandboxEntry = {
   key: string;
   name: string;
-  category: "Buttons" | "Icons" | "Menus" | "Navigation" | "Toggles";
+  category: "Buttons" | "Icons" | "Menus" | "Navigation" | "Toggles" | "React Three Fiber";
   summary: string;
   usage: string;
   code: string;
@@ -1216,47 +1281,6 @@ function GPGDemo() {
   );
 }
 
-// ── TPG demo ────────────────────────────────────────────────────────────
-function TPGDemo() {
-  const [page, setPage] = useState(1);
-  const [size, setSize] = useState(10);
-  const total = 3;
-  return (
-    <DemoCol>
-      <TpgTable>
-        {["Row A", "Row B", "Row C", "Row D"].map((r, i) => (
-          <TpgTableRow key={i} $alt={!!(i % 2)} $last={i === 3}>
-            <TpgMono>{r}</TpgMono>
-            <Spacer />
-            <TpgDash>—</TpgDash>
-          </TpgTableRow>
-        ))}
-      </TpgTable>
-
-      <Highlight label="TPG">
-        <TpgControlRow>
-          <TpgPageInfo>Page {page} of {total} · 24 results</TpgPageInfo>
-          <Spacer />
-          <TpgSmallBtn onClick={() => setSize(10)} title="Reset">↺</TpgSmallBtn>
-          <TpgSelect value={size} onChange={(e) => setSize(Number(e.target.value))}>
-            {[5, 10, 25, 50].map((n) => <option key={n} value={n}>{n}</option>)}
-          </TpgSelect>
-          <TpgNavBtn
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={page === 1}
-            $disabled={page === 1}
-          >‹</TpgNavBtn>
-          <TpgNavBtn
-            onClick={() => setPage((p) => Math.min(total, p + 1))}
-            disabled={page === total}
-            $disabled={page === total}
-          >›</TpgNavBtn>
-        </TpgControlRow>
-      </Highlight>
-    </DemoCol>
-  );
-}
-
 // ── ACR demo ────────────────────────────────────────────────────────────
 function ACRDemo() {
   const [cols, setCols] = useState(3);
@@ -1585,6 +1609,59 @@ function QMBMDemo() {
 }
 
 // ── DDM demo ────────────────────────────────────────────────────────────
+// ── TPG demo — canonical Table Pagination Group ───────────────────────
+const TpgDemoWrap = styled.div`
+  --tpg-accent: ${colors.cyan};
+  --tpg-accent-rgb: ${rgb.cyan};
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 360px;
+  padding: 0.75rem 1rem;
+  border-radius: 0.625rem;
+  background: rgba(${rgb.cyan}, 0.05);
+  border: 1px solid rgba(${rgb.cyan}, 0.2);
+`;
+const TpgDemoRow = styled.div`
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: var(--t-textMuted);
+  padding: 0.25rem 0;
+  border-bottom: 1px dashed rgba(${rgb.cyan}, 0.15);
+  &:last-of-type { border-bottom: none; }
+`;
+function TPGDemo() {
+  const [page, setPage] = useState(1);
+  const [size, setSize] = useState(5);
+  const TOTAL = 27;
+  // Sample slice indicator (rows omitted — we just show the start/end of the page).
+  const start = (page - 1) * size + 1;
+  const end = Math.min(page * size, TOTAL);
+  return (
+    <TpgDemoWrap>
+      <TpgDemoRow>
+        <span>Row {start}</span>
+        <span>…showing {end - start + 1} of {TOTAL}</span>
+      </TpgDemoRow>
+      <TpgDemoRow>
+        <span>Row {end}</span>
+        <span>page {page}</span>
+      </TpgDemoRow>
+      <TPG
+        total={TOTAL}
+        page={page}
+        pageSize={size}
+        defaultPageSize={5}
+        pageSizeOptions={[5, 10, 25, 50]}
+        itemNoun="row"
+        onPageChange={setPage}
+        onPageSizeChange={setSize}
+      />
+    </TpgDemoWrap>
+  );
+}
+
 function DDMDemo() {
   const [open, setOpen] = useState(false);
   const [val, setVal] = useState("Markdown");
@@ -3465,7 +3542,7 @@ const [name, setName] = useState("");
     code: `<NeonButton $accent="#ff4ecb" onClick={join}>Join Session</NeonButton>
 <NeonButton $accent="#00bfff" $compact>On</NeonButton>`,
     style: "const NeonButton = styled.button<{ $accent: string; $compact?: boolean }>\`\n  --acc: \\${(p) => p.$accent};\n  --acc-bg: color-mix(in srgb, var(--acc) 12%, transparent);\n  --acc-bg-hover: color-mix(in srgb, var(--acc) 22%, transparent);\n  --acc-border: color-mix(in srgb, var(--acc) 45%, transparent);\n  --acc-text: color-mix(in srgb, var(--acc) 75%, white 25%);\n  --acc-glow: color-mix(in srgb, var(--acc) 50%, transparent);\n  padding: \\${(p) => (p.$compact ? \"0.3rem 0.75rem\" : \"0.5rem 1rem\")};\n  border-radius: 999px;\n  font-size: \\${(p) => (p.$compact ? \"0.625rem\" : \"0.75rem\")};\n  font-weight: 700;\n  letter-spacing: 0.1em;\n  text-transform: uppercase;\n  cursor: pointer;\n  background: var(--acc-bg);\n  border: 1px solid var(--acc-border);\n  color: var(--acc-text);\n  text-shadow: 0 0 6px var(--acc-glow);\n  &:hover {\n    background: var(--acc-bg-hover);\n    box-shadow: 0 0 10px var(--acc-glow);\n  }\n\`;",
-    stylePath: "packages/@tgv/module-core/components/ui/NeonButton.tsx",
+    stylePath: "packages/@tgv/module-core/module-component-library/components/ui/NeonButton.tsx",
     Demo: NeonButtonDemo,
   },
   {
@@ -3578,7 +3655,7 @@ const [name, setName] = useState("");
   <IconBtn>⚙</IconBtn>
 </Tooltip>`,
     style: "const Bubble = styled.div\`\n  position: fixed;\n  z-index: 10000;\n  padding: 8px 14px;\n  border-radius: 10px;\n  font-size: 11.5px;\n  font-weight: 600;\n  letter-spacing: 0.6px;\n  line-height: 1.3;\n  text-transform: uppercase;\n  white-space: nowrap;\n  background: linear-gradient(160deg, \\${bgTop}, \\${bgBottom});\n  border: 1px solid \\${borderAlpha};\n  color: \\${textColor};\n  box-shadow: 0 6px 20px rgba(0,0,0,0.5), 0 0 18px \\${glow};\n  animation: tt-in 0.14s ease-out;\n\`;\n\nconst Arrow = styled.div\`\n  position: absolute;\n  top: -5px;\n  width: 10px;\n  height: 10px;\n  background: \\${bgTop};\n  border-top: 1px solid \\${borderAlpha};\n  border-left: 1px solid \\${borderAlpha};\n  transform: rotate(45deg);\n\`;",
-    stylePath: "packages/@tgv/module-core/components/ui/Tooltip.tsx",
+    stylePath: "packages/@tgv/module-core/module-component-library/components/ui/Tooltip.tsx",
     Demo: TooltipDemo,
   },
 
@@ -3789,26 +3866,9 @@ const FileSidebar = styled.aside\`
     stylePath: "src/app/components/suggestion/SuggestionBoxModal.tsx",
     Demo: SuggestionBoxDemo,
   },
-  {
-    key: "TPG",
-    name: "Table Pagination Group",
-    category: "Navigation",
-    summary: "Full pagination bar: page info (left), controls (right) = reset + page-size selector + prev/next. Used for grid/table views on tablet+. Two modes: standalone (fixed sizes 5/10/25/50) or inside ACR (column-count multiples).",
-    usage: "Place below a table/grid. Show reset button only when custom page size is active. `TpgBtn` is 5×10 padding, radius 8. Dropdown options reflect mode.",
-    code: `<TpgRow>
-  <TpgInfo>Page {page} of {total} · {count} results</TpgInfo>
-  <TpgControls>
-    {custom && <ResetBtn onClick={resetSize}>↺</ResetBtn>}
-    <TpgSelect value={size} onChange={setSize}>
-      {sizes.map(n => <option key={n}>{n}</option>)}
-    </TpgSelect>
-    <TpgBtn onClick={prev} disabled={page === 1}>‹</TpgBtn>
-    <TpgBtn onClick={next} disabled={page === total}>›</TpgBtn>
-  </TpgControls>
-</TpgRow>`,
-    stylePath: "src/app/dashboard/page.tsx",
-    Demo: TPGDemo,
-  },
+  // (Legacy inline-mockup TPG entry removed — the canonical TPG entry now
+  // lives at the bottom of the Navigation group below, importing from
+  // @tgv/module-component-library/components/ui/TPG.)
 
   // ── Toggles ───────────────────────────────────────────────────────────
   {
@@ -3948,6 +4008,509 @@ function useNewKeys(currentKeys: string[]) {
     stylePath: "src/app/components/sandbox/SandboxModal.tsx",
     Demo: RRTDemo,
   },
+  {
+    key: "TPG",
+    name: "Table Pagination Group",
+    category: "Navigation",
+    summary: "Full pagination bar: 'Page N of M · total results' on the left; reset + page-size DDM + optional inline custom-N input + prev/next on the right. Replaces the legacy native <select> page-size picker with a portal-rendered DDM, plus a 'Custom…' item that reveals a number input for arbitrary N (1–500). Themed via --tpg-accent / --tpg-accent-rgb (defaults to cyan); the inner DDM picks up the same accent.",
+    usage: "Drop into any table/grid footer. Pass `total`, `page`, `pageSize`, plus the two change callbacks. Override `pageSizeOptions` for column-aware galleries (e.g. [N, 2N, 3N, 5N]). The reset button auto-shows when pageSize !== defaultPageSize.",
+    code: `import TPG from "@tgv/module-component-library/components/ui/TPG";
+
+function MyTable() {
+  const [page, setPage] = useState(1);
+  const [size, setSize] = useState(10);
+  return (
+    <>
+      {/* rows here, sliced by page/size */}
+      <TPG
+        total={items.length}
+        page={page}
+        pageSize={size}
+        defaultPageSize={10}
+        pageSizeOptions={[5, 10, 25, 50]}
+        itemNoun="member"
+        onPageChange={setPage}
+        onPageSizeChange={setSize}
+      />
+    </>
+  );
+}`,
+    stylePath: "packages/@tgv/module-core/module-component-library/components/ui/TPG.tsx",
+    Demo: TPGDemo,
+  },
+
+  // ── React Three Fiber ──────────────────────────────────────────────────
+  {
+    key: "AnchorMorphThreads",
+    name: "AnchorMorphThreads (alt)",
+    category: "React Three Fiber",
+    summary: "Alt EnergyThreads variant that morphs into an anchor outline. Lives at energy-thread-portal/alt-versions/ alongside EnergyThreads2/3/4.",
+    usage: "Pass as PortalCanvas `threads` prop to swap the default thread layer for the anchor-morph visual.",
+    code: `import { AnchorMorphThreads } from "@tgv/module-component-library";
+
+<PortalCanvas threads={<AnchorMorphThreads />}>
+  {/* content */}
+</PortalCanvas>`,
+    stylePath: "packages/@tgv/module-core/module-component-library/components/react-three-fiber/energy-thread-portal/alt-versions/AnchorMorphThreads.tsx",
+    Demo: AnchorMorphThreadsDemo,
+  },
+  {
+    key: "AnchorPortal",
+    name: "AnchorPortal",
+    category: "React Three Fiber",
+    summary: "Hero composition that combines PortalSection + branded HeroSection wrapper + logo/title slots. Canonical home for the refusionist landing hero, configurable via HeroSectionConfig for desktop/mobile branches.",
+    usage: "Drop in as the hero section. Supply `lang`, optional `title` or `dict`, optional `config` for SRT tuning, and `belowFold` for any content that should render below the hero on non-editor renders.",
+    code: `import { AnchorPortal } from "@tgv/module-component-library";
+
+<AnchorPortal
+  lang={lang}
+  title="Welcome"
+  config={{ showPortal: true, showLogo: true, showTitle: true }}
+  logoSrc="/images/logo/anchor-circle.png"
+/>`,
+    stylePath: "packages/@tgv/module-core/module-component-library/components/react-three-fiber/AnchorPortal/AnchorPortal.tsx",
+    Demo: AnchorPortalDemo,
+  },
+  {
+    key: "EnergyThreads2",
+    name: "EnergyThreads2 (alt)",
+    category: "React Three Fiber",
+    summary: "Alt EnergyThreads variant. Lives at energy-thread-portal/alt-versions/. Swap into PortalCanvas via the `threads` prop.",
+    usage: "Use as the `threads` prop on PortalCanvas to swap the default thread layer.",
+    code: `import { EnergyThreads2 } from "@tgv/module-component-library";
+
+<PortalCanvas threads={<EnergyThreads2 />}>
+  {/* content */}
+</PortalCanvas>`,
+    stylePath: "packages/@tgv/module-core/module-component-library/components/react-three-fiber/energy-thread-portal/alt-versions/EnergyThreads2.tsx",
+    Demo: EnergyThreads2Demo,
+  },
+  {
+    key: "EnergyThreads3",
+    name: "EnergyThreads3 (alt)",
+    category: "React Three Fiber",
+    summary: "Alt EnergyThreads variant. Lives at energy-thread-portal/alt-versions/.",
+    usage: "Use as the `threads` prop on PortalCanvas.",
+    code: `import { EnergyThreads3 } from "@tgv/module-component-library";
+
+<PortalCanvas threads={<EnergyThreads3 />}>
+  {/* content */}
+</PortalCanvas>`,
+    stylePath: "packages/@tgv/module-core/module-component-library/components/react-three-fiber/energy-thread-portal/alt-versions/EnergyThreads3.tsx",
+    Demo: EnergyThreads3Demo,
+  },
+  {
+    key: "EnergyThreads4",
+    name: "EnergyThreads4 (alt)",
+    category: "React Three Fiber",
+    summary: "Alt EnergyThreads variant. Lives at energy-thread-portal/alt-versions/.",
+    usage: "Use as the `threads` prop on PortalCanvas.",
+    code: `import { EnergyThreads4 } from "@tgv/module-component-library";
+
+<PortalCanvas threads={<EnergyThreads4 />}>
+  {/* content */}
+</PortalCanvas>`,
+    stylePath: "packages/@tgv/module-core/module-component-library/components/react-three-fiber/energy-thread-portal/alt-versions/EnergyThreads4.tsx",
+    Demo: EnergyThreads4Demo,
+  },
+  {
+    key: "PlanetBackground",
+    name: "PlanetBackground",
+    category: "React Three Fiber",
+    summary: "Fullscreen tgvPlanet background — portals into document.body with position:fixed. Used by tinyglobalvillage.com + demo.tinyglobalvillage.com behind the main layout. Built atop the canonical tgvPlanet subtree (planet + city + UFO + stars).",
+    usage: "Mount once at the layout root. Self-contained — no props. Visible behind content via z-index: 0.",
+    code: `import { PlanetBackground } from "@tgv/module-component-library";
+
+export default function Layout({ children }) {
+  return (
+    <>
+      <PlanetBackground />
+      <main style={{ position: "relative", zIndex: 1 }}>{children}</main>
+    </>
+  );
+}`,
+    stylePath: "packages/@tgv/module-core/module-component-library/components/react-three-fiber/PlanetBackground.tsx",
+    Demo: PlanetBackgroundDemo,
+  },
+  {
+    key: "PortalCanvas",
+    name: "PortalCanvas",
+    category: "React Three Fiber",
+    summary: "Raw r3f Canvas wrapper that lays an EnergyThreads (or custom) thread layer behind a centered content box. The primitive PortalSection + AnchorPortal compose on top of this.",
+    usage: "Use directly when you need full control over thread choice + content placement. Otherwise prefer PortalSection (positioning) or AnchorPortal (full hero).",
+    code: `import PortalCanvas from "@tgv/module-component-library/components/react-three-fiber/energy-thread-portal/PortalCanvas";
+
+<PortalCanvas threadCount={28} threadWidth={1}>
+  <div>Centered content</div>
+</PortalCanvas>`,
+    stylePath: "packages/@tgv/module-core/module-component-library/components/react-three-fiber/energy-thread-portal/PortalCanvas.tsx",
+    Demo: PortalCanvasDemo,
+  },
+  {
+    key: "PortalSection",
+    name: "PortalSection",
+    category: "React Three Fiber",
+    summary: "Positioning wrapper around PortalCanvas — adds portal scale/offset, show/hide, and a fallback no-portal layout when `show={false}`. Lighter than AnchorPortal (no logo/title/styled HeroSection).",
+    usage: "Use when you want the portal canvas with positioning controls but don't need the branded AnchorPortal shell.",
+    code: `import { PortalSection } from "@tgv/module-component-library";
+
+<PortalSection
+  portalScale={2.5}
+  portalOffsetY={0.05}
+  threadCount={28}
+>
+  <div>Centered content</div>
+</PortalSection>`,
+    stylePath: "packages/@tgv/module-core/module-component-library/components/react-three-fiber/PortalSection/PortalSection.tsx",
+    Demo: PortalSectionDemo,
+  },
+  {
+    key: "tgvPlanet",
+    name: "tgvPlanet (canonical)",
+    category: "React Three Fiber",
+    summary: "Canonical tgvPlanet subtree: PlanetScene + Stars + UFO + city/circuits/spheres. Fullscreen by default — wrap consumption in PlanetBackground for use as a layout background. Source-of-truth: tenant version w/ UFO (winner of canonicalization 2026-05-14).",
+    usage: "Don't render directly in cells — too large + fullscreen. Use via PlanetBackground for fullscreen, or import individual pieces (PlanetScene, Stars, UFO) for custom compositions.",
+    code: `import FullscreenBackgroundCanvas from "@tgv/module-component-library/components/react-three-fiber/tgvPlanet/PlanetCanvas";
+
+<FullscreenBackgroundCanvas />`,
+    stylePath: "packages/@tgv/module-core/module-component-library/components/react-three-fiber/tgvPlanet/PlanetCanvas.tsx",
+    Demo: TgvPlanetDemo,
+  },
+  {
+    key: "tgvPlanet2",
+    name: "tgvPlanet2 (alt)",
+    category: "React Three Fiber",
+    summary: "Alt tgvPlanet variant — no UFO, has experimental GlobeNodes + NodesToSpherePoints primitives. Forked from canonical earlier; preserved at tgvPlanet/alt-versions/tgvPlanet2/ in case the node-based globe approach is revived.",
+    usage: "Reference only. Not exported from the barrel. Import from the alt-versions path if you want to compare with the canonical version.",
+    code: `import FullscreenBackgroundCanvas from "@tgv/module-component-library/components/react-three-fiber/tgvPlanet/alt-versions/tgvPlanet2/PlanetCanvas";`,
+    stylePath: "packages/@tgv/module-core/module-component-library/components/react-three-fiber/tgvPlanet/alt-versions/tgvPlanet2/PlanetCanvas.tsx",
+    Demo: TgvPlanet2Demo,
+  },
 ];
 
-export const CATEGORIES: Array<SandboxEntry["category"]> = ["Buttons", "Icons", "Menus", "Navigation", "Toggles"];
+export const CATEGORIES: Array<SandboxEntry["category"]> = ["Buttons", "Icons", "Menus", "Navigation", "React Three Fiber", "Toggles"];
+
+// ── React Three Fiber demos ─────────────────────────────────────────────
+// Constrained-size demo wrappers for the r3f primitives. The fullscreen
+// planet demos render a placeholder instead of trying to embed a
+// position:fixed canvas inside a sandbox cell.
+
+// Click-to-open card. The card itself is a small thumbnail with a label;
+// clicking it opens R3FPreviewModal with the actual scene rendered inside
+// a controlled-viewport Stage. This is the only practical way to host
+// fullscreen / position:fixed r3f canvases in a sandbox cell.
+const R3FCard = styled.button`
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+  max-width: 320px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px dashed rgba(${PINK_RGB}, 0.45);
+  background: rgba(${PINK_RGB}, 0.04);
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 12px;
+  line-height: 1.4;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  &:hover {
+    background: rgba(${PINK_RGB}, 0.08);
+    border-color: rgba(${PINK_RGB}, 0.7);
+  }
+`;
+
+const R3FCardLabel = styled.span`
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: ${PINK};
+  font-size: 11px;
+`;
+
+const R3FCardHint = styled.span`
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 11px;
+`;
+
+const ModalFill = styled.div`
+  position: absolute;
+  inset: 0;
+`;
+
+function R3FPreviewCard({
+  label,
+  hint,
+  modalTitle,
+  renderContent,
+}: {
+  label: string;
+  hint: string;
+  modalTitle: string;
+  renderContent: () => React.ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <R3FCard type="button" onClick={() => setOpen(true)}>
+        <R3FCardLabel>▶ Click to preview</R3FCardLabel>
+        <strong style={{ color: "#fff" }}>{label}</strong>
+        <R3FCardHint>{hint}</R3FCardHint>
+      </R3FCard>
+      {open && (
+        <R3FPreviewModal title={modalTitle} onClose={() => setOpen(false)}>
+          {renderContent()}
+        </R3FPreviewModal>
+      )}
+    </>
+  );
+}
+
+const CenteredCaption = styled.div`
+  color: #00ffff;
+  font-size: 14px;
+  text-align: center;
+  text-shadow: 0 0 8px rgba(0, 255, 255, 0.4);
+`;
+
+function AnchorPortalDemo() {
+  return (
+    <R3FPreviewCard
+      label="AnchorPortal"
+      hint="Hero composition with portal canvas + logo + title slot."
+      modalTitle="AnchorPortal — full preview"
+      renderContent={() => (
+        <ModalFill style={{ display: "grid", placeItems: "center", padding: "24px" }}>
+          <div style={{ width: "100%", maxWidth: 520 }}>
+            <AnchorPortalDyn
+              lang="en"
+              editorMode={true}
+              config={{ showPortal: true, showLogo: false, showTitle: false }}
+            />
+          </div>
+        </ModalFill>
+      )}
+    />
+  );
+}
+
+const PortalStageCenter = styled.div`
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+`;
+
+const PortalStageBox = styled.div`
+  width: 100%;
+  max-width: 520px;
+  /* CRITICAL: PortalShell sizes via 100cqi, which resolves to the nearest
+     ancestor with container-type. Without this, the portal canvas would
+     expand to the modal Stage width instead of staying inside 520px. */
+  container-type: inline-size;
+`;
+
+function PortalSectionDemo() {
+  return (
+    <R3FPreviewCard
+      label="PortalSection"
+      hint="Portal-canvas positioning wrapper."
+      modalTitle="PortalSection — full preview"
+      renderContent={() => (
+        <PortalStageCenter>
+          <PortalStageBox>
+            <PortalSectionDyn portalScale={1} threadCount={28}>
+              <CenteredCaption>PortalSection</CenteredCaption>
+            </PortalSectionDyn>
+          </PortalStageBox>
+        </PortalStageCenter>
+      )}
+    />
+  );
+}
+
+function PortalCanvasDemo() {
+  return (
+    <R3FPreviewCard
+      label="PortalCanvas"
+      hint="Raw r3f canvas with default EnergyThreads."
+      modalTitle="PortalCanvas — full preview"
+      renderContent={() => (
+        <PortalStageCenter>
+          <PortalStageBox>
+            <PortalCanvasDyn editorMode={true} threadCount={28} threadWidth={1}>
+              <CenteredCaption>PortalCanvas</CenteredCaption>
+            </PortalCanvasDyn>
+          </PortalStageBox>
+        </PortalStageCenter>
+      )}
+    />
+  );
+}
+
+function EnergyThreads2Demo() {
+  return (
+    <R3FPreviewCard
+      label="EnergyThreads2"
+      hint="Alt variant — pass as PortalCanvas threads prop."
+      modalTitle="EnergyThreads2 (alt)"
+      renderContent={() => (
+        <PortalStageCenter>
+          <PortalStageBox>
+            <PortalCanvasDyn editorMode={true} threads={<EnergyThreads2Dyn />}>
+              <CenteredCaption>EnergyThreads2</CenteredCaption>
+            </PortalCanvasDyn>
+          </PortalStageBox>
+        </PortalStageCenter>
+      )}
+    />
+  );
+}
+
+function EnergyThreads3Demo() {
+  return (
+    <R3FPreviewCard
+      label="EnergyThreads3"
+      hint="Alt variant — pass as PortalCanvas threads prop."
+      modalTitle="EnergyThreads3 (alt)"
+      renderContent={() => (
+        <PortalStageCenter>
+          <PortalStageBox>
+            <PortalCanvasDyn editorMode={true} threads={<EnergyThreads3Dyn />}>
+              <CenteredCaption>EnergyThreads3</CenteredCaption>
+            </PortalCanvasDyn>
+          </PortalStageBox>
+        </PortalStageCenter>
+      )}
+    />
+  );
+}
+
+function EnergyThreads4Demo() {
+  return (
+    <R3FPreviewCard
+      label="EnergyThreads4"
+      hint="Alt variant — pass as PortalCanvas threads prop."
+      modalTitle="EnergyThreads4 (alt)"
+      renderContent={() => (
+        <PortalStageCenter>
+          <PortalStageBox>
+            <PortalCanvasDyn editorMode={true} threads={<EnergyThreads4Dyn />}>
+              <CenteredCaption>EnergyThreads4</CenteredCaption>
+            </PortalCanvasDyn>
+          </PortalStageBox>
+        </PortalStageCenter>
+      )}
+    />
+  );
+}
+
+function AnchorMorphThreadsDemo() {
+  return (
+    <R3FPreviewCard
+      label="AnchorMorphThreads"
+      hint="Alt threads variant that morphs into an anchor outline."
+      modalTitle="AnchorMorphThreads (alt)"
+      renderContent={() => (
+        <PortalStageCenter>
+          <PortalStageBox>
+            <PortalCanvasDyn editorMode={true} threads={<AnchorMorphThreadsDyn />}>
+              <CenteredCaption>AnchorMorphThreads</CenteredCaption>
+            </PortalCanvasDyn>
+          </PortalStageBox>
+        </PortalStageCenter>
+      )}
+    />
+  );
+}
+
+// Planet demos compose the inner scene directly inside a controlled-size
+// r3f Canvas (no PlanetCanvas fullscreen wrapper). That's the whole point
+// of the modal viewer — the modal sizes the canvas, the canvas hosts the
+// scene.
+function PlanetBackgroundDemo() {
+  return (
+    <R3FPreviewCard
+      label="PlanetBackground"
+      hint="Tenant fullscreen visual — see the canonical tgvPlanet scene here."
+      modalTitle="PlanetBackground — full preview"
+      renderContent={() => (
+        <Canvas3DDyn
+          dpr={[1, 2]}
+          camera={{ position: [0, 0, 5.6], fov: 50 }}
+          style={{ width: "100%", height: "100%", background: "black" }}
+        >
+          {/* Suspense guards the GLTF loader — UFO.glb fetch happens on
+              mount; without this, a failed/slow fetch crashes the Canvas
+              and forces the Office app into a re-auth redirect. */}
+          <Suspense fallback={null}>
+            <ambientLight intensity={0.05} />
+            <directionalLight position={[-1, 5, -4]} intensity={0.05} />
+            <PlanetStarsDyn />
+            <group position={[0, 0.3, 0]}>
+              <PlanetSceneDyn />
+              <PlanetUFODyn scale={0.015} />
+            </group>
+          </Suspense>
+        </Canvas3DDyn>
+      )}
+    />
+  );
+}
+
+function TgvPlanetDemo() {
+  return (
+    <R3FPreviewCard
+      label="tgvPlanet (canonical)"
+      hint="Canonical scene: PlanetScene + Stars + UFO."
+      modalTitle="tgvPlanet (canonical) — full preview"
+      renderContent={() => (
+        <Canvas3DDyn
+          dpr={[1, 2]}
+          camera={{ position: [0, 0, 5.6], fov: 50 }}
+          style={{ width: "100%", height: "100%", background: "black" }}
+        >
+          <Suspense fallback={null}>
+            <ambientLight intensity={0.05} />
+            <directionalLight position={[-1, 5, -4]} intensity={0.05} />
+            <PlanetStarsDyn />
+            <group position={[0, 0.3, 0]}>
+              <PlanetSceneDyn />
+              <PlanetUFODyn scale={0.015} />
+            </group>
+          </Suspense>
+        </Canvas3DDyn>
+      )}
+    />
+  );
+}
+
+function TgvPlanet2Demo() {
+  return (
+    <R3FPreviewCard
+      label="tgvPlanet2 (alt)"
+      hint="Alt subtree — no UFO; preserved at tgvPlanet/alt-versions/tgvPlanet2/."
+      modalTitle="tgvPlanet2 (alt) — full preview"
+      renderContent={() => (
+        <Canvas3DDyn
+          dpr={[1, 2]}
+          camera={{ position: [0, 0, 5.6], fov: 50 }}
+          style={{ width: "100%", height: "100%", background: "black" }}
+        >
+          <Suspense fallback={null}>
+            <ambientLight intensity={0.05} />
+            <directionalLight position={[-1, 5, -4]} intensity={0.05} />
+            <PlanetStars2Dyn />
+            <group position={[0, 0.3, 0]}>
+              <PlanetScene2Dyn />
+            </group>
+          </Suspense>
+        </Canvas3DDyn>
+      )}
+    />
+  );
+}

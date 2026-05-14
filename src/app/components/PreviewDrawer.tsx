@@ -35,6 +35,19 @@ export function PreviewProvider({ children }: { children: ReactNode }) {
   const [domain, setDomain] = useState<string | null>(null);
 
   const openPreview = useCallback((d: string) => {
+    // Embedded iframe (DashboardPageModal): forward to host, which owns the
+    // actual PreviewDrawer — see ClientShell embedded branch.
+    if (typeof window !== "undefined" && window.parent !== window) {
+      try {
+        window.parent.postMessage(
+          { type: "tgv-open-preview", domain: d },
+          window.location.origin,
+        );
+        return;
+      } catch {
+        // fall through to local state if postMessage fails
+      }
+    }
     setDomain(d);
     setIsOpen(true);
   }, []);
@@ -57,13 +70,13 @@ export function PreviewProvider({ children }: { children: ReactNode }) {
 // ── Styled ───────────────────────────────────────────────────────
 
 const Backdrop = styled(DrawerBackdrop)`
-  z-index: 40;
+  z-index: 100;
   background: rgba(0, 0, 0, 0.5);
 `;
 
 const Panel = styled(DrawerPanel)`
   right: 0;
-  z-index: 50;
+  z-index: 110;
   width: clamp(320px, 65vw, 1100px);
   border-left: 1px solid rgba(${rgb.pink}, 0.2);
   box-shadow: -8px 0 40px rgba(0, 0, 0, 0.7);

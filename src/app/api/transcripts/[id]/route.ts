@@ -17,7 +17,7 @@ import {
   getTranscript,
   updateTranscript,
 } from "@/lib/transcripts-store";
-import type { UpdateTranscriptInput } from "@tgv/module-connect/transcriber/types";
+import type { UpdateTranscriptInput } from "@tgv/module-transcriber/types";
 
 export const runtime = "nodejs";
 

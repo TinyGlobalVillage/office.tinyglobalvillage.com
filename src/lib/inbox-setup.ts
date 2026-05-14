@@ -1,32 +1,58 @@
 /**
  * Boot-time adapter wiring for @tgv/module-inbox.
  *
- * Imported from root layout so it runs once per server process, before any
- * API route handler or UI component pulls from the package.
+ * Imported from root layout (and defensively from a handful of API routes
+ * in case a request hits before the layout-side import fires).
  *
- * - AuthAdapter re-exposes office's existing requireAuth + requirePersonalAccess.
- * - InboxAccessAdapter maps RCS usernames → Fastmail API tokens AND restricts
- *   each user to ONLY their own JMAP account. Without the explicit allow-list,
- *   Fastmail's Standard Business shared-account model surfaces every mailbox
- *   the token can see — which means Marthe's token enumerates Gio's account
- *   too (and vice versa once Fastmail finishes the symmetric share). The
- *   allow-list enforces per-user isolation at the API boundary regardless of
- *   what JMAP exposes.
- *     admin  (Gio)    → u94364057 (gio@tinyglobalvillage.com)
- *     marmar (Marthe) → u94264057 (marthe@tinyglobalvillage.com)
- * - ThemeAdapter hands the package office's color palette so components match
- *   the rest of the dashboard.
+ * Wires three adapters into module-inbox:
+ *
+ *  1. AuthAdapter        — re-exposes office's existing requireAuth +
+ *                          requirePersonalAccess for the package's API routes.
+ *  2. ProviderResolver   — given (username, accountKey), returns the
+ *                          MailProvider credentials + the account meta.
+ *                          V1 wraps the static FASTMAIL_TOKEN_<USER> env vars
+ *                          + JMAP enumerate (cached at the JMAP session
+ *                          layer). DB-backed inbox_accounts comes when
+ *                          @tgv/module-registry/member_users is real.
+ *  3. ThemeAdapter       — hands the package office's color palette so
+ *                          components match the rest of the dashboard.
+ *
+ * Access model: ONE Fastmail token per Office user, that token enumerates
+ * every JMAP account the user can touch (their personal + shared business
+ * folders inside others' accounts). Per-folder privacy is enforced by
+ * Fastmail's `myRights.mayReadItems` ACL at JMAP-time — the package's UI
+ * filters mailboxes accordingly. The resolver does NOT filter accounts by
+ * owner; routes apply the personal-account 2FA gate via requirePersonalAccess.
  */
 import type { NextRequest } from "next/server";
 import {
   registerAuthAdapter,
-  registerInboxAccessAdapter,
+  registerProviderResolver,
   registerThemeAdapter,
+  type ResolvedAccount,
 } from "@tgv/module-inbox";
+import { enumerateAccounts } from "@tgv/module-inbox/fastmail/client";
 import { requireAuth, requirePersonalAccess } from "@/lib/api-auth";
 import { colors, rgb } from "@/app/theme";
 
 let registered = false;
+
+/** Maps an Office username to its Fastmail bearer token (or null if user has no inbox access). */
+function tokenForUser(username: string): string | null {
+  if (username === "admin") return process.env.FASTMAIL_TOKEN_GIO ?? null;
+  if (username === "marmar") return process.env.FASTMAIL_TOKEN_MARMAR ?? null;
+  return null;
+}
+
+/** Wrap a JMAP-enumerated account in the resolver's ResolvedAccount shape. */
+function toResolvedAccount(accountId: string, email: string, token: string): ResolvedAccount {
+  return {
+    accountId,
+    email,
+    provider: "fastmail",
+    credentials: { provider: "fastmail", token },
+  };
+}
 
 export function setupInbox(): void {
   if (registered) return;
@@ -41,19 +67,21 @@ export function setupInbox(): void {
     requirePersonalAccess,
   });
 
-  registerInboxAccessAdapter({
-    getTokenForUser: (username) => {
-      if (username === "admin")  return process.env.FASTMAIL_TOKEN_GIO ?? null;
-      if (username === "marmar") return process.env.FASTMAIL_TOKEN_MARMAR ?? null;
-      return null;
+  registerProviderResolver({
+    listAccountsForUser: async (username) => {
+      const token = tokenForUser(username);
+      if (!token) return [];
+      const accounts = await enumerateAccounts(token);
+      return accounts.map((a) => toResolvedAccount(a.key, a.email, token));
     },
-    // No allow-list: we intentionally let both users see every account their
-    // token enumerates (Gio's personal + any shared-via-business accounts),
-    // because privacy is enforced at the mailbox-folder level via Fastmail's
-    // per-folder myRights ACL (listMailboxes filters by mayReadItems=true).
-    // Marthe's token sees Gio's account u94364057 but only the 4 shared
-    // folders inside it (Support@TGV, TGV@Admin, TGV@Connect, TGV@NoReply);
-    // Gio's personal Inbox/Sent/etc. have mayReadItems=false for her.
+    resolve: async (username, accountKey) => {
+      const token = tokenForUser(username);
+      if (!token) return null;
+      const accounts = await enumerateAccounts(token);
+      const match = accounts.find((a) => a.key === accountKey);
+      if (!match) return null;
+      return toResolvedAccount(match.key, match.email, token);
+    },
   });
 
   registerThemeAdapter({ colors, rgb });

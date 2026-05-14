@@ -9,7 +9,7 @@
  *     "Open in editor →" — which router.push()es here.
  *   - Direct deep-link / bookmark.
  *
- * The editor itself lives in @tgv/module-connect/transcriber/editor so it
+ * The editor itself lives in @tgv/module-transcriber/editor so it
  * can be reused by other tenants (refusionist.com audio annotations,
  * future TGV.com voice-note pages). This page is a thin Next.js shell:
  * resolve the id, render the editor, hand it the router for "Back".
@@ -19,7 +19,7 @@
 import { useParams, useRouter } from "next/navigation";
 import { useMemo } from "react";
 import TopNav from "../../../../components/TopNav";
-import { TranscriptDocEditor } from "@tgv/module-connect/transcriber";
+import { TranscriptDocEditor } from "@tgv/module-transcriber";
 
 export default function TranscriptEditorPage() {
   const params = useParams<{ id: string }>();

@@ -16,7 +16,7 @@ import "@/lib/inbox-setup";
 import { NextResponse, type NextRequest } from "next/server";
 import { getAuthToken } from "@/lib/auth-cookie";
 import { getEffectiveUser, getRole, isDevSwitcherEnabled } from "@/lib/dev/getEffectiveUser";
-import { enumerateAccounts, listMailboxes } from "@tgv/module-inbox/lib/fastmail";
+import { enumerateAccounts, listMailboxes } from "@tgv/module-inbox/fastmail/client";
 import { getInboxAccessAdapter } from "@tgv/module-inbox/adapters";
 
 export async function GET(req: NextRequest) {
