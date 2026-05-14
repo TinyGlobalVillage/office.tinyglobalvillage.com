@@ -1317,6 +1317,68 @@ const CancelTemplateBtn = styled(DeployTemplateBtn)`
   }
 `;
 
+const TemplateDeploySuccess = styled.div`
+  margin-top: 0.375rem;
+  padding: 0.4375rem 0.625rem;
+  background: rgba(74, 222, 128, 0.1);
+  border: 1px solid rgba(74, 222, 128, 0.35);
+  border-radius: 0.375rem;
+  font-size: 0.6875rem;
+  color: rgb(187, 247, 208);
+  [data-theme="light"] & { color: rgb(22, 101, 52); }
+`;
+
+const TemplateDeploySuccessRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+`;
+
+const TemplateDeploySuccessLabel = styled.span`
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-size: 0.625rem;
+  opacity: 0.85;
+`;
+
+const TemplateDeploySuccessPath = styled.span`
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.6875rem;
+  opacity: 0.95;
+`;
+
+const TemplateDeploySuccessSha = styled.span`
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.6875rem;
+  padding: 0.0625rem 0.375rem;
+  border-radius: 0.1875rem;
+  background: rgba(0, 0, 0, 0.25);
+  [data-theme="light"] & { background: rgba(0, 0, 0, 0.06); }
+`;
+
+const TemplateDeploySuccessTag = styled.span`
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 0.8;
+`;
+
+const RevertTemplateBtn = styled(DeployTemplateBtn)`
+  margin-left: auto;
+  border-color: rgba(248, 113, 113, 0.5);
+  background: rgba(248, 113, 113, 0.12);
+  color: rgb(252, 165, 165);
+  text-shadow: 0 0 6px rgba(248, 113, 113, 0.4);
+  &:hover:not(:disabled) {
+    background: rgba(248, 113, 113, 0.2);
+    box-shadow: 0 0 10px rgba(248, 113, 113, 0.4);
+  }
+  [data-theme="light"] & { color: rgb(153, 27, 27); text-shadow: none; }
+`;
+
 const TemplateEditTextarea = styled.textarea`
   width: calc(100% - 2.5rem);
   margin: 0 1.25rem 1rem;
@@ -1707,6 +1769,10 @@ function TemplatePreview({
   saving,
   saveError,
   onSaved,
+  deployResult,
+  onRevert,
+  reverting,
+  revertError,
 }: {
   template: PageTemplateSummary;
   onDeploy?: (templateId: string) => void;
@@ -1716,6 +1782,10 @@ function TemplatePreview({
   saving?: boolean;
   saveError?: string | null;
   onSaved?: () => void;
+  deployResult?: { sha: string | null; path: string; promotedTo: "published" | null };
+  onRevert?: (templateId: string, sha: string) => void;
+  reverting?: boolean;
+  revertError?: string | null;
 }) {
   const [full, setFull] = useState<{
     thumbnail: string | null;
@@ -1835,6 +1905,36 @@ function TemplatePreview({
         {deployError && <TemplateDeployError>{deployError}</TemplateDeployError>}
         {parseError && <TemplateDeployError>{parseError}</TemplateDeployError>}
         {saveError && <TemplateDeployError>{saveError}</TemplateDeployError>}
+        {revertError && <TemplateDeployError>{revertError}</TemplateDeployError>}
+        {deployResult && !editing && (
+          <TemplateDeploySuccess>
+            <TemplateDeploySuccessRow>
+              <TemplateDeploySuccessLabel>Deployed →</TemplateDeploySuccessLabel>
+              <TemplateDeploySuccessPath>{deployResult.path}</TemplateDeploySuccessPath>
+              {deployResult.sha && (
+                <TemplateDeploySuccessSha
+                  title={`Commit ${deployResult.sha}`}
+                >
+                  {deployResult.sha.slice(0, 7)}
+                </TemplateDeploySuccessSha>
+              )}
+              {deployResult.promotedTo && (
+                <TemplateDeploySuccessTag>
+                  → {deployResult.promotedTo}
+                </TemplateDeploySuccessTag>
+              )}
+              {deployResult.sha && onRevert && (
+                <RevertTemplateBtn
+                  onClick={() => onRevert(template.templateId, deployResult.sha!)}
+                  disabled={reverting}
+                  title="Create a new revert commit for the deploy above"
+                >
+                  {reverting ? "Reverting…" : "Undo"}
+                </RevertTemplateBtn>
+              )}
+            </TemplateDeploySuccessRow>
+          </TemplateDeploySuccess>
+        )}
       </TemplatePreviewHeader>
       {template.description && (
         <TemplateDescription>{template.description}</TemplateDescription>
@@ -2030,6 +2130,20 @@ export default function SandboxModal({
   );
   const [savingTemplateId, setSavingTemplateId] = useState<string | null>(null);
   const [saveTemplateError, setSaveTemplateError] = useState<string | null>(null);
+  // Last successful Deploy-to-code result, keyed by templateId. Surfaces a
+  // success banner with the commit SHA + an Undo (revert) button. Cleared
+  // when Undo succeeds, when a new Deploy runs, or when the active
+  // template changes.
+  type TemplateDeployResult = {
+    sha: string | null;
+    path: string;
+    promotedTo: "published" | null;
+  };
+  const [lastDeployResult, setLastDeployResult] = useState<
+    Record<string, TemplateDeployResult | undefined>
+  >({});
+  const [revertingTemplateId, setRevertingTemplateId] = useState<string | null>(null);
+  const [revertTemplateError, setRevertTemplateError] = useState<string | null>(null);
   const showPageTemplates = true;
 
   useEffect(() => {
@@ -2085,10 +2199,13 @@ export default function SandboxModal({
   // Phase 3: deploy serializes model_json → page-templates/<slug>.ts and
   // auto-commits the monorepo. As a side effect, sandbox rows are promoted
   // to published in the same call so DB + in-code source never diverge.
+  // Stashes the result (SHA + path + promotedTo) in lastDeployResult so
+  // the TemplatePreview banner can surface it + offer an Undo.
   const handleDeployTemplate = useCallback(
     async (templateId: string) => {
       setDeployingTemplateId(templateId);
       setDeployTemplateError(null);
+      setRevertTemplateError(null);
       try {
         const res = await fetch(
           `/api/editor/shared-templates/${encodeURIComponent(templateId)}/deploy-to-code`,
@@ -2097,10 +2214,18 @@ export default function SandboxModal({
             headers: { "Content-Type": "application/json" },
           },
         );
+        const data = await res.json().catch(() => ({}));
         if (!res.ok) {
-          const data = await res.json().catch(() => ({}));
           throw new Error(data.error ?? `HTTP ${res.status}`);
         }
+        setLastDeployResult((m) => ({
+          ...m,
+          [templateId]: {
+            sha: data.commit?.sha ?? null,
+            path: data.path ?? "",
+            promotedTo: data.promotedTo ?? null,
+          },
+        }));
         setTemplatesReloadKey((k) => k + 1);
       } catch (e) {
         setDeployTemplateError(
@@ -2108,6 +2233,42 @@ export default function SandboxModal({
         );
       } finally {
         setDeployingTemplateId(null);
+      }
+    },
+    [],
+  );
+
+  // Undo the most recent Deploy-to-code commit for this templateId via
+  // `git revert` (creates a new revert commit; safe across other commits
+  // landed after the deploy). Clears the success banner on success.
+  const handleRevertTemplate = useCallback(
+    async (templateId: string, sha: string) => {
+      setRevertingTemplateId(templateId);
+      setRevertTemplateError(null);
+      try {
+        const res = await fetch(
+          `/api/editor/shared-templates/${encodeURIComponent(templateId)}/deploy-to-code/revert`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ sha }),
+          },
+        );
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.error ?? `HTTP ${res.status}`);
+        }
+        setLastDeployResult((m) => {
+          const next = { ...m };
+          delete next[templateId];
+          return next;
+        });
+      } catch (e) {
+        setRevertTemplateError(
+          e instanceof Error ? e.message : "Revert failed",
+        );
+      } finally {
+        setRevertingTemplateId(null);
       }
     },
     [],
@@ -2890,6 +3051,14 @@ export default function SandboxModal({
                       activeTemplate.templateId === activeTemplateId
                     ? saveTemplateError
                     : null
+                }
+                deployResult={lastDeployResult[activeTemplate.templateId]}
+                onRevert={surface === "workshop" ? handleRevertTemplate : undefined}
+                reverting={revertingTemplateId === activeTemplate.templateId}
+                revertError={
+                  revertingTemplateId === activeTemplate.templateId
+                    ? null
+                    : revertTemplateError
                 }
               />
             ) : active ? (
