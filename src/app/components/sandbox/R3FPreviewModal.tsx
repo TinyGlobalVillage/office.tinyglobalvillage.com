@@ -45,18 +45,24 @@ const HeaderTitle = styled.div`
   color: rgba(255, 255, 255, 0.85);
 `;
 
-const CloseBtn = styled.button`
+const BackBtn = styled.button`
   background: transparent;
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 6px;
   color: rgba(255, 255, 255, 0.85);
-  width: 28px;
+  padding: 4px 10px;
   height: 28px;
-  font-size: 16px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
   line-height: 1;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   &:hover {
     background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.35);
   }
 `;
 
@@ -80,10 +86,17 @@ export default function R3FPreviewModal({ title, onClose, children }: R3FPreview
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") {
+        // SandboxModal listens for ESC in capture phase to close the whole
+        // sandbox. We register in capture too AND call stopImmediatePropagation
+        // so the sandbox handler never fires — ESC closes only this preview.
+        e.stopImmediatePropagation();
+        e.preventDefault();
+        onClose();
+      }
     };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
+    document.addEventListener("keydown", onKey, { capture: true });
+    return () => document.removeEventListener("keydown", onKey, { capture: true });
   }, [onClose]);
 
   if (!mounted) return null;
@@ -93,7 +106,7 @@ export default function R3FPreviewModal({ title, onClose, children }: R3FPreview
       <Frame>
         <Header>
           <HeaderTitle>{title}</HeaderTitle>
-          <CloseBtn onClick={onClose} aria-label="Close">×</CloseBtn>
+          <BackBtn onClick={onClose} aria-label="Back to Sandbox">← Back to Sandbox</BackBtn>
         </Header>
         <Stage>{children}</Stage>
       </Frame>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Suspense, useState, useEffect } from "react";
 import styled from "styled-components";
 import { colors, rgb } from "../../theme";
 
@@ -4308,6 +4308,10 @@ const PortalStageCenter = styled.div`
 const PortalStageBox = styled.div`
   width: 100%;
   max-width: 520px;
+  /* CRITICAL: PortalShell sizes via 100cqi, which resolves to the nearest
+     ancestor with container-type. Without this, the portal canvas would
+     expand to the modal Stage width instead of staying inside 520px. */
+  container-type: inline-size;
 `;
 
 function PortalSectionDemo() {
@@ -4440,13 +4444,18 @@ function PlanetBackgroundDemo() {
           camera={{ position: [0, 0, 5.6], fov: 50 }}
           style={{ width: "100%", height: "100%", background: "black" }}
         >
-          <ambientLight intensity={0.05} />
-          <directionalLight position={[-1, 5, -4]} intensity={0.05} />
-          <PlanetStarsDyn />
-          <group position={[0, 0.3, 0]}>
-            <PlanetSceneDyn />
-            <PlanetUFODyn scale={0.015} />
-          </group>
+          {/* Suspense guards the GLTF loader — UFO.glb fetch happens on
+              mount; without this, a failed/slow fetch crashes the Canvas
+              and forces the Office app into a re-auth redirect. */}
+          <Suspense fallback={null}>
+            <ambientLight intensity={0.05} />
+            <directionalLight position={[-1, 5, -4]} intensity={0.05} />
+            <PlanetStarsDyn />
+            <group position={[0, 0.3, 0]}>
+              <PlanetSceneDyn />
+              <PlanetUFODyn scale={0.015} />
+            </group>
+          </Suspense>
         </Canvas3DDyn>
       )}
     />
@@ -4465,13 +4474,15 @@ function TgvPlanetDemo() {
           camera={{ position: [0, 0, 5.6], fov: 50 }}
           style={{ width: "100%", height: "100%", background: "black" }}
         >
-          <ambientLight intensity={0.05} />
-          <directionalLight position={[-1, 5, -4]} intensity={0.05} />
-          <PlanetStarsDyn />
-          <group position={[0, 0.3, 0]}>
-            <PlanetSceneDyn />
-            <PlanetUFODyn scale={0.015} />
-          </group>
+          <Suspense fallback={null}>
+            <ambientLight intensity={0.05} />
+            <directionalLight position={[-1, 5, -4]} intensity={0.05} />
+            <PlanetStarsDyn />
+            <group position={[0, 0.3, 0]}>
+              <PlanetSceneDyn />
+              <PlanetUFODyn scale={0.015} />
+            </group>
+          </Suspense>
         </Canvas3DDyn>
       )}
     />
@@ -4490,12 +4501,14 @@ function TgvPlanet2Demo() {
           camera={{ position: [0, 0, 5.6], fov: 50 }}
           style={{ width: "100%", height: "100%", background: "black" }}
         >
-          <ambientLight intensity={0.05} />
-          <directionalLight position={[-1, 5, -4]} intensity={0.05} />
-          <PlanetStars2Dyn />
-          <group position={[0, 0.3, 0]}>
-            <PlanetScene2Dyn />
-          </group>
+          <Suspense fallback={null}>
+            <ambientLight intensity={0.05} />
+            <directionalLight position={[-1, 5, -4]} intensity={0.05} />
+            <PlanetStars2Dyn />
+            <group position={[0, 0.3, 0]}>
+              <PlanetScene2Dyn />
+            </group>
+          </Suspense>
         </Canvas3DDyn>
       )}
     />
