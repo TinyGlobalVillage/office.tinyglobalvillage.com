@@ -1753,7 +1753,10 @@ function TemplatePreview({
   }, [template.templateId]);
 
   const thumb = full?.thumbnail ?? template.thumbnail;
-  const canDeploy = !!onDeploy && template.status === "sandbox";
+  // Deploy serializes DB row → .ts file + commit. Available for both
+  // sandbox and published rows (sandbox also gets the status flip side
+  // effect server-side).
+  const canDeploy = !!onDeploy;
   const canEdit = !!onSave;
 
   const startEdit = () => {
@@ -1823,8 +1826,9 @@ function TemplatePreview({
             <DeployTemplateBtn
               onClick={() => onDeploy?.(template.templateId)}
               disabled={deploying}
+              title="Serialize the DB row back to its .ts source file + auto-commit the monorepo"
             >
-              {deploying ? "Deploying…" : "Deploy"}
+              {deploying ? "Deploying…" : "Deploy to code"}
             </DeployTemplateBtn>
           )}
         </TemplateHeaderRow>
@@ -2078,17 +2082,19 @@ export default function SandboxModal({
     [pageTemplates, activeTemplateId],
   );
 
+  // Phase 3: deploy serializes model_json → page-templates/<slug>.ts and
+  // auto-commits the monorepo. As a side effect, sandbox rows are promoted
+  // to published in the same call so DB + in-code source never diverge.
   const handleDeployTemplate = useCallback(
     async (templateId: string) => {
       setDeployingTemplateId(templateId);
       setDeployTemplateError(null);
       try {
         const res = await fetch(
-          `/api/editor/shared-templates/${encodeURIComponent(templateId)}/status`,
+          `/api/editor/shared-templates/${encodeURIComponent(templateId)}/deploy-to-code`,
           {
-            method: "PATCH",
+            method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ status: "published" }),
           },
         );
         if (!res.ok) {
@@ -2871,7 +2877,9 @@ export default function SandboxModal({
                 onDeploy={surface === "workshop" ? handleDeployTemplate : undefined}
                 deploying={deployingTemplateId === activeTemplate.templateId}
                 deployError={
-                  activeTemplate.status === "sandbox" ? deployTemplateError : null
+                  deployingTemplateId === activeTemplate.templateId
+                    ? null
+                    : deployTemplateError
                 }
                 onSave={surface === "workshop" ? handleSaveTemplate : undefined}
                 saving={savingTemplateId === activeTemplate.templateId}
