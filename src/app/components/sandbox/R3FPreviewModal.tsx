@@ -87,16 +87,18 @@ export default function R3FPreviewModal({ title, onClose, children }: R3FPreview
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
-        // SandboxModal listens for ESC in capture phase to close the whole
-        // sandbox. We register in capture too AND call stopImmediatePropagation
-        // so the sandbox handler never fires — ESC closes only this preview.
+        // SandboxModal listens on document with capture and was registered
+        // first, so it would win a same-target race. Capture on window fires
+        // BEFORE any document-level capture handler (window → document in
+        // the capture chain), so we intercept here and stop the event from
+        // ever reaching the sandbox.
         e.stopImmediatePropagation();
         e.preventDefault();
         onClose();
       }
     };
-    document.addEventListener("keydown", onKey, { capture: true });
-    return () => document.removeEventListener("keydown", onKey, { capture: true });
+    window.addEventListener("keydown", onKey, { capture: true });
+    return () => window.removeEventListener("keydown", onKey, { capture: true });
   }, [onClose]);
 
   if (!mounted) return null;
