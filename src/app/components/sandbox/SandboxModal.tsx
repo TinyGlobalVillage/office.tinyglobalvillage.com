@@ -1379,6 +1379,114 @@ const RevertTemplateBtn = styled(DeployTemplateBtn)`
   [data-theme="light"] & { color: rgb(153, 27, 27); text-shadow: none; }
 `;
 
+const TemplateSectionsList = styled.div`
+  margin: 0 1.25rem 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.375rem;
+  background: rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  [data-theme="light"] & { background: rgba(0, 0, 0, 0.03); border-color: rgba(0, 0, 0, 0.08); }
+`;
+
+const TemplateSectionsListHeader = styled.div`
+  padding: 0.375rem 0.625rem;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--t-textFaint);
+  background: rgba(0, 0, 0, 0.25);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  [data-theme="light"] & { background: rgba(0, 0, 0, 0.04); }
+`;
+
+const TemplateSectionRow = styled.div`
+  display: grid;
+  grid-template-columns: 1.5rem 9rem 1fr auto;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.625rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  font-size: 0.6875rem;
+  &:last-of-type { border-bottom: none; }
+`;
+
+const TemplateSectionIdx = styled.span`
+  color: var(--t-textFaint);
+  text-align: right;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+`;
+
+const TemplateSectionType = styled.span`
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--t-text);
+  font-weight: 600;
+`;
+
+const TemplateSectionPreview = styled.span`
+  color: var(--t-textFaint);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.625rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: help;
+`;
+
+const TemplateSectionBtnGroup = styled.div`
+  display: flex;
+  gap: 0.25rem;
+`;
+
+const TemplateSectionBtn = styled.button`
+  appearance: none;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--t-text);
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 0.25rem;
+  cursor: pointer;
+  font-size: 0.75rem;
+  line-height: 1;
+  padding: 0;
+  &:hover:not(:disabled) { background: rgba(255, 255, 255, 0.12); }
+  &:disabled { opacity: 0.35; cursor: not-allowed; }
+`;
+
+const TemplateSectionBtnDanger = styled(TemplateSectionBtn)`
+  border-color: rgba(248, 113, 113, 0.35);
+  color: rgb(252, 165, 165);
+  &:hover:not(:disabled) {
+    background: rgba(248, 113, 113, 0.15);
+    border-color: rgba(248, 113, 113, 0.55);
+  }
+  [data-theme="light"] & { color: rgb(153, 27, 27); }
+`;
+
+const TemplateAddSectionRow = styled.div`
+  padding: 0.375rem 0.625rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.02);
+  ${TemplateSectionBtn} {
+    width: auto;
+    padding: 0.25rem 0.75rem;
+    font-size: 0.6875rem;
+    font-weight: 600;
+  }
+`;
+
+const TemplateSectionsHint = styled.div`
+  margin: 0 1.25rem 0.5rem;
+  padding: 0.4375rem 0.625rem;
+  font-size: 0.625rem;
+  color: rgb(252, 165, 165);
+  background: rgba(248, 113, 113, 0.08);
+  border: 1px solid rgba(248, 113, 113, 0.25);
+  border-radius: 0.25rem;
+  font-style: italic;
+`;
+
 const TemplateEditTextarea = styled.textarea`
   width: calc(100% - 2.5rem);
   margin: 0 1.25rem 1rem;
@@ -1796,6 +1904,44 @@ function TemplatePreview({
   const [draftJson, setDraftJson] = useState("");
   const [parseError, setParseError] = useState<string | null>(null);
 
+  // Live parse of draftJson into a model object so the sections-list view
+  // can reflect edits made in the textarea (and vice versa). Returns null
+  // when the JSON is not parseable, but does NOT surface an error there —
+  // parseError is only set on Save attempts. This keeps the sections list
+  // helpful while the user is mid-edit.
+  const draftModel = useMemo(() => {
+    try {
+      const parsed = JSON.parse(draftJson);
+      if (parsed && typeof parsed === "object") return parsed as {
+        chrome?: { navEnabled?: boolean; footerEnabled?: boolean; footerHeight?: number };
+        sections?: Array<{
+          id?: string;
+          type?: string;
+          enabled?: boolean;
+          config?: { props?: Record<string, unknown> };
+        }>;
+        [k: string]: unknown;
+      };
+    } catch {
+      // ignore — sections list will hide while JSON is invalid mid-edit
+    }
+    return null;
+  }, [draftJson]);
+
+  // Helper: mutate the draftModel via callback, re-serialize to JSON,
+  // push into draftJson. Used by reorder/delete/add buttons.
+  const updateDraft = useCallback(
+    (mutate: (m: NonNullable<typeof draftModel>) => void) => {
+      if (!draftModel) return;
+      const next = JSON.parse(JSON.stringify(draftModel)) as NonNullable<typeof draftModel>;
+      mutate(next);
+      setDraftJson(JSON.stringify(next, null, 2));
+    },
+    [draftModel],
+  );
+
+  const sectionsView = draftModel?.sections;
+
   useEffect(() => {
     let cancelled = false;
     setFull(null);
@@ -1940,12 +2086,103 @@ function TemplatePreview({
         <TemplateDescription>{template.description}</TemplateDescription>
       )}
       {editing ? (
-        <TemplateEditTextarea
-          value={draftJson}
-          onChange={(e) => setDraftJson(e.target.value)}
-          spellCheck={false}
-          aria-label="Template model JSON"
-        />
+        <>
+          {sectionsView && sectionsView.length > 0 && (
+            <TemplateSectionsList>
+              <TemplateSectionsListHeader>
+                Sections ({sectionsView.length}) — JSON below stays canonical
+              </TemplateSectionsListHeader>
+              {sectionsView.map((s, i) => {
+                const props = s.config?.props ?? {};
+                const keyProps = Object.entries(props)
+                  .filter(([, v]) => typeof v !== "object" || v === null)
+                  .slice(0, 3)
+                  .map(([k, v]) => `${k}=${typeof v === "string" ? v : JSON.stringify(v)}`)
+                  .join(" · ");
+                return (
+                  <TemplateSectionRow key={s.id ?? `idx-${i}`}>
+                    <TemplateSectionIdx>{i + 1}</TemplateSectionIdx>
+                    <TemplateSectionType>{String(s.type ?? "?")}</TemplateSectionType>
+                    <TemplateSectionPreview title={JSON.stringify(props, null, 2)}>
+                      {keyProps || "(no key props)"}
+                    </TemplateSectionPreview>
+                    <TemplateSectionBtnGroup>
+                      <TemplateSectionBtn
+                        disabled={i === 0}
+                        onClick={() =>
+                          updateDraft((m) => {
+                            const arr = m.sections!;
+                            [arr[i - 1], arr[i]] = [arr[i], arr[i - 1]];
+                          })
+                        }
+                        aria-label="Move section up"
+                        title="Move up"
+                      >
+                        ↑
+                      </TemplateSectionBtn>
+                      <TemplateSectionBtn
+                        disabled={i === sectionsView.length - 1}
+                        onClick={() =>
+                          updateDraft((m) => {
+                            const arr = m.sections!;
+                            [arr[i], arr[i + 1]] = [arr[i + 1], arr[i]];
+                          })
+                        }
+                        aria-label="Move section down"
+                        title="Move down"
+                      >
+                        ↓
+                      </TemplateSectionBtn>
+                      <TemplateSectionBtnDanger
+                        onClick={() =>
+                          updateDraft((m) => {
+                            m.sections!.splice(i, 1);
+                          })
+                        }
+                        aria-label="Delete section"
+                        title="Delete"
+                      >
+                        ✕
+                      </TemplateSectionBtnDanger>
+                    </TemplateSectionBtnGroup>
+                  </TemplateSectionRow>
+                );
+              })}
+              <TemplateAddSectionRow>
+                <TemplateSectionBtn
+                  onClick={() => {
+                    const type = window.prompt(
+                      "New section type (catalog entry id, e.g. 'text-rich-text'):",
+                    );
+                    if (!type) return;
+                    updateDraft((m) => {
+                      if (!m.sections) m.sections = [];
+                      m.sections.push({
+                        id: crypto.randomUUID(),
+                        type,
+                        enabled: true,
+                        config: { props: {} },
+                      });
+                    });
+                  }}
+                >
+                  + Add section
+                </TemplateSectionBtn>
+              </TemplateAddSectionRow>
+            </TemplateSectionsList>
+          )}
+          {!sectionsView && draftJson.trim() && (
+            <TemplateSectionsHint>
+              JSON not parseable yet — sections list hidden. Edit below to fix.
+            </TemplateSectionsHint>
+          )}
+          <TemplateEditTextarea
+            value={draftJson}
+            onChange={(e) => setDraftJson(e.target.value)}
+            spellCheck={false}
+            aria-label="Template model JSON"
+          />
+        </>
       ) : (
         <>
           <TemplateMetaRow>
@@ -1974,7 +2211,10 @@ function TemplatePreview({
             <TemplateLoading>Loading preview…</TemplateLoading>
           ) : (
             <TemplateLoading>
-              No thumbnail. Live PageRenderer preview lands in step 2d.
+              No thumbnail. Live PageRenderer preview deferred — see
+              checklist Follow-ups (registry has monolithic cross-package
+              consumer-alias wiring; can&apos;t mount in Office without a
+              slimmer preview-only registry or full alias plumbing).
             </TemplateLoading>
           )}
         </>
