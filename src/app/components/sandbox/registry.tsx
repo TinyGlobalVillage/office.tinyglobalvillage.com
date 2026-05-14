@@ -4,7 +4,41 @@ import { useState, useEffect } from "react";
 import styled from "styled-components";
 import { colors, rgb } from "../../theme";
 
+import dynamic from "next/dynamic";
 import TPG from "@tgv/module-component-library/components/ui/TPG";
+
+// React-Three-Fiber primitives — dynamic-imported with SSR off because they
+// touch WebGL / window. They live in @tgv/module-component-library and are
+// the canonical homes for AnchorPortal, EnergyThreads, PortalCanvas/Section,
+// PlanetBackground, and the tgvPlanet subtree (with UFO).
+const AnchorPortalDyn = dynamic(
+  () => import("@tgv/module-component-library").then((m) => m.AnchorPortal),
+  { ssr: false }
+);
+const PortalSectionDyn = dynamic(
+  () => import("@tgv/module-component-library").then((m) => m.PortalSection),
+  { ssr: false }
+);
+const PortalCanvasDyn = dynamic(
+  () => import("@tgv/module-component-library/components/react-three-fiber/energy-thread-portal/PortalCanvas"),
+  { ssr: false }
+);
+const EnergyThreads2Dyn = dynamic(
+  () => import("@tgv/module-component-library").then((m) => m.EnergyThreads2 as React.ComponentType<Record<string, unknown>>),
+  { ssr: false }
+);
+const EnergyThreads3Dyn = dynamic(
+  () => import("@tgv/module-component-library").then((m) => m.EnergyThreads3 as React.ComponentType<Record<string, unknown>>),
+  { ssr: false }
+);
+const EnergyThreads4Dyn = dynamic(
+  () => import("@tgv/module-component-library").then((m) => m.EnergyThreads4 as React.ComponentType<Record<string, unknown>>),
+  { ssr: false }
+);
+const AnchorMorphThreadsDyn = dynamic(
+  () => import("@tgv/module-component-library").then((m) => m.AnchorMorphThreads as React.ComponentType<Record<string, unknown>>),
+  { ssr: false }
+);
 
 const PINK = colors.pink;
 const PINK_RGB = rgb.pink;
@@ -14,7 +48,7 @@ const MUTED_TEXT = "rgba(255,255,255,0.35)";
 export type SandboxEntry = {
   key: string;
   name: string;
-  category: "Buttons" | "Icons" | "Menus" | "Navigation" | "Toggles";
+  category: "Buttons" | "Icons" | "Menus" | "Navigation" | "Toggles" | "React Three Fiber";
   summary: string;
   usage: string;
   code: string;
@@ -3975,6 +4009,308 @@ function MyTable() {
     stylePath: "packages/@tgv/module-core/module-component-library/components/ui/TPG.tsx",
     Demo: TPGDemo,
   },
+
+  // ── React Three Fiber ──────────────────────────────────────────────────
+  {
+    key: "AnchorMorphThreads",
+    name: "AnchorMorphThreads (alt)",
+    category: "React Three Fiber",
+    summary: "Alt EnergyThreads variant that morphs into an anchor outline. Lives at energy-thread-portal/alt-versions/ alongside EnergyThreads2/3/4.",
+    usage: "Pass as PortalCanvas `threads` prop to swap the default thread layer for the anchor-morph visual.",
+    code: `import { AnchorMorphThreads } from "@tgv/module-component-library";
+
+<PortalCanvas threads={<AnchorMorphThreads />}>
+  {/* content */}
+</PortalCanvas>`,
+    stylePath: "packages/@tgv/module-core/module-component-library/components/react-three-fiber/energy-thread-portal/alt-versions/AnchorMorphThreads.tsx",
+    Demo: AnchorMorphThreadsDemo,
+  },
+  {
+    key: "AnchorPortal",
+    name: "AnchorPortal",
+    category: "React Three Fiber",
+    summary: "Hero composition that combines PortalSection + branded HeroSection wrapper + logo/title slots. Canonical home for the refusionist landing hero, configurable via HeroSectionConfig for desktop/mobile branches.",
+    usage: "Drop in as the hero section. Supply `lang`, optional `title` or `dict`, optional `config` for SRT tuning, and `belowFold` for any content that should render below the hero on non-editor renders.",
+    code: `import { AnchorPortal } from "@tgv/module-component-library";
+
+<AnchorPortal
+  lang={lang}
+  title="Welcome"
+  config={{ showPortal: true, showLogo: true, showTitle: true }}
+  logoSrc="/images/logo/anchor-circle.png"
+/>`,
+    stylePath: "packages/@tgv/module-core/module-component-library/components/react-three-fiber/AnchorPortal/AnchorPortal.tsx",
+    Demo: AnchorPortalDemo,
+  },
+  {
+    key: "EnergyThreads2",
+    name: "EnergyThreads2 (alt)",
+    category: "React Three Fiber",
+    summary: "Alt EnergyThreads variant. Lives at energy-thread-portal/alt-versions/. Swap into PortalCanvas via the `threads` prop.",
+    usage: "Use as the `threads` prop on PortalCanvas to swap the default thread layer.",
+    code: `import { EnergyThreads2 } from "@tgv/module-component-library";
+
+<PortalCanvas threads={<EnergyThreads2 />}>
+  {/* content */}
+</PortalCanvas>`,
+    stylePath: "packages/@tgv/module-core/module-component-library/components/react-three-fiber/energy-thread-portal/alt-versions/EnergyThreads2.tsx",
+    Demo: EnergyThreads2Demo,
+  },
+  {
+    key: "EnergyThreads3",
+    name: "EnergyThreads3 (alt)",
+    category: "React Three Fiber",
+    summary: "Alt EnergyThreads variant. Lives at energy-thread-portal/alt-versions/.",
+    usage: "Use as the `threads` prop on PortalCanvas.",
+    code: `import { EnergyThreads3 } from "@tgv/module-component-library";
+
+<PortalCanvas threads={<EnergyThreads3 />}>
+  {/* content */}
+</PortalCanvas>`,
+    stylePath: "packages/@tgv/module-core/module-component-library/components/react-three-fiber/energy-thread-portal/alt-versions/EnergyThreads3.tsx",
+    Demo: EnergyThreads3Demo,
+  },
+  {
+    key: "EnergyThreads4",
+    name: "EnergyThreads4 (alt)",
+    category: "React Three Fiber",
+    summary: "Alt EnergyThreads variant. Lives at energy-thread-portal/alt-versions/.",
+    usage: "Use as the `threads` prop on PortalCanvas.",
+    code: `import { EnergyThreads4 } from "@tgv/module-component-library";
+
+<PortalCanvas threads={<EnergyThreads4 />}>
+  {/* content */}
+</PortalCanvas>`,
+    stylePath: "packages/@tgv/module-core/module-component-library/components/react-three-fiber/energy-thread-portal/alt-versions/EnergyThreads4.tsx",
+    Demo: EnergyThreads4Demo,
+  },
+  {
+    key: "PlanetBackground",
+    name: "PlanetBackground",
+    category: "React Three Fiber",
+    summary: "Fullscreen tgvPlanet background — portals into document.body with position:fixed. Used by tinyglobalvillage.com + demo.tinyglobalvillage.com behind the main layout. Built atop the canonical tgvPlanet subtree (planet + city + UFO + stars).",
+    usage: "Mount once at the layout root. Self-contained — no props. Visible behind content via z-index: 0.",
+    code: `import { PlanetBackground } from "@tgv/module-component-library";
+
+export default function Layout({ children }) {
+  return (
+    <>
+      <PlanetBackground />
+      <main style={{ position: "relative", zIndex: 1 }}>{children}</main>
+    </>
+  );
+}`,
+    stylePath: "packages/@tgv/module-core/module-component-library/components/react-three-fiber/PlanetBackground.tsx",
+    Demo: PlanetBackgroundDemo,
+  },
+  {
+    key: "PortalCanvas",
+    name: "PortalCanvas",
+    category: "React Three Fiber",
+    summary: "Raw r3f Canvas wrapper that lays an EnergyThreads (or custom) thread layer behind a centered content box. The primitive PortalSection + AnchorPortal compose on top of this.",
+    usage: "Use directly when you need full control over thread choice + content placement. Otherwise prefer PortalSection (positioning) or AnchorPortal (full hero).",
+    code: `import PortalCanvas from "@tgv/module-component-library/components/react-three-fiber/energy-thread-portal/PortalCanvas";
+
+<PortalCanvas threadCount={28} threadWidth={1}>
+  <div>Centered content</div>
+</PortalCanvas>`,
+    stylePath: "packages/@tgv/module-core/module-component-library/components/react-three-fiber/energy-thread-portal/PortalCanvas.tsx",
+    Demo: PortalCanvasDemo,
+  },
+  {
+    key: "PortalSection",
+    name: "PortalSection",
+    category: "React Three Fiber",
+    summary: "Positioning wrapper around PortalCanvas — adds portal scale/offset, show/hide, and a fallback no-portal layout when `show={false}`. Lighter than AnchorPortal (no logo/title/styled HeroSection).",
+    usage: "Use when you want the portal canvas with positioning controls but don't need the branded AnchorPortal shell.",
+    code: `import { PortalSection } from "@tgv/module-component-library";
+
+<PortalSection
+  portalScale={2.5}
+  portalOffsetY={0.05}
+  threadCount={28}
+>
+  <div>Centered content</div>
+</PortalSection>`,
+    stylePath: "packages/@tgv/module-core/module-component-library/components/react-three-fiber/PortalSection/PortalSection.tsx",
+    Demo: PortalSectionDemo,
+  },
+  {
+    key: "tgvPlanet",
+    name: "tgvPlanet (canonical)",
+    category: "React Three Fiber",
+    summary: "Canonical tgvPlanet subtree: PlanetScene + Stars + UFO + city/circuits/spheres. Fullscreen by default — wrap consumption in PlanetBackground for use as a layout background. Source-of-truth: tenant version w/ UFO (winner of canonicalization 2026-05-14).",
+    usage: "Don't render directly in cells — too large + fullscreen. Use via PlanetBackground for fullscreen, or import individual pieces (PlanetScene, Stars, UFO) for custom compositions.",
+    code: `import FullscreenBackgroundCanvas from "@tgv/module-component-library/components/react-three-fiber/tgvPlanet/PlanetCanvas";
+
+<FullscreenBackgroundCanvas />`,
+    stylePath: "packages/@tgv/module-core/module-component-library/components/react-three-fiber/tgvPlanet/PlanetCanvas.tsx",
+    Demo: TgvPlanetDemo,
+  },
+  {
+    key: "tgvPlanet2",
+    name: "tgvPlanet2 (alt)",
+    category: "React Three Fiber",
+    summary: "Alt tgvPlanet variant — no UFO, has experimental GlobeNodes + NodesToSpherePoints primitives. Forked from canonical earlier; preserved at tgvPlanet/alt-versions/tgvPlanet2/ in case the node-based globe approach is revived.",
+    usage: "Reference only. Not exported from the barrel. Import from the alt-versions path if you want to compare with the canonical version.",
+    code: `import FullscreenBackgroundCanvas from "@tgv/module-component-library/components/react-three-fiber/tgvPlanet/alt-versions/tgvPlanet2/PlanetCanvas";`,
+    stylePath: "packages/@tgv/module-core/module-component-library/components/react-three-fiber/tgvPlanet/alt-versions/tgvPlanet2/PlanetCanvas.tsx",
+    Demo: TgvPlanet2Demo,
+  },
 ];
 
-export const CATEGORIES: Array<SandboxEntry["category"]> = ["Buttons", "Icons", "Menus", "Navigation", "Toggles"];
+export const CATEGORIES: Array<SandboxEntry["category"]> = ["Buttons", "Icons", "Menus", "Navigation", "React Three Fiber", "Toggles"];
+
+// ── React Three Fiber demos ─────────────────────────────────────────────
+// Constrained-size demo wrappers for the r3f primitives. The fullscreen
+// planet demos render a placeholder instead of trying to embed a
+// position:fixed canvas inside a sandbox cell.
+
+const R3FCell = styled.div`
+  position: relative;
+  width: 100%;
+  max-width: 320px;
+  height: 220px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+`;
+
+const R3FNote = styled.div`
+  font-size: 12px;
+  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.6);
+  padding: 12px 14px;
+`;
+
+const FullscreenNote = styled.div`
+  position: relative;
+  width: 100%;
+  max-width: 320px;
+  min-height: 120px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px dashed rgba(${PINK_RGB}, 0.45);
+  background: rgba(${PINK_RGB}, 0.04);
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 12px;
+  line-height: 1.5;
+`;
+
+function AnchorPortalDemo() {
+  return (
+    <R3FCell>
+      <AnchorPortalDyn
+        lang="en"
+        editorMode={true}
+        title="Anchor Portal"
+        config={{ showPortal: true, showLogo: false, showTitle: true }}
+      />
+    </R3FCell>
+  );
+}
+
+function PortalSectionDemo() {
+  return (
+    <R3FCell>
+      <PortalSectionDyn portalScale={1.4} threadCount={24}>
+        <div style={{ color: "#00ffff", fontSize: 12, textAlign: "center" }}>
+          PortalSection
+        </div>
+      </PortalSectionDyn>
+    </R3FCell>
+  );
+}
+
+function PortalCanvasDemo() {
+  return (
+    <R3FCell>
+      <PortalCanvasDyn editorMode={true} threadCount={24} threadWidth={1}>
+        <div style={{ color: "#00ffff", fontSize: 12, textAlign: "center" }}>
+          PortalCanvas
+        </div>
+      </PortalCanvasDyn>
+    </R3FCell>
+  );
+}
+
+function EnergyThreads2Demo() {
+  return (
+    <R3FCell>
+      <PortalCanvasDyn editorMode={true} threads={<EnergyThreads2Dyn />}>
+        <div style={{ color: "#00ffff", fontSize: 12, textAlign: "center" }}>
+          EnergyThreads2
+        </div>
+      </PortalCanvasDyn>
+    </R3FCell>
+  );
+}
+
+function EnergyThreads3Demo() {
+  return (
+    <R3FCell>
+      <PortalCanvasDyn editorMode={true} threads={<EnergyThreads3Dyn />}>
+        <div style={{ color: "#00ffff", fontSize: 12, textAlign: "center" }}>
+          EnergyThreads3
+        </div>
+      </PortalCanvasDyn>
+    </R3FCell>
+  );
+}
+
+function EnergyThreads4Demo() {
+  return (
+    <R3FCell>
+      <PortalCanvasDyn editorMode={true} threads={<EnergyThreads4Dyn />}>
+        <div style={{ color: "#00ffff", fontSize: 12, textAlign: "center" }}>
+          EnergyThreads4
+        </div>
+      </PortalCanvasDyn>
+    </R3FCell>
+  );
+}
+
+function AnchorMorphThreadsDemo() {
+  return (
+    <R3FCell>
+      <PortalCanvasDyn editorMode={true} threads={<AnchorMorphThreadsDyn />}>
+        <div style={{ color: "#00ffff", fontSize: 12, textAlign: "center" }}>
+          AnchorMorphThreads
+        </div>
+      </PortalCanvasDyn>
+    </R3FCell>
+  );
+}
+
+function PlanetBackgroundDemo() {
+  return (
+    <FullscreenNote>
+      <strong>Fullscreen visual.</strong> PlanetBackground portals into
+      document.body with <code>position: fixed</code>; can&apos;t be embedded
+      inline. View live on tinyglobalvillage.com or demo.tinyglobalvillage.com,
+      or import + mount once at a layout root.
+    </FullscreenNote>
+  );
+}
+
+function TgvPlanetDemo() {
+  return (
+    <FullscreenNote>
+      <strong>Fullscreen subtree.</strong> The canonical tgvPlanet renders a
+      full-viewport Canvas. Use via <code>PlanetBackground</code> for
+      backgrounds, or import individual pieces (<code>PlanetScene</code>,
+      <code>Stars</code>, <code>UFO</code>) for custom compositions.
+    </FullscreenNote>
+  );
+}
+
+function TgvPlanet2Demo() {
+  return (
+    <FullscreenNote>
+      <strong>Alt variant.</strong> Forked tgvPlanet without UFO — preserved
+      for reference at <code>tgvPlanet/alt-versions/tgvPlanet2/</code>. Not
+      barrel-exported.
+    </FullscreenNote>
+  );
+}
