@@ -17,6 +17,25 @@ import {
 } from "../../styled";
 import SandboxIcon from "./SandboxIcon";
 import { REGISTRY, CATEGORIES, type SandboxEntry } from "./registry";
+
+// Wire-shape for /api/editor/shared-templates list response. Mirrors
+// SharedTemplateSummary in src/lib/db-shared-templates.ts but kept inline
+// here so this client module doesn't import a `server-only` file.
+type PageTemplateSummary = {
+  id: string;
+  templateId: string;
+  label: string;
+  description: string;
+  category: string;
+  thumbnail: string | null;
+  suggestedSlug: string;
+  suggestedTitle: string;
+  status: "sandbox" | "published";
+  createdBy: string | null;
+  createdAt: string;
+  updatedAt: string;
+  publishedAt: string | null;
+};
 import { useDraftStore } from "./useDraftStore";
 import SandboxEditToolbar from "./SandboxEditToolbar";
 import SandboxClaudeDrawer from "./SandboxClaudeDrawer";
@@ -1120,6 +1139,215 @@ const EmptyCenter = styled.div`
   }
 `;
 
+// ── Page Templates preview pane ─────────────────────────────────────────
+// Shown in CenterPane when an entry in the "Page Templates" sidebar group
+// is active. Read-only metadata view for step 2c; the live PageRenderer
+// mount is deferred to step 2d so this PR stays small.
+
+const TemplatePreviewWrap = styled.div`
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+  padding: 1.5rem 1.75rem;
+  gap: 1rem;
+  ${sandboxScrollbar}
+`;
+
+const TemplatePreviewHeader = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--t-border);
+`;
+
+const TemplatePreviewLabel = styled.h2`
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: ${PINK};
+`;
+
+const TemplatePreviewId = styled.span`
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 0.6875rem;
+  color: var(--t-textFaint);
+`;
+
+const TemplateMetaRow = styled.div`
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  gap: 0.5rem 1rem;
+  font-size: 0.75rem;
+  color: var(--t-textMuted);
+`;
+
+const TemplateMetaKey = styled.span`
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.625rem;
+  font-weight: 700;
+  color: var(--t-textFaint);
+`;
+
+const TemplateMetaVal = styled.span`
+  font-family: var(--font-geist-mono), monospace;
+  color: var(--t-text);
+  word-break: break-word;
+`;
+
+const TemplateDescription = styled.p`
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--t-text);
+`;
+
+const TemplateThumb = styled.img`
+  max-width: 100%;
+  max-height: 280px;
+  align-self: flex-start;
+  border-radius: 6px;
+  border: 1px solid var(--t-border);
+`;
+
+const TemplateStatusPill = styled.span<{ $published: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  padding: 0.1rem 0.5rem;
+  font-size: 0.5625rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  border-radius: 999px;
+  color: ${(p) => (p.$published ? colors.cyan : colors.gold)};
+  background: rgba(
+    ${(p) => (p.$published ? rgb.cyan : rgb.gold)},
+    0.1
+  );
+  border: 1px solid
+    rgba(${(p) => (p.$published ? rgb.cyan : rgb.gold)}, 0.45);
+`;
+
+const TemplateLoading = styled.div`
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--t-textFaint);
+  font-size: 0.8125rem;
+`;
+
+const TemplateHeaderRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+`;
+
+const DeployTemplateBtn = styled.button`
+  appearance: none;
+  border-radius: 0.375rem;
+  border: 1px solid rgba(${rgb.gold}, 0.5);
+  background: rgba(${rgb.gold}, 0.12);
+  color: ${colors.gold};
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.3125rem 0.75rem;
+  cursor: pointer;
+  text-shadow: 0 0 6px rgba(${rgb.gold}, 0.5);
+  transition: background 0.15s, box-shadow 0.15s, transform 0.1s;
+
+  &:hover:not(:disabled) {
+    background: rgba(${rgb.gold}, 0.22);
+    box-shadow: 0 0 10px rgba(${rgb.gold}, 0.45);
+  }
+
+  &:active:not(:disabled) {
+    transform: translateY(1px);
+  }
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
+  [data-theme="light"] & { text-shadow: none; }
+`;
+
+const TemplateDeployError = styled.div`
+  font-size: 0.6875rem;
+  color: #ef4444;
+  font-weight: 600;
+`;
+
+const EditTemplateBtn = styled(DeployTemplateBtn)`
+  border-color: rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--t-text);
+  text-shadow: none;
+  &:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.15);
+    box-shadow: 0 0 8px rgba(255, 255, 255, 0.25);
+  }
+`;
+
+const SaveTemplateBtn = styled(DeployTemplateBtn)`
+  border-color: rgba(74, 222, 128, 0.55);
+  background: rgba(74, 222, 128, 0.15);
+  color: rgb(134, 239, 172);
+  text-shadow: 0 0 6px rgba(74, 222, 128, 0.45);
+  &:hover:not(:disabled) {
+    background: rgba(74, 222, 128, 0.25);
+    box-shadow: 0 0 10px rgba(74, 222, 128, 0.45);
+  }
+  [data-theme="light"] & { color: rgb(22, 101, 52); text-shadow: none; }
+`;
+
+const CancelTemplateBtn = styled(DeployTemplateBtn)`
+  border-color: rgba(255, 255, 255, 0.25);
+  background: transparent;
+  color: var(--t-textFaint);
+  text-shadow: none;
+  &:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.08);
+    box-shadow: none;
+  }
+`;
+
+const TemplateEditTextarea = styled.textarea`
+  width: calc(100% - 2.5rem);
+  margin: 0 1.25rem 1rem;
+  min-height: 22rem;
+  resize: vertical;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.75rem;
+  line-height: 1.45;
+  padding: 0.625rem 0.75rem;
+  background: rgba(0, 0, 0, 0.35);
+  color: var(--t-text);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 0.375rem;
+  outline: none;
+  &:focus {
+    border-color: rgba(${rgb.gold}, 0.55);
+    box-shadow: 0 0 0 2px rgba(${rgb.gold}, 0.18);
+  }
+  [data-theme="light"] & {
+    background: rgba(0, 0, 0, 0.04);
+    border-color: rgba(0, 0, 0, 0.12);
+  }
+`;
+
+const TemplateEmptyHint = styled.div`
+  padding: 0.5rem 1.25rem 0.75rem;
+  font-size: 0.625rem;
+  color: var(--t-textFaint);
+  font-style: italic;
+`;
+
 const CodePane = styled.div<{ $w: number }>`
   display: flex;
   flex-direction: column;
@@ -1465,6 +1693,192 @@ function FileEntry({
   );
 }
 
+// Preview for a DB-backed page template selected in the sidebar. Read-only
+// in the Library surface; workshop surface shows Deploy (status → published)
+// plus an Edit affordance that swaps the metadata view for a JSON textarea
+// over model_json. v1 of the editor — a structured per-section editor will
+// replace this once the page-editor component is composable here.
+function TemplatePreview({
+  template,
+  onDeploy,
+  deploying,
+  deployError,
+  onSave,
+  saving,
+  saveError,
+  onSaved,
+}: {
+  template: PageTemplateSummary;
+  onDeploy?: (templateId: string) => void;
+  deploying?: boolean;
+  deployError?: string | null;
+  onSave?: (templateId: string, model: unknown) => Promise<void>;
+  saving?: boolean;
+  saveError?: string | null;
+  onSaved?: () => void;
+}) {
+  const [full, setFull] = useState<{
+    thumbnail: string | null;
+    model: unknown;
+  } | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [draftJson, setDraftJson] = useState("");
+  const [parseError, setParseError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setFull(null);
+    setLoading(true);
+    setEditing(false);
+    setParseError(null);
+    fetch(
+      `/api/editor/shared-templates/${encodeURIComponent(template.templateId)}`,
+    )
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (cancelled || !d?.template) return;
+        setFull({
+          thumbnail: d.template.thumbnail ?? null,
+          model: d.template.model,
+        });
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [template.templateId]);
+
+  const thumb = full?.thumbnail ?? template.thumbnail;
+  const canDeploy = !!onDeploy && template.status === "sandbox";
+  const canEdit = !!onSave;
+
+  const startEdit = () => {
+    if (!full) return;
+    setDraftJson(JSON.stringify(full.model, null, 2));
+    setParseError(null);
+    setEditing(true);
+  };
+
+  const cancelEdit = () => {
+    setEditing(false);
+    setDraftJson("");
+    setParseError(null);
+  };
+
+  const handleSave = async () => {
+    if (!onSave) return;
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(draftJson);
+    } catch (e) {
+      setParseError(
+        e instanceof Error ? `Invalid JSON: ${e.message}` : "Invalid JSON",
+      );
+      return;
+    }
+    setParseError(null);
+    try {
+      await onSave(template.templateId, parsed);
+      setFull((prev) => (prev ? { ...prev, model: parsed } : prev));
+      setEditing(false);
+      onSaved?.();
+    } catch {
+      // saveError surfaced by parent; leave editing open so the user can retry
+    }
+  };
+
+  return (
+    <TemplatePreviewWrap>
+      <TemplatePreviewHeader>
+        <TemplatePreviewLabel>{template.label}</TemplatePreviewLabel>
+        <TemplatePreviewId>{template.templateId}</TemplatePreviewId>
+        <TemplateHeaderRow>
+          <TemplateStatusPill $published={template.status === "published"}>
+            {template.status}
+          </TemplateStatusPill>
+          {canEdit && !editing && (
+            <EditTemplateBtn
+              onClick={startEdit}
+              disabled={loading || !full}
+              title={!full ? "Loading template…" : "Edit model JSON"}
+            >
+              Edit
+            </EditTemplateBtn>
+          )}
+          {canEdit && editing && (
+            <>
+              <SaveTemplateBtn onClick={handleSave} disabled={saving}>
+                {saving ? "Saving…" : "Save"}
+              </SaveTemplateBtn>
+              <CancelTemplateBtn onClick={cancelEdit} disabled={saving}>
+                Cancel
+              </CancelTemplateBtn>
+            </>
+          )}
+          {canDeploy && !editing && (
+            <DeployTemplateBtn
+              onClick={() => onDeploy?.(template.templateId)}
+              disabled={deploying}
+            >
+              {deploying ? "Deploying…" : "Deploy"}
+            </DeployTemplateBtn>
+          )}
+        </TemplateHeaderRow>
+        {deployError && <TemplateDeployError>{deployError}</TemplateDeployError>}
+        {parseError && <TemplateDeployError>{parseError}</TemplateDeployError>}
+        {saveError && <TemplateDeployError>{saveError}</TemplateDeployError>}
+      </TemplatePreviewHeader>
+      {template.description && (
+        <TemplateDescription>{template.description}</TemplateDescription>
+      )}
+      {editing ? (
+        <TemplateEditTextarea
+          value={draftJson}
+          onChange={(e) => setDraftJson(e.target.value)}
+          spellCheck={false}
+          aria-label="Template model JSON"
+        />
+      ) : (
+        <>
+          <TemplateMetaRow>
+            <TemplateMetaKey>Category</TemplateMetaKey>
+            <TemplateMetaVal>{template.category}</TemplateMetaVal>
+            <TemplateMetaKey>Suggested slug</TemplateMetaKey>
+            <TemplateMetaVal>{template.suggestedSlug}</TemplateMetaVal>
+            <TemplateMetaKey>Suggested title</TemplateMetaKey>
+            <TemplateMetaVal>{template.suggestedTitle}</TemplateMetaVal>
+            <TemplateMetaKey>Updated</TemplateMetaKey>
+            <TemplateMetaVal>
+              {new Date(template.updatedAt).toLocaleString()}
+            </TemplateMetaVal>
+            {template.publishedAt && (
+              <>
+                <TemplateMetaKey>Published</TemplateMetaKey>
+                <TemplateMetaVal>
+                  {new Date(template.publishedAt).toLocaleString()}
+                </TemplateMetaVal>
+              </>
+            )}
+          </TemplateMetaRow>
+          {thumb ? (
+            <TemplateThumb src={thumb} alt={`${template.label} preview`} />
+          ) : loading ? (
+            <TemplateLoading>Loading preview…</TemplateLoading>
+          ) : (
+            <TemplateLoading>
+              No thumbnail. Live PageRenderer preview lands in step 2d.
+            </TemplateLoading>
+          )}
+        </>
+      )}
+    </TemplatePreviewWrap>
+  );
+}
+
 const StyleFooterRow = styled.div`
   display: flex;
   align-items: center;
@@ -1591,6 +2005,140 @@ export default function SandboxModal({
   const allCatsOpen = CATEGORIES.every((c) => catOpen[c] ?? true);
   const toggleAllCats = () =>
     setCatOpen(Object.fromEntries(CATEGORIES.map((c) => [c, !allCatsOpen])));
+
+  // ── Page Templates (DB-backed) ──────────────────────────────────────
+  // Both surfaces render published shared_templates as an extra sidebar
+  // group below the component CATEGORIES (Library = read-only catalog).
+  // The workshop surface additionally surfaces sandbox-status templates
+  // and exposes a Deploy action in TemplatePreview that flips status →
+  // published via PATCH /api/editor/shared-templates/[id]/status.
+  const [pageTemplates, setPageTemplates] = useState<PageTemplateSummary[]>([]);
+  const [pageTemplatesLoading, setPageTemplatesLoading] = useState(false);
+  const [pageTemplatesError, setPageTemplatesError] = useState<string | null>(null);
+  const [activeTemplateId, setActiveTemplateId] = useState<string | null>(null);
+  const [pageTemplatesOpen, setPageTemplatesOpen] = useState(true);
+  const [templatesReloadKey, setTemplatesReloadKey] = useState(0);
+  const [deployingTemplateId, setDeployingTemplateId] = useState<string | null>(
+    null,
+  );
+  const [deployTemplateError, setDeployTemplateError] = useState<string | null>(
+    null,
+  );
+  const [savingTemplateId, setSavingTemplateId] = useState<string | null>(null);
+  const [saveTemplateError, setSaveTemplateError] = useState<string | null>(null);
+  const showPageTemplates = true;
+
+  useEffect(() => {
+    if (!showPageTemplates) return;
+    let cancelled = false;
+    setPageTemplatesLoading(true);
+    setPageTemplatesError(null);
+
+    // Library = published catalog view. Workshop = both statuses so the
+    // admin sees sandbox drafts to publish alongside what's already live.
+    const fetches =
+      surface === "workshop"
+        ? ["sandbox", "published"]
+        : ["published"];
+    Promise.all(
+      fetches.map((s) =>
+        fetch(`/api/editor/shared-templates?status=${s}`).then(async (r) => {
+          if (!r.ok) {
+            const text = await r.text().catch(() => "");
+            throw new Error(`HTTP ${r.status}${text ? `: ${text}` : ""}`);
+          }
+          return r.json() as Promise<{ templates: PageTemplateSummary[] }>;
+        }),
+      ),
+    )
+      .then((results) => {
+        if (cancelled) return;
+        const merged = results.flatMap((d) =>
+          Array.isArray(d.templates) ? d.templates : [],
+        );
+        // De-dupe by templateId (a row only has one status, but be safe).
+        const byId = new Map<string, PageTemplateSummary>();
+        for (const t of merged) byId.set(t.templateId, t);
+        setPageTemplates([...byId.values()]);
+      })
+      .catch((e) => {
+        if (cancelled) return;
+        setPageTemplatesError(e instanceof Error ? e.message : "Failed to load");
+      })
+      .finally(() => {
+        if (!cancelled) setPageTemplatesLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [showPageTemplates, surface, templatesReloadKey]);
+
+  const activeTemplate = useMemo(
+    () => pageTemplates.find((t) => t.templateId === activeTemplateId) ?? null,
+    [pageTemplates, activeTemplateId],
+  );
+
+  const handleDeployTemplate = useCallback(
+    async (templateId: string) => {
+      setDeployingTemplateId(templateId);
+      setDeployTemplateError(null);
+      try {
+        const res = await fetch(
+          `/api/editor/shared-templates/${encodeURIComponent(templateId)}/status`,
+          {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ status: "published" }),
+          },
+        );
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.error ?? `HTTP ${res.status}`);
+        }
+        setTemplatesReloadKey((k) => k + 1);
+      } catch (e) {
+        setDeployTemplateError(
+          e instanceof Error ? e.message : "Deploy failed",
+        );
+      } finally {
+        setDeployingTemplateId(null);
+      }
+    },
+    [],
+  );
+
+  // Persist model_json edits from the workshop preview's JSON textarea.
+  // Status stays untouched here — promotion to published goes through
+  // handleDeployTemplate. On 200 we bump templatesReloadKey so the
+  // sidebar list refreshes (updated_at moves the row in the sort).
+  const handleSaveTemplate = useCallback(
+    async (templateId: string, model: unknown) => {
+      setSavingTemplateId(templateId);
+      setSaveTemplateError(null);
+      try {
+        const res = await fetch(
+          `/api/editor/shared-templates/${encodeURIComponent(templateId)}`,
+          {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ model }),
+          },
+        );
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.error ?? `HTTP ${res.status}`);
+        }
+        setTemplatesReloadKey((k) => k + 1);
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : "Save failed";
+        setSaveTemplateError(msg);
+        throw e;
+      } finally {
+        setSavingTemplateId(null);
+      }
+    },
+    [],
+  );
   const [summaryOpen, setSummaryOpen] = useState(true);
   // Gates the entire CenterPane (summary header + demo + claude drawer)
   // via the header-toolbar Summary button. Distinct from `summaryOpen`,
@@ -2229,7 +2777,10 @@ export default function SandboxModal({
                             entry={e}
                             active={activeKey === e.key}
                             isNew={newKeys.has(e.key)}
-                            onClick={() => setActiveKey(e.key)}
+                            onClick={() => {
+                              setActiveTemplateId(null);
+                              setActiveKey(e.key);
+                            }}
                             onSeen={markSeen}
                           />
                         ))}
@@ -2238,6 +2789,60 @@ export default function SandboxModal({
                   </FileGroup>
                 );
               })}
+              {showPageTemplates && (
+                <FileGroup>
+                  <AdlHeader
+                    $open={pageTemplatesOpen}
+                    aria-expanded={pageTemplatesOpen}
+                    onClick={() => setPageTemplatesOpen((v) => !v)}
+                  >
+                    <AdlLabel>Page Templates</AdlLabel>
+                    <AdlCount>
+                      {pageTemplatesLoading ? "…" : pageTemplates.length}
+                    </AdlCount>
+                    <AdlSwitchTrack $on={pageTemplatesOpen} aria-hidden="true">
+                      <AdlSwitchThumb $on={pageTemplatesOpen} />
+                    </AdlSwitchTrack>
+                  </AdlHeader>
+                  <AdlBody $open={pageTemplatesOpen}>
+                    {pageTemplatesError && (
+                      <TemplateEmptyHint>
+                        Failed to load: {pageTemplatesError}
+                      </TemplateEmptyHint>
+                    )}
+                    {!pageTemplatesError &&
+                      !pageTemplatesLoading &&
+                      pageTemplates.length === 0 && (
+                        <TemplateEmptyHint>
+                          {surface === "workshop"
+                            ? "No templates yet."
+                            : "No published templates yet."}
+                        </TemplateEmptyHint>
+                      )}
+                    <FileItemsWrap>
+                      {pageTemplates.map((t) => (
+                        <FileItem
+                          key={t.templateId}
+                          $active={activeTemplateId === t.templateId}
+                          onClick={() => {
+                            setActiveKey("");
+                            setActiveTemplateId(t.templateId);
+                            setDeployTemplateError(null);
+                          }}
+                        >
+                          <FileItemRow>
+                            <FileItemLabel>{t.label}</FileItemLabel>
+                            <FileItemSub $active={activeTemplateId === t.templateId}>
+                              {t.status === "sandbox" ? "sandbox · " : ""}
+                              {t.category}
+                            </FileItemSub>
+                          </FileItemRow>
+                        </FileItem>
+                      ))}
+                    </FileItemsWrap>
+                  </AdlBody>
+                </FileGroup>
+              )}
             </FileSidebar>
           )}
           {fsOpen && !sidebar.snapped && (
@@ -2260,7 +2865,26 @@ export default function SandboxModal({
 
           {previewOpen && (
           <CenterPane>
-            {active ? (
+            {activeTemplate ? (
+              <TemplatePreview
+                template={activeTemplate}
+                onDeploy={surface === "workshop" ? handleDeployTemplate : undefined}
+                deploying={deployingTemplateId === activeTemplate.templateId}
+                deployError={
+                  activeTemplate.status === "sandbox" ? deployTemplateError : null
+                }
+                onSave={surface === "workshop" ? handleSaveTemplate : undefined}
+                saving={savingTemplateId === activeTemplate.templateId}
+                saveError={
+                  savingTemplateId === activeTemplate.templateId
+                    ? null
+                    : saveTemplateError &&
+                      activeTemplate.templateId === activeTemplateId
+                    ? saveTemplateError
+                    : null
+                }
+              />
+            ) : active ? (
               <>
                 <SummaryBar>
                   <SummaryToggle
