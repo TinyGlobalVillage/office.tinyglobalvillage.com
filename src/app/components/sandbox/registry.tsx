@@ -40,6 +40,35 @@ const AnchorMorphThreadsDyn = dynamic(
   { ssr: false }
 );
 
+// Modal viewer + scene primitives for the planet demos. The fullscreen
+// PlanetCanvas wrapper uses position:fixed inset:0, so we bypass it and
+// compose the scene directly inside a modal-sized Canvas.
+const R3FPreviewModal = dynamic(() => import("./R3FPreviewModal"), { ssr: false });
+const Canvas3DDyn = dynamic(
+  () => import("@react-three/fiber").then((m) => m.Canvas as React.ComponentType<Record<string, unknown>>),
+  { ssr: false }
+);
+const PlanetSceneDyn = dynamic(
+  () => import("@tgv/module-component-library/components/react-three-fiber/tgvPlanet/PlanetScene"),
+  { ssr: false }
+);
+const PlanetStarsDyn = dynamic(
+  () => import("@tgv/module-component-library/components/react-three-fiber/tgvPlanet/Stars"),
+  { ssr: false }
+);
+const PlanetUFODyn = dynamic(
+  () => import("@tgv/module-component-library/components/react-three-fiber/tgvPlanet/UFO").then((m) => m.UFO as React.ComponentType<Record<string, unknown>>),
+  { ssr: false }
+);
+const PlanetScene2Dyn = dynamic(
+  () => import("@tgv/module-component-library/components/react-three-fiber/tgvPlanet/alt-versions/tgvPlanet2/PlanetScene"),
+  { ssr: false }
+);
+const PlanetStars2Dyn = dynamic(
+  () => import("@tgv/module-component-library/components/react-three-fiber/tgvPlanet/alt-versions/tgvPlanet2/Stars"),
+  { ssr: false }
+);
+
 const PINK = colors.pink;
 const PINK_RGB = rgb.pink;
 const MUTED = "rgba(255,255,255,0.18)";
@@ -4166,151 +4195,283 @@ export const CATEGORIES: Array<SandboxEntry["category"]> = ["Buttons", "Icons", 
 // planet demos render a placeholder instead of trying to embed a
 // position:fixed canvas inside a sandbox cell.
 
-const R3FCell = styled.div`
+// Click-to-open card. The card itself is a small thumbnail with a label;
+// clicking it opens R3FPreviewModal with the actual scene rendered inside
+// a controlled-viewport Stage. This is the only practical way to host
+// fullscreen / position:fixed r3f canvases in a sandbox cell.
+const R3FCard = styled.button`
   position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
   width: 100%;
   max-width: 320px;
-  height: 220px;
-  border-radius: 12px;
-  background: rgba(0, 0, 0, 0.4);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  overflow: hidden;
-`;
-
-const R3FNote = styled.div`
-  font-size: 12px;
-  line-height: 1.4;
-  color: rgba(255, 255, 255, 0.6);
-  padding: 12px 14px;
-`;
-
-const FullscreenNote = styled.div`
-  position: relative;
-  width: 100%;
-  max-width: 320px;
-  min-height: 120px;
   padding: 14px 16px;
   border-radius: 12px;
   border: 1px dashed rgba(${PINK_RGB}, 0.45);
   background: rgba(${PINK_RGB}, 0.04);
-  color: rgba(255, 255, 255, 0.75);
+  color: rgba(255, 255, 255, 0.85);
   font-size: 12px;
-  line-height: 1.5;
+  line-height: 1.4;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  &:hover {
+    background: rgba(${PINK_RGB}, 0.08);
+    border-color: rgba(${PINK_RGB}, 0.7);
+  }
+`;
+
+const R3FCardLabel = styled.span`
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: ${PINK};
+  font-size: 11px;
+`;
+
+const R3FCardHint = styled.span`
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 11px;
+`;
+
+const ModalFill = styled.div`
+  position: absolute;
+  inset: 0;
+`;
+
+function R3FPreviewCard({
+  label,
+  hint,
+  modalTitle,
+  renderContent,
+}: {
+  label: string;
+  hint: string;
+  modalTitle: string;
+  renderContent: () => React.ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <R3FCard type="button" onClick={() => setOpen(true)}>
+        <R3FCardLabel>▶ Click to preview</R3FCardLabel>
+        <strong style={{ color: "#fff" }}>{label}</strong>
+        <R3FCardHint>{hint}</R3FCardHint>
+      </R3FCard>
+      {open && (
+        <R3FPreviewModal title={modalTitle} onClose={() => setOpen(false)}>
+          {renderContent()}
+        </R3FPreviewModal>
+      )}
+    </>
+  );
+}
+
+const CenteredCaption = styled.div`
+  color: #00ffff;
+  font-size: 14px;
+  text-align: center;
+  text-shadow: 0 0 8px rgba(0, 255, 255, 0.4);
 `;
 
 function AnchorPortalDemo() {
   return (
-    <R3FCell>
-      <AnchorPortalDyn
-        lang="en"
-        editorMode={true}
-        title="Anchor Portal"
-        config={{ showPortal: true, showLogo: false, showTitle: true }}
-      />
-    </R3FCell>
+    <R3FPreviewCard
+      label="AnchorPortal"
+      hint="Hero composition with portal canvas + logo + title slot."
+      modalTitle="AnchorPortal — full preview"
+      renderContent={() => (
+        <ModalFill>
+          <AnchorPortalDyn
+            lang="en"
+            editorMode={true}
+            title="Anchor Portal"
+            config={{ showPortal: true, showLogo: false, showTitle: true }}
+          />
+        </ModalFill>
+      )}
+    />
   );
 }
 
 function PortalSectionDemo() {
   return (
-    <R3FCell>
-      <PortalSectionDyn portalScale={1.4} threadCount={24}>
-        <div style={{ color: "#00ffff", fontSize: 12, textAlign: "center" }}>
-          PortalSection
-        </div>
-      </PortalSectionDyn>
-    </R3FCell>
+    <R3FPreviewCard
+      label="PortalSection"
+      hint="Portal-canvas positioning wrapper."
+      modalTitle="PortalSection — full preview"
+      renderContent={() => (
+        <ModalFill>
+          <PortalSectionDyn portalScale={2} threadCount={28}>
+            <CenteredCaption>PortalSection</CenteredCaption>
+          </PortalSectionDyn>
+        </ModalFill>
+      )}
+    />
   );
 }
 
 function PortalCanvasDemo() {
   return (
-    <R3FCell>
-      <PortalCanvasDyn editorMode={true} threadCount={24} threadWidth={1}>
-        <div style={{ color: "#00ffff", fontSize: 12, textAlign: "center" }}>
-          PortalCanvas
-        </div>
-      </PortalCanvasDyn>
-    </R3FCell>
+    <R3FPreviewCard
+      label="PortalCanvas"
+      hint="Raw r3f canvas with default EnergyThreads."
+      modalTitle="PortalCanvas — full preview"
+      renderContent={() => (
+        <ModalFill>
+          <PortalCanvasDyn editorMode={true} threadCount={28} threadWidth={1}>
+            <CenteredCaption>PortalCanvas</CenteredCaption>
+          </PortalCanvasDyn>
+        </ModalFill>
+      )}
+    />
   );
 }
 
 function EnergyThreads2Demo() {
   return (
-    <R3FCell>
-      <PortalCanvasDyn editorMode={true} threads={<EnergyThreads2Dyn />}>
-        <div style={{ color: "#00ffff", fontSize: 12, textAlign: "center" }}>
-          EnergyThreads2
-        </div>
-      </PortalCanvasDyn>
-    </R3FCell>
+    <R3FPreviewCard
+      label="EnergyThreads2"
+      hint="Alt variant — pass as PortalCanvas threads prop."
+      modalTitle="EnergyThreads2 (alt)"
+      renderContent={() => (
+        <ModalFill>
+          <PortalCanvasDyn editorMode={true} threads={<EnergyThreads2Dyn />}>
+            <CenteredCaption>EnergyThreads2</CenteredCaption>
+          </PortalCanvasDyn>
+        </ModalFill>
+      )}
+    />
   );
 }
 
 function EnergyThreads3Demo() {
   return (
-    <R3FCell>
-      <PortalCanvasDyn editorMode={true} threads={<EnergyThreads3Dyn />}>
-        <div style={{ color: "#00ffff", fontSize: 12, textAlign: "center" }}>
-          EnergyThreads3
-        </div>
-      </PortalCanvasDyn>
-    </R3FCell>
+    <R3FPreviewCard
+      label="EnergyThreads3"
+      hint="Alt variant — pass as PortalCanvas threads prop."
+      modalTitle="EnergyThreads3 (alt)"
+      renderContent={() => (
+        <ModalFill>
+          <PortalCanvasDyn editorMode={true} threads={<EnergyThreads3Dyn />}>
+            <CenteredCaption>EnergyThreads3</CenteredCaption>
+          </PortalCanvasDyn>
+        </ModalFill>
+      )}
+    />
   );
 }
 
 function EnergyThreads4Demo() {
   return (
-    <R3FCell>
-      <PortalCanvasDyn editorMode={true} threads={<EnergyThreads4Dyn />}>
-        <div style={{ color: "#00ffff", fontSize: 12, textAlign: "center" }}>
-          EnergyThreads4
-        </div>
-      </PortalCanvasDyn>
-    </R3FCell>
+    <R3FPreviewCard
+      label="EnergyThreads4"
+      hint="Alt variant — pass as PortalCanvas threads prop."
+      modalTitle="EnergyThreads4 (alt)"
+      renderContent={() => (
+        <ModalFill>
+          <PortalCanvasDyn editorMode={true} threads={<EnergyThreads4Dyn />}>
+            <CenteredCaption>EnergyThreads4</CenteredCaption>
+          </PortalCanvasDyn>
+        </ModalFill>
+      )}
+    />
   );
 }
 
 function AnchorMorphThreadsDemo() {
   return (
-    <R3FCell>
-      <PortalCanvasDyn editorMode={true} threads={<AnchorMorphThreadsDyn />}>
-        <div style={{ color: "#00ffff", fontSize: 12, textAlign: "center" }}>
-          AnchorMorphThreads
-        </div>
-      </PortalCanvasDyn>
-    </R3FCell>
+    <R3FPreviewCard
+      label="AnchorMorphThreads"
+      hint="Alt threads variant that morphs into an anchor outline."
+      modalTitle="AnchorMorphThreads (alt)"
+      renderContent={() => (
+        <ModalFill>
+          <PortalCanvasDyn editorMode={true} threads={<AnchorMorphThreadsDyn />}>
+            <CenteredCaption>AnchorMorphThreads</CenteredCaption>
+          </PortalCanvasDyn>
+        </ModalFill>
+      )}
+    />
   );
 }
 
+// Planet demos compose the inner scene directly inside a controlled-size
+// r3f Canvas (no PlanetCanvas fullscreen wrapper). That's the whole point
+// of the modal viewer — the modal sizes the canvas, the canvas hosts the
+// scene.
 function PlanetBackgroundDemo() {
   return (
-    <FullscreenNote>
-      <strong>Fullscreen visual.</strong> PlanetBackground portals into
-      document.body with <code>position: fixed</code>; can&apos;t be embedded
-      inline. View live on tinyglobalvillage.com or demo.tinyglobalvillage.com,
-      or import + mount once at a layout root.
-    </FullscreenNote>
+    <R3FPreviewCard
+      label="PlanetBackground"
+      hint="Tenant fullscreen visual — see the canonical tgvPlanet scene here."
+      modalTitle="PlanetBackground — full preview"
+      renderContent={() => (
+        <Canvas3DDyn
+          dpr={[1, 2]}
+          camera={{ position: [0, 0, 5.6], fov: 50 }}
+          style={{ width: "100%", height: "100%", background: "black" }}
+        >
+          <ambientLight intensity={0.05} />
+          <directionalLight position={[-1, 5, -4]} intensity={0.05} />
+          <PlanetStarsDyn />
+          <group position={[0, 0.3, 0]}>
+            <PlanetSceneDyn />
+            <PlanetUFODyn scale={0.015} />
+          </group>
+        </Canvas3DDyn>
+      )}
+    />
   );
 }
 
 function TgvPlanetDemo() {
   return (
-    <FullscreenNote>
-      <strong>Fullscreen subtree.</strong> The canonical tgvPlanet renders a
-      full-viewport Canvas. Use via <code>PlanetBackground</code> for
-      backgrounds, or import individual pieces (<code>PlanetScene</code>,
-      <code>Stars</code>, <code>UFO</code>) for custom compositions.
-    </FullscreenNote>
+    <R3FPreviewCard
+      label="tgvPlanet (canonical)"
+      hint="Canonical scene: PlanetScene + Stars + UFO."
+      modalTitle="tgvPlanet (canonical) — full preview"
+      renderContent={() => (
+        <Canvas3DDyn
+          dpr={[1, 2]}
+          camera={{ position: [0, 0, 5.6], fov: 50 }}
+          style={{ width: "100%", height: "100%", background: "black" }}
+        >
+          <ambientLight intensity={0.05} />
+          <directionalLight position={[-1, 5, -4]} intensity={0.05} />
+          <PlanetStarsDyn />
+          <group position={[0, 0.3, 0]}>
+            <PlanetSceneDyn />
+            <PlanetUFODyn scale={0.015} />
+          </group>
+        </Canvas3DDyn>
+      )}
+    />
   );
 }
 
 function TgvPlanet2Demo() {
   return (
-    <FullscreenNote>
-      <strong>Alt variant.</strong> Forked tgvPlanet without UFO — preserved
-      for reference at <code>tgvPlanet/alt-versions/tgvPlanet2/</code>. Not
-      barrel-exported.
-    </FullscreenNote>
+    <R3FPreviewCard
+      label="tgvPlanet2 (alt)"
+      hint="Alt subtree — no UFO; preserved at tgvPlanet/alt-versions/tgvPlanet2/."
+      modalTitle="tgvPlanet2 (alt) — full preview"
+      renderContent={() => (
+        <Canvas3DDyn
+          dpr={[1, 2]}
+          camera={{ position: [0, 0, 5.6], fov: 50 }}
+          style={{ width: "100%", height: "100%", background: "black" }}
+        >
+          <ambientLight intensity={0.05} />
+          <directionalLight position={[-1, 5, -4]} intensity={0.05} />
+          <PlanetStars2Dyn />
+          <group position={[0, 0.3, 0]}>
+            <PlanetScene2Dyn />
+          </group>
+        </Canvas3DDyn>
+      )}
+    />
   );
 }
