@@ -19,14 +19,14 @@ import type {
   TranscriptContext,
   CreateTranscriptInput,
   UpdateTranscriptInput,
-} from "@tgv/module-connect/transcriber/types";
+} from "@tgv/module-transcriber/types";
 
 export type {
   TranscriptRecord,
   TranscriptContext,
   CreateTranscriptInput,
   UpdateTranscriptInput,
-} from "@tgv/module-connect/transcriber/types";
+} from "@tgv/module-transcriber/types";
 
 const DATA_ROOT =
   process.env.TRANSCRIPTS_DATA_ROOT ||

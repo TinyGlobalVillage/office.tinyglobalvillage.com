@@ -4,7 +4,7 @@ Pointer index. Each entry is a one-liner that links to its own README under `doc
 
 ## Icons (shared SVGs — global across the app)
 
-- [TrashIcon](docs/TrashIcon.md) — canonical "tgv trash icon", ported from `@tgv/module-core/IconTrash`
+- [TrashIcon](docs/TrashIcon.md) — canonical "tgv trash icon", ported from `@tgv/module-component-library/IconTrash`
 - [ChatIcon](docs/ChatIcon.md) — speech bubble SVG used for TGV Chat titles/headers
 - [MembersIcon](docs/MembersIcon.md) — multi-person silhouette used for member lists and overflow DDMs
 - [FileIcon](docs/AttachIcons.md) — document outline used in the attach menu

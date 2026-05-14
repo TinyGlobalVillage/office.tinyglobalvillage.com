@@ -12,7 +12,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { ensurePolling, syncFromServer } from "@tgv/module-connect/transcriber";
+import { ensurePolling, syncFromServer } from "@tgv/module-transcriber";
 
 export default function TranscriberJobsHydrator() {
   useEffect(() => {

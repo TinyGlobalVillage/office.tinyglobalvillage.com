@@ -9,7 +9,7 @@ import {
   listActiveTasks,
   listAllTasks,
   getRecipientByEmail,
-} from "@tgv/module-connect";
+} from "@tgv/module-relay";
 import { connectDb, ensureConnectBootstrapped } from "@/lib/connect-db";
 
 export const runtime = "nodejs";

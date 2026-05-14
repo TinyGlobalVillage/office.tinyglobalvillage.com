@@ -11,7 +11,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { TranscriberJobsToast } from "@tgv/module-connect/transcriber";
+import { TranscriberJobsToast } from "@tgv/module-transcriber";
 
 export default function DashboardToastsHost() {
   const router = useRouter();

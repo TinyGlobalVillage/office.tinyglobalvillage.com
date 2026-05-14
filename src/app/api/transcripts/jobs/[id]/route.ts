@@ -22,7 +22,7 @@ import {
   type TranscriptionJobRecord,
 } from "@/lib/transcripts-jobs-store";
 import { createTranscript } from "@/lib/transcripts-store";
-import { transcribe, WhisperEngineError } from "@tgv/module-connect/whisper-client";
+import { transcribe, WhisperEngineError } from "@tgv/module-transcriber/engine";
 
 export const runtime = "nodejs";
 export const maxDuration = 1200;

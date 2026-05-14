@@ -12,9 +12,9 @@ import {
   getRecipientByEmail,
   addChannel,
   PolicyError,
-} from "@tgv/module-connect";
+} from "@tgv/module-relay";
 import { connectDb, ensureConnectBootstrapped } from "@/lib/connect-db";
-import type { RecipientChannel } from "@tgv/module-connect";
+import type { RecipientChannel } from "@tgv/module-relay";
 
 export const runtime = "nodejs";
 

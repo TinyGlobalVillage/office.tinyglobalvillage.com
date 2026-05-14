@@ -8,6 +8,7 @@ import NeonX from "./NeonX";
 import Tooltip from "./ui/Tooltip";
 import { useModalLifecycle } from "../lib/drawerKnobs";
 import { useTerminal } from "./TerminalProvider";
+import { usePreview } from "./PreviewDrawer";
 
 type Props = {
   pageKey: string;
@@ -390,15 +391,19 @@ export default function DashboardPageModal({ pageKey, title, glow, onClose }: Pr
   // parent's CliTerminal on top of this modal — position:fixed elements
   // inside an iframe can't escape the iframe's bounds.
   const { toggleTerminal } = useTerminal();
+  const { openPreview } = usePreview();
   useEffect(() => {
     const onMsg = (e: MessageEvent) => {
       const t = e.data?.type;
       if (t === "tgv-modal-close") onClose();
       else if (t === "tgv-toggle-terminal") toggleTerminal();
+      else if (t === "tgv-open-preview" && typeof e.data?.domain === "string") {
+        openPreview(e.data.domain);
+      }
     };
     window.addEventListener("message", onMsg);
     return () => window.removeEventListener("message", onMsg);
-  }, [onClose, toggleTerminal]);
+  }, [onClose, toggleTerminal, openPreview]);
 
   // Popout ↔ main coordination via BroadcastChannel heartbeat.
   useEffect(() => {

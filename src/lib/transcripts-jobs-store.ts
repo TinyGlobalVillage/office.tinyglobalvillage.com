@@ -27,7 +27,7 @@ import type {
   CreateTranscriptInput,
   TranscriptContext,
   TranscriptRecord,
-} from "@tgv/module-connect/transcriber/types";
+} from "@tgv/module-transcriber/types";
 
 const DATA_ROOT =
   process.env.TRANSCRIPTS_DATA_ROOT ||

@@ -1,7 +1,7 @@
 /**
  * DEV MODE — draggable left-edge drawer for switching effective user.
  *
- * Ported from @tgv/module-dashboards DevUserSwitcher and adapted to office's
+ * Ported from @tgv/module-dashboard DevUserSwitcher and adapted to office's
  * username-keyed user store. Mounted globally from src/app/layout.tsx when
  * (admin + dev-switcher-enabled + user's `dev-drawer-on` localStorage flag).
  *

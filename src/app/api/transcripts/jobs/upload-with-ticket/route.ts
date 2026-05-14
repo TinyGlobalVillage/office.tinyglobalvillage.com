@@ -26,8 +26,8 @@ import {
 } from "@/lib/upload-ticket";
 import { createJob } from "@/lib/transcripts-jobs-store";
 import { createTranscript } from "@/lib/transcripts-store";
-import { transcribe, WhisperEngineError } from "@tgv/module-connect/whisper-client";
-import type { CreateTranscriptInput } from "@tgv/module-connect/transcriber/types";
+import { transcribe, WhisperEngineError } from "@tgv/module-transcriber/engine";
+import type { CreateTranscriptInput } from "@tgv/module-transcriber/types";
 import { patchJob, jobAudioAbs } from "@/lib/transcripts-jobs-store";
 import fs from "fs";
 

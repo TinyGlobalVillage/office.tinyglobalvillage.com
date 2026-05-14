@@ -272,6 +272,114 @@ const GROUPS: Group[] = [
         ],
         glow: "gold",
       },
+      {
+        id: "opensrs-doc-sync",
+        label: "Refresh OpenSRS documentation",
+        description: "Pulls fresh copies of every OpenSRS doc page (domains.opensrs.guide + email.opensrs.guide + support.opensrs.com — ~570 URLs total) into the local skills mirror. Normally TTL-guarded (skipped if last sync < 6h); use Force to override.",
+        script: "opensrs-doc-sync",
+        buildArgs: (v) => {
+          const args: FieldValue[] = [];
+          if (v.force === "yes") args.push("--force");
+          const prop = String(v.property ?? "all");
+          if (prop !== "all") args.push("--property", prop);
+          const ttl = String(v.maxAgeHours ?? "").trim();
+          if (ttl !== "") args.push("--max-age-hours", ttl);
+          return args;
+        },
+        fields: [
+          {
+            key: "property",
+            label: "Which property to sync",
+            type: "select",
+            default: "all",
+            options: [
+              { value: "all", label: "All (domains + email + support)" },
+              { value: "support", label: "support.opensrs.com (sitemap-driven, ~425 URLs)" },
+              { value: "domains", label: "domains.opensrs.guide (sidebar crawl, ~150 URLs)" },
+              { value: "email", label: "email.opensrs.guide (sidebar crawl)" },
+            ],
+            help: "Limit the sync to one property when you only need fresh API ref or fresh KB articles.",
+          },
+          {
+            key: "force",
+            label: "Force full re-sync",
+            type: "toggle",
+            default: "no",
+            help: "Bypasses both the TTL cooldown and per-URL sitemap/hash diff signals. Re-fetches and re-writes every page (~10–15 min). Use when you suspect the local cache is corrupt or want a guaranteed-fresh snapshot.",
+          },
+          {
+            key: "maxAgeHours",
+            label: "TTL cooldown hours",
+            type: "text",
+            placeholder: "6",
+            help: "Skip the run if the previous successful sync finished within this many hours. Default 6. Ignored when Force is on.",
+          },
+        ],
+        glow: "cyan",
+      },
+      {
+        id: "opensrs-provision-mailbox",
+        label: "Provision OMA mailbox",
+        description: "Create a tenant mailbox via the OpenSRS Mail Admin (OMA) JSON API. Generates a strong password if none provided. Returns the connection info (IMAP/SMTP host + password) for handoff to module-inbox.",
+        script: "opensrs-provision-mailbox",
+        buildArgs: (v) => {
+          const args: FieldValue[] = [String(v.local ?? ""), String(v.domain ?? "")];
+          const push = (flag: string, val: FieldValue | undefined) => {
+            const s = val == null ? "" : String(val);
+            if (s !== "") args.push(flag, s);
+          };
+          push("--storage-gb", v.storageGb);
+          push("--display-name", v.displayName);
+          push("--password", v.password);
+          return args;
+        },
+        fields: [
+          {
+            key: "local",
+            label: "Mailbox local-part",
+            type: "text",
+            placeholder: "alice",
+            required: true,
+            help: "The part before the @. e.g. 'alice' becomes alice@<domain>.",
+          },
+          {
+            key: "domain",
+            label: "Email domain",
+            type: "text",
+            placeholder: "tinyglobalvillage.com",
+            required: true,
+            help: "Must already exist in OMA AND have the API user as Domain admin on it. New domains require RCP-side creation first.",
+          },
+          {
+            key: "storageGb",
+            label: "Storage limit (GB)",
+            type: "select",
+            default: "5",
+            options: [
+              { value: "5", label: "5 GB" },
+              { value: "10", label: "10 GB" },
+              { value: "25", label: "25 GB" },
+              { value: "50", label: "50 GB" },
+              { value: "100", label: "100 GB" },
+            ],
+          },
+          {
+            key: "displayName",
+            label: "Display name (optional)",
+            type: "text",
+            placeholder: "Alice Smith",
+            help: "Shows in the From: header on outbound mail. Optional.",
+          },
+          {
+            key: "password",
+            label: "Password (optional)",
+            type: "text",
+            placeholder: "leave blank to auto-generate",
+            help: "If blank, a 20-char CSPRNG password is generated and returned in the response. Otherwise must be >=8 chars.",
+          },
+        ],
+        glow: "pink",
+      },
     ],
   },
   {

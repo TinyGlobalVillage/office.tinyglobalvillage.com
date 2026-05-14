@@ -10,7 +10,7 @@
  *      before we finish processing).
  */
 import { NextRequest, NextResponse } from "next/server";
-import { telegramTransport, handleInboundReply } from "@tgv/module-connect";
+import { telegramTransport, handleInboundReply } from "@tgv/module-relay";
 import { connectDb, ensureConnectBootstrapped } from "@/lib/connect-db";
 
 export const runtime = "nodejs";

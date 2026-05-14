@@ -22,7 +22,7 @@
  */
 
 import crypto from "crypto";
-import type { TranscriptContext } from "@tgv/module-connect/transcriber/types";
+import type { TranscriptContext } from "@tgv/module-transcriber/types";
 
 const TICKET_TTL_SEC = 5 * 60;
 const SECRET_ENV = "AUTH_SECRET";

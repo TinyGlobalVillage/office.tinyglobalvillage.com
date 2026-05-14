@@ -7,7 +7,7 @@
  * and TELEGRAM_WEBHOOK_SECRET (or TELEGRAM_BOT_TOKEN as fallback).
  */
 import { NextRequest, NextResponse } from "next/server";
-import { setWebhook } from "@tgv/module-connect/apps/telegram/client";
+import { setWebhook } from "@tgv/module-relay/apps/telegram/client";
 
 export const runtime = "nodejs";
 
