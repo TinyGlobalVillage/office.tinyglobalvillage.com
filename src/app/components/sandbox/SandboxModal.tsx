@@ -1379,6 +1379,51 @@ const RevertTemplateBtn = styled(DeployTemplateBtn)`
   [data-theme="light"] & { color: rgb(153, 27, 27); text-shadow: none; }
 `;
 
+const TemplateLivePreviewFrame = styled.div`
+  margin: 0 1.25rem 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 0.5rem;
+  background: rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  [data-theme="light"] & {
+    background: rgba(255, 255, 255, 0.6);
+    border-color: rgba(0, 0, 0, 0.12);
+  }
+`;
+
+const TemplateLivePreviewLabel = styled.div`
+  padding: 0.375rem 0.75rem;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--t-textFaint);
+  background: rgba(0, 0, 0, 0.4);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  [data-theme="light"] & {
+    background: rgba(0, 0, 0, 0.04);
+    border-bottom-color: rgba(0, 0, 0, 0.08);
+  }
+`;
+
+const TemplateLivePreviewIframe = styled.iframe`
+  width: 100%;
+  height: 36rem;
+  border: 0;
+  background: white;
+  display: block;
+`;
+
+const TemplateLivePreviewNote = styled.div`
+  padding: 0.375rem 0.75rem;
+  font-size: 0.625rem;
+  color: var(--t-textFaint);
+  font-style: italic;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+`;
+
 const TemplateSectionsList = styled.div`
   margin: 0 1.25rem 0.5rem;
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -2205,18 +2250,24 @@ function TemplatePreview({
               </>
             )}
           </TemplateMetaRow>
-          {thumb ? (
-            <TemplateThumb src={thumb} alt={`${template.label} preview`} />
-          ) : loading ? (
-            <TemplateLoading>Loading preview…</TemplateLoading>
-          ) : (
-            <TemplateLoading>
-              No thumbnail. Live PageRenderer preview deferred — see
-              checklist Follow-ups (registry has monolithic cross-package
-              consumer-alias wiring; can&apos;t mount in Office without a
-              slimmer preview-only registry or full alias plumbing).
-            </TemplateLoading>
-          )}
+          <TemplateLivePreviewFrame>
+            <TemplateLivePreviewLabel>
+              Live preview · iframe → tgv.com
+            </TemplateLivePreviewLabel>
+            <TemplateLivePreviewIframe
+              src={`${
+                process.env.NEXT_PUBLIC_TGV_URL ?? "https://tinyglobalvillage.com"
+              }/preview/template/${encodeURIComponent(template.templateId)}`}
+              title={`Live preview of ${template.label}`}
+              sandbox="allow-same-origin allow-scripts"
+              loading="lazy"
+            />
+            {thumb && (
+              <TemplateLivePreviewNote>
+                Static thumbnail also available: {thumb}
+              </TemplateLivePreviewNote>
+            )}
+          </TemplateLivePreviewFrame>
         </>
       )}
     </TemplatePreviewWrap>
