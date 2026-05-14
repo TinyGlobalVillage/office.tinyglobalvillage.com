@@ -4283,18 +4283,32 @@ function AnchorPortalDemo() {
       hint="Hero composition with portal canvas + logo + title slot."
       modalTitle="AnchorPortal — full preview"
       renderContent={() => (
-        <ModalFill>
-          <AnchorPortalDyn
-            lang="en"
-            editorMode={true}
-            title="Anchor Portal"
-            config={{ showPortal: true, showLogo: false, showTitle: true }}
-          />
+        <ModalFill style={{ display: "grid", placeItems: "center", padding: "24px" }}>
+          <div style={{ width: "100%", maxWidth: 520 }}>
+            <AnchorPortalDyn
+              lang="en"
+              editorMode={true}
+              config={{ showPortal: true, showLogo: false, showTitle: false }}
+            />
+          </div>
         </ModalFill>
       )}
     />
   );
 }
+
+const PortalStageCenter = styled.div`
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+`;
+
+const PortalStageBox = styled.div`
+  width: 100%;
+  max-width: 520px;
+`;
 
 function PortalSectionDemo() {
   return (
@@ -4303,11 +4317,13 @@ function PortalSectionDemo() {
       hint="Portal-canvas positioning wrapper."
       modalTitle="PortalSection — full preview"
       renderContent={() => (
-        <ModalFill>
-          <PortalSectionDyn portalScale={2} threadCount={28}>
-            <CenteredCaption>PortalSection</CenteredCaption>
-          </PortalSectionDyn>
-        </ModalFill>
+        <PortalStageCenter>
+          <PortalStageBox>
+            <PortalSectionDyn portalScale={1} threadCount={28}>
+              <CenteredCaption>PortalSection</CenteredCaption>
+            </PortalSectionDyn>
+          </PortalStageBox>
+        </PortalStageCenter>
       )}
     />
   );
@@ -4320,11 +4336,13 @@ function PortalCanvasDemo() {
       hint="Raw r3f canvas with default EnergyThreads."
       modalTitle="PortalCanvas — full preview"
       renderContent={() => (
-        <ModalFill>
-          <PortalCanvasDyn editorMode={true} threadCount={28} threadWidth={1}>
-            <CenteredCaption>PortalCanvas</CenteredCaption>
-          </PortalCanvasDyn>
-        </ModalFill>
+        <PortalStageCenter>
+          <PortalStageBox>
+            <PortalCanvasDyn editorMode={true} threadCount={28} threadWidth={1}>
+              <CenteredCaption>PortalCanvas</CenteredCaption>
+            </PortalCanvasDyn>
+          </PortalStageBox>
+        </PortalStageCenter>
       )}
     />
   );
@@ -4337,11 +4355,13 @@ function EnergyThreads2Demo() {
       hint="Alt variant — pass as PortalCanvas threads prop."
       modalTitle="EnergyThreads2 (alt)"
       renderContent={() => (
-        <ModalFill>
-          <PortalCanvasDyn editorMode={true} threads={<EnergyThreads2Dyn />}>
-            <CenteredCaption>EnergyThreads2</CenteredCaption>
-          </PortalCanvasDyn>
-        </ModalFill>
+        <PortalStageCenter>
+          <PortalStageBox>
+            <PortalCanvasDyn editorMode={true} threads={<EnergyThreads2Dyn />}>
+              <CenteredCaption>EnergyThreads2</CenteredCaption>
+            </PortalCanvasDyn>
+          </PortalStageBox>
+        </PortalStageCenter>
       )}
     />
   );
@@ -4354,11 +4374,13 @@ function EnergyThreads3Demo() {
       hint="Alt variant — pass as PortalCanvas threads prop."
       modalTitle="EnergyThreads3 (alt)"
       renderContent={() => (
-        <ModalFill>
-          <PortalCanvasDyn editorMode={true} threads={<EnergyThreads3Dyn />}>
-            <CenteredCaption>EnergyThreads3</CenteredCaption>
-          </PortalCanvasDyn>
-        </ModalFill>
+        <PortalStageCenter>
+          <PortalStageBox>
+            <PortalCanvasDyn editorMode={true} threads={<EnergyThreads3Dyn />}>
+              <CenteredCaption>EnergyThreads3</CenteredCaption>
+            </PortalCanvasDyn>
+          </PortalStageBox>
+        </PortalStageCenter>
       )}
     />
   );
@@ -4371,11 +4393,13 @@ function EnergyThreads4Demo() {
       hint="Alt variant — pass as PortalCanvas threads prop."
       modalTitle="EnergyThreads4 (alt)"
       renderContent={() => (
-        <ModalFill>
-          <PortalCanvasDyn editorMode={true} threads={<EnergyThreads4Dyn />}>
-            <CenteredCaption>EnergyThreads4</CenteredCaption>
-          </PortalCanvasDyn>
-        </ModalFill>
+        <PortalStageCenter>
+          <PortalStageBox>
+            <PortalCanvasDyn editorMode={true} threads={<EnergyThreads4Dyn />}>
+              <CenteredCaption>EnergyThreads4</CenteredCaption>
+            </PortalCanvasDyn>
+          </PortalStageBox>
+        </PortalStageCenter>
       )}
     />
   );
@@ -4388,11 +4412,13 @@ function AnchorMorphThreadsDemo() {
       hint="Alt threads variant that morphs into an anchor outline."
       modalTitle="AnchorMorphThreads (alt)"
       renderContent={() => (
-        <ModalFill>
-          <PortalCanvasDyn editorMode={true} threads={<AnchorMorphThreadsDyn />}>
-            <CenteredCaption>AnchorMorphThreads</CenteredCaption>
-          </PortalCanvasDyn>
-        </ModalFill>
+        <PortalStageCenter>
+          <PortalStageBox>
+            <PortalCanvasDyn editorMode={true} threads={<AnchorMorphThreadsDyn />}>
+              <CenteredCaption>AnchorMorphThreads</CenteredCaption>
+            </PortalCanvasDyn>
+          </PortalStageBox>
+        </PortalStageCenter>
       )}
     />
   );
