@@ -1,0 +1,42 @@
+[Unit]
+Description=Headscale control plane (self-hosted Tailscale control server)
+Documentation=https://headscale.net
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=headscale
+Group=headscale
+WorkingDirectory=/var/lib/headscale
+ExecStart=/usr/bin/headscale serve
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=on-failure
+RestartSec=10s
+
+# Runtime socket dir (cleaned up automatically on stop)
+RuntimeDirectory=headscale
+RuntimeDirectoryMode=0770
+
+# Hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+PrivateTmp=true
+PrivateDevices=true
+RestrictNamespaces=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+LockPersonality=true
+# MemoryDenyWriteExecute deliberately omitted — Headscale uses cgo which can trip MDWE.
+SystemCallArchitectures=native
+ReadWritePaths=/var/lib/headscale /var/run/headscale
+
+# Resource limits
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

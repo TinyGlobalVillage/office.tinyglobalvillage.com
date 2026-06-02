@@ -1,0 +1,12 @@
+{
+  "publicSshPort": 27720,
+  "ufwTemporaryAllowances": [],
+  "fail2banJailName": "headscale-ssh",
+  "uiFlags": {
+    "showPreauthKeyHistory": true,
+    "confirmBeforeRevoke": true
+  },
+  "lastUpdated": null,
+  "version": 2,
+  "_canonicalSourceNote": "headscaleEndpoint, meshSubnet, and enrolled users are canonical at /etc/headscale/config.yaml and via 'headscale users list'. This file holds Office-side runtime preferences only."
+}

@@ -10,6 +10,7 @@ import SettingsIcon from "../../components/icons/SettingsIcon";
 import TelephonyControlModal from "../../components/hardening/telephony/TelephonyControlModal";
 import TenantAppsControlModal from "../../components/hardening/tenant-apps/TenantAppsControlModal";
 import MemberAuthControlModal from "../../components/hardening/member-auth/MemberAuthControlModal";
+import MeshVpnControlModal from "../../components/hardening/mesh-vpn/MeshVpnControlModal";
 import BackupsControlModal from "../../components/backups/BackupsControlModal";
 import AutomationsTab from "../../components/automations/AutomationsTab";
 import {
@@ -1726,6 +1727,16 @@ function UtilsAdlSurface({
                         </HardeningTileSub>
                       </HardeningTile>
                     );
+                    if (tile.type === "mesh-vpn") return (
+                      <HardeningTile key={i} type="button" onClick={() => onOpenHardening("mesh-vpn")}>
+                        <HardeningTileTop>🕸 Mesh VPN</HardeningTileTop>
+                        <HardeningTileSub>
+                          Headscale control plane + passkey-gated SSH from anywhere — admin
+                          laptops join the mesh to reach RCS over WireGuard without exposing
+                          port 22 to the public internet.
+                        </HardeningTileSub>
+                      </HardeningTile>
+                    );
                     if (tile.type === "tinyurl") return (
                       <LinkToolsTile key={i} type="button" onClick={() => onOpenLinkTool("tinyurl")}>
                         <LinkToolsTileTop>🔗 TinyURL Generator</LinkToolsTileTop>
@@ -1853,7 +1864,7 @@ type DefaultsOverlay = Record<string, Record<string, FieldValue>>;
 // opens its HardeningControlModal. New hardenings get a new tile + a new
 // `kind` value below.
 
-type HardeningKind = "telephony" | "tenant-apps" | "member-auth";  // | "postgres" | "ssh" | "nginx" — future
+type HardeningKind = "telephony" | "tenant-apps" | "member-auth" | "mesh-vpn";  // | "postgres" | "ssh" | "nginx" — future
 
 // ── Link Tools (TinyURL + QR generators) ──────────────────────────────────
 //
@@ -1884,6 +1895,7 @@ type TileSpec =
   | { type: "telephony" }
   | { type: "tenant-apps" }
   | { type: "member-auth" }
+  | { type: "mesh-vpn" }
   | { type: "tinyurl" }
   | { type: "qrcode" }
   | { type: "transcriber" }
@@ -1922,7 +1934,7 @@ const SECTIONS: Section[] = [
     kind: "actions", actionIds: ["gitrepo", "gitdelrepo"] },
   { id: "hardening", title: "Hardening", accent: "cyan",
     subtitle: "defensive mechanisms installed on RCS — controls + status + audit log",
-    kind: "tiles", tiles: [{ type: "telephony" }, { type: "tenant-apps" }, { type: "member-auth" }] },
+    kind: "tiles", tiles: [{ type: "telephony" }, { type: "tenant-apps" }, { type: "member-auth" }, { type: "mesh-vpn" }] },
   { id: "linktools", title: "Link Tools", accent: "cyan",
     subtitle: "shorten URLs and generate scannable QR codes — pair them for printable mini-flyers",
     kind: "tiles", tiles: [{ type: "tinyurl" }, { type: "qrcode" }] },
@@ -2405,6 +2417,10 @@ export default function UtilsPage() {
 
       {openHardening === "member-auth" && (
         <MemberAuthControlModal onClose={() => setOpenHardening(null)} />
+      )}
+
+      {openHardening === "mesh-vpn" && (
+        <MeshVpnControlModal onClose={() => setOpenHardening(null)} />
       )}
 
       {openBackups && (
