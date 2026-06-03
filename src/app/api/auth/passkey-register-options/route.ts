@@ -3,8 +3,10 @@ import { getAuthToken } from "@/lib/auth-cookie";
 import { generateRegistrationOptions } from "@simplewebauthn/server";
 import { readUsers } from "@/lib/users";
 
-// In-memory challenge store (per-user, single-process)
-export const registrationChallenges = new Map<string, string>();
+// In-memory challenge store (per-user, single-process), with a 5-min TTL so
+// abandoned enrollments expire instead of lingering (re-checked on verify).
+export const registrationChallenges = new Map<string, { challenge: string; exp: number }>();
+const CHALLENGE_TTL_MS = 5 * 60 * 1000;
 
 const RP_ID = "office.tinyglobalvillage.com";
 const RP_NAME = "TGV Office";
@@ -40,7 +42,10 @@ export async function POST(req: NextRequest) {
     },
   });
 
-  registrationChallenges.set(username, options.challenge);
+  registrationChallenges.set(username, {
+    challenge: options.challenge,
+    exp: Date.now() + CHALLENGE_TTL_MS,
+  });
 
   return NextResponse.json(options);
 }

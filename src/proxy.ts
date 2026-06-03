@@ -4,13 +4,21 @@ import { verify2faCookie } from "@/lib/twofa-cookie";
 import { readFileSync } from "fs";
 import path from "path";
 
-// Per-user TOTP enrollment check. Users with totpEnabled=false (not yet
-// enrolled, or opted out) pass the proxy on NextAuth JWT alone.
-function isTotpEnrolled(username: string): boolean {
+// Per-user 2FA enrollment check. A user counts as enrolled if they have TOTP
+// enabled OR at least one registered passkey. A passkey is a phishing-resistant
+// strong factor that stands on its own, so passkey-only users must NOT be
+// force-marched into TOTP setup. The actual per-session gate is the tgv-2fa
+// cookie check below — this only decides setup vs. verify.
+function is2faEnrolled(username: string): boolean {
   try {
     const p = path.join(process.cwd(), "data", "users.json");
-    const store = JSON.parse(readFileSync(p, "utf8")) as Record<string, { totpEnabled?: boolean }>;
-    return store[username]?.totpEnabled === true;
+    const store = JSON.parse(readFileSync(p, "utf8")) as Record<
+      string,
+      { totpEnabled?: boolean; webauthnCredentials?: unknown[] }
+    >;
+    const u = store[username];
+    if (!u) return false;
+    return u.totpEnabled === true || (u.webauthnCredentials?.length ?? 0) > 0;
   } catch {
     return false;
   }
@@ -78,7 +86,7 @@ export async function proxy(req: NextRequest) {
     loginUrl.searchParams.set("callbackUrl", pathname);
     return NextResponse.redirect(loginUrl);
   }
-  if (!isTotpEnrolled(username)) {
+  if (!is2faEnrolled(username)) {
     const setupUrl = new URL("/setup-2fa", req.url);
     setupUrl.searchParams.set("callbackUrl", pathname);
     return NextResponse.redirect(setupUrl);

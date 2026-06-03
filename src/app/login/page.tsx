@@ -6,7 +6,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import styled from "styled-components";
 import { colors, rgb } from "../theme";
 
-type Method = "password" | "passkey" | "magic";
+type Method = "passkey" | "password" | "magic" | "recovery";
 
 /* ── Styled ────────────────────────────────────────────────── */
 
@@ -261,7 +261,12 @@ const RememberCheck = styled.input`
   cursor: pointer;
 `;
 
-const PinkLink = styled.a`
+const LinkBtn = styled.button`
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
   text-decoration: underline;
   color: ${colors.pink};
 `;
@@ -313,10 +318,12 @@ const REMEMBER_USER_KEY = "tgv-office-remember-user";
 const REMEMBER_FLAG_KEY = "tgv-office-remember-enabled";
 
 function LoginForm() {
-  const [method, setMethod] = useState<Method>("password");
+  const [method, setMethod] = useState<Method>("passkey");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [magicEmail, setMagicEmail] = useState("");
+  const [recoveryUsername, setRecoveryUsername] = useState("");
+  const [recoveryCode, setRecoveryCode] = useState("");
   const [error, setError] = useState("");
   const [info, setInfo] = useState("");
   const [loading, setLoading] = useState(false);
@@ -370,16 +377,14 @@ function LoginForm() {
     setInfo("");
     setLoading(true);
     try {
-      if (!username.trim()) {
-        setError("Enter your username first.");
-        setLoading(false);
-        return;
-      }
-
+      // Usernameless / discoverable: no username needed. The browser offers the
+      // resident passkeys for this site and the server resolves the account
+      // from the assertion's userHandle. A typed username (optional) just
+      // narrows allowCredentials.
       const optRes = await fetch("/api/auth/passkey-auth-options", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username }),
+        body: JSON.stringify(username.trim() ? { username: username.trim() } : {}),
       });
       const options = await optRes.json();
 
@@ -402,7 +407,8 @@ function LoginForm() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          username,
+          username: username.trim() || undefined,
+          callbackUrl,
           response: {
             id: credential.id,
             rawId: bufferToBase64url(credential.rawId),
@@ -422,8 +428,10 @@ function LoginForm() {
       const data = await verifyRes.json();
       setLoading(false);
       if (data.ok) {
-        persistRemember(username);
-        router.push("/verify-2fa");
+        if (username.trim()) persistRemember(username.trim());
+        // Passkey fully authenticates (server set the 2FA cookie) — go straight
+        // to the destination instead of the TOTP screen.
+        router.push(data.redirectTo || "/dashboard");
         router.refresh();
       } else {
         setError(data.error ?? "Passkey verification failed.");
@@ -466,40 +474,84 @@ function LoginForm() {
     }
   }
 
+  async function handleRecovery(e: FormEvent) {
+    e.preventDefault();
+    setError("");
+    setInfo("");
+    setLoading(true);
+    try {
+      const res = await fetch("/api/auth/recovery/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: recoveryUsername.trim(),
+          code: recoveryCode.trim(),
+          callbackUrl,
+        }),
+      });
+      const data = await res.json();
+      setLoading(false);
+      if (data.ok) {
+        if (recoveryUsername.trim()) persistRemember(recoveryUsername.trim());
+        if (data.low) {
+          // Non-blocking heads-up; the dashboard can prompt to regenerate.
+          try { window.sessionStorage.setItem("tgv-recovery-low", "1"); } catch { /* ignore */ }
+        }
+        router.push(data.redirectTo || "/dashboard");
+        router.refresh();
+      } else {
+        setError(data.error ?? "Invalid recovery code.");
+      }
+    } catch {
+      setLoading(false);
+      setError("Something went wrong. Try again.");
+    }
+  }
+
   return (
     <FormCol>
       <TabBar>
         <Tab
-          $active={method === "password"}
-          onClick={() => {
-            setMethod("password");
-            setError("");
-            setInfo("");
-          }}
-        >
-          Password
-        </Tab>
-        <Tab
           $active={method === "passkey"}
-          onClick={() => {
-            setMethod("passkey");
-            setError("");
-            setInfo("");
-          }}
+          onClick={() => { setMethod("passkey"); setError(""); setInfo(""); }}
         >
           Passkey
         </Tab>
         <Tab
+          $active={method === "password"}
+          onClick={() => { setMethod("password"); setError(""); setInfo(""); }}
+        >
+          Password
+        </Tab>
+        <Tab
           $active={method === "magic"}
-          onClick={() => {
-            setMethod("magic");
-            setError("");
-            setInfo("");
-          }}
+          onClick={() => { setMethod("magic"); setError(""); setInfo(""); }}
         >
           Magic Link
         </Tab>
       </TabBar>
+
+      {method === "passkey" && (
+        <FormCol>
+          <HintText>
+            Tap below and confirm with Face ID, Touch ID, your device PIN, or
+            your phone. No username or password needed.
+          </HintText>
+          {error && <ErrMsg msg={error} />}
+          <PasskeyBtn onClick={handlePasskey} disabled={loading}>
+            {loading ? "Waiting for browser…" : "🔑 Sign In with Passkey"}
+          </PasskeyBtn>
+          <HintText>
+            Lost your device?{" "}
+            <LinkBtn
+              type="button"
+              onClick={() => { setMethod("recovery"); setError(""); setInfo(""); }}
+            >
+              Use a recovery code
+            </LinkBtn>
+          </HintText>
+        </FormCol>
+      )}
 
       {method === "password" && (
         <FormInner onSubmit={handlePassword}>
@@ -530,39 +582,6 @@ function LoginForm() {
         </FormInner>
       )}
 
-      {method === "passkey" && (
-        <FormCol>
-          <Field
-            label="Username"
-            type="text"
-            value={username}
-            onChange={setUsername}
-            autoComplete="username"
-          />
-          <RememberRow>
-            <RememberCheck
-              type="checkbox"
-              checked={remember}
-              onChange={(e) => setRemember(e.target.checked)}
-            />
-            Remember this device
-          </RememberRow>
-          <HintText>
-            Your browser will prompt for Face ID, Touch ID, or your hardware
-            key.
-          </HintText>
-          {error && <ErrMsg msg={error} />}
-          <PasskeyBtn onClick={handlePasskey} disabled={loading}>
-            {loading ? "Waiting for browser…" : "🔑 Sign In with Passkey"}
-          </PasskeyBtn>
-          <HintText>
-            Don&apos;t have a passkey yet?{" "}
-            <PinkLink href="/login">Use password first</PinkLink>, then add one
-            from the dashboard.
-          </HintText>
-        </FormCol>
-      )}
-
       {method === "magic" && (
         <FormInner onSubmit={handleMagicLink}>
           <Field
@@ -583,6 +602,39 @@ function LoginForm() {
           {error && <ErrMsg msg={error} />}
           {info && <InfoText>{info}</InfoText>}
           <SubmitBtn loading={loading} label="Send Magic Link ✉" />
+        </FormInner>
+      )}
+
+      {method === "recovery" && (
+        <FormInner onSubmit={handleRecovery}>
+          <HintText>
+            Enter your username and one of your saved recovery codes. Each code
+            works once.
+          </HintText>
+          <Field
+            label="Username"
+            type="text"
+            value={recoveryUsername}
+            onChange={setRecoveryUsername}
+            autoComplete="username"
+          />
+          <Field
+            label="Recovery code"
+            type="text"
+            value={recoveryCode}
+            onChange={setRecoveryCode}
+            autoComplete="one-time-code"
+          />
+          {error && <ErrMsg msg={error} />}
+          <SubmitBtn loading={loading} label="Sign In with Recovery Code" />
+          <HintText>
+            <LinkBtn
+              type="button"
+              onClick={() => { setMethod("passkey"); setError(""); setInfo(""); }}
+            >
+              ← Back to passkey
+            </LinkBtn>
+          </HintText>
         </FormInner>
       )}
     </FormCol>

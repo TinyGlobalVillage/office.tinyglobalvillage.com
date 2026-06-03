@@ -179,6 +179,44 @@ const SignOutLink = styled.button`
   }
 `;
 
+const PasskeyBtn = styled.button`
+  padding: 10px 0;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: all 0.15s;
+  width: 100%;
+  background: linear-gradient(135deg, ${colors.cyan}, #0080ff);
+  color: #fff;
+  border: none;
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+`;
+
+const LinkBtn = styled.button`
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+  color: ${colors.pink};
+`;
+
+const OrText = styled.p`
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: var(--t-textGhost);
+  text-align: center;
+`;
+
 const SetupCol = styled.div`
   display: flex;
   flex-direction: column;
@@ -211,6 +249,7 @@ function VerifyForm() {
   const [loading, setLoading] = useState(false);
   const [needsSetup, setNeedsSetup] = useState(false);
   const [shaking, setShaking] = useState(false);
+  const [passkeyLoading, setPasskeyLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -268,24 +307,106 @@ function VerifyForm() {
     }
   }, [code]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Re-verify with a passkey (usernameless). The server resolves the account
+  // from the assertion's userHandle and sets the 2FA cookie. This is what a
+  // passkey-only user uses when their 2FA cookie has expired mid-session.
+  async function handlePasskey() {
+    setError("");
+    setPasskeyLoading(true);
+    try {
+      const optRes = await fetch("/api/auth/passkey-auth-options", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      const options = await optRes.json();
+      const challenge = base64urlToBuffer(options.challenge);
+      const allowCredentials =
+        options.allowCredentials?.map((c: { id: string; transports?: string[] }) => ({
+          ...c,
+          id: base64urlToBuffer(c.id),
+        })) ?? [];
+      const credential = (await navigator.credentials.get({
+        publicKey: { ...options, challenge, allowCredentials },
+      })) as PublicKeyCredential;
+      const response = credential.response as AuthenticatorAssertionResponse;
+      const verifyRes = await fetch("/api/auth/passkey-auth-verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          callbackUrl: searchParams.get("callbackUrl") || "/dashboard",
+          response: {
+            id: credential.id,
+            rawId: bufferToBase64url(credential.rawId),
+            type: credential.type,
+            response: {
+              clientDataJSON: bufferToBase64url(response.clientDataJSON),
+              authenticatorData: bufferToBase64url(response.authenticatorData),
+              signature: bufferToBase64url(response.signature),
+              userHandle: response.userHandle
+                ? bufferToBase64url(response.userHandle)
+                : null,
+            },
+          },
+        }),
+      });
+      const data = await verifyRes.json();
+      setPasskeyLoading(false);
+      if (data.ok) {
+        router.push(data.redirectTo || "/dashboard");
+        router.refresh();
+      } else {
+        setError(data.error ?? "Passkey verification failed.");
+      }
+    } catch (e: unknown) {
+      setPasskeyLoading(false);
+      const msg = e instanceof Error ? e.message : String(e);
+      setError(
+        msg.includes("NotAllowedError") || msg.includes("cancelled")
+          ? "Passkey prompt cancelled."
+          : msg
+      );
+    }
+  }
+
+  async function signOutTo(path: string) {
+    const { signOut } = await import("next-auth/react");
+    const { clearAllDrawerState } = await import("@/app/lib/drawerPersist");
+    clearAllDrawerState();
+    signOut({ callbackUrl: path });
+  }
+
   if (needsSetup) {
+    // No TOTP configured. A passkey-only user belongs here — offer the passkey
+    // first; the authenticator-app path is the secondary option.
     return (
-      <SetupCol>
-        <SetupText>You haven&apos;t set up 2FA yet.</SetupText>
-        <SetupHint>All accounts require an authenticator app.</SetupHint>
-        <GlowPinkBtn onClick={() => router.push("/setup-2fa")}>
-          Set Up Authenticator &rarr;
-        </GlowPinkBtn>
-      </SetupCol>
+      <FormCol>
+        <HintText>Confirm it&apos;s you with your passkey.</HintText>
+        <PasskeyBtn onClick={handlePasskey} disabled={passkeyLoading}>
+          {passkeyLoading ? "Waiting for browser…" : "🔑 Verify with Passkey"}
+        </PasskeyBtn>
+        {error && <ErrorText>{error}</ErrorText>}
+        <SetupCol>
+          <SetupHint>No authenticator app set up on this account.</SetupHint>
+          <SignOutLink onClick={() => router.push("/setup-2fa")}>
+            Set up an authenticator app &rarr;
+          </SignOutLink>
+        </SetupCol>
+        <SignOutLink onClick={() => signOutTo("/login")}>
+          Sign out &amp; start over
+        </SignOutLink>
+      </FormCol>
     );
   }
 
   return (
     <FormCol>
-      <HintText>
-        Open your authenticator app and enter the 6-digit code for{" "}
-        <strong>TGV Office</strong>.
-      </HintText>
+      <HintText>Confirm it&apos;s you with your passkey.</HintText>
+      <PasskeyBtn onClick={handlePasskey} disabled={passkeyLoading}>
+        {passkeyLoading ? "Waiting for browser…" : "🔑 Verify with Passkey"}
+      </PasskeyBtn>
+
+      <OrText>— or enter your authenticator code —</OrText>
 
       <CodeInput
         ref={inputRef}
@@ -301,7 +422,6 @@ function VerifyForm() {
         onKeyDown={(e) => {
           if (e.key === "Enter") handleVerify();
         }}
-        autoFocus
         disabled={loading}
         $hasError={!!error}
         $shaking={shaking}
@@ -313,18 +433,38 @@ function VerifyForm() {
         {loading ? "Verifying…" : "Verify Code"}
       </GlowPinkBtn>
 
-      <SignOutLink
-        onClick={async () => {
-          const { signOut } = await import("next-auth/react");
-          const { clearAllDrawerState } = await import("@/app/lib/drawerPersist");
-          clearAllDrawerState();
-          signOut({ callbackUrl: "/login" });
-        }}
-      >
+      <HintText>
+        Lost your device?{" "}
+        <LinkBtn type="button" onClick={() => signOutTo("/login")}>
+          Use a recovery code
+        </LinkBtn>
+      </HintText>
+
+      <SignOutLink onClick={() => signOutTo("/login")}>
         Sign out &amp; start over
       </SignOutLink>
     </FormCol>
   );
+}
+
+/* ── WebAuthn helpers ──────────────────────────────────────── */
+
+function base64urlToBuffer(str: string): ArrayBuffer {
+  const base64 = str.replace(/-/g, "+").replace(/_/g, "/");
+  const binary = atob(base64);
+  const buffer = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) buffer[i] = binary.charCodeAt(i);
+  return buffer.buffer;
+}
+
+function bufferToBase64url(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+  let str = "";
+  for (const b of bytes) str += String.fromCharCode(b);
+  return btoa(str)
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=/g, "");
 }
 
 /* ── Page ──────────────────────────────────────────────────── */

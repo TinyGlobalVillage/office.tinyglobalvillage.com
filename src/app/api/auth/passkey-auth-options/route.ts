@@ -1,13 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateAuthenticationOptions } from "@simplewebauthn/server";
 import { readUsers } from "@/lib/users";
-
-// In-memory challenge store for authentication
-export const authChallenges = new Map<string, string>();
+import { setPasskeyAuthChallenge } from "@/lib/passkey-challenge-cookie";
+import { rateLimit } from "@/lib/rate-limit";
 
 const RP_ID = "office.tinyglobalvillage.com";
 
 export async function POST(req: NextRequest) {
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+  if (!rateLimit(`pk-auth-opts:${ip}`, 30, 15 * 60 * 1000).ok) {
+    return NextResponse.json({ error: "Too many attempts. Try again later." }, { status: 429 });
+  }
+
   const { username } = await req.json().catch(() => ({}));
 
   const store = readUsers();
@@ -25,8 +29,10 @@ export async function POST(req: NextRequest) {
       : [],
   });
 
-  // Store challenge keyed by username or "anonymous"
-  authChallenges.set(username ?? "anonymous", options.challenge);
-
-  return NextResponse.json(options);
+  const res = NextResponse.json(options);
+  // Bind the challenge to a signed, per-browser cookie instead of a shared
+  // in-memory map — no "anonymous" collision between concurrent usernameless
+  // logins, and nothing to leak or grow unbounded.
+  setPasskeyAuthChallenge(res, options.challenge);
+  return res;
 }

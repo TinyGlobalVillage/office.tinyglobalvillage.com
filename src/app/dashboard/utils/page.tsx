@@ -10,6 +10,7 @@ import SettingsIcon from "../../components/icons/SettingsIcon";
 import TelephonyControlModal from "../../components/hardening/telephony/TelephonyControlModal";
 import TenantAppsControlModal from "../../components/hardening/tenant-apps/TenantAppsControlModal";
 import MemberAuthControlModal from "../../components/hardening/member-auth/MemberAuthControlModal";
+import OfficeStaffControlModal from "../../components/hardening/office-staff/OfficeStaffControlModal";
 import MeshVpnControlModal from "../../components/hardening/mesh-vpn/MeshVpnControlModal";
 import BackupsControlModal from "../../components/backups/BackupsControlModal";
 import AutomationsTab from "../../components/automations/AutomationsTab";
@@ -1727,6 +1728,16 @@ function UtilsAdlSurface({
                         </HardeningTileSub>
                       </HardeningTile>
                     );
+                    if (tile.type === "office-staff") return (
+                      <HardeningTile key={i} type="button" onClick={() => onOpenHardening("office-staff")}>
+                        <HardeningTileTop>🔑 Office Staff Auth</HardeningTileTop>
+                        <HardeningTileSub>
+                          Passkey enrollment + identity-verified reset for TGV LLC staff
+                          (file-store accounts). Admin can hard-reset a locked-out staff
+                          member&apos;s passkeys + recovery codes + TOTP, audit-logged.
+                        </HardeningTileSub>
+                      </HardeningTile>
+                    );
                     if (tile.type === "mesh-vpn") return (
                       <HardeningTile key={i} type="button" onClick={() => onOpenHardening("mesh-vpn")}>
                         <HardeningTileTop>🕸 Mesh VPN</HardeningTileTop>
@@ -1864,7 +1875,7 @@ type DefaultsOverlay = Record<string, Record<string, FieldValue>>;
 // opens its HardeningControlModal. New hardenings get a new tile + a new
 // `kind` value below.
 
-type HardeningKind = "telephony" | "tenant-apps" | "member-auth" | "mesh-vpn";  // | "postgres" | "ssh" | "nginx" — future
+type HardeningKind = "telephony" | "tenant-apps" | "member-auth" | "office-staff" | "mesh-vpn";  // | "postgres" | "ssh" | "nginx" — future
 
 // ── Link Tools (TinyURL + QR generators) ──────────────────────────────────
 //
@@ -1895,6 +1906,7 @@ type TileSpec =
   | { type: "telephony" }
   | { type: "tenant-apps" }
   | { type: "member-auth" }
+  | { type: "office-staff" }
   | { type: "mesh-vpn" }
   | { type: "tinyurl" }
   | { type: "qrcode" }
@@ -1934,7 +1946,7 @@ const SECTIONS: Section[] = [
     kind: "actions", actionIds: ["gitrepo", "gitdelrepo"] },
   { id: "hardening", title: "Hardening", accent: "cyan",
     subtitle: "defensive mechanisms installed on RCS — controls + status + audit log",
-    kind: "tiles", tiles: [{ type: "telephony" }, { type: "tenant-apps" }, { type: "member-auth" }, { type: "mesh-vpn" }] },
+    kind: "tiles", tiles: [{ type: "telephony" }, { type: "tenant-apps" }, { type: "member-auth" }, { type: "office-staff" }, { type: "mesh-vpn" }] },
   { id: "linktools", title: "Link Tools", accent: "cyan",
     subtitle: "shorten URLs and generate scannable QR codes — pair them for printable mini-flyers",
     kind: "tiles", tiles: [{ type: "tinyurl" }, { type: "qrcode" }] },
@@ -2417,6 +2429,10 @@ export default function UtilsPage() {
 
       {openHardening === "member-auth" && (
         <MemberAuthControlModal onClose={() => setOpenHardening(null)} />
+      )}
+
+      {openHardening === "office-staff" && (
+        <OfficeStaffControlModal onClose={() => setOpenHardening(null)} />
       )}
 
       {openHardening === "mesh-vpn" && (

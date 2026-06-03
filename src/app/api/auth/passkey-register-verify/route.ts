@@ -3,6 +3,8 @@ import { getAuthToken } from "@/lib/auth-cookie";
 import { verifyRegistrationResponse } from "@simplewebauthn/server";
 import { readUsers, updateUser } from "@/lib/users";
 import { registrationChallenges } from "../passkey-register-options/route";
+import { generateRecoveryCodes } from "@/lib/recovery-codes";
+import { logAuthEvent } from "@/lib/audit-log";
 
 const RP_ID = "office.tinyglobalvillage.com";
 const ORIGIN = "https://office.tinyglobalvillage.com";
@@ -17,7 +19,8 @@ export async function POST(req: NextRequest) {
 
   const store = readUsers();
   if (!store[username]) return NextResponse.json({ error: "User not found" }, { status: 404 });
-  const expectedChallenge = registrationChallenges.get(username);
+  const rec = registrationChallenges.get(username);
+  const expectedChallenge = rec && rec.exp > Date.now() ? rec.challenge : undefined;
   if (!expectedChallenge) return NextResponse.json({ error: "No challenge found" }, { status: 400 });
 
   try {
@@ -38,6 +41,7 @@ export async function POST(req: NextRequest) {
 
     const { credentialID, credentialPublicKey, counter } = result.registrationInfo;
     const user = store[username];
+    const isFirstCredential = user.webauthnCredentials.length === 0;
     updateUser(username, {
       webauthnCredentials: [
         ...user.webauthnCredentials,
@@ -51,7 +55,24 @@ export async function POST(req: NextRequest) {
       ],
     });
 
-    return NextResponse.json({ ok: true });
+    // On first-ever passkey enrollment, mint single-use recovery codes if the
+    // account has none. Returned ONCE here for the user to save; only bcrypt
+    // hashes persist on the user record.
+    let recoveryCodes: string[] | undefined;
+    if (isFirstCredential && (user.recoveryCodesHash?.length ?? 0) === 0) {
+      const gen = await generateRecoveryCodes(10);
+      updateUser(username, { recoveryCodesHash: gen.hashes });
+      recoveryCodes = gen.plaintext;
+    }
+
+    logAuthEvent({
+      event: "passkey.enroll",
+      username,
+      success: true,
+      details: { deviceName, firstCredential: isFirstCredential },
+    });
+
+    return NextResponse.json({ ok: true, ...(recoveryCodes ? { recoveryCodes } : {}) });
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 400 });
   }

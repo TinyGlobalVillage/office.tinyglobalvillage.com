@@ -17,6 +17,9 @@ export type UserRecord = {
   totpSecret: string | null;
   totpEnabled: boolean;
   webauthnCredentials: WebAuthnCredential[];
+  /** bcrypt hashes of single-use recovery codes (break-glass). Optional:
+   *  legacy rows predate this field — treat a missing value as []. */
+  recoveryCodesHash?: string[];
 };
 
 export type UserStore = Record<string, UserRecord>;

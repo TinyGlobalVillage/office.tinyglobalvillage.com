@@ -195,15 +195,71 @@ const BackLink = styled.button`
   }
 `;
 
+const CodeGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  width: 100%;
+`;
+
+const CodeItem = styled.code`
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 13px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: var(--t-inputBg);
+  border: 1px solid rgba(${rgb.cyan}, 0.25);
+  color: var(--t-text);
+  text-align: center;
+  letter-spacing: 0.02em;
+`;
+
+const CopyBtn = styled.button`
+  font-size: 12px;
+  font-weight: 600;
+  color: ${colors.cyan};
+  background: none;
+  border: 1px solid rgba(${rgb.cyan}, 0.3);
+  border-radius: 6px;
+  padding: 6px 0;
+  cursor: pointer;
+`;
+
+const AckRow = styled.label`
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--t-textMuted);
+  cursor: pointer;
+`;
+
+const AckCheck = styled.input`
+  margin-top: 2px;
+  accent-color: ${colors.cyan};
+  cursor: pointer;
+`;
+
 /* ── Component ─────────────────────────────────────────────── */
 
 export default function SetupPasskeyPage() {
   const [deviceName, setDeviceName] = useState("");
   const [status, setStatus] = useState<
-    "idle" | "registering" | "done" | "error"
+    "idle" | "registering" | "codes" | "done" | "error"
   >("idle");
   const [errorMsg, setErrorMsg] = useState("");
+  const [recoveryCodes, setRecoveryCodes] = useState<string[]>([]);
+  const [ack, setAck] = useState(false);
+  const [copied, setCopied] = useState(false);
   const router = useRouter();
+
+  async function copyCodes() {
+    try {
+      await navigator.clipboard.writeText(recoveryCodes.join("\n"));
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch { /* clipboard unavailable (insecure context) */ }
+  }
 
   async function handleRegister() {
     if (!deviceName.trim()) {
@@ -264,7 +320,13 @@ export default function SetupPasskeyPage() {
 
       const data = await verifyRes.json();
       if (data.ok) {
-        setStatus("done");
+        if (Array.isArray(data.recoveryCodes) && data.recoveryCodes.length) {
+          // First passkey on this account → show single-use recovery codes once.
+          setRecoveryCodes(data.recoveryCodes);
+          setStatus("codes");
+        } else {
+          setStatus("done");
+        }
       } else {
         setErrorMsg(data.error ?? "Registration failed.");
         setStatus("error");
@@ -292,7 +354,39 @@ export default function SetupPasskeyPage() {
         </BrandBlock>
 
         <Card>
-          {status === "done" ? (
+          {status === "codes" ? (
+            <FormCol>
+              <DoneCol>
+                <BigEmoji>&#x1f511;</BigEmoji>
+                <DoneTitle>Save your recovery codes</DoneTitle>
+              </DoneCol>
+              <HintText>
+                These are your break-glass codes if you ever lose access to all
+                your passkeys. Each code works once. Store them somewhere safe
+                &mdash; a password manager, or printed and put away. They will
+                not be shown again.
+              </HintText>
+              <CodeGrid>
+                {recoveryCodes.map((c) => (
+                  <CodeItem key={c}>{c}</CodeItem>
+                ))}
+              </CodeGrid>
+              <CopyBtn type="button" onClick={copyCodes}>
+                {copied ? "Copied ✓" : "Copy all codes"}
+              </CopyBtn>
+              <AckRow>
+                <AckCheck
+                  type="checkbox"
+                  checked={ack}
+                  onChange={(e) => setAck(e.target.checked)}
+                />
+                I have saved these recovery codes somewhere safe.
+              </AckRow>
+              <GlowBtn disabled={!ack} onClick={() => router.push("/dashboard")}>
+                Continue to Dashboard
+              </GlowBtn>
+            </FormCol>
+          ) : status === "done" ? (
             <DoneCol>
               <BigEmoji>&#x1f511;</BigEmoji>
               <div>
