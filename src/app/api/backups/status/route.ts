@@ -10,10 +10,11 @@
 //   - file existence checks for restic password + GPG pubkey (no values)
 //   - `restic snapshots --json` for live repo state (best-effort, may time out)
 
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { promises as fs } from "fs";
 import { exec } from "child_process";
 import { promisify } from "util";
+import { requireAdmin } from "@/lib/api-admin";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -103,7 +104,10 @@ async function getCachedResticState() {
   return { snapshots, stats, cached: false };
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const gate = await requireAdmin(req);
+  if (gate instanceof NextResponse) return gate;
+
   const config = JSON.parse(await fs.readFile(CONFIG_PATH, "utf8"));
   const manifest = await readJsonl(MANIFEST_PATH);
   const restoreTest = await readJsonl(RESTORE_TEST_PATH);

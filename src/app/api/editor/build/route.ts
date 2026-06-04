@@ -3,10 +3,11 @@
  * Body: { project: string }  — project name = folder name under /srv/refusion-core/clients/
  * Streams SSE: build stdout/stderr, then pm2 restart result
  */
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { spawn } from "child_process";
 import path from "path";
 import { existsSync } from "fs";
+import { requireAdmin } from "@/lib/api-admin";
 
 const CLIENT_ROOT = "/srv/refusion-core/clients";
 
@@ -18,6 +19,9 @@ function safe(name: string): string | null {
 }
 
 export async function POST(req: NextRequest) {
+  const gate = await requireAdmin(req);
+  if (gate instanceof NextResponse) return gate;
+
   const { project } = await req.json().catch(() => ({}));
   if (!project) return new Response("Missing project", { status: 400 });
 

@@ -1,11 +1,15 @@
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { isAllowedDb } from "@/lib/db";
+import { requireAdmin } from "@/lib/api-admin";
 import { spawn } from "child_process";
 
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ db: string }> }
 ) {
+  const gate = await requireAdmin(req);
+  if (gate instanceof NextResponse) return gate;
+
   const { db } = await params;
   if (!isAllowedDb(db)) return new Response("Not found", { status: 404 });
 

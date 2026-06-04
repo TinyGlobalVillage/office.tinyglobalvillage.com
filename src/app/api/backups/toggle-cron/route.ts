@@ -3,10 +3,11 @@
 // Renames /etc/cron.d/rcs-backups{,.disabled} to enable/disable nightly cron.
 // Requires sudoers entry: admin ALL=(root) NOPASSWD: /bin/mv /etc/cron.d/rcs-backups*
 
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { promises as fs } from "fs";
 import { exec } from "child_process";
 import { promisify } from "util";
+import { requireAdmin } from "@/lib/api-admin";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -20,7 +21,10 @@ async function exists(p: string): Promise<boolean> {
   try { await fs.access(p); return true; } catch { return false; }
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
+  const gate = await requireAdmin(req);
+  if (gate instanceof NextResponse) return gate;
+
   const body = await req.json().catch(() => ({}));
   const target = body?.active === true;
 

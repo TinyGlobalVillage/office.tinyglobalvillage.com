@@ -5,6 +5,7 @@
  * Mirrors the pattern used by /api/frontdesk/calls/recordings/[id]/audio.
  */
 import { NextRequest, NextResponse } from "next/server";
+import { requireAuth } from "@/lib/api-auth";
 import fs from "node:fs/promises";
 import { existsSync } from "node:fs";
 import path from "node:path";
@@ -17,7 +18,9 @@ export const runtime = "nodejs";
 const VM_DIR =
   "/srv/refusion-core/clients/office.tinyglobalvillage.com/telephony/data/voicemails";
 
-export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
+export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
+  const auth = await requireAuth(req);
+  if (!auth?.username) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { id } = await ctx.params;
   if (!/^[A-Za-z0-9_-]+$/.test(id)) {
     return NextResponse.json({ error: "Invalid id" }, { status: 400 });
@@ -52,7 +55,9 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
   return NextResponse.json({ error: "Not found" }, { status: 404 });
 }
 
-export async function DELETE(_req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
+export async function DELETE(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
+  const auth = await requireAuth(req);
+  if (!auth?.username) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { id } = await ctx.params;
   if (!/^[A-Za-z0-9_-]+$/.test(id)) {
     return NextResponse.json({ error: "Invalid id" }, { status: 400 });

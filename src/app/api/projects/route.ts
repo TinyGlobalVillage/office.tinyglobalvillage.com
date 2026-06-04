@@ -1,3 +1,5 @@
+import { type NextRequest, NextResponse } from "next/server";
+import { requireAuth } from "@/lib/api-auth";
 import { readdir, readFile } from "fs/promises";
 import { existsSync } from "fs";
 import { exec } from "child_process";
@@ -42,7 +44,10 @@ async function getLastCommit(dir: string) {
   }
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const auth = await requireAuth(req);
+  if (!auth?.username) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
   const [entries, pm2Map] = await Promise.all([
     readdir(CLIENT_ROOT, { withFileTypes: true }),
     getPm2Map(),

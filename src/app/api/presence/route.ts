@@ -1,3 +1,5 @@
+import { type NextRequest, NextResponse } from "next/server";
+import { requireAuth } from "@/lib/api-auth";
 import { exec } from "child_process";
 import { promisify } from "util";
 import { isWebOnline, lastWebSeen } from "@/lib/presence-store";
@@ -69,7 +71,10 @@ function formatLastSeen(ms: number): string {
   return new Date(ms).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const auth = await requireAuth(req);
+  if (!auth?.username) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
   const active = await getActiveUsers();
 
   const presence = await Promise.all(

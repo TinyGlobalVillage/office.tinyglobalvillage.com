@@ -3,8 +3,9 @@
 // Spawns the corresponding script as a detached process. Returns immediately.
 // Output goes to the script's normal log file.
 
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { spawn } from "child_process";
+import { requireAdmin } from "@/lib/api-admin";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -23,7 +24,10 @@ const LOG_BY_TIER: Record<string, string> = {
   "restore-test": "/srv/refusion-core/logs/backup/restore-test.log",
 };
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
+  const gate = await requireAdmin(req);
+  if (gate instanceof NextResponse) return gate;
+
   const body = await req.json().catch(() => ({}));
   const tier = body?.tier;
 

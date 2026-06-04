@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { execSync, spawnSync } from "child_process";
 import { readdirSync, existsSync, unlinkSync, statSync } from "fs";
 import path from "path";
+import { requireAdmin } from "@/lib/api-admin";
 
 const LOG_DIR = "/srv/refusion-core/logs/tgv-office";
 const ARCHIVE_DIR = `${LOG_DIR}/archive`;
@@ -30,7 +31,9 @@ function dateDiffDays(dateStr: string): number {
   return Math.floor((today.getTime() - target.getTime()) / 86_400_000);
 }
 
-export async function GET(_req: NextRequest) {
+export async function GET(req: NextRequest) {
+  const gate = await requireAdmin(req);
+  if (gate instanceof NextResponse) return gate;
   // List archives
   try {
     execSync(`mkdir -p "${ARCHIVE_DIR}" "${TEMP_DIR}"`);
@@ -56,6 +59,9 @@ export async function GET(_req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const gate = await requireAdmin(req);
+  if (gate instanceof NextResponse) return gate;
+
   const decompress = req.nextUrl.searchParams.get("decompress");
 
   if (decompress) {
@@ -109,6 +115,9 @@ export async function POST(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
+  const gate = await requireAdmin(req);
+  if (gate instanceof NextResponse) return gate;
+
   const date = req.nextUrl.searchParams.get("date");
   if (!date) return NextResponse.json({ error: "Missing date" }, { status: 400 });
 

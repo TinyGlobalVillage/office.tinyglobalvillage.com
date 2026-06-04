@@ -1,3 +1,5 @@
+import { type NextRequest, NextResponse } from "next/server";
+import { requireAuth } from "@/lib/api-auth";
 import { exec } from "child_process";
 import { promisify } from "util";
 import { readFile } from "fs/promises";
@@ -95,7 +97,10 @@ function relTime(d: Date): string {
   return `${Math.floor(s / 86400)}d ago`;
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const auth = await requireAuth(req);
+  if (!auth?.username) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
   const [pm2, git] = await Promise.all([getPm2Events(), getGitEvents()]);
 
   const all = [...pm2, ...git]
