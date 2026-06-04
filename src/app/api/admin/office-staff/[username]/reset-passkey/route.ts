@@ -13,6 +13,8 @@ import { type NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/api-admin";
 import { readUsers, updateUser } from "@/lib/users";
 import { logHardeningAction } from "@/lib/audit-log";
+import { memberUserIdForUsername } from "@/lib/member-auth/bridge";
+import { pgPool } from "@/lib/pg-pool";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -46,24 +48,59 @@ export async function POST(
 
   const passkeysCleared = user.webauthnCredentials?.length ?? 0;
 
-  // updateUser spread-merges, so the `role` field (and other extra columns not
-  // in UserRecord) are preserved — only the auth-state fields are reset.
-  updateUser(username, {
-    webauthnCredentials: [],
-    recoveryCodesHash: [],
-    totpSecret: null,
-    totpEnabled: false,
-  });
+  // Resolve the member identity. A staffer with no member_users row can't be
+  // fully reset here (their member credentials — the standing login — would be
+  // left untouched), so fail LOUDLY rather than silently clearing only the
+  // legacy store and reporting success.
+  const memberUserId = await memberUserIdForUsername(username);
+  if (!memberUserId) {
+    logHardeningAction({ action: "auth.passkey.reset", target: username, user: gate.username, success: false, details: { error: "no_member_row" } });
+    return NextResponse.json({ error: "no_member_row" }, { status: 400 });
+  }
 
-  // Actor = the admin (gate.username); target = the staff member being reset,
-  // so the audit timeline's "by" column shows the admin, not the victim.
+  // Clear the CANONICAL member store first (the standing login post-cutover),
+  // ATOMICALLY in one transaction — a half-cleared member account (e.g. passkeys
+  // gone but recovery codes still live) could otherwise be used to regain access
+  // before a retry. Drop passkeys, wipe recovery codes + TOTP, revoke sessions.
+  let memberPasskeysCleared = 0;
+  const client = await pgPool.connect();
+  try {
+    await client.query("BEGIN");
+    const del = await client.query("DELETE FROM member_passkeys WHERE member_user_id = $1", [memberUserId]);
+    memberPasskeysCleared = del.rowCount ?? 0;
+    await client.query(
+      "UPDATE member_users SET recovery_codes_hash = '{}', totp_secret = NULL, totp_enrolled_at = NULL WHERE id = $1",
+      [memberUserId],
+    );
+    await client.query("DELETE FROM member_sessions WHERE user_id = $1", [memberUserId]);
+    await client.query("COMMIT");
+  } catch (e) {
+    await client.query("ROLLBACK").catch(() => {});
+    logHardeningAction({ action: "auth.passkey.reset", target: username, user: gate.username, success: false, details: { stage: "member", error: String(e) } });
+    return NextResponse.json({ error: "reset_incomplete" }, { status: 500 });
+  } finally {
+    client.release();
+  }
+
+  // Then clear the legacy users.json store (idempotent on retry). If THIS fails,
+  // the member store is already cleared (standing login blocked); flag a partial
+  // reset so the operator retries — the legacy passkey path could otherwise
+  // still authenticate the victim until users.json is cleared.
+  try {
+    updateUser(username, { webauthnCredentials: [], recoveryCodesHash: [], totpSecret: null, totpEnabled: false });
+  } catch (e) {
+    logHardeningAction({ action: "auth.passkey.reset", target: username, user: gate.username, success: false, details: { stage: "legacy", memberPasskeysCleared, error: String(e) } });
+    return NextResponse.json({ error: "reset_partial_legacy", memberPasskeysCleared }, { status: 500 });
+  }
+
+  // Actor = the admin (gate.username); target = the staff member being reset.
   logHardeningAction({
     action: "auth.passkey.reset",
     target: username,
     user: gate.username,
     success: true,
-    details: { passkeysCleared },
+    details: { passkeysCleared, memberPasskeysCleared },
   });
 
-  return NextResponse.json({ ok: true, username, passkeysCleared });
+  return NextResponse.json({ ok: true, username, passkeysCleared, memberPasskeysCleared });
 }

@@ -9,6 +9,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/api-auth";
 import { readUsers, updateUser } from "@/lib/users";
 import { logAuthEvent } from "@/lib/audit-log";
+import { memberUserIdForUsername } from "@/lib/member-auth/bridge";
+import { pgPool } from "@/lib/pg-pool";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -28,18 +30,31 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Name too long (60 max)." }, { status: 400 });
   }
 
-  const user = readUsers()[username];
-  if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
-  const creds = user.webauthnCredentials ?? [];
-  if (!creds.some((c) => c.id === credentialId)) {
-    return NextResponse.json({ error: "Passkey not found" }, { status: 404 });
+  // Canonical member store first: rename only the caller's own credential
+  // (the member_user_id predicate enforces ownership).
+  let renamed = false;
+  const memberUserId = await memberUserIdForUsername(username);
+  if (memberUserId) {
+    const upd = await pgPool.query(
+      "UPDATE member_passkeys SET nickname = $1 WHERE credential_id = $2 AND member_user_id = $3",
+      [deviceName, credentialId, memberUserId],
+    );
+    if (upd.rowCount && upd.rowCount > 0) renamed = true;
   }
 
-  updateUser(username, {
-    webauthnCredentials: creds.map((c) =>
-      c.id === credentialId ? { ...c, deviceName } : c,
-    ),
-  });
+  // Fall back to the legacy users.json store for a not-yet-migrated credential.
+  if (!renamed) {
+    const user = readUsers()[username];
+    const creds = user?.webauthnCredentials ?? [];
+    if (creds.some((c) => c.id === credentialId)) {
+      updateUser(username, {
+        webauthnCredentials: creds.map((c) => (c.id === credentialId ? { ...c, deviceName } : c)),
+      });
+      renamed = true;
+    }
+  }
+
+  if (!renamed) return NextResponse.json({ error: "Passkey not found" }, { status: 404 });
   logAuthEvent({ event: "passkey.rename", username, success: true, details: { deviceName } });
   return NextResponse.json({ ok: true });
 }

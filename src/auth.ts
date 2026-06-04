@@ -30,28 +30,37 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           },
         })]
       : []),
-    Credentials({
-      credentials: {
-        username: { label: "Username", type: "text" },
-        password: { label: "Password", type: "password" },
-      },
-      authorize: async (credentials) => {
-        const username = credentials?.username as string | undefined;
-        const password = credentials?.password as string | undefined;
-        if (!username || !password) return null;
+    // Passkey-only cutover (2026-06-04): the standing password login is GONE.
+    // The credentials provider is gated behind ALLOW_PASSWORD_LOGIN (default
+    // off) so it's an operator-triggered break-glass only (set the env + reload
+    // in a true emergency), never a standing login. Normal recovery is the
+    // recovery-code login + audited admin reset.
+    ...(process.env.ALLOW_PASSWORD_LOGIN === "true"
+      ? [
+          Credentials({
+            credentials: {
+              username: { label: "Username", type: "text" },
+              password: { label: "Password", type: "password" },
+            },
+            authorize: async (credentials) => {
+              const username = credentials?.username as string | undefined;
+              const password = credentials?.password as string | undefined;
+              if (!username || !password) return null;
 
-        const user = USERS.find((u) => u.username === username);
-        if (!user) return null;
+              const user = USERS.find((u) => u.username === username);
+              if (!user) return null;
 
-        const hash = process.env[user.passwordHashEnv];
-        if (!hash) return null;
+              const hash = process.env[user.passwordHashEnv];
+              if (!hash) return null;
 
-        const valid = await bcrypt.compare(password, hash);
-        if (!valid) return null;
+              const valid = await bcrypt.compare(password, hash);
+              if (!valid) return null;
 
-        return { id: user.id, name: user.name, username: user.username } as { id: string; name: string; username: string };
-      },
-    }),
+              return { id: user.id, name: user.name, username: user.username } as { id: string; name: string; username: string };
+            },
+          }),
+        ]
+      : []),
   ],
   trustHost: true,
   pages: {

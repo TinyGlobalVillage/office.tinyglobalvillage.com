@@ -131,7 +131,7 @@ export async function memberUserIdForUsername(
   if (!email) return null;
   try {
     const { rows } = await pgPool.query<{ id: string }>(
-      "SELECT id FROM member_users WHERE email = $1 LIMIT 1",
+      "SELECT id FROM member_users WHERE lower(email) = $1 LIMIT 1",
       [email],
     );
     return rows[0]?.id ?? null;

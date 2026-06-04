@@ -489,24 +489,17 @@ function LoginForm() {
 
   return (
     <FormCol>
+      {/* Passkey is the SINGLE standing login (passkey-only cutover, 2026-06-04).
+          Password + magic-link tabs removed — those are no longer standing
+          logins. Break-glass is the "Use a recovery code" link below + audited
+          admin reset; the password credentials provider is gated off in
+          auth.ts (ALLOW_PASSWORD_LOGIN env, default off). */}
       <TabBar>
         <Tab
-          $active={method === "passkey"}
+          $active={method === "passkey" || method === "recovery"}
           onClick={() => { setMethod("passkey"); setError(""); setInfo(""); }}
         >
           Passkey
-        </Tab>
-        <Tab
-          $active={method === "password"}
-          onClick={() => { setMethod("password"); setError(""); setInfo(""); }}
-        >
-          Password
-        </Tab>
-        <Tab
-          $active={method === "magic"}
-          onClick={() => { setMethod("magic"); setError(""); setInfo(""); }}
-        >
-          Magic Link
         </Tab>
       </TabBar>
 
@@ -532,57 +525,10 @@ function LoginForm() {
         </FormCol>
       )}
 
-      {method === "password" && (
-        <FormInner onSubmit={handlePassword}>
-          <Field
-            label="Username"
-            type="text"
-            value={username}
-            onChange={setUsername}
-            autoComplete="username"
-          />
-          <Field
-            label="Password"
-            type="password"
-            value={password}
-            onChange={setPassword}
-            autoComplete="current-password"
-          />
-          <RememberRow>
-            <RememberCheck
-              type="checkbox"
-              checked={remember}
-              onChange={(e) => setRemember(e.target.checked)}
-            />
-            Remember this device
-          </RememberRow>
-          {error && <ErrMsg msg={error} />}
-          <SubmitBtn loading={loading} label="Sign In" />
-        </FormInner>
-      )}
-
-      {method === "magic" && (
-        <FormInner onSubmit={handleMagicLink}>
-          <Field
-            label="Email address"
-            type="email"
-            value={magicEmail}
-            onChange={setMagicEmail}
-            autoComplete="email"
-          />
-          <RememberRow>
-            <RememberCheck
-              type="checkbox"
-              checked={remember}
-              onChange={(e) => setRemember(e.target.checked)}
-            />
-            Remember this device
-          </RememberRow>
-          {error && <ErrMsg msg={error} />}
-          {info && <InfoText>{info}</InfoText>}
-          <SubmitBtn loading={loading} label="Send Magic Link ✉" />
-        </FormInner>
-      )}
+      {/* Password + magic-link login forms removed in the passkey-only cutover
+          (2026-06-04). Their backends are gated off (auth.ts ALLOW_PASSWORD_LOGIN,
+          magic-link routes ALLOW_MAGIC_LINK). Recovery codes (below) + audited
+          admin reset are the break-glass. */}
 
       {method === "recovery" && (
         <FormInner onSubmit={handleRecovery}>

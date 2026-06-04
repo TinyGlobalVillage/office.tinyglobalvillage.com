@@ -7,6 +7,11 @@ import { sessionCookieName } from "@/lib/auth-cookie";
 const COOKIE_NAME = sessionCookieName();
 
 export async function GET(req: NextRequest) {
+  // Passkey-only cutover: magic-link is no longer a standing login. Gated off by
+  // default; an operator can set ALLOW_MAGIC_LINK=true for a break-glass.
+  if (process.env.ALLOW_MAGIC_LINK !== "true") {
+    return redirectError(req, "Magic-link login is disabled.");
+  }
   const token = req.nextUrl.searchParams.get("token");
   if (!token) return redirectError(req, "Missing token");
 

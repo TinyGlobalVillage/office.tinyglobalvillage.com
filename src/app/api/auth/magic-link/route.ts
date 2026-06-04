@@ -27,6 +27,11 @@ function getTransport() {
 }
 
 export async function POST(req: NextRequest) {
+  // Passkey-only cutover: magic-link is no longer a standing login. Gated off by
+  // default; an operator can set ALLOW_MAGIC_LINK=true for a break-glass.
+  if (process.env.ALLOW_MAGIC_LINK !== "true") {
+    return NextResponse.json({ error: "Magic-link login is disabled." }, { status: 404 });
+  }
   const { email } = await req.json().catch(() => ({}));
   if (!email?.trim()) {
     return NextResponse.json({ error: "Email required" }, { status: 400 });
