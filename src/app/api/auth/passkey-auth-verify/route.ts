@@ -20,21 +20,22 @@ export async function POST(req: NextRequest) {
   if (!body) return NextResponse.json({ error: "Bad request" }, { status: 400 });
 
   const { username: rawUsername, response: authResponse, callbackUrl } = body;
-  // Usernameless / discoverable login: when no username is supplied, recover it
-  // from the assertion's userHandle (set to the username at registration).
+  const store = readUsers();
+
+  // Resolve the account. A typed username is used directly; otherwise
+  // (usernameless / discoverable login) find whoever owns the asserted
+  // credential id — reliable, unlike trusting the client-supplied userHandle.
   let username: string | undefined =
     typeof rawUsername === "string" && rawUsername ? rawUsername : undefined;
-  if (!username) {
-    const uh = authResponse?.response?.userHandle;
-    if (typeof uh === "string" && uh) {
-      try {
-        username = Buffer.from(uh, "base64url").toString("utf8") || undefined;
-      } catch {
-        username = undefined;
+  if (!username && typeof authResponse?.id === "string" && authResponse.id) {
+    for (const [uname, u] of Object.entries(store)) {
+      if ((u.webauthnCredentials ?? []).some((c) => c.id === authResponse.id)) {
+        username = uname;
+        break;
       }
     }
   }
-  if (!username) return NextResponse.json({ error: "Could not identify account" }, { status: 400 });
+  if (!username) return NextResponse.json({ error: "Passkey not recognized" }, { status: 404 });
 
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
   const rl = rateLimit(`passkey-assert:${username}`, 10, 15 * 60 * 1000);
@@ -43,7 +44,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Too many attempts. Try again later." }, { status: 429 });
   }
 
-  const store = readUsers();
   const user = store[username];
   if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
 

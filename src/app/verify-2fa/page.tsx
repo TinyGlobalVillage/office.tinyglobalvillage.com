@@ -285,7 +285,13 @@ function VerifyForm() {
       const data = await res.json();
       setLoading(false);
       if (data.ok) {
-        const redirectTo = searchParams.get("callbackUrl") || "/dashboard";
+        // Land on the intended destination; never strand the user on an auth
+        // screen (/verify-2fa, /login, /setup-*).
+        const cb = searchParams.get("callbackUrl");
+        const redirectTo =
+          cb && cb.startsWith("/") && !/^\/(login|verify-2fa|setup-2fa|setup-passkey)/.test(cb)
+            ? cb
+            : "/dashboard";
         router.push(redirectTo);
         router.refresh();
       } else {

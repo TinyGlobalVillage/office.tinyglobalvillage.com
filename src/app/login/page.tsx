@@ -332,7 +332,7 @@ function LoginForm() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  const callbackUrl = searchParams.get("callbackUrl") || "/verify-2fa";
+  const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
 
   // Hydrate pre-fill + remember preference from localStorage on mount.
   useEffect(() => {
@@ -369,7 +369,9 @@ function LoginForm() {
       setError("Invalid username or password.");
     } else {
       persistRemember(username);
-      router.push("/verify-2fa");
+      // Carry the intended destination through the 2FA step so we don't strand
+      // the user on /verify-2fa afterwards.
+      router.push(`/verify-2fa?callbackUrl=${encodeURIComponent(callbackUrl)}`);
     }
   }
 
