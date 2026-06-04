@@ -1,12 +1,14 @@
+// Passkey enrollment — step 1 (options). Phase 3d: writes the canonical member
+// store. Resolves the enrolling user member-session-FIRST (requireAuth, not the
+// NextAuth-only getAuthToken — a member-session user has no JWT), maps to their
+// member_users uuid, excludes their existing member_passkeys, and stashes the
+// ceremony challenge in a durable signed cookie (no in-memory Map).
 import { NextRequest, NextResponse } from "next/server";
-import { getAuthToken } from "@/lib/auth-cookie";
 import { generateRegistrationOptions } from "@simplewebauthn/server";
-import { readUsers } from "@/lib/users";
-
-// In-memory challenge store (per-user, single-process), with a 5-min TTL so
-// abandoned enrollments expire instead of lingering (re-checked on verify).
-export const registrationChallenges = new Map<string, { challenge: string; exp: number }>();
-const CHALLENGE_TTL_MS = 5 * 60 * 1000;
+import { requireAuth } from "@/lib/api-auth";
+import { memberUserIdForUsername } from "@/lib/member-auth/bridge";
+import { officeMemberAuth } from "@/lib/member-auth/config";
+import { setPasskeyRegisterChallenge } from "@/lib/passkey-challenge-cookie";
 
 const RP_ID = "office.tinyglobalvillage.com";
 const RP_NAME = "TGV Office";
@@ -16,25 +18,28 @@ function b64toUint8(str: string): Uint8Array {
 }
 
 export async function POST(req: NextRequest) {
-  const token = await getAuthToken(req);
-  const username = token?.username as string | undefined;
+  const token = await requireAuth(req);
+  const username = token?.username;
   if (!username) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const store = readUsers();
-  const user = store[username];
-  if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
+  const memberUserId = await memberUserIdForUsername(username);
+  if (!memberUserId) return NextResponse.json({ error: "Member not found" }, { status: 404 });
+
+  const existing = await officeMemberAuth.listPasskeysForUser(memberUserId);
 
   const options = await generateRegistrationOptions({
     rpName: RP_NAME,
     rpID: RP_ID,
-    userID: username,
+    userID: memberUserId,
     userName: username,
-    userDisplayName: user.displayName,
+    userDisplayName: username,
     attestationType: "none",
-    excludeCredentials: user.webauthnCredentials.map((c) => ({
-      id: b64toUint8(c.id),
+    excludeCredentials: existing.map((c) => ({
+      id: b64toUint8(c.credentialId),
       type: "public-key" as const,
-      transports: ["internal", "hybrid"] as AuthenticatorTransport[],
+      transports: (c.transports?.length
+        ? c.transports
+        : ["internal", "hybrid"]) as AuthenticatorTransport[],
     })),
     authenticatorSelection: {
       residentKey: "required",
@@ -42,10 +47,7 @@ export async function POST(req: NextRequest) {
     },
   });
 
-  registrationChallenges.set(username, {
-    challenge: options.challenge,
-    exp: Date.now() + CHALLENGE_TTL_MS,
-  });
-
-  return NextResponse.json(options);
+  const res = NextResponse.json(options);
+  setPasskeyRegisterChallenge(res, options.challenge);
+  return res;
 }

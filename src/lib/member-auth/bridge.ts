@@ -113,6 +113,33 @@ export function canUseTerminal(username: string | undefined): boolean {
  * cookie off `req.cookies` instead). The try/catch degrades any
  * out-of-request-scope call to a clean null rather than throwing.
  */
+/** Office username → roster email (office-staff.json), lowercased. */
+export function rosterEmailForUsername(username: string | undefined): string | null {
+  if (!username) return null;
+  return readRoster()[username]?.email?.toLowerCase() ?? null;
+}
+
+/** Office username → member_users.id (via the roster email). Resolves the
+ *  member uuid for the CURRENT authenticated user regardless of session kind
+ *  (member-session or NextAuth — both produce the same Office username). Used by
+ *  the enrollment + recovery flows. Null if the username isn't on the roster or
+ *  has no member_users row. */
+export async function memberUserIdForUsername(
+  username: string | undefined,
+): Promise<string | null> {
+  const email = rosterEmailForUsername(username);
+  if (!email) return null;
+  try {
+    const { rows } = await pgPool.query<{ id: string }>(
+      "SELECT id FROM member_users WHERE email = $1 LIMIT 1",
+      [email],
+    );
+    return rows[0]?.id ?? null;
+  } catch {
+    return null;
+  }
+}
+
 /** Office username for a member_users uuid (via email → roster), for
  *  human-readable audit logs on the member login path. Null if the uuid has no
  *  email or the email isn't on the Office staff roster. */

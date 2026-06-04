@@ -7,6 +7,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/api-auth";
 import { readUsers } from "@/lib/users";
+import { memberUserIdForUsername } from "@/lib/member-auth/bridge";
+import { officeMemberAuth } from "@/lib/member-auth/config";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -16,13 +18,26 @@ export async function GET(req: NextRequest) {
   const username = (token?.username ?? token?.sub) as string | undefined;
   if (!username) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const user = readUsers()[username];
-  if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
+  // Merge both stores, deduped by credential id — the canonical member_passkeys
+  // (3d enrollment target) PLUS any not-yet-migrated legacy users.json passkeys,
+  // so the user always sees all of their credentials (and can confirm ≥2).
+  const byId = new Map<string, { id: string; deviceName: string; createdAt: string }>();
 
-  const passkeys = (user.webauthnCredentials ?? []).map((c) => ({
-    id: c.id,
-    deviceName: c.deviceName,
-    createdAt: c.createdAt,
-  }));
-  return NextResponse.json({ passkeys });
+  for (const c of readUsers()[username]?.webauthnCredentials ?? []) {
+    byId.set(c.id, { id: c.id, deviceName: c.deviceName ?? "Passkey", createdAt: c.createdAt ?? "" });
+  }
+
+  const memberUserId = await memberUserIdForUsername(username);
+  if (memberUserId) {
+    const mks = await officeMemberAuth.listPasskeysForUser(memberUserId);
+    for (const k of mks) {
+      byId.set(k.credentialId, {
+        id: k.credentialId,
+        deviceName: k.nickname ?? "Passkey",
+        createdAt: k.createdAt ? new Date(k.createdAt).toISOString() : "",
+      });
+    }
+  }
+
+  return NextResponse.json({ passkeys: Array.from(byId.values()) });
 }

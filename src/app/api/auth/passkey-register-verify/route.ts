@@ -1,26 +1,36 @@
+// Passkey enrollment — step 2 (verify). Phase 3d: verifies the registration
+// assertion and writes the credential to member_passkeys (the canonical store),
+// minting member recovery codes if the member has none yet. Member-aware auth
+// (requireAuth) so a member-session user can enroll a 2nd passkey.
 import { NextRequest, NextResponse } from "next/server";
-import { getAuthToken } from "@/lib/auth-cookie";
 import { verifyRegistrationResponse } from "@simplewebauthn/server";
-import { readUsers, updateUser } from "@/lib/users";
-import { registrationChallenges } from "../passkey-register-options/route";
+import { requireAuth } from "@/lib/api-auth";
+import { memberUserIdForUsername } from "@/lib/member-auth/bridge";
+import { officeMemberAuth } from "@/lib/member-auth/config";
+import {
+  readPasskeyRegisterChallenge,
+  clearPasskeyRegisterChallenge,
+} from "@/lib/passkey-challenge-cookie";
 import { generateRecoveryCodes } from "@/lib/recovery-codes";
+import { pgPool } from "@/lib/pg-pool";
 import { logAuthEvent } from "@/lib/audit-log";
 
 const RP_ID = "office.tinyglobalvillage.com";
 const ORIGIN = "https://office.tinyglobalvillage.com";
+const VALID_TRANSPORTS = ["usb", "nfc", "ble", "internal", "hybrid", "cable", "smart-card"];
 
 export async function POST(req: NextRequest) {
-  const token = await getAuthToken(req);
-  const username = token?.username as string | undefined;
+  const token = await requireAuth(req);
+  const username = token?.username;
   if (!username) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const memberUserId = await memberUserIdForUsername(username);
+  if (!memberUserId) return NextResponse.json({ error: "Member not found" }, { status: 404 });
 
   const body = await req.json().catch(() => null);
   if (!body) return NextResponse.json({ error: "Bad request" }, { status: 400 });
 
-  const store = readUsers();
-  if (!store[username]) return NextResponse.json({ error: "User not found" }, { status: 404 });
-  const rec = registrationChallenges.get(username);
-  const expectedChallenge = rec && rec.exp > Date.now() ? rec.challenge : undefined;
+  const expectedChallenge = readPasskeyRegisterChallenge(req);
   if (!expectedChallenge) return NextResponse.json({ error: "No challenge found" }, { status: 400 });
 
   try {
@@ -34,46 +44,71 @@ export async function POST(req: NextRequest) {
     });
 
     if (!result.verified || !result.registrationInfo) {
-      return NextResponse.json({ error: "Verification failed" }, { status: 400 });
+      const res = NextResponse.json({ error: "Verification failed" }, { status: 400 });
+      clearPasskeyRegisterChallenge(res); // single-use — don't leave it replayable
+      return res;
     }
 
-    registrationChallenges.delete(username);
+    const {
+      credentialID,
+      credentialPublicKey,
+      counter,
+      credentialDeviceType,
+      credentialBackedUp,
+    } = result.registrationInfo;
+    const credentialId = Buffer.from(credentialID).toString("base64url");
 
-    const { credentialID, credentialPublicKey, counter } = result.registrationInfo;
-    const user = store[username];
-    const isFirstCredential = user.webauthnCredentials.length === 0;
-    updateUser(username, {
-      webauthnCredentials: [
-        ...user.webauthnCredentials,
-        {
-          id: Buffer.from(credentialID).toString("base64url"),
-          publicKey: Buffer.from(credentialPublicKey).toString("base64url"),
-          counter,
-          deviceName,
-          createdAt: new Date().toISOString(),
-        },
-      ],
+    // Count BEFORE insert so we can report firstCredential in the audit log.
+    const existing = await officeMemberAuth.listPasskeysForUser(memberUserId);
+
+    await officeMemberAuth.insertPasskey({
+      credentialId,
+      memberUserId,
+      publicKey: Buffer.from(credentialPublicKey).toString("base64url"),
+      counter,
+      transports: Array.isArray(body.response?.response?.transports)
+        ? body.response.response.transports.filter(
+            (t: unknown): t is string => typeof t === "string" && VALID_TRANSPORTS.includes(t),
+          )
+        : [],
+      deviceType: credentialDeviceType ?? null,
+      backedUp: !!credentialBackedUp,
+      nickname: deviceName,
     });
 
-    // On first-ever passkey enrollment, mint single-use recovery codes if the
-    // account has none. Returned ONCE here for the user to save; only bcrypt
-    // hashes persist on the user record.
+    // Mint single-use recovery codes if the member has NONE yet (covers a
+    // first-ever enrollment AND a member migrated with a passkey but no codes).
+    // Returned ONCE here for the user to save; only bcrypt hashes persist.
     let recoveryCodes: string[] | undefined;
-    if (isFirstCredential && (user.recoveryCodesHash?.length ?? 0) === 0) {
+    const { rows } = await pgPool.query<{ recovery_codes_hash: string[] }>(
+      "SELECT recovery_codes_hash FROM member_users WHERE id = $1",
+      [memberUserId],
+    );
+    const currentCodes = rows[0]?.recovery_codes_hash ?? [];
+    if (currentCodes.length === 0) {
       const gen = await generateRecoveryCodes(10);
-      updateUser(username, { recoveryCodesHash: gen.hashes });
-      recoveryCodes = gen.plaintext;
+      // Optimistic: only mint if STILL empty, so a concurrent enroll can't
+      // double-mint and clobber a freshly-issued set. Show the codes only if
+      // this write actually persisted them.
+      const upd = await pgPool.query(
+        "UPDATE member_users SET recovery_codes_hash = $1 WHERE id = $2 AND (recovery_codes_hash = '{}' OR recovery_codes_hash IS NULL)",
+        [gen.hashes, memberUserId],
+      );
+      if (upd.rowCount && upd.rowCount > 0) recoveryCodes = gen.plaintext;
     }
 
+    const res = NextResponse.json({ ok: true, ...(recoveryCodes ? { recoveryCodes } : {}) });
+    clearPasskeyRegisterChallenge(res);
     logAuthEvent({
       event: "passkey.enroll",
       username,
       success: true,
-      details: { deviceName, firstCredential: isFirstCredential },
+      details: { deviceName, path: "member", firstCredential: existing.length === 0 },
     });
-
-    return NextResponse.json({ ok: true, ...(recoveryCodes ? { recoveryCodes } : {}) });
+    return res;
   } catch (e) {
-    return NextResponse.json({ error: String(e) }, { status: 400 });
+    const res = NextResponse.json({ error: String(e) }, { status: 400 });
+    clearPasskeyRegisterChallenge(res); // single-use even on error
+    return res;
   }
 }
