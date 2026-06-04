@@ -71,6 +71,11 @@ export async function POST(req: NextRequest) {
         // and clear the single-use challenge cookie on it. No tgv-2fa cookie —
         // the member session row carries twoFactorVerified itself.
         const res = NextResponse.json({ ok: true, redirectTo: safeDest(callbackUrl) });
+        // This is now a canonical member session — clear any stale NextAuth
+        // session cookie so the proxy doesn't fall back to the JWT path (whose
+        // tgv-2fa gate the member login doesn't satisfy → /verify-2fa loop), and
+        // so a future member-session expiry can't silently revive an old login.
+        res.cookies.set(sessionCookieName(), "", { maxAge: 0, path: "/" });
         clearPasskeyAuthChallenge(res);
         logAuthEvent({ event: "passkey.assert", username: auname, success: true, ip, details: { path: "member" } });
         return res;

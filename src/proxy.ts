@@ -70,16 +70,21 @@ export async function proxy(req: NextRequest) {
 
   if (isPublic) return NextResponse.next();
 
-  // Accept EITHER the legacy NextAuth JWT OR a VALIDATED member session
-  // (tgv_office_session). The member token is opaque, so we validate it with a
-  // direct DB lookup (validateMemberSession — a raw pg query, since
-  // getActiveSession() uses next/headers cookies() which throws in the proxy).
-  // This is a real validation, not a presence-check: `Cookie:
-  // tgv_office_session=garbage` finds no live row → null → login redirect.
-  const token = await getAuthToken(req);
-  const member = token
-    ? null
-    : await validateMemberSession(req.cookies.get("tgv_office_session")?.value);
+  // Accept EITHER a VALIDATED member session (tgv_office_session) OR the legacy
+  // NextAuth JWT. The member session is checked FIRST and WINS: a user can hold
+  // a stale NextAuth cookie AND a fresh member session (e.g. they had a JWT,
+  // then logged in with a passkey). If we preferred the JWT, its 2FA gate
+  // (tgv-2fa cookie, which member login does NOT set) would bounce them to
+  // /verify-2fa forever. So a live member session takes precedence.
+  //
+  // The member token is opaque → validate it with a direct DB lookup
+  // (validateMemberSession — a raw pg query; getActiveSession() uses
+  // next/headers cookies() which throws in the proxy). Real validation, not a
+  // presence-check: `Cookie: tgv_office_session=garbage` finds no live row →
+  // null → fall through to NextAuth / login redirect. No member cookie → the
+  // query short-circuits, so NextAuth-only users pay no DB cost.
+  const member = await validateMemberSession(req.cookies.get("tgv_office_session")?.value);
+  const token = member ? null : await getAuthToken(req);
 
   if (!token && !member) {
     const loginUrl = new URL("/login", req.url);
