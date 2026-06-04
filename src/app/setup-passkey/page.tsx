@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import styled from "styled-components";
+import { startRegistration } from "@simplewebauthn/browser";
 import { colors, rgb } from "../theme";
 
 /* ── Styled ────────────────────────────────────────────────── */
@@ -280,41 +281,17 @@ export default function SetupPasskeyPage() {
       }
       const options = await optRes.json();
 
-      const challenge = base64urlToBuffer(options.challenge);
-      const userId = base64urlToBuffer(options.user.id);
-
-      const credential = (await navigator.credentials.create({
-        publicKey: {
-          ...options,
-          challenge,
-          user: { ...options.user, id: userId },
-          excludeCredentials:
-            options.excludeCredentials?.map((c: { id: string }) => ({
-              ...c,
-              id: base64urlToBuffer(c.id),
-            })) ?? [],
-        },
-      })) as PublicKeyCredential;
-
-      const response =
-        credential.response as AuthenticatorAttestationResponse;
+      // @simplewebauthn/browser handles all base64url/utf8 encoding of the
+      // options + the credential response (server returns user.id as the raw
+      // username, challenge as base64url — hand-rolling atob got this wrong).
+      const regResponse = await startRegistration(options);
 
       const verifyRes = await fetch("/api/auth/passkey-register-verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           deviceName: deviceName.trim(),
-          response: {
-            id: credential.id,
-            rawId: bufferToBase64url(credential.rawId),
-            type: credential.type,
-            response: {
-              clientDataJSON: bufferToBase64url(response.clientDataJSON),
-              attestationObject: bufferToBase64url(
-                response.attestationObject
-              ),
-            },
-          },
+          response: regResponse,
         }),
       });
 
@@ -442,22 +419,3 @@ export default function SetupPasskeyPage() {
   );
 }
 
-/* ── WebAuthn helpers ──────────────────────────────────────── */
-
-function base64urlToBuffer(str: string): ArrayBuffer {
-  const base64 = str.replace(/-/g, "+").replace(/_/g, "/");
-  const binary = atob(base64);
-  const buffer = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) buffer[i] = binary.charCodeAt(i);
-  return buffer.buffer;
-}
-
-function bufferToBase64url(buffer: ArrayBuffer): string {
-  const bytes = new Uint8Array(buffer);
-  let str = "";
-  for (const b of bytes) str += String.fromCharCode(b);
-  return btoa(str)
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=/g, "");
-}

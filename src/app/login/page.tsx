@@ -4,6 +4,7 @@ import { useState, useEffect, FormEvent, Suspense } from "react";
 import { signIn } from "next-auth/react";
 import { useSearchParams, useRouter } from "next/navigation";
 import styled from "styled-components";
+import { startAuthentication } from "@simplewebauthn/browser";
 import { colors, rgb } from "../theme";
 
 type Method = "passkey" | "password" | "magic" | "recovery";
@@ -388,20 +389,8 @@ function LoginForm() {
       });
       const options = await optRes.json();
 
-      const challenge = base64urlToBuffer(options.challenge);
-      const allowCredentials =
-        options.allowCredentials?.map(
-          (c: { id: string; transports?: string[] }) => ({
-            ...c,
-            id: base64urlToBuffer(c.id),
-          })
-        ) ?? [];
-
-      const credential = (await navigator.credentials.get({
-        publicKey: { ...options, challenge, allowCredentials },
-      })) as PublicKeyCredential;
-
-      const response = credential.response as AuthenticatorAssertionResponse;
+      // @simplewebauthn/browser handles all encoding + the ceremony.
+      const authResponse = await startAuthentication(options);
 
       const verifyRes = await fetch("/api/auth/passkey-auth-verify", {
         method: "POST",
@@ -409,19 +398,7 @@ function LoginForm() {
         body: JSON.stringify({
           username: username.trim() || undefined,
           callbackUrl,
-          response: {
-            id: credential.id,
-            rawId: bufferToBase64url(credential.rawId),
-            type: credential.type,
-            response: {
-              clientDataJSON: bufferToBase64url(response.clientDataJSON),
-              authenticatorData: bufferToBase64url(response.authenticatorData),
-              signature: bufferToBase64url(response.signature),
-              userHandle: response.userHandle
-                ? bufferToBase64url(response.userHandle)
-                : null,
-            },
-          },
+          response: authResponse,
         }),
       });
 
@@ -639,26 +616,6 @@ function LoginForm() {
       )}
     </FormCol>
   );
-}
-
-/* ── WebAuthn helpers ──────────────────────────────────────── */
-
-function base64urlToBuffer(str: string): ArrayBuffer {
-  const base64 = str.replace(/-/g, "+").replace(/_/g, "/");
-  const binary = atob(base64);
-  const buffer = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) buffer[i] = binary.charCodeAt(i);
-  return buffer.buffer;
-}
-
-function bufferToBase64url(buffer: ArrayBuffer): string {
-  const bytes = new Uint8Array(buffer);
-  let str = "";
-  for (const b of bytes) str += String.fromCharCode(b);
-  return btoa(str)
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=/g, "");
 }
 
 /* ── Page ──────────────────────────────────────────────────── */
