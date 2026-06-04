@@ -20,6 +20,7 @@
     "@react-three/fiber": "^9.0.0",
     "@simplewebauthn/browser": "^9.0.1",
     "@simplewebauthn/server": "^9.0.3",
+    "@tgv/module-auth": "workspace:*",
     "@tgv/module-calendar": "workspace:*",
     "@tgv/module-component-library": "workspace:*",
     "@tgv/module-page-editor": "workspace:*",
