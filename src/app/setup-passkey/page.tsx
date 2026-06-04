@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import styled from "styled-components";
 import { startRegistration } from "@simplewebauthn/browser";
@@ -241,6 +241,158 @@ const AckCheck = styled.input`
   cursor: pointer;
 `;
 
+const PasskeyList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(${rgb.cyan}, 0.15);
+`;
+
+const PasskeyRow = styled.div`
+  display: flex;
+  gap: 6px;
+  align-items: center;
+`;
+
+const RenameInput = styled.input`
+  flex: 1;
+  border-radius: 6px;
+  padding: 7px 10px;
+  font-size: 13px;
+  color: var(--t-text);
+  background: var(--t-inputBg);
+  border: 1px solid rgba(${rgb.cyan}, 0.2);
+  outline: none;
+  &:focus {
+    border-color: rgba(${rgb.cyan}, 0.6);
+  }
+`;
+
+const SmallBtn = styled.button`
+  font-size: 12px;
+  font-weight: 600;
+  color: ${colors.cyan};
+  background: none;
+  border: 1px solid rgba(${rgb.cyan}, 0.3);
+  border-radius: 6px;
+  padding: 7px 12px;
+  cursor: pointer;
+  &:disabled {
+    opacity: 0.45;
+    cursor: default;
+  }
+`;
+
+const DownloadWrap = styled.div`
+  position: relative;
+`;
+
+const DownloadTrigger = styled.button`
+  width: 100%;
+  font-size: 12px;
+  font-weight: 600;
+  color: ${colors.cyan};
+  background: none;
+  border: 1px solid rgba(${rgb.cyan}, 0.3);
+  border-radius: 6px;
+  padding: 6px 0;
+  cursor: pointer;
+`;
+
+const DDMMenu = styled.div`
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--t-surface);
+  border: 1px solid rgba(${rgb.cyan}, 0.3);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  z-index: 20;
+`;
+
+const DDMItem = styled.button`
+  font-size: 13px;
+  color: var(--t-text);
+  background: none;
+  border: none;
+  padding: 9px 12px;
+  text-align: left;
+  cursor: pointer;
+  &:hover {
+    background: rgba(${rgb.cyan}, 0.12);
+  }
+`;
+
+/* ── Recovery-code export helpers ──────────────────────────── */
+
+function triggerDownload(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function codesPlainText(codes: string[]): string {
+  return [
+    "TGV Office — recovery codes",
+    `Generated ${new Date().toISOString().slice(0, 10)}`,
+    "",
+    ...codes.map((c, i) => `${i + 1}.  ${c}`),
+    "",
+    "Each code works once. Keep them somewhere safe.",
+  ].join("\n");
+}
+
+function codesDocBlob(codes: string[]): Blob {
+  const body = codesPlainText(codes).replace(/&/g, "&amp;").replace(/</g, "&lt;");
+  const html = `<html><head><meta charset="utf-8"></head><body><pre style="font:14px ui-monospace,monospace">${body}</pre></body></html>`;
+  return new Blob([html], { type: "application/msword" });
+}
+
+// Minimal, dependency-free single-page PDF (Courier) listing the codes.
+function codesPdfBlob(codes: string[]): Blob {
+  const lines = codesPlainText(codes).split("\n");
+  let content = "BT\n/F1 12 Tf\n";
+  let y = 760;
+  for (const ln of lines) {
+    const esc = ln.replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)");
+    content += `1 0 0 1 56 ${y} Tm (${esc}) Tj\n`;
+    y -= 18;
+  }
+  content += "ET";
+  const enc = (s: string) => new TextEncoder().encode(s);
+  const objs = [
+    "<< /Type /Catalog /Pages 2 0 R >>",
+    "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+    "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>",
+    `<< /Length ${enc(content).length} >>\nstream\n${content}\nendstream`,
+    "<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>",
+  ];
+  let pdf = "%PDF-1.4\n";
+  const offsets: number[] = [];
+  objs.forEach((o, i) => {
+    offsets.push(enc(pdf).length);
+    pdf += `${i + 1} 0 obj\n${o}\nendobj\n`;
+  });
+  const xref = enc(pdf).length;
+  pdf += `xref\n0 ${objs.length + 1}\n0000000000 65535 f \n`;
+  offsets.forEach((off) => {
+    pdf += `${String(off).padStart(10, "0")} 00000 n \n`;
+  });
+  pdf += `trailer\n<< /Size ${objs.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`;
+  return new Blob([enc(pdf)], { type: "application/pdf" });
+}
+
 /* ── Component ─────────────────────────────────────────────── */
 
 export default function SetupPasskeyPage() {
@@ -254,12 +406,61 @@ export default function SetupPasskeyPage() {
   const [copied, setCopied] = useState(false);
   const router = useRouter();
 
+  const [myPasskeys, setMyPasskeys] = useState<
+    { id: string; deviceName: string; createdAt: string }[]
+  >([]);
+  const [editName, setEditName] = useState<Record<string, string>>({});
+  const [savingId, setSavingId] = useState<string | null>(null);
+  const [ddmOpen, setDdmOpen] = useState(false);
+
+  // Load the caller's own passkeys (refetch after a successful enrollment).
+  useEffect(() => {
+    fetch("/api/auth/passkeys")
+      .then((r) => (r.ok ? r.json() : { passkeys: [] }))
+      .then((d) => setMyPasskeys(d.passkeys ?? []))
+      .catch(() => {});
+  }, [status]);
+
   async function copyCodes() {
     try {
       await navigator.clipboard.writeText(recoveryCodes.join("\n"));
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch { /* clipboard unavailable (insecure context) */ }
+  }
+
+  async function saveRename(id: string) {
+    const name = (editName[id] ?? "").trim();
+    if (!name) return;
+    setSavingId(id);
+    try {
+      const res = await fetch("/api/auth/passkeys/rename", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ credentialId: id, deviceName: name }),
+      });
+      if (res.ok) {
+        setMyPasskeys((pks) =>
+          pks.map((p) => (p.id === id ? { ...p, deviceName: name } : p)),
+        );
+        setEditName((m) => {
+          const n = { ...m };
+          delete n[id];
+          return n;
+        });
+      }
+    } finally {
+      setSavingId(null);
+    }
+  }
+
+  function downloadCodes(fmt: "txt" | "doc" | "pdf") {
+    setDdmOpen(false);
+    let blob: Blob;
+    if (fmt === "txt") blob = new Blob([codesPlainText(recoveryCodes)], { type: "text/plain" });
+    else if (fmt === "doc") blob = codesDocBlob(recoveryCodes);
+    else blob = codesPdfBlob(recoveryCodes);
+    triggerDownload(blob, `tgv-office-recovery-codes.${fmt}`);
   }
 
   async function handleRegister() {
@@ -351,6 +552,24 @@ export default function SetupPasskeyPage() {
               <CopyBtn type="button" onClick={copyCodes}>
                 {copied ? "Copied ✓" : "Copy all codes"}
               </CopyBtn>
+              <DownloadWrap>
+                <DownloadTrigger type="button" onClick={() => setDdmOpen((o) => !o)}>
+                  Download ▾
+                </DownloadTrigger>
+                {ddmOpen && (
+                  <DDMMenu>
+                    <DDMItem type="button" onClick={() => downloadCodes("txt")}>
+                      Download .txt
+                    </DDMItem>
+                    <DDMItem type="button" onClick={() => downloadCodes("doc")}>
+                      Download .doc (Word)
+                    </DDMItem>
+                    <DDMItem type="button" onClick={() => downloadCodes("pdf")}>
+                      Download .pdf
+                    </DDMItem>
+                  </DDMMenu>
+                )}
+              </DownloadWrap>
               <AckRow>
                 <AckCheck
                   type="checkbox"
@@ -411,6 +630,34 @@ export default function SetupPasskeyPage() {
               <BackLink onClick={() => router.back()}>
                 &larr; Back
               </BackLink>
+
+              {myPasskeys.length > 0 && (
+                <PasskeyList>
+                  <Label>Your passkeys — rename anytime</Label>
+                  {myPasskeys.map((pk) => (
+                    <PasskeyRow key={pk.id}>
+                      <RenameInput
+                        value={editName[pk.id] ?? pk.deviceName}
+                        maxLength={60}
+                        onChange={(e) =>
+                          setEditName((m) => ({ ...m, [pk.id]: e.target.value }))
+                        }
+                      />
+                      <SmallBtn
+                        type="button"
+                        onClick={() => saveRename(pk.id)}
+                        disabled={
+                          savingId === pk.id ||
+                          !(editName[pk.id] ?? pk.deviceName).trim() ||
+                          (editName[pk.id] ?? pk.deviceName) === pk.deviceName
+                        }
+                      >
+                        {savingId === pk.id ? "…" : "Rename"}
+                      </SmallBtn>
+                    </PasskeyRow>
+                  ))}
+                </PasskeyList>
+              )}
             </FormCol>
           )}
         </Card>
