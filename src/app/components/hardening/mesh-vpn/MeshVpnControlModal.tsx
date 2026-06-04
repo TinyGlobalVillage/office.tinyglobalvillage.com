@@ -407,7 +407,11 @@ function PreAuthKeysPanel({
 
 function UfwSshRulePanel({ status }: { status: MeshVpnStatus | null }) {
   if (!status) return <Note>Loading rule…</Note>;
-  const { ufw } = status;
+  const ufw = status.ufw;
+  if (!ufw) return <Note>UFW status unavailable.</Note>;
+  // Defensive: tolerate a degraded payload (missing arrays) instead of crashing.
+  const allowedSources = ufw.allowedSources ?? [];
+  const exceptions = ufw.exceptions ?? [];
   return (
     <Col>
       <Row>
@@ -416,10 +420,10 @@ function UfwSshRulePanel({ status }: { status: MeshVpnStatus | null }) {
         </StatusPill>
       </Row>
       <Note>
-        Allowed sources: {ufw.allowedSources.length === 0 ? "—" : ufw.allowedSources.join(", ")}
+        Allowed sources: {allowedSources.length === 0 ? "—" : allowedSources.join(", ")}
       </Note>
-      {ufw.exceptions.length > 0 && (
-        <Note>Per-IP exceptions: {ufw.exceptions.join(", ")}</Note>
+      {exceptions.length > 0 && (
+        <Note>Per-IP exceptions: {exceptions.join(", ")}</Note>
       )}
     </Col>
   );

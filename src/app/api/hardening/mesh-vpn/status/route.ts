@@ -238,6 +238,30 @@ function normalizePreAuthKey(k: HeadscalePreAuthKey): {
   };
 }
 
+// Collapse raw UFW rules into the SSH-rule summary the modal renders. The
+// modal's UfwSshRulePanel reads ufw.active/port/allowedSources/exceptions, so
+// returning the raw { enabled, rules } shape crashes it (allowedSources.length
+// on undefined). RCS SSH lives on 27720, firewalled to the mesh subnet
+// (100.64.0.0/10); any other allowed source is a per-IP exception.
+function summarizeUfwForSsh(
+  ufw: { enabled: boolean; rules: UfwRule[] },
+  port: string,
+): { active: boolean; port: string; allowedSources: string[]; exceptions: string[] } {
+  const allows = ufw.rules.filter(
+    (r) => r.to.startsWith(port) && /ALLOW/i.test(r.action),
+  );
+  const allowedSources = allows.map((r) => r.from).filter(Boolean);
+  const openToAnywhere = allowedSources.some((s) => /^anywhere/i.test(s));
+  // "Restricted" = firewall on AND the SSH port is allowed only from specific
+  // sources (never from Anywhere).
+  const active = ufw.enabled && allowedSources.length > 0 && !openToAnywhere;
+  // Per-IP exceptions = allowed sources that aren't the mesh subnet.
+  const exceptions = allowedSources.filter(
+    (s) => !/^100\./.test(s) && !/^anywhere/i.test(s),
+  );
+  return { active, port, allowedSources, exceptions };
+}
+
 export async function GET(req: NextRequest) {
   const auth = await requireAdmin(req);
   if (auth instanceof NextResponse) return auth;
@@ -262,14 +286,19 @@ export async function GET(req: NextRequest) {
   const perUserKeys = await Promise.all(userNames.map(getPreAuthKeysFor));
   const preauthKeys = perUserKeys.flat().map(normalizePreAuthKey);
 
+  const sshPort = String(config.publicSshPort ?? 27720);
+
   return NextResponse.json({
     service: {
       state: serviceState,
       lastConfigModified,
     },
     devices: nodes.map(normalizeDevice),
-    preauthKeys,
-    ufw,
+    // Key matches the modal's MeshVpnStatus type (preAuthKeys, not preauthKeys).
+    preAuthKeys: preauthKeys,
+    ufw: summarizeUfwForSsh(ufw, sshPort),
+    // This route is requireAdmin-gated, so the caller is an admin.
+    currentRole: "admin" as const,
     enrolledUsers: userNames,
     fail2banJailName: config.fail2banJailName ?? "headscale-ssh",
   });
