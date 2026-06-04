@@ -6433,10 +6433,13 @@ export default function ChatDrawer({ popout = false, popoutPeer = null, popoutGr
                     selection.type === "dm" ? dmSending
                       : selection.type === "group" ? groupSending
                       : (sending || uploading);
-                  const sendDisabled =
-                    selection.type === "dm" ? (!dmInput.trim() || dmSending)
-                      : selection.type === "group" ? (!groupInput.trim() || groupSending)
-                      : ((sending || uploading) || (!input.trim() && !uploadFile));
+                  // NOTE: do NOT feed an "empty input" condition into ChatBar's
+                  // `disabled` — that prop disables the TEXTAREA itself, so an
+                  // empty input would lock typing (deadlock: can't type → stays
+                  // empty → stays disabled). Empty-send is already prevented by
+                  // ChatBar's send button (`!value.trim()`) + the `sending` prop
+                  // + each send handler's own `!trim()` guard. The composer only
+                  // mounts when posting is allowed, so it's never "disabled".
                   const accent =
                     selection.type === "dm" ? (peer?.accentColor ?? VIOLET)
                       : colors.green;
@@ -6482,7 +6485,7 @@ export default function ChatDrawer({ popout = false, popoutPeer = null, popoutGr
                       onChange={setComposerValue}
                       onSend={send}
                       sending={isSending}
-                      disabled={sendDisabled}
+                      disabled={false}
                       placeholder={placeholder}
                       accent={accent}
                       fontSize={settings.fontSize === "xs" ? 11 : settings.fontSize === "sm" ? 13 : 15}
