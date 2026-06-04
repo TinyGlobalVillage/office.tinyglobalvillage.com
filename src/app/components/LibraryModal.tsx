@@ -19,6 +19,7 @@ import Tooltip from "./ui/Tooltip";
 import SkillLibraryModal from "./SkillLibraryModal";
 import PlaybookLibraryModal from "./PlaybookLibraryModal";
 import SandboxModal from "./sandbox/SandboxModal";
+import UtilsLibraryModal from "./UtilsLibraryModal";
 
 const FsContainer = styled(ModalContainer)<{ $fs: boolean }>`
   ${(p) => p.$fs && `
@@ -74,6 +75,7 @@ const SECTIONS = [
   { title: "Component Library", body: "Canonical TGV UI primitives — shared catalog with the Sandbox. Open from here to browse; use the Sandbox tile on the dashboard to author.", status: "live" },
   { title: "Skill Library", body: "Domain skills the agent can consult: opensrs, fastmail, swisseph, and more as they're added.", status: "live" },
   { title: "Playbook Library", body: "Reusable runbooks: gitrefuse, dep-check, deploy flows, incident response.", status: "live" },
+  { title: "Utils Library", body: "Developer & niche tooling — feature worktrees today; default home for new RCS / Office utilities going forward.", status: "live" },
   { title: "Asset Library", body: "Logos, icons, brand colors, copy snippets — single source of truth for TGV + Refusionist.", status: "planned" },
   { title: "Knowledge Library", body: "Long-form references — Human Design corpus, registrar protocols, infra docs.", status: "live" },
 ];
@@ -147,6 +149,7 @@ export default function LibraryModal({ onClose }: { onClose: () => void }) {
   const [skillsOpen, setSkillsOpen] = useState(false);
   const [playbooksOpen, setPlaybooksOpen] = useState(false);
   const [componentLibraryOpen, setComponentLibraryOpen] = useState(false);
+  const [utilsLibraryOpen, setUtilsLibraryOpen] = useState(false);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") { e.stopPropagation(); onClose(); } };
@@ -158,7 +161,7 @@ export default function LibraryModal({ onClose }: { onClose: () => void }) {
   // drop the LibraryModal backdrop below the nested PanelBackdrop (z-index
   // 65 in styled.ts) so the nested modal renders ON TOP. Without this,
   // LibraryModal's z-index 100 covers the nested one.
-  const nestedOpen = componentLibraryOpen || skillsOpen || playbooksOpen;
+  const nestedOpen = componentLibraryOpen || skillsOpen || playbooksOpen || utilsLibraryOpen;
   const backdropStyle = nestedOpen ? { zIndex: 50 } : undefined;
 
   return (
@@ -195,6 +198,7 @@ export default function LibraryModal({ onClose }: { onClose: () => void }) {
                   s.title === "Component Library" && s.status === "live" ? () => setComponentLibraryOpen(true)
                   : s.title === "Skill Library" && s.status === "live" ? () => setSkillsOpen(true)
                   : s.title === "Playbook Library" && s.status === "live" ? () => setPlaybooksOpen(true)
+                  : s.title === "Utils Library" && s.status === "live" ? () => setUtilsLibraryOpen(true)
                   : null;
                 const isClickable = onOpen !== null;
                 return (
@@ -227,6 +231,7 @@ export default function LibraryModal({ onClose }: { onClose: () => void }) {
           surface="library"
         />
       )}
+      {utilsLibraryOpen && <UtilsLibraryModal onClose={() => setUtilsLibraryOpen(false)} />}
     </>
   );
 }

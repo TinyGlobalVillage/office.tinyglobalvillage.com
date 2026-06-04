@@ -22,18 +22,22 @@ export async function POST(req: NextRequest) {
   const { username: rawUsername, response: authResponse, callbackUrl } = body;
   const store = readUsers();
 
-  // Resolve the account. A typed username is used directly; otherwise
-  // (usernameless / discoverable login) find whoever owns the asserted
-  // credential id — reliable, unlike trusting the client-supplied userHandle.
-  let username: string | undefined =
-    typeof rawUsername === "string" && rawUsername ? rawUsername : undefined;
-  if (!username && typeof authResponse?.id === "string" && authResponse.id) {
+  // The asserted credential id is the source of truth for WHO is signing in
+  // (it's the credential being cryptographically used). Resolve the owner by it
+  // FIRST, and only fall back to a client-supplied username if the credential
+  // isn't found. This is robust to a stale/remembered username that no longer
+  // matches the credential's actual owner.
+  let username: string | undefined;
+  if (typeof authResponse?.id === "string" && authResponse.id) {
     for (const [uname, u] of Object.entries(store)) {
       if ((u.webauthnCredentials ?? []).some((c) => c.id === authResponse.id)) {
         username = uname;
         break;
       }
     }
+  }
+  if (!username && typeof rawUsername === "string" && rawUsername && store[rawUsername]) {
+    username = rawUsername;
   }
   if (!username) return NextResponse.json({ error: "Passkey not recognized" }, { status: 404 });
 
