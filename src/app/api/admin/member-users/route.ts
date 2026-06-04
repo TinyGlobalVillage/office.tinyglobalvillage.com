@@ -65,7 +65,10 @@ export async function GET(req: NextRequest) {
     .from(schema.memberUsers)
     .leftJoin(passkeyCounts, eq(passkeyCounts.memberUserId, schema.memberUsers.id))
     .leftJoin(sessionCounts, eq(sessionCounts.userId, schema.memberUsers.id))
-    .leftJoin(lastResets, eq(lastResets.targetId, schema.memberUsers.id))
+    // admin_audit_log.target_id is text; member_users.id is uuid. Cast to uuid
+    // for the join (the subquery already filters targetType='member_user', so
+    // every target_id here is a member_user uuid string).
+    .leftJoin(lastResets, eq(sql`${lastResets.targetId}::uuid`, schema.memberUsers.id))
     .orderBy(desc(schema.memberUsers.createdAt));
 
   return NextResponse.json({ ok: true, memberUsers: rows });

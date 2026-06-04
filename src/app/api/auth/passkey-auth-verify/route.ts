@@ -71,11 +71,18 @@ export async function POST(req: NextRequest) {
         // and clear the single-use challenge cookie on it. No tgv-2fa cookie —
         // the member session row carries twoFactorVerified itself.
         const res = NextResponse.json({ ok: true, redirectTo: safeDest(callbackUrl) });
-        // This is now a canonical member session — clear any stale NextAuth
-        // session cookie so the proxy doesn't fall back to the JWT path (whose
-        // tgv-2fa gate the member login doesn't satisfy → /verify-2fa loop), and
-        // so a future member-session expiry can't silently revive an old login.
+        // Clear any stale NextAuth session cookie so the proxy doesn't fall back
+        // to the JWT path (whose tgv-2fa gate the member login doesn't satisfy →
+        // /verify-2fa loop), and so a future member-session expiry can't revive
+        // an old login.
         res.cookies.set(sessionCookieName(), "", { maxAge: 0, path: "/" });
+        // ALSO set the tgv-2fa proof cookie. The proxy reads two_factor_verified
+        // off the member session, but legacy per-request gates still check the
+        // tgv-2fa cookie — notably requirePersonalAccess() for the personal
+        // inbox. Without it a TOTP-enrolled member (e.g. Gio) gets "2fa_required"
+        // on the inbox. A member session IS 2FA-verified, so this is correct
+        // (12h TTL, same re-assertion model as the NextAuth path).
+        set2faCookie(res, auname);
         clearPasskeyAuthChallenge(res);
         logAuthEvent({ event: "passkey.assert", username: auname, success: true, ip, details: { path: "member" } });
         return res;
