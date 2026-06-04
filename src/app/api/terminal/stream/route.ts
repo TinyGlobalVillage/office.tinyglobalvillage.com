@@ -3,11 +3,19 @@
  * SSE endpoint — pushes all PM2 log lines to the client in real time.
  * Every open terminal tab subscribes here.
  */
+import { type NextRequest } from "next/server";
 import { broadcast, BroadcastEntry } from "@/lib/server-broadcast";
+import { requireAuth } from "@/lib/api-auth";
+import { canUseTerminal } from "@/lib/member-auth/bridge";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  // Streams all PM2 logs (may contain secrets) — gate to terminal-capable users.
+  const auth = await requireAuth(req);
+  if (!auth?.username) return new Response("Unauthorized", { status: 401 });
+  if (!canUseTerminal(auth.username)) return new Response("Terminal access not granted", { status: 403 });
+
   // Ensure the broadcast process is running
   broadcast.start();
 

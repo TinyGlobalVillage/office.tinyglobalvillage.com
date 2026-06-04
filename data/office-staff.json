@@ -1,0 +1,34 @@
+{
+  "admin": {
+    "email": "gio@tinyglobalvillage.com",
+    "role": "admin"
+  },
+  "marmar": {
+    "email": "marthe@tinyglobalvillage.com",
+    "role": "admin"
+  },
+  "employee1": {
+    "email": "employee1@tinyglobalvillage.com",
+    "role": "employee"
+  },
+  "employee2": {
+    "email": "employee2@tinyglobalvillage.com",
+    "role": "employee"
+  },
+  "employee3": {
+    "email": "employee3@tinyglobalvillage.com",
+    "role": "employee"
+  },
+  "employee4": {
+    "email": "employee4@tinyglobalvillage.com",
+    "role": "employee"
+  },
+  "employee5": {
+    "email": "employee5@tinyglobalvillage.com",
+    "role": "employee"
+  },
+  "claude": {
+    "email": "claude@anthropic.com",
+    "role": "employee"
+  }
+}

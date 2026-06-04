@@ -1,7 +1,14 @@
 import { spawn } from "child_process";
 import { NextRequest } from "next/server";
+import { requireAuth } from "@/lib/api-auth";
+import { canUseTerminal } from "@/lib/member-auth/bridge";
 
 export async function GET(req: NextRequest) {
+  // Streams raw PM2 logs (may contain secrets) — gate to terminal-capable users.
+  const auth = await requireAuth(req);
+  if (!auth?.username) return new Response("Unauthorized", { status: 401 });
+  if (!canUseTerminal(auth.username)) return new Response("Terminal access not granted", { status: 403 });
+
   const name = req.nextUrl.searchParams.get("name");
   const lines = parseInt(req.nextUrl.searchParams.get("lines") ?? "100", 10);
 

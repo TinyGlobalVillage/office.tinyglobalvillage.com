@@ -3,9 +3,10 @@
  * GET /api/logs?date=YYYY-MM-DD&page=1    → paginated lines for a live log
  * GET /api/logs?date=YYYY-MM-DD&tmp=1     → paginated lines from a decompressed tmp file
  */
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { readdirSync, readFileSync, statSync, existsSync } from "fs";
 import path from "path";
+import { requireAuth } from "@/lib/api-auth";
 
 const LOG_DIR = "/srv/refusion-core/logs/tgv-office";
 const ARCHIVE_DIR = `${LOG_DIR}/archive`;
@@ -56,6 +57,12 @@ function paginateFile(filePath: string, page: number, limit: number) {
 }
 
 export async function GET(req: NextRequest) {
+  // Defense-in-depth: require an authenticated session in-route, not just the
+  // proxy gate. (Any authenticated staff, matching current access; tighten to
+  // requireAdmin if logs should be admin-only.)
+  const auth = await requireAuth(req);
+  if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
   const date = req.nextUrl.searchParams.get("date");
   const tmp = req.nextUrl.searchParams.get("tmp") === "1";
   const page = Math.max(1, parseInt(req.nextUrl.searchParams.get("page") ?? "1", 10));

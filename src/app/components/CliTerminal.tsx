@@ -1043,6 +1043,20 @@ export default function CliTerminal({ standalone = false }: { standalone?: boole
 
   const displayLines = mode === "stream" ? streamLines : lines;
 
+  // Terminal access gate. The terminal (/api/exec) is admin-or-granted; hide it
+  // entirely from users without the grant. `/api/exec` enforces this server-side
+  // too — this just removes the launcher + panel from view. Null while loading
+  // → render nothing until confirmed allowed (no flash for non-granted users).
+  const [termAllowed, setTermAllowed] = useState<boolean | null>(null);
+  useEffect(() => {
+    let alive = true;
+    fetch("/api/users/me")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (alive) setTermAllowed(d?.canUseTerminal === true); })
+      .catch(() => { if (alive) setTermAllowed(false); });
+    return () => { alive = false; };
+  }, []);
+
   // Persist position preference
   useEffect(() => {
     const saved = localStorage.getItem("tgv-terminal-pos") as PanelPos | null;
@@ -1307,6 +1321,10 @@ export default function CliTerminal({ standalone = false }: { standalone?: boole
       setClaudeStreaming(false);
     }
   }, [claudeHistory, claudeStreaming]);
+
+  // Hide the terminal from users without the grant (after all hooks, so hook
+  // order stays stable). Server-side /api/exec still enforces access.
+  if (termAllowed !== true) return null;
 
   // ── Render ───────────────────────────────────────────────────────────────
   return (

@@ -1,5 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
+import { requireAuth } from "@/lib/api-auth";
+import { canUseTerminal } from "@/lib/member-auth/bridge";
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -14,6 +16,11 @@ You have expert knowledge of:
 Be concise. When writing code or commands, use code blocks. You can help debug, review code, suggest shell commands, explain errors, or just answer questions.`;
 
 export async function POST(req: NextRequest) {
+  // Terminal AI tab (knows the server layout) — gate to terminal-capable users.
+  const auth = await requireAuth(req);
+  if (!auth?.username) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!canUseTerminal(auth.username)) return NextResponse.json({ error: "Terminal access not granted" }, { status: 403 });
+
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     return NextResponse.json(

@@ -1,5 +1,7 @@
 import { spawn } from "child_process";
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { requireAuth } from "@/lib/api-auth";
+import { canUseTerminal } from "@/lib/member-auth/bridge";
 
 // Whitelisted commands — only these can be executed
 const REGISTRY: Record<
@@ -119,6 +121,17 @@ const REGISTRY: Record<
 const SAFE_ARG = /^[a-zA-Z0-9._\-\/:@= ,+?]+$/;
 
 export async function POST(req: NextRequest) {
+  // This endpoint spawns whitelisted RCS infra scripts (pm2 delete,
+  // erase-project, domain purchase, …) with full process.env, so it's gated to
+  // terminal-capable users: admins always, plus any non-admin staffer an admin
+  // has explicitly granted (office-staff.json terminalAccess). Validated
+  // in-route — never relying on the proxy gate alone.
+  const auth = await requireAuth(req);
+  if (!auth?.username) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!canUseTerminal(auth.username)) {
+    return NextResponse.json({ error: "Terminal access not granted" }, { status: 403 });
+  }
+
   const body = await req.json().catch(() => null);
   if (!body || typeof body.script !== "string") {
     return new Response("Bad request", { status: 400 });

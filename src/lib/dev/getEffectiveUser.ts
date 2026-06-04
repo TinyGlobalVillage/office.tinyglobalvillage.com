@@ -13,10 +13,20 @@
  *
  * Ported from @tgv/module-auth's getEffectiveUser (DB+drizzle flavor) and
  * adapted to office's JSON-file user store + JWT (getToken) auth shape.
+ *
+ * Phase 3b: the REAL (non-impersonated) identity now resolves from the
+ * canonical member session FIRST (officeMemberAuth, cookie tgv_office_session)
+ * and falls back to the legacy NextAuth JWT. The existing admin-impersonation
+ * logic runs unchanged on top of whichever path produced the base identity, so
+ * impersonation composes with member sessions for free. Because requireAuth()
+ * funnels through here, bridging this one function covers all ~125 call sites.
+ * Dormant until 3c sets the member cookie (getBridgedMember() returns null
+ * with no cookie → NextAuth fallback → byte-identical to pre-3b behavior).
  */
 import type { NextRequest } from "next/server";
 import { readUsers } from "@/lib/users";
 import { getAuthToken } from "@/lib/auth-cookie";
+import { getBridgedMember, getOfficeRole } from "@/lib/member-auth/bridge";
 
 export type EffectiveToken = {
   name?: string;
@@ -33,9 +43,9 @@ export function isDevSwitcherEnabled(): boolean {
 }
 
 export function getRole(username: string | undefined): string | null {
-  if (!username) return null;
-  const store = readUsers() as Record<string, { role?: string }>;
-  return store[username]?.role ?? null;
+  // Roster-first (office-staff.json), legacy users.json fallback. See
+  // getOfficeRole — keeps member sessions and legacy JWTs on one role source.
+  return getOfficeRole(username);
 }
 
 function readImpersonateCookie(req: NextRequest): string | null {
@@ -44,13 +54,30 @@ function readImpersonateCookie(req: NextRequest): string | null {
 }
 
 export async function getEffectiveUser(req: NextRequest): Promise<EffectiveToken | null> {
-  const token = await getAuthToken(req);
-  if (!token) return null;
+  // Resolve the REAL identity: canonical member session first, NextAuth JWT
+  // fallback. Member path is dormant until 3c sets tgv_office_session.
+  let realName: string | undefined;
+  let realUsername: string | undefined;
+  let realSub: string | undefined;
 
-  const realUsername = (token as { username?: string }).username;
+  const member = await getBridgedMember();
+  if (member) {
+    realName = member.name;
+    realUsername = member.username;
+    realSub = member.sub; // == username
+  } else {
+    const token = await getAuthToken(req);
+    if (!token) return null;
+    realUsername = (token as { username?: string }).username;
+    if (!realUsername) return null;
+    realName = token.name as string | undefined;
+    realSub = token.sub;
+  }
   if (!realUsername) return null;
 
-  const realRole = getRole(realUsername);
+  // On the member path the role is already resolved from the roster (the
+  // authoritative source); only re-read for the NextAuth path.
+  const realRole = member ? member.role : getRole(realUsername);
 
   if (isDevSwitcherEnabled() && realRole === "admin") {
     const target = readImpersonateCookie(req);
@@ -69,9 +96,9 @@ export async function getEffectiveUser(req: NextRequest): Promise<EffectiveToken
   }
 
   return {
-    name: token.name as string | undefined,
+    name: realName,
     username: realUsername,
-    sub: token.sub,
+    sub: realSub,
     impersonating: false,
   };
 }

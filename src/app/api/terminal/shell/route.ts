@@ -1,10 +1,19 @@
 import { spawn } from "child_process";
 import { NextRequest } from "next/server";
+import { requireAuth } from "@/lib/api-auth";
+import { canUseTerminal } from "@/lib/member-auth/bridge";
 
 // Max command length to prevent abuse
 const MAX_CMD_LEN = 2048;
 
 export async function POST(req: NextRequest) {
+  // THE interactive shell (bash -c) — gate to terminal-capable users (admins
+  // always, plus admin-granted staff). Validated in-route, never relying on the
+  // proxy gate alone. Mirrors /api/exec.
+  const auth = await requireAuth(req);
+  if (!auth?.username) return new Response("Unauthorized", { status: 401 });
+  if (!canUseTerminal(auth.username)) return new Response("Terminal access not granted", { status: 403 });
+
   const body = await req.json().catch(() => null);
   if (!body || typeof body.cmd !== "string" || !body.cmd.trim()) {
     return new Response("Bad request", { status: 400 });

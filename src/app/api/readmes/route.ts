@@ -1,6 +1,7 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { promises as fs } from "node:fs";
 import path from "node:path";
+import { requireAuth } from "@/lib/api-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +25,12 @@ function parseFrontmatter(raw: string): { meta: Record<string, string>; body: st
   return { meta, body: m[2] };
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  // Defense-in-depth: internal docs — require an authenticated session in-route,
+  // not just the proxy gate.
+  const auth = await requireAuth(req);
+  if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
   try {
     const files = await fs.readdir(ROOT);
     const items: ReadMe[] = [];

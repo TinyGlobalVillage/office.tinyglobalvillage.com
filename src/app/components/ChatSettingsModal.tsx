@@ -43,6 +43,8 @@ export type MemberProfile = {
   lightAccent?: string;
   title: string;
   bio?: string;
+  /** Per-user terminal grant (admins implicitly allowed). Admin-toggled. */
+  terminalAccess?: boolean;
 };
 
 export type ChatSettings = {
@@ -739,6 +741,30 @@ const RoleSelect = styled.select`
   background: var(--t-inputBg);
   border: 1px solid var(--t-borderStrong);
   color: var(--t-textMuted);
+`;
+
+const TermAccessRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+`;
+
+const TermAccessLabel = styled.span`
+  font-size: 0.5625rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--t-textFaint);
+  white-space: nowrap;
+`;
+
+const TermAccessHint = styled.span`
+  font-size: 0.5625rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--t-textGhost);
+  white-space: nowrap;
 `;
 
 const PagerRow = styled.div`
@@ -1699,15 +1725,24 @@ function MembersTab({
   currentUser,
   isAdmin,
   onRoleChange,
+  onTerminalToggle,
 }: {
   profiles: MemberProfile[];
   currentUser: string;
   isAdmin: boolean;
   onRoleChange: (username: string, role: UserRole) => Promise<void>;
+  onTerminalToggle: (username: string, enabled: boolean) => Promise<void>;
 }) {
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(0);
   const [changing, setChanging] = useState<string | null>(null);
+  const [termChanging, setTermChanging] = useState<string | null>(null);
+
+  const handleTermToggle = async (username: string, enabled: boolean) => {
+    setTermChanging(username);
+    await onTerminalToggle(username, enabled);
+    setTermChanging(null);
+  };
 
   const filtered = profiles.filter((p) => {
     const q = query.toLowerCase();
@@ -1765,7 +1800,7 @@ function MembersTab({
                   <MemberEmail>{p.email}</MemberEmail>
                 </div>
                 {canChangeRole ? (
-                  <div style={{ flexShrink: 0 }}>
+                  <div style={{ flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "0.375rem" }}>
                     {changing === p.username ? (
                       <SavingText>Saving…</SavingText>
                     ) : (
@@ -1776,6 +1811,24 @@ function MembersTab({
                         <option value="admin">Admin</option>
                         <option value="employee">Employee</option>
                       </RoleSelect>
+                    )}
+                    {p.role === "admin" ? (
+                      <TermAccessHint title="Admins always have terminal access">
+                        ⌘ Terminal · always
+                      </TermAccessHint>
+                    ) : termChanging === p.username ? (
+                      <SavingText>Saving…</SavingText>
+                    ) : (
+                      <TermAccessRow>
+                        <TermAccessLabel>⌘ Terminal</TermAccessLabel>
+                        <Toggle
+                          $on={!!p.terminalAccess}
+                          onClick={() => handleTermToggle(p.username, !p.terminalAccess)}
+                          title={p.terminalAccess ? "Revoke terminal access" : "Grant terminal access"}
+                        >
+                          <ToggleThumb $on={!!p.terminalAccess} />
+                        </Toggle>
+                      </TermAccessRow>
                     )}
                   </div>
                 ) : (
@@ -1851,6 +1904,18 @@ export default function ChatSettingsModal({
     [onProfileRefresh]
   );
 
+  const handleTerminalToggle = useCallback(
+    async (username: string, enabled: boolean) => {
+      await fetch(`/api/admin/office-staff/${encodeURIComponent(username)}/terminal-access`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enabled }),
+      });
+      onProfileRefresh();
+    },
+    [onProfileRefresh]
+  );
+
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
@@ -1904,6 +1969,7 @@ export default function ChatSettingsModal({
               currentUser={currentUser}
               isAdmin={isAdmin}
               onRoleChange={handleRoleChange}
+              onTerminalToggle={handleTerminalToggle}
             />
           )}
         </Body>

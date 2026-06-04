@@ -22,6 +22,9 @@ export type Profile = {
   accentColor: string;
   avatarUrl: string;
   role: UserRole;
+  /** Per-user terminal grant — returned by /api/users/profile, surfaced in the
+   *  admin Members tab. Optional; admins are implicitly allowed. */
+  terminalAccess?: boolean;
 };
 
 const CHAT_SETTINGS_KEY = "tgv_chat_settings";

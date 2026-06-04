@@ -35,6 +35,11 @@ export type AuthToken = {
 /**
  * Returns the effective auth token — respects dev-mode impersonation when
  * the real JWT belongs to an admin and the impersonation cookie is set.
+ *
+ * Phase 3b note: the member-session bridge lives in getEffectiveUser() (the
+ * single chokepoint), so requireAuth inherits member-auth support without a
+ * change here — it still returns the exact { name, username, sub } shape the
+ * ~125 downstream call sites depend on. Don't re-add a member branch here.
  */
 export async function requireAuth(req: NextRequest): Promise<AuthToken | null> {
   try {

@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthToken } from "@/lib/auth-cookie";
 import { verify2faCookie } from "@/lib/twofa-cookie";
+import { validateMemberSession } from "@/lib/member-auth/edge-validate";
 import { readFileSync } from "fs";
 import path from "path";
+
+// NOTE: this proxy MUST stay on the Node runtime (no `export const runtime
+// = "edge"`). validateMemberSession() uses the pg driver (TCP sockets), which
+// does not exist on the edge runtime.
 
 // Per-user 2FA enrollment check. A user counts as enrolled if they have TOTP
 // enabled OR at least one registered passkey. A passkey is a phishing-resistant
@@ -65,9 +70,18 @@ export async function proxy(req: NextRequest) {
 
   if (isPublic) return NextResponse.next();
 
-  // Require NextAuth JWT
+  // Accept EITHER the legacy NextAuth JWT OR a VALIDATED member session
+  // (tgv_office_session). The member token is opaque, so we validate it with a
+  // direct DB lookup (validateMemberSession — a raw pg query, since
+  // getActiveSession() uses next/headers cookies() which throws in the proxy).
+  // This is a real validation, not a presence-check: `Cookie:
+  // tgv_office_session=garbage` finds no live row → null → login redirect.
   const token = await getAuthToken(req);
-  if (!token) {
+  const member = token
+    ? null
+    : await validateMemberSession(req.cookies.get("tgv_office_session")?.value);
+
+  if (!token && !member) {
     const loginUrl = new URL("/login", req.url);
     loginUrl.searchParams.set("callbackUrl", pathname);
     return NextResponse.redirect(loginUrl);
@@ -77,24 +91,40 @@ export async function proxy(req: NextRequest) {
   const isAuthOnly = AUTH_ONLY.some((p) => pathname.startsWith(p));
   if (isAuthOnly) return NextResponse.next();
 
-  // 2FA is MANDATORY for all users. Non-enrolled users get bounced to
-  // /setup-2fa; enrolled users without a valid 2FA cookie this session get
-  // bounced to /verify-2fa. No opt-out.
-  const username = token.username as string | undefined;
-  if (!username) {
-    const loginUrl = new URL("/login", req.url);
-    loginUrl.searchParams.set("callbackUrl", pathname);
-    return NextResponse.redirect(loginUrl);
+  // Member-session 2FA gate. The session row carries its own twoFactorVerified
+  // (passkey + recovery logins issue it true), so we trust that instead of the
+  // username-keyed TOTP/tgv-2fa checks — the proxy can't resolve the member's
+  // username at the edge anyway (no next/headers, no roster read here).
+  if (member) {
+    if (!member.twoFactorVerified) {
+      const twoFaUrl = new URL("/verify-2fa", req.url);
+      twoFaUrl.searchParams.set("callbackUrl", pathname);
+      return NextResponse.redirect(twoFaUrl);
+    }
+    return NextResponse.next();
   }
-  if (!is2faEnrolled(username)) {
-    const setupUrl = new URL("/setup-2fa", req.url);
-    setupUrl.searchParams.set("callbackUrl", pathname);
-    return NextResponse.redirect(setupUrl);
-  }
-  if (!verify2faCookie(req, username)) {
-    const twoFaUrl = new URL("/verify-2fa", req.url);
-    twoFaUrl.searchParams.set("callbackUrl", pathname);
-    return NextResponse.redirect(twoFaUrl);
+
+  // NextAuth path (unchanged). `token` is non-null here: the guard above
+  // redirected when both were absent, and the member branch returned for member
+  // sessions. 2FA is MANDATORY — non-enrolled users get bounced to /setup-2fa;
+  // enrolled users without a valid 2FA cookie this session get /verify-2fa.
+  if (token) {
+    const username = token.username as string | undefined;
+    if (!username) {
+      const loginUrl = new URL("/login", req.url);
+      loginUrl.searchParams.set("callbackUrl", pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+    if (!is2faEnrolled(username)) {
+      const setupUrl = new URL("/setup-2fa", req.url);
+      setupUrl.searchParams.set("callbackUrl", pathname);
+      return NextResponse.redirect(setupUrl);
+    }
+    if (!verify2faCookie(req, username)) {
+      const twoFaUrl = new URL("/verify-2fa", req.url);
+      twoFaUrl.searchParams.set("callbackUrl", pathname);
+      return NextResponse.redirect(twoFaUrl);
+    }
   }
 
   return NextResponse.next();

@@ -2,6 +2,8 @@ import { exec } from "child_process";
 import { promisify } from "util";
 import { readFileSync } from "fs";
 import path from "path";
+import { type NextRequest } from "next/server";
+import { requireAuth } from "@/lib/api-auth";
 
 const execAsync = promisify(exec);
 
@@ -46,7 +48,12 @@ function resolvePort(p: Pm2Process): number | null {
   return null;
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  // Defense-in-depth: require an authenticated session in-route (process list
+  // is ops data). Not the full terminal grant — any staff may view status.
+  const auth = await requireAuth(req);
+  if (!auth?.username) return Response.json({ error: "Unauthorized" }, { status: 401 });
+
   try {
     const { stdout } = await execAsync("pm2 jlist");
     const raw: Pm2Process[] = JSON.parse(stdout);

@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/api-auth";
+import { canUseTerminal } from "@/lib/member-auth/bridge";
 import fs from "fs";
 import path from "path";
 
@@ -22,5 +23,11 @@ export async function GET(req: NextRequest) {
     }
   } catch { /* ignore */ }
 
-  return NextResponse.json({ username: token.username, displayName, email, role });
+  return NextResponse.json({
+    username: token.username,
+    displayName,
+    email,
+    role,
+    canUseTerminal: canUseTerminal(token.username),
+  });
 }

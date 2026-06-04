@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/api-auth";
+import { readRoster } from "@/lib/member-auth/bridge";
 import fs from "fs";
 import path from "path";
 
@@ -38,6 +39,7 @@ export async function GET(req: NextRequest) {
   if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const db = readUsers();
+  const roster = readRoster();
   const profiles = Object.entries(db).map(([username, u]) => ({
     username,
     displayName: u.displayName,
@@ -49,6 +51,9 @@ export async function GET(req: NextRequest) {
     accentColor: u.accentColor ?? (username === "admin" ? "#ff4ecb" : "#00bfff"),
     darkAccent: u.darkAccent,
     lightAccent: u.lightAccent,
+    // Per-user terminal grant (admins implicitly allowed; shown in the admin
+    // Members tab). Source: office-staff.json roster.
+    terminalAccess: roster[username]?.terminalAccess === true,
   }));
   return NextResponse.json({ profiles });
 }

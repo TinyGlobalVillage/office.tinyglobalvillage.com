@@ -11,6 +11,8 @@ import { set2faCookie } from "@/lib/twofa-cookie";
 import { safeDest } from "@/lib/safe-redirect";
 import { logAuthEvent } from "@/lib/audit-log";
 import { rateLimit, clearRateLimit } from "@/lib/rate-limit";
+import { officeMemberAuth } from "@/lib/member-auth/config";
+import { usernameForMemberUserId } from "@/lib/member-auth/bridge";
 
 const RP_ID = "office.tinyglobalvillage.com";
 const ORIGIN = "https://office.tinyglobalvillage.com";
@@ -20,6 +22,67 @@ export async function POST(req: NextRequest) {
   if (!body) return NextResponse.json({ error: "Bad request" }, { status: 400 });
 
   const { username: rawUsername, response: authResponse, callbackUrl } = body;
+
+  // ── MEMBER PATH (dual-path) ───────────────────────────────────────────────
+  // If the asserted credential lives in member_passkeys, this is a canonical
+  // member login: the shared package verifies it and issues a member session
+  // (tgv_office_session, twoFactorVerified=true). Otherwise fall through to the
+  // legacy users.json NextAuth path below, UNCHANGED. Today only gio@ (office
+  // username "admin") has a member passkey; everyone else stays on NextAuth.
+  //
+  // The whole branch is wrapped in try/catch: ANY infrastructure error (DB
+  // down, pool exhausted) falls THROUGH to the NextAuth fallback below, so a
+  // transient DB hiccup can never lock out a user who has a working fallback.
+  // Only an explicit assertion failure (result.ok === false) rejects without
+  // falling back — that's a security event, not an outage.
+  try {
+    if (typeof authResponse?.id === "string" && authResponse.id) {
+      const memberPasskey = await officeMemberAuth.getPasskeyByCredentialId(authResponse.id);
+      if (memberPasskey) {
+        const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
+        // Rate-limit per member account (the uuid), NOT the public credential
+        // id — a credential id is observable, so keying on it lets anyone DoS a
+        // specific passkey. Distinct bucket prefix from the NextAuth path.
+        const rlKey = `passkey-assert-member:${memberPasskey.memberUserId}`;
+        const rl = rateLimit(rlKey, 10, 15 * 60 * 1000);
+        if (!rl.ok) {
+          logAuthEvent({ event: "passkey.assert", username: memberPasskey.memberUserId, success: false, ip, details: { path: "member", reason: "rate_limited" } });
+          return NextResponse.json({ error: "Too many attempts. Try again later." }, { status: 429 });
+        }
+        const expectedChallenge = readPasskeyAuthChallenge(req);
+        if (!expectedChallenge) return NextResponse.json({ error: "No challenge" }, { status: 400 });
+
+        const result = await officeMemberAuth.loginWithDiscoverablePasskey({
+          response: authResponse,
+          expectedChallenge,
+        });
+        const auname =
+          (await usernameForMemberUserId(memberPasskey.memberUserId)) ?? memberPasskey.memberUserId;
+        if (!result.ok) {
+          // Known member credential but the assertion failed (bad signature /
+          // counter regression) — a security event. Do NOT fall back to the
+          // users.json path; reject outright.
+          logAuthEvent({ event: "passkey.assert", username: auname, success: false, ip, details: { path: "member", reason: result.error } });
+          return NextResponse.json({ error: "Verification failed" }, { status: 400 });
+        }
+        clearRateLimit(rlKey);
+        // loginWithDiscoverablePasskey already issued the session (set the
+        // tgv_office_session cookie via next/headers). Build the JSON response
+        // and clear the single-use challenge cookie on it. No tgv-2fa cookie —
+        // the member session row carries twoFactorVerified itself.
+        const res = NextResponse.json({ ok: true, redirectTo: safeDest(callbackUrl) });
+        clearPasskeyAuthChallenge(res);
+        logAuthEvent({ event: "passkey.assert", username: auname, success: true, ip, details: { path: "member" } });
+        return res;
+      }
+    }
+  } catch (e) {
+    // Member-path infrastructure error (e.g. DB unavailable). Degrade to the
+    // NextAuth fallback below instead of 500-ing the whole login.
+    const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
+    logAuthEvent({ event: "passkey.assert", username: typeof authResponse?.id === "string" ? authResponse.id : "unknown", success: false, ip, details: { path: "member", reason: "member_path_error", error: String(e) } });
+  }
+
   const store = readUsers();
 
   // The asserted credential id is the source of truth for WHO is signing in
