@@ -1710,7 +1710,7 @@ function SettingsTab({
 
       <SignOutRow>
         <HintText>Signed in as <strong>{currentUser}</strong></HintText>
-        <SignOutBtn onClick={() => { clearAllDrawerState(); signOut({ callbackUrl: "/login" }); }}>
+        <SignOutBtn onClick={async () => { clearAllDrawerState(); await fetch("/api/auth/logout", { method: "POST" }).catch(() => {}); signOut({ callbackUrl: "/login" }); }}>
           <span>⏏</span> Sign out
         </SignOutBtn>
       </SignOutRow>

@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
 
   // ── MEMBER PATH (dual-path) ───────────────────────────────────────────────
   // Try the canonical member recovery codes first. On success, the package
-  // issues a member session (tgv_office_session, 2FA-verified). On invalid_code
+  // issues a member session (tgv_member_session, 2FA-verified). On invalid_code
   // (unknown email / no codes / wrong code — all identical) fall through to the
   // legacy users.json path so a staffer whose codes only live there still works.
   const email = rosterEmailForUsername(username);

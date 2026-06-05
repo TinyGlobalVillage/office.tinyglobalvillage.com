@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
   // ── MEMBER PATH (dual-path) ───────────────────────────────────────────────
   // If the asserted credential lives in member_passkeys, this is a canonical
   // member login: the shared package verifies it and issues a member session
-  // (tgv_office_session, twoFactorVerified=true). Otherwise fall through to the
+  // (tgv_member_session, twoFactorVerified=true). Otherwise fall through to the
   // legacy users.json NextAuth path below, UNCHANGED. Today only gio@ (office
   // username "admin") has a member passkey; everyone else stays on NextAuth.
   //
@@ -67,7 +67,7 @@ export async function POST(req: NextRequest) {
         }
         clearRateLimit(rlKey);
         // loginWithDiscoverablePasskey already issued the session (set the
-        // tgv_office_session cookie via next/headers). Build the JSON response
+        // tgv_member_session cookie via next/headers). Build the JSON response
         // and clear the single-use challenge cookie on it. No tgv-2fa cookie —
         // the member session row carries twoFactorVerified itself.
         const res = NextResponse.json({ ok: true, redirectTo: safeDest(callbackUrl) });

@@ -416,7 +416,7 @@ export default function DevUserSwitcher({ adminUsername }: Props) {
 
           <Divider />
 
-          <LogoutBtn type="button" onClick={() => { clearAllDrawerState(); signOut({ callbackUrl: "/login" }); }}>
+          <LogoutBtn type="button" onClick={async () => { clearAllDrawerState(); await fetch("/api/auth/logout", { method: "POST" }).catch(() => {}); signOut({ callbackUrl: "/login" }); }}>
             Sign Out
           </LogoutBtn>
         </Panel>

@@ -15,7 +15,7 @@
  * adapted to office's JSON-file user store + JWT (getToken) auth shape.
  *
  * Phase 3b: the REAL (non-impersonated) identity now resolves from the
- * canonical member session FIRST (officeMemberAuth, cookie tgv_office_session)
+ * canonical member session FIRST (officeMemberAuth, cookie tgv_member_session)
  * and falls back to the legacy NextAuth JWT. The existing admin-impersonation
  * logic runs unchanged on top of whichever path produced the base identity, so
  * impersonation composes with member sessions for free. Because requireAuth()
@@ -55,7 +55,7 @@ function readImpersonateCookie(req: NextRequest): string | null {
 
 export async function getEffectiveUser(req: NextRequest): Promise<EffectiveToken | null> {
   // Resolve the REAL identity: canonical member session first, NextAuth JWT
-  // fallback. Member path is dormant until 3c sets tgv_office_session.
+  // fallback. Member path is dormant until 3c sets tgv_member_session.
   let realName: string | undefined;
   let realUsername: string | undefined;
   let realSub: string | undefined;

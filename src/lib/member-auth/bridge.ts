@@ -2,7 +2,7 @@
 //
 // Phase 3b of the passkey-only migration: Office's central auth helpers learn
 // to read the canonical DB-backed member session (officeMemberAuth, cookie
-// `tgv_office_session`) in addition to the legacy NextAuth JWT. This file is
+// `tgv_member_session`) in addition to the legacy NextAuth JWT. This file is
 // the SINGLE place that knows how to turn an `ActiveSession` into the
 // `{ username, sub, name }` shape the ~125 existing Office call sites expect,
 // so api-auth / getEffectiveUser / future route handlers don't each
@@ -21,7 +21,7 @@
 // `token.sub === "admin"` checks and `token.username ?? token.sub` fallbacks
 // all keep working unchanged.
 //
-// DORMANT until Phase 3c: nothing sets `tgv_office_session` yet, so
+// DORMANT until Phase 3c: nothing sets `tgv_member_session` yet, so
 // getActiveSession() returns null (no cookie → no DB query) and every caller
 // transparently falls through to the NextAuth path. This is additive.
 
@@ -102,7 +102,7 @@ export function canUseTerminal(username: string | undefined): boolean {
 }
 
 /**
- * Reads the member session (tgv_office_session cookie) and maps it to the
+ * Reads the member session (tgv_member_session cookie) and maps it to the
  * Office token shape. Returns null when:
  *   - there is no member session (no cookie / expired), OR
  *   - the member's email is not on the Office staff roster.

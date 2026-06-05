@@ -10,8 +10,11 @@ import { memberUserIdForUsername } from "@/lib/member-auth/bridge";
 import { officeMemberAuth } from "@/lib/member-auth/config";
 import { setPasskeyRegisterChallenge } from "@/lib/passkey-challenge-cookie";
 
-const RP_ID = "office.tinyglobalvillage.com";
-const RP_NAME = "TGV Office";
+// New passkeys bind to the PARENT registrable domain so one credential works on
+// both office.tinyglobalvillage.com AND tinyglobalvillage.com (SSO). Valid here
+// because office.<host> has <host> as a registrable suffix of its origin.
+const RP_ID = "tinyglobalvillage.com";
+const RP_NAME = "Tiny Global Village";
 
 function b64toUint8(str: string): Uint8Array {
   return new Uint8Array(Buffer.from(str, "base64url"));

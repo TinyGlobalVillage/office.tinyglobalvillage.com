@@ -15,7 +15,10 @@ import { generateRecoveryCodes } from "@/lib/recovery-codes";
 import { pgPool } from "@/lib/pg-pool";
 import { logAuthEvent } from "@/lib/audit-log";
 
-const RP_ID = "office.tinyglobalvillage.com";
+// New passkeys bind to the PARENT domain (SSO across both apps). ORIGIN stays
+// this app's own origin — verifyRegistrationResponse checks clientDataJSON.origin
+// against ORIGIN and the credential's rpIdHash against RP_ID separately.
+const RP_ID = "tinyglobalvillage.com";
 const ORIGIN = "https://office.tinyglobalvillage.com";
 const VALID_TRANSPORTS = ["usb", "nfc", "ble", "internal", "hybrid", "cable", "smart-card"];
 
