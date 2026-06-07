@@ -1,38 +1,34 @@
 /**
  * TGV Office — admin dashboard scaffold.
  *
- * Auth is gated by the proxy middleware (src/proxy.ts) — if the request
- * reaches this component, the user has a valid JWT. We DO NOT redirect on
- * useSession showing "loading" or a brief "unauthenticated" blip, since that
- * would race with SessionProvider's first /api/auth/session fetch.
- *
- * Admin-role check is done by probing /api/dev/demo-users (which the dev
- * routes already gate server-side). If the probe fails, we just show a
- * "not authorized" message rather than redirecting.
+ * Auth is gated by the proxy middleware (src/proxy.ts) on the member session.
+ * Identity + role are resolved from /api/users/me (requireAuth -> member
+ * session), the same pattern the rest of the app uses — NOT useSession(), which
+ * is dead under member-auth (no NextAuth JWT is issued post-2026-06-05 retire).
  */
 "use client";
 
 import { useEffect, useState } from "react";
-import { useSession } from "next-auth/react";
 import AdminDashboardClient from "./AdminDashboardClient";
 
+type Me = { username?: string; role?: string };
+
 export default function AdminDashboardPage() {
-  const { data: session, status } = useSession();
-  const [adminConfirmed, setAdminConfirmed] = useState<boolean | null>(null);
+  const [me, setMe] = useState<Me | null | undefined>(undefined);
 
   useEffect(() => {
-    if (status !== "authenticated") return;
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch("/api/dev/demo-users");
-        if (!cancelled) setAdminConfirmed(res.ok);
+        const res = await fetch("/api/users/me");
+        const data = res.ok ? ((await res.json()) as Me) : null;
+        if (!cancelled) setMe(data);
       } catch {
-        if (!cancelled) setAdminConfirmed(false);
+        if (!cancelled) setMe(null);
       }
     })();
     return () => { cancelled = true; };
-  }, [status]);
+  }, []);
 
   const wrap = (body: React.ReactNode) => (
     <div style={{
@@ -44,12 +40,9 @@ export default function AdminDashboardPage() {
     }}>{body}</div>
   );
 
-  if (status === "loading") return wrap("Loading session…");
-  if (status !== "authenticated") return wrap(<>Not signed in. <a href="/login">Sign in</a>.</>);
-  if (adminConfirmed === null) return wrap("Verifying admin access…");
-  if (!adminConfirmed) return wrap("Admin-only page. Contact Gio if you need access.");
+  if (me === undefined) return wrap("Loading…");
+  if (!me) return wrap(<>Not signed in. <a href="/login">Sign in</a>.</>);
+  if (me.role !== "admin") return wrap("Admin-only page. Contact Gio if you need access.");
 
-  const username =
-    (session?.user as { username?: string } | null)?.username ?? "admin";
-  return <AdminDashboardClient adminUsername={username} />;
+  return <AdminDashboardClient adminUsername={me.username ?? "admin"} />;
 }

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateAuthenticationOptions } from "@simplewebauthn/server";
-import { readUsers } from "@/lib/users";
 import { setPasskeyAuthChallenge } from "@/lib/passkey-challenge-cookie";
 import { rateLimit } from "@/lib/rate-limit";
 
@@ -17,21 +16,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Too many attempts. Try again later." }, { status: 429 });
   }
 
-  const { username } = await req.json().catch(() => ({}));
-
-  const store = readUsers();
-  const user = username ? store[username] : null;
-
+  // Discoverable (usernameless) login only: never constrain allowCredentials —
+  // the authenticator surfaces every resident parent-scoped passkey for this
+  // rpId. The legacy users.json-keyed allowCredentials path was removed with the
+  // NextAuth retire (2026-06-05); member passkeys are discoverable by design.
   const options = await generateAuthenticationOptions({
     rpID: RP_ID,
     userVerification: "required",
-    allowCredentials: user
-      ? user.webauthnCredentials.map((c) => ({
-          id: new Uint8Array(Buffer.from(c.id, "base64url")),
-          type: "public-key" as const,
-          transports: ["internal", "hybrid"] as AuthenticatorTransport[],
-        }))
-      : [],
+    allowCredentials: [],
   });
 
   const res = NextResponse.json(options);

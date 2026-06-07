@@ -45,9 +45,9 @@ function staffEmails(): Set<string> | null {
 /**
  * Validate an opaque member-session token against member_sessions AND confirm
  * the member is Office staff. Returns null when the token is absent, unknown,
- * expired, or belongs to a non-staff member (caller then falls through to the
- * NextAuth path / login redirect). On a live staff session, reports whether 2FA
- * has been satisfied.
+ * expired, or belongs to a non-staff member (the proxy then redirects to
+ * /login — the member session is the SOLE gate post-2026-06-05 retire). On a
+ * live staff session, reports whether 2FA has been satisfied.
  */
 export async function validateMemberSession(
   sessionToken: string | undefined,
@@ -70,8 +70,9 @@ export async function validateMemberSession(
     if (staff && !staff.has(rows[0].email)) return null;
     return { valid: true, twoFactorVerified: rows[0].two_factor_verified === true };
   } catch {
-    // DB hiccup → treat as no member session; NextAuth path / login redirect
-    // still gates the request. Never throw out of the proxy.
+    // DB hiccup → treat as no member session; the proxy redirects to /login
+    // (fail closed). Never throw out of the proxy. A total DB outage takes the
+    // whole app down anyway; the same cookie validates once Postgres recovers.
     return null;
   }
 }

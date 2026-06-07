@@ -2,7 +2,13 @@ import { createHmac, timingSafeEqual } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 
 const COOKIE_NAME = "tgv-2fa";
-const TTL_MS = 12 * 60 * 60 * 1000; // 12 hours
+const TTL_MS = 12 * 60 * 60 * 1000; // 12 hours (default for the TOTP step-up path)
+// Passkey/recovery logins issue a 30-day member session whose 2FA is proven by
+// the passkey itself. The tgv-2fa proof cookie must NOT expire before that
+// session, or the personal-inbox gate (requirePersonalAccess) would trip
+// mid-session with no auto-refresh. So those callers pass the session TTL.
+const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+export { SESSION_TTL_MS as TWO_FA_SESSION_TTL_MS };
 
 function sign(username: string, expires: number): string {
   const payload = `${username}:${expires}`;
@@ -12,8 +18,8 @@ function sign(username: string, expires: number): string {
   return `${payload}:${sig}`;
 }
 
-export function create2faCookie(username: string): { name: string; value: string; options: object } {
-  const expires = Date.now() + TTL_MS;
+export function create2faCookie(username: string, ttlMs: number = TTL_MS): { name: string; value: string; options: object } {
+  const expires = Date.now() + ttlMs;
   return {
     name: COOKIE_NAME,
     value: sign(username, expires),
@@ -21,7 +27,7 @@ export function create2faCookie(username: string): { name: string; value: string
       httpOnly: true,
       secure: true,
       sameSite: "lax" as const,
-      maxAge: TTL_MS / 1000,
+      maxAge: Math.floor(ttlMs / 1000),
       path: "/",
     },
   };
@@ -44,8 +50,8 @@ export function verify2faCookie(req: NextRequest, username: string): boolean {
   }
 }
 
-export function set2faCookie(res: NextResponse, username: string): void {
-  const cookie = create2faCookie(username);
+export function set2faCookie(res: NextResponse, username: string, ttlMs?: number): void {
+  const cookie = create2faCookie(username, ttlMs);
   res.cookies.set(cookie.name, cookie.value, cookie.options);
 }
 

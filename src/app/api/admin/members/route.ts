@@ -1,15 +1,15 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { desc } from "drizzle-orm";
-import { auth } from "@/auth";
+import { requireAdmin } from "@/lib/api-admin";
 import { db, schema } from "@/lib/db-drizzle";
 
 export const runtime = "nodejs";
 
-export async function GET() {
-  const session = await auth();
-  if (!session?.user) {
-    return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
-  }
+export async function GET(req: NextRequest) {
+  // Member-aware admin gate (the legacy NextAuth auth() was retired 2026-06-05
+  // and returns null in prod). requireAdmin also enforces role==="admin".
+  const gate = await requireAdmin(req);
+  if (gate instanceof NextResponse) return gate;
 
   const rows = await db
     .select()

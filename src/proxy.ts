@@ -1,33 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAuthToken } from "@/lib/auth-cookie";
-import { verify2faCookie } from "@/lib/twofa-cookie";
 import { validateMemberSession } from "@/lib/member-auth/edge-validate";
-import { readFileSync } from "fs";
-import path from "path";
 
 // NOTE: this proxy MUST stay on the Node runtime (no `export const runtime
 // = "edge"`). validateMemberSession() uses the pg driver (TCP sockets), which
 // does not exist on the edge runtime.
-
-// Per-user 2FA enrollment check. A user counts as enrolled if they have TOTP
-// enabled OR at least one registered passkey. A passkey is a phishing-resistant
-// strong factor that stands on its own, so passkey-only users must NOT be
-// force-marched into TOTP setup. The actual per-session gate is the tgv-2fa
-// cookie check below — this only decides setup vs. verify.
-function is2faEnrolled(username: string): boolean {
-  try {
-    const p = path.join(process.cwd(), "data", "users.json");
-    const store = JSON.parse(readFileSync(p, "utf8")) as Record<
-      string,
-      { totpEnabled?: boolean; webauthnCredentials?: unknown[] }
-    >;
-    const u = store[username];
-    if (!u) return false;
-    return u.totpEnabled === true || (u.webauthnCredentials?.length ?? 0) > 0;
-  } catch {
-    return false;
-  }
-}
 
 // Paths that skip ALL checks
 // NOTE: /api/announcements handles its own auth (bearer token for POST, session for GET/PATCH)
@@ -38,7 +14,7 @@ function is2faEnrolled(username: string): boolean {
 //       Telegram can POST without a session cookie.
 const PUBLIC = [
   "/login", "/api/auth", "/_next", "/favicon", "/og.png",
-  "/api/auth/magic-link", "/api/announcements",
+  "/api/announcements",
   "/api/frontdesk/calls/webhook",
   "/api/frontdesk/sms/webhook",
   "/api/frontdesk/sms/tfv-status",
@@ -70,23 +46,16 @@ export async function proxy(req: NextRequest) {
 
   if (isPublic) return NextResponse.next();
 
-  // Accept EITHER a VALIDATED member session (tgv_member_session) OR the legacy
-  // NextAuth JWT. The member session is checked FIRST and WINS: a user can hold
-  // a stale NextAuth cookie AND a fresh member session (e.g. they had a JWT,
-  // then logged in with a passkey). If we preferred the JWT, its 2FA gate
-  // (tgv-2fa cookie, which member login does NOT set) would bounce them to
-  // /verify-2fa forever. So a live member session takes precedence.
-  //
-  // The member token is opaque → validate it with a direct DB lookup
-  // (validateMemberSession — a raw pg query; getActiveSession() uses
-  // next/headers cookies() which throws in the proxy). Real validation, not a
-  // presence-check: `Cookie: tgv_member_session=garbage` finds no live row →
-  // null → fall through to NextAuth / login redirect. No member cookie → the
-  // query short-circuits, so NextAuth-only users pay no DB cost.
+  // Member session is the SOLE gate (NextAuth retired 2026-06-05). The token is
+  // opaque → validate it with a direct DB lookup (validateMemberSession — a raw
+  // pg query; getActiveSession() uses next/headers cookies() which throws in the
+  // proxy). Real validation, not a presence-check: `Cookie:
+  // tgv_member_session=garbage` finds no live row → null → login redirect. No
+  // member cookie → the query short-circuits, so the cost is paid only for
+  // would-be sessions.
   const member = await validateMemberSession(req.cookies.get("tgv_member_session")?.value);
-  const token = member ? null : await getAuthToken(req);
 
-  if (!token && !member) {
+  if (!member) {
     const loginUrl = new URL("/login", req.url);
     loginUrl.searchParams.set("callbackUrl", pathname);
     return NextResponse.redirect(loginUrl);
@@ -96,40 +65,14 @@ export async function proxy(req: NextRequest) {
   const isAuthOnly = AUTH_ONLY.some((p) => pathname.startsWith(p));
   if (isAuthOnly) return NextResponse.next();
 
-  // Member-session 2FA gate. The session row carries its own twoFactorVerified
-  // (passkey + recovery logins issue it true), so we trust that instead of the
-  // username-keyed TOTP/tgv-2fa checks — the proxy can't resolve the member's
-  // username at the edge anyway (no next/headers, no roster read here).
-  if (member) {
-    if (!member.twoFactorVerified) {
-      const twoFaUrl = new URL("/verify-2fa", req.url);
-      twoFaUrl.searchParams.set("callbackUrl", pathname);
-      return NextResponse.redirect(twoFaUrl);
-    }
-    return NextResponse.next();
-  }
-
-  // NextAuth path (unchanged). `token` is non-null here: the guard above
-  // redirected when both were absent, and the member branch returned for member
-  // sessions. 2FA is MANDATORY — non-enrolled users get bounced to /setup-2fa;
-  // enrolled users without a valid 2FA cookie this session get /verify-2fa.
-  if (token) {
-    const username = token.username as string | undefined;
-    if (!username) {
-      const loginUrl = new URL("/login", req.url);
-      loginUrl.searchParams.set("callbackUrl", pathname);
-      return NextResponse.redirect(loginUrl);
-    }
-    if (!is2faEnrolled(username)) {
-      const setupUrl = new URL("/setup-2fa", req.url);
-      setupUrl.searchParams.set("callbackUrl", pathname);
-      return NextResponse.redirect(setupUrl);
-    }
-    if (!verify2faCookie(req, username)) {
-      const twoFaUrl = new URL("/verify-2fa", req.url);
-      twoFaUrl.searchParams.set("callbackUrl", pathname);
-      return NextResponse.redirect(twoFaUrl);
-    }
+  // 2FA gate. The session row carries its own twoFactorVerified (passkey +
+  // recovery logins always issue it true), so we trust that — the proxy can't
+  // resolve the member's username at the edge anyway (no next/headers, no roster
+  // read here). A passkey is itself a strong 2-factor credential.
+  if (!member.twoFactorVerified) {
+    const twoFaUrl = new URL("/verify-2fa", req.url);
+    twoFaUrl.searchParams.set("callbackUrl", pathname);
+    return NextResponse.redirect(twoFaUrl);
   }
 
   return NextResponse.next();

@@ -25,7 +25,6 @@
  */
 import type { NextRequest } from "next/server";
 import { readUsers } from "@/lib/users";
-import { getAuthToken } from "@/lib/auth-cookie";
 import { getBridgedMember, getOfficeRole } from "@/lib/member-auth/bridge";
 
 export type EffectiveToken = {
@@ -54,30 +53,17 @@ function readImpersonateCookie(req: NextRequest): string | null {
 }
 
 export async function getEffectiveUser(req: NextRequest): Promise<EffectiveToken | null> {
-  // Resolve the REAL identity: canonical member session first, NextAuth JWT
-  // fallback. Member path is dormant until 3c sets tgv_member_session.
-  let realName: string | undefined;
-  let realUsername: string | undefined;
-  let realSub: string | undefined;
-
+  // The canonical DB-backed member session is now the SOLE identity source —
+  // the NextAuth JWT fallback was removed in the 2026-06-05 retire. No live
+  // member session → unauthenticated (callers redirect to /login).
   const member = await getBridgedMember();
-  if (member) {
-    realName = member.name;
-    realUsername = member.username;
-    realSub = member.sub; // == username
-  } else {
-    const token = await getAuthToken(req);
-    if (!token) return null;
-    realUsername = (token as { username?: string }).username;
-    if (!realUsername) return null;
-    realName = token.name as string | undefined;
-    realSub = token.sub;
-  }
-  if (!realUsername) return null;
+  if (!member) return null;
 
-  // On the member path the role is already resolved from the roster (the
-  // authoritative source); only re-read for the NextAuth path.
-  const realRole = member ? member.role : getRole(realUsername);
+  const realName = member.name;
+  const realUsername = member.username;
+  const realSub = member.sub; // == username
+  // Role is already resolved from the roster (the authoritative source).
+  const realRole = member.role;
 
   if (isDevSwitcherEnabled() && realRole === "admin") {
     const target = readImpersonateCookie(req);

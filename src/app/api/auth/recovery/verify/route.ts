@@ -1,14 +1,16 @@
 // Break-glass login: redeem a single-use recovery code when no passkey is
 // available. Public (no prior session) — the recovery code IS the credential.
-// Proof of a valid code mints a full session + the 2FA cookie, just like a
+// Proof of a valid code mints a member session + the 2FA cookie, just like a
 // passkey assertion. Hard rate-limited; account-enumeration-safe.
+//
+// MEMBER-AUTH ONLY (2026-06-05 NextAuth retire): codes are verified against the
+// canonical member store (officeMemberAuth.loginWithRecoveryCode). The legacy
+// users.json recovery path was removed — an unknown user or wrong code returns
+// the same generic error (no enumeration), and an infra error fails CLOSED.
 
 import { NextRequest, NextResponse } from "next/server";
-import { readUsers, updateUser } from "@/lib/users";
-import { redeemRecoveryCode } from "@/lib/recovery-codes";
-import { encode } from "next-auth/jwt";
 import { sessionCookieName } from "@/lib/auth-cookie";
-import { set2faCookie } from "@/lib/twofa-cookie";
+import { set2faCookie, TWO_FA_SESSION_TTL_MS } from "@/lib/twofa-cookie";
 import { safeDest } from "@/lib/safe-redirect";
 import { logAuthEvent } from "@/lib/audit-log";
 import { rateLimit, clearRateLimit } from "@/lib/rate-limit";
@@ -35,87 +37,46 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Too many attempts. Try again later." }, { status: 429 });
   }
 
-  // ── MEMBER PATH (dual-path) ───────────────────────────────────────────────
-  // Try the canonical member recovery codes first. On success, the package
-  // issues a member session (tgv_member_session, 2FA-verified). On invalid_code
-  // (unknown email / no codes / wrong code — all identical) fall through to the
-  // legacy users.json path so a staffer whose codes only live there still works.
+  // Resolve the roster email for this Office username, then redeem against the
+  // canonical member recovery codes. An unknown username and a wrong code are
+  // indistinguishable to the caller (no account enumeration).
   const email = rosterEmailForUsername(username);
-  if (email) {
-    let r: Awaited<ReturnType<typeof officeMemberAuth.loginWithRecoveryCode>>;
-    try {
-      r = await officeMemberAuth.loginWithRecoveryCode({ email, code });
-    } catch {
-      // FAIL CLOSED on an infra error. Do NOT fall through to users.json: if the
-      // same code lives in both stores and the member-side UPDATE failed mid-
-      // redeem, falling through would redeem it again (double-spend) while the
-      // member-side code stays live.
-      logAuthEvent({ event: "recovery.redeem", username, success: false, ip, details: { path: "member", reason: "db_error" } });
-      return NextResponse.json({ error: "Service temporarily unavailable. Try again." }, { status: 503 });
-    }
-    if (r.ok) {
-      clearRateLimit(`recovery:${username}`);
-      const res = NextResponse.json({
-        ok: true,
-        redirectTo: safeDest(callbackUrl),
-        remaining: r.remaining,
-        low: r.remaining <= 2,
-      });
-      // Member session carries twoFactorVerified; also set the legacy tgv-2fa
-      // proof cookie (requirePersonalAccess etc.) and clear any stale NextAuth
-      // session so the proxy doesn't fall back to the JWT path.
-      set2faCookie(res, username);
-      res.cookies.set(sessionCookieName(), "", { maxAge: 0, path: "/" });
-      logAuthEvent({ event: "recovery.redeem", username, success: true, ip, details: { remaining: r.remaining, path: "member" } });
-      return res;
-    }
-    if (r.error === "conflict_retry") {
-      return NextResponse.json({ error: "Please try again." }, { status: 409 });
-    }
-    // else (invalid_code — a clean miss, not an infra error): fall through to
-    // the legacy users.json path for staff whose codes only live there.
-  }
-
-  const store = readUsers();
-  const user = store[username];
-  // Identical failure for unknown user and bad code → no account enumeration.
-  const remaining = user ? await redeemRecoveryCode(code, user.recoveryCodesHash ?? []) : null;
-  if (!user || remaining === null) {
-    logAuthEvent({ event: "recovery.redeem", username, success: false, ip });
+  if (!email) {
+    logAuthEvent({ event: "recovery.redeem", username, success: false, ip, details: { reason: "unknown_user" } });
     return NextResponse.json({ error: "Invalid recovery code." }, { status: 400 });
   }
 
-  updateUser(username, { recoveryCodesHash: remaining });
-  clearRateLimit(`recovery:${username}`);
+  let r: Awaited<ReturnType<typeof officeMemberAuth.loginWithRecoveryCode>>;
+  try {
+    r = await officeMemberAuth.loginWithRecoveryCode({ email, code });
+  } catch {
+    // Fail CLOSED on an infra error — there is no fallback store to retry.
+    logAuthEvent({ event: "recovery.redeem", username, success: false, ip, details: { reason: "db_error" } });
+    return NextResponse.json({ error: "Service temporarily unavailable. Try again." }, { status: 503 });
+  }
 
-  const COOKIE_NAME = sessionCookieName();
-  const token = await encode({
-    token: {
-      sub: username,
-      name: user.displayName,
-      username,
-      iat: Math.floor(Date.now() / 1000),
-      exp: Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60,
-    },
-    secret: process.env.AUTH_SECRET!,
-    salt: COOKIE_NAME,
-  });
+  if (r.ok) {
+    clearRateLimit(`recovery:${username}`);
+    const res = NextResponse.json({
+      ok: true,
+      redirectTo: safeDest(callbackUrl),
+      remaining: r.remaining,
+      low: r.remaining <= 2,
+    });
+    // The member session carries twoFactorVerified; also set the legacy tgv-2fa
+    // proof cookie (requirePersonalAccess etc.) and clear any stale NextAuth
+    // session so nothing can revive the JWT path.
+    set2faCookie(res, username, TWO_FA_SESSION_TTL_MS);
+    res.cookies.set(sessionCookieName(), "", { maxAge: 0, path: "/" });
+    logAuthEvent({ event: "recovery.redeem", username, success: true, ip, details: { remaining: r.remaining } });
+    return res;
+  }
 
-  const res = NextResponse.json({
-    ok: true,
-    redirectTo: safeDest(callbackUrl),
-    remaining: remaining.length,
-    low: remaining.length <= 2,
-  });
-  res.cookies.set(COOKIE_NAME, token, {
-    httpOnly: true,
-    secure: true,
-    sameSite: "lax",
-    maxAge: 30 * 24 * 60 * 60,
-    path: "/",
-  });
-  // A recovery code is a break-glass strong factor → it satisfies 2FA.
-  set2faCookie(res, username);
-  logAuthEvent({ event: "recovery.redeem", username, success: true, ip, details: { remaining: remaining.length } });
-  return res;
+  if (r.error === "conflict_retry") {
+    return NextResponse.json({ error: "Please try again." }, { status: 409 });
+  }
+
+  // invalid_code — a clean miss. Same generic error as unknown user.
+  logAuthEvent({ event: "recovery.redeem", username, success: false, ip, details: { reason: "invalid_code" } });
+  return NextResponse.json({ error: "Invalid recovery code." }, { status: 400 });
 }

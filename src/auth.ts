@@ -1,25 +1,27 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
-import bcrypt from "bcryptjs";
 
+// Passkey-only, member-auth-only (2026-06-05 retire of the legacy NextAuth
+// login). The standing password login is GONE — no credentials/password
+// provider remains. Authentication is solely a WebAuthn passkey (or a recovery
+// code) via @tgv/module-auth, which issues the member session cookie
+// (tgv_member_session). The break-glass is now the recovery-code login +
+// audited admin reset — NOT a password.
+//
+// This NextAuth instance is kept ONLY as the client session-context shell
+// (SessionProvider/useSession) + the sign-out helper that clears any stale
+// legacy JWT. It no longer issues sessions in production (no non-dev provider),
+// and nothing mints a NextAuth JWT anymore — the proxy + getEffectiveUser read
+// the member session exclusively.
 const USERS = [
-  {
-    id: "1",
-    name: "Gio",
-    username: "admin",
-    passwordHashEnv: "ADMIN_PASSWORD_HASH",
-  },
-  {
-    id: "2",
-    name: "Marthe",
-    username: "marmar",
-    passwordHashEnv: "MARMAR_PASSWORD_HASH",
-  },
+  { id: "1", name: "Gio", username: "admin" },
+  { id: "2", name: "Marthe", username: "marmar" },
 ];
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [
-    // Dev-only: skip password when DEV_AUTO_LOGIN=<username> is set
+    // Dev-only convenience: skip auth when DEV_AUTO_LOGIN=<username> is set on a
+    // local dev box. NODE_ENV-gated → never active in production.
     ...(process.env.NODE_ENV === "development" && process.env.NEXT_PUBLIC_DEV_AUTO_LOGIN
       ? [Credentials({
           id: "dev",
@@ -29,37 +31,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             return u ? { id: u.id, name: u.name, username: u.username } as { id: string; name: string; username: string } : null;
           },
         })]
-      : []),
-    // Passkey-only cutover (2026-06-04): the standing password login is GONE.
-    // The credentials provider is gated behind ALLOW_PASSWORD_LOGIN (default
-    // off) so it's an operator-triggered break-glass only (set the env + reload
-    // in a true emergency), never a standing login. Normal recovery is the
-    // recovery-code login + audited admin reset.
-    ...(process.env.ALLOW_PASSWORD_LOGIN === "true"
-      ? [
-          Credentials({
-            credentials: {
-              username: { label: "Username", type: "text" },
-              password: { label: "Password", type: "password" },
-            },
-            authorize: async (credentials) => {
-              const username = credentials?.username as string | undefined;
-              const password = credentials?.password as string | undefined;
-              if (!username || !password) return null;
-
-              const user = USERS.find((u) => u.username === username);
-              if (!user) return null;
-
-              const hash = process.env[user.passwordHashEnv];
-              if (!hash) return null;
-
-              const valid = await bcrypt.compare(password, hash);
-              if (!valid) return null;
-
-              return { id: user.id, name: user.name, username: user.username } as { id: string; name: string; username: string };
-            },
-          }),
-        ]
       : []),
   ],
   trustHost: true,
@@ -74,15 +45,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     jwt({ token, user }) {
       if (user) {
         token.name = user.name;
-        // Store the login username in the JWT so proxy can read it without filesystem access
         token.username = (user as { username?: string }).username ?? null;
-      }
-      // Backfill username for existing sessions that predate this field
-      if (!token.username) {
-        const byName = token.name ? USERS.find((u) => u.name === token.name) : null;
-        const bySub  = token.sub  ? USERS.find((u) => u.id   === token.sub)  : null;
-        const match  = byName ?? bySub;
-        if (match) token.username = match.username;
       }
       return token;
     },

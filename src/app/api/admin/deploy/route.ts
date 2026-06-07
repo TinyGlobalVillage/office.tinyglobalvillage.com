@@ -1,5 +1,5 @@
-import { NextResponse } from "next/server";
-import { auth } from "@/auth";
+import { NextRequest, NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/api-admin";
 import {
   ClientSpecSchema,
   validateModuleCompatibility,
@@ -9,11 +9,11 @@ import { db, schema } from "@/lib/db-drizzle";
 
 export const runtime = "nodejs";
 
-export async function POST(req: Request) {
-  const session = await auth();
-  if (!session?.user) {
-    return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
-  }
+export async function POST(req: NextRequest) {
+  // Member-aware admin gate (the legacy NextAuth auth() was retired 2026-06-05
+  // and returns null in prod). requireAdmin also enforces role==="admin".
+  const gate = await requireAdmin(req);
+  if (gate instanceof NextResponse) return gate;
 
   let body: unknown;
   try {
@@ -71,7 +71,7 @@ export async function POST(req: Request) {
   // TODO Phase 2 Step 4: dispatch to @tgv/deploy-engine with row.id
   console.log("[admin/deploy] persisted member", {
     id: row.id,
-    by: session.user.name,
+    by: gate.username,
     clientName: spec.clientName,
     vertical: spec.vertical,
     tier: spec.tier,

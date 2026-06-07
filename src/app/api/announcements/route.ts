@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/auth";
+import { requireAuth } from "@/lib/api-auth";
 import nodemailer from "nodemailer";
 import { getAllUserEmails } from "@/lib/users-config";
 import {
@@ -20,10 +20,10 @@ function getTransport() {
   });
 }
 
-// GET — list all announcements (session auth required)
-export async function GET() {
-  const session = await auth();
-  if (!session) {
+// GET — list all announcements (member session required)
+export async function GET(req: NextRequest) {
+  const token = await requireAuth(req);
+  if (!token) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   return NextResponse.json(getAllAnnouncements());
@@ -112,10 +112,10 @@ ${(body.data.projects as ProjectUpdates[])
   return NextResponse.json(announcement, { status: 201 });
 }
 
-// PATCH — dismiss an announcement (session auth required)
+// PATCH — dismiss an announcement (member session required)
 export async function PATCH(req: NextRequest) {
-  const session = await auth();
-  if (!session) {
+  const token = await requireAuth(req);
+  if (!token) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -124,8 +124,7 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: "Missing id" }, { status: 400 });
   }
 
-  const username =
-    (session.user as { name?: string })?.name ?? "unknown";
+  const username = token.name ?? token.username ?? "unknown";
   const ok = dismissAnnouncement(id, username);
 
   if (!ok) {

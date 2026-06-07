@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAuthToken } from "@/lib/auth-cookie";
+import { requireAuth } from "@/lib/api-auth";
 import QRCode from "qrcode";
 import { generateTotpSecret, generateTotpUri, verifyTotp } from "@/lib/totp";
 import { getUser, updateUser } from "@/lib/users";
 import { set2faCookie } from "@/lib/twofa-cookie";
 
 export async function GET(req: NextRequest) {
-  const token = await getAuthToken(req);
-  const username = token?.username as string | undefined;
+  const token = await requireAuth(req);
+  const username = token?.username;
   if (!username) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const user = getUser(username);
@@ -21,8 +21,8 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const token = await getAuthToken(req);
-  const username = token?.username as string | undefined;
+  const token = await requireAuth(req);
+  const username = token?.username;
   if (!username) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { secret, code } = await req.json().catch(() => ({}));
