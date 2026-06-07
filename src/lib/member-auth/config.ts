@@ -22,12 +22,13 @@ export const officeMemberAuth = createMemberAuth({
   // and <host>. Both apps validate it against the same member_sessions row.
   cookieName: "tgv_member_session",
   cookieDomain: ".tinyglobalvillage.com",
-  // LOGIN still verifies office.tgv passkeys (existing enrollments) PLUS the
-  // parent tinyglobalvillage.com (new enrollments + TGV.com passkeys), so the
-  // RP-ID migration doesn't lock anyone out. Registration binds to the parent
-  // (see passkey-register-options/verify) so a newly enrolled passkey works on
-  // both apps. The auth-options OFFER rpID stays office.tgv until everyone has
-  // re-enrolled (final flip).
+  // RP-ID migration: the auth-options OFFER was flipped to the parent
+  // tinyglobalvillage.com (2026-06-05) once both admins enrolled a parent-scoped
+  // passkey, so login now surfaces passkeys that work on BOTH apps. LOGIN verify
+  // still accepts office.tgv too (loginRpIds) as a safety net for any lingering
+  // office-scoped passkey, but the offer no longer surfaces them. Registration
+  // binds to the parent (see passkey-register-options/verify). office.tgv can be
+  // dropped from loginRpIds once the old office-scoped passkeys are deleted.
   rpId: process.env.WEBAUTHN_RP_ID ?? "office.tinyglobalvillage.com",
   loginRpIds: ["office.tinyglobalvillage.com", "tinyglobalvillage.com"],
   rpName: "TGV Office",

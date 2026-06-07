@@ -4,7 +4,12 @@ import { readUsers } from "@/lib/users";
 import { setPasskeyAuthChallenge } from "@/lib/passkey-challenge-cookie";
 import { rateLimit } from "@/lib/rate-limit";
 
-const RP_ID = "office.tinyglobalvillage.com";
+// Login OFFER rpID. Flipped to the parent tinyglobalvillage.com (2026-06-05):
+// the discoverable-login ceremony now surfaces parent-scoped passkeys, which
+// work on BOTH office.<host> and <host>. Verify-side still accepts office.<host>
+// too (config.loginRpIds) as a safety net, but no office-scoped passkey is
+// surfaced here anymore — the old office.tgv binding is retired.
+const RP_ID = "tinyglobalvillage.com";
 
 export async function POST(req: NextRequest) {
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
