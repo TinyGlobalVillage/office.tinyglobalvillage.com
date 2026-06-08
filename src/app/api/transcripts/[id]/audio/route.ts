@@ -1,35 +1,22 @@
 /**
  * /api/transcripts/[id]/audio
  *
- * Streams the source audio file so the modal's <audio> element can replay
- * what was transcribed. Owner-gated: personal records are only readable by
- * the creator; org records are readable by any authed Office user.
+ * Streams the source media file so the editor's <audio>/<video> element can
+ * replay what was transcribed. Despite the path name "audio", this route
+ * also serves video sources — the Content-Type is derived from the source
+ * filename's extension via the shared media-mime map. (Path name stays for
+ * backwards-compat with existing transcript records that hardcode it.)
+ *
+ * Owner-gated: personal records are only readable by the creator; org
+ * records are readable by any authed Office user.
  */
 import { type NextRequest, NextResponse } from "next/server";
 import fs from "fs";
 import { requireAuth } from "@/lib/api-auth";
 import { audioAbsPath, getTranscript } from "@/lib/transcripts-store";
+import { mimeForFilename } from "@tgv/module-transcriber/media";
 
 export const runtime = "nodejs";
-
-const EXT_TO_MIME: Record<string, string> = {
-  ".wav": "audio/wav",
-  ".mp3": "audio/mpeg",
-  ".m4a": "audio/mp4",
-  ".mp4": "audio/mp4",
-  ".aac": "audio/aac",
-  ".ogg": "audio/ogg",
-  ".oga": "audio/ogg",
-  ".opus": "audio/ogg",
-  ".flac": "audio/flac",
-  ".webm": "audio/webm",
-};
-
-function mimeFor(filename: string): string {
-  const dot = filename.lastIndexOf(".");
-  const ext = dot === -1 ? "" : filename.slice(dot).toLowerCase();
-  return EXT_TO_MIME[ext] || "application/octet-stream";
-}
 
 export async function GET(
   req: NextRequest,
@@ -74,7 +61,7 @@ export async function GET(
 
   return new NextResponse(body, {
     headers: {
-      "content-type": mimeFor(record.sourceFilename),
+      "content-type": mimeForFilename(record.sourceFilename),
       "content-length": String(stat.size),
       "cache-control": "private, max-age=3600",
     },
