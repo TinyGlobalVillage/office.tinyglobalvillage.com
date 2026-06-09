@@ -14,6 +14,7 @@ const nextConfig: NextConfig = {
     "@tgv/module-page-editor",
     "@tgv/module-relay",
     "@tgv/module-transcriber",
+    "@tgv/module-village",
   ],
   typescript: {
     // Build-time type check runs in a separate worker that OOMs on the

@@ -69,6 +69,22 @@ const PlanetStars2Dyn = dynamic(
   { ssr: false }
 );
 
+// Preserved from tinyglobalvillage.com (2026-06-09): the legacy desert-village
+// R3F scene (now in module-component-library), the village-2 world experience
+// (@tgv/module-village), and the modernized passkey login modal.
+const DesertVillageDyn = dynamic(
+  () => import("@tgv/module-component-library/components/react-three-fiber/desert-village/VillageScene"),
+  { ssr: false }
+);
+const VillageExperienceDyn = dynamic(
+  () => import("@tgv/module-village").then((m) => m.VillageExperience as React.ComponentType<Record<string, unknown>>),
+  { ssr: false }
+);
+const PasskeyLoginModalDyn = dynamic(
+  () => import("@tgv/module-component-library/components/modals/PasskeyLoginModal"),
+  { ssr: false }
+);
+
 const PINK = colors.pink;
 const PINK_RGB = rgb.pink;
 const MUTED = "rgba(255,255,255,0.18)";
@@ -77,7 +93,7 @@ const MUTED_TEXT = "rgba(255,255,255,0.35)";
 export type SandboxEntry = {
   key: string;
   name: string;
-  category: "Buttons" | "Icons" | "Menus" | "Navigation" | "Toggles" | "React Three Fiber";
+  category: "Buttons" | "Icons" | "Menus" | "Modals" | "Navigation" | "Toggles" | "React Three Fiber";
   summary: string;
   usage: string;
   code: string;
@@ -4186,9 +4202,52 @@ export default function Layout({ children }) {
     stylePath: "packages/@tgv/module-core/module-component-library/components/react-three-fiber/tgvPlanet/alt-versions/tgvPlanet2/PlanetCanvas.tsx",
     Demo: TgvPlanet2Demo,
   },
+  {
+    key: "LegacyDesertVillage",
+    name: "Legacy Desert Village",
+    category: "React Three Fiber",
+    summary: "The original tgv.com desert-village R3F scene — procedural terrain with floating islands and drifting hot-air balloons. Preserved from tinyglobalvillage.com src/village/ (2026-06-09) into the shared component library; no assets, pure geometry.",
+    usage: "Standalone scene — renders its own Canvas at 100% × 100vh. Import the default export and drop it into a sized container.",
+    code: `import { DesertVillageScene } from "@tgv/module-component-library";
+
+<div style={{ height: "100vh" }}>
+  <DesertVillageScene />
+</div>`,
+    stylePath: "packages/@tgv/module-core/module-component-library/components/react-three-fiber/desert-village/VillageScene.tsx",
+    Demo: DesertVillageDemo,
+  },
+  {
+    key: "VillageExperience",
+    name: "VillageExperience (village-2)",
+    category: "React Three Fiber",
+    summary: "The @tgv/module-village 'village-2' world — clean-slate R3F Tiny Global Village with HUD + plot interactions. Was mounted at tinyglobalvillage.com /village-2; the route was retired (2026-06-09) but the experience lives on in the package and here.",
+    usage: "Full-screen experience. Mount once at a route root; props `debug` and `intro` both default. Renders a position:fixed canvas — in the sandbox it opens fullscreen, press Esc to close.",
+    code: `import { VillageExperience } from "@tgv/module-village";
+
+<VillageExperience intro />`,
+    stylePath: "packages/@tgv/module-core/module-village/components/VillageExperience.tsx",
+    Demo: VillageExperienceDemo,
+  },
+  {
+    key: "PasskeyLoginModal",
+    name: "PasskeyLoginModal",
+    category: "Modals",
+    summary: "Member-auth (passkey) sign-in modal — Face ID / Touch ID / device PIN, plus a recovery-code path. Modernized from tgv.com's legacy NextAuth login fixture (UFOtest, 2026-06-09): presentational shell with passkey + recovery flows injected as props, so the same modal serves production member-login and a no-network preview.",
+    usage: "Render with `open`/`onClose` and wire `onPasskey` + `onRecovery` to the real begin/assert + recovery-login flow (or stubs for previews).",
+    code: `import { PasskeyLoginModal } from "@tgv/module-component-library";
+
+<PasskeyLoginModal
+  open={open}
+  onClose={() => setOpen(false)}
+  onPasskey={runPasskeyLogin}
+  onRecovery={(email, code) => runRecoveryLogin(email, code)}
+/>`,
+    stylePath: "packages/@tgv/module-core/module-component-library/components/modals/PasskeyLoginModal.tsx",
+    Demo: PasskeyLoginModalDemo,
+  },
 ];
 
-export const CATEGORIES: Array<SandboxEntry["category"]> = ["Buttons", "Icons", "Menus", "Navigation", "React Three Fiber", "Toggles"];
+export const CATEGORIES: Array<SandboxEntry["category"]> = ["Buttons", "Icons", "Menus", "Modals", "Navigation", "React Three Fiber", "Toggles"];
 
 // ── React Three Fiber demos ─────────────────────────────────────────────
 // Constrained-size demo wrappers for the r3f primitives. The fullscreen
@@ -4512,5 +4571,77 @@ function TgvPlanet2Demo() {
         </Canvas3DDyn>
       )}
     />
+  );
+}
+
+// ── Preserved legacy artifacts (from tinyglobalvillage.com, 2026-06-09) ──────
+// The desert village + village-2 world experience + the modernized passkey
+// login modal, kept here as viewable examples after removal from tgv.com.
+
+function DesertVillageDemo() {
+  return (
+    <R3FPreviewCard
+      label="Legacy Desert Village"
+      hint="Old R3F desert village — balloons + floating islands over procedural terrain. Preserved from tinyglobalvillage.com src/village/."
+      modalTitle="Legacy Desert Village — full preview"
+      renderContent={() => (
+        <ModalFill>
+          <Suspense fallback={null}>
+            <DesertVillageDyn />
+          </Suspense>
+        </ModalFill>
+      )}
+    />
+  );
+}
+
+function VillageExperienceDemo() {
+  return (
+    <R3FPreviewCard
+      label="VillageExperience (village-2)"
+      hint="The @tgv/module-village world — full-screen R3F scene + HUD. Opens fullscreen; press Esc to close."
+      modalTitle="VillageExperience (@tgv/module-village) — full preview"
+      renderContent={() => (
+        <ModalFill>
+          <Suspense fallback={null}>
+            <VillageExperienceDyn />
+          </Suspense>
+        </ModalFill>
+      )}
+    />
+  );
+}
+
+const DemoOpenBtn = styled.button`
+  background: #00e4fd;
+  color: #001018;
+  font-weight: 700;
+  font-size: 14px;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 16px;
+  cursor: pointer;
+`;
+
+function PasskeyLoginModalDemo() {
+  const [open, setOpen] = useState(false);
+  return (
+    <div style={{ display: "grid", gap: 12, placeItems: "start" }}>
+      <DemoOpenBtn type="button" onClick={() => setOpen(true)}>
+        Open passkey login
+      </DemoOpenBtn>
+      <PasskeyLoginModalDyn
+        open={open}
+        onClose={() => setOpen(false)}
+        onPasskey={async () => {
+          await new Promise((r) => setTimeout(r, 900));
+          throw new Error("Demo: passkey prompts are disabled in the sandbox.");
+        }}
+        onRecovery={async () => {
+          await new Promise((r) => setTimeout(r, 700));
+          throw new Error("demo");
+        }}
+      />
+    </div>
   );
 }
