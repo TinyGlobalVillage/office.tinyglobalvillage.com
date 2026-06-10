@@ -28,6 +28,27 @@ const nextConfig: NextConfig = {
       bodySizeLimit: "500mb",
     },
   },
+  eslint: { ignoreDuringBuilds: true },
+  // Build + dev switched Turbopack → webpack (2026-06-10) to match tgv.com.
+  // Turbopack ignores @tgv/* `exports` for workspace symlinks, duplicates the
+  // drizzle Column class cross-chunk (is(Column) crashes), and mis-resolves the
+  // `pg` server external (the stale `[turbopack]_runtime` pg ERR_MODULE_NOT_FOUND
+  // + /500.html ENOENT in the error log). Webpack honors exports and keeps a
+  // single external drizzle/registry/auth instance. See TGV-STACK.md.
+  serverExternalPackages: [
+    "@tgv/module-registry",
+    "@tgv/module-auth",
+    "drizzle-orm",
+  ],
+  webpack: (config) => {
+    // @tgv/* source barrels use NodeNext ".js" import specifiers (./members.js);
+    // map ".js" → try ".ts"/".tsx" first so the proxy/edge bundle resolves them.
+    config.resolve.extensionAlias = {
+      ...(config.resolve.extensionAlias ?? {}),
+      ".js": [".ts", ".tsx", ".js"],
+    };
+    return config;
+  },
 };
 
 export default nextConfig;
