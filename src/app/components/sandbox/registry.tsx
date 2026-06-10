@@ -6,6 +6,10 @@ import { colors, rgb } from "../../theme";
 
 import dynamic from "next/dynamic";
 import TPG from "@tgv/module-component-library/components/ui/TPG";
+import {
+  CATALOG_SANDBOX_ENTRIES,
+  CATALOG_CATEGORIES,
+} from "./catalogBridge";
 
 // React-Three-Fiber primitives — dynamic-imported with SSR off because they
 // touch WebGL / window. They live in @tgv/module-component-library and are
@@ -93,7 +97,10 @@ const MUTED_TEXT = "rgba(255,255,255,0.35)";
 export type SandboxEntry = {
   key: string;
   name: string;
-  category: "Buttons" | "Icons" | "Menus" | "Modals" | "Navigation" | "Toggles" | "React Three Fiber";
+  // Hand-coded primitives use the canonical seven labels; catalog-mirrored page
+  // blocks use zone-qualified labels (e.g. "Sections: Banners") from catalogBridge.
+  // Kept as a free string so both families share one registry without a brittle union.
+  category: string;
   summary: string;
   usage: string;
   code: string;
@@ -4245,9 +4252,15 @@ export default function Layout({ children }) {
     stylePath: "packages/@tgv/module-core/module-component-library/components/modals/PasskeyLoginModal.tsx",
     Demo: PasskeyLoginModalDemo,
   },
+  // ── Page-editor catalog blocks (auto-mirrored from CATALOG; Phase 1 view-only) ──
+  ...CATALOG_SANDBOX_ENTRIES,
 ];
 
-export const CATEGORIES: Array<SandboxEntry["category"]> = ["Buttons", "Icons", "Menus", "Modals", "Navigation", "React Three Fiber", "Toggles"];
+export const CATEGORIES: Array<SandboxEntry["category"]> = [
+  "Buttons", "Icons", "Menus", "Modals", "Navigation", "React Three Fiber", "Toggles",
+  // Catalog page-block groups (zone-clustered), appended after the primitives.
+  ...CATALOG_CATEGORIES,
+];
 
 // ── React Three Fiber demos ─────────────────────────────────────────────
 // Constrained-size demo wrappers for the r3f primitives. The fullscreen

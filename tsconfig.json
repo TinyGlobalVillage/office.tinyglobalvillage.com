@@ -20,7 +20,10 @@
     ],
     "preserveSymlinks": true,
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@/lib/domains/editor/*": ["../../packages/@tgv/module-core/module-page-editor/editor/*"],
+      "@/lib/components/*": ["../../packages/@tgv/module-core/module-component-library/components/*"],
+      "@tgv/module-component-library/*": ["../../packages/@tgv/module-core/module-component-library/*"]
     }
   },
   "include": [
