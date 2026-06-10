@@ -13,6 +13,7 @@ import MemberAuthControlModal from "../../components/hardening/member-auth/Membe
 import OfficeStaffControlModal from "../../components/hardening/office-staff/OfficeStaffControlModal";
 import MeshVpnControlModal from "../../components/hardening/mesh-vpn/MeshVpnControlModal";
 import BackupsControlModal from "../../components/backups/BackupsControlModal";
+import MigrateSiteControlModal from "../../components/migrate/MigrateSiteControlModal";
 import AutomationsTab from "../../components/automations/AutomationsTab";
 import {
   TinyURLGenerator,
@@ -1577,6 +1578,7 @@ type UtilsAdlSurfaceProps = {
   overlay: Record<string, Record<string, FieldValue>>;
   onSaveDefaults: (actionId: string, defaults: Record<string, FieldValue>) => Promise<void>;
   onOpenBackups: () => void;
+  onOpenMigrate: () => void;
   onOpenHardening: (kind: HardeningKind) => void;
   onOpenLinkTool: (kind: LinkTool) => void;
   onOpenTranscriber: () => void;
@@ -1585,7 +1587,7 @@ type UtilsAdlSurfaceProps = {
 
 function UtilsAdlSurface({
   sections, actionsById, isAdmin, overlay, onSaveDefaults,
-  onOpenBackups, onOpenHardening, onOpenLinkTool, onOpenTranscriber, onOpenTranscriptions,
+  onOpenBackups, onOpenMigrate, onOpenHardening, onOpenLinkTool, onOpenTranscriber, onOpenTranscriptions,
 }: UtilsAdlSurfaceProps) {
   // Live transcription jobs — drives the per-job queued tiles + the badge
   // counter on the Transcriptions tile.
@@ -1696,6 +1698,16 @@ function UtilsAdlSurface({
                           Off-site backup pipeline — rsync.net Lifetime 1 TB Zurich, restic over
                           SFTP, GPG-encrypted secrets. Account info, connection state, last-run
                           history, snapshot count, retention policy.
+                        </HardeningTileSub>
+                      </HardeningTile>
+                    );
+                    if (tile.type === "migrate") return (
+                      <HardeningTile key={i} type="button" onClick={onOpenMigrate}>
+                        <HardeningTileTop>🚚 Migrate a Site</HardeningTileTop>
+                        <HardeningTileSub>
+                          Absorb a legacy site into TGV — per-surface fidelity (data import/drop ×
+                          code reinvent/approximate/bespoke), AI halt-review, and the
+                          refusionist-test1 dogfood. Lists live migration jobs.
                         </HardeningTileSub>
                       </HardeningTile>
                     );
@@ -1903,6 +1915,7 @@ const LINKS_ORIGIN =
 
 type TileSpec =
   | { type: "backups" }
+  | { type: "migrate" }
   | { type: "telephony" }
   | { type: "tenant-apps" }
   | { type: "member-auth" }
@@ -1956,6 +1969,9 @@ const SECTIONS: Section[] = [
   { id: "media", title: "Media & Transcription", accent: "cyan",
     subtitle: "open-source audio transcription, subtitle export, voice utilities",
     kind: "tiles", tiles: [{ type: "transcriber" }, { type: "transcriptions" }] },
+  { id: "migrations", title: "Migrations", accent: "cyan",
+    subtitle: "absorb a legacy site into TGV — per-surface fidelity, halt-review, dogfood",
+    kind: "tiles", tiles: [{ type: "migrate" }] },
   { id: "pm2", title: "Process Manager (PM2)", accent: "cyan",
     subtitle: "process manager — restart, stop, log, harden, alias",
     kind: "actions",
@@ -2309,6 +2325,7 @@ export default function UtilsPage() {
   const [overlay, setOverlay] = useState<DefaultsOverlay>({});
   const [openHardening, setOpenHardening] = useState<HardeningKind | null>(null);
   const [openBackups, setOpenBackups] = useState<boolean>(false);
+  const [openMigrate, setOpenMigrate] = useState<boolean>(false);
   const [openLinkTool, setOpenLinkTool] = useState<LinkTool | null>(null);
   const [qrSeed, setQrSeed] = useState<string>("");
   const [qrSeedName, setQrSeedName] = useState<string>("");
@@ -2404,6 +2421,7 @@ export default function UtilsPage() {
           overlay={overlay}
           onSaveDefaults={saveDefaults}
           onOpenBackups={() => setOpenBackups(true)}
+          onOpenMigrate={() => setOpenMigrate(true)}
           onOpenHardening={(kind) => setOpenHardening(kind)}
           onOpenLinkTool={(kind) => {
             if (kind === "qrcode") {
@@ -2441,6 +2459,10 @@ export default function UtilsPage() {
 
       {openBackups && (
         <BackupsControlModal onClose={() => setOpenBackups(false)} />
+      )}
+
+      {openMigrate && (
+        <MigrateSiteControlModal onClose={() => setOpenMigrate(false)} />
       )}
 
       {openLinkTool === "tinyurl" && username && (
