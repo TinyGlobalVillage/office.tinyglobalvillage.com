@@ -115,13 +115,36 @@ function codeSnippetFor(entry: ComponentEntry): string {
   ].join("\n");
 }
 
-function adapt(entry: ComponentEntry): SandboxEntry {
+/** Live preview that reflects the PUBLISHED block-default override (Phase 2/3
+ *  data cascade) when one exists, else the in-code default. Best-effort: any
+ *  fetch/auth failure degrades to the in-code default. Only the actively-shown
+ *  Demo mounts, so this is one request per viewed block, not 80. */
+function CatalogDemo({ entry }: { entry: ComponentEntry }) {
   const Render = entry.Render as React.FC<{ props: Record<string, unknown> }>;
-  const Demo: React.FC = () => (
+  const inCode = (entry.defaultProps ?? {}) as Record<string, unknown>;
+  const [props, setProps] = React.useState<Record<string, unknown>>(inCode);
+  React.useEffect(() => {
+    let alive = true;
+    fetch(`/api/sandbox/block-default?id=${encodeURIComponent(entry.id)}&mode=published`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (alive && d?.exists && d.data && typeof d.data === "object")
+          setProps(d.data as Record<string, unknown>);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [entry.id]);
+  return (
     <CatalogPreviewBoundary name={entry.label}>
-      <Render props={(entry.defaultProps ?? {}) as Record<string, unknown>} />
+      <Render props={props} />
     </CatalogPreviewBoundary>
   );
+}
+
+function adapt(entry: ComponentEntry): SandboxEntry {
+  const Demo: React.FC = () => <CatalogDemo entry={entry} />;
   Demo.displayName = `CatalogDemo(${entry.id})`;
   return {
     key: `catalog:${entry.id}`,

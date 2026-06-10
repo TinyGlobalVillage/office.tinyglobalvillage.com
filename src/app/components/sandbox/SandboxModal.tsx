@@ -17,6 +17,7 @@ import {
 } from "../../styled";
 import SandboxIcon from "./SandboxIcon";
 import { REGISTRY, CATEGORIES, type SandboxEntry } from "./registry";
+import CatalogBlockEditor from "./CatalogBlockEditor";
 
 // Wire-shape for /api/editor/shared-templates list response. Mirrors
 // SharedTemplateSummary in src/lib/db-shared-templates.ts but kept inline
@@ -3392,20 +3393,29 @@ export default function SandboxModal({
                 </SummaryBar>
 
                 <Viewport>
-                  <DemoArea>
-                    <DemoWrap>
-                      {Demo && <Demo />}
-                    </DemoWrap>
-                  </DemoArea>
-                  {canEdit && editMode && active && (
-                    <ClaudeWrap>
-                      <SandboxClaudeDrawer
-                        componentKey={activeKey}
-                        currentCode={editorCode}
-                        onCodeUpdate={(code) => handleCodeChange(code)}
-                        onDeploy={(targets) => handleDeploy({ targets: targets[0] === "all" ? undefined : targets })}
-                      />
-                    </ClaudeWrap>
+                  {activeKey.startsWith("catalog:") && canEdit && editMode ? (
+                    // Catalog block in edit mode → the DATA editor (edit default
+                    // props → save draft → deploy:data cascade). The code-edit
+                    // toolbar/Claude drawer is for hand-coded primitives, not these.
+                    <CatalogBlockEditor catalogId={activeKey.slice("catalog:".length)} />
+                  ) : (
+                    <>
+                      <DemoArea>
+                        <DemoWrap>
+                          {Demo && <Demo />}
+                        </DemoWrap>
+                      </DemoArea>
+                      {canEdit && editMode && active && (
+                        <ClaudeWrap>
+                          <SandboxClaudeDrawer
+                            componentKey={activeKey}
+                            currentCode={editorCode}
+                            onCodeUpdate={(code) => handleCodeChange(code)}
+                            onDeploy={(targets) => handleDeploy({ targets: targets[0] === "all" ? undefined : targets })}
+                          />
+                        </ClaudeWrap>
+                      )}
+                    </>
                   )}
                 </Viewport>
               </>
