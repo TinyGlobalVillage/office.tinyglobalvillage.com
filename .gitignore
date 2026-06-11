@@ -40,3 +40,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 .env.local
+
+# Phase 4 reconciliation audit trail (runtime, per-env)
+data/reconcile/
