@@ -26,20 +26,29 @@ const ITEMS: SBDMItem[] = REGISTRY.map((e) => ({ key: e.key, label: e.name, grou
 export default function ComponentPicker({
   activeKey,
   onSelect,
+  accent = "gold",
+  minTriggerWidth = 190,
 }: {
   activeKey: string;
   onSelect: (key: string) => void;
+  /** gold = edit-toolbar styling; pink = the Files side-menu styling. */
+  accent?: "gold" | "pink";
+  minTriggerWidth?: number;
 }) {
+  const a =
+    accent === "pink"
+      ? { color: "#ff4ecb", rgb: "255, 78, 203" }
+      : { color: "#ffcf4a", rgb: "255, 207, 74" };
   return (
-    <span style={{ ["--ddm-accent" as string]: "#ffcf4a", ["--ddm-accent-rgb" as string]: "255, 207, 74" }}>
+    <span style={{ ["--ddm-accent" as string]: a.color, ["--ddm-accent-rgb" as string]: a.rgb }}>
       <SBDM
         items={ITEMS}
         value={activeKey}
         onSelect={onSelect}
         placeholder="Pick a component…"
         searchPlaceholder="Search components…"
-        ariaLabel="Select a component to edit"
-        minTriggerWidth={190}
+        ariaLabel="Select a component"
+        minTriggerWidth={minTriggerWidth}
       />
     </span>
   );

@@ -18,6 +18,7 @@ import {
 import SandboxIcon from "./SandboxIcon";
 import { REGISTRY, CATEGORIES, type SandboxEntry } from "./registry";
 import CatalogBlockEditor from "./CatalogBlockEditor";
+import ComponentPicker from "./ComponentPicker";
 
 // Wire-shape for /api/editor/shared-templates list response. Mirrors
 // SharedTemplateSummary in src/lib/db-shared-templates.ts but kept inline
@@ -3169,6 +3170,14 @@ export default function SandboxModal({
               </DraftSbdmWrap>
             )}
 
+            {/* Files SBDM — searchable component picker, always available (both modes),
+                styled like the files side menu (pink). */}
+            <ComponentPicker
+              activeKey={activeKey}
+              onSelect={(k) => { setActiveTemplateId(null); setActiveKey(k); }}
+              accent="pink"
+              minTriggerWidth={0}
+            />
             <HeaderTotal $edit={editMode}>{REGISTRY.length}</HeaderTotal>
             <Tooltip label={allCatsOpen ? "Collapse all groups" : "Expand all groups"} accent={TT_ACCENT}>
               <CollapseAllBtn
@@ -3191,6 +3200,13 @@ export default function SandboxModal({
                 <Title $edit={editMode}>
                   {title}{editMode ? " · Editing" : ""}
                 </Title>
+                {/* Sidebar collapsed → the Files SBDM keeps component selection reachable. */}
+                <ComponentPicker
+                  activeKey={activeKey}
+                  onSelect={(k) => { setActiveTemplateId(null); setActiveKey(k); }}
+                  accent="pink"
+                  minTriggerWidth={0}
+                />
               </>
             )}
             <WideControls>
