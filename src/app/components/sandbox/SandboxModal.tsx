@@ -42,6 +42,7 @@ import SandboxEditToolbar from "./SandboxEditToolbar";
 import SandboxClaudeDrawer from "./SandboxClaudeDrawer";
 import { createPortal } from "react-dom";
 import Tooltip from "../ui/Tooltip";
+import { DeployIcon, EditIcon } from "../icons";
 
 const TT_ACCENT = "#ff4ecb";
 
@@ -2740,6 +2741,9 @@ export default function SandboxModal({
   const [previewOpen, setPreviewOpen] = useState(true); // lightswitch: collapse the viewport
   const [summaryVisible, setSummaryVisible] = useState(true); // header button: show/hide summary
   const [previewVisible, setPreviewVisible] = useState(true); // header button: show/hide preview
+  // Catalog-editor sections (only meaningful when a catalog block is in edit mode):
+  const [scopeVisible, setScopeVisible] = useState(true); // header button: show/hide Scope & Deploy
+  const [editPanelVisible, setEditPanelVisible] = useState(true); // header button: show/hide Edit content
   const [codeOpen, setCodeOpen] = useState(false);
   const [codeTab, setCodeTab] = useState<"component" | "style">("component");
   const [liveStyle, setLiveStyle] = useState<string | null>(null);
@@ -2786,6 +2790,7 @@ export default function SandboxModal({
   // Library surface (launched from LibraryModal) is always read-only,
   // even for admins.
   const canEdit = surface === "workshop" && isAdmin;
+  const isCatalogEdit = canEdit && activeKey.startsWith("catalog:");
   const [editMode, setEditMode] = useState(false);
   const [autoSave, setAutoSave] = useState(true);
   const [unsavedCode, setUnsavedCode] = useState<string | null>(null);
@@ -3219,6 +3224,17 @@ export default function SandboxModal({
                 <BtnLabel>Summary</BtnLabel>
               </ToggleBtn>
 
+              {isCatalogEdit && editMode && (
+                <ToggleBtn
+                  $active={scopeVisible}
+                  onClick={() => setScopeVisible((p) => !p)}
+                  aria-label="Show/hide scope & deploy"
+                >
+                  <DeployIcon size={14} />
+                  <BtnLabel>Scope</BtnLabel>
+                </ToggleBtn>
+              )}
+
               <ToggleBtn
                 $active={previewVisible}
                 onClick={() => setPreviewVisible((p) => !p)}
@@ -3227,6 +3243,17 @@ export default function SandboxModal({
                 <PreviewIcon />
                 <BtnLabel>Preview</BtnLabel>
               </ToggleBtn>
+
+              {isCatalogEdit && editMode && (
+                <ToggleBtn
+                  $active={editPanelVisible}
+                  onClick={() => setEditPanelVisible((p) => !p)}
+                  aria-label="Show/hide edit content"
+                >
+                  <EditIcon size={14} />
+                  <BtnLabel>Content</BtnLabel>
+                </ToggleBtn>
+              )}
 
               <ToggleBtn
                 $active={codeOpen && !codePanel.snapped}
@@ -3317,6 +3344,18 @@ export default function SandboxModal({
                       <SummaryIcon />
                       <span>Summary</span>
                     </MenuDdmItem>
+                    {isCatalogEdit && editMode && (
+                      <MenuDdmItem
+                        $active={scopeVisible}
+                        onClick={() => {
+                          setScopeVisible((p) => !p);
+                          setToolbarMenuOpen(false);
+                        }}
+                      >
+                        <DeployIcon size={14} />
+                        <span>Scope &amp; Deploy</span>
+                      </MenuDdmItem>
+                    )}
                     <MenuDdmItem
                       $active={previewVisible}
                       onClick={() => {
@@ -3327,6 +3366,18 @@ export default function SandboxModal({
                       <PreviewIcon />
                       <span>Preview</span>
                     </MenuDdmItem>
+                    {isCatalogEdit && editMode && (
+                      <MenuDdmItem
+                        $active={editPanelVisible}
+                        onClick={() => {
+                          setEditPanelVisible((p) => !p);
+                          setToolbarMenuOpen(false);
+                        }}
+                      >
+                        <EditIcon size={14} />
+                        <span>Edit content</span>
+                      </MenuDdmItem>
+                    )}
                     <MenuDdmItem
                       $active={codeOpen && !codePanel.snapped}
                       onClick={() => {
@@ -3592,6 +3643,8 @@ export default function SandboxModal({
                     <CatalogBlockEditor
                       catalogId={activeKey.slice("catalog:".length)}
                       showPreview={previewVisible}
+                      showScope={scopeVisible}
+                      showEdit={editPanelVisible}
                     />
                   </CatalogEditorMount>
                 ) : (

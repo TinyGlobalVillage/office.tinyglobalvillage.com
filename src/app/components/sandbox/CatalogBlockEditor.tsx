@@ -76,10 +76,15 @@ class PreviewBoundary extends React.Component<
 export default function CatalogBlockEditor({
   catalogId,
   showPreview = true,
+  showScope = true,
+  showEdit = true,
 }: {
   catalogId: string;
-  /** Show/hide the whole Preview section — driven by the modal's header Preview button. */
+  /** Show/hide whole sections — driven by the modal's header Scope/Preview/Content buttons.
+   *  (The ADL lightswitches collapse a section's content while it is shown.) */
   showPreview?: boolean;
+  showScope?: boolean;
+  showEdit?: boolean;
 }) {
   const entry = React.useMemo(() => findEntry(catalogId), [catalogId]);
   const inCode = React.useMemo(
@@ -275,7 +280,8 @@ export default function CatalogBlockEditor({
           version, scope, status, and update badge all live in Scope & Deploy below. Each section
           here is a TOP-LEVEL toggleable sibling (mounted flat in the modal, never nested). */}
 
-      {/* Scope & Deploy */}
+      {/* Scope & Deploy — shown/hidden by the modal's header Scope button. */}
+      {showScope && (
       <ADL label="Scope & Deploy" accent="pink" open={open.scope} onOpenChange={(o) => toggle("scope", o)}>
         <Row>
           <RowLabel>Editing:</RowLabel>
@@ -325,6 +331,7 @@ export default function CatalogBlockEditor({
           )}
         </Controls>
       </ADL>
+      )}
 
       {/* Preview — shown/hidden by the modal's header Preview button (showPreview);
           the ADL lightswitch collapses it while shown. */}
@@ -338,7 +345,8 @@ export default function CatalogBlockEditor({
         </ADL>
       )}
 
-      {/* Edit */}
+      {/* Edit — shown/hidden by the modal's header Content button. */}
+      {showEdit && (
       <ADL label={EditorPanel ? "Edit · default content" : "Edit · default content (JSON)"} accent="gold" open={open.edit} onOpenChange={(o) => toggle("edit", o)}>
         <EditorScroll>
           {EditorPanel ? (
@@ -351,6 +359,7 @@ export default function CatalogBlockEditor({
           )}
         </EditorScroll>
       </ADL>
+      )}
 
       {showUpdate && scope.kind === "tenant" && loadedVersion != null && (
         <ComponentUpdateModal
