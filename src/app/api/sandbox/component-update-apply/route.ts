@@ -102,7 +102,11 @@ export async function POST(req: NextRequest) {
   if (!UUID_RE.test(tenantId)) return NextResponse.json({ error: "bad tenantId" }, { status: 400 });
   if (!LANG_RE.test(lang)) return NextResponse.json({ error: "bad lang" }, { status: 400 });
   if (!Number.isInteger(toVersion) || toVersion < 1) return NextResponse.json({ error: "bad toVersion" }, { status: 400 });
-  if (b?.fromVersion != null && (!Number.isInteger(fromVersion) || fromVersion < 1))
+  // fromVersion is advisory: a stale overlay can carry version 0 (pre-versioning / older than any
+  // tracked snapshot). Don't 400 on a low value — effectiveFrom below falls back to the overlay's
+  // own version and reconcile() degrades safely when the base snapshot is missing. Only reject a
+  // negative or non-integer value.
+  if (b?.fromVersion != null && (!Number.isInteger(fromVersion) || fromVersion < 0))
     return NextResponse.json({ error: "bad fromVersion" }, { status: 400 });
 
   // Incoming (new) version must have a snapshot — run "Sync versions" first if not.
