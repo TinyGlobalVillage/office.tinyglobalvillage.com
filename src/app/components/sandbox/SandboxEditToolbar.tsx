@@ -6,6 +6,7 @@ import { colors, rgb } from "../../theme";
 import { PanelIconBtn, PanelActionBtn, Spacer } from "../../styled";
 import type { Draft } from "./useDraftStore";
 import ComponentVersionsSyncButton from "./ComponentVersionsSyncButton";
+import ComponentPicker from "./ComponentPicker";
 
 const GOLD = colors.gold;
 const GOLD_RGB = rgb.gold;
@@ -26,6 +27,8 @@ type Props = {
   onResetToDeployed: () => void;
   isSaved: boolean;
   componentKey: string;
+  /** Select another component to edit (same as clicking a sidebar row) — feeds the ComponentPicker. */
+  onSelectKey: (key: string) => void;
   projects: { name: string }[];
   onDeploy: (opts: { targets?: string[]; preview?: boolean }) => Promise<void>;
 };
@@ -290,8 +293,9 @@ export default function SandboxEditToolbar(p: Props) {
   return (
     <Bar>
       <ModeLabel>Edit Mode</ModeLabel>
+      <ComponentPicker activeKey={p.componentKey} onSelect={p.onSelectKey} />
       {p.active && (
-        <InfoTag>· Draft #{p.active.number} · {p.componentKey} · {p.isSaved ? "saved" : "unsaved"}</InfoTag>
+        <InfoTag>· Draft #{p.active.number} · {p.isSaved ? "saved" : "unsaved"}</InfoTag>
       )}
 
       <Spacer />

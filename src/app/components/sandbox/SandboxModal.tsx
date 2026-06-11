@@ -3204,6 +3204,7 @@ export default function SandboxModal({
             onResetToDeployed={drafts.resetToDeployed}
             isSaved={isSaved}
             componentKey={activeKey}
+            onSelectKey={(k) => { setActiveTemplateId(null); setActiveKey(k); }}
             projects={projects}
             onDeploy={handleDeploy}
           />

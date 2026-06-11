@@ -1,29 +1,29 @@
 "use client";
 
 // ────────────────────────────────────────────────────────────────────────────
-// CatalogBlockEditor — Phase 3 (platform data lane) + Phase 4.3 (per-tenant overlays).
+// CatalogBlockEditor — Phase 3 (platform) + 4.3 (per-tenant) + edit-mode UX refactor.
 //
-// The DATA-mode editor for a mirrored page-editor catalog block (Sandbox workshop, admin).
-// A SCOPE selector chooses what you're editing:
-//   • Platform default → /api/sandbox/block-default  (the cascade — every tenant on the default)
-//   • <a tenant>       → /api/sandbox/tenant-overlay  (that tenant's own override, tagged with the
-//                          component VERSION it was authored against)
+// The DATA-mode editor for a mirrored page-editor catalog block (Sandbox workshop, admin),
+// broken into independently collapsible ADL sections so each piece can be shown/hidden:
+//   • Summary       — id · version · scope · status (read-only glance)
+//   • Scope & Deploy — scope SBDM (Platform default vs a tenant) + version + update badge +
+//                      Save / Deploy / Reset / Remove
+//   • Preview        — the live render from the working props
+//   • Edit           — the block's own EditorPanel (JSON fallback)
+// Collapse state persists per-section in localStorage. Scope is a searchable SBDM.
 //
 //   load   → GET   ?id=[&tenantId=]&mode=draft → published → in-code
-//   save   → PUT   (persist draft, no deploy)
-//   deploy → PUT then POST (publish; double-verified — "cascade to all" for platform, "save for
-//            <tenant>" for a tenant)
-//   reset  → editor back to in-code defaultProps
-//   remove → DELETE the override row(s)
-//
-// When a tenant overlay was authored against an OLDER version than the block's current version, an
-// "update available" badge opens the Phase 4.6 ComponentUpdateModal (blast-radius + reconcile).
+//   deploy → PUT then POST (double-verified): "cascade to all" (platform) / "save for <tenant>"
+// A tenant overlay older than the block's current version surfaces an "update available" badge
+// → the Phase 4.6 ComponentUpdateModal (blast-radius + reconcile).
 // ────────────────────────────────────────────────────────────────────────────
 
 import React from "react";
 import styled from "styled-components";
 import { findEntry } from "@/lib/domains/editor/component-library/registry";
 import { versionFor } from "@/lib/domains/editor/component-library/versions";
+import ADL from "@tgv/module-component-library/components/ui/ADL";
+import SBDM, { type SBDMItem } from "@tgv/module-component-library/components/ui/SBDM";
 import ComponentUpdateModal from "./ComponentUpdateModal";
 
 const BLOCK_API = "/api/sandbox/block-default";
@@ -42,6 +42,19 @@ type Status =
   | { kind: "published" }
   | { kind: "error"; msg: string };
 
+// ── per-section collapse state (persisted) ──────────────────────────────────
+type OpenState = { summary: boolean; scope: boolean; preview: boolean; edit: boolean };
+const DEFAULT_OPEN: OpenState = { summary: true, scope: true, preview: true, edit: true };
+const OPEN_KEY = "sandbox.catalogEditor.open.v1";
+function readOpen(): OpenState {
+  if (typeof window === "undefined") return DEFAULT_OPEN;
+  try {
+    return { ...DEFAULT_OPEN, ...(JSON.parse(localStorage.getItem(OPEN_KEY) || "{}") as Partial<OpenState>) };
+  } catch {
+    return DEFAULT_OPEN;
+  }
+}
+
 // ── tiny error boundary so a bad preview can't crash the modal ──────────────
 class PreviewBoundary extends React.Component<
   { children: React.ReactNode },
@@ -52,12 +65,10 @@ class PreviewBoundary extends React.Component<
     return { error };
   }
   componentDidUpdate(prev: { children: React.ReactNode }) {
-    if (prev.children !== this.props.children && this.state.error)
-      this.setState({ error: null });
+    if (prev.children !== this.props.children && this.state.error) this.setState({ error: null });
   }
   render() {
-    if (this.state.error)
-      return <FailNote>⚠ Preview threw: {this.state.error.message}</FailNote>;
+    if (this.state.error) return <FailNote>⚠ Preview threw: {this.state.error.message}</FailNote>;
     return <>{this.props.children}</>;
   }
 }
@@ -78,27 +89,40 @@ export default function CatalogBlockEditor({ catalogId }: { catalogId: string })
   const [status, setStatus] = React.useState<Status>({ kind: "loading" });
   const [loadedVersion, setLoadedVersion] = React.useState<number | null>(null);
   const [showUpdate, setShowUpdate] = React.useState(false);
+  const [open, setOpen] = React.useState<OpenState>(DEFAULT_OPEN);
+
+  React.useEffect(() => setOpen(readOpen()), []);
+  const toggle = (k: keyof OpenState, v: boolean) =>
+    setOpen((o) => {
+      const next = { ...o, [k]: v };
+      try { localStorage.setItem(OPEN_KEY, JSON.stringify(next)); } catch { /* ignore */ }
+      return next;
+    });
 
   const tenantId = scope.kind === "tenant" ? scope.id : null;
 
-  // Member list for the scope selector (best-effort; admin-gated endpoint).
+  // Member list for the scope SBDM (best-effort; admin-gated endpoint).
   React.useEffect(() => {
     let alive = true;
     fetch("/api/admin/members")
       .then((r) => (r.ok ? r.json() : { members: [] }))
       .then((j) => {
         if (!alive) return;
-        const list: Member[] = (j?.members ?? []).map((m: Record<string, unknown>) => ({
-          id: String(m.id),
-          label: String(m.clientName || m.domain || m.subdomain || m.id),
-        }));
-        setMembers(list);
+        setMembers(
+          (j?.members ?? []).map((m: Record<string, unknown>) => ({
+            id: String(m.id),
+            label: String(m.clientName || m.domain || m.subdomain || m.id),
+          })),
+        );
       })
       .catch(() => {});
-    return () => {
-      alive = false;
-    };
+    return () => { alive = false; };
   }, []);
+
+  const scopeItems: SBDMItem[] = React.useMemo(
+    () => [{ key: "", label: "Platform default (cascade)" }, ...members.map((m) => ({ key: m.id, label: m.label }))],
+    [members],
+  );
 
   const loadUrl = React.useCallback(
     (mode: "draft" | "published") => {
@@ -108,7 +132,6 @@ export default function CatalogBlockEditor({ catalogId }: { catalogId: string })
     [catalogId, tenantId],
   );
 
-  // Load draft → published → in-code default on mount / id / scope change.
   React.useEffect(() => {
     let alive = true;
     setStatus({ kind: "loading" });
@@ -136,9 +159,7 @@ export default function CatalogBlockEditor({ catalogId }: { catalogId: string })
         setStatus({ kind: "idle" });
       }
     })();
-    return () => {
-      alive = false;
-    };
+    return () => { alive = false; };
   }, [catalogId, inCode, loadUrl, tenantId]);
 
   const onPanelChange = React.useCallback((next: Record<string, unknown>) => {
@@ -162,21 +183,16 @@ export default function CatalogBlockEditor({ catalogId }: { catalogId: string })
     }
   };
 
-  /** Body for a PUT (draft save) — scope-aware. */
   const putBody = () =>
     tenantId
       ? { catalogId, tenantId, lang: "en", version: currentVersion, data: props }
       : { id: catalogId, data: props };
 
   async function saveDraft(): Promise<boolean> {
-    if (jsonErr) {
-      setStatus({ kind: "error", msg: "Fix the JSON before saving." });
-      return false;
-    }
+    if (jsonErr) { setStatus({ kind: "error", msg: "Fix the JSON before saving." }); return false; }
     setStatus({ kind: "saving" });
     try {
-      const api = tenantId ? TENANT_API : BLOCK_API;
-      const r = await fetch(api, {
+      const r = await fetch(tenantId ? TENANT_API : BLOCK_API, {
         method: "PUT",
         headers: { "content-type": "application/json" },
         body: JSON.stringify(putBody()),
@@ -244,99 +260,97 @@ export default function CatalogBlockEditor({ catalogId }: { catalogId: string })
     | React.FC<{ props: Record<string, unknown>; onChange: (n: Record<string, unknown>) => void }>
     | undefined;
 
-  const updateAvailable =
-    scope.kind === "tenant" && loadedVersion != null && loadedVersion < currentVersion;
+  const scopeLabel = scope.kind === "tenant" ? scope.label : "Platform default";
+  const updateAvailable = scope.kind === "tenant" && loadedVersion != null && loadedVersion < currentVersion;
 
   return (
     <Wrap>
-      <ScopeBar>
-        <ScopeLabel>Editing:</ScopeLabel>
-        <ScopeSelect
-          value={scope.kind === "platform" ? "" : scope.id}
-          onChange={(e) => {
-            const v = e.target.value;
-            if (!v) setScope({ kind: "platform" });
-            else {
-              const m = members.find((x) => x.id === v);
-              setScope({ kind: "tenant", id: v, label: m?.label ?? v });
-            }
-          }}
-        >
-          <option value="">Platform default (cascade)</option>
-          {members.map((m) => (
-            <option key={m.id} value={m.id}>
-              {m.label}
-            </option>
-          ))}
-        </ScopeSelect>
-        <VersionTag>v{currentVersion}</VersionTag>
-        {updateAvailable && (
-          <UpdateBadge onClick={() => setShowUpdate(true)} title="Reconcile this tenant overlay onto the current version">
-            ⬆ Update v{loadedVersion} → v{currentVersion}
-          </UpdateBadge>
-        )}
-      </ScopeBar>
+      {/* Summary — read-only glance */}
+      <ADL label="Summary" accent="gold" open={open.summary} onOpenChange={(o) => toggle("summary", o)}>
+        <SummaryGrid>
+          <SummaryItem><K>Block</K><V><code>{catalogId}</code></V></SummaryItem>
+          <SummaryItem><K>Label</K><V>{entry.label}</V></SummaryItem>
+          <SummaryItem><K>Version</K><V>v{currentVersion}</V></SummaryItem>
+          <SummaryItem><K>Scope</K><V>{scopeLabel}</V></SummaryItem>
+          <SummaryItem><K>Status</K><V><StatusPill $status={status.kind}>{statusLabel(status)}</StatusPill></V></SummaryItem>
+          {updateAvailable && (
+            <SummaryItem><K>Update</K><V><UpdateBadge onClick={() => setShowUpdate(true)}>⬆ v{loadedVersion} → v{currentVersion}</UpdateBadge></V></SummaryItem>
+          )}
+        </SummaryGrid>
+      </ADL>
 
-      <Toolbar>
-        <Title>
-          {scope.kind === "tenant" ? "Tenant overlay" : "Platform default"} · <code>{catalogId}</code>
-        </Title>
-        <Spacer />
-        <StatusPill $status={status.kind}>{statusLabel(status)}</StatusPill>
-        <GhostBtn onClick={resetToInCode} title="Reset the editor to the in-code default (does not change the DB)">
-          Reset
-        </GhostBtn>
-        <GhostBtn onClick={removeOverride} title={scope.kind === "tenant" ? "Delete this tenant's overlay" : "Delete the platform override → revert to in-code"}>
-          Remove override
-        </GhostBtn>
-        <SaveBtn onClick={saveDraft} disabled={status.kind === "saving"}>
-          {status.kind === "saving" ? "Saving…" : "Save draft"}
-        </SaveBtn>
-        {status.kind === "confirm" ? (
-          <>
-            <ConfirmText>
-              {scope.kind === "tenant" ? `Save as ${scope.label}'s override?` : "Cascade to all tenants?"}
-            </ConfirmText>
-            <DeployBtn $confirm onClick={publish}>
-              Confirm deploy
+      {/* Scope & Deploy */}
+      <ADL label="Scope & Deploy" accent="pink" open={open.scope} onOpenChange={(o) => toggle("scope", o)}>
+        <Row>
+          <RowLabel>Editing:</RowLabel>
+          <span style={{ ["--ddm-accent" as string]: "#ff4ecb", ["--ddm-accent-rgb" as string]: "255, 78, 203" }}>
+            <SBDM
+              items={scopeItems}
+              value={scope.kind === "platform" ? "" : scope.id}
+              onSelect={(key) => {
+                if (!key) setScope({ kind: "platform" });
+                else {
+                  const m = members.find((x) => x.id === key);
+                  setScope({ kind: "tenant", id: key, label: m?.label ?? key });
+                }
+              }}
+              placeholder="Platform default (cascade)"
+              searchPlaceholder="Search tenants…"
+              ariaLabel="Edit scope"
+              minTriggerWidth={210}
+            />
+          </span>
+          <VersionTag>v{currentVersion}</VersionTag>
+          {updateAvailable && (
+            <UpdateBadge onClick={() => setShowUpdate(true)} title="Reconcile this tenant overlay onto the current version">
+              ⬆ Update v{loadedVersion} → v{currentVersion}
+            </UpdateBadge>
+          )}
+        </Row>
+        <Controls>
+          <GhostBtn onClick={resetToInCode} title="Reset the editor to the in-code default (does not change the DB)">Reset</GhostBtn>
+          <GhostBtn onClick={removeOverride} title={scope.kind === "tenant" ? "Delete this tenant's overlay" : "Delete the platform override → revert to in-code"}>Remove override</GhostBtn>
+          <SaveBtn onClick={saveDraft} disabled={status.kind === "saving"}>{status.kind === "saving" ? "Saving…" : "Save draft"}</SaveBtn>
+          {status.kind === "confirm" ? (
+            <>
+              <ConfirmText>{scope.kind === "tenant" ? `Save as ${scope.label}'s override?` : "Cascade to all tenants?"}</ConfirmText>
+              <DeployBtn $confirm onClick={publish}>Confirm deploy</DeployBtn>
+              <GhostBtn onClick={() => setStatus({ kind: "idle" })}>Cancel</GhostBtn>
+            </>
+          ) : (
+            <DeployBtn
+              onClick={() => setStatus({ kind: "confirm" })}
+              disabled={status.kind === "publishing" || !!jsonErr}
+              title={scope.kind === "tenant" ? "Publish this tenant's overlay" : "Publish this default so it cascades to every tenant rendering the block from defaults"}
+            >
+              {status.kind === "publishing" ? "Deploying…" : scope.kind === "tenant" ? "Deploy: overlay" : "Deploy: data"}
             </DeployBtn>
-            <GhostBtn onClick={() => setStatus({ kind: "idle" })}>Cancel</GhostBtn>
-          </>
-        ) : (
-          <DeployBtn
-            onClick={() => setStatus({ kind: "confirm" })}
-            disabled={status.kind === "publishing" || !!jsonErr}
-            title={scope.kind === "tenant" ? "Publish this tenant's overlay" : "Publish this default so it cascades to every tenant rendering the block from defaults"}
-          >
-            {status.kind === "publishing" ? "Deploying…" : scope.kind === "tenant" ? "Deploy: overlay" : "Deploy: data"}
-          </DeployBtn>
-        )}
-      </Toolbar>
+          )}
+        </Controls>
+      </ADL>
 
-      <Split>
-        <PreviewCol>
-          <ColLabel>Live preview (from working props)</ColLabel>
-          <PreviewFrame>
-            <PreviewBoundary>
-              <Render props={props} />
-            </PreviewBoundary>
-          </PreviewFrame>
-        </PreviewCol>
+      {/* Preview */}
+      <ADL label="Preview" accent="cyan" open={open.preview} onOpenChange={(o) => toggle("preview", o)}>
+        <PreviewFrame>
+          <PreviewBoundary>
+            <Render props={props} />
+          </PreviewBoundary>
+        </PreviewFrame>
+      </ADL>
 
-        <EditorCol>
-          <ColLabel>{EditorPanel ? "Default content" : "Default content (JSON)"}</ColLabel>
-          <EditorScroll>
-            {EditorPanel ? (
-              <EditorPanel props={props} onChange={onPanelChange} />
-            ) : (
-              <>
-                <JsonArea spellCheck={false} value={json} onChange={(e) => onJsonChange(e.target.value)} />
-                {jsonErr && <FailNote>{jsonErr}</FailNote>}
-              </>
-            )}
-          </EditorScroll>
-        </EditorCol>
-      </Split>
+      {/* Edit */}
+      <ADL label={EditorPanel ? "Edit · default content" : "Edit · default content (JSON)"} accent="gold" open={open.edit} onOpenChange={(o) => toggle("edit", o)}>
+        <EditorScroll>
+          {EditorPanel ? (
+            <EditorPanel props={props} onChange={onPanelChange} />
+          ) : (
+            <>
+              <JsonArea spellCheck={false} value={json} onChange={(e) => onJsonChange(e.target.value)} />
+              {jsonErr && <FailNote>{jsonErr}</FailNote>}
+            </>
+          )}
+        </EditorScroll>
+      </ADL>
 
       {showUpdate && scope.kind === "tenant" && loadedVersion != null && (
         <ComponentUpdateModal
@@ -346,10 +360,7 @@ export default function CatalogBlockEditor({ catalogId }: { catalogId: string })
           fromVersion={loadedVersion}
           toVersion={currentVersion}
           onClose={() => setShowUpdate(false)}
-          onApplied={() => {
-            setShowUpdate(false);
-            setLoadedVersion(currentVersion);
-          }}
+          onApplied={() => { setShowUpdate(false); setLoadedVersion(currentVersion); }}
         />
       )}
     </Wrap>
@@ -374,29 +385,46 @@ const PINK = "#ff4ecb";
 const Wrap = styled.div`
   display: flex;
   flex-direction: column;
+  gap: 8px;
   width: 100%;
   height: 100%;
   min-height: 0;
-  gap: 10px;
+  overflow-y: auto;
+  padding-right: 2px;
 `;
-const ScopeBar = styled.div`
+const SummaryGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 6px 16px;
+`;
+const SummaryItem = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  code { color: ${PINK}; }
+`;
+const K = styled.span`
+  color: rgba(255, 255, 255, 0.4);
+  text-transform: uppercase;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  min-width: 56px;
+`;
+const V = styled.span`color: rgba(255, 255, 255, 0.85);`;
+const Row = styled.div`
   display: flex;
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
-  padding: 6px 10px;
-  border: 1px solid rgba(255, 78, 203, 0.25);
-  border-radius: 8px;
-  background: rgba(255, 78, 203, 0.05);
+  margin-bottom: 10px;
 `;
-const ScopeLabel = styled.span`font-size: 12px; color: rgba(255,255,255,0.55);`;
-const ScopeSelect = styled.select`
-  font-size: 12px;
-  padding: 4px 8px;
-  border-radius: 6px;
-  background: #16161e;
-  color: rgba(255, 255, 255, 0.9);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+const RowLabel = styled.span`font-size: 12px; color: rgba(255,255,255,0.55);`;
+const Controls = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
 `;
 const VersionTag = styled.span`
   font-size: 11px;
@@ -416,22 +444,6 @@ const UpdateBadge = styled.button`
   background: rgba(255, 184, 107, 0.12);
   border: 1px solid #ffb86b;
 `;
-const Toolbar = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-  padding: 8px 10px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.03);
-`;
-const Title = styled.div`
-  font-size: 13px;
-  color: rgba(255, 255, 255, 0.8);
-  code { color: ${PINK}; }
-`;
-const Spacer = styled.div`flex: 1;`;
 const ConfirmText = styled.span`font-size: 12px; color: rgba(255,255,255,0.7);`;
 const StatusPill = styled.span<{ $status: Status["kind"] }>`
   font-size: 11px;
@@ -439,11 +451,7 @@ const StatusPill = styled.span<{ $status: Status["kind"] }>`
   border-radius: 999px;
   border: 1px solid rgba(255, 255, 255, 0.15);
   color: ${(p) =>
-    p.$status === "error"
-      ? "#ff7a7a"
-      : p.$status === "published" || p.$status === "saved"
-      ? "#6ee7a8"
-      : "rgba(255,255,255,0.55)"};
+    p.$status === "error" ? "#ff7a7a" : p.$status === "published" || p.$status === "saved" ? "#6ee7a8" : "rgba(255,255,255,0.55)"};
 `;
 const BtnBase = styled.button`
   font-size: 12px;
@@ -456,52 +464,22 @@ const BtnBase = styled.button`
   &:disabled { opacity: 0.5; cursor: default; }
 `;
 const GhostBtn = styled(BtnBase)``;
-const SaveBtn = styled(BtnBase)`
-  border-color: rgba(110, 231, 168, 0.5);
-`;
+const SaveBtn = styled(BtnBase)`border-color: rgba(110, 231, 168, 0.5);`;
 const DeployBtn = styled(BtnBase)<{ $confirm?: boolean }>`
   border-color: ${(p) => (p.$confirm ? "#ff7a7a" : PINK)};
   color: ${(p) => (p.$confirm ? "#ff7a7a" : PINK)};
   font-weight: 600;
 `;
-const Split = styled.div`
-  display: flex;
-  gap: 12px;
-  flex: 1;
-  min-height: 0;
-  @media (max-width: 900px) { flex-direction: column; }
-`;
-const PreviewCol = styled.div`
-  flex: 1.4;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-`;
-const EditorCol = styled.div`
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-`;
-const ColLabel = styled.div`
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: rgba(255, 255, 255, 0.4);
-`;
 const PreviewFrame = styled.div`
-  flex: 1;
-  min-height: 200px;
+  min-height: 220px;
+  max-height: 60vh;
   overflow: auto;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
   background: #0b0b0f;
 `;
 const EditorScroll = styled.div`
-  flex: 1;
-  min-height: 0;
+  max-height: 60vh;
   overflow: auto;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
@@ -510,7 +488,7 @@ const EditorScroll = styled.div`
 `;
 const JsonArea = styled.textarea`
   width: 100%;
-  min-height: 320px;
+  min-height: 280px;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 12px;
   line-height: 1.5;
