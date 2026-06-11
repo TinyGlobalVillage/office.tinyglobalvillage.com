@@ -43,8 +43,8 @@ type Status =
   | { kind: "error"; msg: string };
 
 // ── per-section collapse state (persisted) ──────────────────────────────────
-type OpenState = { summary: boolean; scope: boolean; preview: boolean; edit: boolean };
-const DEFAULT_OPEN: OpenState = { summary: true, scope: true, preview: true, edit: true };
+type OpenState = { scope: boolean; preview: boolean; edit: boolean };
+const DEFAULT_OPEN: OpenState = { scope: true, preview: true, edit: true };
 const OPEN_KEY = "sandbox.catalogEditor.open.v1";
 function readOpen(): OpenState {
   if (typeof window === "undefined") return DEFAULT_OPEN;
@@ -73,7 +73,14 @@ class PreviewBoundary extends React.Component<
   }
 }
 
-export default function CatalogBlockEditor({ catalogId }: { catalogId: string }) {
+export default function CatalogBlockEditor({
+  catalogId,
+  showPreview = true,
+}: {
+  catalogId: string;
+  /** Show/hide the whole Preview section — driven by the modal's header Preview button. */
+  showPreview?: boolean;
+}) {
   const entry = React.useMemo(() => findEntry(catalogId), [catalogId]);
   const inCode = React.useMemo(
     () => (entry?.defaultProps as Record<string, unknown>) ?? {},
@@ -260,24 +267,13 @@ export default function CatalogBlockEditor({ catalogId }: { catalogId: string })
     | React.FC<{ props: Record<string, unknown>; onChange: (n: Record<string, unknown>) => void }>
     | undefined;
 
-  const scopeLabel = scope.kind === "tenant" ? scope.label : "Platform default";
   const updateAvailable = scope.kind === "tenant" && loadedVersion != null && loadedVersion < currentVersion;
 
   return (
     <Wrap>
-      {/* Summary — read-only glance */}
-      <ADL label="Summary" accent="gold" open={open.summary} onOpenChange={(o) => toggle("summary", o)}>
-        <SummaryGrid>
-          <SummaryItem><K>Block</K><V><code>{catalogId}</code></V></SummaryItem>
-          <SummaryItem><K>Label</K><V>{entry.label}</V></SummaryItem>
-          <SummaryItem><K>Version</K><V>v{currentVersion}</V></SummaryItem>
-          <SummaryItem><K>Scope</K><V>{scopeLabel}</V></SummaryItem>
-          <SummaryItem><K>Status</K><V><StatusPill $status={status.kind}>{statusLabel(status)}</StatusPill></V></SummaryItem>
-          {updateAvailable && (
-            <SummaryItem><K>Update</K><V><UpdateBadge onClick={() => setShowUpdate(true)}>v{loadedVersion} → v{currentVersion}</UpdateBadge></V></SummaryItem>
-          )}
-        </SummaryGrid>
-      </ADL>
+      {/* No internal Summary section — the modal's Summary covers the glance; the block id,
+          version, scope, status, and update badge all live in Scope & Deploy below. Each section
+          here is a TOP-LEVEL toggleable sibling (mounted flat in the modal, never nested). */}
 
       {/* Scope & Deploy */}
       <ADL label="Scope & Deploy" accent="pink" open={open.scope} onOpenChange={(o) => toggle("scope", o)}>
@@ -301,6 +297,7 @@ export default function CatalogBlockEditor({ catalogId }: { catalogId: string })
             />
           </span>
           <VersionTag>v{currentVersion}</VersionTag>
+          <StatusPill $status={status.kind}>{statusLabel(status)}</StatusPill>
           {updateAvailable && (
             <UpdateBadge onClick={() => setShowUpdate(true)} title="Reconcile this tenant overlay onto the current version">
               Update v{loadedVersion} → v{currentVersion}
@@ -329,14 +326,17 @@ export default function CatalogBlockEditor({ catalogId }: { catalogId: string })
         </Controls>
       </ADL>
 
-      {/* Preview */}
-      <ADL label="Preview" accent="cyan" open={open.preview} onOpenChange={(o) => toggle("preview", o)}>
-        <PreviewFrame>
-          <PreviewBoundary>
-            <Render props={props} />
-          </PreviewBoundary>
-        </PreviewFrame>
-      </ADL>
+      {/* Preview — shown/hidden by the modal's header Preview button (showPreview);
+          the ADL lightswitch collapses it while shown. */}
+      {showPreview && (
+        <ADL label="Preview" accent="cyan" open={open.preview} onOpenChange={(o) => toggle("preview", o)}>
+          <PreviewFrame>
+            <PreviewBoundary>
+              <Render props={props} />
+            </PreviewBoundary>
+          </PreviewFrame>
+        </ADL>
+      )}
 
       {/* Edit */}
       <ADL label={EditorPanel ? "Edit · default content" : "Edit · default content (JSON)"} accent="gold" open={open.edit} onOpenChange={(o) => toggle("edit", o)}>
@@ -387,31 +387,11 @@ const Wrap = styled.div`
   flex-direction: column;
   gap: 8px;
   width: 100%;
-  height: 100%;
+  flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
   padding-right: 2px;
 `;
-const SummaryGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 6px 16px;
-`;
-const SummaryItem = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 12px;
-  code { color: ${PINK}; }
-`;
-const K = styled.span`
-  color: rgba(255, 255, 255, 0.4);
-  text-transform: uppercase;
-  font-size: 10px;
-  letter-spacing: 0.06em;
-  min-width: 56px;
-`;
-const V = styled.span`color: rgba(255, 255, 255, 0.85);`;
 const Row = styled.div`
   display: flex;
   align-items: center;

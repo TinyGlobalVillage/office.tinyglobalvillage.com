@@ -1039,6 +1039,21 @@ const CenterPane = styled.div`
   }
 `;
 
+// Flat mount for the catalog-block DATA editor: its internal sections (Scope & Deploy /
+// Preview / Edit) are the top-level toggleable sections — no PreviewSection wrapper.
+const CatalogEditorMount = styled.div`
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+
+  @container sandboxbody (max-width: 1100px) {
+    order: 4;
+    width: 100%;
+    flex: 0 0 auto;
+  }
+`;
+
 const SummaryBar = styled.div`
   @container sandboxbody (max-width: 1100px) {
     order: 2;
@@ -3567,7 +3582,20 @@ export default function SandboxModal({
                 </SummaryBar>
                 )}
 
-                {previewVisible && (
+                {activeKey.startsWith("catalog:") && canEdit && editMode ? (
+                  // Catalog block in edit mode → the DATA editor. Mounted FLAT at the
+                  // CenterPane level so its sections (Scope & Deploy / Preview / Edit)
+                  // are top-level toggleable siblings of Summary — never nested inside
+                  // the Preview section. The header Preview button shows/hides the
+                  // editor's own Preview section (showPreview).
+                  <CatalogEditorMount>
+                    <CatalogBlockEditor
+                      catalogId={activeKey.slice("catalog:".length)}
+                      showPreview={previewVisible}
+                    />
+                  </CatalogEditorMount>
+                ) : (
+                previewVisible && (
                 <PreviewSection $open={previewOpen}>
                   <SectionHeaderBtn
                     onClick={() => setPreviewOpen((p) => !p)}
@@ -3583,33 +3611,25 @@ export default function SandboxModal({
                   </SectionHeaderBtn>
                   {previewOpen && (
                     <Viewport>
-                      {activeKey.startsWith("catalog:") && canEdit && editMode ? (
-                        // Catalog block in edit mode → the DATA editor (edit default
-                        // props → save draft → deploy:data cascade). The code-edit
-                        // toolbar/Claude drawer is for hand-coded primitives, not these.
-                        <CatalogBlockEditor catalogId={activeKey.slice("catalog:".length)} />
-                      ) : (
-                        <>
-                          <DemoArea>
-                            <DemoWrap>
-                              {Demo && <Demo />}
-                            </DemoWrap>
-                          </DemoArea>
-                          {canEdit && editMode && active && (
-                            <ClaudeWrap>
-                              <SandboxClaudeDrawer
-                                componentKey={activeKey}
-                                currentCode={editorCode}
-                                onCodeUpdate={(code) => handleCodeChange(code)}
-                                onDeploy={(targets) => handleDeploy({ targets: targets[0] === "all" ? undefined : targets })}
-                              />
-                            </ClaudeWrap>
-                          )}
-                        </>
+                      <DemoArea>
+                        <DemoWrap>
+                          {Demo && <Demo />}
+                        </DemoWrap>
+                      </DemoArea>
+                      {canEdit && editMode && active && (
+                        <ClaudeWrap>
+                          <SandboxClaudeDrawer
+                            componentKey={activeKey}
+                            currentCode={editorCode}
+                            onCodeUpdate={(code) => handleCodeChange(code)}
+                            onDeploy={(targets) => handleDeploy({ targets: targets[0] === "all" ? undefined : targets })}
+                          />
+                        </ClaudeWrap>
                       )}
                     </Viewport>
                   )}
                 </PreviewSection>
+                )
                 )}
               </>
             ) : (
