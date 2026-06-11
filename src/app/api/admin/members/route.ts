@@ -16,5 +16,12 @@ export async function GET(req: NextRequest) {
     .from(schema.members)
     .orderBy(desc(schema.members.createdAt));
 
-  return NextResponse.json({ ok: true, members: rows });
+  // 'pending' = created during the wizard but NOT yet paid/provisioned. These are
+  // in-flight or abandoned signups — they must NOT masquerade as real members. Surface
+  // them separately as `incomplete` so operators can see/GC them without them polluting
+  // the members roster. A member becomes "real" once payment flips it to deploying/live.
+  const members = rows.filter((m) => m.deployStatus !== "pending");
+  const incomplete = rows.filter((m) => m.deployStatus === "pending");
+
+  return NextResponse.json({ ok: true, members, incomplete });
 }
