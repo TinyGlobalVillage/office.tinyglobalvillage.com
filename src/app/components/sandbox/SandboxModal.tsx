@@ -165,6 +165,11 @@ const HeaderLeft = styled.div<{ $w: number; $edit?: boolean }>`
   min-width: 0;
   display: flex;
   align-items: center;
+  /* Pills (PillGroup) share the heading row only when EVERYTHING fits; otherwise the
+     whole group wraps below the title — never cropped. */
+  flex-wrap: wrap;
+  align-content: center;
+  row-gap: 0.4rem;
   gap: 0.75rem;
   padding: ${(p) => (p.$w === 0 ? "0" : "0.75rem 21px 0.75rem 1.25rem")};
   overflow: hidden;
@@ -181,6 +186,26 @@ const HeaderLeft = styled.div<{ $w: number; $edit?: boolean }>`
     width: ${(p) => (p.$w === 0 ? "0" : "33vw")};
     max-width: 33vw;
   }
+`;
+
+// Heading cluster (icon + title) — one unbreakable flex item on the wrap row.
+const TitleCluster = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+  white-space: nowrap;
+`;
+
+// The draft pill + Files SBDM as ONE wrap unit: either both sit beside the heading
+// (when they fully fit) or both stack under it. max-width keeps the SBDM trigger
+// ellipsizing inside the files column instead of cropping.
+const PillGroup = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  max-width: 100%;
 `;
 
 // RSD — Row Section Divider. 1px neon-tinted vertical line separating the
@@ -3123,9 +3148,14 @@ export default function SandboxModal({
       >
         <Header $edit={editMode}>
           <HeaderLeft $w={sidebar.snapped ? 0 : sidebar.width} $edit={editMode}>
-            <SandboxIcon size={22} color={editMode ? GOLD : PINK} />
-            <Title $edit={editMode}>{title}{editMode ? " · Editing" : ""}</Title>
+            <TitleCluster>
+              <SandboxIcon size={22} color={editMode ? GOLD : PINK} />
+              <Title $edit={editMode}>{title}{editMode ? " · Editing" : ""}</Title>
+            </TitleCluster>
 
+            {/* Pills wrap BELOW the heading as ONE group: they share a row with the title
+                only when everything fits; if either would clip, both stack under it. */}
+            <PillGroup>
             {canEdit && drafts.drafts.length > 0 && (
               <DraftSbdmWrap ref={draftSbdmRef}>
                 <Tooltip label="Pick a draft or live" accent={TT_ACCENT}>
@@ -3178,6 +3208,7 @@ export default function SandboxModal({
               accent="pink"
               minTriggerWidth={0}
             />
+            </PillGroup>
             <HeaderTotal $edit={editMode}>{REGISTRY.length}</HeaderTotal>
             <Tooltip label={allCatsOpen ? "Collapse all groups" : "Expand all groups"} accent={TT_ACCENT}>
               <CollapseAllBtn
