@@ -10,11 +10,12 @@
 
 import React from "react";
 import styled from "styled-components";
+import { CancelIcon } from "../icons";
 
 const ENDPOINT = "/api/sandbox/component-update-apply";
 
 type Preview = {
-  outcome: "CLEAN_REAPPLY" | "SURGICAL_MERGE" | "STRUCTURAL_CONFLICT" | "NO_OVERLAY";
+  outcome: "CLEAN_REAPPLY" | "SURGICAL_MERGE" | "STRUCTURAL_CONFLICT" | "NO_OVERLAY" | "NO_OP";
   classification?: "cosmetic" | "structural";
   message?: string;
   preservedFields?: string[];
@@ -100,15 +101,15 @@ export default function ComponentUpdateModal({
               <code>{catalogId}</code> · {tenantLabel}
             </H>
           </div>
-          <CloseBtn onClick={onClose}>✕</CloseBtn>
+          <CloseBtn onClick={onClose} aria-label="Close"><CancelIcon size={14} /></CloseBtn>
         </Head>
 
         {busy && !preview ? (
           <Note>Computing blast radius…</Note>
         ) : err ? (
-          <FailNote>⚠ {err}</FailNote>
+          <FailNote>{err}</FailNote>
         ) : applied ? (
-          <OkNote>✓ Applied — the tenant overlay is now at v{toVersion}.</OkNote>
+          <OkNote>Applied — the tenant overlay is now at v{toVersion}.</OkNote>
         ) : preview ? (
           <>
             <OutcomeRow>
@@ -117,7 +118,7 @@ export default function ComponentUpdateModal({
               {preview.baseSnapshotMissing && <Dim>· no base snapshot (all edits preserved)</Dim>}
             </OutcomeRow>
 
-            {preview.outcome === "NO_OVERLAY" ? (
+            {preview.outcome === "NO_OVERLAY" || preview.outcome === "NO_OP" ? (
               <Note>{preview.message ?? "Tenant has no overlay — the new default applies automatically."}</Note>
             ) : (
               <>
@@ -163,7 +164,7 @@ export default function ComponentUpdateModal({
 
             <Actions>
               <GhostBtn onClick={onClose}>Ignore</GhostBtn>
-              {preview.outcome !== "NO_OVERLAY" && (
+              {preview.outcome !== "NO_OVERLAY" && preview.outcome !== "NO_OP" && (
                 <ApplyBtn onClick={apply} disabled={busy}>
                   {busy ? "Applying…" : `Apply → v${toVersion}`}
                 </ApplyBtn>
@@ -182,6 +183,7 @@ function outcomeLabel(o: Preview["outcome"]): string {
     case "SURGICAL_MERGE": return "Surgical merge";
     case "STRUCTURAL_CONFLICT": return "Structural — review needed";
     case "NO_OVERLAY": return "No overlay";
+    case "NO_OP": return "Up to date";
   }
 }
 

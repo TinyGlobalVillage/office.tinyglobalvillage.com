@@ -68,7 +68,7 @@ class PreviewBoundary extends React.Component<
     if (prev.children !== this.props.children && this.state.error) this.setState({ error: null });
   }
   render() {
-    if (this.state.error) return <FailNote>⚠ Preview threw: {this.state.error.message}</FailNote>;
+    if (this.state.error) return <FailNote>Preview threw: {this.state.error.message}</FailNote>;
     return <>{this.props.children}</>;
   }
 }
@@ -274,7 +274,7 @@ export default function CatalogBlockEditor({ catalogId }: { catalogId: string })
           <SummaryItem><K>Scope</K><V>{scopeLabel}</V></SummaryItem>
           <SummaryItem><K>Status</K><V><StatusPill $status={status.kind}>{statusLabel(status)}</StatusPill></V></SummaryItem>
           {updateAvailable && (
-            <SummaryItem><K>Update</K><V><UpdateBadge onClick={() => setShowUpdate(true)}>⬆ v{loadedVersion} → v{currentVersion}</UpdateBadge></V></SummaryItem>
+            <SummaryItem><K>Update</K><V><UpdateBadge onClick={() => setShowUpdate(true)}>v{loadedVersion} → v{currentVersion}</UpdateBadge></V></SummaryItem>
           )}
         </SummaryGrid>
       </ADL>
@@ -303,7 +303,7 @@ export default function CatalogBlockEditor({ catalogId }: { catalogId: string })
           <VersionTag>v{currentVersion}</VersionTag>
           {updateAvailable && (
             <UpdateBadge onClick={() => setShowUpdate(true)} title="Reconcile this tenant overlay onto the current version">
-              ⬆ Update v{loadedVersion} → v{currentVersion}
+              Update v{loadedVersion} → v{currentVersion}
             </UpdateBadge>
           )}
         </Row>

@@ -41,3 +41,8 @@ export { default as LogsIcon } from "./LogsIcon";
 export { default as ArchiveIcon } from "./ArchiveIcon";
 export { default as SearchIcon } from "./SearchIcon";
 export { default as SettingsIcon } from "./SettingsIcon";
+export { default as SaveIcon } from "./SaveIcon";
+export { default as EyeIcon } from "./EyeIcon";
+export { default as SyncIcon } from "./SyncIcon";
+export { default as GlobeIcon } from "./GlobeIcon";
+export { default as TargetIcon } from "./TargetIcon";

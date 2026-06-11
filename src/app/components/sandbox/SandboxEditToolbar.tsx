@@ -7,6 +7,25 @@ import { PanelIconBtn, PanelActionBtn, Spacer } from "../../styled";
 import type { Draft } from "./useDraftStore";
 import ComponentVersionsSyncButton from "./ComponentVersionsSyncButton";
 import ComponentPicker from "./ComponentPicker";
+import Tooltip from "../ui/Tooltip";
+import { SaveIcon, EyeIcon, GlobeIcon, TargetIcon, DeployIcon } from "../icons";
+
+// Inline-flex row so an SVG icon + its (collapsible) text label align inside a button.
+const IconRow = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  line-height: 0;
+`;
+
+// Toolbar button label — collapses to its leading icon when the center column is tight
+// (the SVG icon stays; the styled Tooltip explains it on hover).
+const TLabel = styled.span`
+  line-height: 1;
+  @container sandboxcenter (max-width: 620px) {
+    display: none;
+  }
+`;
 
 const GOLD = colors.gold;
 const GOLD_RGB = rgb.gold;
@@ -36,6 +55,11 @@ type Props = {
 // ── Styled ───────────────────────────────────────────────────────
 
 const Bar = styled.div`
+  /* On narrow, the edit toolbar sits at the top of the stacked column (above Summary). */
+  @container sandboxbody (max-width: 1100px) {
+    order: 1;
+    width: 100%;
+  }
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -292,59 +316,67 @@ export default function SandboxEditToolbar(p: Props) {
 
   return (
     <Bar>
-      <ModeLabel>Edit Mode</ModeLabel>
+      <ModeLabel><TLabel>Edit Mode</TLabel></ModeLabel>
       <ComponentPicker activeKey={p.componentKey} onSelect={p.onSelectKey} />
       {p.active && (
-        <InfoTag>· Draft #{p.active.number} · {p.isSaved ? "saved" : "unsaved"}</InfoTag>
+        <InfoTag><TLabel>· Draft #{p.active.number} · {p.isSaved ? "saved" : "unsaved"}</TLabel></InfoTag>
       )}
 
       <Spacer />
 
-      <AutoSaveLabel>
-        <input type="checkbox" checked={p.autoSave} onChange={(e) => p.setAutoSave(e.target.checked)} />
-        Auto-save
-      </AutoSaveLabel>
+      <Tooltip label="Auto-save drafts" accent={PINK}>
+        <AutoSaveLabel>
+          <input type="checkbox" checked={p.autoSave} onChange={(e) => p.setAutoSave(e.target.checked)} />
+          <TLabel>Auto-save</TLabel>
+        </AutoSaveLabel>
+      </Tooltip>
 
-      <PanelActionBtn
-        $color="pink"
-        onClick={p.onSave}
-        disabled={p.autoSave || p.isSaved}
-        title={p.autoSave ? "Auto-save is on" : p.isSaved ? "Already saved" : "Save"}
-      >
-        💾 Save
-      </PanelActionBtn>
+      <Tooltip label={p.autoSave ? "Auto-save is on" : p.isSaved ? "Already saved" : "Save draft"} accent={PINK}>
+        <PanelActionBtn $color="pink" onClick={p.onSave} disabled={p.autoSave || p.isSaved}>
+          <IconRow><SaveIcon size={13} /><TLabel>Save</TLabel></IconRow>
+        </PanelActionBtn>
+      </Tooltip>
 
-      <UndoBtn onClick={p.onUndo} disabled={!p.canUndo} title="Undo">↶</UndoBtn>
-      <UndoBtn onClick={p.onRedo} disabled={!p.canRedo} title="Redo">↷</UndoBtn>
+      <Tooltip label="Undo" accent={GOLD}>
+        <UndoBtn onClick={p.onUndo} disabled={!p.canUndo}>↶</UndoBtn>
+      </Tooltip>
+      <Tooltip label="Redo" accent={GOLD}>
+        <UndoBtn onClick={p.onRedo} disabled={!p.canRedo}>↷</UndoBtn>
+      </Tooltip>
 
-      <PanelActionBtn $variant="ghost" onClick={p.onResetToDeployed} disabled={!p.active} title="Reset draft to last-deployed code">
-        ↺ Reset
-      </PanelActionBtn>
+      <Tooltip label="Reset draft to last-deployed code" accent={GOLD}>
+        <PanelActionBtn $variant="ghost" onClick={p.onResetToDeployed} disabled={!p.active}>
+          ↺ <TLabel>Reset</TLabel>
+        </PanelActionBtn>
+      </Tooltip>
 
       <ComponentVersionsSyncButton />
 
-      <PanelActionBtn $color="cyan" onClick={() => runDeploy({ preview: true })} disabled={!canDeploy || deploying !== "none"} title={canDeploy ? "Preview deploy" : "Save first"}>
-        👁 Preview
-      </PanelActionBtn>
+      <Tooltip label={canDeploy ? "Preview deploy" : "Save first"} accent={CYAN}>
+        <PanelActionBtn $color="cyan" onClick={() => runDeploy({ preview: true })} disabled={!canDeploy || deploying !== "none"}>
+          <IconRow><EyeIcon size={13} /><TLabel>Preview</TLabel></IconRow>
+        </PanelActionBtn>
+      </Tooltip>
 
       <DDMWrap ref={ddmRef}>
-        <DeployBtn
-          $color="gold"
-          onClick={() => setDeployOpen((v) => !v)}
-          disabled={!canDeploy || deploying !== "none"}
-          title={canDeploy ? "Deploy" : "Save first"}
-        >
-          🚀 {deploying === "deploy" ? "Deploying…" : "Deploy"}
-          <DropdownArrow>▾</DropdownArrow>
-        </DeployBtn>
+        <Tooltip label={canDeploy ? "Deploy" : "Save first"} accent={GOLD}>
+          <DeployBtn
+            $color="gold"
+            onClick={() => setDeployOpen((v) => !v)}
+            disabled={!canDeploy || deploying !== "none"}
+          >
+            <IconRow><DeployIcon size={13} /><TLabel>{deploying === "deploy" ? "Deploying…" : "Deploy"}</TLabel></IconRow>
+            <DropdownArrow>▾</DropdownArrow>
+          </DeployBtn>
+        </Tooltip>
 
         {deployOpen && (
           <DDMMenu>
             <DDMItemPrimary onClick={() => runDeploy({})}>
-              🌍 Deploy for All
+              <IconRow><GlobeIcon size={13} />Deploy for All</IconRow>
             </DDMItemPrimary>
             <DDMItemSecondary onClick={() => { setPickerOpen(true); setDeployOpen(false); }}>
-              🎯 Deploy to…
+              <IconRow><TargetIcon size={13} />Deploy to…</IconRow>
             </DDMItemSecondary>
           </DDMMenu>
         )}

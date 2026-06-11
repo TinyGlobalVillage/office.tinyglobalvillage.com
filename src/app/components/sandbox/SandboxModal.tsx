@@ -40,6 +40,7 @@ type PageTemplateSummary = {
 import { useDraftStore } from "./useDraftStore";
 import SandboxEditToolbar from "./SandboxEditToolbar";
 import SandboxClaudeDrawer from "./SandboxClaudeDrawer";
+import { createPortal } from "react-dom";
 import Tooltip from "../ui/Tooltip";
 
 const TT_ACCENT = "#ff4ecb";
@@ -130,6 +131,8 @@ const SandboxCtrlBtn = styled(PanelIconBtn)`
 `;
 
 const Modal = styled(Panel)<{ $edit?: boolean }>`
+  container-type: inline-size;
+  container-name: sandboxbody;
   border-color: rgba(${(p) => (p.$edit ? GOLD_RGB : PINK_RGB)}, 0.32);
   box-shadow: 0 24px 80px rgba(0, 0, 0, 0.85),
     0 0 32px rgba(${(p) => (p.$edit ? GOLD_RGB : PINK_RGB)}, 0.12);
@@ -422,13 +425,10 @@ const DraftTrigger = styled.button`
 `;
 
 const DraftPanel = styled.div`
-  position: absolute;
-  left: 0;
-  top: 100%;
-  margin-top: 0.5rem;
+  position: fixed;
   border-radius: 0.75rem;
   overflow: hidden;
-  z-index: 80;
+  z-index: 9999;
   min-width: 240px;
   background: rgba(8, 10, 16, 0.98);
   border: 1px solid rgba(${GOLD_RGB}, 0.3);
@@ -538,6 +538,15 @@ const Body = styled.div`
   display: flex;
   overflow: hidden;
   position: relative;
+
+  /* Responsive: below ~900px the side-by-side panes stack vertically. CenterPane goes
+     display:contents (below) so its toolbar/Summary/Preview become Body flex children; flex
+     order then yields Summary → Code → Preview. */
+  @container sandboxbody (max-width: 1100px) {
+    flex-direction: column;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
 `;
 
 const Blackout = styled.div`
@@ -629,6 +638,17 @@ function ReturnToMainGlyph() {
 // for visual continuity top-to-bottom. Without this override we got a
 // doubled line AND a 1px math-offset that broke ECL/ADL-switch alignment.
 const FileSidebar = styled(PanelSidebar)<{ $w: number }>`
+  /* On narrow the sidebar (when re-opened from its drawer) floats as an overlay so it doesn't
+     squeeze the stacked Summary/Code/Preview column. */
+  @container sandboxbody (max-width: 1100px) {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    z-index: 60;
+    width: min(280px, 82%) !important;
+    box-shadow: 8px 0 28px rgba(0, 0, 0, 0.5);
+  }
   width: ${(p) => p.$w}px;
   flex-shrink: 0;
   padding: 0.75rem 0.5rem;
@@ -685,6 +705,21 @@ function SummaryIcon({ size = 14 }: { size?: number }) {
       />
       <path d="M15 3v4h4" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
       <path d="M8 12h8M8 16h8M8 8h4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+// Eye icon for the Preview toggle.
+function PreviewIcon({ size = 14 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+      />
+      <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.6" />
     </svg>
   );
 }
@@ -762,6 +797,9 @@ const ResizeHandle = styled.div<{
   $edit?: boolean;
   $pairedSide?: "left" | "right";
 }>`
+  @container sandboxbody (max-width: 1100px) {
+    display: none;
+  }
   width: 8px;
   cursor: col-resize;
   flex-shrink: 0;
@@ -991,9 +1029,21 @@ const CenterPane = styled.div`
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  container-type: inline-size;
+  container-name: sandboxcenter;
+
+  /* On narrow, dissolve so the toolbar/Summary/Preview join the Body's vertical stack and can
+     be interleaved (by flex order) with the Code panel. */
+  @container sandboxbody (max-width: 1100px) {
+    display: contents;
+  }
 `;
 
 const SummaryBar = styled.div`
+  @container sandboxbody (max-width: 1100px) {
+    order: 2;
+    width: 100%;
+  }
   flex-shrink: 0;
   border-bottom: 1px solid var(--t-border);
   background: rgba(${PINK_RGB}, 0.03);
@@ -1035,6 +1085,10 @@ const SummaryLabel = styled.span`
   letter-spacing: 0.15em;
   color: ${PINK};
   flex-shrink: 0;
+
+  @container sandboxcenter (max-width: 340px) {
+    display: none;
+  }
 `;
 
 const SummaryKey = styled.span`
@@ -1094,6 +1148,61 @@ const Viewport = styled.div`
 
   [data-theme="light"] & {
     background: rgba(0, 0, 0, 0.02);
+  }
+`;
+
+// Independently-collapsible Preview section (its own header + switch, decoupled
+// from Summary). Fills the remaining height when open; collapses to just the
+// header when closed.
+const PreviewSection = styled.div<{ $open: boolean }>`
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: ${(p) => (p.$open ? "1 1 auto" : "0 0 auto")};
+
+  @container sandboxbody (max-width: 1100px) {
+    order: 4;
+    width: 100%;
+    flex: 0 0 auto !important;
+    min-height: ${(p) => (p.$open ? "320px" : "0")};
+  }
+`;
+
+const SectionHeaderBtn = styled.button`
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 1.25rem;
+  background: rgba(${PINK_RGB}, 0.03);
+  border: none;
+  border-bottom: 1px solid var(--t-border);
+  cursor: pointer;
+  flex-shrink: 0;
+
+  [data-theme="light"] & { background: rgba(${PINK_RGB}, 0.02); }
+`;
+
+const SectionIcon = styled.span`
+  display: inline-flex;
+  align-items: center;
+  color: ${PINK};
+  line-height: 0;
+  > svg { filter: drop-shadow(0 0 4px rgba(${PINK_RGB}, 0.5)); }
+  [data-theme="light"] & > svg { filter: none; }
+`;
+
+// Section label that collapses to its icon when the center column is tight.
+const SectionLabel = styled.span`
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: ${PINK};
+  flex-shrink: 0;
+
+  @container sandboxcenter (max-width: 340px) {
+    display: none;
   }
 `;
 
@@ -1565,6 +1674,12 @@ const TemplateEmptyHint = styled.div`
 `;
 
 const CodePane = styled.div<{ $w: number }>`
+  @container sandboxbody (max-width: 1100px) {
+    order: 3;
+    width: 100% !important;
+    max-height: 50vh;
+    flex-shrink: 1;
+  }
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
@@ -2360,7 +2475,12 @@ function useResizePanel(
     setSnapped(false);
   }, [defaultW]);
 
-  return { width: snapped ? 0 : width, snapped, dragging, onPointerDown, restore };
+  const snap = useCallback(() => {
+    setWidth(0);
+    setSnapped(true);
+  }, []);
+
+  return { width: snapped ? 0 : width, snapped, dragging, onPointerDown, restore, snap };
 }
 
 type SandboxMode = "main" | "popout";
@@ -2598,11 +2718,13 @@ export default function SandboxModal({
     },
     [],
   );
-  const [summaryOpen, setSummaryOpen] = useState(true);
-  // Gates the entire CenterPane (summary header + demo + claude drawer)
-  // via the header-toolbar Summary button. Distinct from `summaryOpen`,
-  // which only collapses the inline summary body within the SummaryBar.
-  const [previewOpen, setPreviewOpen] = useState(true);
+  // Two-level visibility per section. The header Summary/Preview BUTTONS fully
+  // show/hide the whole section (`*Visible`); the in-section LIGHTSWITCHES collapse
+  // the content when the section is visible (`*Open`). Independent Summary vs Preview.
+  const [summaryOpen, setSummaryOpen] = useState(true); // lightswitch: collapse summary body
+  const [previewOpen, setPreviewOpen] = useState(true); // lightswitch: collapse the viewport
+  const [summaryVisible, setSummaryVisible] = useState(true); // header button: show/hide summary
+  const [previewVisible, setPreviewVisible] = useState(true); // header button: show/hide preview
   const [codeOpen, setCodeOpen] = useState(false);
   const [codeTab, setCodeTab] = useState<"component" | "style">("component");
   const [liveStyle, setLiveStyle] = useState<string | null>(null);
@@ -2613,6 +2735,27 @@ export default function SandboxModal({
   const bodyRef = useRef<HTMLDivElement | null>(null);
   const sidebar = useResizePanel(SIDEBAR_DEFAULT, SIDEBAR_MIN, "left", bodyRef);
   const codePanel = useResizePanel(CODE_DEFAULT, CODE_MIN, "right", bodyRef);
+
+  // Below ~1100px the right area stacks (Summary → Code → Preview, see the @container rules) and
+  // the Files sidebar auto-collapses to its restore-drawer — the component-picker DDM in the edit
+  // toolbar replaces it for selection; the user can re-open Files as an overlay drawer. Acts only
+  // on threshold crossings so it never fights a manual open while narrow.
+  const wasNarrow = useRef(false);
+  useEffect(() => {
+    const el = bodyRef.current;
+    if (!el) return;
+    const apply = (w: number) => {
+      const narrow = w < 1100;
+      if (narrow && !wasNarrow.current) sidebar.snap();
+      else if (!narrow && wasNarrow.current) sidebar.restore();
+      wasNarrow.current = narrow;
+    };
+    apply(el.getBoundingClientRect().width);
+    const ro = new ResizeObserver((entries) => apply(entries[0].contentRect.width));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [sidebar.snap, sidebar.restore]);
+
   const { newKeys, markSeen } = useNewKeys();
 
   // Search state
@@ -2636,6 +2779,8 @@ export default function SandboxModal({
   const [draftSearch, setDraftSearch] = useState("");
   const [draftAsc, setDraftAsc] = useState(true);
   const draftSbdmRef = useRef<HTMLDivElement | null>(null);
+  const draftPanelRef = useRef<HTMLDivElement | null>(null);
+  const [draftMenuPos, setDraftMenuPos] = useState<{ top: number; left: number } | null>(null);
   const [toolbarMenuOpen, setToolbarMenuOpen] = useState(false);
   const toolbarMenuRef = useRef<HTMLDivElement | null>(null);
 
@@ -2735,8 +2880,12 @@ export default function SandboxModal({
 
   useEffect(() => {
     if (!draftPickerOpen) return;
+    const r = draftSbdmRef.current?.getBoundingClientRect();
+    if (r) setDraftMenuPos({ top: r.bottom + 6, left: r.left });
     const onClick = (e: MouseEvent) => {
-      if (draftSbdmRef.current && !draftSbdmRef.current.contains(e.target as Node)) setDraftPickerOpen(false);
+      const t = e.target as Node;
+      if (draftSbdmRef.current?.contains(t) || draftPanelRef.current?.contains(t)) return;
+      setDraftPickerOpen(false);
     };
     document.addEventListener("mousedown", onClick);
     return () => document.removeEventListener("mousedown", onClick);
@@ -2964,8 +3113,8 @@ export default function SandboxModal({
                     <DraftArrow>▾</DraftArrow>
                   </DraftTrigger>
                 </Tooltip>
-                {draftPickerOpen && (
-                  <DraftPanel>
+                {draftPickerOpen && draftMenuPos && createPortal(
+                  <DraftPanel ref={draftPanelRef} style={{ top: draftMenuPos.top, left: draftMenuPos.left }}>
                     <DraftSearchBar>
                       <DraftSearchInput
                         autoFocus
@@ -2994,7 +3143,8 @@ export default function SandboxModal({
                         </DraftItem>
                       ))}
                     </DraftList>
-                  </DraftPanel>
+                  </DraftPanel>,
+                  document.body,
                 )}
               </DraftSbdmWrap>
             )}
@@ -3046,12 +3196,21 @@ export default function SandboxModal({
               </ToggleBtn>
 
               <ToggleBtn
-                $active={previewOpen}
-                onClick={() => setPreviewOpen((p) => !p)}
-                aria-label="Toggle preview column"
+                $active={summaryVisible}
+                onClick={() => setSummaryVisible((p) => !p)}
+                aria-label="Show/hide summary"
               >
                 <SummaryIcon />
                 <BtnLabel>Summary</BtnLabel>
+              </ToggleBtn>
+
+              <ToggleBtn
+                $active={previewVisible}
+                onClick={() => setPreviewVisible((p) => !p)}
+                aria-label="Show/hide preview"
+              >
+                <PreviewIcon />
+                <BtnLabel>Preview</BtnLabel>
               </ToggleBtn>
 
               <ToggleBtn
@@ -3134,14 +3293,24 @@ export default function SandboxModal({
                       <span>Files</span>
                     </MenuDdmItem>
                     <MenuDdmItem
-                      $active={previewOpen}
+                      $active={summaryVisible}
                       onClick={() => {
-                        setPreviewOpen((p) => !p);
+                        setSummaryVisible((p) => !p);
                         setToolbarMenuOpen(false);
                       }}
                     >
                       <SummaryIcon />
                       <span>Summary</span>
+                    </MenuDdmItem>
+                    <MenuDdmItem
+                      $active={previewVisible}
+                      onClick={() => {
+                        setPreviewVisible((p) => !p);
+                        setToolbarMenuOpen(false);
+                      }}
+                    >
+                      <PreviewIcon />
+                      <span>Preview</span>
                     </MenuDdmItem>
                     <MenuDdmItem
                       $active={codeOpen && !codePanel.snapped}
@@ -3191,24 +3360,8 @@ export default function SandboxModal({
           </HeaderRight>
         </Header>
 
-        {canEdit && editMode && (
-          <SandboxEditToolbar
-            active={drafts.active}
-            autoSave={autoSave}
-            setAutoSave={setAutoSave}
-            onSave={handleManualSave}
-            onUndo={drafts.undo}
-            onRedo={drafts.redo}
-            canUndo={drafts.canUndo}
-            canRedo={drafts.canRedo}
-            onResetToDeployed={drafts.resetToDeployed}
-            isSaved={isSaved}
-            componentKey={activeKey}
-            onSelectKey={(k) => { setActiveTemplateId(null); setActiveKey(k); }}
-            projects={projects}
-            onDeploy={handleDeploy}
-          />
-        )}
+        {/* Edit-mode toolbar moved into the center column (below the header, right of
+            the files panel, above Summary/Preview) — see CenterPane below. */}
 
         <Body ref={bodyRef}>
           {fsOpen && !sidebar.snapped && (
@@ -3323,8 +3476,26 @@ export default function SandboxModal({
             </Tooltip>
           )}
 
-          {previewOpen && (
+          {(active || activeTemplate || (canEdit && editMode)) && (
           <CenterPane>
+            {canEdit && editMode && (
+              <SandboxEditToolbar
+                active={drafts.active}
+                autoSave={autoSave}
+                setAutoSave={setAutoSave}
+                onSave={handleManualSave}
+                onUndo={drafts.undo}
+                onRedo={drafts.redo}
+                canUndo={drafts.canUndo}
+                canRedo={drafts.canRedo}
+                onResetToDeployed={drafts.resetToDeployed}
+                isSaved={isSaved}
+                componentKey={activeKey}
+                onSelectKey={(k) => { setActiveTemplateId(null); setActiveKey(k); }}
+                projects={projects}
+                onDeploy={handleDeploy}
+              />
+            )}
             {activeTemplate ? (
               <TemplatePreview
                 template={activeTemplate}
@@ -3356,6 +3527,7 @@ export default function SandboxModal({
               />
             ) : active ? (
               <>
+                {summaryVisible && (
                 <SummaryBar>
                   <SummaryToggle
                     onClick={() => setSummaryOpen((p) => !p)}
@@ -3363,6 +3535,7 @@ export default function SandboxModal({
                     aria-label={summaryOpen ? "Collapse summary" : "Expand summary"}
                   >
                     <SummaryTopRow>
+                      <SectionIcon><SummaryIcon /></SectionIcon>
                       <SummaryLabel>Summary</SummaryLabel>
                       <Spacer />
                       <AdlSwitchTrack $on={summaryOpen} aria-hidden="true">
@@ -3392,33 +3565,52 @@ export default function SandboxModal({
                     </SummaryBody>
                   )}
                 </SummaryBar>
+                )}
 
-                <Viewport>
-                  {activeKey.startsWith("catalog:") && canEdit && editMode ? (
-                    // Catalog block in edit mode → the DATA editor (edit default
-                    // props → save draft → deploy:data cascade). The code-edit
-                    // toolbar/Claude drawer is for hand-coded primitives, not these.
-                    <CatalogBlockEditor catalogId={activeKey.slice("catalog:".length)} />
-                  ) : (
-                    <>
-                      <DemoArea>
-                        <DemoWrap>
-                          {Demo && <Demo />}
-                        </DemoWrap>
-                      </DemoArea>
-                      {canEdit && editMode && active && (
-                        <ClaudeWrap>
-                          <SandboxClaudeDrawer
-                            componentKey={activeKey}
-                            currentCode={editorCode}
-                            onCodeUpdate={(code) => handleCodeChange(code)}
-                            onDeploy={(targets) => handleDeploy({ targets: targets[0] === "all" ? undefined : targets })}
-                          />
-                        </ClaudeWrap>
+                {previewVisible && (
+                <PreviewSection $open={previewOpen}>
+                  <SectionHeaderBtn
+                    onClick={() => setPreviewOpen((p) => !p)}
+                    aria-pressed={previewOpen}
+                    aria-label={previewOpen ? "Collapse preview" : "Expand preview"}
+                  >
+                    <SectionIcon><PreviewIcon /></SectionIcon>
+                    <SectionLabel>Preview</SectionLabel>
+                    <Spacer />
+                    <AdlSwitchTrack $on={previewOpen} aria-hidden="true">
+                      <AdlSwitchThumb $on={previewOpen} />
+                    </AdlSwitchTrack>
+                  </SectionHeaderBtn>
+                  {previewOpen && (
+                    <Viewport>
+                      {activeKey.startsWith("catalog:") && canEdit && editMode ? (
+                        // Catalog block in edit mode → the DATA editor (edit default
+                        // props → save draft → deploy:data cascade). The code-edit
+                        // toolbar/Claude drawer is for hand-coded primitives, not these.
+                        <CatalogBlockEditor catalogId={activeKey.slice("catalog:".length)} />
+                      ) : (
+                        <>
+                          <DemoArea>
+                            <DemoWrap>
+                              {Demo && <Demo />}
+                            </DemoWrap>
+                          </DemoArea>
+                          {canEdit && editMode && active && (
+                            <ClaudeWrap>
+                              <SandboxClaudeDrawer
+                                componentKey={activeKey}
+                                currentCode={editorCode}
+                                onCodeUpdate={(code) => handleCodeChange(code)}
+                                onDeploy={(targets) => handleDeploy({ targets: targets[0] === "all" ? undefined : targets })}
+                              />
+                            </ClaudeWrap>
+                          )}
+                        </>
                       )}
-                    </>
+                    </Viewport>
                   )}
-                </Viewport>
+                </PreviewSection>
+                )}
               </>
             ) : (
               <EmptyCenter>Select a component.</EmptyCenter>

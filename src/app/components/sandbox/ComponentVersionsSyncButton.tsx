@@ -14,7 +14,24 @@
 import { useState } from "react";
 import styled from "styled-components";
 import { PanelActionBtn } from "../../styled";
+import Tooltip from "../ui/Tooltip";
+import { SyncIcon } from "../icons";
 import { currentSnapshots } from "@/lib/domains/editor/component-library/versionSync";
+
+const IconRow = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  line-height: 0;
+`;
+
+// Collapses to the sync icon when the toolbar's center column is tight.
+const Lbl = styled.span`
+  line-height: 1;
+  @container sandboxcenter (max-width: 620px) {
+    display: none;
+  }
+`;
 
 const Status = styled.span`
   font-size: 0.625rem;
@@ -53,14 +70,11 @@ export default function ComponentVersionsSyncButton() {
 
   return (
     <>
-      <PanelActionBtn
-        $variant="ghost"
-        onClick={run}
-        disabled={syncing}
-        title="Snapshot every catalog block's current version (prop-shape + defaults) into component_versions — run before bumping a version"
-      >
-        📌 {syncing ? "Syncing…" : "Sync versions"}
-      </PanelActionBtn>
+      <Tooltip label="Snapshot every catalog block's current version into component_versions — run before bumping a version" accent="#ffcf4a">
+        <PanelActionBtn $variant="ghost" onClick={run} disabled={syncing}>
+          <IconRow><SyncIcon size={13} /><Lbl>{syncing ? "Syncing…" : "Sync versions"}</Lbl></IconRow>
+        </PanelActionBtn>
+      </Tooltip>
       {status && <Status>{status}</Status>}
     </>
   );

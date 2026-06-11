@@ -21,7 +21,7 @@ import path from "node:path";
 import { requireAdmin } from "@/lib/api-admin";
 import { pgPool } from "@/lib/pg-pool";
 import { loadSnapshot, type QueryFn } from "@/lib/domains/editor/component-library/versionStore";
-import { readTenantOverlay, writeTenantOverlay } from "@/lib/domains/editor/defaults/overlayStore";
+import { readTenantOverlay, writeTenantOverlayModes } from "@/lib/domains/editor/defaults/overlayStore";
 import { reconcile } from "@/lib/domains/editor/defaults/reconcile";
 
 export const runtime = "nodejs";
@@ -131,6 +131,19 @@ export async function POST(req: NextRequest) {
   }
 
   const effectiveFrom = Number.isInteger(fromVersion) && fromVersion >= 1 ? fromVersion : overlay.version;
+
+  // Nothing to reconcile onto a same/older version — short-circuit (the modal only opens when an
+  // update is actually available, so this guards stray/direct calls).
+  if (toVersion <= effectiveFrom) {
+    return NextResponse.json({
+      outcome: "NO_OP",
+      message: `Overlay is already at v${effectiveFrom}; nothing to reconcile onto v${toVersion}.`,
+      fromVersion: effectiveFrom,
+      toVersion,
+      blastRadius: await blastRadius(catalogId),
+    });
+  }
+
   const base = await loadSnapshot(poolQuery, catalogId, effectiveFrom); // may be null → reconcile treats all as customised
 
   const result = reconcile({
@@ -158,12 +171,16 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  // APPLY — persist the reconciled overlay at toVersion (published + draft), then audit.
+  // APPLY — persist the reconciled overlay at toVersion (published + draft) in ONE transaction,
+  // then audit.
   try {
-    await withClient(async (q) => {
-      await writeTenantOverlay(q, { catalogId, tenantId, lang, mode: "published", version: toVersion, data: result.reconciled });
-      await writeTenantOverlay(q, { catalogId, tenantId, lang, mode: "draft", version: toVersion, data: result.reconciled });
-    });
+    await withClient((q) =>
+      writeTenantOverlayModes(
+        q,
+        { catalogId, tenantId, lang, version: toVersion, data: result.reconciled },
+        ["published", "draft"],
+      ),
+    );
   } catch (e) {
     return fkErrorResponse(e) ?? NextResponse.json({ error: "failed to persist reconciled overlay" }, { status: 500 });
   }
