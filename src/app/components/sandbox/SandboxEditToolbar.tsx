@@ -5,6 +5,7 @@ import styled from "styled-components";
 import { colors, rgb } from "../../theme";
 import { PanelIconBtn, PanelActionBtn, Spacer } from "../../styled";
 import type { Draft } from "./useDraftStore";
+import ComponentVersionsSyncButton from "./ComponentVersionsSyncButton";
 
 const GOLD = colors.gold;
 const GOLD_RGB = rgb.gold;
@@ -315,6 +316,8 @@ export default function SandboxEditToolbar(p: Props) {
       <PanelActionBtn $variant="ghost" onClick={p.onResetToDeployed} disabled={!p.active} title="Reset draft to last-deployed code">
         ↺ Reset
       </PanelActionBtn>
+
+      <ComponentVersionsSyncButton />
 
       <PanelActionBtn $color="cyan" onClick={() => runDeploy({ preview: true })} disabled={!canDeploy || deploying !== "none"} title={canDeploy ? "Preview deploy" : "Save first"}>
         👁 Preview

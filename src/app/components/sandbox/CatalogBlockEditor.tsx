@@ -1,29 +1,36 @@
 "use client";
 
 // ────────────────────────────────────────────────────────────────────────────
-// CatalogBlockEditor — Phase 3 (data lane) of office-sandbox-catalog-mirror.
+// CatalogBlockEditor — Phase 3 (platform data lane) + Phase 4.3 (per-tenant overlays).
 //
-// The DATA-mode editor for a mirrored page-editor catalog block. Shown inside
-// the Sandbox (workshop surface, admin) when a `catalog:*` entry is selected in
-// edit mode. Lets an admin edit the block's DEFAULT props (placeholder text /
-// values), persist a DRAFT, then DEPLOY (double-verified) so the new default
-// cascades to every tenant that renders the block from defaults.
+// The DATA-mode editor for a mirrored page-editor catalog block (Sandbox workshop, admin).
+// A SCOPE selector chooses what you're editing:
+//   • Platform default → /api/sandbox/block-default  (the cascade — every tenant on the default)
+//   • <a tenant>       → /api/sandbox/tenant-overlay  (that tenant's own override, tagged with the
+//                          component VERSION it was authored against)
 //
-//   load   → GET  /api/sandbox/block-default?id=&mode=draft (then published, then in-code)
-//   save   → PUT  /api/sandbox/block-default {id, data}      (persist, no deploy)
-//   deploy → PUT then POST                                    (publish = cascade; double-verified)
-//   reset  → editor back to in-code defaultProps (DELETE removes the override entirely)
+//   load   → GET   ?id=[&tenantId=]&mode=draft → published → in-code
+//   save   → PUT   (persist draft, no deploy)
+//   deploy → PUT then POST (publish; double-verified — "cascade to all" for platform, "save for
+//            <tenant>" for a tenant)
+//   reset  → editor back to in-code defaultProps
+//   remove → DELETE the override row(s)
 //
-// Reuses the block's OWN shipped EditorPanel (entry.EditorPanel) for a real form;
-// falls back to a JSON editor for blocks that ship none. Live preview = entry.Render
-// with the working props, behind an error boundary.
+// When a tenant overlay was authored against an OLDER version than the block's current version, an
+// "update available" badge opens the Phase 4.6 ComponentUpdateModal (blast-radius + reconcile).
 // ────────────────────────────────────────────────────────────────────────────
 
 import React from "react";
 import styled from "styled-components";
 import { findEntry } from "@/lib/domains/editor/component-library/registry";
+import { versionFor } from "@/lib/domains/editor/component-library/versions";
+import ComponentUpdateModal from "./ComponentUpdateModal";
 
-const API = "/api/sandbox/block-default";
+const BLOCK_API = "/api/sandbox/block-default";
+const TENANT_API = "/api/sandbox/tenant-overlay";
+
+type Scope = { kind: "platform" } | { kind: "tenant"; id: string; label: string };
+type Member = { id: string; label: string };
 
 type Status =
   | { kind: "idle" }
@@ -45,15 +52,12 @@ class PreviewBoundary extends React.Component<
     return { error };
   }
   componentDidUpdate(prev: { children: React.ReactNode }) {
-    // reset the boundary when the previewed content changes
     if (prev.children !== this.props.children && this.state.error)
       this.setState({ error: null });
   }
   render() {
     if (this.state.error)
-      return (
-        <FailNote>⚠ Preview threw: {this.state.error.message}</FailNote>
-      );
+      return <FailNote>⚠ Preview threw: {this.state.error.message}</FailNote>;
     return <>{this.props.children}</>;
   }
 }
@@ -64,29 +68,66 @@ export default function CatalogBlockEditor({ catalogId }: { catalogId: string })
     () => (entry?.defaultProps as Record<string, unknown>) ?? {},
     [entry],
   );
+  const currentVersion = React.useMemo(() => (entry ? versionFor(entry) : 1), [entry]);
 
+  const [scope, setScope] = React.useState<Scope>({ kind: "platform" });
+  const [members, setMembers] = React.useState<Member[]>([]);
   const [props, setProps] = React.useState<Record<string, unknown>>(inCode);
   const [json, setJson] = React.useState<string>("");
   const [jsonErr, setJsonErr] = React.useState<string | null>(null);
   const [status, setStatus] = React.useState<Status>({ kind: "loading" });
+  const [loadedVersion, setLoadedVersion] = React.useState<number | null>(null);
+  const [showUpdate, setShowUpdate] = React.useState(false);
 
-  // Load latest draft → published → in-code default on mount / id change.
+  const tenantId = scope.kind === "tenant" ? scope.id : null;
+
+  // Member list for the scope selector (best-effort; admin-gated endpoint).
+  React.useEffect(() => {
+    let alive = true;
+    fetch("/api/admin/members")
+      .then((r) => (r.ok ? r.json() : { members: [] }))
+      .then((j) => {
+        if (!alive) return;
+        const list: Member[] = (j?.members ?? []).map((m: Record<string, unknown>) => ({
+          id: String(m.id),
+          label: String(m.clientName || m.domain || m.subdomain || m.id),
+        }));
+        setMembers(list);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const loadUrl = React.useCallback(
+    (mode: "draft" | "published") => {
+      const q = `id=${encodeURIComponent(catalogId)}&mode=${mode}`;
+      return tenantId ? `${TENANT_API}?${q}&tenantId=${tenantId}` : `${BLOCK_API}?${q}`;
+    },
+    [catalogId, tenantId],
+  );
+
+  // Load draft → published → in-code default on mount / id / scope change.
   React.useEffect(() => {
     let alive = true;
     setStatus({ kind: "loading" });
+    setLoadedVersion(null);
     (async () => {
       try {
-        const draft = await fetch(`${API}?id=${encodeURIComponent(catalogId)}&mode=draft`).then((r) => r.json());
-        let data: Record<string, unknown> | null =
-          draft?.exists && draft.data ? draft.data : null;
+        const draft = await fetch(loadUrl("draft")).then((r) => r.json());
+        let data: Record<string, unknown> | null = draft?.exists && draft.data ? draft.data : null;
+        let ver: number | null = draft?.exists ? draft.version ?? null : null;
         if (!data) {
-          const pub = await fetch(`${API}?id=${encodeURIComponent(catalogId)}&mode=published`).then((r) => r.json());
+          const pub = await fetch(loadUrl("published")).then((r) => r.json());
           data = pub?.exists && pub.data ? pub.data : null;
+          ver = pub?.exists ? pub.version ?? null : ver;
         }
         if (!alive) return;
         const initial = data ?? inCode;
         setProps(initial);
         setJson(JSON.stringify(initial, null, 2));
+        setLoadedVersion(tenantId ? ver : null);
         setStatus({ kind: "idle" });
       } catch {
         if (!alive) return;
@@ -98,7 +139,7 @@ export default function CatalogBlockEditor({ catalogId }: { catalogId: string })
     return () => {
       alive = false;
     };
-  }, [catalogId, inCode]);
+  }, [catalogId, inCode, loadUrl, tenantId]);
 
   const onPanelChange = React.useCallback((next: Record<string, unknown>) => {
     setProps(next);
@@ -121,6 +162,12 @@ export default function CatalogBlockEditor({ catalogId }: { catalogId: string })
     }
   };
 
+  /** Body for a PUT (draft save) — scope-aware. */
+  const putBody = () =>
+    tenantId
+      ? { catalogId, tenantId, lang: "en", version: currentVersion, data: props }
+      : { id: catalogId, data: props };
+
   async function saveDraft(): Promise<boolean> {
     if (jsonErr) {
       setStatus({ kind: "error", msg: "Fix the JSON before saving." });
@@ -128,10 +175,11 @@ export default function CatalogBlockEditor({ catalogId }: { catalogId: string })
     }
     setStatus({ kind: "saving" });
     try {
-      const r = await fetch(API, {
+      const api = tenantId ? TENANT_API : BLOCK_API;
+      const r = await fetch(api, {
         method: "PUT",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ id: catalogId, data: props }),
+        body: JSON.stringify(putBody()),
       });
       if (!r.ok) throw new Error((await r.json().catch(() => ({})))?.error ?? `HTTP ${r.status}`);
       setStatus({ kind: "saved" });
@@ -145,19 +193,21 @@ export default function CatalogBlockEditor({ catalogId }: { catalogId: string })
   async function publish() {
     setStatus({ kind: "publishing" });
     try {
-      // Save the on-screen props as the draft, then publish exactly that.
-      const put = await fetch(API, {
+      const api = tenantId ? TENANT_API : BLOCK_API;
+      const put = await fetch(api, {
         method: "PUT",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ id: catalogId, data: props }),
+        body: JSON.stringify(putBody()),
       });
       if (!put.ok) throw new Error("draft save failed");
-      const r = await fetch(API, {
+      const postBody = tenantId ? { catalogId, tenantId, lang: "en" } : { id: catalogId };
+      const r = await fetch(api, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ id: catalogId }),
+        body: JSON.stringify(postBody),
       });
       if (!r.ok) throw new Error((await r.json().catch(() => ({})))?.error ?? `HTTP ${r.status}`);
+      setLoadedVersion(tenantId ? currentVersion : null);
       setStatus({ kind: "published" });
     } catch (e) {
       setStatus({ kind: "error", msg: (e as Error).message });
@@ -174,9 +224,13 @@ export default function CatalogBlockEditor({ catalogId }: { catalogId: string })
   async function removeOverride() {
     setStatus({ kind: "publishing" });
     try {
-      const r = await fetch(`${API}?id=${encodeURIComponent(catalogId)}`, { method: "DELETE" });
+      const url = tenantId
+        ? `${TENANT_API}?id=${encodeURIComponent(catalogId)}&tenantId=${tenantId}`
+        : `${BLOCK_API}?id=${encodeURIComponent(catalogId)}`;
+      const r = await fetch(url, { method: "DELETE" });
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       resetToInCode();
+      setLoadedVersion(null);
       setStatus({ kind: "published" });
     } catch (e) {
       setStatus({ kind: "error", msg: (e as Error).message });
@@ -190,18 +244,49 @@ export default function CatalogBlockEditor({ catalogId }: { catalogId: string })
     | React.FC<{ props: Record<string, unknown>; onChange: (n: Record<string, unknown>) => void }>
     | undefined;
 
+  const updateAvailable =
+    scope.kind === "tenant" && loadedVersion != null && loadedVersion < currentVersion;
+
   return (
     <Wrap>
+      <ScopeBar>
+        <ScopeLabel>Editing:</ScopeLabel>
+        <ScopeSelect
+          value={scope.kind === "platform" ? "" : scope.id}
+          onChange={(e) => {
+            const v = e.target.value;
+            if (!v) setScope({ kind: "platform" });
+            else {
+              const m = members.find((x) => x.id === v);
+              setScope({ kind: "tenant", id: v, label: m?.label ?? v });
+            }
+          }}
+        >
+          <option value="">Platform default (cascade)</option>
+          {members.map((m) => (
+            <option key={m.id} value={m.id}>
+              {m.label}
+            </option>
+          ))}
+        </ScopeSelect>
+        <VersionTag>v{currentVersion}</VersionTag>
+        {updateAvailable && (
+          <UpdateBadge onClick={() => setShowUpdate(true)} title="Reconcile this tenant overlay onto the current version">
+            ⬆ Update v{loadedVersion} → v{currentVersion}
+          </UpdateBadge>
+        )}
+      </ScopeBar>
+
       <Toolbar>
         <Title>
-          Editing default · <code>{catalogId}</code>
+          {scope.kind === "tenant" ? "Tenant overlay" : "Platform default"} · <code>{catalogId}</code>
         </Title>
         <Spacer />
         <StatusPill $status={status.kind}>{statusLabel(status)}</StatusPill>
         <GhostBtn onClick={resetToInCode} title="Reset the editor to the in-code default (does not change the DB)">
           Reset
         </GhostBtn>
-        <GhostBtn onClick={removeOverride} title="Delete the override row(s) — reverts the platform default to in-code">
+        <GhostBtn onClick={removeOverride} title={scope.kind === "tenant" ? "Delete this tenant's overlay" : "Delete the platform override → revert to in-code"}>
           Remove override
         </GhostBtn>
         <SaveBtn onClick={saveDraft} disabled={status.kind === "saving"}>
@@ -209,7 +294,9 @@ export default function CatalogBlockEditor({ catalogId }: { catalogId: string })
         </SaveBtn>
         {status.kind === "confirm" ? (
           <>
-            <ConfirmText>Cascade to all tenants?</ConfirmText>
+            <ConfirmText>
+              {scope.kind === "tenant" ? `Save as ${scope.label}'s override?` : "Cascade to all tenants?"}
+            </ConfirmText>
             <DeployBtn $confirm onClick={publish}>
               Confirm deploy
             </DeployBtn>
@@ -219,9 +306,9 @@ export default function CatalogBlockEditor({ catalogId }: { catalogId: string })
           <DeployBtn
             onClick={() => setStatus({ kind: "confirm" })}
             disabled={status.kind === "publishing" || !!jsonErr}
-            title="Publish this default so it cascades to every tenant rendering the block from defaults"
+            title={scope.kind === "tenant" ? "Publish this tenant's overlay" : "Publish this default so it cascades to every tenant rendering the block from defaults"}
           >
-            {status.kind === "publishing" ? "Deploying…" : "Deploy: data"}
+            {status.kind === "publishing" ? "Deploying…" : scope.kind === "tenant" ? "Deploy: overlay" : "Deploy: data"}
           </DeployBtn>
         )}
       </Toolbar>
@@ -243,17 +330,28 @@ export default function CatalogBlockEditor({ catalogId }: { catalogId: string })
               <EditorPanel props={props} onChange={onPanelChange} />
             ) : (
               <>
-                <JsonArea
-                  spellCheck={false}
-                  value={json}
-                  onChange={(e) => onJsonChange(e.target.value)}
-                />
+                <JsonArea spellCheck={false} value={json} onChange={(e) => onJsonChange(e.target.value)} />
                 {jsonErr && <FailNote>{jsonErr}</FailNote>}
               </>
             )}
           </EditorScroll>
         </EditorCol>
       </Split>
+
+      {showUpdate && scope.kind === "tenant" && loadedVersion != null && (
+        <ComponentUpdateModal
+          catalogId={catalogId}
+          tenantId={scope.id}
+          tenantLabel={scope.label}
+          fromVersion={loadedVersion}
+          toVersion={currentVersion}
+          onClose={() => setShowUpdate(false)}
+          onApplied={() => {
+            setShowUpdate(false);
+            setLoadedVersion(currentVersion);
+          }}
+        />
+      )}
     </Wrap>
   );
 }
@@ -280,6 +378,43 @@ const Wrap = styled.div`
   height: 100%;
   min-height: 0;
   gap: 10px;
+`;
+const ScopeBar = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 6px 10px;
+  border: 1px solid rgba(255, 78, 203, 0.25);
+  border-radius: 8px;
+  background: rgba(255, 78, 203, 0.05);
+`;
+const ScopeLabel = styled.span`font-size: 12px; color: rgba(255,255,255,0.55);`;
+const ScopeSelect = styled.select`
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: #16161e;
+  color: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+`;
+const VersionTag = styled.span`
+  font-size: 11px;
+  font-family: ui-monospace, monospace;
+  color: rgba(255, 255, 255, 0.5);
+  padding: 2px 6px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+`;
+const UpdateBadge = styled.button`
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+  color: #ffb86b;
+  background: rgba(255, 184, 107, 0.12);
+  border: 1px solid #ffb86b;
 `;
 const Toolbar = styled.div`
   display: flex;
