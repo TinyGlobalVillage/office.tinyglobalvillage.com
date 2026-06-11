@@ -666,7 +666,7 @@ function ReturnToMainGlyph() {
 // doubled line AND a 1px math-offset that broke ECL/ADL-switch alignment.
 const FileSidebar = styled(PanelSidebar)<{ $w: number }>`
   /* On narrow the sidebar (when re-opened from its drawer) floats as an overlay so it doesn't
-     squeeze the stacked Summary/Code/Preview column. */
+     squeeze the stacked Summary/Code/Preview column. Opaque backing — content scrolls under it. */
   @container sandboxbody (max-width: 1100px) {
     position: absolute;
     left: 0;
@@ -674,7 +674,12 @@ const FileSidebar = styled(PanelSidebar)<{ $w: number }>`
     bottom: 0;
     z-index: 60;
     width: min(280px, 82%) !important;
+    background: rgba(12, 9, 17, 0.985);
     box-shadow: 8px 0 28px rgba(0, 0, 0, 0.5);
+
+    [data-theme="light"] & {
+      background: var(--t-surface);
+    }
   }
   width: ${(p) => p.$w}px;
   flex-shrink: 0;
@@ -2452,12 +2457,14 @@ const AutoSavedFlash = styled.span<{ $visible: boolean }>`
 
 // ── Component ────────────────────────────────────────────────────
 
-const SNAP_THRESHOLD = 50;
+// (Snap threshold = each panel's own MIN — see useResizePanel: below minW the drag collapses.)
 // Wide enough that file names + subpaths never clip — users can still drag
 // the DTog to shrink; the default must not require horizontal scroll.
 const SIDEBAR_DEFAULT = 340;
 const CODE_DEFAULT = 420;
-const SIDEBAR_MIN = 140;
+// Floor = the narrowest width where "Sandbox" + the stacked draft/picker pills stay fully
+// viewable. Dragging below this snaps the panel fully collapsed (never squeezes the heading).
+const SIDEBAR_MIN = 280;
 const CODE_MIN = 200;
 
 // DTog click-vs-drag threshold: if the pointer moves less than this many pixels
@@ -2489,11 +2496,13 @@ function useResizePanel(
       if (!moved && Math.abs(dx) < DTOG_CLICK_SLOP) return;
       moved = true;
       const raw = side === "left" ? startW.current + dx : startW.current - dx;
-      if (raw < SNAP_THRESHOLD) {
+      // Below the panel's minimum the drag snaps it fully collapsed — never squeeze the
+      // content narrower than its viewable floor (minW is the hard floor, not a clamp).
+      if (raw < minW) {
         setWidth(0);
         setSnapped(true);
       } else {
-        setWidth(Math.max(minW, raw));
+        setWidth(raw);
         setSnapped(false);
       }
     };

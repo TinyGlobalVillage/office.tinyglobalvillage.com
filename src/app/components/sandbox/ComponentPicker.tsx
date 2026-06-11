@@ -40,7 +40,7 @@ export default function ComponentPicker({
       ? { color: "#ff4ecb", rgb: "255, 78, 203" }
       : { color: "#ffcf4a", rgb: "255, 207, 74" };
   return (
-    <span style={{ ["--ddm-accent" as string]: a.color, ["--ddm-accent-rgb" as string]: a.rgb }}>
+    <span style={{ ["--ddm-accent" as string]: a.color, ["--ddm-accent-rgb" as string]: a.rgb, display: "inline-flex", minWidth: 0, maxWidth: "100%" }}>
       <SBDM
         items={ITEMS}
         value={activeKey}
