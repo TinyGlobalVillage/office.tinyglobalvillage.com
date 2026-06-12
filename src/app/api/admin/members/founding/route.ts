@@ -10,11 +10,14 @@
 //        (b) yellow_pages_role_bindings rows     (source 'site' — known tenant Sites)
 //        (c) public.members rows                 (source 'tenant' — platform deployments)
 //        each as { member_id, label, source, active, revoked_at }.
-// POST { memberId, on, label?, note? } → mirrors setFoundingMember() in
-//        @tgv/module-yellow-pages/server/founding.ts EXACTLY:
+// POST { memberId, on, label?, note? } → mirrors applyFoundingToggle() in
+//        @tgv/module-yellow-pages/server/founding.ts (any change there MUST be
+//        applied here too — the engine carries the same warning):
 //        ON  = upsert + un-revoke + promote the member's 'token' listings to 'founding'
-//        OFF = stamp revoked_at + demote 'founding' listings back to 'token'
-//        (the original 'free' listing is never touched). Writes admin_audit_log.
+//        OFF = stamp revoked_at + demote 'founding' listings back to 'token',
+//              then restore the one-free entitlement if the member ended up
+//              with no 'free' listing (members founding since before their
+//              first create never got a 'free' row). Writes admin_audit_log.
 //
 // Office cannot import @tgv/module-yellow-pages server code (and tables from
 // @tgv packages trip the cross-bundle is(Column) check — see memory
@@ -180,6 +183,20 @@ export async function POST(req: NextRequest) {
       UPDATE public.yellow_pages_listings
       SET billing = 'token', updated_at = now()
       WHERE member_id = ${memberId} AND billing = 'founding'
+    `);
+    // Every member keeps ONE free listing: if the demote left them with none
+    // (founding since before their first create → all rows were 'founding'),
+    // promote the oldest. yp_listings_one_free_per_member backstops the race.
+    await tx.execute(sql`
+      UPDATE public.yellow_pages_listings
+      SET billing = 'free', updated_at = now()
+      WHERE id = (
+        SELECT id FROM public.yellow_pages_listings
+        WHERE member_id = ${memberId} AND billing = 'token'
+        ORDER BY created_at ASC LIMIT 1)
+      AND NOT EXISTS (
+        SELECT 1 FROM public.yellow_pages_listings
+        WHERE member_id = ${memberId} AND billing = 'free')
     `);
     await tx.insert(schema.adminAuditLog).values({
       actorUserId,
