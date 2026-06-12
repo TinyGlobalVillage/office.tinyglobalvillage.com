@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import styled from "styled-components";
 import { colors, rgb } from "@/app/theme";
@@ -31,6 +31,25 @@ const STATUS_COLOR: Record<string, string> = {
   deploying: "#00bfff",
   live: "#00dc64",
   failed: colors.red,
+};
+
+// ── Yellow Pages — Founding members ─────────────────────────────────────
+// Backed by /api/admin/members/founding (union of founding rows + known
+// tenant Sites + platform members). Toggle flips billing on the member's
+// existing listings token↔founding server-side.
+
+type FoundingRow = {
+  member_id: string;
+  label: string;
+  source: "founding" | "site" | "tenant";
+  active: boolean;
+  revoked_at: string | null;
+};
+
+const SOURCE_COLOR: Record<FoundingRow["source"], string> = {
+  founding: colors.gold,
+  site: colors.cyan,
+  tenant: colors.pink,
 };
 
 const Main = styled.main`
@@ -131,6 +150,52 @@ const ErrorBox = styled.div`
   background: rgba(255, 0, 0, 0.06);
 `;
 
+const SectionTitle = styled.h2`
+  font-size: 1.35rem;
+  color: ${colors.gold};
+  text-shadow: 0 0 10px rgba(${rgb.gold}, 0.45);
+  margin: 1.5rem 0 0;
+`;
+
+const MonoId = styled.code`
+  font-family: var(--font-geist-mono, ui-monospace, monospace);
+  font-size: 0.7rem;
+  color: rgba(${rgb.pink}, 0.45);
+`;
+
+/* Founding toggle — Lightswitch (mirrors the utils/page.tsx + BackupsControlModal pattern) */
+const LSTrack = styled.button<{ $on: boolean }>`
+  appearance: none; border: none; cursor: pointer; position: relative;
+  width: 44px; height: 24px; border-radius: 12px; flex-shrink: 0;
+  transition: all 0.25s ease;
+  background: ${(p) => p.$on
+    ? `linear-gradient(90deg, ${colors.gold}55, ${colors.gold}22)`
+    : "rgba(120,120,120,0.2)"};
+  box-shadow: ${(p) => p.$on
+    ? `inset 0 0 6px ${colors.gold}33, 0 0 8px ${colors.gold}22`
+    : "inset 0 1px 3px rgba(0,0,0,0.2)"};
+  &:focus { outline: none; box-shadow: 0 0 0 2px ${colors.gold}44; }
+  &:disabled { opacity: 0.5; cursor: wait; }
+`;
+const LSKnob = styled.div<{ $on: boolean }>`
+  position: absolute; top: 2px; left: ${(p) => (p.$on ? "22px" : "2px")};
+  width: 20px; height: 20px; border-radius: 50%;
+  transition: all 0.25s ease;
+  background: ${(p) => p.$on
+    ? `radial-gradient(circle at 40% 35%, ${colors.gold}ee, ${colors.gold}, ${colors.gold}88)`
+    : "radial-gradient(circle at 40% 35%, #888, #555)"};
+  box-shadow: ${(p) => p.$on
+    ? `0 0 8px ${colors.gold}80, 0 2px 4px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.3)`
+    : "0 1px 3px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1)"};
+`;
+function GoldSwitch({ on, onChange, disabled }: { on: boolean; onChange: (n: boolean) => void; disabled?: boolean }) {
+  return (
+    <LSTrack $on={on} type="button" onClick={() => !disabled && onChange(!on)} disabled={disabled}>
+      <LSKnob $on={on} />
+    </LSTrack>
+  );
+}
+
 function fmtDate(iso: string | null) {
   if (!iso) return "—";
   return new Date(iso).toLocaleString();
@@ -147,6 +212,11 @@ function tierName(id: string) {
 export default function MembersPage() {
   const [rows, setRows] = useState<MemberRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Yellow Pages founding-members section state
+  const [ypRows, setYpRows] = useState<FoundingRow[] | null>(null);
+  const [ypError, setYpError] = useState<string | null>(null);
+  const [ypBusy, setYpBusy] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -165,6 +235,64 @@ export default function MembersPage() {
       active = false;
     };
   }, []);
+
+  const loadFounding = useCallback(async () => {
+    try {
+      const r = await fetch("/api/admin/members/founding");
+      const j = await r.json();
+      if (!j.ok) {
+        setYpError(j.error ?? "fetch failed");
+        return;
+      }
+      setYpRows(j.rows);
+    } catch (e) {
+      setYpError(e instanceof Error ? e.message : "network error");
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadFounding();
+  }, [loadFounding]);
+
+  async function toggleFounding(row: FoundingRow) {
+    const next = !row.active;
+    setYpBusy(row.member_id);
+    setYpError(null);
+    // Optimistic flip; authoritative state comes back via refetch.
+    setYpRows(
+      (prev) =>
+        prev?.map((r) =>
+          r.member_id === row.member_id ? { ...r, active: next } : r,
+        ) ?? prev,
+    );
+    try {
+      const r = await fetch("/api/admin/members/founding", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ memberId: row.member_id, on: next, label: row.label }),
+      });
+      const j = await r.json();
+      if (!j.ok) {
+        throw new Error(
+          j.reason === "not_founding"
+            ? "Member is not currently a founding member"
+            : (j.error ?? "toggle failed"),
+        );
+      }
+      await loadFounding();
+    } catch (e) {
+      // Revert the optimistic flip.
+      setYpRows(
+        (prev) =>
+          prev?.map((r) =>
+            r.member_id === row.member_id ? { ...r, active: row.active } : r,
+          ) ?? prev,
+      );
+      setYpError(e instanceof Error ? e.message : "toggle failed");
+    } finally {
+      setYpBusy(null);
+    }
+  }
 
   return (
     <>
@@ -237,6 +365,55 @@ export default function MembersPage() {
                       </Pill>
                     </td>
                     <td>{fmtDate(m.createdAt)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+          </TableWrap>
+        )}
+
+        {/* ── Yellow Pages — Founding members ───────────────────────── */}
+        <div>
+          <SectionTitle>Yellow Pages — Founding members</SectionTitle>
+          <Sub>Founding members get unlimited free Yellow Pages listings.</Sub>
+        </div>
+
+        {ypError && <ErrorBox>Yellow Pages founding members: {ypError}</ErrorBox>}
+
+        {ypRows === null && !ypError && <Empty>Loading…</Empty>}
+
+        {ypRows && ypRows.length === 0 && (
+          <Empty>No members known to Yellow Pages yet.</Empty>
+        )}
+
+        {ypRows && ypRows.length > 0 && (
+          <TableWrap>
+            <Table>
+              <thead>
+                <tr>
+                  <th>Member</th>
+                  <th>Source</th>
+                  <th>Member ID</th>
+                  <th>Founding</th>
+                </tr>
+              </thead>
+              <tbody>
+                {ypRows.map((r) => (
+                  <tr key={r.member_id}>
+                    <td>{r.label}</td>
+                    <td>
+                      <Pill $color={SOURCE_COLOR[r.source]}>{r.source}</Pill>
+                    </td>
+                    <td>
+                      <MonoId>{r.member_id}</MonoId>
+                    </td>
+                    <td>
+                      <GoldSwitch
+                        on={r.active}
+                        disabled={ypBusy === r.member_id}
+                        onChange={() => void toggleFounding(r)}
+                      />
+                    </td>
                   </tr>
                 ))}
               </tbody>
