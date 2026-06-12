@@ -2569,10 +2569,6 @@ export default function SandboxModal({
   const [catOpen, setCatOpen] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(CATEGORIES.map((c) => [c, true]))
   );
-  const allCatsOpen = CATEGORIES.every((c) => catOpen[c] ?? true);
-  const toggleAllCats = () =>
-    setCatOpen(Object.fromEntries(CATEGORIES.map((c) => [c, !allCatsOpen])));
-
   // ── Page Templates (DB-backed) ──────────────────────────────────────
   // Both surfaces render published shared_templates as an extra sidebar
   // group below the component CATEGORIES (Library = read-only catalog).
@@ -2585,6 +2581,15 @@ export default function SandboxModal({
   const [activeTemplateId, setActiveTemplateId] = useState<string | null>(null);
   const [pageTemplatesOpen, setPageTemplatesOpen] = useState(true);
   const [templatesReloadKey, setTemplatesReloadKey] = useState(0);
+
+  // Collapse-all covers EVERY sidebar group — the component categories AND the
+  // Page Templates section (it has its own open-state, so set both together).
+  const allCatsOpen =
+    CATEGORIES.every((c) => catOpen[c] ?? true) && pageTemplatesOpen;
+  const toggleAllCats = () => {
+    setCatOpen(Object.fromEntries(CATEGORIES.map((c) => [c, !allCatsOpen])));
+    setPageTemplatesOpen(!allCatsOpen);
+  };
   const [deployingTemplateId, setDeployingTemplateId] = useState<string | null>(
     null,
   );
