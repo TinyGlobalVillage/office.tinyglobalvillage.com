@@ -12,6 +12,7 @@ import TenantAppsControlModal from "../../components/hardening/tenant-apps/Tenan
 import MemberAuthControlModal from "../../components/hardening/member-auth/MemberAuthControlModal";
 import OfficeStaffControlModal from "../../components/hardening/office-staff/OfficeStaffControlModal";
 import MeshVpnControlModal from "../../components/hardening/mesh-vpn/MeshVpnControlModal";
+import InvitationsControlModal from "../../components/hardening/invitations/InvitationsControlModal";
 import BackupsControlModal from "../../components/backups/BackupsControlModal";
 import MigrateSiteControlModal from "../../components/migrate/MigrateSiteControlModal";
 import AutomationsTab from "../../components/automations/AutomationsTab";
@@ -1760,6 +1761,16 @@ function UtilsAdlSurface({
                         </HardeningTileSub>
                       </HardeningTile>
                     );
+                    if (tile.type === "invitations") return (
+                      <HardeningTile key={i} type="button" onClick={() => onOpenHardening("invitations")}>
+                        <HardeningTileTop>✉️ Invitations</HardeningTileTop>
+                        <HardeningTileSub>
+                          Invite-only onboarding caps AI API spend — nobody reaches the wizard
+                          without redeeming an emailed, single-use code. Mint, track redemptions,
+                          revoke, and resend codes; the `admin` seed is the temporary team code.
+                        </HardeningTileSub>
+                      </HardeningTile>
+                    );
                     if (tile.type === "tinyurl") return (
                       <LinkToolsTile key={i} type="button" onClick={() => onOpenLinkTool("tinyurl")}>
                         <LinkToolsTileTop>🔗 TinyURL Generator</LinkToolsTileTop>
@@ -1887,7 +1898,7 @@ type DefaultsOverlay = Record<string, Record<string, FieldValue>>;
 // opens its HardeningControlModal. New hardenings get a new tile + a new
 // `kind` value below.
 
-type HardeningKind = "telephony" | "tenant-apps" | "member-auth" | "office-staff" | "mesh-vpn";  // | "postgres" | "ssh" | "nginx" — future
+type HardeningKind = "telephony" | "tenant-apps" | "member-auth" | "office-staff" | "mesh-vpn" | "invitations";  // | "postgres" | "ssh" | "nginx" — future
 
 // ── Link Tools (TinyURL + QR generators) ──────────────────────────────────
 //
@@ -1921,6 +1932,7 @@ type TileSpec =
   | { type: "member-auth" }
   | { type: "office-staff" }
   | { type: "mesh-vpn" }
+  | { type: "invitations" }
   | { type: "tinyurl" }
   | { type: "qrcode" }
   | { type: "transcriber" }
@@ -1959,7 +1971,7 @@ const SECTIONS: Section[] = [
     kind: "actions", actionIds: ["gitrepo", "gitdelrepo"] },
   { id: "hardening", title: "Hardening", accent: "cyan",
     subtitle: "defensive mechanisms installed on RCS — controls + status + audit log",
-    kind: "tiles", tiles: [{ type: "telephony" }, { type: "tenant-apps" }, { type: "member-auth" }, { type: "office-staff" }, { type: "mesh-vpn" }] },
+    kind: "tiles", tiles: [{ type: "telephony" }, { type: "tenant-apps" }, { type: "member-auth" }, { type: "office-staff" }, { type: "mesh-vpn" }, { type: "invitations" }] },
   { id: "linktools", title: "Link Tools", accent: "cyan",
     subtitle: "shorten URLs and generate scannable QR codes — pair them for printable mini-flyers",
     kind: "tiles", tiles: [{ type: "tinyurl" }, { type: "qrcode" }] },
@@ -2455,6 +2467,10 @@ export default function UtilsPage() {
 
       {openHardening === "mesh-vpn" && (
         <MeshVpnControlModal onClose={() => setOpenHardening(null)} />
+      )}
+
+      {openHardening === "invitations" && (
+        <InvitationsControlModal onClose={() => setOpenHardening(null)} />
       )}
 
       {openBackups && (
