@@ -43,3 +43,8 @@ next-env.d.ts
 
 # Phase 4 reconciliation audit trail (runtime, per-env)
 data/reconcile/
+
+# runtime auth/user store — written live by the app (passkey public keys,
+# totpEnabled, recovery-code hashes, display data). NOT source. Lives on disk +
+# in the nightly Tier 1 restic backup; restore from backup on a rebuild, not git.
+data/users.json
