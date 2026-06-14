@@ -15,6 +15,7 @@ import MeshVpnControlModal from "../../components/hardening/mesh-vpn/MeshVpnCont
 import InvitationsControlModal from "../../components/hardening/invitations/InvitationsControlModal";
 import BackupsControlModal from "../../components/backups/BackupsControlModal";
 import MigrateSiteControlModal from "../../components/migrate/MigrateSiteControlModal";
+import DomainConsoleControlModal from "../../components/domain-console/DomainConsoleControlModal";
 import AutomationsTab from "../../components/automations/AutomationsTab";
 import {
   TinyURLGenerator,
@@ -1580,6 +1581,7 @@ type UtilsAdlSurfaceProps = {
   onSaveDefaults: (actionId: string, defaults: Record<string, FieldValue>) => Promise<void>;
   onOpenBackups: () => void;
   onOpenMigrate: () => void;
+  onOpenDomainConsole: () => void;
   onOpenHardening: (kind: HardeningKind) => void;
   onOpenLinkTool: (kind: LinkTool) => void;
   onOpenTranscriber: () => void;
@@ -1588,7 +1590,7 @@ type UtilsAdlSurfaceProps = {
 
 function UtilsAdlSurface({
   sections, actionsById, isAdmin, overlay, onSaveDefaults,
-  onOpenBackups, onOpenMigrate, onOpenHardening, onOpenLinkTool, onOpenTranscriber, onOpenTranscriptions,
+  onOpenBackups, onOpenMigrate, onOpenDomainConsole, onOpenHardening, onOpenLinkTool, onOpenTranscriber, onOpenTranscriptions,
 }: UtilsAdlSurfaceProps) {
   // Live transcription jobs — drives the per-job queued tiles + the badge
   // counter on the Transcriptions tile.
@@ -1709,6 +1711,16 @@ function UtilsAdlSurface({
                           Absorb a legacy site into TGV — per-surface fidelity (data import/drop ×
                           code reinvent/approximate/bespoke), AI halt-review, and the
                           refusionist-test1 dogfood. Lists live migration jobs.
+                        </HardeningTileSub>
+                      </HardeningTile>
+                    );
+                    if (tile.type === "domain-console") return (
+                      <HardeningTile key={i} type="button" onClick={onOpenDomainConsole}>
+                        <HardeningTileTop>🌐 Domain Console</HardeningTileTop>
+                        <HardeningTileSub>
+                          Platform-wide registrar environment — flip OpenSRS between Test (Horizon
+                          sandbox, fake money) and Live (real domains &amp; money) for every tenant.
+                          Pricing, transfers &amp; email config land here later.
                         </HardeningTileSub>
                       </HardeningTile>
                     );
@@ -1927,6 +1939,7 @@ const LINKS_ORIGIN =
 type TileSpec =
   | { type: "backups" }
   | { type: "migrate" }
+  | { type: "domain-console" }
   | { type: "telephony" }
   | { type: "tenant-apps" }
   | { type: "member-auth" }
@@ -1962,6 +1975,9 @@ const SECTIONS: Section[] = [
     subtitle: "scaffold, start, and retire client projects",
     kind: "actions",
     actionIds: ["new-nextjs", "new-static", "start-client", "erase-project"] },
+  { id: "domain-console", title: "Domain Console", accent: "gold",
+    subtitle: "TGV-operated domain platform — registrar test/live switch (pricing & transfers later)",
+    kind: "tiles", tiles: [{ type: "domain-console" }] },
   { id: "domains", title: "Domains & DNS", accent: "cyan",
     subtitle: "registrar automation · Cloudflare migration",
     kind: "actions",
@@ -2338,6 +2354,7 @@ export default function UtilsPage() {
   const [openHardening, setOpenHardening] = useState<HardeningKind | null>(null);
   const [openBackups, setOpenBackups] = useState<boolean>(false);
   const [openMigrate, setOpenMigrate] = useState<boolean>(false);
+  const [openDomainConsole, setOpenDomainConsole] = useState<boolean>(false);
   const [openLinkTool, setOpenLinkTool] = useState<LinkTool | null>(null);
   const [qrSeed, setQrSeed] = useState<string>("");
   const [qrSeedName, setQrSeedName] = useState<string>("");
@@ -2434,6 +2451,7 @@ export default function UtilsPage() {
           onSaveDefaults={saveDefaults}
           onOpenBackups={() => setOpenBackups(true)}
           onOpenMigrate={() => setOpenMigrate(true)}
+          onOpenDomainConsole={() => setOpenDomainConsole(true)}
           onOpenHardening={(kind) => setOpenHardening(kind)}
           onOpenLinkTool={(kind) => {
             if (kind === "qrcode") {
@@ -2479,6 +2497,10 @@ export default function UtilsPage() {
 
       {openMigrate && (
         <MigrateSiteControlModal onClose={() => setOpenMigrate(false)} />
+      )}
+
+      {openDomainConsole && (
+        <DomainConsoleControlModal onClose={() => setOpenDomainConsole(false)} />
       )}
 
       {openLinkTool === "tinyurl" && username && (
