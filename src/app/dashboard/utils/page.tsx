@@ -18,6 +18,7 @@ import FirewallControlModal from "../../components/hardening/firewall/FirewallCo
 import BackupsControlModal from "../../components/backups/BackupsControlModal";
 import MigrateSiteControlModal from "../../components/migrate/MigrateSiteControlModal";
 import DomainConsoleControlModal from "../../components/domain-console/DomainConsoleControlModal";
+import MemberWalletModal from "../../components/villagers/MemberWalletModal";
 import AutomationsTab from "../../components/automations/AutomationsTab";
 import {
   TinyURLGenerator,
@@ -1584,6 +1585,7 @@ type UtilsAdlSurfaceProps = {
   onOpenBackups: () => void;
   onOpenMigrate: () => void;
   onOpenDomainConsole: () => void;
+  onOpenMemberWallet: () => void;
   onOpenHardening: (kind: HardeningKind) => void;
   onOpenLinkTool: (kind: LinkTool) => void;
   onOpenTranscriber: () => void;
@@ -1592,7 +1594,7 @@ type UtilsAdlSurfaceProps = {
 
 function UtilsAdlSurface({
   sections, actionsById, isAdmin, overlay, onSaveDefaults,
-  onOpenBackups, onOpenMigrate, onOpenDomainConsole, onOpenHardening, onOpenLinkTool, onOpenTranscriber, onOpenTranscriptions,
+  onOpenBackups, onOpenMigrate, onOpenDomainConsole, onOpenMemberWallet, onOpenHardening, onOpenLinkTool, onOpenTranscriber, onOpenTranscriptions,
 }: UtilsAdlSurfaceProps) {
   // Live transcription jobs — drives the per-job queued tiles + the badge
   // counter on the Transcriptions tile.
@@ -1713,6 +1715,15 @@ function UtilsAdlSurface({
                           Absorb a legacy site into TGV — per-surface fidelity (data import/drop ×
                           code reinvent/approximate/bespoke), AI halt-review, and the
                           refusionist-test1 dogfood. Lists live migration jobs.
+                        </HardeningTileSub>
+                      </HardeningTile>
+                    );
+                    if (tile.type === "member-wallet") return (
+                      <HardeningTile key={i} type="button" onClick={onOpenMemberWallet}>
+                        <HardeningTileTop>👛 Member Wallet</HardeningTileTop>
+                        <HardeningTileSub>
+                          Search a villager and manage their token wallet — view Cash / Available /
+                          Retainer (live + test) and release retainer to Available or Cash on their behalf.
                         </HardeningTileSub>
                       </HardeningTile>
                     );
@@ -1968,6 +1979,7 @@ type TileSpec =
   | { type: "mesh-vpn" }
   | { type: "invitations" }
   | { type: "wallet-control" }
+  | { type: "member-wallet" }
   | { type: "firewall" }
   | { type: "tinyurl" }
   | { type: "qrcode" }
@@ -2001,6 +2013,9 @@ const SECTIONS: Section[] = [
   { id: "domain-console", title: "Domain Console", accent: "gold",
     subtitle: "TGV-operated domain platform — registrar test/live switch (pricing & transfers later)",
     kind: "tiles", tiles: [{ type: "domain-console" }] },
+  { id: "villagers", title: "Villagers", accent: "gold",
+    subtitle: "manage members on behalf of the TGV tenant — wallets, payouts, entitlements",
+    kind: "tiles", tiles: [{ type: "member-wallet" }, { type: "wallet-control" }] },
   { id: "domains", title: "Domains & DNS", accent: "cyan",
     subtitle: "registrar automation · Cloudflare migration",
     kind: "actions",
@@ -2010,7 +2025,7 @@ const SECTIONS: Section[] = [
     kind: "actions", actionIds: ["gitrepo", "gitdelrepo"] },
   { id: "hardening", title: "Hardening", accent: "cyan",
     subtitle: "defensive mechanisms installed on RCS — controls + status + audit log",
-    kind: "tiles", tiles: [{ type: "firewall" }, { type: "telephony" }, { type: "tenant-apps" }, { type: "member-auth" }, { type: "office-staff" }, { type: "mesh-vpn" }, { type: "invitations" }, { type: "wallet-control" }] },
+    kind: "tiles", tiles: [{ type: "firewall" }, { type: "telephony" }, { type: "tenant-apps" }, { type: "member-auth" }, { type: "office-staff" }, { type: "mesh-vpn" }, { type: "invitations" }] },
   { id: "linktools", title: "Link Tools", accent: "cyan",
     subtitle: "shorten URLs and generate scannable QR codes — pair them for printable mini-flyers",
     kind: "tiles", tiles: [{ type: "tinyurl" }, { type: "qrcode" }] },
@@ -2378,6 +2393,7 @@ export default function UtilsPage() {
   const [openBackups, setOpenBackups] = useState<boolean>(false);
   const [openMigrate, setOpenMigrate] = useState<boolean>(false);
   const [openDomainConsole, setOpenDomainConsole] = useState<boolean>(false);
+  const [openMemberWallet, setOpenMemberWallet] = useState<boolean>(false);
   const [openLinkTool, setOpenLinkTool] = useState<LinkTool | null>(null);
   const [qrSeed, setQrSeed] = useState<string>("");
   const [qrSeedName, setQrSeedName] = useState<string>("");
@@ -2475,6 +2491,7 @@ export default function UtilsPage() {
           onOpenBackups={() => setOpenBackups(true)}
           onOpenMigrate={() => setOpenMigrate(true)}
           onOpenDomainConsole={() => setOpenDomainConsole(true)}
+          onOpenMemberWallet={() => setOpenMemberWallet(true)}
           onOpenHardening={(kind) => setOpenHardening(kind)}
           onOpenLinkTool={(kind) => {
             if (kind === "qrcode") {
@@ -2532,6 +2549,10 @@ export default function UtilsPage() {
 
       {openDomainConsole && (
         <DomainConsoleControlModal onClose={() => setOpenDomainConsole(false)} />
+      )}
+
+      {openMemberWallet && (
+        <MemberWalletModal onClose={() => setOpenMemberWallet(false)} />
       )}
 
       {openLinkTool === "tinyurl" && username && (
