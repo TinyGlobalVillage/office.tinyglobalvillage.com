@@ -103,6 +103,9 @@ export default function WalletControlModal({ onClose }: WalletControlModalProps)
   const [gateErr, setGateErr] = useState<string | null>(null);
   const [limitsErr, setLimitsErr] = useState<string | null>(null);
   const [limitsSavedTick, setLimitsSavedTick] = useState(0);
+  // Queue transitions (Slice 3): which row is mid-action + the last action error.
+  const [actingId, setActingId] = useState<string | null>(null);
+  const [actionErr, setActionErr] = useState<string | null>(null);
 
   const loadConfig = useCallback(async (signal?: AbortSignal) => {
     const res = await fetch("/api/admin/wallet/config", { cache: "no-store", signal });
@@ -118,6 +121,52 @@ export default function WalletControlModal({ onClose }: WalletControlModalProps)
     const d = await res.json().catch(() => ({}));
     if (res.ok) setQueue(Array.isArray(d.withdrawals) ? d.withdrawals : []);
   }, []);
+
+  // Slice 3 — drive a queue transition through the Office advance proxy (→ tgv.com's engine, which
+  // reverses the cash ledger + audits). tgv.com 403s every transition until its launch flag is on,
+  // so these are inert until withdrawals go live. markPaid needs a payout reference (operator_advance).
+  const runAction = useCallback(
+    async (w: WithdrawalRow, op: "approve" | "markPaid" | "markFailed" | "cancel") => {
+      let externalRef: string | undefined;
+      let note: string | undefined;
+      const tag = `${w.id.slice(0, 8)} · ${w.amount_tokens} tok (${usd(w.amount_cents)})`;
+      if (op === "markPaid") {
+        const ref = window.prompt(
+          `Mark ${tag} PAID.\nEnter the payout reference (bank / transfer id) — required for the operator_advance rail:`,
+        );
+        if (ref === null) return; // dismissed
+        if (!ref.trim()) { setActionErr("A payout reference is required to mark paid."); return; }
+        externalRef = ref.trim();
+      } else {
+        const verb = op === "approve" ? "Approve" : op === "markFailed" ? "Mark FAILED" : "Cancel";
+        if (!window.confirm(`${verb} withdrawal ${tag}?`)) return;
+        if (op === "markFailed" || op === "cancel") {
+          const n = window.prompt("Optional note (reason) — blank for none:") ?? "";
+          if (n.trim()) note = n.trim();
+        }
+      }
+      setActingId(w.id);
+      setActionErr(null);
+      try {
+        const res = await fetch("/api/admin/wallet/advance", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ op, withdrawalId: w.id, env: w.env, externalRef, note }),
+        });
+        const d = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          setActionErr(d.error ? `Action failed: ${d.error}` : `Action failed (HTTP ${res.status}).`);
+          return;
+        }
+        await loadQueue();
+      } catch {
+        setActionErr("Action failed — couldn't reach the server.");
+      } finally {
+        setActingId(null);
+      }
+    },
+    [loadQueue],
+  );
 
   const load = useCallback(async (signal?: AbortSignal) => {
     setLoading(true);
@@ -367,16 +416,19 @@ export default function WalletControlModal({ onClose }: WalletControlModalProps)
     ),
   });
 
-  // 3) Queue — read-only until launch.
+  // 3) Queue — list + transitions (Slice 3). Transitions 403 on tgv.com until the launch flag is on.
   sections.push({
     id: "queue",
     title: "Cash-Out Queue",
     qmbm:
-      "Pending and historical member cash-out requests, read from the shared database. Approve / " +
-      "mark-paid / fail / cancel act on the cash ledger and run on tgv.com — they arrive with " +
-      "launch (there are no rows to act on while withdrawals are gated off). 1 token = $0.25.",
+      "Pending and historical member cash-out requests, read from the shared database. The actions " +
+      "— approve → mark-paid, or fail / cancel — reverse the cash ledger and run on tgv.com's engine. " +
+      "They are LIVE only once withdrawals launch (until then tgv.com refuses them, and there are no " +
+      "rows to act on anyway). 'Mark paid' requires a payout reference (the operator_advance rail). " +
+      "1 token = $0.25.",
     body: (
       <PanelBody>
+        {actionErr && <ErrLine>{actionErr}</ErrLine>}
         {loading ? (
           <Dim>Loading…</Dim>
         ) : queue.length === 0 ? (
@@ -392,21 +444,43 @@ export default function WalletControlModal({ onClose }: WalletControlModalProps)
                   <th>Rail</th>
                   <th>Ref</th>
                   <th>Requested</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {queue.map((w) => (
-                  <tr key={w.id}>
-                    <td><Mono>{w.member_user_id.slice(0, 8)}</Mono></td>
-                    <td>
-                      {w.amount_tokens} tok <Dim>({usd(w.amount_cents)})</Dim>
-                    </td>
-                    <td><Pill $color={STATUS_COLOR[w.status] ?? "#8a8a8a"}>{w.status}</Pill></td>
-                    <td>{w.rail}</td>
-                    <td>{w.external_ref ? <Mono>{w.external_ref}</Mono> : <Dim>—</Dim>}</td>
-                    <td><Dim>{new Date(w.requested_at).toLocaleString()}</Dim></td>
-                  </tr>
-                ))}
+                {queue.map((w) => {
+                  const busy = actingId === w.id;
+                  const open = w.status === "requested" || w.status === "approved";
+                  return (
+                    <tr key={w.id}>
+                      <td><Mono>{w.member_user_id.slice(0, 8)}</Mono></td>
+                      <td>
+                        {w.amount_tokens} tok <Dim>({usd(w.amount_cents)})</Dim>
+                      </td>
+                      <td><Pill $color={STATUS_COLOR[w.status] ?? "#8a8a8a"}>{w.status}</Pill></td>
+                      <td>{w.rail}</td>
+                      <td>{w.external_ref ? <Mono>{w.external_ref}</Mono> : <Dim>—</Dim>}</td>
+                      <td><Dim>{new Date(w.requested_at).toLocaleString()}</Dim></td>
+                      <td>
+                        <ActionCell>
+                          {w.status === "requested" && (
+                            <ActBtn type="button" disabled={busy} onClick={() => runAction(w, "approve")}>Approve</ActBtn>
+                          )}
+                          {w.status === "approved" && (
+                            <ActBtn $tone="go" type="button" disabled={busy} onClick={() => runAction(w, "markPaid")}>Mark paid</ActBtn>
+                          )}
+                          {open && (
+                            <>
+                              <ActBtn type="button" disabled={busy} onClick={() => runAction(w, "cancel")}>Cancel</ActBtn>
+                              <ActBtn $tone="warn" type="button" disabled={busy} onClick={() => runAction(w, "markFailed")}>Fail</ActBtn>
+                            </>
+                          )}
+                          {!open && <Dim>—</Dim>}
+                        </ActionCell>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </Table>
           </TableWrap>
@@ -695,6 +769,32 @@ const Pill = styled.span<{ $color: string }>`
   border: 1px solid ${(p) => p.$color};
   color: ${(p) => p.$color};
   background: ${(p) => p.$color}1a;
+`;
+
+const ActionCell = styled.div`
+  display: flex;
+  gap: 0.3rem;
+  flex-wrap: wrap;
+`;
+
+const ActBtn = styled.button<{ $tone?: "go" | "warn" }>`
+  padding: 0.2rem 0.45rem;
+  font-size: 0.68rem;
+  border-radius: 0.3rem;
+  cursor: pointer;
+  white-space: nowrap;
+  background: ${(p) =>
+    p.$tone === "warn" ? `rgba(${rgb.pink}, 0.1)` : p.$tone === "go" ? "#4ade8019" : "rgba(0,0,0,0.3)"};
+  border: 1px solid ${(p) =>
+    p.$tone === "warn" ? `rgba(${rgb.pink}, 0.5)` : p.$tone === "go" ? "#4ade80" : "var(--t-border)"};
+  color: ${(p) => (p.$tone === "warn" ? colors.pink : p.$tone === "go" ? "#4ade80" : "var(--t-text)")};
+  &:hover:not(:disabled) {
+    filter: brightness(1.25);
+  }
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
 `;
 
 

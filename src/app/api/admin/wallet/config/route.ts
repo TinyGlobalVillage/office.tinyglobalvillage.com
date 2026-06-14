@@ -22,6 +22,15 @@ function tgvBase(): string {
 }
 const CONFIG_URL = () => `${tgvBase()}/api/wallet/withdrawal/config`;
 
+// Known WithdrawalConfig fields (mirror of tgv.com's engine shape). PUT bodies are filtered to
+// these before forwarding — defense-in-depth so a buggy/compromised caller can't smuggle unknown
+// keys through to tgv.com's config file. tgv.com remains the authoritative validation boundary.
+const WITHDRAWAL_CONFIG_KEYS = new Set([
+  "enabled", "rail", "maxPerPeriodTokens", "periodDays", "perRequestMaxTokens",
+  "minTokens", "cooldownHours", "holdHours", "offerInstant", "instantFeeBps",
+  "requireVerifiedIdentity",
+]);
+
 export async function GET(req: NextRequest) {
   const gate = await requireAdmin(req);
   if (gate instanceof NextResponse) return gate;
@@ -56,6 +65,13 @@ export async function PUT(req: NextRequest) {
   if (!body || typeof body !== "object" || Array.isArray(body)) {
     return NextResponse.json({ error: "invalid_body" }, { status: 400 });
   }
+  // Forward ONLY recognized WithdrawalConfig keys — never proxy arbitrary fields to tgv.com.
+  const filtered = Object.fromEntries(
+    Object.entries(body).filter(([k]) => WITHDRAWAL_CONFIG_KEYS.has(k)),
+  );
+  if (Object.keys(filtered).length === 0) {
+    return NextResponse.json({ error: "no_recognized_fields" }, { status: 400 });
+  }
 
   try {
     const res = await fetch(CONFIG_URL(), {
@@ -65,7 +81,7 @@ export async function PUT(req: NextRequest) {
         "x-internal-secret": secret,
         "x-operator-actor-id": actorId,
       },
-      body: JSON.stringify(body),
+      body: JSON.stringify(filtered),
       cache: "no-store",
     });
     const d = await res.json().catch(() => ({}));
