@@ -13,6 +13,7 @@ import MemberAuthControlModal from "../../components/hardening/member-auth/Membe
 import OfficeStaffControlModal from "../../components/hardening/office-staff/OfficeStaffControlModal";
 import MeshVpnControlModal from "../../components/hardening/mesh-vpn/MeshVpnControlModal";
 import InvitationsControlModal from "../../components/hardening/invitations/InvitationsControlModal";
+import WalletControlModal from "../../components/hardening/wallet-control/WalletControlModal";
 import BackupsControlModal from "../../components/backups/BackupsControlModal";
 import MigrateSiteControlModal from "../../components/migrate/MigrateSiteControlModal";
 import DomainConsoleControlModal from "../../components/domain-console/DomainConsoleControlModal";
@@ -1783,6 +1784,16 @@ function UtilsAdlSurface({
                         </HardeningTileSub>
                       </HardeningTile>
                     );
+                    if (tile.type === "wallet-control") return (
+                      <HardeningTile key={i} type="button" onClick={() => onOpenHardening("wallet-control")}>
+                        <HardeningTileTop>💸 Wallet Cash-Out</HardeningTileTop>
+                        <HardeningTileSub>
+                          Member withdrawals are irreversible money-out — gated behind a launch flag
+                          + a runtime killswitch. Set fraud limits, pause cash-out, watch the queue
+                          and audit log. Stays OFF until KYC + clawback ship.
+                        </HardeningTileSub>
+                      </HardeningTile>
+                    );
                     if (tile.type === "tinyurl") return (
                       <LinkToolsTile key={i} type="button" onClick={() => onOpenLinkTool("tinyurl")}>
                         <LinkToolsTileTop>🔗 TinyURL Generator</LinkToolsTileTop>
@@ -1910,7 +1921,7 @@ type DefaultsOverlay = Record<string, Record<string, FieldValue>>;
 // opens its HardeningControlModal. New hardenings get a new tile + a new
 // `kind` value below.
 
-type HardeningKind = "telephony" | "tenant-apps" | "member-auth" | "office-staff" | "mesh-vpn" | "invitations";  // | "postgres" | "ssh" | "nginx" — future
+type HardeningKind = "telephony" | "tenant-apps" | "member-auth" | "office-staff" | "mesh-vpn" | "invitations" | "wallet-control";  // | "postgres" | "ssh" | "nginx" — future
 
 // ── Link Tools (TinyURL + QR generators) ──────────────────────────────────
 //
@@ -1946,6 +1957,7 @@ type TileSpec =
   | { type: "office-staff" }
   | { type: "mesh-vpn" }
   | { type: "invitations" }
+  | { type: "wallet-control" }
   | { type: "tinyurl" }
   | { type: "qrcode" }
   | { type: "transcriber" }
@@ -1987,7 +1999,7 @@ const SECTIONS: Section[] = [
     kind: "actions", actionIds: ["gitrepo", "gitdelrepo"] },
   { id: "hardening", title: "Hardening", accent: "cyan",
     subtitle: "defensive mechanisms installed on RCS — controls + status + audit log",
-    kind: "tiles", tiles: [{ type: "telephony" }, { type: "tenant-apps" }, { type: "member-auth" }, { type: "office-staff" }, { type: "mesh-vpn" }, { type: "invitations" }] },
+    kind: "tiles", tiles: [{ type: "telephony" }, { type: "tenant-apps" }, { type: "member-auth" }, { type: "office-staff" }, { type: "mesh-vpn" }, { type: "invitations" }, { type: "wallet-control" }] },
   { id: "linktools", title: "Link Tools", accent: "cyan",
     subtitle: "shorten URLs and generate scannable QR codes — pair them for printable mini-flyers",
     kind: "tiles", tiles: [{ type: "tinyurl" }, { type: "qrcode" }] },
@@ -2489,6 +2501,10 @@ export default function UtilsPage() {
 
       {openHardening === "invitations" && (
         <InvitationsControlModal onClose={() => setOpenHardening(null)} />
+      )}
+
+      {openHardening === "wallet-control" && (
+        <WalletControlModal onClose={() => setOpenHardening(null)} />
       )}
 
       {openBackups && (
