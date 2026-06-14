@@ -5,20 +5,23 @@
 //
 // Codified pattern (~/.claude/CLAUDE.md §"Hardening UTILS Surfaces"):
 //   Every defensive mechanism we install on RCS gets a tile on Utils that
-//   opens an HCM. The HCM ALWAYS renders the RCS-wide system-tool views
-//   (fail2ban + UFW) plus an audit-log timeline at the top, then the
-//   hardening-specific sections supplied by the consumer. This way the
-//   operator has full-box posture visibility from any hardening modal —
-//   not just a tunnel-vision view of one surface.
+//   opens an HCM. The HCM renders an audit-log timeline at the top (when the
+//   surface has one) and the hardening-specific sections supplied by the
+//   consumer.
 //
-// Layout:
+//   The RCS-wide system-tool views (fail2ban + UFW) are OPTIONAL and, as of
+//   2026-06-14 (Gio), live ONLY on their own dedicated "Firewall & Intrusion"
+//   tile — they are no longer force-rendered on every modal (that was visual
+//   noise on surfaces unrelated to the firewall). A consumer that wants them
+//   passes `globalSystemViews`; almost none do.
+//
+// Layout (both bracketed rows render only when the prop is provided):
 //   ┌─────────────────────────────────────────────────────┐
 //   │ Title + Subtitle                                  × │
 //   ├─────────────────────────────────────────────────────┤
-//   │ [Combined audit-log timeline]                       │  (always)
-//   │ [Hardening-specific sections — passed in via props] │  (varies)
-//   │ [Fail2ban — RCS-wide]                               │  (always)
-//   │ [UFW — RCS-wide]                                    │  (always)
+//   │ [Combined audit-log timeline]                       │  (if auditLogView)
+//   │ [Hardening-specific sections — passed in via props] │  (always)
+//   │ [Fail2ban + UFW — RCS-wide]                         │  (if globalSystemViews)
 //   └─────────────────────────────────────────────────────┘
 
 import { type ReactNode } from "react";
@@ -47,13 +50,15 @@ export type HardeningControlModalProps = {
   /** Optional QMBM next to the modal title — explains the whole surface, not a section.
       Section-level qmbms still live on each HCMSection. */
   qmbm?: string;
-  /** Hardening-specific sections rendered between the audit log and the global system views. */
+  /** Hardening-specific sections — the modal's main content. */
   sections: HCMSection[];
-  /** The two always-rendered RCS-wide system views; consumer passes them in so we don't
-      hard-couple this shell to specific implementations. */
-  globalSystemViews: ReactNode;
-  /** Combined audit log timeline (from the consumer's audit-log endpoint). */
-  auditLogView: ReactNode;
+  /** OPTIONAL RCS-wide system views (fail2ban + UFW). Historically force-rendered on EVERY
+      hardening modal; as of 2026-06-14 they live ONLY on the dedicated "Firewall & Intrusion"
+      tile (FirewallControlModal), so almost every consumer omits this. Rendered only when set. */
+  globalSystemViews?: ReactNode;
+  /** OPTIONAL combined audit-log timeline (from the consumer's audit-log endpoint). Rendered only
+      when provided — a surface with no audit feed (e.g. the firewall tile) omits it. */
+  auditLogView?: ReactNode;
   onClose: () => void;
 };
 
@@ -173,24 +178,28 @@ export default function HardeningControlModal(props: HardeningControlModalProps)
         </ModalHeader>
         <ModalBody>
           <Stack>
-            <SectionWrap>
-              <SectionHeader>
-                <SectionTitle>Activity Timeline</SectionTitle>
-              </SectionHeader>
-              <div>{props.auditLogView}</div>
-            </SectionWrap>
+            {props.auditLogView && (
+              <SectionWrap>
+                <SectionHeader>
+                  <SectionTitle>Activity Timeline</SectionTitle>
+                </SectionHeader>
+                <div>{props.auditLogView}</div>
+              </SectionWrap>
+            )}
 
             {props.sections.map(s => (
               <Section key={s.id} section={s} />
             ))}
 
-            <SectionWrap>
-              <SectionHeader>
-                <SectionTitle>RCS-wide system tools</SectionTitle>
-                <Sub>fail2ban + UFW posture for the whole box, not just this hardening surface</Sub>
-              </SectionHeader>
-              <div>{props.globalSystemViews}</div>
-            </SectionWrap>
+            {props.globalSystemViews && (
+              <SectionWrap>
+                <SectionHeader>
+                  <SectionTitle>RCS-wide system tools</SectionTitle>
+                  <Sub>fail2ban + UFW posture for the whole box, not just this hardening surface</Sub>
+                </SectionHeader>
+                <div>{props.globalSystemViews}</div>
+              </SectionWrap>
+            )}
           </Stack>
         </ModalBody>
       </ModalContainer>

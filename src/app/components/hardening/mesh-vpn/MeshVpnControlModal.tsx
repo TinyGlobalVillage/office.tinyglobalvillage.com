@@ -6,19 +6,7 @@ import { colors, rgb } from "@/app/theme";
 import HardeningControlModal, {
   type HCMSection,
 } from "../HardeningControlModal";
-import Fail2banGlobalView from "../_shared/Fail2banGlobalView";
-import UfwGlobalView from "../_shared/UfwGlobalView";
 import AuditLogTimeline from "../_shared/AuditLogTimeline";
-
-const MESH_VPN_JAIL_DEFAULT = "headscale-ssh"; // default — overridden by status.fail2banJailName from runtime config
-
-function isMeshVpnUfwRule(rule: { to: string; comment: string | null; from: string }): boolean {
-  if (/^27720/.test(rule.to)) return true;
-  if (/^8080/.test(rule.to) && rule.comment && /headscale/i.test(rule.comment)) return true;
-  if (/^100\./.test(rule.from)) return true;
-  if (rule.comment && /headscale|mesh|tailscale|wireguard|vpn/i.test(rule.comment)) return true;
-  return false;
-}
 
 type ServiceStatus = "running" | "stopped" | "error" | "unknown";
 
@@ -512,7 +500,6 @@ export default function MeshVpnControlModal({ onClose }: MeshVpnControlModalProp
         onClose={onClose}
         sections={[]}
         auditLogView={<Note>Sign in as an admin to view the mesh VPN surface.</Note>}
-        globalSystemViews={<Note>—</Note>}
       />
     );
   }
@@ -565,30 +552,6 @@ export default function MeshVpnControlModal({ onClose }: MeshVpnControlModalProp
           endpoint="/api/hardening/mesh-vpn/audit-log"
           kinds={["enrollment", "key-gen", "key-revoke", "device-revoke", "ufw-change", "service"]}
         />
-      }
-      globalSystemViews={
-        <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-          <div>
-            <div style={{
-              fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.1em",
-              textTransform: "uppercase", marginBottom: "0.4rem",
-              color: "var(--t-textFaint)",
-            }}>
-              fail2ban — RCS-wide (ssh jail rows highlighted)
-            </div>
-            <Fail2banGlobalView highlightJail={status?.fail2banJailName ?? MESH_VPN_JAIL_DEFAULT} />
-          </div>
-          <div>
-            <div style={{
-              fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.1em",
-              textTransform: "uppercase", marginBottom: "0.4rem",
-              color: "var(--t-textFaint)",
-            }}>
-              UFW — RCS-wide (rules touching SSH port 27720 / mesh subnet are highlighted)
-            </div>
-            <UfwGlobalView highlightFn={isMeshVpnUfwRule} />
-          </div>
-        </div>
       }
     />
   );

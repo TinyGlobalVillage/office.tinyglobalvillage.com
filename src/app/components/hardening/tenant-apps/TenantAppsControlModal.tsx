@@ -3,8 +3,9 @@
 // TenantAppsControlModal — the Tenant Apps hardening surface.
 //
 // Pattern: ~/.claude/CLAUDE.md §"Hardening UTILS Surfaces". Same shape as
-// TelephonyControlModal — Activity Timeline up top, hardening-specific
-// sections in the middle, Fail2banGlobalView + UfwGlobalView at the bottom.
+// TelephonyControlModal — Activity Timeline up top, then hardening-specific
+// sections. (The RCS-wide fail2ban + UFW views moved to the dedicated
+// "Firewall & Intrusion" tile on 2026-06-14 — no longer on every modal.)
 //
 // Tenant-apps-specific sections:
 //   1. Tenant Apps Table  — registry rows with per-row Restart / Stop / Finalize
@@ -15,8 +16,6 @@
 
 import { useCallback, useEffect, useState } from "react";
 import HardeningControlModal, { type HCMSection } from "../HardeningControlModal";
-import Fail2banGlobalView from "../_shared/Fail2banGlobalView";
-import UfwGlobalView from "../_shared/UfwGlobalView";
 import AuditLogTimeline from "../_shared/AuditLogTimeline";
 import {
   TenantAppsTablePanel,
@@ -118,30 +117,6 @@ export default function TenantAppsControlModal({ onClose }: TenantAppsControlMod
       onClose={onClose}
       sections={sections}
       auditLogView={<AuditLogTimeline endpoint="/api/admin/tenant-apps/audit-log" />}
-      globalSystemViews={
-        <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-          <div>
-            <div style={{
-              fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.1em",
-              textTransform: "uppercase", marginBottom: "0.4rem",
-              color: "var(--t-textFaint)",
-            }}>
-              fail2ban — RCS-wide
-            </div>
-            <Fail2banGlobalView />
-          </div>
-          <div>
-            <div style={{
-              fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.1em",
-              textTransform: "uppercase", marginBottom: "0.4rem",
-              color: "var(--t-textFaint)",
-            }}>
-              UFW — RCS-wide
-            </div>
-            <UfwGlobalView />
-          </div>
-        </div>
-      }
     />
   );
 }

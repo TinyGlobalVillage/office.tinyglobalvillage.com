@@ -13,8 +13,6 @@ import { useCallback, useEffect, useState } from "react";
 import styled from "styled-components";
 import { colors, rgb } from "@/app/theme";
 import HardeningControlModal, { type HCMSection } from "../HardeningControlModal";
-import Fail2banGlobalView from "../_shared/Fail2banGlobalView";
-import UfwGlobalView from "../_shared/UfwGlobalView";
 import AuditLogTimeline from "../_shared/AuditLogTimeline";
 
 export type InvitationsControlModalProps = { onClose: () => void };
@@ -304,18 +302,6 @@ export default function InvitationsControlModal({ onClose }: InvitationsControlM
       onClose={onClose}
       sections={sections}
       auditLogView={<AuditLogTimeline endpoint="/api/admin/invitations/audit-feed" />}
-      globalSystemViews={
-        <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-          <div>
-            <GlobalLabel>fail2ban — RCS-wide</GlobalLabel>
-            <Fail2banGlobalView />
-          </div>
-          <div>
-            <GlobalLabel>UFW — RCS-wide</GlobalLabel>
-            <UfwGlobalView />
-          </div>
-        </div>
-      }
     />
   );
 }
@@ -478,14 +464,6 @@ const ActBtn = styled.button`
   }
 `;
 
-const GlobalLabel = styled.div`
-  font-size: 0.625rem;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  margin-bottom: 0.4rem;
-  color: var(--t-textFaint);
-`;
 
 const LSTrack = styled.button<{ $on: boolean }>`
   position: relative;

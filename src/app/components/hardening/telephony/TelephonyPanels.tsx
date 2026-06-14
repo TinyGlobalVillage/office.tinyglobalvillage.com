@@ -2,10 +2,10 @@
 
 // Telephony-specific panels for the Telephony hardening modal.
 //
-// Each panel is small + focused; together with the shared Fail2banGlobalView
-// + UfwGlobalView + AuditLogTimeline they form the complete Telephony
-// hardening surface. Future hardening modals will follow the same shape:
-// a few hardening-specific panels here + the shared global views.
+// Each panel is small + focused; together with the AuditLogTimeline they form
+// the complete Telephony hardening surface. (The RCS-wide fail2ban + UFW views
+// used to render at the bottom of every modal; as of 2026-06-14 they live only
+// on the dedicated "Firewall & Intrusion" tile.)
 
 import { useCallback, useEffect, useState } from "react";
 import styled from "styled-components";

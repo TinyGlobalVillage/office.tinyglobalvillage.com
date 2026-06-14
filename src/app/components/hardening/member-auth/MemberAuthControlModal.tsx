@@ -17,8 +17,6 @@ import { useRouter } from "next/navigation";
 import styled from "styled-components";
 import { colors, rgb } from "@/app/theme";
 import HardeningControlModal, { type HCMSection } from "../HardeningControlModal";
-import Fail2banGlobalView from "../_shared/Fail2banGlobalView";
-import UfwGlobalView from "../_shared/UfwGlobalView";
 import AuditLogTimeline from "../_shared/AuditLogTimeline";
 
 export type MemberAuthControlModalProps = {
@@ -104,30 +102,6 @@ export default function MemberAuthControlModal({ onClose }: MemberAuthControlMod
       onClose={onClose}
       sections={sections}
       auditLogView={<AuditLogTimeline endpoint="/api/admin/member-users/audit-feed" />}
-      globalSystemViews={
-        <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-          <div>
-            <div style={{
-              fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.1em",
-              textTransform: "uppercase", marginBottom: "0.4rem",
-              color: "var(--t-textFaint)",
-            }}>
-              fail2ban — RCS-wide
-            </div>
-            <Fail2banGlobalView />
-          </div>
-          <div>
-            <div style={{
-              fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.1em",
-              textTransform: "uppercase", marginBottom: "0.4rem",
-              color: "var(--t-textFaint)",
-            }}>
-              UFW — RCS-wide
-            </div>
-            <UfwGlobalView />
-          </div>
-        </div>
-      }
     />
   );
 }

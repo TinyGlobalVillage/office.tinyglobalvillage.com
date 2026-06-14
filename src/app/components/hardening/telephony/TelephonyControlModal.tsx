@@ -13,8 +13,6 @@ import { useCallback, useEffect, useState } from "react";
 import HardeningControlModal, {
   type HCMSection,
 } from "../HardeningControlModal";
-import Fail2banGlobalView from "../_shared/Fail2banGlobalView";
-import UfwGlobalView from "../_shared/UfwGlobalView";
 import AuditLogTimeline from "../_shared/AuditLogTimeline";
 import {
   ProtectionStackPanel,
@@ -39,16 +37,6 @@ type TelephonyStatus = {
     attackWatchCooldownMs: number;
   };
 };
-
-const TELEPHONY_JAIL = "freeswitch-toll-fraud";
-
-function isTelephonyUfwRule(rule: { to: string; comment: string | null; from: string }): boolean {
-  // Highlight rules that touch SIP ports or Telnyx ranges.
-  if (/^5060/.test(rule.to) || /^5080/.test(rule.to)) return true;
-  if (/192\.76\.120\./.test(rule.from)) return true;
-  if (rule.comment && /SIP|Telnyx|KILLSWITCH/i.test(rule.comment)) return true;
-  return false;
-}
 
 export type TelephonyControlModalProps = {
   onClose: () => void;
@@ -142,30 +130,6 @@ export default function TelephonyControlModal({ onClose }: TelephonyControlModal
           endpoint="/api/frontdesk/admin/telephony/audit-log"
           kinds={["toll-fraud", "killswitch"]}
         />
-      }
-      globalSystemViews={
-        <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-          <div>
-            <div style={{
-              fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.1em",
-              textTransform: "uppercase", marginBottom: "0.4rem",
-              color: "var(--t-textFaint)",
-            }}>
-              fail2ban — RCS-wide
-            </div>
-            <Fail2banGlobalView highlightJail={TELEPHONY_JAIL} />
-          </div>
-          <div>
-            <div style={{
-              fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.1em",
-              textTransform: "uppercase", marginBottom: "0.4rem",
-              color: "var(--t-textFaint)",
-            }}>
-              UFW — RCS-wide (rules touching SIP ports / Telnyx range are highlighted)
-            </div>
-            <UfwGlobalView highlightFn={isTelephonyUfwRule} />
-          </div>
-        </div>
       }
     />
   );

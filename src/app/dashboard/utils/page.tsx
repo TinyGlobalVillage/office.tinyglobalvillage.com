@@ -14,6 +14,7 @@ import OfficeStaffControlModal from "../../components/hardening/office-staff/Off
 import MeshVpnControlModal from "../../components/hardening/mesh-vpn/MeshVpnControlModal";
 import InvitationsControlModal from "../../components/hardening/invitations/InvitationsControlModal";
 import WalletControlModal from "../../components/hardening/wallet-control/WalletControlModal";
+import FirewallControlModal from "../../components/hardening/firewall/FirewallControlModal";
 import BackupsControlModal from "../../components/backups/BackupsControlModal";
 import MigrateSiteControlModal from "../../components/migrate/MigrateSiteControlModal";
 import DomainConsoleControlModal from "../../components/domain-console/DomainConsoleControlModal";
@@ -1794,6 +1795,15 @@ function UtilsAdlSurface({
                         </HardeningTileSub>
                       </HardeningTile>
                     );
+                    if (tile.type === "firewall") return (
+                      <HardeningTile key={i} type="button" onClick={() => onOpenHardening("firewall")}>
+                        <HardeningTileTop>🧱 Firewall & Intrusion</HardeningTileTop>
+                        <HardeningTileSub>
+                          RCS-wide host firewall (UFW) + intrusion prevention (fail2ban) for the whole
+                          box — audit rules, ban/unban IPs, spot an unexpectedly-open port.
+                        </HardeningTileSub>
+                      </HardeningTile>
+                    );
                     if (tile.type === "tinyurl") return (
                       <LinkToolsTile key={i} type="button" onClick={() => onOpenLinkTool("tinyurl")}>
                         <LinkToolsTileTop>🔗 TinyURL Generator</LinkToolsTileTop>
@@ -1921,7 +1931,7 @@ type DefaultsOverlay = Record<string, Record<string, FieldValue>>;
 // opens its HardeningControlModal. New hardenings get a new tile + a new
 // `kind` value below.
 
-type HardeningKind = "telephony" | "tenant-apps" | "member-auth" | "office-staff" | "mesh-vpn" | "invitations" | "wallet-control";  // | "postgres" | "ssh" | "nginx" — future
+type HardeningKind = "telephony" | "tenant-apps" | "member-auth" | "office-staff" | "mesh-vpn" | "invitations" | "wallet-control" | "firewall";  // | "postgres" | "ssh" | "nginx" — future
 
 // ── Link Tools (TinyURL + QR generators) ──────────────────────────────────
 //
@@ -1958,6 +1968,7 @@ type TileSpec =
   | { type: "mesh-vpn" }
   | { type: "invitations" }
   | { type: "wallet-control" }
+  | { type: "firewall" }
   | { type: "tinyurl" }
   | { type: "qrcode" }
   | { type: "transcriber" }
@@ -1999,7 +2010,7 @@ const SECTIONS: Section[] = [
     kind: "actions", actionIds: ["gitrepo", "gitdelrepo"] },
   { id: "hardening", title: "Hardening", accent: "cyan",
     subtitle: "defensive mechanisms installed on RCS — controls + status + audit log",
-    kind: "tiles", tiles: [{ type: "telephony" }, { type: "tenant-apps" }, { type: "member-auth" }, { type: "office-staff" }, { type: "mesh-vpn" }, { type: "invitations" }, { type: "wallet-control" }] },
+    kind: "tiles", tiles: [{ type: "firewall" }, { type: "telephony" }, { type: "tenant-apps" }, { type: "member-auth" }, { type: "office-staff" }, { type: "mesh-vpn" }, { type: "invitations" }, { type: "wallet-control" }] },
   { id: "linktools", title: "Link Tools", accent: "cyan",
     subtitle: "shorten URLs and generate scannable QR codes — pair them for printable mini-flyers",
     kind: "tiles", tiles: [{ type: "tinyurl" }, { type: "qrcode" }] },
@@ -2505,6 +2516,10 @@ export default function UtilsPage() {
 
       {openHardening === "wallet-control" && (
         <WalletControlModal onClose={() => setOpenHardening(null)} />
+      )}
+
+      {openHardening === "firewall" && (
+        <FirewallControlModal onClose={() => setOpenHardening(null)} />
       )}
 
       {openBackups && (
