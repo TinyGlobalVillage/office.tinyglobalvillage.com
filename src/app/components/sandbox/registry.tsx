@@ -3256,6 +3256,79 @@ function DaBDemo() {
 // `CATEGORIES` below is sorted alphabetically by category name. Array order
 // drives render order in SandboxModal, so keep new entries inserted in the
 // correct alphabetical position — don't just append.
+// ── Admin Wizard (Preview Toggle) demo ──────────────────────────────────
+const AwWrap = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  width: 100%;
+  max-width: 360px;
+`;
+const AwMutedLine = styled.div`
+  font-size: 0.72rem;
+  color: var(--t-textMuted);
+  letter-spacing: 0.02em;
+`;
+const AwPreviewBar = styled.div<{ $on: boolean }>`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.55rem 0.7rem;
+  border-radius: 0.5rem;
+  border: 1px solid ${(p) => (p.$on ? `rgba(${rgb.cyan}, 0.4)` : "rgba(245,158,11,0.5)")};
+  background: ${(p) => (p.$on ? `rgba(${rgb.cyan}, 0.06)` : "rgba(245,158,11,0.08)")};
+`;
+const AwPreviewText = styled.span`
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--t-text);
+`;
+const AwToggle = styled.button<{ $on: boolean }>`
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.25rem 0.55rem;
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--t-text);
+  border: 1px solid ${(p) => (p.$on ? `rgba(${rgb.cyan}, 0.55)` : "rgba(245,158,11,0.55)")};
+  background: ${(p) => (p.$on ? `rgba(${rgb.cyan}, 0.12)` : "rgba(245,158,11,0.12)")};
+`;
+const AwKnob = styled.span<{ $on: boolean }>`
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 50%;
+  background: ${(p) => (p.$on ? colors.cyan : "#f59e0b")};
+  box-shadow: 0 0 8px ${(p) => (p.$on ? `rgba(${rgb.cyan}, 0.6)` : "rgba(245,158,11,0.6)")};
+`;
+
+function AdminWizardDemo() {
+  const [preview, setPreview] = useState(true);
+  return (
+    <AwWrap>
+      <AwMutedLine>Tenant: Acme Studio · setting up payments on their behalf</AwMutedLine>
+      <Highlight label="Preview Toggle">
+        <AwPreviewBar $on={preview}>
+          <AwPreviewText>{preview ? "Preview · test mode" : "LIVE · real provisioning"}</AwPreviewText>
+          <AwToggle type="button" $on={preview} onClick={() => setPreview((p) => !p)} aria-pressed={preview}>
+            <AwKnob $on={preview} />
+            {preview ? "PREVIEW" : "LIVE"}
+          </AwToggle>
+        </AwPreviewBar>
+      </Highlight>
+      <AwMutedLine style={{ opacity: 0.65 }}>
+        {preview
+          ? "Auto-filled fixtures · runs the whole pipeline in test — no real money."
+          : "Creates a real managed account for the tenant."}
+      </AwMutedLine>
+    </AwWrap>
+  );
+}
+
 export const REGISTRY: SandboxEntry[] = [
   // ── Buttons ───────────────────────────────────────────────────────────
   {
@@ -3956,6 +4029,24 @@ import LDM from "./LDM";
     style: "const Track = styled.div<{ $on: boolean; $glow: GlowColor }>`\nwidth: 32px; height: 18px;\nborder-radius: 999px;\nbackground: ${(p) => p.$on ? `rgba(${rgb[p.$glow]}, 0.35)` : \"rgba(255,255,255,0.08)\"};\nborder: 1px solid ${(p) => p.$on ? `rgba(${rgb[p.$glow]}, 0.6)` : \"rgba(255,255,255,0.15)\"};\nposition: relative;\ncursor: pointer;\ntransition: all 0.2s;\n`;\n\nconst Thumb = styled.div<{ $on: boolean; $glow: GlowColor }>`\nwidth: 12px; height: 12px;\nborder-radius: 50%;\nposition: absolute;\ntop: 2px;\nleft: ${(p) => p.$on ? \"17px\" : \"2px\"};\nbackground: ${(p) => p.$on ? colors[p.$glow] : \"rgba(255,255,255,0.4)\"};\nbox-shadow: ${(p) => p.$on ? `0 0 8px ${colors[p.$glow]}` : \"none\"};\ntransition: all 0.2s;\n`;",
     stylePath: "src/app/components/LDM.tsx",
     Demo: LightswitchDemo,
+  },
+  {
+    key: "AdminWizard",
+    name: "Preview Toggle (Admin Wizard)",
+    category: "Toggles",
+    summary:
+      "The signature control of an *Admin Wizard* — an operator wizard on a TGV Office surface that provisions something ON A TENANT'S BEHALF (auto-populating the tenant's own dashboard). The Preview toggle, when ON, runs the WHOLE pipeline in TEST mode with auto-filled fixtures so any pathway can be walked end-to-end without touching live money or state. Preview is the safe default for irreversible flows; flip OFF to act for real. Test-lane artifacts are filtered out of live dashboards and torn down.",
+    usage:
+      "Use on any operator surface that sets something up for a tenant (managed Stripe onboarding, new-client deploy). Default the toggle to Preview/test. Office holds no privileged keys — proxy to the owning app over the internal-secret seam, which stays the authoritative boundary (re-validates everything, enforces hard rules). Audit every mutating action. Canonical: Villagers → Managed Onboarding (ManagedOnboardingModal.tsx) + the new-client wizard.",
+    code: `const [preview, setPreview] = useState(true);  // safe default for irreversible flows
+const env = preview ? "test" : "live";
+
+function enablePreview() {           // auto-fill fixtures + flip to the test lane
+  setPreview(true);
+  setForm(TEST_FIXTURES);
+}
+// ...then every request carries ?env={env}; tgv.com is the authoritative boundary.`,
+    Demo: AdminWizardDemo,
   },
   {
     key: "RRT",
