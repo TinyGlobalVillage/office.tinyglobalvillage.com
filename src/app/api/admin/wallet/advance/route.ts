@@ -1,6 +1,9 @@
 // POST /api/admin/wallet/advance — Office operator proxy to tgv.com's withdrawal queue transitions.
 //
-//   POST { op:'approve'|'markPaid'|'markFailed'|'cancel', withdrawalId, env, externalRef?, note? }
+//   POST { op:'approve'|'markPaid'|'releaseNow'|'markFailed'|'cancel', withdrawalId, env, externalRef?, note? }
+//
+// 'releaseNow' is the operator hold-override (pay a trusted member before the fraud hold elapses) —
+// like markPaid (needs an externalRef) but tgv.com bypasses holdHours + audits it distinctly.
 //
 // The cash-out transitions reverse the `cash` ledger and MUST run tgv.com's engine — Office never
 // touches the ledger. This proxies server-to-server with INTERNAL_API_SECRET (the operator-auth
@@ -19,7 +22,7 @@ function tgvBase(): string {
   return (process.env.TGV_BASE_URL ?? "https://tinyglobalvillage.com").replace(/\/$/, "");
 }
 
-const OPS = new Set(["approve", "markPaid", "markFailed", "cancel"]);
+const OPS = new Set(["approve", "markPaid", "releaseNow", "markFailed", "cancel"]);
 
 export async function POST(req: NextRequest) {
   const gate = await requireAdmin(req);

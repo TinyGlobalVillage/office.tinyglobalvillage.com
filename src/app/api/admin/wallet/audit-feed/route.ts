@@ -17,6 +17,7 @@ const WALLET_ACTIONS = [
   "wallet.withdrawal_config_update",
   "wallet.withdrawal_approve",
   "wallet.withdrawal_paid",
+  "wallet.withdrawal_released",
   "wallet.withdrawal_failed",
   "wallet.withdrawal_cancel",
 ] as const;
@@ -25,6 +26,7 @@ const LABEL: Record<string, string> = {
   "wallet.withdrawal_config_update": "config updated",
   "wallet.withdrawal_approve": "withdrawal approved",
   "wallet.withdrawal_paid": "withdrawal paid",
+  "wallet.withdrawal_released": "withdrawal released early (hold bypassed)",
   "wallet.withdrawal_failed": "withdrawal failed",
   "wallet.withdrawal_cancel": "withdrawal cancelled",
 };
@@ -32,6 +34,8 @@ const OUTCOME: Record<string, string> = {
   "wallet.withdrawal_config_update": "ok",
   "wallet.withdrawal_approve": "ok",
   "wallet.withdrawal_paid": "ok",
+  // A bypassed fraud hold is notable — surface it as a warn tint, not a silent ok.
+  "wallet.withdrawal_released": "warn",
   "wallet.withdrawal_failed": "err",
   "wallet.withdrawal_cancel": "warn",
 };

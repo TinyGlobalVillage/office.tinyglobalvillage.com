@@ -1,152 +1,44 @@
-"use client";
+// villagers/page.tsx — SERVER component. Admin gate for the Villagers operator surface.
+//
+// Villagers manages member MONEY (wallets, retainer relocation, cash-out payouts), so the route is
+// restricted to Office admins. The dashboard tile grid shows every tile to all staff (Deploy,
+// Database, Utils, …), so the real boundary is here at the route + on each API route (requireAdmin).
+// getBridgedMember() resolves the REAL member session → roster role (server context, next/headers
+// cookies()); a non-admin (or a member who isn't on the Office staff roster) gets a clean refusal
+// rather than the console. The proxy has already proven a 2FA member session before we run.
+//
+// The page renders inside the dashboard's iframe page-modal, so we show an inline "Admin only"
+// notice instead of redirecting (a redirect would just reload /dashboard inside the modal frame).
 
-import { useState } from "react";
-import styled from "styled-components";
-import { colors, rgb } from "../../theme";
-import TopNav from "../../components/TopNav";
-import { MembersIcon } from "../../components/icons";
-import MemberWalletModal from "../../components/villagers/MemberWalletModal";
-import WalletControlModal from "../../components/hardening/wallet-control/WalletControlModal";
+import { getBridgedMember } from "@/lib/member-auth/bridge";
+import VillagersClient from "./VillagersClient";
 
-/* ── Styled ────────────────────────────────────────────────────── */
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
-const PageMain = styled.main`
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
-  padding: 0 0.25rem 4rem;
-  max-width: 80rem;
-  margin: 0 auto;
-  width: 100%;
-
-  @media (min-width: 768px) {
-    padding: 0 1rem 4rem;
+export default async function VillagersPage() {
+  const member = await getBridgedMember();
+  if (!member || member.role !== "admin") {
+    return (
+      <div
+        style={{
+          minHeight: "60vh",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: "0.5rem",
+          padding: "2rem",
+          textAlign: "center",
+        }}
+      >
+        <div style={{ fontSize: "1.1rem", fontWeight: 700, color: "#f59e0b" }}>Admin only</div>
+        <div style={{ fontSize: "0.85rem", maxWidth: "28rem", opacity: 0.75 }}>
+          The Villagers console manages member wallets and cash-out payouts. It&apos;s restricted to
+          Office operators.
+        </div>
+      </div>
+    );
   }
-`;
-
-const HeaderRow = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  margin: 1.25rem 0 1rem;
-`;
-
-const TitleWrap = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.625rem;
-`;
-
-const PageTitle = styled.h1`
-  margin: 0;
-  font-size: 1.25rem;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  color: ${colors.gold};
-  text-shadow: 0 0 10px rgba(${rgb.gold}, 0.4);
-
-  [data-theme="light"] & {
-    text-shadow: none;
-  }
-`;
-
-const PageSubtitle = styled.p`
-  margin: 0;
-  font-size: 0.8125rem;
-  color: var(--t-textFaint);
-  line-height: 1.45;
-`;
-
-const Grid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
-  gap: 0.75rem;
-`;
-
-const Tile = styled.button`
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-  padding: 1rem;
-  text-align: left;
-  cursor: pointer;
-  background: rgba(${rgb.gold}, 0.04);
-  border: 1px solid rgba(${rgb.gold}, 0.3);
-  border-radius: 0.625rem;
-  color: var(--t-text);
-  transition: all 0.15s;
-
-  &:hover {
-    background: rgba(${rgb.gold}, 0.1);
-    border-color: rgba(${rgb.gold}, 0.55);
-    box-shadow: 0 0 18px rgba(${rgb.gold}, 0.15);
-  }
-`;
-
-const TileTop = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 1.05rem;
-  font-weight: 700;
-  color: ${colors.gold};
-  letter-spacing: 0.04em;
-`;
-
-const TileSub = styled.div`
-  font-size: 0.75rem;
-  color: var(--t-textFaint);
-  line-height: 1.45;
-`;
-
-/* ── Page ──────────────────────────────────────────────────────── */
-
-export default function VillagersPage() {
-  const [openMemberWallet, setOpenMemberWallet] = useState(false);
-  const [openWalletControl, setOpenWalletControl] = useState(false);
-
-  return (
-    <>
-      <TopNav />
-      <PageMain>
-        <HeaderRow>
-          <TitleWrap>
-            <MembersIcon size={26} style={{ color: colors.gold }} />
-            <PageTitle>Villagers</PageTitle>
-          </TitleWrap>
-        </HeaderRow>
-        <PageSubtitle style={{ marginBottom: "1.25rem" }}>
-          Manage members on behalf of the TGV tenant — wallets, payouts, and
-          entitlements. Every action here is audited.
-        </PageSubtitle>
-
-        <Grid>
-          <Tile type="button" onClick={() => setOpenMemberWallet(true)}>
-            <TileTop>👛 Member Wallet</TileTop>
-            <TileSub>
-              Search a villager and manage their token wallet — view Cash / Available /
-              Retainer (live + test) and release retainer to Available or Cash on their behalf.
-            </TileSub>
-          </Tile>
-
-          <Tile type="button" onClick={() => setOpenWalletControl(true)}>
-            <TileTop>💸 Wallet Cash-Out</TileTop>
-            <TileSub>
-              Member withdrawals are irreversible money-out — gated behind a launch flag
-              + a runtime killswitch. Set fraud limits, pause cash-out, watch the queue
-              and audit log. Stays OFF until KYC + clawback ship.
-            </TileSub>
-          </Tile>
-        </Grid>
-      </PageMain>
-
-      {openMemberWallet && (
-        <MemberWalletModal onClose={() => setOpenMemberWallet(false)} />
-      )}
-
-      {openWalletControl && (
-        <WalletControlModal onClose={() => setOpenWalletControl(false)} />
-      )}
-    </>
-  );
+  return <VillagersClient />;
 }
