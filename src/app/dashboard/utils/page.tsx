@@ -13,12 +13,10 @@ import MemberAuthControlModal from "../../components/hardening/member-auth/Membe
 import OfficeStaffControlModal from "../../components/hardening/office-staff/OfficeStaffControlModal";
 import MeshVpnControlModal from "../../components/hardening/mesh-vpn/MeshVpnControlModal";
 import InvitationsControlModal from "../../components/hardening/invitations/InvitationsControlModal";
-import WalletControlModal from "../../components/hardening/wallet-control/WalletControlModal";
 import FirewallControlModal from "../../components/hardening/firewall/FirewallControlModal";
 import BackupsControlModal from "../../components/backups/BackupsControlModal";
 import MigrateSiteControlModal from "../../components/migrate/MigrateSiteControlModal";
 import DomainConsoleControlModal from "../../components/domain-console/DomainConsoleControlModal";
-import MemberWalletModal from "../../components/villagers/MemberWalletModal";
 import AutomationsTab from "../../components/automations/AutomationsTab";
 import {
   TinyURLGenerator,
@@ -1585,7 +1583,6 @@ type UtilsAdlSurfaceProps = {
   onOpenBackups: () => void;
   onOpenMigrate: () => void;
   onOpenDomainConsole: () => void;
-  onOpenMemberWallet: () => void;
   onOpenHardening: (kind: HardeningKind) => void;
   onOpenLinkTool: (kind: LinkTool) => void;
   onOpenTranscriber: () => void;
@@ -1594,7 +1591,7 @@ type UtilsAdlSurfaceProps = {
 
 function UtilsAdlSurface({
   sections, actionsById, isAdmin, overlay, onSaveDefaults,
-  onOpenBackups, onOpenMigrate, onOpenDomainConsole, onOpenMemberWallet, onOpenHardening, onOpenLinkTool, onOpenTranscriber, onOpenTranscriptions,
+  onOpenBackups, onOpenMigrate, onOpenDomainConsole, onOpenHardening, onOpenLinkTool, onOpenTranscriber, onOpenTranscriptions,
 }: UtilsAdlSurfaceProps) {
   // Live transcription jobs — drives the per-job queued tiles + the badge
   // counter on the Transcriptions tile.
@@ -1718,15 +1715,6 @@ function UtilsAdlSurface({
                         </HardeningTileSub>
                       </HardeningTile>
                     );
-                    if (tile.type === "member-wallet") return (
-                      <HardeningTile key={i} type="button" onClick={onOpenMemberWallet}>
-                        <HardeningTileTop>👛 Member Wallet</HardeningTileTop>
-                        <HardeningTileSub>
-                          Search a villager and manage their token wallet — view Cash / Available /
-                          Retainer (live + test) and release retainer to Available or Cash on their behalf.
-                        </HardeningTileSub>
-                      </HardeningTile>
-                    );
                     if (tile.type === "domain-console") return (
                       <HardeningTile key={i} type="button" onClick={onOpenDomainConsole}>
                         <HardeningTileTop>🌐 Domain Console</HardeningTileTop>
@@ -1793,16 +1781,6 @@ function UtilsAdlSurface({
                           Invite-only onboarding caps AI API spend — nobody reaches the wizard
                           without redeeming an emailed, single-use code. Mint, track redemptions,
                           revoke, and resend codes; the `admin` seed is the temporary team code.
-                        </HardeningTileSub>
-                      </HardeningTile>
-                    );
-                    if (tile.type === "wallet-control") return (
-                      <HardeningTile key={i} type="button" onClick={() => onOpenHardening("wallet-control")}>
-                        <HardeningTileTop>💸 Wallet Cash-Out</HardeningTileTop>
-                        <HardeningTileSub>
-                          Member withdrawals are irreversible money-out — gated behind a launch flag
-                          + a runtime killswitch. Set fraud limits, pause cash-out, watch the queue
-                          and audit log. Stays OFF until KYC + clawback ship.
                         </HardeningTileSub>
                       </HardeningTile>
                     );
@@ -1942,7 +1920,7 @@ type DefaultsOverlay = Record<string, Record<string, FieldValue>>;
 // opens its HardeningControlModal. New hardenings get a new tile + a new
 // `kind` value below.
 
-type HardeningKind = "telephony" | "tenant-apps" | "member-auth" | "office-staff" | "mesh-vpn" | "invitations" | "wallet-control" | "firewall";  // | "postgres" | "ssh" | "nginx" — future
+type HardeningKind = "telephony" | "tenant-apps" | "member-auth" | "office-staff" | "mesh-vpn" | "invitations" | "firewall";  // | "postgres" | "ssh" | "nginx" — future
 
 // ── Link Tools (TinyURL + QR generators) ──────────────────────────────────
 //
@@ -1978,8 +1956,6 @@ type TileSpec =
   | { type: "office-staff" }
   | { type: "mesh-vpn" }
   | { type: "invitations" }
-  | { type: "wallet-control" }
-  | { type: "member-wallet" }
   | { type: "firewall" }
   | { type: "tinyurl" }
   | { type: "qrcode" }
@@ -2013,9 +1989,6 @@ const SECTIONS: Section[] = [
   { id: "domain-console", title: "Domain Console", accent: "gold",
     subtitle: "TGV-operated domain platform — registrar test/live switch (pricing & transfers later)",
     kind: "tiles", tiles: [{ type: "domain-console" }] },
-  { id: "villagers", title: "Villagers", accent: "gold",
-    subtitle: "manage members on behalf of the TGV tenant — wallets, payouts, entitlements",
-    kind: "tiles", tiles: [{ type: "member-wallet" }, { type: "wallet-control" }] },
   { id: "domains", title: "Domains & DNS", accent: "cyan",
     subtitle: "registrar automation · Cloudflare migration",
     kind: "actions",
@@ -2393,7 +2366,6 @@ export default function UtilsPage() {
   const [openBackups, setOpenBackups] = useState<boolean>(false);
   const [openMigrate, setOpenMigrate] = useState<boolean>(false);
   const [openDomainConsole, setOpenDomainConsole] = useState<boolean>(false);
-  const [openMemberWallet, setOpenMemberWallet] = useState<boolean>(false);
   const [openLinkTool, setOpenLinkTool] = useState<LinkTool | null>(null);
   const [qrSeed, setQrSeed] = useState<string>("");
   const [qrSeedName, setQrSeedName] = useState<string>("");
@@ -2491,7 +2463,6 @@ export default function UtilsPage() {
           onOpenBackups={() => setOpenBackups(true)}
           onOpenMigrate={() => setOpenMigrate(true)}
           onOpenDomainConsole={() => setOpenDomainConsole(true)}
-          onOpenMemberWallet={() => setOpenMemberWallet(true)}
           onOpenHardening={(kind) => setOpenHardening(kind)}
           onOpenLinkTool={(kind) => {
             if (kind === "qrcode") {
@@ -2531,10 +2502,6 @@ export default function UtilsPage() {
         <InvitationsControlModal onClose={() => setOpenHardening(null)} />
       )}
 
-      {openHardening === "wallet-control" && (
-        <WalletControlModal onClose={() => setOpenHardening(null)} />
-      )}
-
       {openHardening === "firewall" && (
         <FirewallControlModal onClose={() => setOpenHardening(null)} />
       )}
@@ -2549,10 +2516,6 @@ export default function UtilsPage() {
 
       {openDomainConsole && (
         <DomainConsoleControlModal onClose={() => setOpenDomainConsole(false)} />
-      )}
-
-      {openMemberWallet && (
-        <MemberWalletModal onClose={() => setOpenMemberWallet(false)} />
       )}
 
       {openLinkTool === "tinyurl" && username && (

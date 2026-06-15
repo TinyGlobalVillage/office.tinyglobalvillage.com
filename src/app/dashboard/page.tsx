@@ -12,7 +12,7 @@ import LibraryIcon from "../components/LibraryIcon";
 import DashboardPageModal from "../components/DashboardPageModal";
 import MyAlertsAccess from "../components/MyAlertsAccess";
 import RcsDiaryModal from "../components/diary/RcsDiaryModal";
-import { DatabaseIcon, StorageIcon, EditorIcon, UtilsIcon, SuggestionIcon, ProcessesIcon, DeployIcon, DrawerFrontDeskIcon, DrawerChatsIcon, DrawerInboxIcon, DrawerSessionsIcon, LogsIcon, SearchIcon } from "../components/icons";
+import { DatabaseIcon, StorageIcon, EditorIcon, UtilsIcon, SuggestionIcon, ProcessesIcon, DeployIcon, DrawerFrontDeskIcon, DrawerChatsIcon, DrawerInboxIcon, DrawerSessionsIcon, LogsIcon, SearchIcon, MembersIcon } from "../components/icons";
 import { colors, rgb, type GlowColor } from "@/app/theme";
 
 type DashTile = {
@@ -576,6 +576,7 @@ export default function Home() {
     { key: "Storage", title: "Storage", subtitle: "Files", glow: "pink", icon: <StorageIcon size={28} style={{ color: colors.pink }} />, pageKey: "storage" },
     { key: "Editor", title: "Editor", subtitle: "Code", glow: "gold", icon: <EditorIcon size={28} style={{ color: colors.gold }} />, pageKey: "editor" },
     { key: "Utils", title: "Utils", subtitle: "Tooling", glow: "cyan", icon: <UtilsIcon size={28} style={{ color: colors.cyan }} />, pageKey: "utils" },
+    { key: "Villagers", title: "Villagers", subtitle: "Members & wallets", glow: "gold", icon: <MembersIcon size={28} style={{ color: colors.gold }} />, pageKey: "villagers" },
     { key: "Claude", title: "Claude", subtitle: "AI Assistant", glow: "orange", icon: <ClaudeIcon size={28} color={colors.orange} />, onClick: () => window.dispatchEvent(new CustomEvent("open-claude")) },
     { key: "Sandbox", title: "Sandbox", subtitle: "Component Lab", glow: "pink", icon: <SandboxIcon size={28} color={colors.pink} />, onClick: () => window.dispatchEvent(new CustomEvent("open-sandbox")) },
     { key: "Library", title: "Library", subtitle: "Catalog", glow: "violet", icon: <LibraryIcon size={28} color={colors.violet} />, onClick: () => window.dispatchEvent(new CustomEvent("open-library")) },
