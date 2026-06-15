@@ -61,6 +61,17 @@ const INITIAL: WizardState = {
   logoUrl: "",
 };
 
+const previewBtn: React.CSSProperties = {
+  padding: "0.35rem 0.7rem",
+  fontSize: "0.72rem",
+  fontWeight: 700,
+  borderRadius: "0.4rem",
+  cursor: "pointer",
+  background: "rgba(0,228,253,0.12)",
+  border: "1px solid rgba(0,228,253,0.5)",
+  color: "#00e4fd",
+};
+
 const STEPS = [
   { key: "info", label: "Client info" },
   { key: "vertical", label: "Vertical" },
@@ -74,6 +85,10 @@ export default function NewClientWizard() {
   const [stepIdx, setStepIdx] = useState(0);
   const [state, setState] = useState<WizardState>(INITIAL);
   const [submitting, setSubmitting] = useState(false);
+  // Preview (the "Admin Wizard" convention): run the whole new-tenant pipeline in the TEST lane with
+  // auto-filled fixtures so we can see it end-to-end without creating a real live client.
+  const [preview, setPreview] = useState(false);
+  const env: "live" | "test" = preview ? "test" : "live";
   const [result, setResult] = useState<
     | { ok: true; deployId: string }
     | { ok: false; error: string }
@@ -116,6 +131,31 @@ export default function NewClientWizard() {
       vertical: id,
       tier: v.defaultTier,
       modules: [...v.defaultModules],
+    }));
+  }
+
+  // Auto-fill valid fixtures + flip to the test lane. A random suffix keeps domain/subdomain unique
+  // so repeated previews don't collide on the members unique indexes.
+  function enablePreview() {
+    const sfx = (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `${Math.random()}`).replace(/[^a-z0-9]/gi, "").slice(0, 6).toLowerCase();
+    const v = (VERTICAL_IDS[0] ?? "") as VerticalId;
+    const seed = v ? VERTICALS[v] : null;
+    setPreview(true);
+    setResult(null);
+    setStepIdx(STEPS.length - 1); // jump to Review — fixtures are complete
+    setState((s) => ({
+      ...s,
+      clientName: `Preview Tenant ${sfx}`,
+      domain: `preview-${sfx}.test`,
+      subdomain: `preview-${sfx}`,
+      contactName: "Preview Operator",
+      contactEmail: "preview@tgv.test",
+      contactPhone: "",
+      vertical: v,
+      tier: seed?.defaultTier ?? s.tier,
+      modules: seed ? [...seed.defaultModules] : s.modules,
+      customFlag: false,
+      customDescription: "",
     }));
   }
 
@@ -173,7 +213,7 @@ export default function NewClientWizard() {
         return;
       }
 
-      const res = await fetch("/api/admin/deploy", {
+      const res = await fetch(`/api/admin/deploy?env=${env}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(parsed.data),
@@ -201,6 +241,43 @@ export default function NewClientWizard() {
           <h1>New Client</h1>
           <p>Deterministic 5-minute deploy. Step {stepIdx + 1} of {STEPS.length}.</p>
         </Header>
+
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: "1rem",
+            padding: "0.6rem 0.85rem",
+            borderRadius: "0.5rem",
+            marginBottom: "0.75rem",
+            border: `1px solid ${preview ? "rgba(0,228,253,0.4)" : "rgba(245,158,11,0.45)"}`,
+            background: preview ? "rgba(0,228,253,0.06)" : "rgba(245,158,11,0.07)",
+          }}
+        >
+          <div style={{ display: "grid", gap: "0.15rem" }}>
+            <strong style={{ fontSize: "0.85rem" }}>{preview ? "Preview mode — test lane" : "Live deploy"}</strong>
+            <span style={{ fontSize: "0.72rem", opacity: 0.7 }}>
+              {preview
+                ? "Auto-filled fixtures · test lane (Stripe TEST + *.test) · filtered out of live dashboards."
+                : "Creates a real client in the live lane. Flip to Preview to dry-run the whole pipeline in test."}
+            </span>
+          </div>
+          <div style={{ display: "flex", gap: "0.5rem" }}>
+            {preview && (
+              <button type="button" onClick={enablePreview} style={previewBtn}>
+                Re-fill
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => (preview ? setPreview(false) : enablePreview())}
+              style={previewBtn}
+            >
+              {preview ? "Switch to Live" : "Preview (test)"}
+            </button>
+          </div>
+        </div>
 
         <StepsBar>
           {STEPS.map((s, i) => (

@@ -49,9 +49,15 @@ export async function POST(req: NextRequest) {
 
   const price = getPrice(spec);
 
+  // Preview/test lane (the "Admin Wizard" convention): ?env=test marks this member as a test-lane
+  // tenant (Stripe TEST + OpenSRS Horizon + *.test subdomains, filtered out of live dashboards,
+  // torn down by the teardown button). Defaults to the live lane.
+  const env = new URL(req.url).searchParams.get("env") === "test" ? "test" : "live";
+
   const [row] = await db
     .insert(schema.members)
     .values({
+      env,
       clientName: spec.clientName,
       domain: spec.domain,
       subdomain: spec.subdomain,

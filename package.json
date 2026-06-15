@@ -21,6 +21,8 @@
     "@react-three/postprocessing": "^3.0.0",
     "@simplewebauthn/browser": "^9.0.1",
     "@simplewebauthn/server": "^9.0.3",
+    "@stripe/connect-js": "^3.4.5",
+    "@stripe/react-connect-js": "^3.4.3",
     "@tgv/module-auth": "workspace:*",
     "@tgv/module-calendar": "workspace:*",
     "@tgv/module-component-library": "workspace:*",
