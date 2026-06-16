@@ -14,6 +14,7 @@ import MemberWalletModal from "../../components/villagers/MemberWalletModal";
 import PayoutsModal from "../../components/villagers/PayoutsModal";
 import WalletControlModal from "../../components/hardening/wallet-control/WalletControlModal";
 import ManagedOnboardingModal from "../../components/villagers/ManagedOnboardingModal";
+import CourseControlModal from "../../components/villagers/CourseControlModal";
 
 /* ── Styled ────────────────────────────────────────────────────── */
 
@@ -113,6 +114,7 @@ export default function VillagersClient() {
   const [openPayouts, setOpenPayouts] = useState(false);
   const [openWalletControl, setOpenWalletControl] = useState(false);
   const [openManaged, setOpenManaged] = useState(false);
+  const [openCourse, setOpenCourse] = useState(false);
 
   return (
     <>
@@ -163,6 +165,15 @@ export default function VillagersClient() {
               pipeline in test mode with auto-filled details.
             </TileSub>
           </Tile>
+
+          <Tile type="button" onClick={() => setOpenCourse(true)}>
+            <TileTop>🎓 Course Suite</TileTop>
+            <TileSub>
+              Cross-tenant oversight for the course suite — real-learner usage, completions and
+              pass-rates per tenant, suite health, and the enablement killswitch (global + per-tenant)
+              at the bottom. The master console for @tgv/module-course.
+            </TileSub>
+          </Tile>
         </Grid>
       </PageMain>
 
@@ -177,6 +188,8 @@ export default function VillagersClient() {
       )}
 
       {openManaged && <ManagedOnboardingModal onClose={() => setOpenManaged(false)} />}
+
+      {openCourse && <CourseControlModal onClose={() => setOpenCourse(false)} />}
     </>
   );
 }
