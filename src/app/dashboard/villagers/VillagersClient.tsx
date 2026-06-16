@@ -15,6 +15,7 @@ import PayoutsModal from "../../components/villagers/PayoutsModal";
 import WalletControlModal from "../../components/hardening/wallet-control/WalletControlModal";
 import ManagedOnboardingModal from "../../components/villagers/ManagedOnboardingModal";
 import CourseControlModal from "../../components/villagers/CourseControlModal";
+import DnsModal from "../../components/villagers/DnsModal";
 
 /* ── Styled ────────────────────────────────────────────────────── */
 
@@ -115,6 +116,7 @@ export default function VillagersClient() {
   const [openWalletControl, setOpenWalletControl] = useState(false);
   const [openManaged, setOpenManaged] = useState(false);
   const [openCourse, setOpenCourse] = useState(false);
+  const [openDns, setOpenDns] = useState(false);
 
   return (
     <>
@@ -174,6 +176,16 @@ export default function VillagersClient() {
               at the bottom. The master console for @tgv/module-course.
             </TileSub>
           </Tile>
+
+          <Tile type="button" onClick={() => setOpenDns(true)}>
+            <TileTop>🌐 DNS</TileTop>
+            <TileSub>
+              Operate DNS across every Cloudflare zone — TGV.com, Office, and each tenant&apos;s
+              domains — grouped by owning villager. Pick a zone, then add / edit / delete records.
+              Office holds no provider creds (it proxies the engine); every edit hits production DNS
+              and is audited.
+            </TileSub>
+          </Tile>
         </Grid>
       </PageMain>
 
@@ -190,6 +202,8 @@ export default function VillagersClient() {
       {openManaged && <ManagedOnboardingModal onClose={() => setOpenManaged(false)} />}
 
       {openCourse && <CourseControlModal onClose={() => setOpenCourse(false)} />}
+
+      {openDns && <DnsModal onClose={() => setOpenDns(false)} />}
     </>
   );
 }
