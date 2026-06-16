@@ -15,6 +15,7 @@ import PayoutsModal from "../../components/villagers/PayoutsModal";
 import WalletControlModal from "../../components/hardening/wallet-control/WalletControlModal";
 import ManagedOnboardingModal from "../../components/villagers/ManagedOnboardingModal";
 import CourseControlModal from "../../components/villagers/CourseControlModal";
+import StudioControlModal from "../../components/villagers/StudioControlModal";
 import DnsModal from "../../components/villagers/DnsModal";
 
 /* ── Styled ────────────────────────────────────────────────────── */
@@ -116,6 +117,7 @@ export default function VillagersClient() {
   const [openWalletControl, setOpenWalletControl] = useState(false);
   const [openManaged, setOpenManaged] = useState(false);
   const [openCourse, setOpenCourse] = useState(false);
+  const [openStudio, setOpenStudio] = useState(false);
   const [openDns, setOpenDns] = useState(false);
 
   return (
@@ -177,6 +179,16 @@ export default function VillagersClient() {
             </TileSub>
           </Tile>
 
+          <Tile type="button" onClick={() => setOpenStudio(true)}>
+            <TileTop>🧘 Studio Suite</TileTop>
+            <TileSub>
+              Cross-tenant oversight for the studio suite (the reinvented MindBody) — bookings,
+              classes and appointments, active passes and no-show rate per tenant, suite health, and
+              the enablement killswitch (global + per-tenant) at the bottom. The master console for
+              @tgv/module-studio.
+            </TileSub>
+          </Tile>
+
           <Tile type="button" onClick={() => setOpenDns(true)}>
             <TileTop>🌐 DNS</TileTop>
             <TileSub>
@@ -202,6 +214,8 @@ export default function VillagersClient() {
       {openManaged && <ManagedOnboardingModal onClose={() => setOpenManaged(false)} />}
 
       {openCourse && <CourseControlModal onClose={() => setOpenCourse(false)} />}
+
+      {openStudio && <StudioControlModal onClose={() => setOpenStudio(false)} />}
 
       {openDns && <DnsModal onClose={() => setOpenDns(false)} />}
     </>
