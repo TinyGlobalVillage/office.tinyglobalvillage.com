@@ -17,6 +17,8 @@ import ManagedOnboardingModal from "../../components/villagers/ManagedOnboarding
 import CourseControlModal from "../../components/villagers/CourseControlModal";
 import StudioControlModal from "../../components/villagers/StudioControlModal";
 import DnsModal from "../../components/villagers/DnsModal";
+import EcosystemAnalyticsModal from "../../components/villagers/EcosystemAnalyticsModal";
+import PaypalControlModal from "../../components/villagers/PaypalControlModal";
 
 /* ── Styled ────────────────────────────────────────────────────── */
 
@@ -119,6 +121,8 @@ export default function VillagersClient() {
   const [openCourse, setOpenCourse] = useState(false);
   const [openStudio, setOpenStudio] = useState(false);
   const [openDns, setOpenDns] = useState(false);
+  const [openEcosystem, setOpenEcosystem] = useState(false);
+  const [openPaypal, setOpenPaypal] = useState(false);
 
   return (
     <>
@@ -198,6 +202,24 @@ export default function VillagersClient() {
               and is audited.
             </TileSub>
           </Tile>
+
+          <Tile type="button" onClick={() => setOpenEcosystem(true)}>
+            <TileTop>📊 Ecosystem Analytics</TileTop>
+            <TileSub>
+              Anonymized roll-up of the whole token + money economy — tokens in circulation per
+              bucket, gift volume (member → member), referral rewards, service payments, cash paid
+              out, and managed Stripe accounts. Aggregates only; no individual wallets.
+            </TileSub>
+          </Tile>
+
+          <Tile type="button" onClick={() => setOpenPaypal(true)}>
+            <TileTop>🅿️ PayPal Faucet</TileTop>
+            <TileSub>
+              Tenant PayPal rail (the island) — enable / disable a tenant&apos;s PayPal, set its
+              public credentials (client-id, hosted-button-id), and the global killswitch. Money goes
+              straight to the tenant&apos;s own PayPal — off-stack, no tokens, no TGV float.
+            </TileSub>
+          </Tile>
         </Grid>
       </PageMain>
 
@@ -218,6 +240,10 @@ export default function VillagersClient() {
       {openStudio && <StudioControlModal onClose={() => setOpenStudio(false)} />}
 
       {openDns && <DnsModal onClose={() => setOpenDns(false)} />}
+
+      {openEcosystem && <EcosystemAnalyticsModal onClose={() => setOpenEcosystem(false)} />}
+
+      {openPaypal && <PaypalControlModal onClose={() => setOpenPaypal(false)} />}
     </>
   );
 }
