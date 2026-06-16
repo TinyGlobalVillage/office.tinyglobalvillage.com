@@ -463,7 +463,7 @@ export default function CourseControlModal({ onClose }: CourseControlModalProps)
             <Row>
               <RowMain>
                 <RowLabel style={{ fontSize: "0.78rem" }}>Max courses</RowLabel>
-                <RowHelp>0 = unlimited. Caps how many courses this tenant can create.</RowHelp>
+                <RowHelp>0 = unlimited. Caps active (non-archived) courses this tenant can create.</RowHelp>
               </RowMain>
               <CapRow>
                 <NumInput

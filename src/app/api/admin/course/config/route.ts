@@ -12,9 +12,11 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/api-admin";
 import { resolveAdminActorId } from "@/lib/admin-actor";
+import { existsSync } from "node:fs";
 import { db, schema } from "@/lib/db-drizzle";
 import {
   type CourseEnablementConfig,
+  COURSE_CONFIG_PATH,
   readCourseConfig,
   writeCourseConfig,
 } from "@/lib/course-config";
@@ -44,10 +46,14 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ error: "invalid_body" }, { status: 400 });
   }
 
-  const before = readCourseConfig();
+  // The SEED fallback (missing file) gives us a registry to mutate so the tenant list persists — but
+  // the AUDIT `before` must reflect ACTUAL disk state, so it's null when no file has ever been written
+  // (don't log the seed as if it were the prior live config).
+  const fileExists = existsSync(COURSE_CONFIG_PATH);
+  const current = readCourseConfig();
   const next: CourseEnablementConfig = {
-    globalKillswitch: before.globalKillswitch,
-    perTenant: { ...before.perTenant },
+    globalKillswitch: current.globalKillswitch,
+    perTenant: { ...current.perTenant },
   };
 
   // Decide the single logical change (the modal saves one control at a time) for an honest audit row.
@@ -55,7 +61,7 @@ export async function PUT(req: NextRequest) {
   let targetId = "global";
   let note = "";
 
-  if (typeof body.globalKillswitch === "boolean" && body.globalKillswitch !== before.globalKillswitch) {
+  if (typeof body.globalKillswitch === "boolean" && body.globalKillswitch !== current.globalKillswitch) {
     next.globalKillswitch = body.globalKillswitch;
     action = body.globalKillswitch ? "course.killswitch_on" : "course.killswitch_off";
     note = `Global course killswitch ${body.globalKillswitch ? "ENGAGED — all tenants blocked" : "released"}`;
@@ -84,7 +90,7 @@ export async function PUT(req: NextRequest) {
 
   if (!action) {
     // No recognised/effective change — return current state without writing or auditing.
-    return NextResponse.json({ config: before, changed: false });
+    return NextResponse.json({ config: current, changed: false });
   }
 
   writeCourseConfig(next);
@@ -94,9 +100,9 @@ export async function PUT(req: NextRequest) {
     action,
     targetType: "course_config",
     targetId,
-    before: before as unknown as Record<string, unknown>,
+    before: fileExists ? (current as unknown as Record<string, unknown>) : null,
     after: next as unknown as Record<string, unknown>,
-    note: `${note} — by ${gate.username}`,
+    note: `${note}${fileExists ? "" : " (initial config write)"} — by ${gate.username}`,
   });
 
   return NextResponse.json({ config: next, changed: true });

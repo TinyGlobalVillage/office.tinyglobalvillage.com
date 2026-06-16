@@ -112,6 +112,7 @@ function fmtTs(iso: string): string {
 }
 
 function tone(outcome: string): "ok" | "warn" | "neutral" {
+  if (outcome === "warn") return "warn"; // explicit warn (e.g. killswitch engaged, withdrawal released)
   if (/fail|reject|ban|spike|attempt/i.test(outcome)) return "warn";
   if (outcome === "ok") return "ok";
   return "neutral";
