@@ -72,6 +72,87 @@ const previewBtn: React.CSSProperties = {
   color: "#00e4fd",
 };
 
+const HEX_COLOR = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function isHttpUrl(v: string): boolean {
+  try {
+    const u = new URL(v);
+    return u.protocol === "http:" || u.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+type InfoErrors = Partial<
+  Record<
+    | "clientName"
+    | "domain"
+    | "contactName"
+    | "contactEmail"
+    | "primaryColor"
+    | "accentColor"
+    | "logoUrl",
+    string
+  >
+>;
+
+// Plain-language, per-field validation for the "Client info" step — including the
+// "optional" branding fields. They're optional to FILL, but if filled the registry
+// ClientSpecSchema enforces hex/URL formats. We surface that here instead of letting
+// a bad hex/URL pass every step and die with a raw Zod string only after the user
+// hits "Submit + Deploy" (the old silent-enforcement behaviour).
+function infoErrors(s: WizardState): InfoErrors {
+  const e: InfoErrors = {};
+  if (!s.clientName.trim()) e.clientName = "Client name is required.";
+  if (s.domain.trim().length < 3)
+    e.domain = "Domain is required — at least 3 characters (e.g. acme-yoga.com).";
+  if (!s.contactName.trim()) e.contactName = "Contact name is required.";
+  if (!EMAIL_RE.test(s.contactEmail.trim()))
+    e.contactEmail = "Enter a valid email (e.g. jane@acme.com).";
+  if (s.primaryColor.trim() && !HEX_COLOR.test(s.primaryColor.trim()))
+    e.primaryColor = "Use a hex color like #5ec8ff, or leave blank.";
+  if (s.accentColor.trim() && !HEX_COLOR.test(s.accentColor.trim()))
+    e.accentColor = "Use a hex color like #ff4ecb, or leave blank.";
+  if (s.logoUrl.trim() && !isHttpUrl(s.logoUrl.trim()))
+    e.logoUrl = "Use a full URL starting with https://, or leave blank.";
+  return e;
+}
+
+// Map a Zod issue (from client-side safeParse OR the server's issues[]) to a human label.
+const FIELD_LABELS: Record<string, string> = {
+  clientName: "Client name",
+  domain: "Domain",
+  subdomain: "Subdomain",
+  storageGB: "Storage",
+  vertical: "Vertical",
+  tier: "Tier",
+  customDescription: "Custom work description",
+  "contact.name": "Contact name",
+  "contact.email": "Contact email",
+  "contact.phone": "Contact phone",
+  "branding.primaryColor": "Primary color",
+  "branding.accentColor": "Accent color",
+  "branding.logoUrl": "Logo URL",
+};
+
+function friendlyIssue(path: string, message: string): string {
+  const label = FIELD_LABELS[path] ?? path;
+  const low = `${label} ${message}`.toLowerCase();
+  if (low.includes("url")) return `${label} — must be a full URL starting with https://`;
+  if (low.includes("color") && (low.includes("invalid") || low.includes("regex") || low.includes("match")))
+    return `${label} — must be a hex color like #5ec8ff`;
+  if (low.includes("email")) return `${label} — enter a valid email (e.g. jane@acme.com)`;
+  if (
+    low.includes("at least") ||
+    low.includes("greater") ||
+    low.includes("contain") ||
+    message.toLowerCase().includes("required")
+  )
+    return `${label} — required`;
+  return `${label} — ${message}`;
+}
+
 const STEPS = [
   { key: "info", label: "Client info" },
   { key: "vertical", label: "Vertical" },
@@ -85,6 +166,9 @@ export default function NewClientWizard() {
   const [stepIdx, setStepIdx] = useState(0);
   const [state, setState] = useState<WizardState>(INITIAL);
   const [submitting, setSubmitting] = useState(false);
+  // Reveal validation messages once the user tries to advance/submit (avoids
+  // greeting them with a wall of red on a blank form). Reset when the step changes.
+  const [showErrors, setShowErrors] = useState(false);
   // Preview (the "Admin Wizard" convention): run the whole new-tenant pipeline in the TEST lane with
   // auto-filled fixtures so we can see it end-to-end without creating a real live client.
   const [preview, setPreview] = useState(false);
@@ -96,6 +180,7 @@ export default function NewClientWizard() {
   >(null);
 
   const step = STEPS[stepIdx].key;
+  const infoErr = infoErrors(state);
 
   const price = useMemo(
     () =>
@@ -161,23 +246,40 @@ export default function NewClientWizard() {
 
   function canAdvance(): { ok: boolean; reason?: string } {
     if (step === "info") {
-      if (!state.clientName.trim()) return { ok: false, reason: "Client name required" };
-      if (state.domain.trim().length < 3) return { ok: false, reason: "Domain required (≥3 chars)" };
-      if (!state.contactName.trim()) return { ok: false, reason: "Contact name required" };
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(state.contactEmail)) return { ok: false, reason: "Valid contact email required" };
+      const keys = Object.keys(infoErr) as (keyof InfoErrors)[];
+      if (keys.length) return { ok: false, reason: infoErr[keys[0]] };
     }
-    if (step === "vertical" && !state.vertical) return { ok: false, reason: "Pick a vertical" };
+    if (step === "vertical" && !state.vertical) return { ok: false, reason: "Pick a vertical to continue." };
     if (step === "modules" && !compat.ok) return { ok: false, reason: compat.reason };
     if (step === "storage") {
       if (state.customFlag && !state.customDescription.trim()) {
-        return { ok: false, reason: "Describe the custom work" };
+        return { ok: false, reason: "Describe the custom work." };
       }
     }
     return { ok: true };
   }
 
+  // Advance only when the step is valid; otherwise reveal the per-field messages.
+  function goNext() {
+    if (canAdvance().ok) {
+      setStepIdx((i) => i + 1);
+      setShowErrors(false);
+    } else {
+      setShowErrors(true);
+    }
+  }
+
+  function goBack() {
+    setStepIdx((i) => Math.max(0, i - 1));
+    setShowErrors(false);
+  }
+
   async function submit() {
-    if (!state.vertical) return;
+    if (!state.vertical) {
+      setShowErrors(true);
+      setResult({ ok: false, error: "Pick a vertical before submitting." });
+      return;
+    }
     setSubmitting(true);
     setResult(null);
     try {
@@ -208,7 +310,11 @@ export default function NewClientWizard() {
 
       const parsed = ClientSpecSchema.safeParse(payload);
       if (!parsed.success) {
-        setResult({ ok: false, error: parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; ") });
+        setShowErrors(true);
+        setResult({
+          ok: false,
+          error: parsed.error.issues.map((i) => friendlyIssue(i.path.join("."), i.message)).join(" · "),
+        });
         setSubmitting(false);
         return;
       }
@@ -220,7 +326,13 @@ export default function NewClientWizard() {
       });
       const body = await res.json();
       if (!res.ok || !body.ok) {
-        setResult({ ok: false, error: body.error || `HTTP ${res.status}` });
+        const issues: Array<{ path: string; message: string }> | undefined = Array.isArray(body.issues)
+          ? body.issues
+          : undefined;
+        const msg = issues?.length
+          ? issues.map((i) => friendlyIssue(i.path, i.message)).join(" · ")
+          : body.error || `Save failed (HTTP ${res.status}).`;
+        setResult({ ok: false, error: msg });
       } else {
         setResult({ ok: true, deployId: body.deployId });
       }
@@ -290,7 +402,7 @@ export default function NewClientWizard() {
 
         <Layout>
           <FormCol>
-            {step === "info" && <StepInfo state={state} patch={patch} />}
+            {step === "info" && <StepInfo state={state} patch={patch} errors={showErrors ? infoErr : {}} />}
             {step === "vertical" && <StepVertical state={state} applyVertical={applyVertical} />}
             {step === "tier" && <StepTier state={state} patch={patch} />}
             {step === "modules" && <StepModules state={state} toggleModule={toggleModule} compat={compat} />}
@@ -300,7 +412,7 @@ export default function NewClientWizard() {
             <Nav>
               <button
                 type="button"
-                onClick={() => setStepIdx((i) => Math.max(0, i - 1))}
+                onClick={goBack}
                 disabled={stepIdx === 0 || submitting}
               >
                 ← Back
@@ -308,8 +420,8 @@ export default function NewClientWizard() {
               {stepIdx < STEPS.length - 1 ? (
                 <button
                   type="button"
-                  onClick={() => advance.ok && setStepIdx((i) => i + 1)}
-                  disabled={!advance.ok || submitting}
+                  onClick={goNext}
+                  disabled={submitting}
                   title={advance.reason || ""}
                 >
                   Next →
@@ -318,14 +430,29 @@ export default function NewClientWizard() {
                 <button
                   type="button"
                   onClick={submit}
-                  disabled={submitting || !advance.ok}
+                  disabled={submitting}
                 >
                   {submitting ? "Submitting…" : "Submit + Deploy"}
                 </button>
               )}
             </Nav>
 
-            {!advance.ok && advance.reason && <Warn>{advance.reason}</Warn>}
+            {showErrors && !advance.ok && (
+              <Warn>
+                {step === "info" ? (
+                  <>
+                    <strong>Please fix the following:</strong>
+                    <ul style={{ margin: "0.35rem 0 0", paddingLeft: "1.1rem" }}>
+                      {Object.values(infoErr).map((m, i) => (
+                        <li key={i}>{m}</li>
+                      ))}
+                    </ul>
+                  </>
+                ) : (
+                  advance.reason
+                )}
+              </Warn>
+            )}
             {result && result.ok && (
               <Ok>
                 Submitted. deployId <code>{result.deployId}</code>. Deploy engine (Phase 2 Step 4) will pick this up once live.
@@ -359,18 +486,34 @@ export default function NewClientWizard() {
   );
 }
 
-function StepInfo({ state, patch }: { state: WizardState; patch: (p: Partial<WizardState>) => void }) {
+function StepInfo({
+  state,
+  patch,
+  errors,
+}: {
+  state: WizardState;
+  patch: (p: Partial<WizardState>) => void;
+  errors: InfoErrors;
+}) {
+  const invalid = (k: keyof InfoErrors): React.CSSProperties | undefined =>
+    errors[k] ? { borderColor: colors.red } : undefined;
   return (
     <Section>
       <h2>Client info</h2>
+      <p>
+        Fields marked <strong>*</strong> are required. Branding is optional, but if you fill it in it
+        must be valid (hex colors, a full logo URL).
+      </p>
       <Field>
         <label>Client name *</label>
-        <input value={state.clientName} onChange={(e) => patch({ clientName: e.target.value })} placeholder="Acme Yoga" />
+        <input value={state.clientName} onChange={(e) => patch({ clientName: e.target.value })} placeholder="Acme Yoga" style={invalid("clientName")} />
+        {errors.clientName && <FieldErr>{errors.clientName}</FieldErr>}
       </Field>
       <Row2>
         <Field>
           <label>Domain *</label>
-          <input value={state.domain} onChange={(e) => patch({ domain: e.target.value })} placeholder="acme-yoga.com" />
+          <input value={state.domain} onChange={(e) => patch({ domain: e.target.value })} placeholder="acme-yoga.com" style={invalid("domain")} />
+          {errors.domain && <FieldErr>{errors.domain}</FieldErr>}
         </Field>
         <Field>
           <label>Subdomain (optional)</label>
@@ -381,11 +524,13 @@ function StepInfo({ state, patch }: { state: WizardState; patch: (p: Partial<Wiz
       <Row2>
         <Field>
           <label>Name *</label>
-          <input value={state.contactName} onChange={(e) => patch({ contactName: e.target.value })} placeholder="Jane Doe" />
+          <input value={state.contactName} onChange={(e) => patch({ contactName: e.target.value })} placeholder="Jane Doe" style={invalid("contactName")} />
+          {errors.contactName && <FieldErr>{errors.contactName}</FieldErr>}
         </Field>
         <Field>
           <label>Email *</label>
-          <input type="email" value={state.contactEmail} onChange={(e) => patch({ contactEmail: e.target.value })} placeholder="jane@acme.com" />
+          <input type="email" value={state.contactEmail} onChange={(e) => patch({ contactEmail: e.target.value })} placeholder="jane@acme.com" style={invalid("contactEmail")} />
+          {errors.contactEmail && <FieldErr>{errors.contactEmail}</FieldErr>}
         </Field>
       </Row2>
       <Field>
@@ -396,16 +541,19 @@ function StepInfo({ state, patch }: { state: WizardState; patch: (p: Partial<Wiz
       <Row2>
         <Field>
           <label>Primary hex</label>
-          <input value={state.primaryColor} onChange={(e) => patch({ primaryColor: e.target.value })} placeholder="#5ec8ff" />
+          <input value={state.primaryColor} onChange={(e) => patch({ primaryColor: e.target.value })} placeholder="#5ec8ff" style={invalid("primaryColor")} />
+          {errors.primaryColor && <FieldErr>{errors.primaryColor}</FieldErr>}
         </Field>
         <Field>
           <label>Accent hex</label>
-          <input value={state.accentColor} onChange={(e) => patch({ accentColor: e.target.value })} placeholder="#ff4ecb" />
+          <input value={state.accentColor} onChange={(e) => patch({ accentColor: e.target.value })} placeholder="#ff4ecb" style={invalid("accentColor")} />
+          {errors.accentColor && <FieldErr>{errors.accentColor}</FieldErr>}
         </Field>
       </Row2>
       <Field>
         <label>Logo URL</label>
-        <input value={state.logoUrl} onChange={(e) => patch({ logoUrl: e.target.value })} placeholder="https://…" />
+        <input value={state.logoUrl} onChange={(e) => patch({ logoUrl: e.target.value })} placeholder="https://…" style={invalid("logoUrl")} />
+        {errors.logoUrl && <FieldErr>{errors.logoUrl}</FieldErr>}
       </Field>
     </Section>
   );
@@ -832,6 +980,14 @@ const Warn = styled.div`
   border: 1px solid ${colors.red};
   border-radius: 0.5rem;
   font-size: 0.85rem;
+`;
+
+// Inline per-field validation message. A <span> (not <small>) so the Field's
+// `small { color: muted }` rule doesn't override the red.
+const FieldErr = styled.span`
+  color: ${colors.red};
+  font-size: 0.75rem;
+  margin-top: -0.1rem;
 `;
 
 const Ok = styled.div`
