@@ -17,6 +17,10 @@ export interface EntryFrontmatter {
   slug?: string;
   title?: string;
   type?: string;
+  /** Optional gold "milestone" highlight on the card (e.g. a first/launch moment). */
+  featured?: boolean;
+  /** Optional short ALL-CAPS overline shown above the headline on a featured card. */
+  subtitle?: string;
   tags?: string[];
   links?: Array<{ kind: string; target: string; label?: string }>;
 }
@@ -46,7 +50,9 @@ export function parseFrontmatter(raw: string): ParsedEntry {
         // Simple multi-line parse: "- kind: …" / "  target: …" / "  label: …"
         // Crude but adequate; the file is markdown, not strict YAML.
         meta.links = [];
-      } else if (k in meta || ["date", "time", "slug", "title", "type"].includes(k)) {
+      } else if (k === "featured") {
+        meta.featured = v === "true";
+      } else if (k in meta || ["date", "time", "slug", "title", "type", "subtitle"].includes(k)) {
         (meta as Record<string, unknown>)[k] = v;
       }
     }

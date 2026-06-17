@@ -19,6 +19,8 @@ export async function GET() {
             type: it.meta.type ?? "log",
             title: it.meta.title ?? it.slug,
             summary: it.summary,
+            featured: it.meta.featured ?? false,
+            subtitle: it.meta.subtitle ?? "",
           })),
         };
       }),

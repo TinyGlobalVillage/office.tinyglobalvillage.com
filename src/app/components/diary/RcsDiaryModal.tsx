@@ -23,6 +23,8 @@ interface DayHeadline {
   type: EntryType;
   title: string;
   summary: string;
+  featured?: boolean;
+  subtitle?: string;
 }
 
 interface Day {
@@ -268,9 +270,40 @@ const AdlOuterBody = styled.div`
   gap: 0.4rem;
 `;
 
-const AdlInner = styled.div<{ $type: EntryType }>`
-  border-left: 4px solid ${(p) => TYPE_RGB[p.$type]};
+const AdlInner = styled.div<{ $type: EntryType; $featured?: boolean }>`
+  border-left: 4px solid ${(p) => (p.$featured ? `rgb(${rgb.gold})` : TYPE_RGB[p.$type])};
   padding-left: 0;
+  ${(p) =>
+    p.$featured &&
+    `
+    border: 1px solid rgba(${rgb.gold}, 0.55);
+    border-left: 4px solid rgb(${rgb.gold});
+    border-radius: 8px;
+    background: rgba(${rgb.gold}, 0.07);
+    box-shadow: 0 0 22px rgba(${rgb.gold}, 0.2), inset 0 0 30px rgba(${rgb.gold}, 0.04);
+  `}
+`;
+
+const Star = styled.span`
+  color: rgb(${rgb.gold});
+  filter: drop-shadow(0 0 6px rgba(${rgb.gold}, 0.75));
+  flex-shrink: 0;
+  font-size: 0.85rem;
+`;
+
+const FeaturedBadge = styled.span`
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 0.14rem 0.55rem;
+  border-radius: 999px;
+  color: rgb(${rgb.gold});
+  border: 1px solid rgba(${rgb.gold}, 0.6);
+  background: rgba(${rgb.gold}, 0.12);
+  box-shadow: 0 0 10px rgba(${rgb.gold}, 0.3);
+  flex-shrink: 0;
+  white-space: nowrap;
 `;
 
 const AdlInnerHeader = styled.button<{ $open: boolean; $type: EntryType }>`
@@ -602,15 +635,20 @@ export default function RcsDiaryModal({ onClose }: Props) {
                         const isOpen = openEntries.has(key);
                         const full = isOpen ? openEntries.get(key) : null;
                         return (
-                          <AdlInner key={key} $type={h.type}>
+                          <AdlInner key={key} $type={h.type} $featured={h.featured}>
                             <AdlInnerHeader
                               $open={isOpen}
                               $type={h.type}
                               onClick={() => toggleEntry(d.date, h.slug)}
                             >
                               <Caret $open={isOpen}>▶</Caret>
+                              {h.featured && <Star>⭐</Star>}
                               <TimeSpan>{h.time || "--:--"}</TimeSpan>
-                              <TypeChip $type={h.type}>{TYPE_LABEL[h.type]}</TypeChip>
+                              {h.featured && h.subtitle ? (
+                                <FeaturedBadge>{h.subtitle}</FeaturedBadge>
+                              ) : (
+                                <TypeChip $type={h.type}>{TYPE_LABEL[h.type]}</TypeChip>
+                              )}
                               <SummaryText title={h.title}>
                                 {h.summary || h.title}
                               </SummaryText>
