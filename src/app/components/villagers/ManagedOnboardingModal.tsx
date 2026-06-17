@@ -84,6 +84,9 @@ export default function ManagedOnboardingModal({ onClose }: { onClose: () => voi
   const [chgFee, setChgFee] = useState("2.00");
   const [charging, setCharging] = useState(false);
 
+  // Hosted-onboarding fallback (Stripe's own full-page flow, no iframe/overlay).
+  const [hosting, setHosting] = useState(false);
+
   // Debounced tenant search.
   useEffect(() => {
     const q = query.trim();
@@ -177,6 +180,23 @@ export default function ManagedOnboardingModal({ onClose }: { onClose: () => voi
     } finally { setBusy(false); }
   };
 
+  // Hosted onboarding: mint a Stripe Account Link and open it in a new tab. The reliable path when the
+  // embedded country picker won't render inside this modal — Stripe's hosted page has no overlay iframe.
+  const openHosted = async () => {
+    if (!tenant) return;
+    setHosting(true); setMsg(null);
+    try {
+      const res = await fetch(`/api/admin/villagers/managed-account-link?env=${env}`, {
+        method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ memberId: tenant.id }),
+      });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok || !d.url) { setMsg({ kind: "err", text: d?.error ? `Hosted: ${d.error}` : `Hosted onboarding failed (HTTP ${res.status}).` }); return; }
+      window.open(d.url as string, "_blank", "noopener,noreferrer");
+      setMsg({ kind: "ok", text: "Opened Stripe hosted onboarding in a new tab. Finish there, then hit Re-check." });
+    } catch { setMsg({ kind: "err", text: "Hosted onboarding failed — couldn't reach the server." }); }
+    finally { setHosting(false); }
+  };
+
   const runTestCharge = async () => {
     if (!tenant) return;
     setCharging(true); setMsg(null);
@@ -200,7 +220,7 @@ export default function ManagedOnboardingModal({ onClose }: { onClose: () => voi
   const state = account?.onboardingState ?? (tenant ? "none" : null);
 
   return (
-    <ModalBackdrop onClick={onClose}>
+    <FlatBackdrop onClick={onClose}>
       <ModalContainer $accent="gold" $maxWidth="48rem" onClick={(e) => e.stopPropagation()}>
         <ModalHeader>
           <ModalHeaderLeft>
@@ -280,8 +300,13 @@ export default function ManagedOnboardingModal({ onClose }: { onClose: () => voi
                     ) : (
                       <ErrText>No platform publishable key configured for {env} (set STRIPE_CONNECT_PUBLISHABLE_KEY{env === "test" ? "_TEST" : ""} on tgv.com).</ErrText>
                     )}
+                    <Note style={{ opacity: 0.85 }}>
+                      Picker not opening in the embed? Use <strong>hosted onboarding</strong> — Stripe&apos;s own page in a new
+                      tab (no embed overlay). Finish there, come back, and hit <strong>Re-check</strong>.
+                    </Note>
                     <Actions>
                       <SecondaryBtn type="button" disabled={busy} onClick={recheck}>{busy ? "Checking…" : "Re-check status"}</SecondaryBtn>
+                      <PrimaryBtn type="button" disabled={hosting} onClick={openHosted}>{hosting ? "Opening…" : "Open hosted onboarding ↗"}</PrimaryBtn>
                     </Actions>
                   </>
                 ) : state === "ready" ? (
@@ -312,11 +337,16 @@ export default function ManagedOnboardingModal({ onClose }: { onClose: () => voi
           </Stack>
         </ModalBody>
       </ModalContainer>
-    </ModalBackdrop>
+    </FlatBackdrop>
   );
 }
 
 /* ── styles ─────────────────────────────────────────────────────────────── */
+// Stripe's embedded Connect components break when ANY ancestor has a CSS filter/backdrop-filter/
+// transform/perspective — those create a containing block that misroutes pointer hit-testing into the
+// iframe, so the onboarding form renders but is 100% unclickable. The shared ModalBackdrop applies
+// `backdrop-filter: blur(6px)`; we override it to none ONLY for this modal so the embed is interactive.
+const FlatBackdrop = styled(ModalBackdrop)`backdrop-filter: none; -webkit-backdrop-filter: none;`;
 const Sub = styled.div`font-size: 0.75rem; color: var(--t-textFaint); letter-spacing: 0.04em; margin-top: 0.125rem;`;
 const Stack = styled.div`display: flex; flex-direction: column; gap: 1rem;`;
 const Label = styled.div`font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: ${colors.gold}; margin-bottom: 0.35rem;`;
@@ -336,7 +366,10 @@ const TextInput = styled.input`width: 100%; padding: 0.4rem 0.55rem; background:
 const Actions = styled.div`display: flex; gap: 0.5rem; flex-wrap: wrap;`;
 const PrimaryBtn = styled.button`padding: 0.45rem 1rem; font-size: 0.8rem; border-radius: 0.4rem; cursor: pointer; background: rgba(${rgb.cyan}, 0.14); border: 1px solid rgba(${rgb.cyan}, 0.55); color: ${colors.cyan}; &:hover:not(:disabled) { background: rgba(${rgb.cyan}, 0.24); } &:disabled { opacity: 0.5; cursor: not-allowed; }`;
 const SecondaryBtn = styled.button`padding: 0.4rem 0.85rem; font-size: 0.78rem; border-radius: 0.4rem; cursor: pointer; background: transparent; border: 1px solid var(--t-border); color: var(--t-text); &:hover:not(:disabled) { border-color: rgba(${rgb.cyan}, 0.5); } &:disabled { opacity: 0.5; }`;
-const EmbedWrap = styled.div`background: #fff; border-radius: 0.5rem; padding: 0.25rem; max-height: 32rem; overflow-y: auto;`;
+// No max-height / overflow here ON PURPOSE: Stripe's embedded onboarding renders its own dropdowns
+// (e.g. Business location) as in-flow popovers, and a nested clipping container would cut them off
+// below the fold — they'd be unreachable. Let the embed size itself; ModalBody (overflow-y:auto) scrolls.
+const EmbedWrap = styled.div`background: var(--t-bg); border: 1px solid var(--t-border); border-radius: 0.5rem; padding: 0.25rem;`;
 const ErrText = styled.div`font-size: 0.75rem; color: ${colors.pink};`;
 const OkText = styled.div`font-size: 0.75rem; color: #4ade80;`;
 const StatePill = styled.div<{ $tone: "pending" | "ready" }>`align-self: flex-start; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.06em; padding: 0.2rem 0.6rem; border-radius: 999px; border: 1px solid ${(p) => (p.$tone === "ready" ? "rgba(74,222,128,0.5)" : "rgba(245,158,11,0.5)")}; background: ${(p) => (p.$tone === "ready" ? "rgba(74,222,128,0.1)" : "rgba(245,158,11,0.1)")}; color: ${(p) => (p.$tone === "ready" ? "#4ade80" : "#f59e0b")};`;

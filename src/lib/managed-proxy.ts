@@ -14,7 +14,7 @@ function tgvBase(): string {
 
 export async function proxyManaged(
   req: NextRequest,
-  opts: { path: "create" | "status" | "account-session" | "recheck" | "charge"; method: "GET" | "POST" },
+  opts: { path: "create" | "status" | "account-session" | "account-link" | "recheck" | "charge"; method: "GET" | "POST" },
 ) {
   const gate = await requireAdmin(req);
   if (gate instanceof NextResponse) return gate;
