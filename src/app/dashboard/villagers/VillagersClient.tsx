@@ -19,6 +19,8 @@ import StudioControlModal from "../../components/villagers/StudioControlModal";
 import DnsModal from "../../components/villagers/DnsModal";
 import EcosystemAnalyticsModal from "../../components/villagers/EcosystemAnalyticsModal";
 import PaypalControlModal from "../../components/villagers/PaypalControlModal";
+import MemberLookupModal from "../../components/villagers/MemberLookupModal";
+import DashboardConfigModal from "../../components/villagers/DashboardConfigModal";
 
 /* ── Styled ────────────────────────────────────────────────────── */
 
@@ -115,6 +117,8 @@ const TileSub = styled.div`
 
 export default function VillagersClient() {
   const [openMemberWallet, setOpenMemberWallet] = useState(false);
+  const [openMemberLookup, setOpenMemberLookup] = useState(false);
+  const [openDashboardConfig, setOpenDashboardConfig] = useState(false);
   const [openPayouts, setOpenPayouts] = useState(false);
   const [openWalletControl, setOpenWalletControl] = useState(false);
   const [openManaged, setOpenManaged] = useState(false);
@@ -148,6 +152,24 @@ export default function VillagersClient() {
             </TileSub>
           </Tile>
 
+          <Tile type="button" onClick={() => setOpenMemberLookup(true)}>
+            <TileTop>🔎 Member Lookup</TileTop>
+            <TileSub>
+              Search a member and open their profile — Member-since, role, their sites, and the
+              Yellow Pages founding toggle. Set billing on their behalf (plan, renewal date,
+              custom amount, waiver, notify-to-pay). Records intent only; no money moves.
+            </TileSub>
+          </Tile>
+
+          <Tile type="button" onClick={() => setOpenDashboardConfig(true)}>
+            <TileTop>🎛️ Dashboard Config</TileTop>
+            <TileSub>
+              The soft-launch board — turn each dashboard feature Off / Admin-preview / On for
+              every member at once. Stage a feature for admins only, test it, then flick it
+              public. Every change is audited.
+            </TileSub>
+          </Tile>
+
           <Tile type="button" onClick={() => setOpenPayouts(true)}>
             <TileTop>💸 Payouts</TileTop>
             <TileSub>
@@ -166,7 +188,7 @@ export default function VillagersClient() {
           </Tile>
 
           <Tile type="button" onClick={() => setOpenManaged(true)}>
-            <TileTop>🏦 Managed Onboarding</TileTop>
+            <TileTop>🏦 Stripe Onboarding</TileTop>
             <TileSub>
               Set up a TGV-managed Stripe account for a tenant — obscured under TGV Connect — and
               watch the embedded onboarding through to charges-enabled. Flip Preview to run the whole
@@ -225,6 +247,14 @@ export default function VillagersClient() {
 
       {openMemberWallet && (
         <MemberWalletModal onClose={() => setOpenMemberWallet(false)} />
+      )}
+
+      {openMemberLookup && (
+        <MemberLookupModal onClose={() => setOpenMemberLookup(false)} />
+      )}
+
+      {openDashboardConfig && (
+        <DashboardConfigModal onClose={() => setOpenDashboardConfig(false)} />
       )}
 
       {openPayouts && <PayoutsModal onClose={() => setOpenPayouts(false)} />}
