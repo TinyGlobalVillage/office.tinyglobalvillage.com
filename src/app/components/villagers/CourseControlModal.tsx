@@ -2,7 +2,8 @@
 
 // CourseControlModal — the operator MASTER console for the @tgv/module-course suite, opened from a
 // Villagers tile. Built on the shared HardeningControlModal shell (sections + activity timeline +
-// QMBM bubbles), like WalletControlModal. This is the convention seeded by checklist
+// QMBM bubbles) and the shared SuiteControlKit (styled-components + useSuiteControl hook +
+// KillswitchSection), like StudioControlModal. This is the convention from checklist
 // `feature-suite-villagers-tiles`: every feature suite gets one Villagers tile → one master modal
 // with ALL of its operator controls; the killswitch lives at the BOTTOM (rarely touched).
 //
@@ -10,16 +11,38 @@
 // both straight from tgv_db. Writes: the enablement/killswitch (/api/admin/course/config) to the
 // Office-owned shared config file the tenant dispatchers read.
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useState } from "react";
 import styled from "styled-components";
 import { colors, rgb } from "../../theme";
 import HardeningControlModal, { type HCMSection } from "../hardening/HardeningControlModal";
 import AuditLogTimeline from "../hardening/_shared/AuditLogTimeline";
+import {
+  type SuiteConfigBase,
+  type SuiteTenantBase,
+  Body,
+  Dim,
+  Err,
+  Card,
+  CardHead,
+  TenantName,
+  Pill,
+  Stats,
+  Stat,
+  StatN,
+  StatL,
+  Table,
+  Row,
+  RowMain,
+  RowLabel,
+  RowHelp,
+  KillswitchSection,
+  useSuiteControl,
+} from "./_suite/SuiteControlKit";
 
 /* ── Contract (mirror of lib/course-config + api/usage) ──────────────────────── */
 
-type TenantConfig = { enabled: boolean; label?: string; schema: string; maxCourses?: number | null };
-type CourseConfig = { globalKillswitch: boolean; perTenant: Record<string, TenantConfig> };
+type TenantConfig = SuiteTenantBase & { maxCourses?: number | null };
+type CourseConfig = SuiteConfigBase<TenantConfig>;
 
 type PerCourse = {
   id: string;
@@ -62,92 +85,8 @@ const AUDIT_KINDS = [
   "course.enrollment_changed",
 ];
 
-/* ── Styled ──────────────────────────────────────────────────────────────────── */
+/* ── Course-specific styled (the shared ones come from SuiteControlKit) ───────── */
 
-const Body = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.85rem;
-`;
-const Dim = styled.div`
-  font-size: 0.8rem;
-  color: var(--t-textFaint);
-`;
-const Err = styled.div`
-  font-size: 0.8rem;
-  color: ${colors.red};
-`;
-const Card = styled.div`
-  border: 1px solid rgba(${rgb.gold}, 0.22);
-  border-radius: 0.6rem;
-  padding: 0.75rem 0.85rem;
-  background: rgba(${rgb.gold}, 0.03);
-`;
-const CardHead = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-  margin-bottom: 0.5rem;
-`;
-const TenantName = styled.span`
-  font-weight: 700;
-  color: ${colors.gold};
-  letter-spacing: 0.02em;
-`;
-const Pill = styled.span<{ $on: boolean }>`
-  font-size: 0.65rem;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  padding: 0.1rem 0.45rem;
-  border-radius: 999px;
-  border: 1px solid ${(p) => (p.$on ? `rgba(${rgb.green}, 0.5)` : `rgba(${rgb.red}, 0.5)`)};
-  color: ${(p) => (p.$on ? colors.green : colors.red)};
-  background: ${(p) => (p.$on ? `rgba(${rgb.green}, 0.08)` : `rgba(${rgb.red}, 0.08)`)};
-`;
-const Stats = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(7rem, 1fr));
-  gap: 0.4rem 0.75rem;
-  margin-bottom: 0.5rem;
-`;
-const Stat = styled.div`
-  display: flex;
-  flex-direction: column;
-`;
-const StatN = styled.span`
-  font-size: 1.05rem;
-  font-weight: 800;
-  color: var(--t-text);
-`;
-const StatL = styled.span`
-  font-size: 0.62rem;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--t-textFaint);
-`;
-const Table = styled.table`
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.74rem;
-  th,
-  td {
-    text-align: left;
-    padding: 0.28rem 0.4rem;
-    border-bottom: 1px solid rgba(${rgb.gold}, 0.1);
-  }
-  th {
-    color: var(--t-textFaint);
-    font-weight: 600;
-    text-transform: uppercase;
-    font-size: 0.6rem;
-    letter-spacing: 0.05em;
-  }
-  td.num {
-    text-align: right;
-    font-variant-numeric: tabular-nums;
-  }
-`;
 const StatusTag = styled.span<{ $s: string }>`
   font-size: 0.6rem;
   font-weight: 700;
@@ -156,55 +95,6 @@ const StatusTag = styled.span<{ $s: string }>`
   color: ${(p) => (p.$s === "published" ? colors.green : p.$s === "draft" ? colors.gold : "var(--t-textFaint)")};
   background: ${(p) =>
     p.$s === "published" ? `rgba(${rgb.green}, 0.1)` : p.$s === "draft" ? `rgba(${rgb.gold}, 0.1)` : "transparent"};
-`;
-const Row = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  padding: 0.4rem 0;
-`;
-const RowMain = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.1rem;
-`;
-const RowLabel = styled.span`
-  font-weight: 600;
-  color: var(--t-text);
-  font-size: 0.85rem;
-`;
-const RowHelp = styled.span`
-  font-size: 0.72rem;
-  color: var(--t-textFaint);
-`;
-const Switch = styled.button<{ $on: boolean; $danger?: boolean }>`
-  position: relative;
-  width: 44px;
-  height: 24px;
-  flex: 0 0 auto;
-  border-radius: 999px;
-  border: 1px solid
-    ${(p) => (p.$on ? `rgba(${p.$danger ? rgb.red : rgb.green}, 0.6)` : `rgba(${rgb.gold}, 0.3)`)};
-  background: ${(p) =>
-    p.$on ? `rgba(${p.$danger ? rgb.red : rgb.green}, 0.25)` : "rgba(255,255,255,0.06)"};
-  cursor: pointer;
-  transition: all 0.15s;
-  &::after {
-    content: "";
-    position: absolute;
-    top: 2px;
-    left: ${(p) => (p.$on ? "22px" : "2px")};
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    background: ${(p) => (p.$on ? (p.$danger ? colors.red : colors.green) : colors.gold)};
-    transition: left 0.15s;
-  }
-  &:disabled {
-    opacity: 0.5;
-    cursor: default;
-  }
 `;
 const CapRow = styled.div`
   display: flex;
@@ -234,89 +124,20 @@ const SaveBtn = styled.button`
     cursor: default;
   }
 `;
-const Banner = styled.div<{ $danger: boolean }>`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.55rem 0.7rem;
-  border-radius: 0.5rem;
-  margin-bottom: 0.6rem;
-  border: 1px solid ${(p) => (p.$danger ? `rgba(${rgb.red}, 0.55)` : `rgba(${rgb.green}, 0.4)`)};
-  background: ${(p) => (p.$danger ? `rgba(${rgb.red}, 0.1)` : `rgba(${rgb.green}, 0.06)`)};
-  color: ${(p) => (p.$danger ? colors.red : colors.green)};
-  font-weight: 700;
-  font-size: 0.82rem;
-`;
 
 /* ── Component ────────────────────────────────────────────────────────────────── */
 
 export type CourseControlModalProps = { onClose: () => void };
 
 export default function CourseControlModal({ onClose }: CourseControlModalProps) {
-  const [config, setConfig] = useState<CourseConfig | null>(null);
-  const [usage, setUsage] = useState<UsageTenant[] | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [loadErr, setLoadErr] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [switchErr, setSwitchErr] = useState<string | null>(null);
+  const { config, usage, loading, loadErr, saving, switchErr, save } = useSuiteControl<
+    CourseConfig,
+    UsageTenant,
+    TenantConfig
+  >("course");
+
   // local maxCourses edit buffer, keyed by memberId
   const [capDraft, setCapDraft] = useState<Record<string, string>>({});
-
-  const loadConfig = useCallback(async (signal?: AbortSignal) => {
-    const res = await fetch("/api/admin/course/config", { cache: "no-store", signal });
-    const d = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(d.error ?? "config_load_failed");
-    setConfig(d.config as CourseConfig);
-  }, []);
-
-  const loadUsage = useCallback(async (signal?: AbortSignal) => {
-    const res = await fetch("/api/admin/course/usage", { cache: "no-store", signal });
-    const d = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(d.error ?? "usage_load_failed");
-    setUsage(d.tenants as UsageTenant[]);
-  }, []);
-
-  useEffect(() => {
-    const ac = new AbortController();
-    (async () => {
-      setLoading(true);
-      setLoadErr(null);
-      try {
-        await Promise.all([loadConfig(ac.signal), loadUsage(ac.signal)]);
-      } catch (e) {
-        if (!ac.signal.aborted) setLoadErr(String((e as Error)?.message ?? e));
-      } finally {
-        if (!ac.signal.aborted) setLoading(false);
-      }
-    })();
-    return () => ac.abort();
-  }, [loadConfig, loadUsage]);
-
-  const save = useCallback(
-    async (patch: Record<string, unknown>): Promise<boolean> => {
-      setSaving(true);
-      setSwitchErr(null);
-      try {
-        const res = await fetch("/api/admin/course/config", {
-          method: "PUT",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify(patch),
-        });
-        const d = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(d.error ?? "save_failed");
-        setConfig(d.config as CourseConfig);
-        return true;
-      } catch (e) {
-        setSwitchErr(String((e as Error)?.message ?? e));
-        return false;
-      } finally {
-        setSaving(false);
-      }
-    },
-    [],
-  );
-
-  const tenantsCfg = useMemo(() => Object.entries(config?.perTenant ?? {}), [config]);
 
   /* ── Usage section ── */
   const usageBody = (
@@ -408,7 +229,7 @@ export default function CourseControlModal({ onClose }: CourseControlModalProps)
                 ))}
               </Card>
             ) : (
-              <Dim>Every published course has at least one real enrollment. 🎉</Dim>
+              <Dim>Every published course has at least one real enrollment.</Dim>
             )}
           </>
         )}
@@ -416,80 +237,48 @@ export default function CourseControlModal({ onClose }: CourseControlModalProps)
     );
   })();
 
-  /* ── Enablement & killswitch section (BOTTOM) ── */
+  /* ── Enablement & killswitch section (BOTTOM) — shared shell + course's max-courses cap ── */
   const killBody = (
-    <Body>
-      {config && (
-        <Banner $danger={config.globalKillswitch}>
-          {config.globalKillswitch
-            ? "⛔ GLOBAL KILLSWITCH ENGAGED — course suite blocked for ALL tenants"
-            : "✓ Course suite live (per-tenant settings below)"}
-        </Banner>
-      )}
-      <Row>
-        <RowMain>
-          <RowLabel>Global killswitch</RowLabel>
-          <RowHelp>
-            Emergency master off-switch — instantly blocks every course op for every tenant. Rarely
-            used. Default OFF. Takes effect immediately, no redeploy.
-          </RowHelp>
-        </RowMain>
-        <Switch
-          $on={!!config?.globalKillswitch}
-          $danger
-          disabled={saving || !config}
-          aria-label="Toggle global killswitch"
-          onClick={() => save({ globalKillswitch: !config?.globalKillswitch })}
-        />
-      </Row>
-
-      {tenantsCfg.map(([memberId, tc]) => {
+    <KillswitchSection<TenantConfig>
+      config={config}
+      saving={saving}
+      switchErr={switchErr}
+      suiteLabel="Course"
+      featureNoun="course"
+      onToggleGlobal={() => save({ globalKillswitch: !config?.globalKillswitch })}
+      onToggleTenant={(memberId, tc) => save({ tenant: { memberId, enabled: !tc.enabled } })}
+      renderTenantExtra={(memberId, tc) => {
         const capValue = capDraft[memberId] ?? String(tc.maxCourses ?? 0);
         const capDirty = capValue !== String(tc.maxCourses ?? 0);
         return (
-          <Card key={memberId}>
-            <Row>
-              <RowMain>
-                <RowLabel>{tc.label ?? memberId}</RowLabel>
-                <RowHelp>schema: {tc.schema} · {tc.enabled ? "course feature ON" : "course feature OFF"}</RowHelp>
-              </RowMain>
-              <Switch
-                $on={tc.enabled}
-                disabled={saving}
-                aria-label={`Toggle course for ${tc.label ?? memberId}`}
-                onClick={() => save({ tenant: { memberId, enabled: !tc.enabled } })}
+          <Row>
+            <RowMain>
+              <RowLabel style={{ fontSize: "0.78rem" }}>Max courses</RowLabel>
+              <RowHelp>0 = unlimited. Caps active (non-archived) courses this tenant can create.</RowHelp>
+            </RowMain>
+            <CapRow>
+              <NumInput
+                type="number"
+                min={0}
+                value={capValue}
+                onChange={(e) => setCapDraft((d) => ({ ...d, [memberId]: e.target.value }))}
               />
-            </Row>
-            <Row>
-              <RowMain>
-                <RowLabel style={{ fontSize: "0.78rem" }}>Max courses</RowLabel>
-                <RowHelp>0 = unlimited. Caps active (non-archived) courses this tenant can create.</RowHelp>
-              </RowMain>
-              <CapRow>
-                <NumInput
-                  type="number"
-                  min={0}
-                  value={capValue}
-                  onChange={(e) => setCapDraft((d) => ({ ...d, [memberId]: e.target.value }))}
-                />
-                <SaveBtn
-                  type="button"
-                  disabled={saving || !capDirty}
-                  onClick={async () => {
-                    const n = Math.max(0, Math.floor(Number(capValue) || 0));
-                    const ok = await save({ tenant: { memberId, maxCourses: n === 0 ? null : n } });
-                    if (ok) setCapDraft((d) => { const c = { ...d }; delete c[memberId]; return c; });
-                  }}
-                >
-                  {capDirty ? "Save" : "Saved"}
-                </SaveBtn>
-              </CapRow>
-            </Row>
-          </Card>
+              <SaveBtn
+                type="button"
+                disabled={saving || !capDirty}
+                onClick={async () => {
+                  const n = Math.max(0, Math.floor(Number(capValue) || 0));
+                  const ok = await save({ tenant: { memberId, maxCourses: n === 0 ? null : n } });
+                  if (ok) setCapDraft((d) => { const c = { ...d }; delete c[memberId]; return c; });
+                }}
+              >
+                {capDirty ? "Save" : "Saved"}
+              </SaveBtn>
+            </CapRow>
+          </Row>
         );
-      })}
-      {switchErr && <Err>Couldn&apos;t save — {switchErr}. The change did NOT take effect.</Err>}
-    </Body>
+      }}
+    />
   );
 
   const sections: HCMSection[] = [

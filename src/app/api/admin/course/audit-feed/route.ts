@@ -7,23 +7,13 @@
 //
 // Read-only. Gated by requireAdmin.
 import { type NextRequest, NextResponse } from "next/server";
-import { sql, desc, inArray } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 import { requireAdmin } from "@/lib/api-admin";
-import { db, schema } from "@/lib/db-drizzle";
+import { db } from "@/lib/db-drizzle";
 import { readCourseConfig, isSafeSchema } from "@/lib/course-config";
+import { type TimelineRow, fetchAdminAuditRows } from "@/lib/suite-oversight";
 
 export const runtime = "nodejs";
-
-type TimelineRow = {
-  id: string;
-  ts: string;
-  kind: string;
-  label: string;
-  detail: string | null;
-  ip: string | null;
-  by: string | null;
-  outcome: string;
-};
 
 // Operator config actions (admin_audit_log).
 const ADMIN_ACTIONS = [
@@ -68,30 +58,14 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const limit = Math.min(500, Math.max(1, Number(searchParams.get("limit") ?? "120")));
 
-  // 1) operator config changes
-  const adminRows = await db
-    .select({
-      id: schema.adminAuditLog.id,
-      createdAt: schema.adminAuditLog.createdAt,
-      action: schema.adminAuditLog.action,
-      note: schema.adminAuditLog.note,
-      actorUserId: schema.adminAuditLog.actorUserId,
-    })
-    .from(schema.adminAuditLog)
-    .where(inArray(schema.adminAuditLog.action, ADMIN_ACTIONS as unknown as string[]))
-    .orderBy(desc(schema.adminAuditLog.createdAt))
-    .limit(limit);
-
-  const rows: TimelineRow[] = adminRows.map((r) => ({
-    id: r.id,
-    ts: r.createdAt.toISOString(),
-    kind: r.action,
-    label: ADMIN_LABEL[r.action] ?? r.action.replace("course.", "").replaceAll("_", " "),
-    detail: r.note ?? null,
-    ip: null,
-    by: r.actorUserId,
-    outcome: ADMIN_OUTCOME[r.action] ?? "ok",
-  }));
+  // 1) operator config changes (shared helper — identical across every suite tile)
+  const rows: TimelineRow[] = await fetchAdminAuditRows({
+    actions: ADMIN_ACTIONS,
+    labels: ADMIN_LABEL,
+    outcomes: ADMIN_OUTCOME,
+    prefix: "course.",
+    limit,
+  });
 
   // 2) per-tenant course_audit
   const cfg = readCourseConfig();

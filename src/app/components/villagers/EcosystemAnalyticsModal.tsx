@@ -1,25 +1,24 @@
 "use client";
 
 // EcosystemAnalyticsModal — the anonymized roll-up of TGV's token + money economy on the Villagers
-// surface. An operator sees the SHAPE of the economy: tokens in circulation per bucket, gift volume
+// surface, PROMOTED onto the shared HardeningControlModal shell (sections + activity timeline + QMBM
+// bubbles) to match the Course/Studio suite tiles (checklist `feature-suite-villagers-tiles`). An
+// operator sees the SHAPE of the economy: tokens in circulation per bucket, gift volume
 // (member-to-member transfers), referral rewards, service payments, cash paid out, and how many
 // managed Stripe accounts exist — all aggregate, never an individual's wallet.
 //
-// Reads /api/admin/villagers/ecosystem-analytics (raw tgv_db aggregates). Operator-only — the route
-// is requireAdmin-gated. Plain modal shell (like MemberWalletModal), not the HardeningControlModal.
+// Unlike Course/Studio this suite has NO per-tenant enablement (it's a read-only operator view), so
+// it carries no killswitch — just the usage sections + an operator MONEY activity timeline.
+//
+// Reads /api/admin/villagers/ecosystem-analytics (raw tgv_db aggregates) +
+// /api/admin/analytics/audit-feed (operator money actions). Operator-only — both routes are
+// requireAdmin-gated.
 
 import { useCallback, useEffect, useState } from "react";
 import styled from "styled-components";
 import { colors, rgb } from "@/app/theme";
-import {
-  ModalBackdrop,
-  ModalContainer,
-  ModalHeader,
-  ModalHeaderLeft,
-  ModalTitle,
-  ModalBody,
-} from "@/app/styled";
-import NeonX from "../NeonX";
+import HardeningControlModal, { type HCMSection } from "../hardening/HardeningControlModal";
+import AuditLogTimeline from "../hardening/_shared/AuditLogTimeline";
 
 type Lane = "live" | "test";
 type Bucket = { bucket: string; outstanding: number; holders: number };
@@ -42,6 +41,14 @@ type Analytics = {
 const RATE = 0.25;
 const usd = (tokens: number, rate = RATE) => `$${(tokens * rate).toFixed(2)}`;
 const centsUsd = (cents: number) => `$${(cents / 100).toFixed(2)}`;
+
+const AUDIT_KINDS = [
+  "wallet.withdrawal_approve",
+  "wallet.withdrawal_paid",
+  "wallet.withdrawal_failed",
+  "connect.managed_create",
+  "connect.managed_charge_test",
+];
 
 // Friendlier labels for the reasons we know; anything else shows its raw reason string.
 const REASON_LABEL: Record<string, string> = {
@@ -85,141 +92,190 @@ export default function EcosystemAnalyticsModal({ onClose }: { onClose: () => vo
   const rate = data?.tokenValueUsd ?? RATE;
   const paid = data?.withdrawals.find((w) => w.status === "paid");
 
+  /* ── Lane toggle (shared header for the data sections) ── */
+  const laneTabs = (
+    <LaneTabs>
+      {(["live", "test"] as Lane[]).map((l) => (
+        <LaneTab key={l} type="button" $active={lane === l} onClick={() => setLane(l)}>
+          {l}
+        </LaneTab>
+      ))}
+    </LaneTabs>
+  );
+
+  /* ── Overview section ── */
+  const overviewBody = (
+    <Body>
+      {laneTabs}
+      {loading && <Dim>Loading…</Dim>}
+      {err && <ErrText>{err}</ErrText>}
+      {data && !loading && (
+        <StatRow>
+          <Stat>
+            <SLabel>Members</SLabel>
+            <SVal>{data.members}</SVal>
+            <Dim>with wallet activity</Dim>
+          </Stat>
+          <Stat>
+            <SLabel>In circulation</SLabel>
+            <SVal>{data.circulating}</SVal>
+            <Dim>{usd(data.circulating, rate)} across all buckets</Dim>
+          </Stat>
+          <Stat $accent>
+            <SLabel>Gifted</SLabel>
+            <SVal>{data.gifted}</SVal>
+            <Dim>{usd(data.gifted, rate)} member → member</Dim>
+          </Stat>
+          <Stat>
+            <SLabel>Cash paid out</SLabel>
+            <SVal>{paid ? paid.tokens : 0}</SVal>
+            <Dim>{paid ? centsUsd(paid.cents) : "$0.00"} · {paid?.count ?? 0} payouts</Dim>
+          </Stat>
+        </StatRow>
+      )}
+    </Body>
+  );
+
+  /* ── Buckets section ── */
+  const bucketsBody = (
+    <Body>
+      {!data && !loading && <Dim>—</Dim>}
+      {data && (
+        <BucketsRow>
+          {data.buckets.length === 0 && <Dim>No tokens in this lane yet.</Dim>}
+          {data.buckets.map((b) => (
+            <BCard key={b.bucket} $accent={b.bucket === "retainer"}>
+              <BLabel>{b.bucket}</BLabel>
+              <BVal>
+                {b.outstanding} <Dim>({usd(b.outstanding, rate)})</Dim>
+              </BVal>
+              <Dim>{b.holders} holder{b.holders === 1 ? "" : "s"}</Dim>
+            </BCard>
+          ))}
+        </BucketsRow>
+      )}
+    </Body>
+  );
+
+  /* ── By-reason section ── */
+  const reasonBody = (
+    <Body>
+      {!data && !loading && <Dim>—</Dim>}
+      {data && (
+        <Table>
+          <THead>
+            <span>Flow</span>
+            <RightCol>Credited</RightCol>
+            <RightCol>Debited</RightCol>
+            <RightCol>Entries</RightCol>
+          </THead>
+          {data.byReason.length === 0 && <Dim style={{ padding: "0.5rem 0" }}>No activity yet.</Dim>}
+          {data.byReason.map((r) => (
+            <TRow key={r.reason}>
+              <span>{REASON_LABEL[r.reason] ?? r.reason}</span>
+              <RightCol>{r.credited ? `+${r.credited}` : "—"}</RightCol>
+              <RightCol>{r.debited ? `−${r.debited}` : "—"}</RightCol>
+              <RightCol>{r.entries}</RightCol>
+            </TRow>
+          ))}
+        </Table>
+      )}
+    </Body>
+  );
+
+  /* ── Money-side section ── */
+  const moneyBody = (
+    <Body>
+      {!data && !loading && <Dim>—</Dim>}
+      {data && (
+        <>
+          <MoneyRow>
+            <Stat>
+              <SLabel>Managed Stripe accounts</SLabel>
+              <SVal>{data.managedAccounts ?? "—"}</SVal>
+              <Dim>{data.managedAccounts === null ? "not tracked in this env" : "provisioned"}</Dim>
+            </Stat>
+            <Stat>
+              <SLabel>Withdrawals</SLabel>
+              <SVal>{data.withdrawals.reduce((s, w) => s + w.count, 0)}</SVal>
+              <Dim>
+                {data.withdrawals.length === 0
+                  ? "none yet"
+                  : data.withdrawals.map((w) => `${w.count} ${w.status}`).join(" · ")}
+              </Dim>
+            </Stat>
+          </MoneyRow>
+          <Note>
+            Stripe gross payment volume (true GMV) will surface here once the payments-platform charge
+            ledger lands — today the token economy above is the proxy for platform flow.
+          </Note>
+          <Note style={{ opacity: 0.75 }}>
+            Every number here is an aggregate — counts and sums over the ledger. No member, email, or
+            individual wallet is exposed on this surface.
+          </Note>
+        </>
+      )}
+    </Body>
+  );
+
+  const sections: HCMSection[] = [
+    {
+      id: "overview",
+      title: "Economy overview",
+      qmbm:
+        "The headline shape of the economy for the selected lane (live vs test): members with wallet " +
+        "activity, total tokens in circulation, member-to-member gift volume, and cash actually paid " +
+        "out. Aggregates only — no individual wallets.",
+      body: overviewBody,
+    },
+    {
+      id: "buckets",
+      title: "Tokens by bucket",
+      qmbm:
+        "Outstanding tokens split across the three wallet buckets (Cashable / Available / Retainer) " +
+        "with holder counts. The retainer bucket is highlighted — those are custom-work-only tokens.",
+      body: bucketsBody,
+    },
+    {
+      id: "byreason",
+      title: "The economy, by reason",
+      qmbm:
+        "Every ledger flow grouped by reason — gifts, referral rewards, signup bonuses, redemptions, " +
+        "retainer releases, withdrawals — with credited/debited totals and entry counts.",
+      body: reasonBody,
+    },
+    {
+      id: "money",
+      title: "Money side",
+      qmbm:
+        "The fiat edge of the economy: how many managed Stripe accounts are provisioned and the " +
+        "withdrawal pipeline by status. True Stripe GMV lands here once the charge ledger ships.",
+      body: moneyBody,
+    },
+  ];
+
   return (
-    <ModalBackdrop onClick={onClose}>
-      <ModalContainer $accent="gold" $maxWidth="50rem" onClick={(e) => e.stopPropagation()}>
-        <ModalHeader>
-          <ModalHeaderLeft>
-            <div>
-              <ModalTitle>Ecosystem Analytics</ModalTitle>
-              <Sub>Anonymized roll-up of the token + money economy · no individual wallets</Sub>
-            </div>
-          </ModalHeaderLeft>
-          <NeonX onClick={onClose} />
-        </ModalHeader>
-        <ModalBody>
-          <Stack>
-            <LaneTabs>
-              {(["live", "test"] as Lane[]).map((l) => (
-                <LaneTab key={l} type="button" $active={lane === l} onClick={() => setLane(l)}>
-                  {l}
-                </LaneTab>
-              ))}
-            </LaneTabs>
-
-            {loading && <Dim>Loading…</Dim>}
-            {err && <ErrText>{err}</ErrText>}
-
-            {data && !loading && (
-              <>
-                <StatRow>
-                  <Stat>
-                    <SLabel>Members</SLabel>
-                    <SVal>{data.members}</SVal>
-                    <Dim>with wallet activity</Dim>
-                  </Stat>
-                  <Stat>
-                    <SLabel>In circulation</SLabel>
-                    <SVal>{data.circulating}</SVal>
-                    <Dim>{usd(data.circulating, rate)} across all buckets</Dim>
-                  </Stat>
-                  <Stat $accent>
-                    <SLabel>Gifted</SLabel>
-                    <SVal>{data.gifted}</SVal>
-                    <Dim>{usd(data.gifted, rate)} member → member</Dim>
-                  </Stat>
-                  <Stat>
-                    <SLabel>Cash paid out</SLabel>
-                    <SVal>{paid ? paid.tokens : 0}</SVal>
-                    <Dim>{paid ? centsUsd(paid.cents) : "$0.00"} · {paid?.count ?? 0} payouts</Dim>
-                  </Stat>
-                </StatRow>
-
-                <Section>
-                  <SecTitle>Tokens in circulation, by bucket</SecTitle>
-                  <BucketsRow>
-                    {data.buckets.length === 0 && <Dim>No tokens in this lane yet.</Dim>}
-                    {data.buckets.map((b) => (
-                      <BCard key={b.bucket} $accent={b.bucket === "retainer"}>
-                        <BLabel>{b.bucket}</BLabel>
-                        <BVal>
-                          {b.outstanding} <Dim>({usd(b.outstanding, rate)})</Dim>
-                        </BVal>
-                        <Dim>{b.holders} holder{b.holders === 1 ? "" : "s"}</Dim>
-                      </BCard>
-                    ))}
-                  </BucketsRow>
-                </Section>
-
-                <Section>
-                  <SecTitle>The economy, by reason</SecTitle>
-                  <Table>
-                    <THead>
-                      <span>Flow</span>
-                      <RightCol>Credited</RightCol>
-                      <RightCol>Debited</RightCol>
-                      <RightCol>Entries</RightCol>
-                    </THead>
-                    {data.byReason.length === 0 && <Dim style={{ padding: "0.5rem 0" }}>No activity yet.</Dim>}
-                    {data.byReason.map((r) => (
-                      <TRow key={r.reason}>
-                        <span>{REASON_LABEL[r.reason] ?? r.reason}</span>
-                        <RightCol>{r.credited ? `+${r.credited}` : "—"}</RightCol>
-                        <RightCol>{r.debited ? `−${r.debited}` : "—"}</RightCol>
-                        <RightCol>{r.entries}</RightCol>
-                      </TRow>
-                    ))}
-                  </Table>
-                </Section>
-
-                <Section>
-                  <SecTitle>Money side</SecTitle>
-                  <MoneyRow>
-                    <Stat>
-                      <SLabel>Managed Stripe accounts</SLabel>
-                      <SVal>{data.managedAccounts ?? "—"}</SVal>
-                      <Dim>{data.managedAccounts === null ? "not tracked in this env" : "provisioned"}</Dim>
-                    </Stat>
-                    <Stat>
-                      <SLabel>Withdrawals</SLabel>
-                      <SVal>{data.withdrawals.reduce((s, w) => s + w.count, 0)}</SVal>
-                      <Dim>
-                        {data.withdrawals.length === 0
-                          ? "none yet"
-                          : data.withdrawals.map((w) => `${w.count} ${w.status}`).join(" · ")}
-                      </Dim>
-                    </Stat>
-                  </MoneyRow>
-                  <Note>
-                    Stripe gross payment volume (true GMV) will surface here once the payments-platform
-                    charge ledger lands — today the token economy above is the proxy for platform flow.
-                  </Note>
-                </Section>
-
-                <Note style={{ opacity: 0.75 }}>
-                  Every number here is an aggregate — counts and sums over the ledger. No member, email,
-                  or individual wallet is exposed on this surface.
-                </Note>
-              </>
-            )}
-          </Stack>
-        </ModalBody>
-      </ModalContainer>
-    </ModalBackdrop>
+    <HardeningControlModal
+      title="Ecosystem Analytics"
+      subtitle="Anonymized roll-up of the token + money economy · no individual wallets"
+      qmbm={
+        "The operator console for the whole token + money economy.\n\n" +
+        "Top: a live feed of operator money actions (withdrawals + managed Stripe events). Then the " +
+        "economy by lane — overview, tokens per bucket, flows by reason, and the money side. Every " +
+        "number is an aggregate; no individual member's wallet is ever shown here."
+      }
+      onClose={onClose}
+      sections={sections}
+      auditLogView={<AuditLogTimeline endpoint="/api/admin/analytics/audit-feed" kinds={AUDIT_KINDS} />}
+    />
   );
 }
 
 /* ── styles ─────────────────────────────────────────────────────────────── */
-const Sub = styled.div`
-  font-size: 0.75rem;
-  color: var(--t-textFaint);
-  letter-spacing: 0.04em;
-  margin-top: 0.125rem;
-`;
-const Stack = styled.div`
+const Body = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0.85rem;
 `;
 const LaneTabs = styled.div`
   display: flex;
@@ -264,18 +320,6 @@ const SVal = styled.div`
   font-weight: 800;
   color: var(--t-text);
   line-height: 1.1;
-`;
-const Section = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-`;
-const SecTitle = styled.div`
-  font-size: 0.7rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: ${colors.gold};
 `;
 const BucketsRow = styled.div`
   display: grid;

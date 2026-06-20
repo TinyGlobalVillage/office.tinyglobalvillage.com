@@ -1,0 +1,21 @@
+import { SVGProps } from "react";
+
+export default function ShieldIcon({ size = 16, ...rest }: { size?: number } & SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      xmlns="http://www.w3.org/2000/svg"
+      {...rest}
+    >
+      <path d="M12 3 5 6v5.5c0 4.2 2.9 7.5 7 9 4.1-1.5 7-4.8 7-9V6l-7-3Z" />
+      <path d="m9 12 2 2 4-4" />
+    </svg>
+  );
+}

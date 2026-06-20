@@ -1,25 +1,44 @@
 "use client";
 
 // StudioControlModal — the operator MASTER console for the @tgv/module-studio suite, opened from a
-// Villagers tile. Built on the shared HardeningControlModal shell (sections + activity timeline +
-// QMBM bubbles), like CourseControlModal / WalletControlModal. This is the convention from checklist
-// `feature-suite-villagers-tiles`: every feature suite gets one Villagers tile → one master modal
-// with ALL of its operator controls; the killswitch lives at the BOTTOM (rarely touched).
+// Villagers tile. Built on the shared HardeningControlModal shell + the shared SuiteControlKit
+// (styled-components + useSuiteControl hook + KillswitchSection), like CourseControlModal. This is
+// the convention from checklist `feature-suite-villagers-tiles`: every feature suite gets one
+// Villagers tile → one master modal with ALL of its operator controls; the killswitch lives at the
+// BOTTOM (rarely touched).
 //
 // Reads: cross-tenant usage (/api/admin/studio/usage) + activity (/api/admin/studio/audit-feed),
 // both straight from tgv_db. Writes: the enablement/killswitch (/api/admin/studio/config) to the
 // Office-owned shared config file the tenant dispatchers read via isStudioEnabled().
 
-import { useCallback, useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 import { colors, rgb } from "../../theme";
 import HardeningControlModal, { type HCMSection } from "../hardening/HardeningControlModal";
 import AuditLogTimeline from "../hardening/_shared/AuditLogTimeline";
+import {
+  type SuiteConfigBase,
+  type SuiteTenantBase,
+  Body,
+  Dim,
+  Err,
+  Card,
+  CardHead,
+  TenantName,
+  Pill,
+  Stats,
+  Stat,
+  StatN,
+  StatL,
+  Table,
+  fmtWhen,
+  KillswitchSection,
+  useSuiteControl,
+} from "./_suite/SuiteControlKit";
 
 /* ── Contract (mirror of lib/studio-config + api/usage) ──────────────────────── */
 
-type TenantConfig = { enabled: boolean; label?: string; schema: string };
-type StudioConfig = { globalKillswitch: boolean; perTenant: Record<string, TenantConfig> };
+type TenantConfig = SuiteTenantBase;
+type StudioConfig = SuiteConfigBase<TenantConfig>;
 
 type UpcomingClass = { id: string; startAt: string; booked: number; capacity: number; name: string | null };
 
@@ -67,92 +86,8 @@ const AUDIT_KINDS = [
   "studio.entitlement",
 ];
 
-/* ── Styled ──────────────────────────────────────────────────────────────────── */
+/* ── Studio-specific styled (the shared ones come from SuiteControlKit) ───────── */
 
-const Body = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.85rem;
-`;
-const Dim = styled.div`
-  font-size: 0.8rem;
-  color: var(--t-textFaint);
-`;
-const Err = styled.div`
-  font-size: 0.8rem;
-  color: ${colors.red};
-`;
-const Card = styled.div`
-  border: 1px solid rgba(${rgb.gold}, 0.22);
-  border-radius: 0.6rem;
-  padding: 0.75rem 0.85rem;
-  background: rgba(${rgb.gold}, 0.03);
-`;
-const CardHead = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-  margin-bottom: 0.5rem;
-`;
-const TenantName = styled.span`
-  font-weight: 700;
-  color: ${colors.gold};
-  letter-spacing: 0.02em;
-`;
-const Pill = styled.span<{ $on: boolean }>`
-  font-size: 0.65rem;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  padding: 0.1rem 0.45rem;
-  border-radius: 999px;
-  border: 1px solid ${(p) => (p.$on ? `rgba(${rgb.green}, 0.5)` : `rgba(${rgb.red}, 0.5)`)};
-  color: ${(p) => (p.$on ? colors.green : colors.red)};
-  background: ${(p) => (p.$on ? `rgba(${rgb.green}, 0.08)` : `rgba(${rgb.red}, 0.08)`)};
-`;
-const Stats = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(7rem, 1fr));
-  gap: 0.4rem 0.75rem;
-  margin-bottom: 0.5rem;
-`;
-const Stat = styled.div`
-  display: flex;
-  flex-direction: column;
-`;
-const StatN = styled.span`
-  font-size: 1.05rem;
-  font-weight: 800;
-  color: var(--t-text);
-`;
-const StatL = styled.span`
-  font-size: 0.62rem;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--t-textFaint);
-`;
-const Table = styled.table`
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.74rem;
-  th,
-  td {
-    text-align: left;
-    padding: 0.28rem 0.4rem;
-    border-bottom: 1px solid rgba(${rgb.gold}, 0.1);
-  }
-  th {
-    color: var(--t-textFaint);
-    font-weight: 600;
-    text-transform: uppercase;
-    font-size: 0.6rem;
-    letter-spacing: 0.05em;
-  }
-  td.num {
-    text-align: right;
-    font-variant-numeric: tabular-nums;
-  }
-`;
 const Chips = styled.div`
   display: flex;
   flex-wrap: wrap;
@@ -168,148 +103,17 @@ const Chip = styled.span<{ $warn?: boolean }>`
   background: ${(p) => (p.$warn ? `rgba(${rgb.red}, 0.1)` : "rgba(255,255,255,0.05)")};
   border: 1px solid ${(p) => (p.$warn ? `rgba(${rgb.red}, 0.3)` : `rgba(${rgb.gold}, 0.12)`)};
 `;
-const Row = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  padding: 0.4rem 0;
-`;
-const RowMain = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.1rem;
-`;
-const RowLabel = styled.span`
-  font-weight: 600;
-  color: var(--t-text);
-  font-size: 0.85rem;
-`;
-const RowHelp = styled.span`
-  font-size: 0.72rem;
-  color: var(--t-textFaint);
-`;
-const Switch = styled.button<{ $on: boolean; $danger?: boolean }>`
-  position: relative;
-  width: 44px;
-  height: 24px;
-  flex: 0 0 auto;
-  border-radius: 999px;
-  border: 1px solid
-    ${(p) => (p.$on ? `rgba(${p.$danger ? rgb.red : rgb.green}, 0.6)` : `rgba(${rgb.gold}, 0.3)`)};
-  background: ${(p) =>
-    p.$on ? `rgba(${p.$danger ? rgb.red : rgb.green}, 0.25)` : "rgba(255,255,255,0.06)"};
-  cursor: pointer;
-  transition: all 0.15s;
-  &::after {
-    content: "";
-    position: absolute;
-    top: 2px;
-    left: ${(p) => (p.$on ? "22px" : "2px")};
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    background: ${(p) => (p.$on ? (p.$danger ? colors.red : colors.green) : colors.gold)};
-    transition: left 0.15s;
-  }
-  &:disabled {
-    opacity: 0.5;
-    cursor: default;
-  }
-`;
-const Banner = styled.div<{ $danger: boolean }>`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.55rem 0.7rem;
-  border-radius: 0.5rem;
-  margin-bottom: 0.6rem;
-  border: 1px solid ${(p) => (p.$danger ? `rgba(${rgb.red}, 0.55)` : `rgba(${rgb.green}, 0.4)`)};
-  background: ${(p) => (p.$danger ? `rgba(${rgb.red}, 0.1)` : `rgba(${rgb.green}, 0.06)`)};
-  color: ${(p) => (p.$danger ? colors.red : colors.green)};
-  font-weight: 700;
-  font-size: 0.82rem;
-`;
-
-/* ── Helpers ──────────────────────────────────────────────────────────────────── */
-
-function fmtWhen(iso: string): string {
-  try {
-    return new Date(iso).toLocaleString(undefined, {
-      month: "short",
-      day: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-    });
-  } catch {
-    return iso;
-  }
-}
 
 /* ── Component ────────────────────────────────────────────────────────────────── */
 
 export type StudioControlModalProps = { onClose: () => void };
 
 export default function StudioControlModal({ onClose }: StudioControlModalProps) {
-  const [config, setConfig] = useState<StudioConfig | null>(null);
-  const [usage, setUsage] = useState<UsageTenant[] | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [loadErr, setLoadErr] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [switchErr, setSwitchErr] = useState<string | null>(null);
-
-  const loadConfig = useCallback(async (signal?: AbortSignal) => {
-    const res = await fetch("/api/admin/studio/config", { cache: "no-store", signal });
-    const d = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(d.error ?? "config_load_failed");
-    setConfig(d.config as StudioConfig);
-  }, []);
-
-  const loadUsage = useCallback(async (signal?: AbortSignal) => {
-    const res = await fetch("/api/admin/studio/usage", { cache: "no-store", signal });
-    const d = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(d.error ?? "usage_load_failed");
-    setUsage(d.tenants as UsageTenant[]);
-  }, []);
-
-  useEffect(() => {
-    const ac = new AbortController();
-    (async () => {
-      setLoading(true);
-      setLoadErr(null);
-      try {
-        await Promise.all([loadConfig(ac.signal), loadUsage(ac.signal)]);
-      } catch (e) {
-        if (!ac.signal.aborted) setLoadErr(String((e as Error)?.message ?? e));
-      } finally {
-        if (!ac.signal.aborted) setLoading(false);
-      }
-    })();
-    return () => ac.abort();
-  }, [loadConfig, loadUsage]);
-
-  const save = useCallback(async (patch: Record<string, unknown>): Promise<boolean> => {
-    setSaving(true);
-    setSwitchErr(null);
-    try {
-      const res = await fetch("/api/admin/studio/config", {
-        method: "PUT",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify(patch),
-      });
-      const d = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(d.error ?? "save_failed");
-      setConfig(d.config as StudioConfig);
-      return true;
-    } catch (e) {
-      setSwitchErr(String((e as Error)?.message ?? e));
-      return false;
-    } finally {
-      setSaving(false);
-    }
-  }, []);
-
-  const tenantsCfg = useMemo(() => Object.entries(config?.perTenant ?? {}), [config]);
+  const { config, usage, loading, loadErr, saving, switchErr, save } = useSuiteControl<
+    StudioConfig,
+    UsageTenant,
+    TenantConfig
+  >("studio");
 
   /* ── Usage section ── */
   const usageBody = (
@@ -426,7 +230,7 @@ export default function StudioControlModal({ onClose }: StudioControlModalProps)
                 ))}
               </Card>
             ) : (
-              <Dim>Every upcoming class has at least one booking. 🎉</Dim>
+              <Dim>Every upcoming class has at least one booking.</Dim>
             )}
           </>
         )}
@@ -434,51 +238,17 @@ export default function StudioControlModal({ onClose }: StudioControlModalProps)
     );
   })();
 
-  /* ── Enablement & killswitch section (BOTTOM) ── */
+  /* ── Enablement & killswitch section (BOTTOM) — shared shell ── */
   const killBody = (
-    <Body>
-      {config && (
-        <Banner $danger={config.globalKillswitch}>
-          {config.globalKillswitch
-            ? "⛔ GLOBAL KILLSWITCH ENGAGED — studio suite blocked for ALL tenants"
-            : "✓ Studio suite live (per-tenant settings below)"}
-        </Banner>
-      )}
-      <Row>
-        <RowMain>
-          <RowLabel>Global killswitch</RowLabel>
-          <RowHelp>
-            Emergency master off-switch — instantly blocks every studio op for every tenant. Rarely
-            used. Default OFF. Takes effect immediately, no redeploy.
-          </RowHelp>
-        </RowMain>
-        <Switch
-          $on={!!config?.globalKillswitch}
-          $danger
-          disabled={saving || !config}
-          aria-label="Toggle global killswitch"
-          onClick={() => save({ globalKillswitch: !config?.globalKillswitch })}
-        />
-      </Row>
-
-      {tenantsCfg.map(([memberId, tc]) => (
-        <Card key={memberId}>
-          <Row>
-            <RowMain>
-              <RowLabel>{tc.label ?? memberId}</RowLabel>
-              <RowHelp>schema: {tc.schema} · {tc.enabled ? "studio feature ON" : "studio feature OFF"}</RowHelp>
-            </RowMain>
-            <Switch
-              $on={tc.enabled}
-              disabled={saving}
-              aria-label={`Toggle studio for ${tc.label ?? memberId}`}
-              onClick={() => save({ tenant: { memberId, enabled: !tc.enabled } })}
-            />
-          </Row>
-        </Card>
-      ))}
-      {switchErr && <Err>Couldn&apos;t save — {switchErr}. The change did NOT take effect.</Err>}
-    </Body>
+    <KillswitchSection<TenantConfig>
+      config={config}
+      saving={saving}
+      switchErr={switchErr}
+      suiteLabel="Studio"
+      featureNoun="studio"
+      onToggleGlobal={() => save({ globalKillswitch: !config?.globalKillswitch })}
+      onToggleTenant={(memberId, tc) => save({ tenant: { memberId, enabled: !tc.enabled } })}
+    />
   );
 
   const sections: HCMSection[] = [

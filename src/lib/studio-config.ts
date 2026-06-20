@@ -72,8 +72,6 @@ export function writeStudioConfig(cfg: StudioEnablementConfig): void {
   writeFileSync(STUDIO_CONFIG_PATH, JSON.stringify(cfg, null, 2) + "\n", "utf8");
 }
 
-// Strict Postgres identifier guard — config schema names are interpolated raw into SQL
-// (Drizzle sql`` cannot parameterise an identifier), so reject anything that isn't a plain ident.
-export function isSafeSchema(s: string): boolean {
-  return typeof s === "string" && /^[a-z_][a-z0-9_]*$/.test(s);
-}
+// Strict Postgres identifier guard — canonical impl lives in suite-oversight.ts; re-exported here
+// so existing import sites (usage/audit routes) keep working.
+export { isSafeSchema } from "./suite-oversight";

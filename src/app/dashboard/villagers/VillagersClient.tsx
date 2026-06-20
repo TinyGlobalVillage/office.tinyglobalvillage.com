@@ -9,13 +9,28 @@ import { useState } from "react";
 import styled from "styled-components";
 import { colors, rgb } from "../../theme";
 import TopNav from "../../components/TopNav";
-import { MembersIcon } from "../../components/icons";
+import {
+  MembersIcon,
+  WalletIcon,
+  SearchIcon,
+  SettingsIcon,
+  CashIcon,
+  ShieldIcon,
+  BankIcon,
+  GraduationIcon,
+  LotusIcon,
+  StarIcon,
+  GlobeIcon,
+  ChartIcon,
+  PaypalIcon,
+} from "../../components/icons";
 import MemberWalletModal from "../../components/villagers/MemberWalletModal";
 import PayoutsModal from "../../components/villagers/PayoutsModal";
 import WalletControlModal from "../../components/hardening/wallet-control/WalletControlModal";
 import ManagedOnboardingModal from "../../components/villagers/ManagedOnboardingModal";
 import CourseControlModal from "../../components/villagers/CourseControlModal";
 import StudioControlModal from "../../components/villagers/StudioControlModal";
+import PerformersControlModal from "../../components/villagers/PerformersControlModal";
 import DnsModal from "../../components/villagers/DnsModal";
 import EcosystemAnalyticsModal from "../../components/villagers/EcosystemAnalyticsModal";
 import PaypalControlModal from "../../components/villagers/PaypalControlModal";
@@ -124,6 +139,7 @@ export default function VillagersClient() {
   const [openManaged, setOpenManaged] = useState(false);
   const [openCourse, setOpenCourse] = useState(false);
   const [openStudio, setOpenStudio] = useState(false);
+  const [openPerformers, setOpenPerformers] = useState(false);
   const [openDns, setOpenDns] = useState(false);
   const [openEcosystem, setOpenEcosystem] = useState(false);
   const [openPaypal, setOpenPaypal] = useState(false);
@@ -145,7 +161,7 @@ export default function VillagersClient() {
 
         <Grid>
           <Tile type="button" onClick={() => setOpenMemberWallet(true)}>
-            <TileTop>👛 Member Wallet</TileTop>
+            <TileTop><WalletIcon size={18} /> Member Wallet</TileTop>
             <TileSub>
               Search a villager and manage their token wallet — view Cash / Available /
               Retainer (live + test) and release retainer to Available or Cash on their behalf.
@@ -153,7 +169,7 @@ export default function VillagersClient() {
           </Tile>
 
           <Tile type="button" onClick={() => setOpenMemberLookup(true)}>
-            <TileTop>🔎 Member Lookup</TileTop>
+            <TileTop><SearchIcon size={18} /> Member Lookup</TileTop>
             <TileSub>
               Search a member and open their profile — Member-since, role, their sites, and the
               Yellow Pages founding toggle. Set billing on their behalf (plan, renewal date,
@@ -162,7 +178,7 @@ export default function VillagersClient() {
           </Tile>
 
           <Tile type="button" onClick={() => setOpenDashboardConfig(true)}>
-            <TileTop>🎛️ Dashboard Config</TileTop>
+            <TileTop><SettingsIcon size={18} /> Dashboard Config</TileTop>
             <TileSub>
               The soft-launch board — turn each dashboard feature Off / Admin-preview / On for
               every member at once. Stage a feature for admins only, test it, then flick it
@@ -171,7 +187,7 @@ export default function VillagersClient() {
           </Tile>
 
           <Tile type="button" onClick={() => setOpenPayouts(true)}>
-            <TileTop>💸 Payouts</TileTop>
+            <TileTop><CashIcon size={18} /> Payouts</TileTop>
             <TileSub>
               Work the member cash-out queue — approve requests, watch each one&apos;s fraud-hold
               countdown, mark paid, or release a trusted member early. Cancel/fail during the hold
@@ -180,7 +196,7 @@ export default function VillagersClient() {
           </Tile>
 
           <Tile type="button" onClick={() => setOpenWalletControl(true)}>
-            <TileTop>🛡️ Wallet Cash-Out</TileTop>
+            <TileTop><ShieldIcon size={18} /> Wallet Cash-Out</TileTop>
             <TileSub>
               Cash-out safety posture — the two-key launch gate + runtime killswitch, fraud limits,
               and the full activity timeline. Stays OFF until KYC + clawback ship.
@@ -188,7 +204,7 @@ export default function VillagersClient() {
           </Tile>
 
           <Tile type="button" onClick={() => setOpenManaged(true)}>
-            <TileTop>🏦 Stripe Onboarding</TileTop>
+            <TileTop><BankIcon size={18} /> Stripe Onboarding</TileTop>
             <TileSub>
               Set up a TGV-managed Stripe account for a tenant — obscured under TGV Connect — and
               watch the embedded onboarding through to charges-enabled. Flip Preview to run the whole
@@ -197,7 +213,7 @@ export default function VillagersClient() {
           </Tile>
 
           <Tile type="button" onClick={() => setOpenCourse(true)}>
-            <TileTop>🎓 Course Suite</TileTop>
+            <TileTop><GraduationIcon size={18} /> Course Suite</TileTop>
             <TileSub>
               Cross-tenant oversight for the course suite — real-learner usage, completions and
               pass-rates per tenant, suite health, and the enablement killswitch (global + per-tenant)
@@ -206,7 +222,7 @@ export default function VillagersClient() {
           </Tile>
 
           <Tile type="button" onClick={() => setOpenStudio(true)}>
-            <TileTop>🧘 Studio Suite</TileTop>
+            <TileTop><LotusIcon size={18} /> Studio Suite</TileTop>
             <TileSub>
               Cross-tenant oversight for the studio suite (the reinvented MindBody) — bookings,
               classes and appointments, active passes and no-show rate per tenant, suite health, and
@@ -215,8 +231,18 @@ export default function VillagersClient() {
             </TileSub>
           </Tile>
 
+          <Tile type="button" onClick={() => setOpenPerformers(true)}>
+            <TileTop><StarIcon size={18} /> Performers Suite</TileTop>
+            <TileSub>
+              Cross-tenant oversight for the performers suite — talent roster, upcoming gigs, the
+              offering catalog, paid revenue, the abundance income pools, and the unpaid-payout /
+              pending-purchase work-queues, with the enablement killswitch at the bottom. The master
+              console for @tgv/module-performers.
+            </TileSub>
+          </Tile>
+
           <Tile type="button" onClick={() => setOpenDns(true)}>
-            <TileTop>🌐 DNS</TileTop>
+            <TileTop><GlobeIcon size={18} /> DNS</TileTop>
             <TileSub>
               Operate DNS across every Cloudflare zone — TGV.com, Office, and each tenant&apos;s
               domains — grouped by owning villager. Pick a zone, then add / edit / delete records.
@@ -226,7 +252,7 @@ export default function VillagersClient() {
           </Tile>
 
           <Tile type="button" onClick={() => setOpenEcosystem(true)}>
-            <TileTop>📊 Ecosystem Analytics</TileTop>
+            <TileTop><ChartIcon size={18} /> Ecosystem Analytics</TileTop>
             <TileSub>
               Anonymized roll-up of the whole token + money economy — tokens in circulation per
               bucket, gift volume (member → member), referral rewards, service payments, cash paid
@@ -235,7 +261,7 @@ export default function VillagersClient() {
           </Tile>
 
           <Tile type="button" onClick={() => setOpenPaypal(true)}>
-            <TileTop>🅿️ PayPal Faucet</TileTop>
+            <TileTop><PaypalIcon size={18} /> PayPal Faucet</TileTop>
             <TileSub>
               Tenant PayPal rail (the island) — enable / disable a tenant&apos;s PayPal, set its
               public credentials (client-id, hosted-button-id), and the global killswitch. Money goes
@@ -268,6 +294,8 @@ export default function VillagersClient() {
       {openCourse && <CourseControlModal onClose={() => setOpenCourse(false)} />}
 
       {openStudio && <StudioControlModal onClose={() => setOpenStudio(false)} />}
+
+      {openPerformers && <PerformersControlModal onClose={() => setOpenPerformers(false)} />}
 
       {openDns && <DnsModal onClose={() => setOpenDns(false)} />}
 
