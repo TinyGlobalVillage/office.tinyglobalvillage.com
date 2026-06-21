@@ -18,7 +18,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { sql } from "drizzle-orm";
 import { spawn } from "node:child_process";
-import { openSync, mkdirSync } from "node:fs";
+import { openSync, closeSync, mkdirSync } from "node:fs";
 import { randomUUID } from "node:crypto";
 import { requireAdmin } from "@/lib/api-admin";
 import { db } from "@/lib/db-drizzle";
@@ -73,12 +73,23 @@ export async function POST(req: NextRequest) {
   const site = `migrate-${randomUUID().slice(0, 8)}`;
 
   // 1. create the job row (status intake) so the UI gets a jobId to poll immediately.
-  const ins = await db.execute(sql`
-    INSERT INTO migration_jobs (client_name, source_domain, driver, status, created_by)
-    VALUES (${clientName}, ${u.hostname}, 'admin', 'intake', ${gate.username})
-    RETURNING id
-  `);
-  const jobId = ((ins as unknown as { rows?: Array<{ id: string }> }).rows ?? [])[0]?.id;
+  // A partial unique index permits only one in-flight job per domain → a 23505 here
+  // means a migration for this domain is already running; surface it as 409, not 500.
+  let jobId: string | undefined;
+  try {
+    const ins = await db.execute(sql`
+      INSERT INTO migration_jobs (client_name, source_domain, driver, status, created_by)
+      VALUES (${clientName}, ${u.hostname}, 'admin', 'intake', ${gate.username})
+      RETURNING id
+    `);
+    jobId = ((ins as unknown as { rows?: Array<{ id: string }> }).rows ?? [])[0]?.id;
+  } catch (err) {
+    const msg = String(err);
+    if (/duplicate key|unique|23505/i.test(msg)) {
+      return NextResponse.json({ error: "a migration for this domain is already in flight or awaiting review" }, { status: 409 });
+    }
+    return NextResponse.json({ error: "could not create job", detail: msg }, { status: 500 });
+  }
   if (!jobId) return NextResponse.json({ error: "could not create job" }, { status: 500 });
 
   // 2. spawn the worker out-of-process, detached, logging to a per-job file.
@@ -98,6 +109,7 @@ export async function POST(req: NextRequest) {
     if (record) args.push("--record");
     const child = spawn(TSX, args, { cwd: RCS_ROOT, detached: true, stdio: ["ignore", logFd, logFd], env: process.env });
     child.unref();
+    closeSync(logFd); // the child inherited its own copy of the fd; don't leak the parent's
   } catch (err) {
     await db.execute(sql`UPDATE migration_jobs SET status='failed', error=${String(err)} WHERE id=${jobId}`);
     return NextResponse.json({ error: "failed to spawn worker", detail: String(err) }, { status: 500 });
