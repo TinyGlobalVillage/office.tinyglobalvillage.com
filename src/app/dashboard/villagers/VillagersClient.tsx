@@ -36,6 +36,7 @@ import EcosystemAnalyticsModal from "../../components/villagers/EcosystemAnalyti
 import PaypalControlModal from "../../components/villagers/PaypalControlModal";
 import MemberLookupModal from "../../components/villagers/MemberLookupModal";
 import DashboardConfigModal from "../../components/villagers/DashboardConfigModal";
+import RequestTenantAccessModal from "../../components/villagers/RequestTenantAccessModal";
 
 /* ── Styled ────────────────────────────────────────────────────── */
 
@@ -134,6 +135,7 @@ export default function VillagersClient() {
   const [openMemberWallet, setOpenMemberWallet] = useState(false);
   const [openMemberLookup, setOpenMemberLookup] = useState(false);
   const [openDashboardConfig, setOpenDashboardConfig] = useState(false);
+  const [openAccessGrant, setOpenAccessGrant] = useState(false);
   const [openPayouts, setOpenPayouts] = useState(false);
   const [openWalletControl, setOpenWalletControl] = useState(false);
   const [openManaged, setOpenManaged] = useState(false);
@@ -183,6 +185,15 @@ export default function VillagersClient() {
               The soft-launch board — turn each dashboard feature Off / Admin-preview / On for
               every member at once. Stage a feature for admins only, test it, then flick it
               public. Every change is audited.
+            </TileSub>
+          </Tile>
+
+          <Tile type="button" onClick={() => setOpenAccessGrant(true)}>
+            <TileTop><ShieldIcon size={18} /> Request Tenant Access</TileTop>
+            <TileSub>
+              Ask a tenant for consent-gated, time-boxed access to act on their account. They approve
+              on their dashboard and pick exactly what to grant (money is the highest-trust scope);
+              you enter the emailed code to activate. Never mutate an account without consent.
             </TileSub>
           </Tile>
 
@@ -282,6 +293,8 @@ export default function VillagersClient() {
       {openDashboardConfig && (
         <DashboardConfigModal onClose={() => setOpenDashboardConfig(false)} />
       )}
+
+      {openAccessGrant && <RequestTenantAccessModal onClose={() => setOpenAccessGrant(false)} />}
 
       {openPayouts && <PayoutsModal onClose={() => setOpenPayouts(false)} />}
 
