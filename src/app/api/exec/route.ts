@@ -52,6 +52,12 @@ const REGISTRY: Record<
     ],
     needsEnv: ["GITHUB_PAT", "CF_API_TOKEN"],
   },
+  "gen-favicons": {
+    bin: "node",
+    baseArgs: [
+      "/srv/refusion-core/utils/scripts/media/gen-favicons/gen-favicons",
+    ],
+  },
   gitrepo: {
     bin: "bash",
     baseArgs: ["/srv/refusion-core/utils/scripts/git/gitrepo"],

@@ -98,6 +98,23 @@ const GROUPS: Group[] = [
         ],
         glow: "cyan",
       },
+      {
+        id: "gen-favicons",
+        label: "Generate Favicons",
+        description: "Build a full favicon set (favicon.ico 16/32/48 + icon + apple + android-chrome + webmanifest) from a logo, with an optional circular black outline a little bigger than the design.",
+        script: "gen-favicons",
+        buildArgs: (v) => {
+          const args = ["--logo", String(v.logo ?? ""), "--out", String(v.out ?? "")];
+          args.push(v.ring === "no" ? "--no-ring" : "--ring");
+          return args;
+        },
+        fields: [
+          { key: "logo", label: "Logo — file path or https URL", placeholder: "/srv/refusion-core/data/brand/tgv-logo-source.png", required: true, help: "A square-ish logo on a transparent background works best." },
+          { key: "out", label: "Output directory", placeholder: "/srv/refusion-core/clients/<site>/public", required: true, help: "For a Next.js app-router site, copy favicon.ico/icon.png/apple-icon.png into src/app/ and the android-chrome PNGs + manifest into public/." },
+          { key: "ring", label: "Circular black outline", type: "select", options: [{ value: "yes", label: "Add outline (a little bigger than the design)" }, { value: "no", label: "No outline" }], required: true, default: "yes" },
+        ],
+        glow: "gold",
+      },
     ],
   },
   {
