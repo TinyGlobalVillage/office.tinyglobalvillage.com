@@ -22,6 +22,7 @@ import {
   ModalBody,
 } from "@/app/styled";
 import NeonX from "../NeonX";
+import { StarIcon } from "../icons";
 
 type Member = { id: string; email: string; name: string | null; role: string | null };
 type MemberFull = Member & {
@@ -324,11 +325,14 @@ export default function MemberLookupModal({ onClose }: { onClose: () => void }) 
                             onClick={() => void toggleFounding(s)}
                             title="Yellow Pages founding member — unlimited free listings"
                           >
-                            {foundingBusy === s.id
-                              ? "…"
-                              : s.founding_active
-                                ? "★ Founding"
-                                : "☆ Make founding"}
+                            {foundingBusy === s.id ? (
+                              "…"
+                            ) : (
+                              <>
+                                <StarIcon size={12} />
+                                {s.founding_active ? "Founding" : "Make founding"}
+                              </>
+                            )}
                           </FoundingBtn>
                         </SiteRow>
                       ))}
@@ -630,6 +634,9 @@ const SiteMeta = styled.div`
 `;
 const FoundingBtn = styled.button<{ $on: boolean }>`
   flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
   padding: 0.3rem 0.7rem;
   font-size: 0.72rem;
   font-weight: 700;
