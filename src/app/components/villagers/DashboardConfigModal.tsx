@@ -42,6 +42,7 @@ const FEATURE_LABELS: Record<string, string> = {
   "domain-console": "Domain Console",
   payments: "Payments",
   wallet: "Wallet",
+  support: "Staff Support",
 };
 const labelFor = (k: string) => FEATURE_LABELS[k] ?? k;
 

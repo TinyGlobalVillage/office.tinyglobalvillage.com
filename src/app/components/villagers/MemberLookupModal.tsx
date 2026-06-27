@@ -63,6 +63,26 @@ type SavedCard = {
   // the card cannot be charged). Gates the per-card "Charge" button.
   chargeAuthorizedAt: string | null;
 };
+type ArchiveTicket = {
+  id: string;
+  status: string;
+  subject: string | null;
+  openedAt: string | null;
+  closedAt: string | null;
+  messageCount: number;
+  closedByName: string | null;
+};
+type ArchiveMessage = {
+  id: string;
+  authorKind: string;
+  authorName: string | null;
+  body: string;
+  createdAt: string;
+};
+type ArchiveDetail = {
+  ticket: { id: string; status: string; requesterName: string | null; requesterEmail: string; assignedName: string | null; openedAt: string | null; closedAt: string | null };
+  messages: ArchiveMessage[];
+};
 
 const fmtDate = (v: string | null | undefined) =>
   v ? new Date(v).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" }) : "—";
@@ -79,6 +99,10 @@ export default function MemberLookupModal({ onClose }: { onClose: () => void }) 
   const [cards, setCards] = useState<SavedCard[] | null>(null);
   // The card the operator is charging (opens ChargeCardModal); null = closed.
   const [chargeTarget, setChargeTarget] = useState<SavedCard | null>(null);
+  // Support Tickets archive (read-only, per villager).
+  const [tickets, setTickets] = useState<ArchiveTicket[] | null>(null);
+  const [openTicket, setOpenTicket] = useState<ArchiveDetail | null>(null);
+  const [loadingTicket, setLoadingTicket] = useState<string | null>(null);
 
   // Billing form (initialised from the loaded profile).
   const [planInterval, setPlanInterval] = useState("");
@@ -121,6 +145,8 @@ export default function MemberLookupModal({ onClose }: { onClose: () => void }) 
   const loadProfile = useCallback(async (memberUserId: string) => {
     setProfile(null);
     setCards(null);
+    setTickets(null);
+    setOpenTicket(null);
     setMsg(null);
     const res = await fetch(
       `/api/admin/villagers/member-profile?memberUserId=${memberUserId}`,
@@ -149,8 +175,30 @@ export default function MemberLookupModal({ onClose }: { onClose: () => void }) 
       } catch {
         setCards([]);
       }
+      // Support tickets archive — best-effort; never blocks the profile.
+      try {
+        const tRes = await fetch(
+          `/api/admin/villagers/support-tickets?memberUserId=${memberUserId}`,
+          { cache: "no-store" },
+        );
+        const td = await tRes.json().catch(() => ({}));
+        setTickets(tRes.ok && td.ok && Array.isArray(td.tickets) ? td.tickets : []);
+      } catch {
+        setTickets([]);
+      }
     } else {
       setMsg({ kind: "err", text: d.error ?? `Couldn't load member (HTTP ${res.status}).` });
+    }
+  }, []);
+
+  const openArchiveTicket = useCallback(async (id: string) => {
+    setLoadingTicket(id);
+    try {
+      const res = await fetch(`/api/admin/villagers/support-ticket/${id}`, { cache: "no-store" });
+      const d = await res.json().catch(() => ({}));
+      if (res.ok && d.ok) setOpenTicket({ ticket: d.ticket, messages: d.messages ?? [] });
+    } finally {
+      setLoadingTicket(null);
     }
   }, []);
 
@@ -418,6 +466,70 @@ export default function MemberLookupModal({ onClose }: { onClose: () => void }) 
                   />
                 )}
 
+                {/* Support Tickets archive (read-only) */}
+                <Card>
+                  <SectionTitle>Support Tickets</SectionTitle>
+                  {openTicket ? (
+                    <>
+                      <ArchBar>
+                        <ArchBack type="button" onClick={() => setOpenTicket(null)}>
+                          ← All tickets
+                        </ArchBack>
+                        <ArchBarSub>
+                          {openTicket.ticket.status}
+                          {openTicket.ticket.assignedName ? ` · ${openTicket.ticket.assignedName}` : ""}
+                        </ArchBarSub>
+                      </ArchBar>
+                      <ArchScroll>
+                        {openTicket.messages.map((m) => {
+                          const staff = m.authorKind === "staff";
+                          return (
+                            <ArchMsg key={m.id} $staff={staff}>
+                              <ArchWho>
+                                {m.authorKind === "villager"
+                                  ? openTicket.ticket.requesterName || "Villager"
+                                  : staff
+                                    ? m.authorName || "Staff"
+                                    : "Auto"}
+                              </ArchWho>
+                              <ArchBubble $staff={staff}>{m.body}</ArchBubble>
+                            </ArchMsg>
+                          );
+                        })}
+                      </ArchScroll>
+                    </>
+                  ) : tickets === null ? (
+                    <Dim>Loading tickets…</Dim>
+                  ) : tickets.length === 0 ? (
+                    <Dim>No support conversations.</Dim>
+                  ) : (
+                    <SiteList>
+                      {tickets.map((t) => (
+                        <TicketRow
+                          key={t.id}
+                          type="button"
+                          disabled={loadingTicket === t.id}
+                          onClick={() => void openArchiveTicket(t.id)}
+                        >
+                          <TicketTop>
+                            <TicketSubj>{t.subject || "Support conversation"}</TicketSubj>
+                            <TStatus $complete={t.status === "complete"}>{t.status}</TStatus>
+                          </TicketTop>
+                          <TicketMeta>
+                            {fmtDate(t.openedAt)} · {t.messageCount} message
+                            {t.messageCount === 1 ? "" : "s"}
+                            {t.closedByName ? ` · closed by ${t.closedByName}` : ""}
+                          </TicketMeta>
+                        </TicketRow>
+                      ))}
+                    </SiteList>
+                  )}
+                  <HelpNote>
+                    Read-only archive of every support conversation this villager had with staff —
+                    including which staff member replied (quality/training record).
+                  </HelpNote>
+                </Card>
+
                 {/* Billing intent */}
                 <Card>
                   <SectionTitle>Billing</SectionTitle>
@@ -643,6 +755,104 @@ const ChargeRowBtn = styled.button`
     cursor: not-allowed;
   }
 `;
+// ── Support Tickets archive ──────────────────────────────────────────────────
+const TicketRow = styled.button`
+  appearance: none;
+  cursor: pointer;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.55rem 0.7rem;
+  border-radius: 0.45rem;
+  background: rgba(${rgb.cyan}, 0.04);
+  border: 1px solid rgba(${rgb.cyan}, 0.18);
+  &:hover:not(:disabled) {
+    background: rgba(${rgb.cyan}, 0.1);
+  }
+  &:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+`;
+const TicketTop = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+`;
+const TicketSubj = styled.span`
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--t-text);
+`;
+const TStatus = styled.span<{ $complete: boolean }>`
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+  color: ${(p) => (p.$complete ? "var(--t-textGhost)" : "#34d399")};
+  background: ${(p) => (p.$complete ? "rgba(255,255,255,0.06)" : "rgba(16,185,129,0.14)")};
+  border: 1px solid ${(p) => (p.$complete ? "var(--t-border)" : "rgba(16,185,129,0.4)")};
+`;
+const TicketMeta = styled.span`
+  font-size: 0.7rem;
+  color: var(--t-textGhost);
+`;
+const ArchBar = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+`;
+const ArchBack = styled.button`
+  appearance: none;
+  cursor: pointer;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: ${colors.cyan};
+  background: transparent;
+  border: none;
+`;
+const ArchBarSub = styled.span`
+  font-size: 0.7rem;
+  color: var(--t-textGhost);
+`;
+const ArchScroll = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  max-height: 40vh;
+  overflow-y: auto;
+  padding: 0.4rem 0.1rem;
+`;
+const ArchMsg = styled.div<{ $staff: boolean }>`
+  display: flex;
+  flex-direction: column;
+  align-items: ${(p) => (p.$staff ? "flex-end" : "flex-start")};
+  gap: 0.12rem;
+`;
+const ArchWho = styled.span`
+  font-size: 0.58rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--t-textGhost);
+`;
+const ArchBubble = styled.div<{ $staff: boolean }>`
+  max-width: 85%;
+  padding: 0.4rem 0.6rem;
+  border-radius: 0.65rem;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: ${(p) => (p.$staff ? "#04161a" : "var(--t-text)")};
+  background: ${(p) => (p.$staff ? `rgba(${rgb.cyan}, 0.9)` : "var(--t-inputBg)")};
+  border: 1px solid ${(p) => (p.$staff ? "transparent" : "var(--t-border)")};
+`;
+
 const MemberHead = styled.div`
   display: flex;
   align-items: center;

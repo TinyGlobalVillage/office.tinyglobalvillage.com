@@ -16,6 +16,7 @@ import PhoneTab from "./frontdesk/PhoneTab";
 import SmsTab from "./frontdesk/SmsTab";
 import ContactsTab from "./frontdesk/ContactsTab";
 import AlertsTab from "./frontdesk/AlertsTab";
+import TicketsTab from "./frontdesk/TicketsTab";
 import FrontDeskShiftBar from "./frontdesk/FrontDeskShiftBar";
 import {
   DrawerFrontDeskIcon,
@@ -23,6 +24,7 @@ import {
   ChatIcon,
   ContactIcon,
   DrawerAlertsIcon,
+  DrawerInboxIcon,
 } from "./icons";
 import NeonX from "./NeonX";
 import { useKnobVisibility } from "../lib/drawerKnobs";
@@ -34,8 +36,8 @@ const MAX_W = 1400;
 const DEFAULT_W = 640;
 const DRAWER_ID = "frontdesk";
 
-type FrontDeskTab = "phone" | "sms" | "contacts" | "alerts";
-const TAB_ORDER: FrontDeskTab[] = ["phone", "sms", "contacts", "alerts"];
+type FrontDeskTab = "phone" | "sms" | "contacts" | "alerts" | "tickets";
+const TAB_ORDER: FrontDeskTab[] = ["phone", "sms", "contacts", "alerts", "tickets"];
 
 // Alphabetical stack with Alerts slot (gold, ~20% from top).
 function getDefaultTabY() {
@@ -300,6 +302,7 @@ const TAB_META: Record<FrontDeskTab, { label: string; Icon: React.ComponentType<
   sms:      { label: "SMS",      Icon: ChatIcon },
   contacts: { label: "Contacts", Icon: ContactIcon },
   alerts:   { label: "Alerts",   Icon: DrawerAlertsIcon },
+  tickets:  { label: "Tickets",  Icon: DrawerInboxIcon },
 };
 
 // ── Component ────────────────────────────────────────────────────
@@ -584,6 +587,7 @@ export default function FrontDeskDrawer() {
           {activeTab === "sms" && <SmsTab />}
           {activeTab === "contacts" && <ContactsTab />}
           {activeTab === "alerts" && <AlertsTab />}
+          {activeTab === "tickets" && <TicketsTab />}
         </ContentWrap>
 
         {!fullscreen && <Resize $anchor={anchor} onMouseDown={onResizeStart} title="Drag to resize" />}
