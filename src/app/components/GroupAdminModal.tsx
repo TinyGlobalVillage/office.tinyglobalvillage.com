@@ -5,6 +5,7 @@ import styled from "styled-components";
 import { colors, rgb } from "../theme";
 import { UserAvatar, type MemberProfile } from "./ChatSettingsModal";
 import { CancelIcon, TrashIcon } from "./icons";
+import AddmToggle from "@tgv/module-component-library/components/ui/AddmToggle";
 
 type Visibility = "open" | "restricted" | "invisible";
 
@@ -253,28 +254,6 @@ const ADLCount = styled.span`
   color: rgba(${rgb.green}, 0.55);
   font-weight: 600;
 `;
-const ADLSwitchTrack = styled.span<{ $on: boolean }>`
-  position: relative;
-  display: inline-block;
-  width: 28px; height: 14px;
-  border-radius: 999px;
-  border: 1px solid ${p => p.$on ? `rgba(${rgb.green}, 0.7)` : "var(--t-borderStrong)"};
-  background: ${p => p.$on ? `rgba(${rgb.green}, 0.2)` : "var(--t-inputBg)"};
-  box-shadow: ${p => p.$on ? `0 0 8px rgba(${rgb.green}, 0.45)` : "none"};
-  transition: all 0.18s;
-`;
-const ADLSwitchThumb = styled.span<{ $on: boolean }>`
-  position: absolute;
-  top: 1px;
-  left: ${p => p.$on ? "15px" : "1px"};
-  width: 10px; height: 10px;
-  border-radius: 50%;
-  background: ${p => p.$on ? colors.green : "var(--t-textFaint)"};
-  box-shadow: ${p => p.$on
-    ? `0 0 8px rgba(${rgb.green}, 0.85), 0 0 2px rgba(${rgb.green}, 1)`
-    : "0 1px 2px rgba(0,0,0,0.3)"};
-  transition: all 0.18s;
-`;
 const ADLBody = styled.div<{ $open: boolean }>`
   display: ${p => p.$open ? "block" : "none"};
   padding: 0.75rem 0.25rem 0.25rem;
@@ -292,9 +271,7 @@ function ADLSection({ label, count, defaultOpen, children }: {
       <ADLHeader $open={open} onClick={() => setOpen(v => !v)} aria-expanded={open}>
         <ADLLabel>{label}</ADLLabel>
         {typeof count === "number" && <ADLCount>{count}</ADLCount>}
-        <ADLSwitchTrack $on={open}>
-          <ADLSwitchThumb $on={open} />
-        </ADLSwitchTrack>
+        <AddmToggle open={open} />
       </ADLHeader>
       <ADLBody $open={open}>{children}</ADLBody>
     </div>

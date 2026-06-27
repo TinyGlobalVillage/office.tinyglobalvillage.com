@@ -25,6 +25,7 @@ import {
 } from "../styled";
 import NeonX from "./NeonX";
 import Tooltip from "./ui/Tooltip";
+import AddmToggle from "@tgv/module-component-library/components/ui/AddmToggle";
 import { renderMarkdown } from "@/lib/markdown";
 
 type ScriptEntry = {
@@ -230,12 +231,6 @@ const ADLBlurb = styled.span`
   line-height: 1.4;
 `;
 
-const ADLChevron = styled.span<{ $open: boolean }>`
-  color: var(--t-textFaint);
-  font-size: 0.7rem;
-  transform: rotate(${(p) => (p.$open ? "90deg" : "0deg")});
-  transition: transform 0.15s;
-`;
 
 const ADLBody = styled.div<{ $open: boolean }>`
   max-height: ${(p) => (p.$open ? "60vh" : "0")};
@@ -422,7 +417,7 @@ export default function PlaybookLibraryModal({ onClose }: { onClose: () => void 
                               <span>{s.name}</span>
                               <ADLBlurb>{s.summary || "—"}</ADLBlurb>
                             </ADLLabel>
-                            <ADLChevron $open={isOpen}>▶</ADLChevron>
+                            <AddmToggle open={isOpen} />
                           </ADLHeader>
                           <ADLBody $open={isOpen}>
                             {isOpen && (

@@ -12,6 +12,7 @@ import { signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useModalLifecycle, getAutoHide, setAutoHide } from "@/app/lib/drawerKnobs";
 import { clearAllDrawerState } from "@/app/lib/drawerPersist";
+import AddmToggle from "@tgv/module-component-library/components/ui/AddmToggle";
 
 const DEV_DRAWER_KEY = "dev-drawer-on";
 const DEV_SWITCHER_ENABLED =
@@ -992,9 +993,7 @@ function ADLSection({
         <ADLLabel>{label}</ADLLabel>
         <PreviewSaved data-visible={saved}>Saved</PreviewSaved>
         {typeof count === "number" && <ADLCount>{count}</ADLCount>}
-        <ADLSwitchTrack $on={open} aria-hidden="true">
-          <ADLSwitchThumb $on={open} />
-        </ADLSwitchTrack>
+        <AddmToggle open={open} />
       </ADLHeader>
       <ADLBody $open={open}>{children}</ADLBody>
     </ADLWrap>

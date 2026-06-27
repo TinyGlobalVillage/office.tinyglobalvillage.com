@@ -6,6 +6,7 @@ import { colors, rgb } from "../../theme";
 
 import dynamic from "next/dynamic";
 import TPG from "@tgv/module-component-library/components/ui/TPG";
+import AddmToggle from "@tgv/module-component-library/components/ui/AddmToggle";
 import {
   CATALOG_SANDBOX_ENTRIES,
   CATALOG_CATEGORIES,
@@ -2571,34 +2572,6 @@ const AdlCountDemo = styled.span`
   font-weight: 600;
 `;
 
-const AdlSwitchTrackDemo = styled.span<{ $on: boolean }>`
-  position: relative;
-  display: inline-block;
-  width: 28px;
-  height: 14px;
-  border-radius: 999px;
-  border: 1px solid ${(p) => (p.$on ? "rgba(255, 78, 203, 0.7)" : "rgba(255,255,255,0.2)")};
-  background: ${(p) => (p.$on ? "rgba(255, 78, 203, 0.2)" : "rgba(255,255,255,0.05)")};
-  box-shadow: ${(p) => (p.$on ? "0 0 8px rgba(255, 78, 203, 0.45)" : "none")};
-  transition: all 0.18s;
-  flex-shrink: 0;
-`;
-
-const AdlSwitchThumbDemo = styled.span<{ $on: boolean }>`
-  position: absolute;
-  top: 1px;
-  left: ${(p) => (p.$on ? "15px" : "1px")};
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: ${(p) => (p.$on ? "#ff4ecb" : "rgba(255,255,255,0.35)")};
-  box-shadow: ${(p) =>
-    p.$on
-      ? "0 0 8px rgba(255, 78, 203, 0.85), 0 0 2px rgba(255, 78, 203, 1)"
-      : "0 1px 2px rgba(0,0,0,0.3)"};
-  transition: all 0.18s;
-`;
-
 const AdlBodyDemo = styled.div<{ $open: boolean }>`
   display: ${(p) => (p.$open ? "flex" : "none")};
   flex-direction: column;
@@ -2622,9 +2595,7 @@ function AdlDemoGroup({ label, items, defaultOpen }: { label: string; items: str
       <AdlHeaderDemo $open={open} aria-expanded={open} onClick={() => setOpen((o) => !o)}>
         <AdlLabelDemo>{label}</AdlLabelDemo>
         <AdlCountDemo>{items.length}</AdlCountDemo>
-        <AdlSwitchTrackDemo $on={open} aria-hidden="true">
-          <AdlSwitchThumbDemo $on={open} />
-        </AdlSwitchTrackDemo>
+        <AddmToggle open={open} />
       </AdlHeaderDemo>
       <AdlBodyDemo $open={open}>
         {items.map((it) => <AdlBodyItem key={it}>{it}</AdlBodyItem>)}

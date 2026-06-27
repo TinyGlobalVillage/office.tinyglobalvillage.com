@@ -49,6 +49,15 @@ type Billing = {
   updated_by: string | null;
 };
 type Profile = { member: MemberFull; sites: Site[]; billing: Billing | null };
+type SavedCard = {
+  id: string;
+  brand: string | null;
+  last4: string | null;
+  expMonth: number | null;
+  expYear: number | null;
+  cardholderName: string | null;
+  isDefault: boolean;
+};
 
 const fmtDate = (v: string | null | undefined) =>
   v ? new Date(v).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" }) : "—";
@@ -62,6 +71,7 @@ export default function MemberLookupModal({ onClose }: { onClose: () => void }) 
   const [selected, setSelected] = useState<Member | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [foundingBusy, setFoundingBusy] = useState<string | null>(null);
+  const [cards, setCards] = useState<SavedCard[] | null>(null);
 
   // Billing form (initialised from the loaded profile).
   const [planInterval, setPlanInterval] = useState("");
@@ -103,6 +113,7 @@ export default function MemberLookupModal({ onClose }: { onClose: () => void }) 
 
   const loadProfile = useCallback(async (memberUserId: string) => {
     setProfile(null);
+    setCards(null);
     setMsg(null);
     const res = await fetch(
       `/api/admin/villagers/member-profile?memberUserId=${memberUserId}`,
@@ -120,6 +131,17 @@ export default function MemberLookupModal({ onClose }: { onClose: () => void }) 
       );
       setWaiverUntil(toDateInput(b?.waiver_until));
       setNotifyToPay(b?.notify_to_pay ?? false);
+      // Saved cards — display-only (brand + last4). Best-effort; never blocks the profile.
+      try {
+        const cardsRes = await fetch(
+          `/api/admin/villagers/payment-methods?memberUserId=${memberUserId}`,
+          { cache: "no-store" },
+        );
+        const cd = await cardsRes.json().catch(() => ({}));
+        setCards(cardsRes.ok && cd.ok && Array.isArray(cd.cards) ? cd.cards : []);
+      } catch {
+        setCards([]);
+      }
     } else {
       setMsg({ kind: "err", text: d.error ?? `Couldn't load member (HTTP ${res.status}).` });
     }
@@ -314,6 +336,37 @@ export default function MemberLookupModal({ onClose }: { onClose: () => void }) 
                   )}
                 </Card>
 
+                {/* Card on file (display-only — brand + last4) */}
+                <Card>
+                  <SectionTitle>Card on file</SectionTitle>
+                  {cards === null ? (
+                    <Dim>Loading cards…</Dim>
+                  ) : cards.length === 0 ? (
+                    <Dim>No card on file.</Dim>
+                  ) : (
+                    <SiteList>
+                      {cards.map((c) => (
+                        <CardRowEl key={c.id} $isDefault={c.isDefault}>
+                          <CardFace>
+                            {c.brand ?? "Card"} ···· {c.last4 ?? "****"}
+                            {c.expMonth && c.expYear ? (
+                              <CardExp>
+                                exp {String(c.expMonth).padStart(2, "0")}/
+                                {String(c.expYear).slice(-2)}
+                              </CardExp>
+                            ) : null}
+                          </CardFace>
+                          {c.isDefault && <CardDefault>DEFAULT</CardDefault>}
+                        </CardRowEl>
+                      ))}
+                    </SiteList>
+                  )}
+                  <HelpNote>
+                    Read-only — only the card brand + last 4 are shown (the full number is
+                    never stored). Charging a saved card is a separate operator action.
+                  </HelpNote>
+                </Card>
+
                 {/* Billing intent */}
                 <Card>
                   <SectionTitle>Billing</SectionTitle>
@@ -471,6 +524,39 @@ const Card = styled.div`
   border: 1px solid rgba(${rgb.gold}, 0.18);
   border-radius: 0.625rem;
   background: rgba(${rgb.gold}, 0.04);
+`;
+const CardRowEl = styled.div<{ $isDefault: boolean }>`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid ${(p) => (p.$isDefault ? "rgba(52,211,153,0.35)" : "var(--t-border)")};
+  border-radius: 0.45rem;
+  background: ${(p) => (p.$isDefault ? "rgba(16,185,129,0.08)" : "rgba(0,0,0,0.2)")};
+`;
+const CardFace = styled.div`
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--t-text);
+`;
+const CardExp = styled.span`
+  font-size: 0.68rem;
+  font-weight: 400;
+  color: var(--t-textFaint);
+`;
+const CardDefault = styled.span`
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+  background: rgba(16, 185, 129, 0.2);
+  color: #34d399;
 `;
 const MemberHead = styled.div`
   display: flex;

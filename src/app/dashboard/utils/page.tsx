@@ -27,6 +27,7 @@ import {
   Transcriber,
   useTranscriberJobs,
 } from "@tgv/module-transcriber";
+import AddmToggle from "@tgv/module-component-library/components/ui/AddmToggle";
 
 /* ── Types ────────────────────────────────────────────────────── */
 
@@ -700,12 +701,6 @@ const GroupSubtitle = styled.div`
   margin-top: 0.125rem;
 `;
 
-const GroupToggle = styled.span<{ $open: boolean }>`
-  font-size: 0.75rem;
-  color: var(--t-textGhost);
-  transition: transform 0.2s;
-  transform: ${(p) => (p.$open ? "rotate(180deg)" : "rotate(0deg)")};
-`;
 
 const GroupBody = styled.div<{ $color: string }>`
   padding: 0 1rem 1rem;
@@ -1207,7 +1202,7 @@ function GroupPanel({
           <GroupTitle $color={color}>{group.title}</GroupTitle>
           <GroupSubtitle>{group.subtitle}</GroupSubtitle>
         </div>
-        <GroupToggle $open={open}>▼</GroupToggle>
+        <AddmToggle open={open} />
       </GroupHeader>
 
       {open && (
@@ -1696,9 +1691,7 @@ function UtilsAdlSurface({
               {section.kind === "placeholder"
                 ? <AdlCountSoon $accent={accent}>soon</AdlCountSoon>
                 : <AdlCount $accent={accent}>{count}</AdlCount>}
-              <AdlSwitchTrack $on={open} $accent={accent} aria-hidden="true">
-                <AdlSwitchThumb $on={open} $accent={accent} />
-              </AdlSwitchTrack>
+              <AddmToggle open={open} />
             </AdlHeader>
 
             <AdlBody $open={open} $accent={accent}>

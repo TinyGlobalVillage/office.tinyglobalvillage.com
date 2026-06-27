@@ -24,6 +24,7 @@ import {
   CloseBtn,
 } from "../styled";
 import { renderMarkdown } from "@/lib/markdown";
+import AddmToggle from "@tgv/module-component-library/components/ui/AddmToggle";
 
 type SkillEntry = {
   slug: string;
@@ -140,13 +141,6 @@ const ADLSwitchThumb = styled.span<{ $on: boolean }>`
   transition: left 0.2s;
 `;
 
-const ADLChevron = styled.span<{ $open: boolean }>`
-  color: var(--t-textFaint);
-  font-size: 0.75rem;
-  transform: rotate(${(p) => (p.$open ? "90deg" : "0deg")});
-  transition: transform 0.15s;
-`;
-
 const ADLBody = styled.div<{ $open: boolean }>`
   max-height: ${(p) => (p.$open ? "60vh" : "0")};
   overflow-y: auto;
@@ -213,7 +207,7 @@ function ADL({ skill, enabled, open, onToggleEnabled, onToggleOpen, children }: 
         >
           <ADLSwitchThumb $on={enabled} />
         </ADLSwitchTrack>
-        <ADLChevron $open={open}>▶</ADLChevron>
+        <AddmToggle open={open} />
       </ADLHeader>
       <ADLBody $open={open}>{open && children}</ADLBody>
     </ADLWrap>

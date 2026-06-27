@@ -16,6 +16,7 @@ import {
   DrawerTitle,
 } from "../../styled";
 import SandboxIcon from "./SandboxIcon";
+import AddmToggle from "@tgv/module-component-library/components/ui/AddmToggle";
 import { REGISTRY, CATEGORIES, type SandboxEntry } from "./registry";
 import CatalogBlockEditor from "./CatalogBlockEditor";
 import ComponentPicker from "./ComponentPicker";
@@ -972,33 +973,6 @@ const AdlCount = styled.span`
   font-weight: 600;
 `;
 
-const AdlSwitchTrack = styled.span<{ $on: boolean }>`
-  position: relative;
-  display: inline-block;
-  width: 28px;
-  height: 14px;
-  border-radius: 999px;
-  border: 1px solid ${(p) => (p.$on ? `rgba(${PINK_RGB}, 0.7)` : "rgba(255,255,255,0.2)")};
-  background: ${(p) => (p.$on ? `rgba(${PINK_RGB}, 0.2)` : "rgba(255,255,255,0.05)")};
-  box-shadow: ${(p) => (p.$on ? `0 0 8px rgba(${PINK_RGB}, 0.45)` : "none")};
-  transition: all 0.18s;
-  flex-shrink: 0;
-`;
-
-const AdlSwitchThumb = styled.span<{ $on: boolean }>`
-  position: absolute;
-  top: 1px;
-  left: ${(p) => (p.$on ? "15px" : "1px")};
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: ${(p) => (p.$on ? PINK : "rgba(255,255,255,0.35)")};
-  box-shadow: ${(p) =>
-    p.$on
-      ? `0 0 8px rgba(${PINK_RGB}, 0.85), 0 0 2px rgba(${PINK_RGB}, 1)`
-      : "0 1px 2px rgba(0,0,0,0.3)"};
-  transition: all 0.18s;
-`;
 
 const AdlBody = styled.div<{ $open: boolean }>`
   display: ${(p) => (p.$open ? "block" : "none")};
@@ -3505,9 +3479,7 @@ export default function SandboxModal({
                     >
                       <AdlLabel>{cat}</AdlLabel>
                       <AdlCount>{items.length}</AdlCount>
-                      <AdlSwitchTrack $on={open} aria-hidden="true">
-                        <AdlSwitchThumb $on={open} />
-                      </AdlSwitchTrack>
+                      <AddmToggle open={open} />
                     </AdlHeader>
                     <AdlBody $open={open}>
                       <FileItemsWrap>
@@ -3540,9 +3512,7 @@ export default function SandboxModal({
                     <AdlCount>
                       {pageTemplatesLoading ? "…" : pageTemplates.length}
                     </AdlCount>
-                    <AdlSwitchTrack $on={pageTemplatesOpen} aria-hidden="true">
-                      <AdlSwitchThumb $on={pageTemplatesOpen} />
-                    </AdlSwitchTrack>
+                    <AddmToggle open={pageTemplatesOpen} />
                   </AdlHeader>
                   <AdlBody $open={pageTemplatesOpen}>
                     {pageTemplatesError && (
@@ -3665,9 +3635,7 @@ export default function SandboxModal({
                       <SectionIcon><SummaryIcon /></SectionIcon>
                       <SummaryLabel>Summary</SummaryLabel>
                       <Spacer />
-                      <AdlSwitchTrack $on={summaryOpen} aria-hidden="true">
-                        <AdlSwitchThumb $on={summaryOpen} />
-                      </AdlSwitchTrack>
+                      <AddmToggle open={summaryOpen} />
                     </SummaryTopRow>
                     <SummaryKeyRow>
                       <SummaryKey>
@@ -3719,9 +3687,7 @@ export default function SandboxModal({
                     <SectionIcon><PreviewIcon /></SectionIcon>
                     <SectionLabel>Preview</SectionLabel>
                     <Spacer />
-                    <AdlSwitchTrack $on={previewOpen} aria-hidden="true">
-                      <AdlSwitchThumb $on={previewOpen} />
-                    </AdlSwitchTrack>
+                    <AddmToggle open={previewOpen} />
                   </SectionHeaderBtn>
                   {previewOpen && (
                     <Viewport>
