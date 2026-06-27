@@ -23,6 +23,7 @@ import {
 } from "@/app/styled";
 import NeonX from "../NeonX";
 import { StarIcon } from "../icons";
+import ChargeCardModal from "./ChargeCardModal";
 
 type Member = { id: string; email: string; name: string | null; role: string | null };
 type MemberFull = Member & {
@@ -58,6 +59,9 @@ type SavedCard = {
   expYear: number | null;
   cardholderName: string | null;
   isDefault: boolean;
+  // ISO timestamp the member authorized off-session charges, or null ("needs authorization" —
+  // the card cannot be charged). Gates the per-card "Charge" button.
+  chargeAuthorizedAt: string | null;
 };
 
 const fmtDate = (v: string | null | undefined) =>
@@ -73,6 +77,8 @@ export default function MemberLookupModal({ onClose }: { onClose: () => void }) 
   const [profile, setProfile] = useState<Profile | null>(null);
   const [foundingBusy, setFoundingBusy] = useState<string | null>(null);
   const [cards, setCards] = useState<SavedCard[] | null>(null);
+  // The card the operator is charging (opens ChargeCardModal); null = closed.
+  const [chargeTarget, setChargeTarget] = useState<SavedCard | null>(null);
 
   // Billing form (initialised from the loaded profile).
   const [planInterval, setPlanInterval] = useState("");
@@ -340,7 +346,7 @@ export default function MemberLookupModal({ onClose }: { onClose: () => void }) 
                   )}
                 </Card>
 
-                {/* Card on file (display-only — brand + last4) */}
+                {/* Card on file — display + ad-hoc charge (consent-gated) */}
                 <Card>
                   <SectionTitle>Card on file</SectionTitle>
                   {cards === null ? (
@@ -349,27 +355,68 @@ export default function MemberLookupModal({ onClose }: { onClose: () => void }) 
                     <Dim>No card on file.</Dim>
                   ) : (
                     <SiteList>
-                      {cards.map((c) => (
-                        <CardRowEl key={c.id} $isDefault={c.isDefault}>
-                          <CardFace>
-                            {c.brand ?? "Card"} ···· {c.last4 ?? "****"}
-                            {c.expMonth && c.expYear ? (
-                              <CardExp>
-                                exp {String(c.expMonth).padStart(2, "0")}/
-                                {String(c.expYear).slice(-2)}
-                              </CardExp>
-                            ) : null}
-                          </CardFace>
-                          {c.isDefault && <CardDefault>DEFAULT</CardDefault>}
-                        </CardRowEl>
-                      ))}
+                      {cards.map((c) => {
+                        const authorized = !!c.chargeAuthorizedAt;
+                        return (
+                          <CardRowEl key={c.id} $isDefault={c.isDefault}>
+                            <CardFace>
+                              {c.brand ?? "Card"} ···· {c.last4 ?? "****"}
+                              {c.expMonth && c.expYear ? (
+                                <CardExp>
+                                  exp {String(c.expMonth).padStart(2, "0")}/
+                                  {String(c.expYear).slice(-2)}
+                                </CardExp>
+                              ) : null}
+                            </CardFace>
+                            <CardRowActions>
+                              {c.isDefault && <CardDefault>DEFAULT</CardDefault>}
+                              <AuthChip
+                                $on={authorized}
+                                title={
+                                  authorized
+                                    ? "Member authorized off-session charges on this card"
+                                    : "Member hasn't authorized charges on this card"
+                                }
+                              >
+                                {authorized ? "Authorized" : "Needs auth"}
+                              </AuthChip>
+                              <ChargeRowBtn
+                                type="button"
+                                disabled={!authorized}
+                                title={
+                                  authorized
+                                    ? "Charge this card"
+                                    : "Card needs member authorization before it can be charged"
+                                }
+                                onClick={() => setChargeTarget(c)}
+                              >
+                                Charge
+                              </ChargeRowBtn>
+                            </CardRowActions>
+                          </CardRowEl>
+                        );
+                      })}
                     </SiteList>
                   )}
                   <HelpNote>
-                    Read-only — only the card brand + last 4 are shown (the full number is
-                    never stored). Charging a saved card is a separate operator action.
+                    Only the card brand + last 4 are shown (the full number is never stored). A card
+                    can be charged ad-hoc only after the member authorized it in their wallet — the
+                    stored consent mandate. Charges fire immediately and are audit-logged.
                   </HelpNote>
                 </Card>
+
+                {chargeTarget && selected && (
+                  <ChargeCardModal
+                    memberUserId={selected.id}
+                    memberName={selected.name ?? selected.email}
+                    card={chargeTarget}
+                    onClose={() => setChargeTarget(null)}
+                    onCharged={() => {
+                      setChargeTarget(null);
+                      void loadProfile(selected.id);
+                    }}
+                  />
+                )}
 
                 {/* Billing intent */}
                 <Card>
@@ -561,6 +608,40 @@ const CardDefault = styled.span`
   border-radius: 999px;
   background: rgba(16, 185, 129, 0.2);
   color: #34d399;
+`;
+const CardRowActions = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+`;
+const AuthChip = styled.span<{ $on: boolean }>`
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+  background: ${(p) => (p.$on ? "rgba(16,185,129,0.18)" : `rgba(${rgb.gold}, 0.16)`)};
+  color: ${(p) => (p.$on ? "#34d399" : colors.gold)};
+`;
+const ChargeRowBtn = styled.button`
+  appearance: none;
+  cursor: pointer;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  padding: 0.25rem 0.6rem;
+  border-radius: 0.4rem;
+  border: 1px solid rgba(${rgb.gold}, 0.45);
+  background: rgba(${rgb.gold}, 0.12);
+  color: ${colors.gold};
+  transition: background 0.15s ease;
+  &:hover:not(:disabled) {
+    background: rgba(${rgb.gold}, 0.22);
+  }
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
 `;
 const MemberHead = styled.div`
   display: flex;

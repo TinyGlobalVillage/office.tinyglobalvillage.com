@@ -1,7 +1,9 @@
 // /api/admin/villagers/payment-methods — operator view of a member's saved cards.
 //
 // GET ?memberUserId=<uuid>
-//   → { ok, cards: [{ id, brand, last4, expMonth, expYear, cardholderName, isDefault }], hasCards }
+//   → { ok, cards: [{ id, brand, last4, expMonth, expYear, cardholderName, isDefault,
+//        chargeAuthorizedAt }], hasCards }
+//   chargeAuthorizedAt (null = "needs authorization") gates the operator "Charge saved card" action.
 //
 // Resolves the platform member → legacy card store entirely inside tgv_db:
 //   public.member_users.email  →  public.users (email bridge)  →  public.payment_methods
@@ -30,6 +32,7 @@ type CardRow = {
   exp_year: number | null;
   cardholder_name: string | null;
   is_default: boolean;
+  charge_authorized_at: string | Date | null;
 };
 
 export async function GET(req: NextRequest) {
@@ -47,13 +50,14 @@ export async function GET(req: NextRequest) {
   }
 
   const res = await db.execute(sql`
-    SELECT pm.id::text        AS id,
-           pm.brand           AS brand,
-           pm.last4           AS last4,
-           pm.exp_month       AS exp_month,
-           pm.exp_year        AS exp_year,
-           pm.cardholder_name AS cardholder_name,
-           pm.is_default      AS is_default
+    SELECT pm.id::text            AS id,
+           pm.brand               AS brand,
+           pm.last4               AS last4,
+           pm.exp_month           AS exp_month,
+           pm.exp_year            AS exp_year,
+           pm.cardholder_name     AS cardholder_name,
+           pm.is_default          AS is_default,
+           pm.charge_authorized_at AS charge_authorized_at
     FROM public.member_users mu
     JOIN public.users u            ON lower(u.email) = lower(mu.email)
     JOIN public.payment_methods pm ON pm.user_id = u.id
@@ -69,6 +73,10 @@ export async function GET(req: NextRequest) {
     expYear: r.exp_year,
     cardholderName: r.cardholder_name,
     isDefault: r.is_default,
+    // ISO string when authorized, null = "needs authorization" (can't be charged).
+    chargeAuthorizedAt: r.charge_authorized_at
+      ? new Date(r.charge_authorized_at).toISOString()
+      : null,
   }));
 
   return NextResponse.json({ ok: true, cards, hasCards: cards.length > 0 });
