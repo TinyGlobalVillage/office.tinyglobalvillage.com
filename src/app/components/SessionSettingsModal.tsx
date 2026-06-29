@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useEscapeToClose } from "@tgv/module-component-library/components/hooks/useEscapeToClose";
 import styled from "styled-components";
 import { colors, rgb } from "@/app/theme";
 import {
@@ -256,11 +257,7 @@ export default function SessionSettingsModal({
 
   useEffect(() => { load(); }, [load]);
 
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [onClose]);
+  useEscapeToClose({ open: true, onClose });
 
   const viewerIsAdmin =
     !!session && (isExec(me) || session.admins.includes(me));

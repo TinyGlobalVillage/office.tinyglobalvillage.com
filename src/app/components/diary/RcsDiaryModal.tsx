@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEscapeToClose } from "@tgv/module-component-library/components/hooks/useEscapeToClose";
 import styled from "styled-components";
 import { colors, rgb } from "@/app/theme";
 import {
@@ -522,13 +523,7 @@ export default function RcsDiaryModal({ onClose }: Props) {
     return () => clearTimeout(t);
   }, [search]);
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  useEscapeToClose({ open: true, onClose });
 
   const toggleDate = (date: string) => {
     setOpenDates((prev) => {

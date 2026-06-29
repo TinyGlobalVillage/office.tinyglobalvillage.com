@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import styled from "styled-components";
 import { colors, rgb, glowRgba } from "../../theme";
+import { useEscapeToClose } from "@tgv/module-component-library/components/hooks/useEscapeToClose";
 import { useModalLifecycle } from "../../lib/drawerKnobs";
 import {
   ModalBackdrop, ModalContainer, ModalHeader, ModalHeaderLeft,
@@ -180,6 +181,7 @@ const FormLabel = styled(AccentLabel).attrs({ $accent: "pink" as const })`
 
 export default function SuggestionBoxModal({ onClose }: { onClose: () => void }) {
   useModalLifecycle();
+  useEscapeToClose({ open: true, onClose });
   const [phase, setPhase] = useState<Phase>("form");
   const [featureName, setFeatureName] = useState("");
   const [description, setDescription] = useState("");
@@ -192,12 +194,6 @@ export default function SuggestionBoxModal({ onClose }: { onClose: () => void })
   const [fullscreen, setFullscreen] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") { e.stopPropagation(); onClose(); } };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [onClose]);
 
   useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
   useEffect(() => { if (phase === "chat" && !loading) inputRef.current?.focus(); }, [phase, loading]);

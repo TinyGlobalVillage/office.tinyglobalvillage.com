@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import styled from "styled-components";
 import { colors, rgb } from "../../theme";
+import { useEscapeToClose } from "@tgv/module-component-library/components/hooks/useEscapeToClose";
 import { ModalBackdrop, CloseBtn } from "../../styled";
 import { type AccountMeta } from "./AccountSwitcher";
 import NeonX from "../NeonX";
@@ -665,20 +666,11 @@ export default function ComposeModal({
   const [error, setError] = useState<string | null>(null);
   const toRef = useRef<HTMLInputElement>(null);
 
+  useEscapeToClose({ open: true, onClose });
+
   useEffect(() => {
     toRef.current?.focus();
   }, []);
-
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        e.stopPropagation();
-        onClose();
-      }
-    };
-    document.addEventListener("keydown", handler, { capture: true });
-    return () => document.removeEventListener("keydown", handler, { capture: true });
-  }, [onClose]);
 
   const parseAddresses = (raw: string): AddressEntry[] =>
     raw

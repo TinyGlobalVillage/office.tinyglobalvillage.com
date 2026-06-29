@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 import styled from "styled-components";
 import { colors, rgb } from "@/app/theme";
 import { useModalLifecycle } from "@/app/lib/drawerKnobs";
+import { useEscapeToClose } from "@tgv/module-component-library/components/hooks/useEscapeToClose";
 import {
   PanelBackdrop,
   Panel,
@@ -356,15 +357,8 @@ export default function LogsModal({
   initialTab?: TabMode;
 }) {
   useModalLifecycle();
+  useEscapeToClose({ open: true, onClose });
   const [tab, setTab] = useState<TabMode>(initialTab);
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
 
   const [liveDates, setLiveDates] = useState<LiveDate[]>([]);
   const [archiveDates, setArchiveDates] = useState<ArchiveDate[]>([]);

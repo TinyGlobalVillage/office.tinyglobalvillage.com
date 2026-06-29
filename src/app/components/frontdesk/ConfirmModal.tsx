@@ -10,8 +10,8 @@
  *   - "primary" — cyan accent, neutral confirm.
  */
 
-import { useEffect } from "react";
 import styled from "styled-components";
+import { useEscapeToClose } from "@tgv/module-component-library/components/hooks/useEscapeToClose";
 import { colors, rgb } from "../../theme";
 import {
   ModalBackdrop,
@@ -103,15 +103,7 @@ export default function ConfirmModal({
   onConfirm,
   onCancel,
 }: Props) {
-  // Esc to cancel.
-  useEffect(() => {
-    if (!open) return;
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onCancel();
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [open, onCancel]);
+  useEscapeToClose({ open, onClose: onCancel });
 
   if (!open) return null;
 
