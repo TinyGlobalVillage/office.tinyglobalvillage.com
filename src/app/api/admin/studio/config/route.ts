@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
 
 type PutBody = {
   globalKillswitch?: boolean;
-  tenant?: { memberId: string; enabled?: boolean };
+  tenant?: { memberId: string; enabled?: boolean; lateCancelWindowHours?: number | null };
 };
 
 export async function PUT(req: NextRequest) {
@@ -53,6 +53,7 @@ export async function PUT(req: NextRequest) {
   const current = readStudioConfig();
   const next: StudioEnablementConfig = {
     globalKillswitch: current.globalKillswitch,
+    lateCancelWindowHours: current.lateCancelWindowHours,
     perTenant: { ...current.perTenant },
   };
 
@@ -75,6 +76,33 @@ export async function PUT(req: NextRequest) {
       next.perTenant[id] = { ...cur, enabled: body.tenant.enabled };
       action = body.tenant.enabled ? "studio.tenant_enabled" : "studio.tenant_disabled";
       note = `Studio ${body.tenant.enabled ? "enabled" : "disabled"} for ${cur.label ?? id}`;
+    } else if (body.tenant.lateCancelWindowHours !== undefined) {
+      // Forfeiture window: a non-negative integer sets a per-tenant override; null clears it
+      // (the tenant then inherits the platform default).
+      const raw = body.tenant.lateCancelWindowHours;
+      const val =
+        raw === null
+          ? null
+          : typeof raw === "number" && Number.isFinite(raw) && raw >= 0
+            ? Math.floor(raw)
+            : undefined;
+      if (val === undefined) {
+        return NextResponse.json({ error: "invalid_window" }, { status: 400 });
+      }
+      if (val !== (cur.lateCancelWindowHours ?? null)) {
+        if (val === null) {
+          const copy = { ...cur };
+          delete copy.lateCancelWindowHours;
+          next.perTenant[id] = copy;
+        } else {
+          next.perTenant[id] = { ...cur, lateCancelWindowHours: val };
+        }
+        action = "studio.late_cancel_window_set";
+        note =
+          val === null
+            ? `Late-cancel window cleared for ${cur.label ?? id} (now platform default)`
+            : `Late-cancel window set to ${val}h for ${cur.label ?? id}`;
+      }
     }
   }
 

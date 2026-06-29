@@ -11,6 +11,7 @@
 // both straight from tgv_db. Writes: the enablement/killswitch (/api/admin/studio/config) to the
 // Office-owned shared config file the tenant dispatchers read via isStudioEnabled().
 
+import { useEffect, useState } from "react";
 import styled from "styled-components";
 import { colors, rgb } from "../../theme";
 import HardeningControlModal, { type HCMSection } from "../hardening/HardeningControlModal";
@@ -37,8 +38,8 @@ import {
 
 /* ── Contract (mirror of lib/studio-config + api/usage) ──────────────────────── */
 
-type TenantConfig = SuiteTenantBase;
-type StudioConfig = SuiteConfigBase<TenantConfig>;
+type TenantConfig = SuiteTenantBase & { lateCancelWindowHours?: number };
+type StudioConfig = SuiteConfigBase<TenantConfig> & { lateCancelWindowHours?: number };
 
 type UpcomingClass = { id: string; startAt: string; booked: number; capacity: number; name: string | null };
 
@@ -82,6 +83,7 @@ const AUDIT_KINDS = [
   "studio.killswitch_off",
   "studio.tenant_enabled",
   "studio.tenant_disabled",
+  "studio.late_cancel_window_set",
   "studio.booking",
   "studio.entitlement",
 ];
@@ -103,6 +105,110 @@ const Chip = styled.span<{ $warn?: boolean }>`
   background: ${(p) => (p.$warn ? `rgba(${rgb.red}, 0.1)` : "rgba(255,255,255,0.05)")};
   border: 1px solid ${(p) => (p.$warn ? `rgba(${rgb.red}, 0.3)` : `rgba(${rgb.gold}, 0.12)`)};
 `;
+
+const ForfRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin: 0.1rem 0 0.35rem;
+`;
+const NumInput = styled.input`
+  width: 5rem;
+  padding: 0.3rem 0.45rem;
+  background: var(--t-surface);
+  color: var(--t-text);
+  border: 1px solid rgba(${rgb.gold}, 0.35);
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-family: var(--font-geist-mono, monospace);
+`;
+const Unit = styled.span`
+  font-size: 0.72rem;
+  color: var(--t-textFaint);
+`;
+const SaveBtn = styled.button`
+  padding: 0.3rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: ${colors.gold};
+  background: rgba(${rgb.gold}, 0.14);
+  border: 1px solid rgba(${rgb.gold}, 0.45);
+  cursor: pointer;
+  &:hover:not(:disabled) {
+    background: rgba(${rgb.gold}, 0.24);
+  }
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+`;
+const ResetBtn = styled.button`
+  padding: 0.3rem 0.5rem;
+  border-radius: 6px;
+  font-size: 0.68rem;
+  color: var(--t-textFaint);
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  cursor: pointer;
+  &:hover:not(:disabled) {
+    color: var(--t-text);
+    border-color: rgba(255, 255, 255, 0.25);
+  }
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+`;
+
+/** One tenant's forfeiture-window editor: a number input + Save (enabled only when changed). */
+function ForfeitureRow({
+  label,
+  current,
+  globalDefault,
+  saving,
+  onSave,
+}: {
+  label: string;
+  current: number | undefined;
+  globalDefault: number;
+  saving: boolean;
+  onSave: (hours: number | null) => void;
+}) {
+  const effective = current ?? globalDefault;
+  const [val, setVal] = useState(String(effective));
+  // useState's initial arg is ignored on later renders, so after a save (the config refresh changes
+  // `current`) re-sync the field to the persisted value — otherwise it would show the stale value.
+  useEffect(() => {
+    setVal(String(current ?? globalDefault));
+  }, [current, globalDefault]);
+  const n = Math.floor(Number(val));
+  const dirty = val.trim() !== "" && Number.isFinite(n) && n >= 0 && n !== effective;
+  return (
+    <Card>
+      <CardHead>
+        <TenantName>{label}</TenantName>
+      </CardHead>
+      <ForfRow>
+        <NumInput type="number" min={0} step={1} value={val} onChange={(e) => setVal(e.target.value)} />
+        <Unit>hours</Unit>
+        <SaveBtn disabled={!dirty || saving} onClick={() => onSave(n)}>
+          {saving ? "Saving…" : "Save"}
+        </SaveBtn>
+        {current !== undefined && (
+          <ResetBtn type="button" disabled={saving} onClick={() => onSave(null)}>
+            Use default
+          </ResetBtn>
+        )}
+      </ForfRow>
+      <Dim>
+        Cancel within this window forfeits the class credit (no refund); a no-show forfeits the same.{" "}
+        {current === undefined ? `Using the platform default (${globalDefault}h).` : "Per-tenant override."}
+      </Dim>
+    </Card>
+  );
+}
 
 /* ── Component ────────────────────────────────────────────────────────────────── */
 
@@ -238,6 +344,26 @@ export default function StudioControlModal({ onClose }: StudioControlModalProps)
     );
   })();
 
+  /* ── Booking forfeiture (per-tenant late-cancel window) ── */
+  const globalDefault = config?.lateCancelWindowHours ?? 12; // mirrors DEFAULT_LATE_CANCEL_WINDOW_HOURS
+  const forfeitureBody = (
+    <Body>
+      {loading && <Dim>Loading…</Dim>}
+      {loadErr && <Err>Couldn&apos;t load config — {loadErr}</Err>}
+      {config &&
+        Object.entries(config.perTenant).map(([memberId, tc]) => (
+          <ForfeitureRow
+            key={memberId}
+            label={tc.label ?? memberId}
+            current={tc.lateCancelWindowHours}
+            globalDefault={globalDefault}
+            saving={saving}
+            onSave={(hours) => save({ tenant: { memberId, lateCancelWindowHours: hours } })}
+          />
+        ))}
+    </Body>
+  );
+
   /* ── Enablement & killswitch section (BOTTOM) — shared shell ── */
   const killBody = (
     <KillswitchSection<TenantConfig>
@@ -270,6 +396,17 @@ export default function StudioControlModal({ onClose }: StudioControlModalProps)
         "are still active (and the sessions still owed against them), the cross-tenant no-show rate, " +
         "and upcoming classes sitting at zero bookings (candidates to promote or cancel).",
       body: healthBody,
+    },
+    {
+      id: "forfeiture",
+      title: "Booking forfeiture",
+      qmbm:
+        "How late a customer can cancel before they forfeit the class credit. A cancel INSIDE this " +
+        "window (hours before the class starts) is a late-cancel — the consumed credit is lost with " +
+        "no refund; cancelling earlier returns the credit. A no-show forfeits the same way. Set it " +
+        "per tenant; a tenant with no value uses the platform default (12h). Lose-credit only — no " +
+        "extra wallet or token penalty.",
+      body: forfeitureBody,
     },
     {
       id: "enablement",

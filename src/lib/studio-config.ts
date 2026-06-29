@@ -23,10 +23,14 @@ export type StudioTenantConfig = {
   enabled: boolean;
   label?: string;
   schema: string;
+  /** Late-cancel/no-show forfeiture window (hours before start). Omit → platform default. */
+  lateCancelWindowHours?: number;
 };
 
 export type StudioEnablementConfig = {
   globalKillswitch: boolean;
+  /** Platform default forfeiture window (hours) when a tenant has none of its own. */
+  lateCancelWindowHours?: number;
   perTenant: Record<string, StudioTenantConfig>; // keyed by member_id
 };
 
@@ -60,7 +64,12 @@ export function readStudioConfig(): StudioEnablementConfig {
       parsed.perTenant && typeof parsed.perTenant === "object" && !Array.isArray(parsed.perTenant)
         ? (parsed.perTenant as Record<string, StudioTenantConfig>)
         : {};
-    return { globalKillswitch: parsed.globalKillswitch === true, perTenant };
+    return {
+      globalKillswitch: parsed.globalKillswitch === true,
+      lateCancelWindowHours:
+        typeof parsed.lateCancelWindowHours === "number" ? parsed.lateCancelWindowHours : undefined,
+      perTenant,
+    };
   } catch {
     // No file yet ⇒ hand back the seed so the console + analytics resolve on first open.
     return SEED_CONFIG;
