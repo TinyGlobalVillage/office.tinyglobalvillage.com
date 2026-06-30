@@ -22,7 +22,7 @@ import React from "react";
 import styled from "styled-components";
 import { findEntry } from "@/lib/domains/editor/component-library/registry";
 import { versionFor } from "@/lib/domains/editor/component-library/versions";
-import ADL from "@tgv/module-component-library/components/ui/ADL";
+import ADDM from "@tgv/module-component-library/components/ui/ADDM";
 import SBDM, { type SBDMItem } from "@tgv/module-component-library/components/ui/SBDM";
 import ComponentUpdateModal from "./ComponentUpdateModal";
 
@@ -282,7 +282,7 @@ export default function CatalogBlockEditor({
 
       {/* Scope & Deploy — shown/hidden by the modal's header Scope button. */}
       {showScope && (
-      <ADL label="Scope & Deploy" accent="pink" open={open.scope} onOpenChange={(o) => toggle("scope", o)}>
+      <ADDMlabel="Scope & Deploy" accent="pink" open={open.scope} onOpenChange={(o) => toggle("scope", o)}>
         <Row>
           <RowLabel>Editing:</RowLabel>
           <span style={{ ["--ddm-accent" as string]: "#ff4ecb", ["--ddm-accent-rgb" as string]: "255, 78, 203" }}>
@@ -330,24 +330,24 @@ export default function CatalogBlockEditor({
             </DeployBtn>
           )}
         </Controls>
-      </ADL>
+      </ADDM>
       )}
 
       {/* Preview — shown/hidden by the modal's header Preview button (showPreview);
           the ADL lightswitch collapses it while shown. */}
       {showPreview && (
-        <ADL label="Preview" accent="cyan" open={open.preview} onOpenChange={(o) => toggle("preview", o)}>
+        <ADDMlabel="Preview" accent="cyan" open={open.preview} onOpenChange={(o) => toggle("preview", o)}>
           <PreviewFrame>
             <PreviewBoundary>
               <Render props={props} />
             </PreviewBoundary>
           </PreviewFrame>
-        </ADL>
+        </ADDM>
       )}
 
       {/* Edit — shown/hidden by the modal's header Content button. */}
       {showEdit && (
-      <ADL label={EditorPanel ? "Edit · default content" : "Edit · default content (JSON)"} accent="gold" open={open.edit} onOpenChange={(o) => toggle("edit", o)}>
+      <ADDMlabel={EditorPanel ? "Edit · default content" : "Edit · default content (JSON)"} accent="gold" open={open.edit} onOpenChange={(o) => toggle("edit", o)}>
         <EditorScroll>
           {EditorPanel ? (
             <EditorPanel props={props} onChange={onPanelChange} />
@@ -358,7 +358,7 @@ export default function CatalogBlockEditor({
             </>
           )}
         </EditorScroll>
-      </ADL>
+      </ADDM>
       )}
 
       {showUpdate && scope.kind === "tenant" && loadedVersion != null && (
