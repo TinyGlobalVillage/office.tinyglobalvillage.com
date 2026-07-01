@@ -27,6 +27,7 @@
     "@tgv/module-calendar": "workspace:*",
     "@tgv/module-component-library": "workspace:*",
     "@tgv/module-consent": "workspace:*",
+    "@tgv/module-documenso": "workspace:*",
     "@tgv/module-page-editor": "workspace:*",
     "@tgv/module-inbox": "workspace:*",
     "@tgv/module-registry": "workspace:*",

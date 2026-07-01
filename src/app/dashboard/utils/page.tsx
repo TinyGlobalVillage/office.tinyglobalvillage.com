@@ -17,6 +17,7 @@ import FirewallControlModal from "../../components/hardening/firewall/FirewallCo
 import BackupsControlModal from "../../components/backups/BackupsControlModal";
 import MigrateSiteControlModal from "../../components/migrate/MigrateSiteControlModal";
 import DomainConsoleControlModal from "../../components/domain-console/DomainConsoleControlModal";
+import ESignControlModal from "../../components/esign/ESignControlModal";
 import AutomationsTab from "../../components/automations/AutomationsTab";
 import {
   TinyURLGenerator,
@@ -1594,6 +1595,7 @@ type UtilsAdlSurfaceProps = {
   onSaveDefaults: (actionId: string, defaults: Record<string, FieldValue>) => Promise<void>;
   onOpenBackups: () => void;
   onOpenMigrate: () => void;
+  onOpenEsign: () => void;
   onOpenDomainConsole: () => void;
   onOpenHardening: (kind: HardeningKind) => void;
   onOpenLinkTool: (kind: LinkTool) => void;
@@ -1603,7 +1605,7 @@ type UtilsAdlSurfaceProps = {
 
 function UtilsAdlSurface({
   sections, actionsById, isAdmin, overlay, onSaveDefaults,
-  onOpenBackups, onOpenMigrate, onOpenDomainConsole, onOpenHardening, onOpenLinkTool, onOpenTranscriber, onOpenTranscriptions,
+  onOpenBackups, onOpenMigrate, onOpenEsign, onOpenDomainConsole, onOpenHardening, onOpenLinkTool, onOpenTranscriber, onOpenTranscriptions,
 }: UtilsAdlSurfaceProps) {
   // Live transcription jobs — drives the per-job queued tiles + the badge
   // counter on the Transcriptions tile.
@@ -1722,6 +1724,23 @@ function UtilsAdlSurface({
                           Absorb a legacy site into TGV — per-surface fidelity (data import/drop ×
                           code reinvent/approximate/bespoke), AI halt-review, and the
                           refusionist-test1 dogfood. Lists live migration jobs.
+                        </HardeningTileSub>
+                      </HardeningTile>
+                    );
+                    if (tile.type === "esign") return (
+                      <HardeningTile key={i} type="button" onClick={onOpenEsign}>
+                        <HardeningTileTop>
+                          <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: "-2px", marginRight: 8 }}>
+                            <path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" />
+                            <path d="M14 3v6h6" />
+                            <path d="M8 16c2-3 4-3 6 0" />
+                          </svg>
+                          E-Sign Documents
+                        </HardeningTileTop>
+                        <HardeningTileSub>
+                          Send any document to any recipient — staff or external email — for electronic
+                          signature, for any purpose. Upload a PDF, email the signing link, and track
+                          sent → signed in the Activity outbox. Self-hosted Documenso (esign.tgv.com).
                         </HardeningTileSub>
                       </HardeningTile>
                     );
@@ -1959,6 +1978,7 @@ const LINKS_ORIGIN =
 type TileSpec =
   | { type: "backups" }
   | { type: "migrate" }
+  | { type: "esign" }
   | { type: "domain-console" }
   | { type: "telephony" }
   | { type: "tenant-apps" }
@@ -1996,6 +2016,9 @@ const SECTIONS: Section[] = [
     subtitle: "scaffold, start, and retire client projects",
     kind: "actions",
     actionIds: ["new-nextjs", "new-static", "start-client", "erase-project"] },
+  { id: "documents", title: "Documents / E-Sign", accent: "gold",
+    subtitle: "send any document to anyone for electronic signature — staff or external, for any purpose",
+    kind: "tiles", tiles: [{ type: "esign" }] },
   { id: "domain-console", title: "Domain Console", accent: "gold",
     subtitle: "TGV-operated domain platform — registrar test/live switch (pricing & transfers later)",
     kind: "tiles", tiles: [{ type: "domain-console" }] },
@@ -2375,6 +2398,7 @@ export default function UtilsPage() {
   const [openHardening, setOpenHardening] = useState<HardeningKind | null>(null);
   const [openBackups, setOpenBackups] = useState<boolean>(false);
   const [openMigrate, setOpenMigrate] = useState<boolean>(false);
+  const [openEsign, setOpenEsign] = useState<boolean>(false);
   const [openDomainConsole, setOpenDomainConsole] = useState<boolean>(false);
   const [openLinkTool, setOpenLinkTool] = useState<LinkTool | null>(null);
   const [qrSeed, setQrSeed] = useState<string>("");
@@ -2472,6 +2496,7 @@ export default function UtilsPage() {
           onSaveDefaults={saveDefaults}
           onOpenBackups={() => setOpenBackups(true)}
           onOpenMigrate={() => setOpenMigrate(true)}
+          onOpenEsign={() => setOpenEsign(true)}
           onOpenDomainConsole={() => setOpenDomainConsole(true)}
           onOpenHardening={(kind) => setOpenHardening(kind)}
           onOpenLinkTool={(kind) => {
@@ -2522,6 +2547,10 @@ export default function UtilsPage() {
 
       {openMigrate && (
         <MigrateSiteControlModal onClose={() => setOpenMigrate(false)} />
+      )}
+
+      {openEsign && (
+        <ESignControlModal onClose={() => setOpenEsign(false)} />
       )}
 
       {openDomainConsole && (

@@ -11,6 +11,7 @@ const nextConfig: NextConfig = {
     "@tgv/module-calendar",
     "@tgv/module-component-library",
     "@tgv/module-consent",
+    "@tgv/module-documenso",
     "@tgv/module-inbox",
     "@tgv/module-page-editor",
     "@tgv/module-relay",
