@@ -79,18 +79,29 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
   const [uploading, setUploading] = useState(false);
 
   const loadDocuments = useCallback(async () => {
-    const r = await fetch("/api/esign/documents");
-    const d = await r.json();
-    if (d?.ok) {
-      setConfigured(Boolean(d.configured));
-      setDocuments(d.documents ?? []);
-      setStaff(d.staff ?? []);
+    try {
+      const r = await fetch("/api/esign/documents");
+      const d = await r.json();
+      if (d?.ok) {
+        setConfigured(Boolean(d.configured));
+        setDocuments(d.documents ?? []);
+        setStaff(d.staff ?? []);
+      } else {
+        setMsg(d?.error ?? "Failed to load documents");
+      }
+    } catch {
+      setMsg("Failed to load documents (server error)");
     }
   }, []);
   const loadActivity = useCallback(async () => {
-    const r = await fetch("/api/esign/activity");
-    const d = await r.json();
-    if (d?.ok) setActivity(d.sends ?? []);
+    try {
+      const r = await fetch("/api/esign/activity");
+      const d = await r.json();
+      if (d?.ok) setActivity(d.sends ?? []);
+      else setMsg(d?.error ?? "Failed to load activity");
+    } catch {
+      setMsg("Failed to load activity (server error)");
+    }
   }, []);
 
   useEffect(() => {
