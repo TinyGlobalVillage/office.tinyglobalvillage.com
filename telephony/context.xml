@@ -82,12 +82,17 @@
     </extension>
 
     <!-- Internal: extension-to-extension calls within this tenant.
-         Auth-gated (telephony-security Item 5, 2026-05-02): only callers
-         with ${sip_authorized}=="true" (set in user/<id>.xml variables)
-         may reach this extension. Spoofed inbound trunk traffic does not
-         set this var and falls through. -->
+         Gate REVISED 2026-07-02 (was ${sip_authorized}, Item 5 2026-05-02):
+         sip.js v0.21 verifiably ABANDONS challenged INVITEs (FS log uuid
+         6e582edc: 407 sent → detach → "Abandoned" → WRONG_CALL_STATE), so
+         per-INVITE digest can't be required. Call authorization instead =
+         source must be the loopback WSS (only reachable through nginx
+         /sip-ws, which REQUIRES an Office login via auth_request) + REGISTER
+         is still digest-authed + UFW denies public 5060. Spoofed inbound
+         trunk traffic arrives from Telnyx IPs, not 127.0.0.1, and falls
+         through. -->
     <extension name="local-ext">
-      <condition field="${sip_authorized}" expression="^true$" break="on-false">
+      <condition field="${network_addr}" expression="^127\.0\.0\.1$" break="on-false">
         <condition field="destination_number" expression="^(10[0-9][0-9])$">
           <action application="bridge" data="user/$1@office.tinyglobalvillage.com"/>
         </condition>
@@ -106,14 +111,18 @@
          the bridge dial-string still scopes the b-leg explicitly; setting
          it as a channel variable locks the a-leg too, and late-negotiation
          will honor it when building the 200 OK SDP answer to the browser. -->
-    <!-- Auth-gated (telephony-security Item 5, 2026-05-02): only callers with
-         ${sip_authorized}=="true" (set in user/<id>.xml variables) may reach
-         the outbound bridge. Toll-fraud INVITEs from the public internet do
-         not set this variable, so even if a destination regex slips, the
-         attacker cannot reach the Telnyx bridge. This is the single most
-         important defense against toll fraud at the dialplan layer. -->
+    <!-- Gate REVISED 2026-07-02 (was ${sip_authorized}, Item 5 2026-05-02;
+         see local-ext comment for the sip.js 407 evidence): only calls
+         originating from the loopback WSS may reach the outbound bridge.
+         That path is unreachable without an Office login (nginx auth_request
+         on /sip-ws) and the softphone's REGISTER is still digest-authed.
+         Toll-fraud INVITEs from the public internet never arrive with
+         network_addr 127.0.0.1 (UFW denies public 5060; 5080 is Telnyx-CIDR
+         only), so even if a destination regex slips, an attacker cannot
+         reach the Telnyx bridge. This remains the most important defense
+         against toll fraud at the dialplan layer. -->
     <extension name="outbound-telnyx">
-      <condition field="${sip_authorized}" expression="^true$" break="on-false">
+      <condition field="${network_addr}" expression="^127\.0\.0\.1$" break="on-false">
         <condition field="destination_number" expression="^\+?(1?\d{10,})$">
         <action application="set" data="absolute_codec_string=PCMU,PCMA"/>
         <action application="set" data="ignore_early_media=ring_ready"/>
