@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
   if (gate instanceof NextResponse) return gate;
   const res = await db.execute(sql`
     select id, coalesce(client_name, domain, 'Tenant') as name, deploy_status
-      from members
+      from villager_sites
      order by coalesce(client_name, domain) asc
      limit 200`);
   return NextResponse.json({ tenants: res.rows });

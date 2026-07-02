@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
   const res = await db.execute(sql`
     select id, client_name, domain, env, stripe_mode, connected_account_id,
            contact->>'email' as contact_email
-      from members
+      from villager_sites
      where client_name ilike ${like} or domain ilike ${like}
      order by created_at desc
      limit 25
