@@ -2,7 +2,8 @@
 //
 // GET ?memberUserId=<uuid> → { member, sites, billing }
 //   member  = members core (incl. created_at = "Member since")
-//   sites   = the member's tenants (member_user_tenants → members) + per-site
+//   sites   = the member's tenants (villager + villager_clients → villager_sites;
+//             the B3 split of the old tenant-membership junction) + per-site
 //             Yellow Pages founding status (founding is keyed on members.id)
 //   billing = member_billing operator-intent row (null until set)
 //
@@ -82,7 +83,14 @@ export async function GET(req: NextRequest) {
            j.role                                            AS junction_role,
            j.status                                          AS junction_status,
            (f.member_id IS NOT NULL AND f.revoked_at IS NULL) AS founding_active
-    FROM public.member_user_tenants j
+    FROM (
+      SELECT member_user_id, site_id, 'owner' AS role, status, created_at FROM public.villager
+      UNION ALL
+      SELECT member_user_id, site_id,
+             CASE WHEN is_staff THEN 'staff' ELSE 'customer' END AS role,
+             status, created_at
+      FROM public.villager_clients
+    ) j
     JOIN public.villager_sites m ON m.id = j.site_id
     LEFT JOIN public.yellow_pages_founding_members f ON f.member_id = m.id
     WHERE j.member_user_id = ${memberUserId}
