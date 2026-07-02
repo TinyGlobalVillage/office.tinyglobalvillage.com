@@ -6,8 +6,8 @@
 // seam needed. Mirrors lib/studio-config.ts — but PayPal has NO db tables (the money lives entirely
 // in the tenant's own PayPal), so there's no `schema` field and no cross-schema GRANT wall.
 //
-// Keyed by an opaque TENANT KEY — a site slug ("resonantweaver.com") today, a member_id for a
-// future TGV-platform tenant. resonantweaver has no `members` row, so the key is NOT a member_id.
+// Keyed by an opaque TENANT KEY — a site slug ("resonantweaver.com") today, a site_id for a
+// future TGV-platform tenant. resonantweaver has no `members` row, so the key is NOT a site_id.
 import "server-only";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
@@ -25,7 +25,7 @@ export type PaypalTenantConfig = {
 
 export type PaypalEnablementConfig = {
   globalKillswitch: boolean;
-  perTenant: Record<string, PaypalTenantConfig>; // keyed by tenant key (site slug or member_id)
+  perTenant: Record<string, PaypalTenantConfig>; // keyed by tenant key (site slug or site_id)
 };
 
 export const PAYPAL_CONFIG_PATH =
@@ -86,7 +86,7 @@ export function writePaypalConfig(cfg: PaypalEnablementConfig): void {
   writeFileSync(PAYPAL_CONFIG_PATH, JSON.stringify(cfg, null, 2) + "\n", "utf8");
 }
 
-/** A stable tenant key: a site slug (lowercase host) or a member_id. Loose guard — printable,
+/** A stable tenant key: a site slug (lowercase host) or a site_id. Loose guard — printable,
  *  no whitespace, reasonable length — since it's a JSON object key, not interpolated into SQL. */
 export function isSafeTenantKey(s: string): boolean {
   return typeof s === "string" && /^[A-Za-z0-9._:-]{2,80}$/.test(s);

@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
 
 type PutBody = {
   globalKillswitch?: boolean;
-  tenant?: { memberId: string; enabled?: boolean; maxCourses?: number | null };
+  tenant?: { siteId: string; enabled?: boolean; maxCourses?: number | null };
 };
 
 export async function PUT(req: NextRequest) {
@@ -65,8 +65,8 @@ export async function PUT(req: NextRequest) {
     next.globalKillswitch = body.globalKillswitch;
     action = body.globalKillswitch ? "course.killswitch_on" : "course.killswitch_off";
     note = `Global course killswitch ${body.globalKillswitch ? "ENGAGED — all tenants blocked" : "released"}`;
-  } else if (body.tenant && typeof body.tenant.memberId === "string") {
-    const id = body.tenant.memberId;
+  } else if (body.tenant && typeof body.tenant.siteId === "string") {
+    const id = body.tenant.siteId;
     const cur = next.perTenant[id];
     if (!cur) return NextResponse.json({ error: "unknown_tenant" }, { status: 404 });
     targetId = id;

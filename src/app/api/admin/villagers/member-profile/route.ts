@@ -82,7 +82,7 @@ export async function GET(req: NextRequest) {
            m.deploy_status                                   AS deploy_status,
            j.role                                            AS junction_role,
            j.status                                          AS junction_status,
-           (f.member_id IS NOT NULL AND f.revoked_at IS NULL) AS founding_active
+           (f.site_id IS NOT NULL AND f.revoked_at IS NULL) AS founding_active
     FROM (
       SELECT member_user_id, site_id, 'owner' AS role, status, created_at FROM public.villager
       UNION ALL
@@ -92,7 +92,7 @@ export async function GET(req: NextRequest) {
       FROM public.villager_clients
     ) j
     JOIN public.villager_sites m ON m.id = j.site_id
-    LEFT JOIN public.yellow_pages_founding_members f ON f.member_id = m.id
+    LEFT JOIN public.yellow_pages_founding_members f ON f.site_id = m.id
     WHERE j.member_user_id = ${memberUserId}
     ORDER BY m.created_at ASC
   `);

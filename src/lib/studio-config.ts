@@ -6,7 +6,7 @@
 // box ⇒ no network seam needed (unlike the wallet config, which is tenant-owned money and goes
 // through the internal-secret proxy). Mirrors lib/course-config.ts.
 //
-// `perTenant[memberId].schema` is the Postgres schema that tenant's `studio_*` tables live in — the
+// `perTenant[siteId].schema` is the Postgres schema that tenant's `studio_*` tables live in — the
 // registry the cross-tenant analytics routes loop over. Office's pool has NO search_path, so those
 // reads MUST schema-qualify (`refusionist.studio_*`); the schema name is interpolated raw into SQL,
 // hence isSafeSchema().
@@ -31,7 +31,7 @@ export type StudioEnablementConfig = {
   globalKillswitch: boolean;
   /** Platform default forfeiture window (hours) when a tenant has none of its own. */
   lateCancelWindowHours?: number;
-  perTenant: Record<string, StudioTenantConfig>; // keyed by member_id
+  perTenant: Record<string, StudioTenantConfig>; // keyed by site_id
 };
 
 export const STUDIO_CONFIG_PATH =
@@ -40,7 +40,7 @@ export const STUDIO_CONFIG_PATH =
 // Seed registry — the two studio "Sites" live today. refusionist runs the FULL studio (its own
 // schema, real classes); tinyglobalvillage.com runs the appointments slice in the shared `public`
 // schema (the custom-help studio). New tenants are added here (or via a future "add tenant" action).
-// member_id mirrors each host's fixed venue constant.
+// site_id mirrors each host's fixed venue constant.
 export const SEED_CONFIG: StudioEnablementConfig = {
   globalKillswitch: false,
   perTenant: {

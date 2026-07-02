@@ -6,7 +6,7 @@
 //   2. Per-tenant performers activity — performers has no dedicated `performer_audit` table, so we
 //      synthesize a real feed from the data: recent gigs (the booking row) + the append-only
 //      `performer_earnings_ledger` (gig_gross / pool_share / split_adjust / payout / clawback). Both
-//      schema-qualified + member_id-scoped, each in its own try/catch (missing table / GRANT skipped).
+//      schema-qualified + site_id-scoped, each in its own try/catch (missing table / GRANT skipped).
 //
 // Read-only. Gated by requireAdmin.
 import { type NextRequest, NextResponse } from "next/server";
@@ -62,10 +62,10 @@ export async function GET(req: NextRequest) {
   // 2) per-tenant synthesized activity (gigs + earnings ledger)
   const cfg = readPerformersConfig();
   await Promise.all(
-    Object.entries(cfg.perTenant).map(async ([memberId, t]) => {
+    Object.entries(cfg.perTenant).map(async ([siteId, t]) => {
       if (!isSafeSchema(t.schema)) return;
       const sch = sql.raw(`"${t.schema}"`);
-      const mid = sql`${memberId}::uuid`;
+      const mid = sql`${siteId}::uuid`;
       const tenant = t.label ?? t.schema;
 
       // recent gigs
@@ -76,7 +76,7 @@ export async function GET(req: NextRequest) {
                    g.buyer_member_user_id::text as buyer, g.created_at
               from ${sch}.performer_gigs g
               left join ${sch}.performer_profiles p on p.id = g.performer_id
-             where g.member_id = ${mid}
+             where g.site_id = ${mid}
              order by g.created_at desc
              limit ${perSource}
           `)
@@ -111,7 +111,7 @@ export async function GET(req: NextRequest) {
                    p.stage_name as performer, l.actor_user_id::text as actor_user_id, l.created_at
               from ${sch}.performer_earnings_ledger l
               left join ${sch}.performer_profiles p on p.id = l.performer_id
-             where l.member_id = ${mid}
+             where l.site_id = ${mid}
              order by l.created_at desc
              limit ${perSource}
           `)

@@ -254,7 +254,7 @@ export default function MemberLookupModal({ onClose }: { onClose: () => void }) 
       const res = await fetch("/api/admin/members/founding", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ memberId: site.id, on: !site.founding_active }),
+        body: JSON.stringify({ siteId: site.id, on: !site.founding_active }),
       });
       const d = await res.json().catch(() => ({}));
       if (res.ok && d.ok) {

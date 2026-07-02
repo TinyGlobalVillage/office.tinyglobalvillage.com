@@ -31,8 +31,8 @@ export async function proxyManaged(
   const url = new URL(`${tgvBase()}/api/connect/managed/${opts.path}`);
   url.searchParams.set("env", env);
   if (opts.method === "GET") {
-    const memberId = inUrl.searchParams.get("memberId");
-    if (memberId) url.searchParams.set("memberId", memberId);
+    const siteId = inUrl.searchParams.get("siteId");
+    if (siteId) url.searchParams.set("siteId", siteId);
   }
 
   const init: RequestInit = {

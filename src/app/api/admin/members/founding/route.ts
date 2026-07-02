@@ -9,8 +9,8 @@
 //        (a) yellow_pages_founding_members rows  (source 'founding')
 //        (b) yellow_pages_role_bindings rows     (source 'site' — known tenant Sites)
 //        (c) public.villager_sites rows           (source 'tenant' — platform deployments)
-//        each as { member_id, label, source, active, revoked_at }.
-// POST { memberId, on, label?, note? } → mirrors applyFoundingToggle() in
+//        each as { site_id, label, source, active, revoked_at }.
+// POST { siteId, on, label?, note? } → mirrors applyFoundingToggle() in
 //        @tgv/module-yellow-pages/server/founding.ts (any change there MUST be
 //        applied here too — the engine carries the same warning):
 //        ON  = upsert + un-revoke + promote the member's 'token' listings to 'founding'
@@ -32,7 +32,7 @@ import { resolveAdminActorId } from "@/lib/admin-actor";
 export const runtime = "nodejs";
 
 type FoundingRow = {
-  member_id: string;
+  site_id: string;
   label: string;
   source: "founding" | "site" | "tenant";
   active: boolean;
@@ -46,14 +46,14 @@ export async function GET(req: NextRequest) {
   if (gate instanceof NextResponse) return gate;
 
   const res = await db.execute(sql`
-    SELECT f.member_id::text       AS member_id,
+    SELECT f.site_id::text       AS site_id,
            f.label                 AS label,
            'founding'::text        AS source,
            (f.revoked_at IS NULL)  AS active,
            f.revoked_at            AS revoked_at
     FROM public.yellow_pages_founding_members f
     UNION ALL
-    SELECT b.member_id::text,
+    SELECT b.site_id::text,
            regexp_replace(b.role_name, '_app$', ''),
            'site'::text,
            false,
@@ -61,7 +61,7 @@ export async function GET(req: NextRequest) {
     FROM public.yellow_pages_role_bindings b
     WHERE NOT EXISTS (
       SELECT 1 FROM public.yellow_pages_founding_members f
-      WHERE f.member_id = b.member_id
+      WHERE f.site_id = b.site_id
     )
     UNION ALL
     SELECT m.id::text,
@@ -72,11 +72,11 @@ export async function GET(req: NextRequest) {
     FROM public.villager_sites m
     WHERE NOT EXISTS (
       SELECT 1 FROM public.yellow_pages_founding_members f
-      WHERE f.member_id = m.id
+      WHERE f.site_id = m.id
     )
     AND NOT EXISTS (
       SELECT 1 FROM public.yellow_pages_role_bindings b
-      WHERE b.member_id = m.id
+      WHERE b.site_id = m.id
     )
     ORDER BY source ASC, label ASC
   `);
@@ -101,23 +101,23 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  let body: { memberId?: string; on?: boolean; label?: string; note?: string };
+  let body: { siteId?: string; on?: boolean; label?: string; note?: string };
   try {
     body = (await req.json()) as typeof body;
   } catch {
     return NextResponse.json({ ok: false, error: "Invalid JSON" }, { status: 400 });
   }
-  const memberId = (body.memberId ?? "").trim();
+  const siteId = (body.siteId ?? "").trim();
   const on = body.on;
-  if (!memberId || typeof on !== "boolean") {
+  if (!siteId || typeof on !== "boolean") {
     return NextResponse.json(
-      { ok: false, error: "memberId and on (boolean) are required" },
+      { ok: false, error: "siteId and on (boolean) are required" },
       { status: 400 },
     );
   }
-  if (!UUID_RE.test(memberId)) {
+  if (!UUID_RE.test(siteId)) {
     return NextResponse.json(
-      { ok: false, error: "memberId must be a uuid" },
+      { ok: false, error: "siteId must be a uuid" },
       { status: 400 },
     );
   }
@@ -130,7 +130,7 @@ export async function POST(req: NextRequest) {
     // Previous state for the audit `before` jsonb.
     const prevRes = await tx.execute(sql`
       SELECT revoked_at FROM public.yellow_pages_founding_members
-      WHERE member_id = ${memberId}
+      WHERE site_id = ${siteId}
     `);
     const prevRows =
       (prevRes as unknown as { rows?: { revoked_at: unknown }[] }).rows ?? [];
@@ -138,9 +138,9 @@ export async function POST(req: NextRequest) {
 
     if (on) {
       const insRes = await tx.execute(sql`
-        INSERT INTO public.yellow_pages_founding_members (member_id, label, note, created_by)
-        VALUES (${memberId}, ${label ?? "founding member"}, ${note}, ${gate.username})
-        ON CONFLICT (member_id) DO UPDATE SET
+        INSERT INTO public.yellow_pages_founding_members (site_id, label, note, created_by)
+        VALUES (${siteId}, ${label ?? "founding member"}, ${note}, ${gate.username})
+        ON CONFLICT (site_id) DO UPDATE SET
           revoked_at = NULL,
           label = COALESCE(${label}, public.yellow_pages_founding_members.label),
           note = COALESCE(${note}, public.yellow_pages_founding_members.note)
@@ -154,13 +154,13 @@ export async function POST(req: NextRequest) {
       await tx.execute(sql`
         UPDATE public.yellow_pages_listings
         SET billing = 'founding', updated_at = now()
-        WHERE member_id = ${memberId} AND billing = 'token'
+        WHERE site_id = ${siteId} AND billing = 'token'
       `);
       await tx.insert(schema.adminAuditLog).values({
         actorUserId,
         action: "yellow_pages.set_founding_member",
         targetType: "yp_member",
-        targetId: memberId,
+        targetId: siteId,
         before: { active: prevActive },
         after: { active: true, label: newLabel },
         note: `Founding toggle ON by Office admin ${gate.username}`,
@@ -171,7 +171,7 @@ export async function POST(req: NextRequest) {
     const updRes = await tx.execute(sql`
       UPDATE public.yellow_pages_founding_members
       SET revoked_at = now()
-      WHERE member_id = ${memberId} AND revoked_at IS NULL
+      WHERE site_id = ${siteId} AND revoked_at IS NULL
       RETURNING label
     `);
     const updRows =
@@ -182,7 +182,7 @@ export async function POST(req: NextRequest) {
     await tx.execute(sql`
       UPDATE public.yellow_pages_listings
       SET billing = 'token', updated_at = now()
-      WHERE member_id = ${memberId} AND billing = 'founding'
+      WHERE site_id = ${siteId} AND billing = 'founding'
     `);
     // Every member keeps ONE free listing: if the demote left them with none
     // (founding since before their first create → all rows were 'founding'),
@@ -192,17 +192,17 @@ export async function POST(req: NextRequest) {
       SET billing = 'free', updated_at = now()
       WHERE id = (
         SELECT id FROM public.yellow_pages_listings
-        WHERE member_id = ${memberId} AND billing = 'token'
+        WHERE site_id = ${siteId} AND billing = 'token'
         ORDER BY created_at ASC LIMIT 1)
       AND NOT EXISTS (
         SELECT 1 FROM public.yellow_pages_listings
-        WHERE member_id = ${memberId} AND billing = 'free')
+        WHERE site_id = ${siteId} AND billing = 'free')
     `);
     await tx.insert(schema.adminAuditLog).values({
       actorUserId,
       action: "yellow_pages.set_founding_member",
       targetType: "yp_member",
-      targetId: memberId,
+      targetId: siteId,
       before: { active: prevActive },
       after: { active: false, label: updRows[0].label },
       note: `Founding toggle OFF by Office admin ${gate.username}`,

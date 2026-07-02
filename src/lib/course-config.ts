@@ -5,7 +5,7 @@
 // to honour the operator killswitch with no restart. Same box ⇒ no network seam needed (unlike the
 // wallet config, which is tenant-owned money and goes through the internal-secret proxy).
 //
-// `perTenant[memberId].schema` is the Postgres schema that tenant's `course_*` tables live in — the
+// `perTenant[siteId].schema` is the Postgres schema that tenant's `course_*` tables live in — the
 // registry the cross-tenant analytics routes loop over. Office's pool has NO search_path, so those
 // reads MUST schema-qualify (`refusionist.course_*`); the schema name is interpolated raw into SQL,
 // hence isSafeSchema().
@@ -22,14 +22,14 @@ export type CourseTenantConfig = {
 
 export type CourseEnablementConfig = {
   globalKillswitch: boolean;
-  perTenant: Record<string, CourseTenantConfig>; // keyed by member_id
+  perTenant: Record<string, CourseTenantConfig>; // keyed by site_id
 };
 
 export const COURSE_CONFIG_PATH =
   process.env.COURSE_CONFIG_PATH ?? "/srv/refusion-core/data/course/course-config.json";
 
 // Seed registry — refusionist is the only host with courses today. New tenants are added here (or
-// via a future "add tenant" action). MEMBER_ID mirrors refusionist's venue constant.
+// via a future "add tenant" action). SITE_ID mirrors refusionist's venue constant.
 export const SEED_CONFIG: CourseEnablementConfig = {
   globalKillswitch: false,
   perTenant: {

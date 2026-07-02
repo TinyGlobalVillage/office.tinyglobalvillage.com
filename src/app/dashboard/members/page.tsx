@@ -39,7 +39,7 @@ const STATUS_COLOR: Record<string, string> = {
 // existing listings token↔founding server-side.
 
 type FoundingRow = {
-  member_id: string;
+  site_id: string;
   label: string;
   source: "founding" | "site" | "tenant";
   active: boolean;
@@ -256,20 +256,20 @@ export default function MembersPage() {
 
   async function toggleFounding(row: FoundingRow) {
     const next = !row.active;
-    setYpBusy(row.member_id);
+    setYpBusy(row.site_id);
     setYpError(null);
     // Optimistic flip; authoritative state comes back via refetch.
     setYpRows(
       (prev) =>
         prev?.map((r) =>
-          r.member_id === row.member_id ? { ...r, active: next } : r,
+          r.site_id === row.site_id ? { ...r, active: next } : r,
         ) ?? prev,
     );
     try {
       const r = await fetch("/api/admin/members/founding", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ memberId: row.member_id, on: next, label: row.label }),
+        body: JSON.stringify({ siteId: row.site_id, on: next, label: row.label }),
       });
       const j = await r.json();
       if (!j.ok) {
@@ -285,7 +285,7 @@ export default function MembersPage() {
       setYpRows(
         (prev) =>
           prev?.map((r) =>
-            r.member_id === row.member_id ? { ...r, active: row.active } : r,
+            r.site_id === row.site_id ? { ...r, active: row.active } : r,
           ) ?? prev,
       );
       setYpError(e instanceof Error ? e.message : "toggle failed");
@@ -399,18 +399,18 @@ export default function MembersPage() {
               </thead>
               <tbody>
                 {ypRows.map((r) => (
-                  <tr key={r.member_id}>
+                  <tr key={r.site_id}>
                     <td>{r.label}</td>
                     <td>
                       <Pill $color={SOURCE_COLOR[r.source]}>{r.source}</Pill>
                     </td>
                     <td>
-                      <MonoId>{r.member_id}</MonoId>
+                      <MonoId>{r.site_id}</MonoId>
                     </td>
                     <td>
                       <GoldSwitch
                         on={r.active}
-                        disabled={ypBusy === r.member_id}
+                        disabled={ypBusy === r.site_id}
                         onChange={() => void toggleFounding(r)}
                       />
                     </td>

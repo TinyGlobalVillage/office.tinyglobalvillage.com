@@ -28,13 +28,13 @@ export async function GET(req: NextRequest) {
   const tenants = Object.entries(cfg.perTenant);
 
   const out = await Promise.all(
-    tenants.map(async ([memberId, t]) => {
-      const base = { memberId, label: t.label ?? memberId, schema: t.schema, enabled: t.enabled };
+    tenants.map(async ([siteId, t]) => {
+      const base = { siteId, label: t.label ?? siteId, schema: t.schema, enabled: t.enabled };
       if (!isSafeSchema(t.schema)) {
         return { ...base, error: "bad_schema" as const };
       }
       const sch = sql.raw(`"${t.schema}"`);
-      const mid = sql`${memberId}::uuid`;
+      const mid = sql`${siteId}::uuid`;
       try {
         // Roster + catalog
         const profiles = (
@@ -44,7 +44,7 @@ export async function GET(req: NextRequest) {
               count(*) filter (where active)::int            as active,
               count(*) filter (where featured and active)::int as featured
             from ${sch}.performer_profiles
-           where member_id = ${mid}
+           where site_id = ${mid}
           `)
         ).rows[0] as { total: number; active: number; featured: number };
 
@@ -52,7 +52,7 @@ export async function GET(req: NextRequest) {
           await db.execute(sql`
             select count(*)::int as total, count(*) filter (where active)::int as active
               from ${sch}.performer_offerings
-             where member_id = ${mid}
+             where site_id = ${mid}
           `)
         ).rows[0] as { total: number; active: number };
 
@@ -66,7 +66,7 @@ export async function GET(req: NextRequest) {
               count(*) filter (where status = 'requested')::int                          as requested,
               count(*) filter (where status in ('cancelled','declined','expired'))::int  as dropped
             from ${sch}.performer_gigs
-           where member_id = ${mid}
+           where site_id = ${mid}
           `)
         ).rows[0] as { total: number; upcoming: number; completed: number; requested: number; dropped: number };
 
@@ -78,7 +78,7 @@ export async function GET(req: NextRequest) {
               count(*) filter (where status = 'paid')::int                         as paid_count,
               count(*) filter (where status = 'pending')::int                      as pending_count
             from ${sch}.performer_purchases
-           where member_id = ${mid}
+           where site_id = ${mid}
           `)
         ).rows[0] as { paid_cents: string | number; paid_count: number; pending_count: number };
 
@@ -88,7 +88,7 @@ export async function GET(req: NextRequest) {
               coalesce(sum(amount_cents) filter (where amount_cents > 0), 0)::bigint     as gross_cents,
               coalesce(-sum(amount_cents) filter (where amount_cents < 0), 0)::bigint    as payout_cents
             from ${sch}.performer_earnings_ledger
-           where member_id = ${mid}
+           where site_id = ${mid}
           `)
         ).rows[0] as { gross_cents: string | number; payout_cents: string | number };
 
@@ -97,7 +97,7 @@ export async function GET(req: NextRequest) {
           await db.execute(sql`
             select count(*)::int as total, count(*) filter (where status = 'open')::int as open
               from ${sch}.performer_pools
-             where member_id = ${mid}
+             where site_id = ${mid}
           `)
         ).rows[0] as { total: number; open: number };
 
@@ -107,7 +107,7 @@ export async function GET(req: NextRequest) {
               count(*) filter (where payout_status = 'unpaid')::int as unpaid,
               count(*) filter (where payout_status = 'paid')::int   as paid
             from ${sch}.performer_split_lines
-           where member_id = ${mid}
+           where site_id = ${mid}
           `)
         ).rows[0] as { unpaid: number; paid: number };
 
@@ -116,7 +116,7 @@ export async function GET(req: NextRequest) {
             select g.id::text as id, p.stage_name as performer, g.event_at as event_at, g.status::text as status
               from ${sch}.performer_gigs g
               left join ${sch}.performer_profiles p on p.id = g.performer_id
-             where g.member_id = ${mid}
+             where g.site_id = ${mid}
                and g.status not in ('completed','cancelled','declined','expired')
              order by g.event_at asc nulls last, g.created_at desc
              limit 8

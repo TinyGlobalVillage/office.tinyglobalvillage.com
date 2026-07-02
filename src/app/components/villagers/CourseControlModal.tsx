@@ -55,7 +55,7 @@ type PerCourse = {
   passed: number;
 };
 type UsageTenant = {
-  memberId: string;
+  siteId: string;
   label: string;
   schema: string;
   enabled: boolean;
@@ -136,7 +136,7 @@ export default function CourseControlModal({ onClose }: CourseControlModalProps)
     TenantConfig
   >("course");
 
-  // local maxCourses edit buffer, keyed by memberId
+  // local maxCourses edit buffer, keyed by siteId
   const [capDraft, setCapDraft] = useState<Record<string, string>>({});
 
   /* ── Usage section ── */
@@ -146,7 +146,7 @@ export default function CourseControlModal({ onClose }: CourseControlModalProps)
       {loadErr && <Err>Couldn&apos;t load usage — {loadErr}</Err>}
       {!loading && usage?.length === 0 && <Dim>No tenants registered.</Dim>}
       {usage?.map((t) => (
-        <Card key={t.memberId}>
+        <Card key={t.siteId}>
           <CardHead>
             <TenantName>{t.label}</TenantName>
             <Pill $on={t.enabled}>{t.enabled ? "ENABLED" : "DISABLED"}</Pill>
@@ -246,9 +246,9 @@ export default function CourseControlModal({ onClose }: CourseControlModalProps)
       suiteLabel="Course"
       featureNoun="course"
       onToggleGlobal={() => save({ globalKillswitch: !config?.globalKillswitch })}
-      onToggleTenant={(memberId, tc) => save({ tenant: { memberId, enabled: !tc.enabled } })}
-      renderTenantExtra={(memberId, tc) => {
-        const capValue = capDraft[memberId] ?? String(tc.maxCourses ?? 0);
+      onToggleTenant={(siteId, tc) => save({ tenant: { siteId, enabled: !tc.enabled } })}
+      renderTenantExtra={(siteId, tc) => {
+        const capValue = capDraft[siteId] ?? String(tc.maxCourses ?? 0);
         const capDirty = capValue !== String(tc.maxCourses ?? 0);
         return (
           <Row>
@@ -261,15 +261,15 @@ export default function CourseControlModal({ onClose }: CourseControlModalProps)
                 type="number"
                 min={0}
                 value={capValue}
-                onChange={(e) => setCapDraft((d) => ({ ...d, [memberId]: e.target.value }))}
+                onChange={(e) => setCapDraft((d) => ({ ...d, [siteId]: e.target.value }))}
               />
               <SaveBtn
                 type="button"
                 disabled={saving || !capDirty}
                 onClick={async () => {
                   const n = Math.max(0, Math.floor(Number(capValue) || 0));
-                  const ok = await save({ tenant: { memberId, maxCourses: n === 0 ? null : n } });
-                  if (ok) setCapDraft((d) => { const c = { ...d }; delete c[memberId]; return c; });
+                  const ok = await save({ tenant: { siteId, maxCourses: n === 0 ? null : n } });
+                  if (ok) setCapDraft((d) => { const c = { ...d }; delete c[siteId]; return c; });
                 }}
               >
                 {capDirty ? "Save" : "Saved"}

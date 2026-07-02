@@ -6,7 +6,7 @@
 // Same box ⇒ no network seam needed (unlike the wallet config, which is tenant-owned money and goes
 // through the internal-secret proxy). Mirrors lib/course-config.ts + lib/studio-config.ts.
 //
-// `perTenant[memberId].schema` is the Postgres schema that tenant's `performer_*` tables live in —
+// `perTenant[siteId].schema` is the Postgres schema that tenant's `performer_*` tables live in —
 // the registry the cross-tenant analytics routes loop over. Office's pool has NO search_path, so
 // those reads MUST schema-qualify (`refusionist.performer_*`); the schema name is interpolated raw
 // into SQL, hence isSafeSchema().
@@ -27,14 +27,14 @@ export type PerformersTenantConfig = {
 
 export type PerformersEnablementConfig = {
   globalKillswitch: boolean;
-  perTenant: Record<string, PerformersTenantConfig>; // keyed by member_id
+  perTenant: Record<string, PerformersTenantConfig>; // keyed by site_id
 };
 
 export const PERFORMERS_CONFIG_PATH =
   process.env.PERFORMERS_CONFIG_PATH ?? "/srv/refusion-core/data/performers/performers-config.json";
 
 // Seed registry — refusionist is the only host with the performers schema deployed today (its
-// `performer_*` tables live in the `refusionist` schema; member_id mirrors its fixed venue
+// `performer_*` tables live in the `refusionist` schema; site_id mirrors its fixed venue
 // constant). New tenants are added here (or via a future "add tenant" action).
 export const SEED_CONFIG: PerformersEnablementConfig = {
   globalKillswitch: false,

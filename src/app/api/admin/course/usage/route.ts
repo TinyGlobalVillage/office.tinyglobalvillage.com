@@ -38,8 +38,8 @@ export async function GET(req: NextRequest) {
   const tenants = Object.entries(cfg.perTenant);
 
   const out = await Promise.all(
-    tenants.map(async ([memberId, t]) => {
-      const base = { memberId, label: t.label ?? memberId, schema: t.schema, enabled: t.enabled };
+    tenants.map(async ([siteId, t]) => {
+      const base = { siteId, label: t.label ?? siteId, schema: t.schema, enabled: t.enabled };
       if (!isSafeSchema(t.schema)) {
         return { ...base, error: "bad_schema" as const };
       }

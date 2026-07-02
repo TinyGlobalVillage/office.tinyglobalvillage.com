@@ -1,4 +1,4 @@
-// GET /api/admin/villagers/managed-status?memberId=<uuid>&env=test|live — proxy → tgv.com managed/status.
+// GET /api/admin/villagers/managed-status?siteId=<uuid>&env=test|live — proxy → tgv.com managed/status.
 import { type NextRequest } from "next/server";
 import { proxyManaged } from "@/lib/managed-proxy";
 

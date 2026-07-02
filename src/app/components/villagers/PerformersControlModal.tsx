@@ -41,7 +41,7 @@ type PerformersConfig = SuiteConfigBase<TenantConfig>;
 type UpcomingGig = { id: string; performer: string | null; eventAt: string | null; status: string };
 
 type UsageTenant = {
-  memberId: string;
+  siteId: string;
   label: string;
   schema: string;
   enabled: boolean;
@@ -85,7 +85,7 @@ export default function PerformersControlModal({ onClose }: PerformersControlMod
       {loadErr && <Err>Couldn&apos;t load usage — {loadErr}</Err>}
       {!loading && usage?.length === 0 && <Dim>No tenants registered.</Dim>}
       {usage?.map((t) => (
-        <Card key={t.memberId}>
+        <Card key={t.siteId}>
           <CardHead>
             <TenantName>{t.label}</TenantName>
             <Pill $on={t.enabled}>{t.enabled ? "ENABLED" : "DISABLED"}</Pill>
@@ -163,7 +163,7 @@ export default function PerformersControlModal({ onClose }: PerformersControlMod
                   Needs operator attention
                 </Dim>
                 {attention.map((t) => (
-                  <Dim key={t.memberId}>
+                  <Dim key={t.siteId}>
                     • {t.label}: {t.payouts?.unpaid ?? 0} unpaid payout row(s), {t.revenue?.pendingCount ?? 0} pending
                     purchase(s)
                   </Dim>
@@ -187,7 +187,7 @@ export default function PerformersControlModal({ onClose }: PerformersControlMod
       suiteLabel="Performers"
       featureNoun="performers"
       onToggleGlobal={() => save({ globalKillswitch: !config?.globalKillswitch })}
-      onToggleTenant={(memberId, tc) => save({ tenant: { memberId, enabled: !tc.enabled } })}
+      onToggleTenant={(siteId, tc) => save({ tenant: { siteId, enabled: !tc.enabled } })}
     />
   );
 

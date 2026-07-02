@@ -44,7 +44,7 @@ type StudioConfig = SuiteConfigBase<TenantConfig> & { lateCancelWindowHours?: nu
 type UpcomingClass = { id: string; startAt: string; booked: number; capacity: number; name: string | null };
 
 type UsageTenant = {
-  memberId: string;
+  siteId: string;
   label: string;
   schema: string;
   enabled: boolean;
@@ -228,7 +228,7 @@ export default function StudioControlModal({ onClose }: StudioControlModalProps)
       {loadErr && <Err>Couldn&apos;t load usage — {loadErr}</Err>}
       {!loading && usage?.length === 0 && <Dim>No tenants registered.</Dim>}
       {usage?.map((t) => (
-        <Card key={t.memberId}>
+        <Card key={t.siteId}>
           <CardHead>
             <TenantName>{t.label}</TenantName>
             <Pill $on={t.enabled}>{t.enabled ? "ENABLED" : "DISABLED"}</Pill>
@@ -351,14 +351,14 @@ export default function StudioControlModal({ onClose }: StudioControlModalProps)
       {loading && <Dim>Loading…</Dim>}
       {loadErr && <Err>Couldn&apos;t load config — {loadErr}</Err>}
       {config &&
-        Object.entries(config.perTenant).map(([memberId, tc]) => (
+        Object.entries(config.perTenant).map(([siteId, tc]) => (
           <ForfeitureRow
-            key={memberId}
-            label={tc.label ?? memberId}
+            key={siteId}
+            label={tc.label ?? siteId}
             current={tc.lateCancelWindowHours}
             globalDefault={globalDefault}
             saving={saving}
-            onSave={(hours) => save({ tenant: { memberId, lateCancelWindowHours: hours } })}
+            onSave={(hours) => save({ tenant: { siteId, lateCancelWindowHours: hours } })}
           />
         ))}
     </Body>
@@ -373,7 +373,7 @@ export default function StudioControlModal({ onClose }: StudioControlModalProps)
       suiteLabel="Studio"
       featureNoun="studio"
       onToggleGlobal={() => save({ globalKillswitch: !config?.globalKillswitch })}
-      onToggleTenant={(memberId, tc) => save({ tenant: { memberId, enabled: !tc.enabled } })}
+      onToggleTenant={(siteId, tc) => save({ tenant: { siteId, enabled: !tc.enabled } })}
     />
   );
 

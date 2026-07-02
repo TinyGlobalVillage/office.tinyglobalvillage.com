@@ -103,10 +103,10 @@ export default function ManagedOnboardingModal({ onClose }: { onClose: () => voi
     return () => { clearTimeout(t); ctrl.abort(); };
   }, [query]);
 
-  const loadStatus = useCallback(async (memberId: string, e: Env) => {
+  const loadStatus = useCallback(async (siteId: string, e: Env) => {
     setLoadingStatus(true);
     try {
-      const res = await fetch(`/api/admin/villagers/managed-status?memberId=${memberId}&env=${e}`, { cache: "no-store" });
+      const res = await fetch(`/api/admin/villagers/managed-status?siteId=${siteId}&env=${e}`, { cache: "no-store" });
       const d = await res.json().catch(() => ({}));
       if (res.ok) {
         setAccount(d.account ?? null);
@@ -145,7 +145,7 @@ export default function ManagedOnboardingModal({ onClose }: { onClose: () => voi
       const res = await fetch(`/api/admin/villagers/managed-create?env=${env}`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ memberId: tenant.id, displayName: displayName.trim(), contactEmail: contactEmail.trim(), country }),
+        body: JSON.stringify({ siteId: tenant.id, displayName: displayName.trim(), contactEmail: contactEmail.trim(), country }),
       });
       const d = await res.json().catch(() => ({}));
       if (!res.ok) { setMsg({ kind: "err", text: d?.error ? `Create: ${d.error}` : `Create failed (HTTP ${res.status}).` }); return; }
@@ -160,7 +160,7 @@ export default function ManagedOnboardingModal({ onClose }: { onClose: () => voi
     const res = await fetch(`/api/admin/villagers/managed-account-session?env=${env}`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ memberId: tenant.id }),
+      body: JSON.stringify({ siteId: tenant.id }),
     });
     const d = await res.json().catch(() => ({}));
     if (!res.ok || !d.clientSecret) throw new Error(d?.error ?? "account_session_failed");
@@ -172,7 +172,7 @@ export default function ManagedOnboardingModal({ onClose }: { onClose: () => voi
     setBusy(true); setMsg(null);
     try {
       const res = await fetch(`/api/admin/villagers/managed-recheck?env=${env}`, {
-        method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ memberId: tenant.id }),
+        method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ siteId: tenant.id }),
       });
       const d = await res.json().catch(() => ({}));
       if (res.ok) { setAccount(d.account ?? account); setMsg({ kind: "ok", text: `Re-checked — state: ${d.account?.onboardingState ?? "?"}.` }); }
@@ -187,7 +187,7 @@ export default function ManagedOnboardingModal({ onClose }: { onClose: () => voi
     setHosting(true); setMsg(null);
     try {
       const res = await fetch(`/api/admin/villagers/managed-account-link?env=${env}`, {
-        method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ memberId: tenant.id }),
+        method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ siteId: tenant.id }),
       });
       const d = await res.json().catch(() => ({}));
       if (!res.ok || !d.url) { setMsg({ kind: "err", text: d?.error ? `Hosted: ${d.error}` : `Hosted onboarding failed (HTTP ${res.status}).` }); return; }
@@ -204,7 +204,7 @@ export default function ManagedOnboardingModal({ onClose }: { onClose: () => voi
       const res = await fetch(`/api/admin/villagers/managed-charge?env=${env}`, {
         method: "POST", headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          memberId: tenant.id,
+          siteId: tenant.id,
           amountCents: Math.round(Number(chgAmount) * 100),
           applicationFeeAmount: Math.round(Number(chgFee) * 100),
           nonce: crypto.randomUUID(),

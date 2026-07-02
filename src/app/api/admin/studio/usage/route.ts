@@ -4,7 +4,7 @@
 // tenant's `studio_*` tables in tgv_db DIRECTLY via raw db.execute(sql) — Office's pool has NO
 // search_path, so every table is SCHEMA-QUALIFIED (`refusionist.studio_*` / `public.studio_*`) and
 // we loop the per-tenant registry from the shared config. Each row is additionally scoped
-// `member_id = <tenant venue>` because the `public` schema is shared platform space (one schema can
+// `site_id = <tenant venue>` because the `public` schema is shared platform space (one schema can
 // hold more than one Site). Raw SQL also dodges the Turbopack is(Column) crash.
 //
 // Studio has no operator-"preview" flag (unlike course's source='member'), so no exclusion filter is
@@ -41,23 +41,23 @@ export async function GET(req: NextRequest) {
   const tenants = Object.entries(cfg.perTenant);
 
   const out = await Promise.all(
-    tenants.map(async ([memberId, t]) => {
-      const base = { memberId, label: t.label ?? memberId, schema: t.schema, enabled: t.enabled };
+    tenants.map(async ([siteId, t]) => {
+      const base = { siteId, label: t.label ?? siteId, schema: t.schema, enabled: t.enabled };
       if (!isSafeSchema(t.schema)) {
         return { ...base, error: "bad_schema" as const };
       }
       const sch = sql.raw(`"${t.schema}"`);
-      const mid = sql`${memberId}::uuid`;
+      const mid = sql`${siteId}::uuid`;
       try {
         // 1) Catalog counts
         const catalog = (
           await db.execute(sql`
             select
-              (select count(*) from ${sch}.studio_service_categories where member_id = ${mid})::int as service_categories,
-              (select count(*) from ${sch}.studio_session_types     where member_id = ${mid})::int as session_types,
-              (select count(*) from ${sch}.studio_appointment_types  where member_id = ${mid})::int as appointment_types,
-              (select count(*) from ${sch}.studio_pricing_options    where member_id = ${mid})::int as pricing_total,
-              (select count(*) from ${sch}.studio_pricing_options    where member_id = ${mid} and active)::int as pricing_active
+              (select count(*) from ${sch}.studio_service_categories where site_id = ${mid})::int as service_categories,
+              (select count(*) from ${sch}.studio_session_types     where site_id = ${mid})::int as session_types,
+              (select count(*) from ${sch}.studio_appointment_types  where site_id = ${mid})::int as appointment_types,
+              (select count(*) from ${sch}.studio_pricing_options    where site_id = ${mid})::int as pricing_total,
+              (select count(*) from ${sch}.studio_pricing_options    where site_id = ${mid} and active)::int as pricing_active
           `)
         ).rows[0] as Record<string, unknown>;
 
@@ -71,7 +71,7 @@ export async function GET(req: NextRequest) {
               count(*) filter (where is_canceled)::int                                         as canceled,
               coalesce(sum(booked_count) filter (where is_canceled = false), 0)::int           as seats_booked
             from ${sch}.studio_classes
-            where member_id = ${mid}
+            where site_id = ${mid}
           `)
         ).rows[0] as Record<string, unknown>;
 
@@ -90,7 +90,7 @@ export async function GET(req: NextRequest) {
               count(*) filter (where status = 'cancelled')::int       as cancelled,
               count(distinct member_user_id)::int                     as clients
             from ${sch}.studio_bookings
-            where member_id = ${mid}
+            where site_id = ${mid}
           `)
         ).rows[0] as Record<string, unknown>;
 
@@ -99,16 +99,16 @@ export async function GET(req: NextRequest) {
           await db.execute(sql`
             select
               (select count(*) from ${sch}.studio_appointments
-                 where member_id = ${mid})::int as appts_total,
+                 where site_id = ${mid})::int as appts_total,
               (select count(*) from ${sch}.studio_appointments
-                 where member_id = ${mid} and start_at > now()
+                 where site_id = ${mid} and start_at > now()
                    and status not in ('cancelled','no_show','late_cancelled'))::int as appts_upcoming,
               (select count(*) from ${sch}.studio_entitlements
-                 where member_id = ${mid} and status = 'active')::int as ent_active,
+                 where site_id = ${mid} and status = 'active')::int as ent_active,
               (select count(*) from ${sch}.studio_entitlements
-                 where member_id = ${mid})::int as ent_total,
+                 where site_id = ${mid})::int as ent_total,
               (select coalesce(sum(remaining_sessions), 0) from ${sch}.studio_entitlements
-                 where member_id = ${mid} and status = 'active' and remaining_sessions is not null)::int as ent_outstanding
+                 where site_id = ${mid} and status = 'active' and remaining_sessions is not null)::int as ent_outstanding
           `)
         ).rows[0] as Record<string, unknown>;
 
@@ -123,7 +123,7 @@ export async function GET(req: NextRequest) {
               cd.name                             as name
             from ${sch}.studio_classes c
             left join ${sch}.studio_class_descriptions cd on cd.id = c.class_description_id
-            where c.member_id = ${mid} and c.is_canceled = false and c.start_at > now()
+            where c.site_id = ${mid} and c.is_canceled = false and c.start_at > now()
             order by c.start_at asc
             limit 8
           `)

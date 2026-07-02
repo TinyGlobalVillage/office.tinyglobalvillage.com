@@ -23,7 +23,7 @@ import { BanIcon, CheckIcon } from "../../icons";
 export type SuiteTenantBase = { enabled: boolean; label?: string; schema: string };
 
 /** The enablement config every suite tile reads/writes: a global killswitch + a per-tenant map
- *  keyed by member_id. */
+ *  keyed by site_id. */
 export type SuiteConfigBase<TTenant extends SuiteTenantBase = SuiteTenantBase> = {
   globalKillswitch: boolean;
   perTenant: Record<string, TTenant>;
@@ -298,9 +298,9 @@ export type KillswitchSectionProps<TTenant extends SuiteTenantBase> = {
   /** Flip the global killswitch. */
   onToggleGlobal: () => void;
   /** Flip one tenant's enablement. */
-  onToggleTenant: (memberId: string, tc: TTenant) => void;
+  onToggleTenant: (siteId: string, tc: TTenant) => void;
   /** Optional per-tenant extra control (e.g. Course's max-courses cap), rendered inside the card. */
-  renderTenantExtra?: (memberId: string, tc: TTenant) => ReactNode;
+  renderTenantExtra?: (siteId: string, tc: TTenant) => ReactNode;
 };
 
 export function KillswitchSection<TTenant extends SuiteTenantBase>({
@@ -342,11 +342,11 @@ export function KillswitchSection<TTenant extends SuiteTenantBase>({
         />
       </Row>
 
-      {tenantsCfg.map(([memberId, tc]) => (
-        <Card key={memberId}>
+      {tenantsCfg.map(([siteId, tc]) => (
+        <Card key={siteId}>
           <Row>
             <RowMain>
-              <RowLabel>{tc.label ?? memberId}</RowLabel>
+              <RowLabel>{tc.label ?? siteId}</RowLabel>
               <RowHelp>
                 schema: {tc.schema} · {tc.enabled ? `${featureNoun} feature ON` : `${featureNoun} feature OFF`}
               </RowHelp>
@@ -354,11 +354,11 @@ export function KillswitchSection<TTenant extends SuiteTenantBase>({
             <Switch
               $on={tc.enabled}
               disabled={saving}
-              aria-label={`Toggle ${featureNoun} for ${tc.label ?? memberId}`}
-              onClick={() => onToggleTenant(memberId, tc)}
+              aria-label={`Toggle ${featureNoun} for ${tc.label ?? siteId}`}
+              onClick={() => onToggleTenant(siteId, tc)}
             />
           </Row>
-          {renderTenantExtra?.(memberId, tc)}
+          {renderTenantExtra?.(siteId, tc)}
         </Card>
       ))}
       {switchErr && <Err>Couldn&apos;t save — {switchErr}. The change did NOT take effect.</Err>}

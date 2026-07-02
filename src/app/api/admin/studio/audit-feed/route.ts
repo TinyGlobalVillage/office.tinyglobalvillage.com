@@ -6,7 +6,7 @@
 //   2. Per-tenant studio activity — studio has no dedicated `studio_audit` table, so we synthesize
 //      a real feed from the data: recent bookings (the roster row) + the append-only
 //      `studio_entitlement_ledger` (grant/consume/refund/expire/adjust). Both schema-qualified +
-//      member_id-scoped, each in its own try/catch (missing table / missing GRANT is skipped).
+//      site_id-scoped, each in its own try/catch (missing table / missing GRANT is skipped).
 //
 // Read-only. Gated by requireAdmin.
 import { type NextRequest, NextResponse } from "next/server";
@@ -61,10 +61,10 @@ export async function GET(req: NextRequest) {
   // 2) per-tenant synthesized activity (bookings + entitlement ledger)
   const cfg = readStudioConfig();
   await Promise.all(
-    Object.entries(cfg.perTenant).map(async ([memberId, t]) => {
+    Object.entries(cfg.perTenant).map(async ([siteId, t]) => {
       if (!isSafeSchema(t.schema)) return;
       const sch = sql.raw(`"${t.schema}"`);
-      const mid = sql`${memberId}::uuid`;
+      const mid = sql`${siteId}::uuid`;
       const tenant = t.label ?? t.schema;
 
       // recent bookings
@@ -74,7 +74,7 @@ export async function GET(req: NextRequest) {
             select id::text as id, status::text as status, booked_online,
                    member_user_id::text as member_user_id, created_at
               from ${sch}.studio_bookings
-             where member_id = ${mid}
+             where site_id = ${mid}
              order by created_at desc
              limit ${perSource}
           `)
@@ -108,7 +108,7 @@ export async function GET(req: NextRequest) {
             select id::text as id, reason::text as reason, delta::int as delta,
                    balance_after, actor_user_id::text as actor_user_id, created_at
               from ${sch}.studio_entitlement_ledger
-             where member_id = ${mid}
+             where site_id = ${mid}
              order by created_at desc
              limit ${perSource}
           `)
