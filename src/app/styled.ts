@@ -502,7 +502,7 @@ export const DrawerBackdrop = styled.div<{ $z?: number }>`
   }
 `;
 
-export const DrawerPanel = styled.div`
+export const DrawerPanel = styled.div<{ $anchor?: "left" | "right" }>`
   position: fixed;
   top: 0;
   height: 100%;
@@ -510,6 +510,12 @@ export const DrawerPanel = styled.div`
   flex-direction: column;
   overflow: hidden;
   background: rgba(7, 9, 13, 0.99);
+
+  /* Baked-in clearance on the anchored edge: the DrawerTab pills (28px rail) of
+     the OTHER drawers stay visible over an open panel, so every drawer keeps a
+     40px gutter there — content can never hide behind the tab rail (Gio
+     2026-07-02). Consumers already pass $anchor; default = left. */
+  ${(p) => (p.$anchor === "right" ? "padding-right: 40px;" : "padding-left: 40px;")}
 
   [data-theme="light"] & {
     background: var(--t-surface);

@@ -76,6 +76,9 @@ const Backdrop = styled(DrawerBackdrop)`
 
 const Panel = styled(DrawerPanel)`
   right: 0;
+  /* right-anchored without $anchor: swap the baked tab-rail gutter to this edge */
+  padding-left: 0;
+  padding-right: 40px;
   z-index: 110;
   width: clamp(320px, 65vw, 1100px);
   border-left: 1px solid rgba(${rgb.pink}, 0.2);
