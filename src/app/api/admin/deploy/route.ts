@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
   let row: { id: string } | undefined;
   try {
     [row] = await db
-      .insert(schema.members)
+      .insert(schema.villagerSites)
       .values({
         env,
         clientName: spec.clientName,
@@ -74,20 +74,20 @@ export async function POST(req: NextRequest) {
         stripeMode: "connect_v2",
         deployStatus: "pending",
       })
-      .returning({ id: schema.members.id });
+      .returning({ id: schema.villagerSites.id });
   } catch (e: unknown) {
     // Map DB-level failures to a clear message — otherwise the wizard just shows a
     // bare "HTTP 500" and the operator can't tell what went wrong. The two unique
-    // indexes are members_domain_key (domain) and members_subdomain_env_key (env, subdomain).
+    // indexes are villager_sites_domain_key (domain) and villager_sites_subdomain_env_key (env, subdomain).
     const pg = e as { code?: string; constraint?: string; detail?: string };
     if (pg?.code === "23505") {
-      if (pg.constraint === "members_domain_key") {
+      if (pg.constraint === "villager_sites_domain_key") {
         return NextResponse.json(
           { ok: false, error: `The domain "${spec.domain}" is already registered to another client. Use a different domain.` },
           { status: 409 },
         );
       }
-      if (pg.constraint === "members_subdomain_env_key") {
+      if (pg.constraint === "villager_sites_subdomain_env_key") {
         return NextResponse.json(
           { ok: false, error: `The subdomain "${spec.subdomain}" is already taken in the ${env} lane. Choose a different subdomain.` },
           { status: 409 },

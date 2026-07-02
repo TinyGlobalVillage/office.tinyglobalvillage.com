@@ -8,7 +8,7 @@
 // GET  → union of every known member that could be toggled:
 //        (a) yellow_pages_founding_members rows  (source 'founding')
 //        (b) yellow_pages_role_bindings rows     (source 'site' — known tenant Sites)
-//        (c) public.members rows                 (source 'tenant' — platform deployments)
+//        (c) public.villager_sites rows           (source 'tenant' — platform deployments)
 //        each as { member_id, label, source, active, revoked_at }.
 // POST { memberId, on, label?, note? } → mirrors applyFoundingToggle() in
 //        @tgv/module-yellow-pages/server/founding.ts (any change there MUST be
@@ -69,7 +69,7 @@ export async function GET(req: NextRequest) {
            'tenant'::text,
            false,
            NULL::timestamptz
-    FROM public.members m
+    FROM public.villager_sites m
     WHERE NOT EXISTS (
       SELECT 1 FROM public.yellow_pages_founding_members f
       WHERE f.member_id = m.id

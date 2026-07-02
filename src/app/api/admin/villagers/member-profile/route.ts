@@ -83,7 +83,7 @@ export async function GET(req: NextRequest) {
            j.status                                          AS junction_status,
            (f.member_id IS NOT NULL AND f.revoked_at IS NULL) AS founding_active
     FROM public.member_user_tenants j
-    JOIN public.members m ON m.id = j.member_id
+    JOIN public.villager_sites m ON m.id = j.site_id
     LEFT JOIN public.yellow_pages_founding_members f ON f.member_id = m.id
     WHERE j.member_user_id = ${memberUserId}
     ORDER BY m.created_at ASC

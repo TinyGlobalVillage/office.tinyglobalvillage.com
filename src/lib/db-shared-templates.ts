@@ -15,7 +15,7 @@ import {
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { and, desc, eq, isNull } from "drizzle-orm";
-import { members } from "@tgv/module-registry/db";
+import { villagerSites } from "@tgv/module-registry/db";
 import { db } from "./db-drizzle";
 
 export const sharedTemplates = pgTable(
@@ -31,7 +31,7 @@ export const sharedTemplates = pgTable(
     suggestedTitle: text("suggested_title").notNull(),
     status: text("status").notNull().default("sandbox"),
     model: jsonb("model_json").notNull(),
-    createdBy: uuid("created_by").references(() => members.id, {
+    createdBy: uuid("created_by").references(() => villagerSites.id, {
       onDelete: "set null",
     }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),

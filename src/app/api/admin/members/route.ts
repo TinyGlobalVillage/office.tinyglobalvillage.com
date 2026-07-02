@@ -13,8 +13,8 @@ export async function GET(req: NextRequest) {
 
   const rows = await db
     .select()
-    .from(schema.members)
-    .orderBy(desc(schema.members.createdAt));
+    .from(schema.villagerSites)
+    .orderBy(desc(schema.villagerSites.createdAt));
 
   // 'pending' = created during the wizard but NOT yet paid/provisioned. These are
   // in-flight or abandoned signups — they must NOT masquerade as real members. Surface
