@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import styled from "styled-components";
+import styled, { css, keyframes } from "styled-components";
 import { colors, rgb } from "../../theme";
 import type { CallRecord, Did } from "@/lib/frontdesk/types";
 import NeonLineDDM from "./NeonLineDDM";
-import { TrashIcon } from "../icons";
+import { TrashIcon, PhoneIcon } from "../icons";
 import { FRONTDESK_DATA_CHANGED_EVENT } from "./FrontDeskShiftBar";
 import { useSoftphone } from "@/lib/frontdesk/useSoftphone";
 import { playDtmf } from "@/lib/frontdesk/ringTones";
@@ -203,6 +203,95 @@ const EraseBtn = styled.button`
   font-size: 1.125rem;
   cursor: pointer;
   &:hover { background: rgba(${rgb.gold}, 0.14); }
+`;
+
+// ── In-call screens: the keypad transforms into a ringing view, then a live view ──
+const ringShake = keyframes`
+  0%, 55%, 100% { transform: rotate(0deg); }
+  5%  { transform: rotate(-16deg); }
+  15% { transform: rotate(13deg); }
+  25% { transform: rotate(-10deg); }
+  35% { transform: rotate(7deg); }
+  45% { transform: rotate(-3deg); }
+`;
+const ringPulse = keyframes`
+  0%   { transform: scale(0.75); opacity: 0.7; }
+  100% { transform: scale(1.8);  opacity: 0; }
+`;
+
+const CallScreen = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 2.25rem 1rem 1.5rem;
+  text-align: center;
+  border: 1px solid rgba(${rgb.gold}, 0.22);
+  border-radius: 0.875rem;
+  background: rgba(${rgb.gold}, 0.04);
+`;
+
+const RingBadge = styled.div<{ $live: boolean }>`
+  position: relative;
+  width: 84px;
+  height: 84px;
+  margin-bottom: 0.375rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  color: ${(p) => (p.$live ? colors.green : colors.gold)};
+  border: 1px solid rgba(${(p) => (p.$live ? rgb.green : rgb.gold)}, 0.45);
+  background: rgba(${(p) => (p.$live ? rgb.green : rgb.gold)}, 0.1);
+
+  & > svg {
+    ${(p) => (p.$live ? "" : css`animation: ${ringShake} 1.4s ease-in-out infinite;`)}
+  }
+
+  &::before,
+  &::after {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    border-radius: 999px;
+    border: 1px solid rgba(${(p) => (p.$live ? rgb.green : rgb.gold)}, 0.5);
+    ${(p) => (p.$live ? "opacity: 0;" : css`animation: ${ringPulse} 1.8s ease-out infinite;`)}
+  }
+  &::after { animation-delay: 0.9s; }
+`;
+
+const CallStage = styled.div`
+  font-size: 0.6875rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--t-textFaint);
+`;
+
+const CallWho = styled.div`
+  font-size: 1.3125rem;
+  font-weight: 700;
+  color: var(--t-text);
+  font-family: var(--font-geist-mono), monospace;
+  word-break: break-all;
+`;
+
+const CallHint = styled.div`
+  font-size: 0.75rem;
+  color: var(--t-textFaint);
+`;
+
+const KeypadToggle = styled.button`
+  background: transparent;
+  border: 1px solid rgba(${rgb.gold}, 0.3);
+  color: ${colors.gold};
+  border-radius: 0.5rem;
+  padding: 0.3rem 0.8rem;
+  font-size: 0.6875rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  &:hover { background: rgba(${rgb.gold}, 0.12); }
 `;
 
 const Log = styled.ul`
@@ -496,6 +585,10 @@ export default function PhoneTab() {
     if (curr === "established" && activeCallRef.current && !activeCallRef.current.answeredAt) {
       activeCallRef.current.answeredAt = new Date().toISOString();
     }
+    if (curr === "terminated") {
+      setPeerName(null);
+      setShowInCallKeypad(false);
+    }
     if (curr === "terminated" && prev !== "terminated" && activeCallRef.current) {
       const call = activeCallRef.current;
       activeCallRef.current = null;
@@ -519,6 +612,10 @@ export default function PhoneTab() {
       }).then(() => loadAll()).catch(() => { /* offline — skip */ });
     }
   }, [softphone.callState, loadAll]);
+
+  // In-call view: contact name for "Live call with …" + optional DTMF keypad.
+  const [peerName, setPeerName] = useState<string | null>(null);
+  const [showInCallKeypad, setShowInCallKeypad] = useState(false);
 
   const dial = async () => {
     if (onCall) return;
@@ -545,6 +642,18 @@ export default function PhoneTab() {
         answeredAt: null,
         recordCall,
       };
+      // Resolve a contact name for the in-call view (best-effort, non-blocking).
+      setPeerName(null);
+      const last10 = normalized.replace(/\D/g, "").slice(-10);
+      fetch(`/api/frontdesk/contacts?search=${encodeURIComponent(last10)}`)
+        .then((r) => (r.ok ? r.json() : null))
+        .then((j) => {
+          const hit = (j?.contacts ?? []).find(
+            (c: { phone: string | null }) => (c.phone ?? "").replace(/\D/g, "").endsWith(last10),
+          );
+          if (hit?.name) setPeerName(hit.name);
+        })
+        .catch(() => { /* name stays null → show the number */ });
       await softphone.dial(normalized.replace(/^\+/, ""), selectedDid.e164, recordCall);
       setInput("");
     } catch (err) {
@@ -575,6 +684,8 @@ export default function PhoneTab() {
         />
       )}
 
+      {!onCall ? (
+      <>
       <Display
         value={input}
         onChange={(e) => setInput(e.target.value.replace(/[^\d+*#]/g, "").slice(0, 24))}
@@ -630,6 +741,43 @@ export default function PhoneTab() {
           </CallBtn>
         )}
       </ActionRow>
+      </>
+      ) : (
+        /* The keypad transforms: ringing view while establishing, live view once answered. */
+        <CallScreen>
+          <RingBadge $live={softphone.callState === "established"}>
+            <PhoneIcon size={34} />
+          </RingBadge>
+          <CallStage>
+            {softphone.callState === "established" ? "Live call with" : "Calling"}
+          </CallStage>
+          <CallWho>{peerName ?? activeCallRef.current?.toE164 ?? "unknown"}</CallWho>
+          {softphone.callState !== "established" ? (
+            <CallHint>ringing…</CallHint>
+          ) : (
+            <>
+              <KeypadToggle type="button" onClick={() => setShowInCallKeypad((v) => !v)}>
+                {showInCallKeypad ? "Hide keypad" : "Keypad"}
+              </KeypadToggle>
+              {showInCallKeypad && (
+                <KeypadGrid style={{ width: "100%", marginTop: "0.375rem" }}>
+                  {KEYPAD.map((k) => (
+                    <Key key={k.digit} onClick={() => pressKey(k.digit)} type="button">
+                      <span className="digit">{k.digit}</span>
+                      <span className="letters">{k.letters || " "}</span>
+                    </Key>
+                  ))}
+                </KeypadGrid>
+              )}
+            </>
+          )}
+          <ActionRow style={{ width: "100%", marginTop: "0.625rem" }}>
+            <CallBtn $variant="hangup" onClick={hangup} type="button">
+              {softphone.callState === "establishing" ? "Cancel" : "Hang up"}
+            </CallBtn>
+          </ActionRow>
+        </CallScreen>
+      )}
       {error && <Empty style={{ color: colors.pink }}>{error}</Empty>}
       {softphone.lastError && <Empty style={{ color: colors.pink }}>SIP: {softphone.lastError}</Empty>}
 
