@@ -74,20 +74,44 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
   const [sending, setSending] = useState(false);
 
   // library-tab upload state
-  const [uploadTitle, setUploadTitle] = useState("");
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [dragging, setDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const pickFile = (f: File | null) => {
-    if (!f) return;
+  // Drop/select a PDF → upload immediately (title defaults to the filename).
+  const handleFile = async (f: File | null) => {
+    if (!f || uploading) return;
     if (f.type !== "application/pdf" && !f.name.toLowerCase().endsWith(".pdf")) {
       setMsg("Please choose a PDF file");
       return;
     }
+    if (!configured) {
+      setMsg("Documenso is not configured on this server — cannot upload.");
+      return;
+    }
+    const title = f.name.replace(/\.pdf$/i, "").trim() || f.name;
     setUploadFile(f);
-    setMsg("");
+    setUploading(true);
+    setMsg(`Uploading ${f.name}…`);
+    try {
+      const fd = new FormData();
+      fd.append("title", title);
+      fd.append("file", f);
+      const r = await fetch("/api/esign/documents", { method: "POST", body: fd });
+      const d = await r.json();
+      if (!r.ok || !d?.ok) {
+        setMsg(d?.error ?? "Upload failed");
+        return;
+      }
+      setMsg(`"${d.document.title}" added — ready to send.`);
+      await loadDocuments();
+    } catch {
+      setMsg("Upload failed (server error)");
+    } finally {
+      setUploadFile(null);
+      setUploading(false);
+    }
   };
 
   const loadDocuments = useCallback(async () => {
@@ -161,25 +185,6 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
       await loadActivity();
     } finally {
       setSending(false);
-    }
-  };
-
-  const upload = async () => {
-    if (!uploadTitle.trim()) { setMsg("Give the document a title"); return; }
-    if (!uploadFile) { setMsg("Choose a PDF file"); return; }
-    setUploading(true); setMsg("");
-    try {
-      const fd = new FormData();
-      fd.append("title", uploadTitle.trim());
-      fd.append("file", uploadFile);
-      const r = await fetch("/api/esign/documents", { method: "POST", body: fd });
-      const d = await r.json();
-      if (!r.ok || !d?.ok) { setMsg(d?.error ?? "Upload failed"); return; }
-      setMsg(`"${d.document.title}" added. Send it from the Send tab.`);
-      setUploadTitle(""); setUploadFile(null);
-      await loadDocuments();
-    } finally {
-      setUploading(false);
     }
   };
 
@@ -278,28 +283,22 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
 
           {!loading && tab === "library" && (
             <Section>
-              <Label>Upload a new document</Label>
-              <Input style={{ flex: "0 0 auto", width: "100%" }} placeholder="Document title (e.g. Contractor Agreement)" value={uploadTitle} onChange={(e) => setUploadTitle(e.target.value)} />
+              <Label>Add a document</Label>
               <DropZone
                 $dragging={dragging}
-                onClick={() => fileInputRef.current?.click()}
-                onDragOver={(e) => { e.preventDefault(); if (!dragging) setDragging(true); }}
+                onClick={() => { if (!uploading) fileInputRef.current?.click(); }}
+                onDragOver={(e) => { e.preventDefault(); if (!uploading && !dragging) setDragging(true); }}
                 onDragLeave={(e) => { e.preventDefault(); setDragging(false); }}
-                onDrop={(e) => { e.preventDefault(); setDragging(false); pickFile(e.dataTransfer.files?.[0] ?? null); }}
+                onDrop={(e) => { e.preventDefault(); setDragging(false); handleFile(e.dataTransfer.files?.[0] ?? null); }}
               >
-                <input ref={fileInputRef} type="file" accept="application/pdf" hidden onChange={(e) => pickFile(e.target.files?.[0] ?? null)} />
+                <input ref={fileInputRef} type="file" accept="application/pdf" hidden onChange={(e) => handleFile(e.target.files?.[0] ?? null)} />
                 <svg width={30} height={30} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M12 16V4M8 8l4-4 4 4" />
                   <path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3" />
                 </svg>
-                <DzText>{uploadFile ? uploadFile.name : "Drag a PDF here, or click to browse"}</DzText>
-                <DzSub>{uploadFile ? "Click or drop another to replace" : "PDF · up to 20 MB"}</DzSub>
+                <DzText>{uploading ? `Uploading ${uploadFile?.name ?? "PDF"}…` : "Drag a PDF here, or click to browse"}</DzText>
+                <DzSub>{uploading ? "Creating signing template…" : "PDF · up to 20 MB · uploads automatically (named from the file)"}</DzSub>
               </DropZone>
-              <Row>
-                <PrimaryBtn type="button" disabled={uploading || !configured || !uploadFile || !uploadTitle.trim()} onClick={upload}>
-                  {uploading ? "Uploading…" : "Upload document"}
-                </PrimaryBtn>
-              </Row>
 
               <Label>Your documents</Label>
               {documents.length === 0 && <Dim>No documents yet.</Dim>}
