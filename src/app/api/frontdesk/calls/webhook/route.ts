@@ -20,6 +20,7 @@ type TelnyxCallEvent = {
     event_type?: string;
     payload?: {
       call_control_id?: string;
+      direction?: string; // "incoming" | "outgoing"
       from?: string;
       to?: string;
       hangup_cause?: string;
@@ -58,6 +59,11 @@ export async function POST(req: NextRequest) {
 
   switch (event) {
     case "call.initiated": {
+      // Telnyx fires call.initiated for BOTH directions. The OUTBOUND leg of a
+      // softphone call must never become a ring record — it popped the
+      // IncomingCallOverlay for the caller's own call ("calling myself",
+      // 2026-07-02). Outbound history is logged client-side via /calls/log.
+      if (p?.direction === "outgoing") break;
       if (!existing && p?.from && p?.to) {
         const did = resolveInboundDid(p.to);
         let ringTarget: string | "*" | null = "*";
