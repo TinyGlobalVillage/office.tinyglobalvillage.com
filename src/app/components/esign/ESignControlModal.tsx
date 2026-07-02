@@ -130,6 +130,10 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
   const [customEmail, setCustomEmail] = useState("");
   const [note, setNote] = useState("");
   const [channel, setChannel] = useState<"email" | "link">("email");
+  // "Include certificate page?" — Documenso appends a signing-certificate page to the
+  // signed PDF; unchecked = our stored/downloadable copy keeps only the document's own
+  // pages (a sealed original is kept server-side for audit).
+  const [includeCert, setIncludeCert] = useState(true);
   const [recordedUrl, setRecordedUrl] = useState<string | null>(null); // waiver link-channel result
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -265,6 +269,7 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
       fd.append("signers", JSON.stringify(recipients));
       if (note.trim()) fd.append("note", note.trim());
     }
+    fd.append("includeCertificate", String(includeCert));
 
     const done = (message: string) => {
       setUploading(false);
@@ -438,6 +443,16 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
 
               <Label>Message (optional{mode === "multisig" ? " — included in each signer's email" : ""})</Label>
               <Textarea rows={2} value={note} onChange={(e) => setNote(e.target.value)} placeholder="A short note included in the email…" />
+
+              <CheckRow>
+                <input
+                  type="checkbox"
+                  checked={includeCert}
+                  onChange={(e) => setIncludeCert(e.target.checked)}
+                />
+                Include certificate page?
+                <CheckHint>— the audit page Documenso appends to the signed PDF. Unchecked keeps your stored copy clean; a sealed original is kept for audit.</CheckHint>
+              </CheckRow>
 
               {mode === "waiver" && recipients.length > 0 && (
                 <Row>
@@ -659,6 +674,12 @@ const baseField = `
 `;
 const Input = styled.input`${baseField} flex: 1 1 180px;`;
 const Textarea = styled.textarea`${baseField} resize: vertical; width: 100%;`;
+const CheckRow = styled.label`
+  display: flex; align-items: baseline; gap: 8px; margin-top: 8px;
+  font-size: 12.5px; font-weight: 600; color: rgba(232,232,239,0.8); cursor: pointer;
+  input { flex: 0 0 auto; transform: translateY(1px); }
+`;
+const CheckHint = styled.span`font-size: 11.5px; font-weight: 400; color: rgba(232,232,239,0.45);`;
 const Chips = styled.div`display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px;`;
 const Chip = styled.span`display: inline-flex; align-items: center; gap: 6px; background: rgba(120,200,255,0.1); border: 1px solid rgba(120,200,255,0.28); border-radius: 999px; padding: 4px 10px; font-size: 12px;`;
 const ChipX = styled.button`background: transparent; border: none; color: inherit; cursor: pointer; display: inline-flex; padding: 0; opacity: 0.7; &:hover { opacity: 1; }`;

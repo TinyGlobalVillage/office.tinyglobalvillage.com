@@ -24,6 +24,7 @@ import {
   deactivateOfficeLegalDocument,
   getMemberUserByEmail,
   insertLegalSend,
+  getPdfPageCount,
 } from "@tgv/module-documenso";
 import { createAndDistributeMultisigFromPdf } from "@tgv/module-documenso/server/multisig";
 import {
@@ -31,6 +32,7 @@ import {
   insertLegalDocumentSigners,
   listLegalDocumentKinds,
   listSignersForDocuments,
+  setLegalDocumentCertPrefs,
   type InsertSignerInput,
 } from "@tgv/module-documenso/db/multisig-queries";
 
@@ -133,6 +135,9 @@ export async function POST(req: NextRequest) {
   // kind branch (0076): default waiver; multisig carries a JSON signer roster.
   const kind = String(form.get("kind") ?? "waiver") === "multisig" ? "multisig" : "waiver";
   const note = String(form.get("note") ?? "").trim();
+  // "Include certificate page?" (0079) — default true; false = the completion webhook
+  // strips Documenso's appended certificate from the stored copy (sealed original kept).
+  const includeCertificate = String(form.get("includeCertificate") ?? "true") !== "false";
   let signers: Array<{ email: string; name: string | null }> = [];
   if (kind === "multisig") {
     let parsed: unknown;
@@ -164,6 +169,10 @@ export async function POST(req: NextRequest) {
   const slug = `${slugify(title)}-${Date.now().toString(36)}`;
   const doc = await createOfficeLegalDocument(db, { slug, title });
   if (!doc) return NextResponse.json({ error: "Could not create document row" }, { status: 500 });
+
+  // Certificate preference + original page count (the strip keeps exactly these pages).
+  const pageCount = await getPdfPageCount(pdf).catch(() => null);
+  await setLegalDocumentCertPrefs(db, doc.id, includeCertificate, pageCount).catch(() => {});
 
   // ── multisig: document flow — Documenso emails each named signer their own link NOW ──
   if (kind === "multisig") {
