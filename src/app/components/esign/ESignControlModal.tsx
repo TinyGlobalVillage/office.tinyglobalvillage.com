@@ -3,10 +3,18 @@
 // ESignControlModal — TGV Office "E-Sign Documents" console (Utils → Documents group).
 //
 // Lifts the @tgv/module-legal/module-documenso e-sign engine (built for Studio waivers) onto
-// Office so operators (Gio/Marthe) can send ANY document to ANY recipient — staff or external
-// email — for signature, for any purpose. Transport = share the Documenso direct link
-// (option A): Office emails the recipient the /d/{token} URL and tracks sent → signed in the
-// Activity outbox. Backend: /api/esign/{documents,send,activity,pdf}.
+// Office so operators (Gio/Marthe) can send ANY document to ANYONE for signature.
+//
+// THREE views on a PillBar (2026-07-02 redesign — Upload+Send folded into one):
+//   New Document — pick the mode (waiver = one shared /d/{token} link; multiple signatures =
+//     Documenso document flow, each named signer gets their own emailed link + their own
+//     SIGNATURE/DATE boxes), add recipients/signers, drop the PDF → everything happens in one
+//     shot. Waiver recipients are optional (skip them to just get the link).
+//   Activity — the outbox (sent → signed per recipient; X removes an entry, log-only).
+//   Documents — the library w/ kind filter, per-signer status, copy-link, delete.
+//
+// Multisig boxes auto-stack on the last page IN THE ORDER SIGNERS ARE ADDED (top → bottom) —
+// the UI says so, because a real doc's printed signature lines have a fixed order.
 //
 // Self-contained (styled-components, per Office's no-Tailwind rule). Inline SVGs — no emoji.
 
@@ -55,14 +63,28 @@ type ActivityRow = {
   hasSignedPdf: boolean;
 };
 
-type Tab = "upload" | "documents" | "send" | "activity";
+type Tab = "new" | "activity" | "documents";
 type KindFilter = "all" | "waiver" | "multisig";
 
+const TAB_SEGMENTS = [
+  { key: "new", label: "New Document" },
+  { key: "activity", label: "Activity" },
+  { key: "documents", label: "Documents" },
+];
+const MODE_SEGMENTS = [
+  { key: "waiver", label: "Waiver — one shared link" },
+  { key: "multisig", label: "Multiple signatures" },
+];
+const CHANNEL_SEGMENTS = [
+  { key: "email", label: "Email the link" },
+  { key: "link", label: "Just record & copy" },
+];
 const KIND_SEGMENTS = [
   { key: "all", label: "All" },
   { key: "waiver", label: "Waivers" },
   { key: "multisig", label: "Multiple Signatures" },
 ];
+const ACCENT = "58, 160, 255"; // modal cyan-blue (#3aa0ff)
 
 // ── inline icons (currentColor) ─────────────────────────────────────────────────
 const XIcon = ({ size = 18 }: { size?: number }) => (
@@ -84,124 +106,39 @@ const LinkIcon = ({ size = 15 }: { size?: number }) => (
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+type ConfirmState = {
+  title: string;
+  message: string;
+  detail?: string;
+  confirmLabel: string;
+  run: () => Promise<void>;
+};
+
 export default function ESignControlModal({ onClose }: { onClose: () => void }) {
-  const [tab, setTab] = useState<Tab>("upload");
+  const [tab, setTab] = useState<Tab>("new");
   const [loading, setLoading] = useState(true);
   const [configured, setConfigured] = useState(true);
   const [documents, setDocuments] = useState<DocRow[]>([]);
   const [staff, setStaff] = useState<StaffRow[]>([]);
   const [activity, setActivity] = useState<ActivityRow[]>([]);
   const [msg, setMsg] = useState<string>("");
+  const [confirm, setConfirm] = useState<ConfirmState | null>(null);
 
-  // send-tab state
-  const [selectedDocId, setSelectedDocId] = useState<string>("");
+  // New Document state
+  const [mode, setMode] = useState<DocKind>("waiver");
   const [recipients, setRecipients] = useState<Recipient[]>([]);
   const [customEmail, setCustomEmail] = useState("");
   const [note, setNote] = useState("");
   const [channel, setChannel] = useState<"email" | "link">("email");
-  const [sending, setSending] = useState(false);
-  const [recordedUrl, setRecordedUrl] = useState<string | null>(null); // set after "Record & get link"; resets on doc change/close
-  const [confirm, setConfirm] = useState<{ title: string; message: string; detail?: string; run: () => Promise<void> } | null>(null);
-
-  // library-tab upload state
+  const [recordedUrl, setRecordedUrl] = useState<string | null>(null); // waiver link-channel result
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadPct, setUploadPct] = useState<number | null>(null); // 0–100 while sending; null = server processing
   const [dragging, setDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // upload kind: waiver (one shared link) vs multisig (named signers, each their own link)
-  const [uploadKind, setUploadKind] = useState<DocKind>("waiver");
-  const [uploadSigners, setUploadSigners] = useState<Recipient[]>([]);
-  const [uploadSignerEmail, setUploadSignerEmail] = useState("");
-
   // documents-tab kind filter (PillBar)
   const [docFilter, setDocFilter] = useState<KindFilter>("all");
-
-  const addUploadSigner = (email: string, name: string | null) => {
-    // comma-separated typing supported — split and add each
-    const parts = email.split(",").map((p) => p.trim()).filter(Boolean);
-    if (!parts.length) return;
-    const valid: Recipient[] = [];
-    let bad: string | null = null;
-    for (const p of parts) {
-      const e = p.toLowerCase();
-      if (!EMAIL_RE.test(e)) { bad = p; continue; }
-      valid.push({ email: e, name: parts.length === 1 ? name : null });
-    }
-    setUploadSigners((prev) => {
-      const next = [...prev];
-      for (const v of valid) if (!next.some((r) => r.email === v.email)) next.push(v);
-      return next;
-    });
-    setMsg(bad ? `"${bad}" is not a valid email` : "");
-  };
-  const removeUploadSigner = (email: string) => setUploadSigners((prev) => prev.filter((r) => r.email !== email));
-
-  // Drop/select a PDF → upload immediately (title defaults to the filename).
-  // XHR (not fetch) so we get a real upload-progress %; plus a hard timeout so it can't hang.
-  const handleFile = (f: File | null) => {
-    if (!f || uploading) return;
-    if (f.type !== "application/pdf" && !f.name.toLowerCase().endsWith(".pdf")) {
-      setMsg("Please choose a PDF file");
-      return;
-    }
-    if (!configured) {
-      setMsg("Documenso is not configured on this server — cannot upload.");
-      return;
-    }
-    if (uploadKind === "multisig" && uploadSigners.length === 0) {
-      setMsg("Add at least one signer first — each signer gets their own emailed signing link.");
-      return;
-    }
-    const title = f.name.replace(/\.pdf$/i, "").trim() || f.name;
-    const fd = new FormData();
-    fd.append("title", title);
-    fd.append("file", f);
-    if (uploadKind === "multisig") {
-      fd.append("kind", "multisig");
-      fd.append("signers", JSON.stringify(uploadSigners));
-    }
-
-    const done = (message: string) => {
-      setUploading(false);
-      setUploadFile(null);
-      setUploadPct(null);
-      setMsg(message);
-    };
-
-    setUploadFile(f);
-    setUploading(true);
-    setUploadPct(0);
-    setMsg("");
-
-    const xhr = new XMLHttpRequest();
-    xhr.open("POST", "/api/esign/documents");
-    xhr.timeout = 120_000; // 2 min ceiling — Documenso template creation is a few round-trips
-    xhr.upload.onprogress = (e) => {
-      if (e.lengthComputable) setUploadPct(Math.round((e.loaded / e.total) * 100));
-    };
-    xhr.upload.onload = () => setUploadPct(null); // file fully sent → server now building the template
-    xhr.onload = () => {
-      let d: { ok?: boolean; error?: string; document?: { title?: string; kind?: string; signerCount?: number } } | null = null;
-      try { d = JSON.parse(xhr.responseText); } catch { /* non-JSON */ }
-      if (xhr.status >= 200 && xhr.status < 300 && d?.ok) {
-        if (d.document?.kind === "multisig") {
-          done(`"${d.document?.title ?? title}" sent to ${d.document?.signerCount ?? uploadSigners.length} signer(s) — each received their own signing link.`);
-          setUploadSigners([]);
-          loadActivity();
-        } else {
-          done(`"${d.document?.title ?? title}" added — ready to send.`);
-        }
-        loadDocuments();
-      } else {
-        done(d?.error ?? `Upload failed (HTTP ${xhr.status})`);
-      }
-    };
-    xhr.onerror = () => done("Upload failed (network error)");
-    xhr.ontimeout = () => done("Upload timed out after 2 min — please try again.");
-    xhr.send(fd);
-  };
 
   const loadDocuments = useCallback(async () => {
     try {
@@ -242,43 +179,128 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  // A recorded link is per-document; changing the selected doc invalidates it.
-  useEffect(() => { setRecordedUrl(null); }, [selectedDocId]);
+  // A recorded link belongs to one upload; switching mode invalidates it.
+  useEffect(() => { setRecordedUrl(null); }, [mode]);
 
   const addRecipient = (email: string, name: string | null) => {
-    const e = email.trim().toLowerCase();
-    if (!EMAIL_RE.test(e)) { setMsg(`"${email}" is not a valid email`); return; }
-    if (recipients.some((r) => r.email === e)) return;
-    setRecipients((prev) => [...prev, { email: e, name }]);
-    setMsg("");
+    // comma-separated typing supported — split and add each
+    const parts = email.split(",").map((p) => p.trim()).filter(Boolean);
+    if (!parts.length) return;
+    const valid: Recipient[] = [];
+    let bad: string | null = null;
+    for (const p of parts) {
+      const e = p.toLowerCase();
+      if (!EMAIL_RE.test(e)) { bad = p; continue; }
+      valid.push({ email: e, name: parts.length === 1 ? name : null });
+    }
+    setRecipients((prev) => {
+      const next = [...prev];
+      for (const v of valid) if (!next.some((r) => r.email === v.email)) next.push(v);
+      return next;
+    });
+    setMsg(bad ? `"${bad}" is not a valid email` : "");
   };
   const removeRecipient = (email: string) => setRecipients((prev) => prev.filter((r) => r.email !== email));
 
-  const send = async () => {
-    if (!selectedDocId) { setMsg("Pick a document first"); return; }
-    if (recipients.length === 0) { setMsg("Add at least one recipient"); return; }
-    setSending(true); setMsg("");
+  // Waiver post-upload dispatch: reuse the send route (records legal_sends + emails / returns url).
+  const finishWaiverSend = async (documentId: string, title: string) => {
     try {
       const r = await fetch("/api/esign/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ documentId: selectedDocId, recipients, note, channel }),
+        body: JSON.stringify({ documentId, recipients, note, channel }),
       });
       const d = await r.json();
-      if (!r.ok || !d?.ok) { setMsg(d?.error ?? "Send failed"); return; }
-      const emailed = (d.results ?? []).filter((x: { emailed: boolean }) => x.emailed).length;
-      const failed = (d.results ?? []).filter((x: { ok: boolean }) => !x.ok);
-      setMsg(
-        channel === "email"
-          ? `Sent to ${recipients.length} recipient(s) — ${emailed} emailed${failed.length ? `, ${failed.length} failed` : ""}.`
-          : `Link recorded for ${recipients.length} recipient(s). Use “Copy link”.`,
-      );
-      if (channel === "link" && typeof d.url === "string") setRecordedUrl(d.url);
-      setRecipients([]); setNote("");
+      if (!r.ok || !d?.ok) {
+        setMsg(d?.error ?? `"${title}" uploaded, but sending failed`);
+        return;
+      }
+      if (channel === "link") {
+        if (typeof d.url === "string") setRecordedUrl(d.url);
+        setMsg(`"${title}" added + recorded for ${recipients.length} recipient(s) — use the copy icon.`);
+      } else {
+        const emailed = (d.results ?? []).filter((x: { emailed: boolean }) => x.emailed).length;
+        const failed = (d.results ?? []).filter((x: { ok: boolean }) => !x.ok);
+        setMsg(`"${title}" added + sent to ${recipients.length} recipient(s) — ${emailed} emailed${failed.length ? `, ${failed.length} failed` : ""}.`);
+      }
+      setRecipients([]);
+      setNote("");
       await loadActivity();
-    } finally {
-      setSending(false);
+    } catch {
+      setMsg(`"${title}" uploaded, but sending failed (server error)`);
     }
+  };
+
+  // Drop/select a PDF → ONE action: create the document and dispatch it per the mode.
+  // XHR (not fetch) so we get a real upload-progress %; plus a hard timeout so it can't hang.
+  const handleFile = (f: File | null) => {
+    if (!f || uploading) return;
+    if (f.type !== "application/pdf" && !f.name.toLowerCase().endsWith(".pdf")) {
+      setMsg("Please choose a PDF file");
+      return;
+    }
+    if (!configured) {
+      setMsg("Documenso is not configured on this server — cannot upload.");
+      return;
+    }
+    if (mode === "multisig" && recipients.length === 0) {
+      setMsg("Add the signers first — boxes stack in the order you add them (match the document, top to bottom).");
+      return;
+    }
+    const title = f.name.replace(/\.pdf$/i, "").trim() || f.name;
+    const fd = new FormData();
+    fd.append("title", title);
+    fd.append("file", f);
+    if (mode === "multisig") {
+      fd.append("kind", "multisig");
+      fd.append("signers", JSON.stringify(recipients));
+      if (note.trim()) fd.append("note", note.trim());
+    }
+
+    const done = (message: string) => {
+      setUploading(false);
+      setUploadFile(null);
+      setUploadPct(null);
+      setMsg(message);
+    };
+
+    setUploadFile(f);
+    setUploading(true);
+    setUploadPct(0);
+    setRecordedUrl(null);
+    setMsg("");
+
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", "/api/esign/documents");
+    xhr.timeout = 120_000; // 2 min ceiling — Documenso creation is a few round-trips
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) setUploadPct(Math.round((e.loaded / e.total) * 100));
+    };
+    xhr.upload.onload = () => setUploadPct(null); // file fully sent → server now talking to Documenso
+    xhr.onload = () => {
+      let d: { ok?: boolean; error?: string; document?: { id?: string; title?: string; kind?: string; signerCount?: number } } | null = null;
+      try { d = JSON.parse(xhr.responseText); } catch { /* non-JSON */ }
+      if (xhr.status >= 200 && xhr.status < 300 && d?.ok) {
+        const docTitle = d.document?.title ?? title;
+        if (d.document?.kind === "multisig") {
+          done(`"${docTitle}" sent to ${d.document?.signerCount ?? recipients.length} signer(s) — each received their own signing link.`);
+          setRecipients([]);
+          setNote("");
+          loadActivity();
+        } else if (recipients.length > 0 && d.document?.id) {
+          done(`"${docTitle}" added — dispatching…`);
+          finishWaiverSend(d.document.id, docTitle);
+        } else {
+          done(`"${docTitle}" added — copy its link from the Documents view anytime.`);
+        }
+        loadDocuments();
+      } else {
+        done(d?.error ?? `Upload failed (HTTP ${xhr.status})`);
+      }
+    };
+    xhr.onerror = () => done("Upload failed (network error)");
+    xhr.ontimeout = () => done("Upload timed out after 2 min — please try again.");
+    xhr.send(fd);
   };
 
   const copyLink = async (url: string | null) => {
@@ -293,7 +315,6 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
       const j = await r.json();
       if (r.ok && j?.ok) {
         setMsg(`Deleted "${d.title}".`);
-        if (selectedDocId === d.id) setSelectedDocId("");
         await loadDocuments();
       } else setMsg(j?.error ?? "Delete failed");
     } catch { setMsg("Delete failed (server error)"); }
@@ -302,12 +323,33 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
     setConfirm({
       title: "Delete document",
       message: `Delete “${d.title}”?`,
-      detail: "It leaves the library and the Send picker. Any signed consent records are kept for audit.",
+      detail: d.kind === "multisig"
+        ? "It leaves the library. Signer links already emailed stop mattering once removed; signed consent records are kept for audit."
+        : "It leaves the library and the recipient pickers. Any signed consent records are kept for audit.",
+      confirmLabel: "Delete",
       run: () => performDeleteDoc(d),
     });
 
-  const sendableDocs = documents.filter((d) => d.sendable);
-  const selectedDoc = documents.find((d) => d.id === selectedDocId) ?? null;
+  const performRemoveActivity = async (a: ActivityRow) => {
+    try {
+      const r = await fetch(`/api/esign/activity?id=${encodeURIComponent(a.id)}`, { method: "DELETE" });
+      const j = await r.json();
+      if (r.ok && j?.ok) {
+        setMsg("Activity entry removed.");
+        await loadActivity();
+      } else setMsg(j?.error ?? "Remove failed");
+    } catch { setMsg("Remove failed (server error)"); }
+  };
+  const askRemoveActivity = (a: ActivityRow) =>
+    setConfirm({
+      title: "Remove activity entry",
+      message: `Remove the “${a.docTitle}” → ${a.recipientEmail} entry?`,
+      detail: "This clears the outbox row only — signatures and signer status records are kept.",
+      confirmLabel: "Remove",
+      run: () => performRemoveActivity(a),
+    });
+
+  const visibleDocs = documents.filter((d) => docFilter === "all" || d.kind === docFilter);
 
   return (
     <>
@@ -325,40 +367,41 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
           <Warn>Documenso is not configured on this server (DOCUMENSO_URL + DOCUMENSO_API_KEY). Uploads and sends are disabled.</Warn>
         )}
 
-        <Tabs>
-          <TabBtn $active={tab === "upload"} onClick={() => setTab("upload")}>Upload</TabBtn>
-          <TabBtn $active={tab === "send"} onClick={() => setTab("send")}>Send</TabBtn>
-          <TabBtn $active={tab === "activity"} onClick={() => setTab("activity")}>Activity</TabBtn>
-          <TabBtn $active={tab === "documents"} onClick={() => setTab("documents")}>Documents</TabBtn>
-        </Tabs>
+        <TabsRow>
+          <PillBar
+            segments={TAB_SEGMENTS}
+            active={tab}
+            onChange={(k) => setTab(k as Tab)}
+            accent={ACCENT}
+            ariaLabel="E-Sign view"
+          />
+        </TabsRow>
 
         {msg && <Msg onClick={() => setMsg("")}>{msg}</Msg>}
 
         <Body>
           {loading && <Dim>Loading…</Dim>}
 
-          {!loading && tab === "send" && (
+          {!loading && tab === "new" && (
             <Section>
-              <Label>Document</Label>
-              <DDM
-                label={selectedDoc ? selectedDoc.title : "Choose a document"}
-                ariaLabel="Choose a document"
-                align="left"
-                items={sendableDocs.map((d): DDMItem => ({
-                  key: d.id,
-                  label: d.title,
-                  onClick: () => setSelectedDocId(d.id),
-                }))}
+              <PillBar
+                segments={MODE_SEGMENTS}
+                active={mode}
+                onChange={(k) => setMode(k as DocKind)}
+                accent={ACCENT}
+                ariaLabel="Signature mode"
               />
-              {sendableDocs.length === 0 && (
-                <Dim>No sendable documents yet — add one from the Upload tab.</Dim>
-              )}
+              <Hint>
+                {mode === "waiver"
+                  ? "One reusable signing link — anyone who opens it signs their own copy. Recipients below are optional."
+                  : "Named signers on ONE document — each gets their own emailed link and their own signature box. Add signers in the order their signature lines appear in the document (top to bottom); the boxes stack in that order."}
+              </Hint>
 
-              <Label>Recipients</Label>
+              <Label>{mode === "multisig" ? "Signers (in document order)" : "Recipients (optional)"}</Label>
               <Row>
                 <DDM
                   label="Add staff"
-                  ariaLabel="Add a staff recipient"
+                  ariaLabel={mode === "multisig" ? "Add a staff signer" : "Add a staff recipient"}
                   align="left"
                   items={staff.map((s): DDMItem => ({
                     key: s.username,
@@ -367,7 +410,7 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
                   }))}
                 />
                 <Input
-                  placeholder="or type any email"
+                  placeholder="or type emails (comma-separated)"
                   value={customEmail}
                   onChange={(e) => setCustomEmail(e.target.value)}
                   onKeyDown={(e) => { if (e.key === "Enter") { addRecipient(customEmail, null); setCustomEmail(""); } }}
@@ -376,88 +419,40 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
               </Row>
               {recipients.length > 0 && (
                 <Chips>
-                  {recipients.map((r) => (
+                  {recipients.map((r, i) => (
                     <Chip key={r.email}>
-                      {r.name ? `${r.name} · ` : ""}{r.email}
+                      {mode === "multisig" ? `${i + 1}. ` : ""}{r.name ? `${r.name} · ` : ""}{r.email}
                       <ChipX type="button" onClick={() => removeRecipient(r.email)} aria-label="Remove"><XIcon size={12} /></ChipX>
                     </Chip>
                   ))}
                 </Chips>
               )}
 
-              <Label>Message (optional)</Label>
-              <Textarea rows={3} value={note} onChange={(e) => setNote(e.target.value)} placeholder="A short note included in the email…" />
+              <Label>Message (optional{mode === "multisig" ? " — included in each signer's email" : ""})</Label>
+              <Textarea rows={2} value={note} onChange={(e) => setNote(e.target.value)} placeholder="A short note included in the email…" />
 
-              <Row>
-                <ChannelToggle>
-                  <ChBtn $active={channel === "email"} onClick={() => setChannel("email")}>Email the link</ChBtn>
-                  <ChBtn $active={channel === "link"} onClick={() => setChannel("link")}>Just record (copy link)</ChBtn>
-                </ChannelToggle>
-                {channel === "email" ? (
-                  <PrimaryBtn type="button" disabled={sending || !configured} onClick={send}>
-                    {sending ? "Sending…" : "Send for signature"}
-                  </PrimaryBtn>
-                ) : (
-                  <LinkActions>
-                    <PrimaryBtn style={{ marginLeft: 0 }} type="button" disabled={sending || !configured || !!recordedUrl} onClick={send}>
-                      {sending ? "Recording…" : recordedUrl ? "Recorded" : "Record & get link"}
-                    </PrimaryBtn>
-                    <CopyIconBtn type="button" disabled={!recordedUrl} title="Copy signing link" aria-label="Copy signing link" onClick={() => copyLink(recordedUrl)}>
-                      <LinkIcon size={15} />
-                    </CopyIconBtn>
-                  </LinkActions>
-                )}
-              </Row>
-            </Section>
-          )}
-
-          {!loading && tab === "upload" && (
-            <Section>
-              <Label>Signature mode</Label>
-              <ChannelToggle>
-                <ChBtn $active={uploadKind === "waiver"} onClick={() => setUploadKind("waiver")}>
-                  Waiver — one shared link
-                </ChBtn>
-                <ChBtn $active={uploadKind === "multisig"} onClick={() => setUploadKind("multisig")}>
-                  Multiple signatures — named signers
-                </ChBtn>
-              </ChannelToggle>
-              {uploadKind === "multisig" && (
-                <>
-                  <Label>Signers (each gets their own signature box + emailed link)</Label>
-                  <Row>
-                    <DDM
-                      label="Add staff"
-                      ariaLabel="Add a staff signer"
-                      align="left"
-                      items={staff.map((s): DDMItem => ({
-                        key: s.username,
-                        label: `${s.username} · ${s.email}`,
-                        onClick: () => addUploadSigner(s.email, s.username),
-                      }))}
-                    />
-                    <Input
-                      placeholder="or type emails (comma-separated)"
-                      value={uploadSignerEmail}
-                      onChange={(e) => setUploadSignerEmail(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === "Enter") { addUploadSigner(uploadSignerEmail, null); setUploadSignerEmail(""); } }}
-                    />
-                    <AddBtn type="button" onClick={() => { addUploadSigner(uploadSignerEmail, null); setUploadSignerEmail(""); }}>Add</AddBtn>
-                  </Row>
-                  {uploadSigners.length > 0 && (
-                    <Chips>
-                      {uploadSigners.map((r, i) => (
-                        <Chip key={r.email}>
-                          {i + 1}. {r.name ? `${r.name} · ` : ""}{r.email}
-                          <ChipX type="button" onClick={() => removeUploadSigner(r.email)} aria-label="Remove"><XIcon size={12} /></ChipX>
-                        </Chip>
-                      ))}
-                    </Chips>
-                  )}
-                </>
+              {mode === "waiver" && recipients.length > 0 && (
+                <Row>
+                  <PillBar
+                    segments={CHANNEL_SEGMENTS}
+                    active={channel}
+                    onChange={(k) => setChannel(k as "email" | "link")}
+                    accent={ACCENT}
+                    ariaLabel="Delivery"
+                  />
+                  <CopyIconBtn
+                    type="button"
+                    disabled={!recordedUrl}
+                    title="Copy signing link"
+                    aria-label="Copy signing link"
+                    onClick={() => copyLink(recordedUrl)}
+                  >
+                    <LinkIcon size={15} />
+                  </CopyIconBtn>
+                </Row>
               )}
 
-              <Label>Add a document</Label>
+              <Label>Document</Label>
               <DropZone
                 $dragging={dragging}
                 onClick={() => { if (!uploading) fileInputRef.current?.click(); }}
@@ -481,12 +476,14 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
                   {uploading
                     ? uploadPct !== null
                       ? "Sending file to the server"
-                      : uploadKind === "multisig"
+                      : mode === "multisig"
                       ? "Creating the document and emailing each signer their own link…"
                       : "Creating signing template in Documenso…"
-                    : uploadKind === "multisig"
-                    ? `PDF · up to 20 MB · sends to ${uploadSigners.length || "your"} signer(s) on upload`
-                    : "PDF · up to 20 MB · uploads automatically (named from the file)"}
+                    : mode === "multisig"
+                    ? `PDF · up to 20 MB · sends to ${recipients.length || "your"} signer(s) on drop`
+                    : recipients.length > 0
+                    ? `PDF · up to 20 MB · uploads + ${channel === "email" ? `emails ${recipients.length} recipient(s)` : "records the link"} on drop`
+                    : "PDF · up to 20 MB · uploads on drop (named from the file)"}
                 </DzSub>
                 {uploading && (
                   <Track>
@@ -499,22 +496,19 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
 
           {!loading && tab === "documents" && (
             <Section>
-              <Label>Your documents</Label>
               <PillBar
                 segments={KIND_SEGMENTS}
                 active={docFilter}
                 onChange={(k) => setDocFilter(k as KindFilter)}
-                accent="58, 160, 255"
+                accent={ACCENT}
                 ariaLabel="Filter documents by kind"
               />
-              {documents.length === 0 && <Dim>No documents yet. Add one from the Upload tab.</Dim>}
-              {documents.length > 0 && documents.filter((d) => docFilter === "all" || d.kind === docFilter).length === 0 && (
+              {documents.length === 0 && <Dim>No documents yet. Add one from New Document.</Dim>}
+              {documents.length > 0 && visibleDocs.length === 0 && (
                 <Dim>No {docFilter === "waiver" ? "waivers" : "multi-signature documents"} yet.</Dim>
               )}
               <List>
-                {documents
-                  .filter((d) => docFilter === "all" || d.kind === docFilter)
-                  .map((d) => (
+                {visibleDocs.map((d) => (
                   <Item key={d.id}>
                     <ItemMain>
                       <ItemTitle>{d.title}</ItemTitle>
@@ -564,6 +558,7 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
                           <DownloadIcon />
                         </IconLink>
                       )}
+                      <DelBtn type="button" onClick={() => askRemoveActivity(a)} aria-label="Remove entry" title="Remove entry"><XIcon size={13} /></DelBtn>
                     </ActRight>
                   </ActItem>
                 ))}
@@ -578,7 +573,7 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
       title={confirm?.title ?? ""}
       message={confirm?.message ?? ""}
       detail={confirm?.detail}
-      confirmLabel="Delete"
+      confirmLabel={confirm?.confirmLabel ?? "Confirm"}
       intent="danger"
       onConfirm={async () => { const c = confirm; setConfirm(null); await c?.run(); }}
       onCancel={() => setConfirm(null)}
@@ -597,7 +592,7 @@ const Panel = styled.div`
   width: min(760px, 100%); max-height: 90vh; display: flex; flex-direction: column;
   background: #0d0d12; border: 1px solid rgba(120,200,255,0.18); border-radius: 14px;
   box-shadow: 0 24px 80px rgba(0,0,0,0.6); color: #e8e8ef; overflow: hidden;
-  /* DDM accent (Send-tab pickers) → cyan to match the modal */
+  /* DDM accent (recipient pickers) → cyan to match the modal */
   --ddm-accent: #3aa0ff;
   --ddm-accent-rgb: 58, 160, 255;
 `;
@@ -613,16 +608,11 @@ const CloseBtn = styled.button`
   &:hover { color: #fff; background: rgba(255,255,255,0.06); }
 `;
 const Warn = styled.div`margin: 12px 22px 0; padding: 10px 12px; border-radius: 8px; font-size: 12.5px; background: rgba(255,180,60,0.1); border: 1px solid rgba(255,180,60,0.3); color: #ffcf87;`;
-const Tabs = styled.div`display: flex; gap: 6px; padding: 14px 22px 0;`;
-const TabBtn = styled.button<{ $active: boolean }>`
-  background: ${(p) => (p.$active ? "rgba(120,200,255,0.14)" : "transparent")};
-  border: 1px solid ${(p) => (p.$active ? "rgba(120,200,255,0.4)" : "rgba(255,255,255,0.1)")};
-  color: ${(p) => (p.$active ? "#bfe4ff" : "rgba(232,232,239,0.6)")};
-  padding: 7px 16px; border-radius: 8px 8px 0 0; font-size: 13px; cursor: pointer;
-`;
+const TabsRow = styled.div`padding: 14px 22px 0;`;
 const Msg = styled.div`margin: 12px 22px 0; padding: 9px 12px; border-radius: 8px; font-size: 12.5px; background: rgba(120,200,255,0.1); border: 1px solid rgba(120,200,255,0.28); color: #cfe9ff; cursor: pointer;`;
 const Body = styled.div`padding: 18px 22px 22px; overflow-y: auto;`;
 const Section = styled.div`display: flex; flex-direction: column; gap: 8px;`;
+const Hint = styled.p`margin: 2px 0 0; font-size: 12px; line-height: 1.5; color: rgba(232,232,239,0.5); text-align: center;`;
 const Label = styled.label`font-size: 12px; font-weight: 600; color: rgba(232,232,239,0.75); margin-top: 10px;`;
 const Row = styled.div`display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 2px;`;
 const baseField = `
@@ -636,18 +626,6 @@ const Chips = styled.div`display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6
 const Chip = styled.span`display: inline-flex; align-items: center; gap: 6px; background: rgba(120,200,255,0.1); border: 1px solid rgba(120,200,255,0.28); border-radius: 999px; padding: 4px 10px; font-size: 12px;`;
 const ChipX = styled.button`background: transparent; border: none; color: inherit; cursor: pointer; display: inline-flex; padding: 0; opacity: 0.7; &:hover { opacity: 1; }`;
 const AddBtn = styled.button`${baseField} cursor: pointer; flex: 0 0 auto; &:hover { border-color: rgba(120,200,255,0.5); }`;
-const ChannelToggle = styled.div`display: inline-flex; border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; overflow: hidden;`;
-const ChBtn = styled.button<{ $active: boolean }>`
-  background: ${(p) => (p.$active ? "rgba(120,200,255,0.16)" : "transparent")};
-  color: ${(p) => (p.$active ? "#cfe9ff" : "rgba(232,232,239,0.6)")};
-  border: none; padding: 8px 13px; font-size: 12.5px; cursor: pointer;
-`;
-const PrimaryBtn = styled.button`
-  margin-left: auto; background: #3aa0ff; color: #001a2e; border: none; border-radius: 8px;
-  padding: 9px 18px; font-size: 13px; font-weight: 650; cursor: pointer;
-  &:hover:not(:disabled) { background: #58b0ff; } &:disabled { opacity: 0.45; cursor: default; }
-`;
-const LinkActions = styled.div`margin-left: auto; display: flex; align-items: center; gap: 8px;`;
 const CopyIconBtn = styled.button`
   display: inline-flex; align-items: center; justify-content: center; padding: 8px;
   border-radius: 8px; border: 1px solid rgba(120,200,255,0.3); background: rgba(120,200,255,0.1);

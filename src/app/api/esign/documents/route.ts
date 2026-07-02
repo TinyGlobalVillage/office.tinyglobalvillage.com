@@ -132,6 +132,7 @@ export async function POST(req: NextRequest) {
 
   // kind branch (0076): default waiver; multisig carries a JSON signer roster.
   const kind = String(form.get("kind") ?? "waiver") === "multisig" ? "multisig" : "waiver";
+  const note = String(form.get("note") ?? "").trim();
   let signers: Array<{ email: string; name: string | null }> = [];
   if (kind === "multisig") {
     let parsed: unknown;
@@ -170,7 +171,9 @@ export async function POST(req: NextRequest) {
     try {
       result = await createAndDistributeMultisigFromPdf(pdf, title, signers, {
         subject: `Please sign: ${title}`,
-        message: `${auth.username} has sent you "${title}" to sign electronically. Each signer has their own signature box.`,
+        message:
+          note ||
+          `${auth.username} has sent you "${title}" to sign electronically. Each signer has their own signature box.`,
       });
     } catch (err) {
       return NextResponse.json(
@@ -205,7 +208,7 @@ export async function POST(req: NextRequest) {
         recipientMemberUserId: s.memberUserId ?? null,
         sentBy: auth.username,
         channel: "email",
-        note: null,
+        note: note || null,
         directToken: null,
       });
     }
