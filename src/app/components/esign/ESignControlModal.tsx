@@ -57,7 +57,7 @@ const DownloadIcon = ({ size = 15 }: { size?: number }) => (
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function ESignControlModal({ onClose }: { onClose: () => void }) {
-  const [tab, setTab] = useState<Tab>("send");
+  const [tab, setTab] = useState<Tab>("library");
   const [loading, setLoading] = useState(true);
   const [configured, setConfigured] = useState(true);
   const [documents, setDocuments] = useState<DocRow[]>([]);
@@ -205,8 +205,8 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
         )}
 
         <Tabs>
+          <TabBtn $active={tab === "library"} onClick={() => setTab("library")}>Upload &amp; Library</TabBtn>
           <TabBtn $active={tab === "send"} onClick={() => setTab("send")}>Send</TabBtn>
-          <TabBtn $active={tab === "library"} onClick={() => setTab("library")}>Library</TabBtn>
           <TabBtn $active={tab === "activity"} onClick={() => setTab("activity")}>Activity</TabBtn>
         </Tabs>
 
@@ -279,7 +279,7 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
           {!loading && tab === "library" && (
             <Section>
               <Label>Upload a new document</Label>
-              <Input placeholder="Document title (e.g. Contractor Agreement)" value={uploadTitle} onChange={(e) => setUploadTitle(e.target.value)} />
+              <Input style={{ flex: "0 0 auto", width: "100%" }} placeholder="Document title (e.g. Contractor Agreement)" value={uploadTitle} onChange={(e) => setUploadTitle(e.target.value)} />
               <DropZone
                 $dragging={dragging}
                 onClick={() => fileInputRef.current?.click()}
