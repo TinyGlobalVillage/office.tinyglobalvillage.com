@@ -12,6 +12,7 @@
 import { useCallback, useEffect, useState } from "react";
 import styled from "styled-components";
 import { colors, rgb } from "@/app/theme";
+import { askConfirm } from "../../dialogService";
 
 type UfwRule = {
   index: number;
@@ -145,7 +146,11 @@ export default function UfwGlobalView({ highlightFn }: UfwGlobalViewProps) {
   useEffect(() => { refresh(); }, [refresh]);
 
   const deleteRule = useCallback(async (index: number) => {
-    if (!window.confirm(`Delete UFW rule [${index}]? This is irreversible — confirm only if you understand the rule.`)) return;
+    if (!(await askConfirm({
+      title: "Delete UFW rule?",
+      message: `Delete UFW rule [${index}]? This is irreversible — confirm only if you understand the rule.`,
+      confirmLabel: "Delete",
+    }))) return;
     setBusy(true); setError(null);
     try {
       const res = await fetch("/api/admin/system/ufw", {

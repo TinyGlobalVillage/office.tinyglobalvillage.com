@@ -8,6 +8,7 @@
 import { useCallback, useEffect, useState } from "react";
 import styled from "styled-components";
 import { rgb } from "@/app/theme";
+import { askConfirm, showNotice } from "../../dialogService";
 
 export type TenantAppRow = {
   slug: string;
@@ -113,7 +114,7 @@ export function TenantAppsTablePanel({
     setBusy(slug + ":restart");
     try {
       const r = await postJson("/api/admin/tenant-apps/restart", { slug });
-      if (!r.ok) alert(`restart failed: ${JSON.stringify(r.data)}`);
+      if (!r.ok) void showNotice({ title: "Restart failed", message: `restart failed: ${JSON.stringify(r.data)}` });
     } finally {
       setBusy(null);
       onChange();
@@ -124,11 +125,11 @@ export function TenantAppsTablePanel({
     const warn = finalize
       ? `FINALIZE deprovision of "${slug}"? This deletes the pm2 process, nginx site, clients/${slug}/, and the DB row. Irreversible.`
       : `Soft-deprovision "${slug}"? pm2 will be stopped and status flipped to 'deprovisioning'. Reversible.`;
-    if (!confirm(warn)) return;
+    if (!(await askConfirm({ title: "Deprovision tenant app?", message: warn, confirmLabel: "Deprovision" }))) return;
     setBusy(slug + (finalize ? ":finalize" : ":stop"));
     try {
       const r = await postJson("/api/admin/tenant-apps/deprovision", { slug, finalize });
-      if (!r.ok) alert(`deprovision failed: ${JSON.stringify(r.data)}`);
+      if (!r.ok) void showNotice({ title: "Deprovision failed", message: `deprovision failed: ${JSON.stringify(r.data)}` });
     } finally {
       setBusy(null);
       onChange();
@@ -234,7 +235,7 @@ export function DriftPanel({
         hostname,
         slug: e.pm2Name,
       });
-      if (!r.ok) alert(`adopt failed: ${JSON.stringify(r.data)}`);
+      if (!r.ok) void showNotice({ title: "Adopt failed", message: `adopt failed: ${JSON.stringify(r.data)}` });
     } finally {
       setBusy(null);
       onChange();
@@ -268,7 +269,11 @@ export function DriftPanel({
               Adopt
             </Btn>
             <Btn $tone="danger" disabled={busy === e.pm2Name} onClick={async () => {
-              if (!confirm(`Stop & remove pm2 process "${e.pm2Name}"?`)) return;
+              if (!(await askConfirm({
+                title: "Stop & remove process?",
+                message: `Stop & remove pm2 process "${e.pm2Name}"?`,
+                confirmLabel: "Stop & remove",
+              }))) return;
               setBusy(e.pm2Name);
               try {
                 const res = await fetch("/api/pm2", {
@@ -279,7 +284,7 @@ export function DriftPanel({
                 });
                 if (!res.ok) {
                   // Fall back to no-op message — operator can run pm2 delete manually.
-                  alert(`stop failed; run \`pm2 delete ${e.pm2Name}\` on RCS`);
+                  void showNotice({ title: "Stop failed", message: `stop failed; run \`pm2 delete ${e.pm2Name}\` on RCS` });
                 }
               } finally {
                 setBusy(null);

@@ -7,6 +7,7 @@ import HardeningControlModal, {
   type HCMSection,
 } from "../HardeningControlModal";
 import AuditLogTimeline from "../_shared/AuditLogTimeline";
+import { askConfirm } from "../../dialogService";
 
 type ServiceStatus = "running" | "stopped" | "error" | "unknown";
 
@@ -235,7 +236,11 @@ function DevicesPanel({
   const [err, setErr] = useState<string | null>(null);
 
   const revoke = useCallback(async (id: string) => {
-    if (!window.confirm("Revoke this device from the mesh? Its key will be deleted and it will need re-enrollment.")) return;
+    if (!(await askConfirm({
+      title: "Revoke device?",
+      message: "Revoke this device from the mesh? Its key will be deleted and it will need re-enrollment.",
+      confirmLabel: "Revoke",
+    }))) return;
     setBusyId(id); setErr(null);
     try { await onRevoke(id); }
     catch (e) { setErr((e as Error).message); }
@@ -319,7 +324,11 @@ function PreAuthKeysPanel({
   }, [freshKey]);
 
   const revoke = useCallback(async (id: string) => {
-    if (!window.confirm("Revoke this pre-auth key? Any device that hasn't used it yet will fail to enroll.")) return;
+    if (!(await askConfirm({
+      title: "Revoke pre-auth key?",
+      message: "Revoke this pre-auth key? Any device that hasn't used it yet will fail to enroll.",
+      confirmLabel: "Revoke",
+    }))) return;
     setBusyRevokeId(id); setErr(null);
     try { await onRevoke(id); }
     catch (e) { setErr((e as Error).message); }

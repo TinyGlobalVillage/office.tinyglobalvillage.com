@@ -16,6 +16,7 @@ import {
   nextRawFromDisplayEdit,
   stripPhoneFormatting,
 } from "@/lib/frontdesk/phoneFormat";
+import { askConfirm } from "../dialogService";
 
 // ── Styled ───────────────────────────────────────────────────────
 
@@ -930,7 +931,11 @@ export default function PhoneTab() {
           <ClearAllBtn
             type="button"
             onClick={async () => {
-              if (!confirm("Clear all recent calls? This cannot be undone.")) return;
+              if (!(await askConfirm({
+                title: "Clear all recent calls?",
+                message: "This cannot be undone.",
+                confirmLabel: "Clear all",
+              }))) return;
               await fetch("/api/frontdesk/calls/history", { method: "DELETE" });
               loadAll();
             }}

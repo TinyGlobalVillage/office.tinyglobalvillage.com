@@ -33,6 +33,7 @@ import CreateGroupModal from "./CreateGroupModal";
 import GroupAdminModal from "./GroupAdminModal";
 import Tooltip from "./ui/Tooltip";
 import NeonX from "./NeonX";
+import { askConfirm, showNotice } from "./dialogService";
 import { useKnobVisibility } from "../lib/drawerKnobs";
 import {
   ChatIcon,
@@ -3382,10 +3383,10 @@ function MessageBubble({
     const created = new Date(createdAt).toLocaleString();
     const edited = editedAt ? new Date(editedAt).toLocaleString() : null;
     const readers = readBy && readBy.length ? readBy.join(", ") : "—";
-    alert(`From: ${profile?.displayName ?? from}\nSent: ${created}${edited ? `\nEdited: ${edited}` : ""}\nRead by: ${readers}`);
+    void showNotice({ title: "Message info", message: `From: ${profile?.displayName ?? from}\nSent: ${created}${edited ? `\nEdited: ${edited}` : ""}\nRead by: ${readers}`, intent: "primary" });
   };
 
-  const stub = (what: string) => () => alert(`${what}: coming soon`);
+  const stub = (what: string) => () => void showNotice({ title: "Coming soon", message: `${what}: coming soon`, intent: "primary" });
 
   return (
     <BubbleRow $isMe={isMe} data-msg-id={id}>
@@ -4014,12 +4015,12 @@ export default function ChatDrawer({ popout = false, popoutPeer = null, popoutGr
     if (res.ok) { await loadGroups(); setSelection({ type: "group", groupId }); }
     else {
       const d = await res.json().catch(() => ({}));
-      alert(d?.error ?? "Could not join");
+      void showNotice({ title: "Couldn't join", message: d?.error ?? "Could not join" });
     }
   };
 
   const leaveGroup = async (groupId: string) => {
-    if (!confirm("Leave this group?")) return;
+    if (!(await askConfirm({ title: "Leave group?", message: "Leave this group?", confirmLabel: "Leave" }))) return;
     await fetch(`/api/chat/group/join?groupId=${encodeURIComponent(groupId)}`, { method: "DELETE" });
     await loadGroups();
     setSelection({ type: "tgv" });
@@ -4120,7 +4121,7 @@ export default function ChatDrawer({ popout = false, popoutPeer = null, popoutGr
       document.body.removeChild(a);
       setTimeout(() => URL.revokeObjectURL(url), 2000);
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Export failed");
+      void showNotice({ title: "Export failed", message: e instanceof Error ? e.message : "Export failed" });
     }
   }, []);
 
@@ -5188,8 +5189,8 @@ export default function ChatDrawer({ popout = false, popoutPeer = null, popoutGr
                                   <RowHoverMenuItem onClick={() => { patchRowMeta(r.key, { pinned: !meta?.pinned }); setRowHoverMenu(null); }}>
                                     <RowMenuGlyph><WaPin/></RowMenuGlyph> {meta?.pinned ? "Unpin" : "Pin"}
                                   </RowHoverMenuItem>
-                                  <RowHoverMenuItem onClick={() => {
-                                    if (!confirm(meta?.blocked ? `Unblock ${p.displayName}?` : `Block ${p.displayName}? They won't be able to message you.`)) return;
+                                  <RowHoverMenuItem onClick={async () => {
+                                    if (!(await askConfirm({ title: meta?.blocked ? "Unblock user?" : "Block user?", message: meta?.blocked ? `Unblock ${p.displayName}?` : `Block ${p.displayName}? They won't be able to message you.`, confirmLabel: meta?.blocked ? "Unblock" : "Block" }))) return;
                                     patchRowMeta(r.key, { blocked: !meta?.blocked });
                                     setRowHoverMenu(null);
                                   }}>
@@ -5226,15 +5227,15 @@ export default function ChatDrawer({ popout = false, popoutPeer = null, popoutGr
                                       const res = await fetch(`/api/chat/dm?with=${encodeURIComponent(p.username)}&limit=1000`);
                                       const data = await res.json().catch(() => ({}));
                                       exportChannel(`dm-${p.username}.json`, { peer: p.username, exportedAt: new Date().toISOString(), messages: data.messages ?? data });
-                                    } catch (e) { alert(e instanceof Error ? e.message : "Export failed"); }
+                                    } catch (e) { void showNotice({ title: "Export failed", message: e instanceof Error ? e.message : "Export failed" }); }
                                   }}>
                                     <RowMenuGlyph><WaExport/></RowMenuGlyph> Export chat
                                   </RowHoverMenuItem>
                                   <RowHoverMenuItem onClick={() => { setSelection({ type: "dm", peer: p }); setDmMessages([]); setShowClearConfirm(true); setRowHoverMenu(null); }}>
                                     <RowMenuGlyph><WaClear/></RowMenuGlyph> Clear chat
                                   </RowHoverMenuItem>
-                                  <RowHoverMenuItem $danger onClick={() => {
-                                    if (!confirm(`Delete this chat with ${p.displayName}? This removes it from your list.`)) return;
+                                  <RowHoverMenuItem $danger onClick={async () => {
+                                    if (!(await askConfirm({ title: "Delete chat?", message: `Delete this chat with ${p.displayName}? This removes it from your list.`, confirmLabel: "Delete" }))) return;
                                     patchRowMeta(r.key, { deleted: true });
                                     if (isActive) setSelection({ type: "tgv" });
                                     setRowHoverMenu(null);
@@ -5298,7 +5299,7 @@ export default function ChatDrawer({ popout = false, popoutPeer = null, popoutGr
                                       const res = await fetch(`/api/chat/group/messages?groupId=${encodeURIComponent(g.id)}&limit=1000`);
                                       const data = await res.json().catch(() => ({}));
                                       exportChannel(`group-${g.id}.json`, { group: g, exportedAt: new Date().toISOString(), messages: data.messages ?? data });
-                                    } catch (e) { alert(e instanceof Error ? e.message : "Export failed"); }
+                                    } catch (e) { void showNotice({ title: "Export failed", message: e instanceof Error ? e.message : "Export failed" }); }
                                   }}>
                                     <RowMenuGlyph><WaExport/></RowMenuGlyph> Export chat
                                   </RowHoverMenuItem>
@@ -5307,7 +5308,7 @@ export default function ChatDrawer({ popout = false, popoutPeer = null, popoutGr
                                   </RowHoverMenuItem>
                                   <RowHoverMenuItem $danger onClick={async () => {
                                     setRowHoverMenu(null);
-                                    if (!confirm(`Exit "${g.name}"? You'll need to be re-added to rejoin.`)) return;
+                                    if (!(await askConfirm({ title: "Exit group?", message: `Exit "${g.name}"? You'll need to be re-added to rejoin.`, confirmLabel: "Exit" }))) return;
                                     await leaveGroup(g.id);
                                   }}>
                                     <RowMenuGlyph><WaExit/></RowMenuGlyph> Exit group
@@ -5551,8 +5552,8 @@ export default function ChatDrawer({ popout = false, popoutPeer = null, popoutGr
                               }}>
                                 <RowMenuGlyph><WaPin/></RowMenuGlyph> {meta?.pinned ? "Unpin" : "Pin"}
                               </RowHoverMenuItem>
-                              <RowHoverMenuItem onClick={() => {
-                                if (!confirm(meta?.blocked ? `Unblock ${p.displayName}?` : `Block ${p.displayName}? They won't be able to message you.`)) return;
+                              <RowHoverMenuItem onClick={async () => {
+                                if (!(await askConfirm({ title: meta?.blocked ? "Unblock user?" : "Block user?", message: meta?.blocked ? `Unblock ${p.displayName}?` : `Block ${p.displayName}? They won't be able to message you.`, confirmLabel: meta?.blocked ? "Unblock" : "Block" }))) return;
                                 patchRowMeta(rowKey, { blocked: !meta?.blocked });
                                 setRowHoverMenu(null);
                               }}>
@@ -5604,7 +5605,7 @@ export default function ChatDrawer({ popout = false, popoutPeer = null, popoutGr
                                   const res = await fetch(`/api/chat/dm?with=${encodeURIComponent(p.username)}&limit=1000`);
                                   const data = await res.json().catch(() => ({}));
                                   exportChannel(`dm-${p.username}.json`, { peer: p.username, exportedAt: new Date().toISOString(), messages: data.messages ?? data });
-                                } catch (e) { alert(e instanceof Error ? e.message : "Export failed"); }
+                                } catch (e) { void showNotice({ title: "Export failed", message: e instanceof Error ? e.message : "Export failed" }); }
                               }}>
                                 <RowMenuGlyph><WaExport/></RowMenuGlyph> Export chat
                               </RowHoverMenuItem>
@@ -5616,8 +5617,8 @@ export default function ChatDrawer({ popout = false, popoutPeer = null, popoutGr
                               }}>
                                 <RowMenuGlyph><WaClear/></RowMenuGlyph> Clear chat
                               </RowHoverMenuItem>
-                              <RowHoverMenuItem $danger onClick={() => {
-                                if (!confirm(`Delete this chat with ${p.displayName}? This removes it from your list.`)) return;
+                              <RowHoverMenuItem $danger onClick={async () => {
+                                if (!(await askConfirm({ title: "Delete chat?", message: `Delete this chat with ${p.displayName}? This removes it from your list.`, confirmLabel: "Delete" }))) return;
                                 patchRowMeta(rowKey, { deleted: true });
                                 if (isActive) setSelection({ type: "tgv" });
                                 setRowHoverMenu(null);
@@ -5754,7 +5755,7 @@ export default function ChatDrawer({ popout = false, popoutPeer = null, popoutGr
                                     const res = await fetch(`/api/chat/group/messages?groupId=${encodeURIComponent(g.id)}&limit=1000`);
                                     const data = await res.json().catch(() => ({}));
                                     exportChannel(`group-${g.id}.json`, { group: g, exportedAt: new Date().toISOString(), messages: data.messages ?? data });
-                                  } catch (e) { alert(e instanceof Error ? e.message : "Export failed"); }
+                                  } catch (e) { void showNotice({ title: "Export failed", message: e instanceof Error ? e.message : "Export failed" }); }
                                 }}>
                                   <RowMenuGlyph><WaExport/></RowMenuGlyph> Export chat
                                 </RowHoverMenuItem>
@@ -5767,7 +5768,7 @@ export default function ChatDrawer({ popout = false, popoutPeer = null, popoutGr
                                 </RowHoverMenuItem>
                                 <RowHoverMenuItem $danger onClick={async () => {
                                   setRowHoverMenu(null);
-                                  if (!confirm(`Exit "${g.name}"? You'll need to be re-added to rejoin.`)) return;
+                                  if (!(await askConfirm({ title: "Exit group?", message: `Exit "${g.name}"? You'll need to be re-added to rejoin.`, confirmLabel: "Exit" }))) return;
                                   await leaveGroup(g.id);
                                 }}>
                                   <RowMenuGlyph><WaExit/></RowMenuGlyph> Exit group
@@ -6526,7 +6527,7 @@ export default function ChatDrawer({ popout = false, popoutPeer = null, popoutGr
                               else if (selection.type === "group") setGroupInput((prev) => (prev ? `${prev} ${text}` : text));
                               else setInput((prev) => (prev ? `${prev} ${text}` : text));
                             }}
-                            onError={(msg) => alert(`Transcribe: ${msg}`)}
+                            onError={(msg) => void showNotice({ title: "Transcribe failed", message: msg })}
                             onActiveChange={setTalkActive}
                             disabled={sending || uploading || dmSending || groupSending}
                           />
@@ -6742,7 +6743,7 @@ export default function ChatDrawer({ popout = false, popoutPeer = null, popoutGr
             setMemoComposerFor(null);
             setMemoDraft("");
           } catch (e) {
-            alert(e instanceof Error ? e.message : "Failed to send memo");
+            void showNotice({ title: "Couldn't send", message: e instanceof Error ? e.message : "Failed to send memo" });
           } finally {
             setMemoSending(false);
           }

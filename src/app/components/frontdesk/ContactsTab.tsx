@@ -7,6 +7,7 @@ import type { Contact } from "@/lib/frontdesk/types";
 import ContactCardModal from "./ContactCardModal";
 import { PhoneIcon, ChatIcon, EditIcon, TrashIcon } from "../icons";
 import { formatPhoneDisplay } from "@/lib/frontdesk/phoneFormat";
+import { askConfirm } from "../dialogService";
 
 type Scope = "all" | "client" | "employee";
 
@@ -238,7 +239,8 @@ export default function ContactsTab() {
             <Row key={c.id} onClick={() => setModal({ contact: c, mode: "view" })}>
               <RowName>
                 {c.kind === "employee" && <StaffBadge>Staff</StaffBadge>}
-                {c.name}
+                {/* Auto-stubs are named by their raw number — show it formatted. */}
+                {c.name === c.phone ? (formatPhoneDisplay(c.name) || c.name) : c.name}
               </RowName>
               <RowActions>
                 <IconBtn title="Call" onClick={(e) => dialContact(c, e)} disabled={!c.phone}>
@@ -254,7 +256,11 @@ export default function ContactsTab() {
                   title="Delete"
                   onClick={async (e) => {
                     e.stopPropagation();
-                    if (!window.confirm(`Delete ${c.name}?`)) return;
+                    if (!(await askConfirm({
+                      title: "Delete contact?",
+                      message: `Delete ${c.name}?`,
+                      confirmLabel: "Delete",
+                    }))) return;
                     await fetch(`/api/frontdesk/contacts/${c.id}`, { method: "DELETE" });
                     onDeleted(c.id);
                   }}

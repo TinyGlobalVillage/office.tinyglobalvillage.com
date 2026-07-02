@@ -10,6 +10,7 @@
 import { useCallback, useEffect, useState } from "react";
 import styled from "styled-components";
 import { colors, rgb } from "@/app/theme";
+import { askConfirm } from "../../dialogService";
 
 type JailSummary = {
   name: string;
@@ -147,7 +148,7 @@ export default function Fail2banGlobalView({ highlightJail }: Fail2banGlobalView
 
   const act = useCallback(async (jail: string, ip: string, action: "ban" | "unban") => {
     if (!ip) return;
-    if (action === "ban" && !window.confirm(`Permaban ${ip} in jail ${jail}?`)) return;
+    if (action === "ban" && !(await askConfirm({ title: "Permaban IP?", message: `Permaban ${ip} in jail ${jail}?`, confirmLabel: "Permaban" }))) return;
     setBusy(true); setError(null);
     try {
       const res = await fetch("/api/admin/system/fail2ban/ban", {

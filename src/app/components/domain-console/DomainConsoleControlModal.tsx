@@ -22,6 +22,7 @@ import {
   ModalBody,
 } from "@/app/styled";
 import NeonX from "../NeonX";
+import { askConfirm } from "../dialogService";
 
 type Env = "horizon" | "live";
 type Config = { env: Env; updatedAt?: string; updatedBy?: string };
@@ -163,9 +164,12 @@ export default function DomainConsoleControlModal({ onClose }: { onClose: () => 
     if (busy || config?.env === env) return;
     if (
       env === "live" &&
-      !window.confirm(
-        "Switch the WHOLE Domain Console platform to LIVE?\n\nEvery tenant's register/transfer will hit the real registrar — real domains, real money. Only do this once checkout (Phase 4) is ready.",
-      )
+      !(await askConfirm({
+        title: "Switch to LIVE registrar?",
+        message:
+          "Switch the WHOLE Domain Console platform to LIVE?\n\nEvery tenant's register/transfer will hit the real registrar — real domains, real money. Only do this once checkout (Phase 4) is ready.",
+        confirmLabel: "Switch to LIVE",
+      }))
     ) {
       return;
     }

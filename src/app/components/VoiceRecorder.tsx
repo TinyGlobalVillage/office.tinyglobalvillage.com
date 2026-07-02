@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 import { WaveformIcon, StopIcon, CancelIcon, SendIcon, PlayIcon, PauseIcon } from "./icons";
+import { showNotice } from "./dialogService";
 
 const MAX_DURATION_MS = 5 * 60 * 1000; // 5 minutes
 const BAR_COUNT = 48;
@@ -252,7 +253,7 @@ export default function VoiceRecorder({ accent, onSend, onActiveChange, disabled
       console.error("[VoiceRecorder] start failed", err);
       cleanup();
       setState("idle");
-      alert("Could not access microphone.");
+      void showNotice({ title: "Microphone", message: "Could not access microphone." });
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state, disabled, cleanup, startMeterAndTick]);

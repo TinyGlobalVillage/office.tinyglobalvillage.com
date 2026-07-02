@@ -25,6 +25,7 @@ import NeonX from "../NeonX";
 import { TrashIcon, EditIcon } from "../icons";
 import type { CallRecord } from "@/lib/frontdesk/types";
 import { formatPhoneDisplay } from "@/lib/frontdesk/phoneFormat";
+import { askConfirm } from "../dialogService";
 
 export type SavedCallsModalProps = { onClose: () => void };
 
@@ -150,7 +151,11 @@ export default function SavedCallsModal({ onClose }: SavedCallsModalProps) {
   }, [draftNotes, refresh]);
 
   const handleDelete = useCallback(async (id: string) => {
-    if (!window.confirm("Delete this recording? The audio file will be removed from disk; the call log entry stays.")) return;
+    if (!(await askConfirm({
+      title: "Delete recording?",
+      message: "The audio file will be removed from disk; the call log entry stays.",
+      confirmLabel: "Delete",
+    }))) return;
     setBusyId(id);
     try {
       await fetch(`/api/frontdesk/calls/recordings/${id}`, {

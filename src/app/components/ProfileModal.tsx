@@ -12,6 +12,7 @@ import { colors, rgb } from "@/app/theme";
 import { ModalBackdrop, CloseBtn } from "@/app/styled";
 import NeonX from "./NeonX";
 import { useModalLifecycle } from "@/app/lib/drawerKnobs";
+import { askConfirm } from "./dialogService";
 
 export type Profile = {
   username: string;
@@ -666,7 +667,11 @@ export default function ProfileModal({
   };
 
   const clearChat = async () => {
-    if (!confirm("Clear all chat messages and files? This cannot be undone.")) return;
+    if (!(await askConfirm({
+      title: "Clear all chats?",
+      message: "Clear all chat messages and files? This cannot be undone.",
+      confirmLabel: "Clear all",
+    }))) return;
     await fetch("/api/chat/clear", { method: "POST" });
     const res = await fetch("/api/chat?limit=1")
       .then((r) => r.json())

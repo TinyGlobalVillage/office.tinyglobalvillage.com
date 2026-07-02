@@ -19,6 +19,7 @@ import {
   nextRawFromDisplayEdit,
   stripPhoneFormatting,
 } from "@/lib/frontdesk/phoneFormat";
+import { askConfirm } from "../dialogService";
 
 // ── Styled ───────────────────────────────────────────────────────
 
@@ -202,7 +203,12 @@ export default function ContactCardModal(props: {
 
   const remove = async () => {
     if (!draft.id) return;
-    if (!window.confirm(`Delete ${draft.name}? This cannot be undone.`)) return;
+    if (!(await askConfirm({
+      title: "Delete contact?",
+      message: `Delete ${draft.name}?`,
+      detail: "This cannot be undone.",
+      confirmLabel: "Delete",
+    }))) return;
     setBusy(true);
     try {
       const res = await fetch(`/api/frontdesk/contacts/${draft.id}`, { method: "DELETE" });

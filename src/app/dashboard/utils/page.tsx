@@ -43,6 +43,7 @@ const Transcriber = dynamic(
   { ssr: false },
 );
 import AddmToggle from "@tgv/module-component-library/components/ui/AddmToggle";
+import { showNotice } from "@/app/components/dialogService";
 
 /* ── Types ────────────────────────────────────────────────────── */
 
@@ -1299,7 +1300,7 @@ function ActionCard({
       const expected = values[expectedKey];
       const expectedStr = Array.isArray(expected) ? expected.join(",") : expected;
       if (confirmValue !== expectedStr) {
-        alert("Confirmation did not match. Aborted.");
+        void showNotice({ title: "Aborted", message: "Confirmation did not match. Aborted." });
         return;
       }
     }

@@ -14,6 +14,7 @@ import {
 } from "../../styled";
 import type { Did, DidAssignment } from "@/lib/frontdesk/types";
 import { TrashIcon } from "../icons";
+import { askConfirm } from "../dialogService";
 
 type Profile = { username: string; displayName: string };
 
@@ -213,7 +214,11 @@ export default function DidManagerModal(props: {
   };
 
   const releaseDid = async (id: string) => {
-    if (!window.confirm("Release this DID? This deactivates it locally (and on Telnyx if provisioned).")) return;
+    if (!(await askConfirm({
+      title: "Release this DID?",
+      message: "This deactivates it locally (and on Telnyx if provisioned).",
+      confirmLabel: "Release",
+    }))) return;
     const res = await fetch(`/api/frontdesk/dids/${id}`, { method: "DELETE" });
     if (res.ok) {
       setDids(prev => prev.filter(d => d.id !== id));

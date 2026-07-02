@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import styled from "styled-components";
 import { rgb } from "../../theme";
+import { showNotice } from "../dialogService";
 
 interface Automation {
   id: string;
@@ -117,7 +118,11 @@ export default function AutomationsTab() {
       body: JSON.stringify({ id: a.id, dryRun: true }),
     }).then((x) => x.json());
     setBusy(null);
-    alert(`Test fired for ${a.id}: ${JSON.stringify(r, null, 2)}`);
+    void showNotice({
+      title: "Test fired",
+      message: `Test fired for ${a.id}: ${JSON.stringify(r, null, 2)}`,
+      intent: "primary",
+    });
   };
 
   const detail = (a: Automation) => {

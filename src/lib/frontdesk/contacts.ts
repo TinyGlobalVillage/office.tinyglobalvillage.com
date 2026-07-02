@@ -104,10 +104,22 @@ export function touchLastContact(id: string): void {
 }
 
 /**
+ * Only real dialable numbers deserve an auto-created contact. Internal
+ * FreeSWITCH extensions (1001, 8001, …) and SMS short codes (32665,
+ * 787473, …) come through toE164 as bare 3–6 digit strings — stubbing
+ * those polluted the shared directory (operator cleanup 2026-07-02).
+ */
+export function isStubbablePhone(value: string): boolean {
+  return /^\+\d{7,15}$/.test(value);
+}
+
+/**
  * Auto-create a stub contact for an unknown inbound caller/texter. Safe to
  * call repeatedly — no-ops when an entry with the same phone already exists.
+ * Returns null for extensions/short codes (see isStubbablePhone).
  */
-export function ensureContactStub(e164: string, source: "sms" | "call"): Contact {
+export function ensureContactStub(e164: string, source: "sms" | "call"): Contact | null {
+  if (!isStubbablePhone(e164)) return null;
   const existing = findContactByPhone(e164);
   if (existing) return existing;
   return createContact({

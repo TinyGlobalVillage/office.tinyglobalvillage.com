@@ -18,6 +18,7 @@ import NeonLineDDM from "./NeonLineDDM";
 import VoicemailSection from "./VoicemailSection";
 import RingtoneSection from "./RingtoneSection";
 import TrashModal from "./TrashModal";
+import { askConfirm } from "../dialogService";
 import WhatsappRelayReadmeModal from "./WhatsappRelayReadmeModal";
 import SipKillswitchSection from "./SipKillswitchSection";
 
@@ -332,7 +333,11 @@ export default function SystemToolsModal(props: {
   };
 
   const releaseDid = async (id: string) => {
-    if (!window.confirm("Release this DID? This deactivates it locally (and on Telnyx if provisioned).")) return;
+    if (!(await askConfirm({
+      title: "Release this DID?",
+      message: "This deactivates it locally (and on Telnyx if provisioned).",
+      confirmLabel: "Release",
+    }))) return;
     const res = await fetch(`/api/frontdesk/dids/${id}`, { method: "DELETE" });
     if (res.ok) {
       setDids(prev => prev.filter(d => d.id !== id));

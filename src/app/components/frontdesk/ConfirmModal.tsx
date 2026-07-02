@@ -33,6 +33,8 @@ type Props = {
   confirmLabel?: string;
   cancelLabel?: string;
   intent?: Intent;
+  /** Notice mode: hide the cancel button (OK-only dialogs, alert() replacement). */
+  hideCancel?: boolean;
   onConfirm: () => void | Promise<void>;
   onCancel: () => void;
 };
@@ -107,6 +109,7 @@ export default function ConfirmModal({
   confirmLabel = "Confirm",
   cancelLabel = "Cancel",
   intent = "danger",
+  hideCancel = false,
   onConfirm,
   onCancel,
 }: Props) {
@@ -137,7 +140,7 @@ export default function ConfirmModal({
           <Message>{message}</Message>
           {detail && <Detail>{detail}</Detail>}
           <Footer>
-            <Btn $variant="ghost" onClick={onCancel}>{cancelLabel}</Btn>
+            {!hideCancel && <Btn $variant="ghost" onClick={onCancel}>{cancelLabel}</Btn>}
             <Btn $variant={intent === "danger" ? "danger" : "primary"} onClick={onConfirm} autoFocus>
               {confirmLabel}
             </Btn>

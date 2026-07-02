@@ -7,6 +7,7 @@ import { colors, rgb } from "../../theme";
 import type { SmsMessage } from "@/lib/frontdesk/types";
 import { SendIcon, PhoneIcon } from "../icons";
 import ConfirmModal from "./ConfirmModal";
+import { askConfirm, showNotice } from "../dialogService";
 
 // Client-side phone normalizer (mirror of server's toE164 in lib/frontdesk/store.ts).
 // Loose by design — accepts US 10/11 digit, +<digits>, or short codes.
@@ -516,7 +517,11 @@ export default function SmsTab() {
   const deleteMsg = useCallback(
     async (messageId: string) => {
       if (!activePeer) return;
-      if (!confirm("Delete this message? This affects the Front Desk view only.")) return;
+      if (!(await askConfirm({
+        title: "Delete this message?",
+        message: "This affects the Front Desk view only.",
+        confirmLabel: "Delete",
+      }))) return;
       try {
         const res = await fetch(
           `/api/frontdesk/sms/threads/${encodeURIComponent(activePeer)}/messages/${encodeURIComponent(messageId)}`,
@@ -572,7 +577,10 @@ export default function SmsTab() {
     // of a silent no-op.
     const e164 = clientToE164(activePeer);
     if (!e164) {
-      window.alert(`"${activePeer}" isn't a valid phone number. Use the back arrow and fix it.`);
+      void showNotice({
+        title: "Invalid number",
+        message: `"${activePeer}" isn't a valid phone number. Use the back arrow and fix it.`,
+      });
       return;
     }
     setSending(true);
@@ -599,10 +607,10 @@ export default function SmsTab() {
         await loadThreads();
       } else {
         const err = await res.json().catch(() => ({}));
-        window.alert(`Couldn't send: ${err?.error ?? `HTTP ${res.status}`}`);
+        void showNotice({ title: "Couldn't send", message: String(err?.error ?? `HTTP ${res.status}`) });
       }
     } catch (err) {
-      window.alert(`Couldn't send: ${(err as Error).message}`);
+      void showNotice({ title: "Couldn't send", message: (err as Error).message });
     } finally {
       setSending(false);
     }

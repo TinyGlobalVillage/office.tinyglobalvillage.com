@@ -29,6 +29,7 @@ import {
   ModalBody,
 } from "@/app/styled";
 import NeonX from "../NeonX";
+import { askConfirm } from "../dialogService";
 
 type WithdrawalStatus = "requested" | "approved" | "paid" | "failed" | "cancelled";
 
@@ -159,10 +160,13 @@ export default function PayoutsModal({ onClose }: { onClose: () => void }) {
       if (op === "markPaid" || op === "releaseNow") {
         if (op === "releaseNow") {
           if (
-            !window.confirm(
-              `Release ${tag} NOW — bypassing the ${holdHours}h fraud hold?\n\n` +
-                `Use only for a trusted member; this pays out immediately and is audited as an early release.`,
-            )
+            !(await askConfirm({
+              title: "Confirm payout action?",
+              message:
+                `Release ${tag} NOW — bypassing the ${holdHours}h fraud hold?\n\n` +
+                  `Use only for a trusted member; this pays out immediately and is audited as an early release.`,
+              confirmLabel: "Confirm",
+            }))
           )
             return;
         }
@@ -178,7 +182,7 @@ export default function PayoutsModal({ onClose }: { onClose: () => void }) {
         externalRef = ref.trim();
       } else {
         const verb = op === "approve" ? "Approve" : op === "markFailed" ? "Mark FAILED" : "Cancel";
-        if (!window.confirm(`${verb} withdrawal ${tag}?`)) return;
+        if (!(await askConfirm({ title: "Confirm payout action?", message: `${verb} withdrawal ${tag}?`, confirmLabel: "Confirm" }))) return;
         if (op === "markFailed" || op === "cancel") {
           const n = window.prompt("Optional note (reason) — blank for none:") ?? "";
           if (n.trim()) note = n.trim();

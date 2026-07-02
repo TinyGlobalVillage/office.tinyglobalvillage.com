@@ -14,6 +14,7 @@ import {
 } from "@/app/styled";
 import NeonX from "./NeonX";
 import AddmToggle from "@tgv/module-component-library/components/ui/AddmToggle";
+import { askConfirm } from "./dialogService";
 
 type Session = {
   id: string;
@@ -505,8 +506,12 @@ export default function SessionSettingsModal({
                   </div>
                   <InlineBtn
                     $variant="danger"
-                    onClick={() => {
-                      if (!confirm(`Force-end "${session.name}"?`)) return;
+                    onClick={async () => {
+                      if (!(await askConfirm({
+                        title: "Force-end session?",
+                        message: `Force-end "${session.name}"?`,
+                        confirmLabel: "Force-end",
+                      }))) return;
                       patch({ op: "forceEnd" });
                     }}
                   >Force end</InlineBtn>

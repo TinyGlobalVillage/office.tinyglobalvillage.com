@@ -1,6 +1,7 @@
 import ClientShell from "../components/ClientShell";
 import DashboardToastsHost from "../components/DashboardToastsHost";
 import TranscriberJobsHydrator from "../components/TranscriberJobsHydrator";
+import { DialogHost } from "../components/dialogService";
 import { ReactNode } from "react";
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
@@ -15,6 +16,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       {/* Bottom-right transcription toast — lives here so it pops anywhere
           in /dashboard, not just on /dashboard/utils. */}
       <DashboardToastsHost />
+      {/* Styled confirm/notice dialogs (askConfirm/showNotice) — global host
+          replacing native window.confirm/alert everywhere under /dashboard. */}
+      <DialogHost />
     </ClientShell>
   );
 }

@@ -24,6 +24,7 @@ import {
   Spacer,
 } from "@/app/styled";
 import NeonX from "../NeonX";
+import { askConfirm } from "../dialogService";
 
 type FileItem = {
   kind: "root" | "vocab";
@@ -197,7 +198,11 @@ export default function ClaudeFilesModal({ onClose }: { onClose: () => void }) {
 
   async function del() {
     if (!active) return;
-    if (!confirm(`Delete ${active}? This cannot be undone.`)) return;
+    if (!(await askConfirm({
+      title: "Delete file?",
+      message: `Delete ${active}? This cannot be undone.`,
+      confirmLabel: "Delete",
+    }))) return;
     setSaving(true);
     setError(null);
     try {

@@ -12,6 +12,7 @@
 import { useCallback, useEffect, useState } from "react";
 import styled from "styled-components";
 import { colors, rgb } from "@/app/theme";
+import { askConfirm } from "../dialogService";
 
 type State = {
   engaged: boolean | null;
@@ -114,7 +115,12 @@ export default function SipKillswitchSection() {
 
   const act = useCallback(async (action: "engage" | "restore") => {
     const verb = action === "engage" ? "ENGAGE the SIP killswitch (voice goes OFFLINE)" : "RESTORE SIP (voice goes back online)";
-    if (!window.confirm(`${verb}? This affects all Front Desk calls.`)) return;
+    if (!(await askConfirm({
+      title: "SIP killswitch",
+      message: `${verb}?`,
+      detail: "This affects all Front Desk calls.",
+      confirmLabel: action === "engage" ? "Engage" : "Restore",
+    }))) return;
     setState(s => ({ ...s, busy: true, error: null }));
     try {
       const res = await fetch("/api/frontdesk/admin/sip-killswitch", {

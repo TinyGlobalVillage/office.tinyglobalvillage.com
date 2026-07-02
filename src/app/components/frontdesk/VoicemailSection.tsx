@@ -15,6 +15,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 import { colors, rgb } from "../../theme";
+import { askConfirm } from "../dialogService";
 
 type Mode = "fallback" | "always";
 
@@ -243,7 +244,11 @@ export default function VoicemailSection() {
   }, [recordedBlob, recordedUrl]);
 
   const deleteGreeting = useCallback(async () => {
-    if (!confirm("Delete the saved greeting? Callers will hear the default message.")) return;
+    if (!(await askConfirm({
+      title: "Delete the saved greeting?",
+      message: "Callers will hear the default message.",
+      confirmLabel: "Delete",
+    }))) return;
     try {
       const r = await fetch("/api/frontdesk/voicemail/greeting", { method: "DELETE" });
       if (!r.ok) throw new Error("Delete failed");

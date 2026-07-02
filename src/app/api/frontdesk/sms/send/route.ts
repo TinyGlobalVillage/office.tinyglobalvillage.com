@@ -41,6 +41,6 @@ export async function POST(req: NextRequest) {
     telnyxMessageId,
   });
   const contact = ensureContactStub(to, "sms");
-  touchLastContact(contact.id);
+  if (contact) touchLastContact(contact.id);
   return NextResponse.json({ message: msg });
 }

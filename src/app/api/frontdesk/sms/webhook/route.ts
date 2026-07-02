@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
     telnyxMessageId: p?.id ?? null,
   });
   const contact = ensureContactStub(from, "sms");
-  touchLastContact(contact.id);
+  if (contact) touchLastContact(contact.id);
 
   // Notify SSE subscribers so the SmsTab refreshes without polling.
   emitInbound({

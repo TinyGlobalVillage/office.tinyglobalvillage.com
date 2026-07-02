@@ -24,6 +24,7 @@ import {
   Spacer,
 } from "@/app/styled";
 import NeonX from "../NeonX";
+import { askConfirm } from "../dialogService";
 
 type FileItem = {
   kind: "root" | "vocab";
@@ -239,7 +240,12 @@ export default function ClaudeVocabModal({ onClose }: { onClose: () => void }) {
 
   async function del() {
     if (!active) return;
-    if (!confirm(`Delete ${active}? This cannot be undone. Don't forget to also remove its entries from VOCABULARY.md and VOCABULARY-SUMMARIES.md (Files tab).`)) return;
+    if (!(await askConfirm({
+      title: "Delete vocabulary entry?",
+      message: `Delete ${active}? This cannot be undone.`,
+      detail: "Don't forget to also remove its entries from VOCABULARY.md and VOCABULARY-SUMMARIES.md (Files tab).",
+      confirmLabel: "Delete",
+    }))) return;
     setSaving(true);
     setError(null);
     try {

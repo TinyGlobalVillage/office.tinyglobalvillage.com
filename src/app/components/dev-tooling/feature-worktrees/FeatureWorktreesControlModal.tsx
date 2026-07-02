@@ -21,6 +21,7 @@ import {
   ModalBody,
 } from "@/app/styled";
 import NeonX from "../../NeonX";
+import { askConfirm } from "../../dialogService";
 
 /* ── Types (mirror the API route) ─────────────────────────────── */
 
@@ -413,11 +414,13 @@ export default function FeatureWorktreesControlModal({
                 <Btn
                   $tone="warn"
                   disabled={!!busy}
-                  onClick={() => {
+                  onClick={async () => {
                     if (
-                      !confirm(
-                        "Live prune of admin worktrees older than 14d — proceed?",
-                      )
+                      !(await askConfirm({
+                        title: "Prune worktrees?",
+                        message: "Live prune of admin worktrees older than 14d — proceed?",
+                        confirmLabel: "Prune",
+                      }))
                     )
                       return;
                     void callAction("admin:prune", {
@@ -433,11 +436,13 @@ export default function FeatureWorktreesControlModal({
                 <Btn
                   $tone="warn"
                   disabled={!!busy}
-                  onClick={() => {
+                  onClick={async () => {
                     if (
-                      !confirm(
-                        "Live prune of marmar worktrees older than 14d — proceed?",
-                      )
+                      !(await askConfirm({
+                        title: "Prune worktrees?",
+                        message: "Live prune of marmar worktrees older than 14d — proceed?",
+                        confirmLabel: "Prune",
+                      }))
                     )
                       return;
                     void callAction("marmar:prune", {
@@ -537,11 +542,13 @@ function FinalizeRow({
         <Btn
           $tone="danger"
           disabled={!!busy}
-          onClick={() => {
+          onClick={async () => {
             if (
-              !confirm(
-                `Discard worktree + branch feature/${w.name} (${w.user})? This deletes the branch.`,
-              )
+              !(await askConfirm({
+                title: "Discard worktree?",
+                message: `Discard worktree + branch feature/${w.name} (${w.user})? This deletes the branch.`,
+                confirmLabel: "Discard",
+              }))
             )
               return;
             onAction("d");
