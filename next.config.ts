@@ -49,24 +49,12 @@ const nextConfig: NextConfig = {
       ...(config.resolve.extensionAlias ?? {}),
       ".js": [".ts", ".tsx", ".js"],
     };
-    // Isolate three.js / @react-three into their own chunk. Only the sandbox demo consumes
-    // three (already dynamic-imported), but webpack was merging it into a shared vendor chunk
-    // that 3D-less routes (e.g. /dashboard/utils) still pulled — ~594 KB of three on every
-    // Utils load. An enforced cacheGroup keeps three in its own chunk, loaded only where used.
-    const sc = config.optimization && config.optimization.splitChunks;
-    if (sc && typeof sc === "object") {
-      sc.cacheGroups = {
-        ...(sc.cacheGroups || {}),
-        threeVendor: {
-          test: /[\\/]node_modules[\\/](three|@react-three|postprocessing|three-stdlib)[\\/]/,
-          name: "three-vendor",
-          chunks: "all",
-          priority: 40,
-          enforce: true,
-          reuseExistingChunk: true,
-        },
-      };
-    }
+    // NOTE (2026-07-01): a threeVendor splitChunks cacheGroup was tried here to isolate three.js
+    // off 3D-less routes (Utils). It BACKFIRED — Utils still referenced the chunk and total
+    // first-load JS grew (664K→735K gz), which means three is genuinely reachable through Utils's
+    // module graph (likely via the shared dashboard layout), not merely mis-chunked. Reverted.
+    // The real fix is finding + lazy-loading that transitive import (needs a browser profile) —
+    // tracked as a separate Office bundle-perf task.
     return config;
   },
 };
