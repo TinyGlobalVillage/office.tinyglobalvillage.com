@@ -11,7 +11,8 @@
 // Self-contained (styled-components, per Office's no-Tailwind rule). Inline SVGs — no emoji.
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import styled from "styled-components";
+import styled, { keyframes } from "styled-components";
+import DDM, { type DDMItem } from "@tgv/module-component-library/components/ui/DDM";
 
 // ── types (mirror the API payloads) ────────────────────────────────────────────
 type DocRow = {
@@ -40,7 +41,7 @@ type ActivityRow = {
   hasSignedPdf: boolean;
 };
 
-type Tab = "send" | "library" | "activity";
+type Tab = "upload" | "documents" | "send" | "activity";
 
 // ── inline icons (currentColor) ─────────────────────────────────────────────────
 const XIcon = ({ size = 18 }: { size?: number }) => (
@@ -57,7 +58,7 @@ const DownloadIcon = ({ size = 15 }: { size?: number }) => (
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function ESignControlModal({ onClose }: { onClose: () => void }) {
-  const [tab, setTab] = useState<Tab>("library");
+  const [tab, setTab] = useState<Tab>("upload");
   const [loading, setLoading] = useState(true);
   const [configured, setConfigured] = useState(true);
   const [documents, setDocuments] = useState<DocRow[]>([]);
@@ -76,11 +77,13 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
   // library-tab upload state
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [uploadPct, setUploadPct] = useState<number | null>(null); // 0–100 while sending; null = server processing
   const [dragging, setDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Drop/select a PDF → upload immediately (title defaults to the filename).
-  const handleFile = async (f: File | null) => {
+  // XHR (not fetch) so we get a real upload-progress %; plus a hard timeout so it can't hang.
+  const handleFile = (f: File | null) => {
     if (!f || uploading) return;
     if (f.type !== "application/pdf" && !f.name.toLowerCase().endsWith(".pdf")) {
       setMsg("Please choose a PDF file");
@@ -91,27 +94,42 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
       return;
     }
     const title = f.name.replace(/\.pdf$/i, "").trim() || f.name;
+    const fd = new FormData();
+    fd.append("title", title);
+    fd.append("file", f);
+
+    const done = (message: string) => {
+      setUploading(false);
+      setUploadFile(null);
+      setUploadPct(null);
+      setMsg(message);
+    };
+
     setUploadFile(f);
     setUploading(true);
-    setMsg(`Uploading ${f.name}…`);
-    try {
-      const fd = new FormData();
-      fd.append("title", title);
-      fd.append("file", f);
-      const r = await fetch("/api/esign/documents", { method: "POST", body: fd });
-      const d = await r.json();
-      if (!r.ok || !d?.ok) {
-        setMsg(d?.error ?? "Upload failed");
-        return;
+    setUploadPct(0);
+    setMsg("");
+
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", "/api/esign/documents");
+    xhr.timeout = 120_000; // 2 min ceiling — Documenso template creation is a few round-trips
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) setUploadPct(Math.round((e.loaded / e.total) * 100));
+    };
+    xhr.upload.onload = () => setUploadPct(null); // file fully sent → server now building the template
+    xhr.onload = () => {
+      let d: { ok?: boolean; error?: string; document?: { title?: string } } | null = null;
+      try { d = JSON.parse(xhr.responseText); } catch { /* non-JSON */ }
+      if (xhr.status >= 200 && xhr.status < 300 && d?.ok) {
+        done(`"${d.document?.title ?? title}" added — ready to send.`);
+        loadDocuments();
+      } else {
+        done(d?.error ?? `Upload failed (HTTP ${xhr.status})`);
       }
-      setMsg(`"${d.document.title}" added — ready to send.`);
-      await loadDocuments();
-    } catch {
-      setMsg("Upload failed (server error)");
-    } finally {
-      setUploadFile(null);
-      setUploading(false);
-    }
+    };
+    xhr.onerror = () => done("Upload failed (network error)");
+    xhr.ontimeout = () => done("Upload timed out after 2 min — please try again.");
+    xhr.send(fd);
   };
 
   const loadDocuments = useCallback(async () => {
@@ -194,13 +212,16 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
     catch { setMsg(url); }
   };
 
+  const sendableDocs = documents.filter((d) => d.sendable);
+  const selectedDoc = documents.find((d) => d.id === selectedDocId) ?? null;
+
   return (
     <Backdrop onClick={onClose}>
       <Panel onClick={(e) => e.stopPropagation()}>
         <Header>
           <div>
             <Title>E-Sign Documents</Title>
-            <Sub>Send any document to any recipient for electronic signature — staff or external. Powered by Documenso (esign.tinyglobalvillage.com).</Sub>
+            <Sub>Send any document to any recipient for electronic signature.</Sub>
           </div>
           <CloseBtn type="button" onClick={onClose} aria-label="Close"><XIcon /></CloseBtn>
         </Header>
@@ -210,9 +231,10 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
         )}
 
         <Tabs>
-          <TabBtn $active={tab === "library"} onClick={() => setTab("library")}>Upload &amp; Library</TabBtn>
+          <TabBtn $active={tab === "upload"} onClick={() => setTab("upload")}>Upload</TabBtn>
           <TabBtn $active={tab === "send"} onClick={() => setTab("send")}>Send</TabBtn>
           <TabBtn $active={tab === "activity"} onClick={() => setTab("activity")}>Activity</TabBtn>
+          <TabBtn $active={tab === "documents"} onClick={() => setTab("documents")}>Documents</TabBtn>
         </Tabs>
 
         {msg && <Msg onClick={() => setMsg("")}>{msg}</Msg>}
@@ -223,30 +245,32 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
           {!loading && tab === "send" && (
             <Section>
               <Label>Document</Label>
-              <Select value={selectedDocId} onChange={(e) => setSelectedDocId(e.target.value)}>
-                <option value="">— choose a document —</option>
-                {documents.filter((d) => d.sendable).map((d) => (
-                  <option key={d.id} value={d.id}>{d.title}</option>
-                ))}
-              </Select>
-              {documents.filter((d) => d.sendable).length === 0 && (
-                <Dim>No sendable documents yet — upload one in the Library tab.</Dim>
+              <DDM
+                label={selectedDoc ? selectedDoc.title : "Choose a document"}
+                ariaLabel="Choose a document"
+                align="left"
+                items={sendableDocs.map((d): DDMItem => ({
+                  key: d.id,
+                  label: d.title,
+                  onClick: () => setSelectedDocId(d.id),
+                }))}
+              />
+              {sendableDocs.length === 0 && (
+                <Dim>No sendable documents yet — add one from the Upload tab.</Dim>
               )}
 
               <Label>Recipients</Label>
               <Row>
-                <Select
-                  value=""
-                  onChange={(e) => {
-                    const s = staff.find((x) => x.email === e.target.value);
-                    if (s) addRecipient(s.email, s.username);
-                  }}
-                >
-                  <option value="">+ add staff…</option>
-                  {staff.map((s) => (
-                    <option key={s.username} value={s.email}>{s.username} · {s.email}</option>
-                  ))}
-                </Select>
+                <DDM
+                  label="Add staff"
+                  ariaLabel="Add a staff recipient"
+                  align="left"
+                  items={staff.map((s): DDMItem => ({
+                    key: s.username,
+                    label: `${s.username} · ${s.email}`,
+                    onClick: () => addRecipient(s.email, s.username),
+                  }))}
+                />
                 <Input
                   placeholder="or type any email"
                   value={customEmail}
@@ -281,7 +305,7 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
             </Section>
           )}
 
-          {!loading && tab === "library" && (
+          {!loading && tab === "upload" && (
             <Section>
               <Label>Add a document</Label>
               <DropZone
@@ -296,12 +320,33 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
                   <path d="M12 16V4M8 8l4-4 4 4" />
                   <path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3" />
                 </svg>
-                <DzText>{uploading ? `Uploading ${uploadFile?.name ?? "PDF"}…` : "Drag a PDF here, or click to browse"}</DzText>
-                <DzSub>{uploading ? "Creating signing template…" : "PDF · up to 20 MB · uploads automatically (named from the file)"}</DzSub>
+                <DzText>
+                  {uploading
+                    ? uploadPct !== null
+                      ? `Uploading ${uploadFile?.name ?? "PDF"} — ${uploadPct}%`
+                      : `Processing ${uploadFile?.name ?? "PDF"}…`
+                    : "Drag a PDF here, or click to browse"}
+                </DzText>
+                <DzSub>
+                  {uploading
+                    ? uploadPct !== null
+                      ? "Sending file to the server"
+                      : "Creating signing template in Documenso…"
+                    : "PDF · up to 20 MB · uploads automatically (named from the file)"}
+                </DzSub>
+                {uploading && (
+                  <Track>
+                    <Fill $pct={uploadPct} />
+                  </Track>
+                )}
               </DropZone>
+            </Section>
+          )}
 
+          {!loading && tab === "documents" && (
+            <Section>
               <Label>Your documents</Label>
-              {documents.length === 0 && <Dim>No documents yet.</Dim>}
+              {documents.length === 0 && <Dim>No documents yet. Add one from the Upload tab.</Dim>}
               <List>
                 {documents.map((d) => (
                   <Item key={d.id}>
@@ -358,6 +403,9 @@ const Panel = styled.div`
   width: min(760px, 100%); max-height: 90vh; display: flex; flex-direction: column;
   background: #0d0d12; border: 1px solid rgba(120,200,255,0.18); border-radius: 14px;
   box-shadow: 0 24px 80px rgba(0,0,0,0.6); color: #e8e8ef; overflow: hidden;
+  /* DDM accent (Send-tab pickers) → cyan to match the modal */
+  --ddm-accent: #3aa0ff;
+  --ddm-accent-rgb: 58, 160, 255;
 `;
 const Header = styled.div`
   display: flex; align-items: flex-start; justify-content: space-between; gap: 16px;
@@ -388,7 +436,6 @@ const baseField = `
   border-radius: 8px; color: #e8e8ef; padding: 9px 11px; font-size: 13px; outline: none;
   &:focus { border-color: rgba(120,200,255,0.5); }
 `;
-const Select = styled.select`${baseField} flex: 1 1 200px; min-width: 160px;`;
 const Input = styled.input`${baseField} flex: 1 1 180px;`;
 const Textarea = styled.textarea`${baseField} resize: vertical; width: 100%;`;
 const Chips = styled.div`display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px;`;
@@ -419,6 +466,14 @@ const DropZone = styled.div<{ $dragging: boolean }>`
 `;
 const DzText = styled.div`font-size: 13.5px; font-weight: 600; color: #e8e8ef; word-break: break-all;`;
 const DzSub = styled.div`font-size: 11.5px; color: rgba(232,232,239,0.45);`;
+const slide = keyframes`0% { left: -45%; } 100% { left: 100%; }`;
+const Track = styled.div`position: relative; height: 5px; width: 70%; margin-top: 8px; border-radius: 999px; background: rgba(255,255,255,0.09); overflow: hidden;`;
+const Fill = styled.div<{ $pct: number | null }>`
+  position: absolute; top: 0; bottom: 0; border-radius: 999px; background: #3aa0ff;
+  ${(p) => (p.$pct !== null
+    ? `left: 0; width: ${p.$pct}%; transition: width 0.2s ease;`
+    : `width: 45%; animation: ${slide} 1.1s ease-in-out infinite;`)}
+`;
 const List = styled.div`display: flex; flex-direction: column; gap: 6px; margin-top: 4px;`;
 const Item = styled.div`display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; border: 1px solid rgba(255,255,255,0.08); border-radius: 9px; background: rgba(255,255,255,0.02);`;
 const ItemTitle = styled.div`font-size: 13.5px; font-weight: 600;`;
