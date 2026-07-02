@@ -10,7 +10,7 @@
 //
 // Self-contained (styled-components, per Office's no-Tailwind rule). Inline SVGs — no emoji.
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 
 // ── types (mirror the API payloads) ────────────────────────────────────────────
@@ -77,6 +77,18 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
   const [uploadTitle, setUploadTitle] = useState("");
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [dragging, setDragging] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const pickFile = (f: File | null) => {
+    if (!f) return;
+    if (f.type !== "application/pdf" && !f.name.toLowerCase().endsWith(".pdf")) {
+      setMsg("Please choose a PDF file");
+      return;
+    }
+    setUploadFile(f);
+    setMsg("");
+  };
 
   const loadDocuments = useCallback(async () => {
     try {
@@ -267,13 +279,26 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
           {!loading && tab === "library" && (
             <Section>
               <Label>Upload a new document</Label>
+              <Input placeholder="Document title (e.g. Contractor Agreement)" value={uploadTitle} onChange={(e) => setUploadTitle(e.target.value)} />
+              <DropZone
+                $dragging={dragging}
+                onClick={() => fileInputRef.current?.click()}
+                onDragOver={(e) => { e.preventDefault(); if (!dragging) setDragging(true); }}
+                onDragLeave={(e) => { e.preventDefault(); setDragging(false); }}
+                onDrop={(e) => { e.preventDefault(); setDragging(false); pickFile(e.dataTransfer.files?.[0] ?? null); }}
+              >
+                <input ref={fileInputRef} type="file" accept="application/pdf" hidden onChange={(e) => pickFile(e.target.files?.[0] ?? null)} />
+                <svg width={30} height={30} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 16V4M8 8l4-4 4 4" />
+                  <path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3" />
+                </svg>
+                <DzText>{uploadFile ? uploadFile.name : "Drag a PDF here, or click to browse"}</DzText>
+                <DzSub>{uploadFile ? "Click or drop another to replace" : "PDF · up to 20 MB"}</DzSub>
+              </DropZone>
               <Row>
-                <Input placeholder="Document title (e.g. Contractor Agreement)" value={uploadTitle} onChange={(e) => setUploadTitle(e.target.value)} />
-                <FileLabel>
-                  {uploadFile ? uploadFile.name : "Choose PDF…"}
-                  <input type="file" accept="application/pdf" hidden onChange={(e) => setUploadFile(e.target.files?.[0] ?? null)} />
-                </FileLabel>
-                <PrimaryBtn type="button" disabled={uploading || !configured} onClick={upload}>{uploading ? "Uploading…" : "Upload"}</PrimaryBtn>
+                <PrimaryBtn type="button" disabled={uploading || !configured || !uploadFile || !uploadTitle.trim()} onClick={upload}>
+                  {uploading ? "Uploading…" : "Upload document"}
+                </PrimaryBtn>
               </Row>
 
               <Label>Your documents</Label>
@@ -383,7 +408,18 @@ const PrimaryBtn = styled.button`
   &:hover { background: #58b0ff; } &:disabled { opacity: 0.45; cursor: default; }
 `;
 const GhostBtn = styled.button`${baseField} cursor: pointer; flex: 0 0 auto; font-size: 12px; padding: 6px 12px; &:hover { border-color: rgba(120,200,255,0.5); }`;
-const FileLabel = styled.label`${baseField} cursor: pointer; flex: 1 1 160px; display: inline-flex; align-items: center; &:hover { border-color: rgba(120,200,255,0.5); }`;
+const DropZone = styled.div<{ $dragging: boolean }>`
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+  padding: 26px 18px; margin-top: 2px; cursor: pointer; text-align: center;
+  border: 1.5px dashed ${(p) => (p.$dragging ? "rgba(120,200,255,0.8)" : "rgba(255,255,255,0.18)")};
+  border-radius: 11px;
+  background: ${(p) => (p.$dragging ? "rgba(120,200,255,0.1)" : "rgba(255,255,255,0.02)")};
+  color: ${(p) => (p.$dragging ? "#bfe4ff" : "rgba(232,232,239,0.6)")};
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+  &:hover { border-color: rgba(120,200,255,0.5); color: #cfe9ff; }
+`;
+const DzText = styled.div`font-size: 13.5px; font-weight: 600; color: #e8e8ef; word-break: break-all;`;
+const DzSub = styled.div`font-size: 11.5px; color: rgba(232,232,239,0.45);`;
 const List = styled.div`display: flex; flex-direction: column; gap: 6px; margin-top: 4px;`;
 const Item = styled.div`display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; border: 1px solid rgba(255,255,255,0.08); border-radius: 9px; background: rgba(255,255,255,0.02);`;
 const ItemTitle = styled.div`font-size: 13.5px; font-weight: 600;`;
