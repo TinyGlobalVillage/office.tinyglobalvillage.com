@@ -9,11 +9,20 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
+import PillBar from "@tgv/module-component-library/components/ui/PillBar";
 import ConfirmModal from "../frontdesk/ConfirmModal";
 
+type DocKind = "waiver" | "multisig";
+type VaultSigner = {
+  email: string;
+  name: string | null;
+  status: "pending" | "sent" | "signed" | "rejected";
+  signedAt: string | null;
+};
 type VaultDoc = {
   id: string;
   title: string;
+  kind: DocKind;
   createdAt: string;
   sendable: boolean;
   shareUrl: string | null;
@@ -22,9 +31,19 @@ type VaultDoc = {
   signedAt: string | null;
   signerName: string | null;
   signerEmail: string | null;
+  signers?: VaultSigner[];
+  signedCount?: number;
+  signerCount?: number;
   hasSignedPdf: boolean;
   sizeKb: number | null;
 };
+
+type KindFilter = "all" | "waiver" | "multisig";
+const KIND_SEGMENTS = [
+  { key: "all", label: "All" },
+  { key: "waiver", label: "Waivers" },
+  { key: "multisig", label: "Multiple Signatures" },
+];
 
 const CARD_MIN = 190;
 const GAP = 12;
@@ -51,6 +70,7 @@ export default function DocumentsVaultModal({ onClose }: { onClose: () => void }
   const [loading, setLoading] = useState(true);
   const [docs, setDocs] = useState<VaultDoc[]>([]);
   const [q, setQ] = useState("");
+  const [kindFilter, setKindFilter] = useState<KindFilter>("all");
   const [page, setPage] = useState(0);
   const [cols, setCols] = useState(3);
   const [note, setNote] = useState("");
@@ -100,16 +120,19 @@ export default function DocumentsVaultModal({ onClose }: { onClose: () => void }
   };
 
   const filtered = useMemo(() => {
+    const byKind = kindFilter === "all" ? docs : docs.filter((d) => d.kind === kindFilter);
     const needle = q.trim().toLowerCase();
-    if (!needle) return docs;
-    return docs.filter((d) =>
-      [d.title, d.signerName, d.signerEmail].filter(Boolean).some((v) => v!.toLowerCase().includes(needle)),
+    if (!needle) return byKind;
+    return byKind.filter((d) =>
+      [d.title, d.signerName, d.signerEmail, ...(d.signers ?? []).flatMap((s) => [s.name, s.email])]
+        .filter(Boolean)
+        .some((v) => v!.toLowerCase().includes(needle)),
     );
-  }, [docs, q]);
+  }, [docs, q, kindFilter]);
 
   const pageSize = cols;
   const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
-  useEffect(() => { setPage(0); }, [q]);
+  useEffect(() => { setPage(0); }, [q, kindFilter]);
   useEffect(() => { setPage((p) => Math.min(p, pageCount - 1)); }, [pageCount]);
   const paged = filtered.slice(page * pageSize, page * pageSize + pageSize);
   const showPager = filtered.length > pageSize;
@@ -133,6 +156,16 @@ export default function DocumentsVaultModal({ onClose }: { onClose: () => void }
           <Count>{filtered.length} {filtered.length === 1 ? "document" : "documents"}</Count>
         </SearchRow>
 
+        <FilterRow>
+          <PillBar
+            segments={KIND_SEGMENTS}
+            active={kindFilter}
+            onChange={(k) => setKindFilter(k as KindFilter)}
+            accent="58, 160, 255"
+            ariaLabel="Filter documents by kind"
+          />
+        </FilterRow>
+
         {note && <Note onClick={() => setNote("")}>{note}</Note>}
 
         <Body>
@@ -148,13 +181,28 @@ export default function DocumentsVaultModal({ onClose }: { onClose: () => void }
                   <DeleteBtn type="button" onClick={() => setConfirmDoc(d)} aria-label="Delete document" title="Delete document"><XIcon size={14} /></DeleteBtn>
                 </TopRow>
                 <CardTitle title={d.title}>{d.title}</CardTitle>
-                <StatusPill $s={d.signed ? "signed" : d.sendable ? "ready" : "draft"}>
-                  {d.signed ? "Signed" : d.sendable ? "Ready to send" : "No template"}
-                </StatusPill>
+                {d.kind === "multisig" ? (
+                  <StatusPill
+                    $s={d.signed ? "signed" : "draft"}
+                    title={(d.signers ?? [])
+                      .map((s) => `${s.name || s.email}: ${s.status === "sent" ? "pending" : s.status}`)
+                      .join("\n")}
+                  >
+                    {d.signed ? "Signed" : `${d.signedCount ?? 0} of ${d.signerCount ?? 0} signed`}
+                  </StatusPill>
+                ) : (
+                  <StatusPill $s={d.signed ? "signed" : d.sendable ? "ready" : "draft"}>
+                    {d.signed ? "Signed" : d.sendable ? "Ready to send" : "No template"}
+                  </StatusPill>
+                )}
                 <CardMeta>
-                  {d.signed ? (d.signerName || d.signerEmail || "Signed") : `Added ${fmtDate(d.createdAt)}`}
-                  {d.signed && d.signedAt ? ` · ${fmtDate(d.signedAt)}` : ""}
-                  {d.sizeKb != null ? ` · ${d.sizeKb} KB` : ""}
+                  {d.kind === "multisig"
+                    ? `${d.signerCount ?? 0} signer${(d.signerCount ?? 0) === 1 ? "" : "s"} · Added ${fmtDate(d.createdAt)}`
+                    : <>
+                        {d.signed ? (d.signerName || d.signerEmail || "Signed") : `Added ${fmtDate(d.createdAt)}`}
+                        {d.signed && d.signedAt ? ` · ${fmtDate(d.signedAt)}` : ""}
+                      </>}
+                  {d.kind !== "multisig" && d.sizeKb != null ? ` · ${d.sizeKb} KB` : ""}
                 </CardMeta>
                 <CardActions>
                   {d.hasSignedPdf && d.signatureId && (
@@ -212,6 +260,7 @@ const CloseBtn = styled.button`
   &:hover { color: #fff; background: rgba(255,255,255,0.06); }
 `;
 const SearchRow = styled.div`display: flex; align-items: center; gap: 12px; padding: 14px 22px 0;`;
+const FilterRow = styled.div`padding: 12px 22px 0;`;
 const SearchInput = styled.input`
   flex: 1 1 auto; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.12);
   border-radius: 8px; color: #e8e8ef; padding: 9px 12px; font-size: 13px; outline: none;

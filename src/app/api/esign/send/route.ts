@@ -18,6 +18,7 @@ import {
   directLinkUrl,
   type LegalSendChannel,
 } from "@tgv/module-documenso";
+import { getLegalDocumentKind } from "@tgv/module-documenso/db/multisig-queries";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -71,6 +72,15 @@ export async function POST(req: NextRequest) {
 
   const doc = await getLegalDocumentById(db, documentId);
   if (!doc) return NextResponse.json({ error: "Document not found" }, { status: 404 });
+  // Multisig docs have no shareable link — Documenso emailed each named signer their own
+  // link at upload time. There is nothing to (re)send from here.
+  const kindRow = await getLegalDocumentKind(db, doc.id);
+  if (kindRow?.kind === "multisig") {
+    return NextResponse.json(
+      { error: "This is a multi-signature document — its named signers each received their own signing link when it was uploaded." },
+      { status: 409 },
+    );
+  }
   if (!doc.documensoDirectToken) {
     return NextResponse.json({ error: "Document has no signing link yet" }, { status: 409 });
   }

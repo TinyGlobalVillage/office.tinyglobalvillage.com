@@ -122,14 +122,16 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
     // comma-separated typing supported — split and add each
     const parts = email.split(",").map((p) => p.trim()).filter(Boolean);
     if (!parts.length) return;
+    const valid: Recipient[] = [];
     let bad: string | null = null;
+    for (const p of parts) {
+      const e = p.toLowerCase();
+      if (!EMAIL_RE.test(e)) { bad = p; continue; }
+      valid.push({ email: e, name: parts.length === 1 ? name : null });
+    }
     setUploadSigners((prev) => {
       const next = [...prev];
-      for (const p of parts) {
-        const e = p.toLowerCase();
-        if (!EMAIL_RE.test(e)) { bad = p; continue; }
-        if (!next.some((r) => r.email === e)) next.push({ email: e, name: parts.length === 1 ? name : null });
-      }
+      for (const v of valid) if (!next.some((r) => r.email === v.email)) next.push(v);
       return next;
     });
     setMsg(bad ? `"${bad}" is not a valid email` : "");
@@ -498,14 +500,39 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
           {!loading && tab === "documents" && (
             <Section>
               <Label>Your documents</Label>
+              <PillBar
+                segments={KIND_SEGMENTS}
+                active={docFilter}
+                onChange={(k) => setDocFilter(k as KindFilter)}
+                accent="58, 160, 255"
+                ariaLabel="Filter documents by kind"
+              />
               {documents.length === 0 && <Dim>No documents yet. Add one from the Upload tab.</Dim>}
+              {documents.length > 0 && documents.filter((d) => docFilter === "all" || d.kind === docFilter).length === 0 && (
+                <Dim>No {docFilter === "waiver" ? "waivers" : "multi-signature documents"} yet.</Dim>
+              )}
               <List>
-                {documents.map((d) => (
+                {documents
+                  .filter((d) => docFilter === "all" || d.kind === docFilter)
+                  .map((d) => (
                   <Item key={d.id}>
-                    <div>
+                    <ItemMain>
                       <ItemTitle>{d.title}</ItemTitle>
-                      <ItemSub>{d.sendable ? "Ready to send" : "No signing template"}</ItemSub>
-                    </div>
+                      <ItemSub>
+                        {d.kind === "multisig"
+                          ? `Multi-signature · ${d.signedCount ?? 0} of ${d.signerCount ?? 0} signed`
+                          : d.sendable ? "Ready to send" : "No signing template"}
+                      </ItemSub>
+                      {d.kind === "multisig" && (d.signers?.length ?? 0) > 0 && (
+                        <SignerLine>
+                          {d.signers!.map((s) => (
+                            <SignerPill key={s.email} $s={s.status} title={s.email}>
+                              {s.name || s.email} · {s.status === "sent" ? "pending" : s.status}
+                            </SignerPill>
+                          ))}
+                        </SignerLine>
+                      )}
+                    </ItemMain>
                     <ItemActions>
                       {d.shareUrl && <GhostBtn type="button" onClick={() => copyLink(d.shareUrl)}>Copy link</GhostBtn>}
                       <DelBtn type="button" onClick={() => askDeleteDoc(d)} aria-label="Delete document" title="Delete document"><XIcon size={13} /></DelBtn>
@@ -530,6 +557,7 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
                       </ItemSub>
                     </ActMain>
                     <ActRight>
+                      {a.docKind === "multisig" && <KindTag>multi-sig</KindTag>}
                       <StatusPill $s={a.status}>{a.status}</StatusPill>
                       {a.hasSignedPdf && a.signatureId && (
                         <IconLink href={`/api/esign/pdf/${a.signatureId}`} target="_blank" rel="noreferrer" title="Download signed PDF">
@@ -671,4 +699,11 @@ const StatusPill = styled.span<{ $s: string }>`
       : p.$s === "rejected"
       ? "background: rgba(255,90,90,0.14); color: #ff9a9a; border: 1px solid rgba(255,90,90,0.35);"
       : "background: rgba(255,200,80,0.12); color: #ffd587; border: 1px solid rgba(255,200,80,0.3);"}
+`;
+const ItemMain = styled.div`min-width: 0; display: flex; flex-direction: column; gap: 2px;`;
+const SignerLine = styled.div`display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px;`;
+const SignerPill = styled(StatusPill)`font-size: 10px; padding: 2px 8px; text-transform: none;`;
+const KindTag = styled.span`
+  font-size: 10px; font-weight: 650; padding: 2px 8px; border-radius: 999px; letter-spacing: 0.02em;
+  background: rgba(120,140,255,0.12); color: #b9c4ff; border: 1px solid rgba(120,140,255,0.32);
 `;
