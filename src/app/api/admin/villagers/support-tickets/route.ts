@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
            su.name AS closed_by_name,
            (SELECT count(*) FROM public.support_messages m WHERE m.ticket_id = t.id)::int AS message_count
       FROM public.support_tickets t
-      LEFT JOIN public.member_users su ON su.id = t.closed_by_member_user_id
+      LEFT JOIN public.members su ON su.id = t.closed_by_member_user_id
      WHERE t.member_user_id = ${memberUserId}
      ORDER BY t.opened_at DESC
   `);

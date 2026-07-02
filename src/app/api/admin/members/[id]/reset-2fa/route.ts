@@ -5,7 +5,7 @@
 // Phase 5 of tgv-member-auth-magic-link.md.
 //
 // Resets, in one transaction:
-//   1. TOTP fields on member_users (totp_secret, totp_enrolled_at,
+//   1. TOTP fields on members (totp_secret, totp_enrolled_at,
 //      recovery_codes_hash → [])
 //   2. All passkeys for the user (member_passkeys, member_passkey_challenges)
 //   3. All active sessions for the user (member_sessions)
@@ -57,8 +57,8 @@ export async function POST(req: NextRequest, { params }: Params) {
 
   const targetRows = await db
     .select()
-    .from(schema.memberUsers)
-    .where(eq(schema.memberUsers.id, id))
+    .from(schema.members)
+    .where(eq(schema.members.id, id))
     .limit(1);
   const target = targetRows[0];
   if (!target) {
@@ -79,14 +79,14 @@ export async function POST(req: NextRequest, { params }: Params) {
 
   const result = await db.transaction(async (tx) => {
     await tx
-      .update(schema.memberUsers)
+      .update(schema.members)
       .set({
         totpSecret: null,
         totpEnrolledAt: null,
         recoveryCodesHash: [],
         updatedAt: new Date(),
       })
-      .where(eq(schema.memberUsers.id, id));
+      .where(eq(schema.members.id, id));
 
     const deletedPasskeys = await tx
       .delete(schema.memberPasskeys)

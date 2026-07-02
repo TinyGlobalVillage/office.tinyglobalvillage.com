@@ -2,7 +2,7 @@
 //
 // Lists every Office STAFF account with auth-enrollment counts for the
 // OfficeStaffControlModal HCM, read from the CANONICAL member store
-// (member_users / member_passkeys). The office-staff.json roster is the
+// (members / member_passkeys). The office-staff.json roster is the
 // username↔email map (and bounds the result to actual staff, so the non-staff
 // admin@ member identity never surfaces). No secrets leave the box — only
 // counts + display fields. Raw pgPool query (not Drizzle select-fields) per the
@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
          count(mp.credential_id)::int AS passkey_count,
          (mu.totp_secret IS NOT NULL) AS totp_enabled,
          coalesce(array_length(mu.recovery_codes_hash, 1), 0)::int AS recovery_count
-       FROM member_users mu
+       FROM members mu
        LEFT JOIN member_passkeys mp ON mp.member_user_id = mu.id
        WHERE lower(mu.email) = ANY($1)
        GROUP BY mu.email, mu.name, mu.totp_secret, mu.recovery_codes_hash`,

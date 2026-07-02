@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
 
   const adminMemberUserId = await memberUserIdForUsername(gate.username);
   if (!adminMemberUserId)
-    return NextResponse.json({ ok: false, error: "your Office account has no member_users row" }, { status: 409 });
+    return NextResponse.json({ ok: false, error: "your Office account has no members row" }, { status: 409 });
 
   const body = await req.json().catch(() => ({}));
   const targetMemberId = String(body.targetMemberId ?? "");

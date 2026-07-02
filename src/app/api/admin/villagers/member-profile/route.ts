@@ -1,7 +1,7 @@
 // /api/admin/villagers/member-profile — operator view of ONE member (villager).
 //
 // GET ?memberUserId=<uuid> → { member, sites, billing }
-//   member  = member_users core (incl. created_at = "Member since")
+//   member  = members core (incl. created_at = "Member since")
 //   sites   = the member's tenants (member_user_tenants → members) + per-site
 //             Yellow Pages founding status (founding is keyed on members.id)
 //   billing = member_billing operator-intent row (null until set)
@@ -64,7 +64,7 @@ export async function GET(req: NextRequest) {
 
   const memberRes = await db.execute(sql`
     SELECT id::text AS id, email, name, role, username, created_at, last_login_at
-    FROM public.member_users
+    FROM public.members
     WHERE id = ${memberUserId}
   `);
   const member =

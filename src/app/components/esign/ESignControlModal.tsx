@@ -13,16 +13,28 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import styled, { keyframes, css } from "styled-components";
 import DDM, { type DDMItem } from "@tgv/module-component-library/components/ui/DDM";
+import PillBar from "@tgv/module-component-library/components/ui/PillBar";
 import ConfirmModal from "../frontdesk/ConfirmModal";
 
 // ── types (mirror the API payloads) ────────────────────────────────────────────
+type DocKind = "waiver" | "multisig";
+type DocSigner = {
+  email: string;
+  name: string | null;
+  status: "pending" | "sent" | "signed" | "rejected";
+  signedAt: string | null;
+};
 type DocRow = {
   id: string;
   title: string;
   slug: string;
   version: number;
+  kind: DocKind;
   sendable: boolean;
   shareUrl: string | null;
+  signers?: DocSigner[];
+  signedCount?: number;
+  signerCount?: number;
 };
 type StaffRow = { username: string; email: string; role: string };
 type Recipient = { email: string; name: string | null };
@@ -30,6 +42,7 @@ type ActivityRow = {
   id: string;
   documentId: string;
   docTitle: string;
+  docKind: DocKind;
   recipientEmail: string;
   recipientName: string | null;
   sentBy: string | null;
@@ -43,6 +56,13 @@ type ActivityRow = {
 };
 
 type Tab = "upload" | "documents" | "send" | "activity";
+type KindFilter = "all" | "waiver" | "multisig";
+
+const KIND_SEGMENTS = [
+  { key: "all", label: "All" },
+  { key: "waiver", label: "Waivers" },
+  { key: "multisig", label: "Multiple Signatures" },
+];
 
 // ── inline icons (currentColor) ─────────────────────────────────────────────────
 const XIcon = ({ size = 18 }: { size?: number }) => (
@@ -90,6 +110,32 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
   const [dragging, setDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // upload kind: waiver (one shared link) vs multisig (named signers, each their own link)
+  const [uploadKind, setUploadKind] = useState<DocKind>("waiver");
+  const [uploadSigners, setUploadSigners] = useState<Recipient[]>([]);
+  const [uploadSignerEmail, setUploadSignerEmail] = useState("");
+
+  // documents-tab kind filter (PillBar)
+  const [docFilter, setDocFilter] = useState<KindFilter>("all");
+
+  const addUploadSigner = (email: string, name: string | null) => {
+    // comma-separated typing supported — split and add each
+    const parts = email.split(",").map((p) => p.trim()).filter(Boolean);
+    if (!parts.length) return;
+    let bad: string | null = null;
+    setUploadSigners((prev) => {
+      const next = [...prev];
+      for (const p of parts) {
+        const e = p.toLowerCase();
+        if (!EMAIL_RE.test(e)) { bad = p; continue; }
+        if (!next.some((r) => r.email === e)) next.push({ email: e, name: parts.length === 1 ? name : null });
+      }
+      return next;
+    });
+    setMsg(bad ? `"${bad}" is not a valid email` : "");
+  };
+  const removeUploadSigner = (email: string) => setUploadSigners((prev) => prev.filter((r) => r.email !== email));
+
   // Drop/select a PDF → upload immediately (title defaults to the filename).
   // XHR (not fetch) so we get a real upload-progress %; plus a hard timeout so it can't hang.
   const handleFile = (f: File | null) => {
@@ -102,10 +148,18 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
       setMsg("Documenso is not configured on this server — cannot upload.");
       return;
     }
+    if (uploadKind === "multisig" && uploadSigners.length === 0) {
+      setMsg("Add at least one signer first — each signer gets their own emailed signing link.");
+      return;
+    }
     const title = f.name.replace(/\.pdf$/i, "").trim() || f.name;
     const fd = new FormData();
     fd.append("title", title);
     fd.append("file", f);
+    if (uploadKind === "multisig") {
+      fd.append("kind", "multisig");
+      fd.append("signers", JSON.stringify(uploadSigners));
+    }
 
     const done = (message: string) => {
       setUploading(false);
@@ -127,10 +181,16 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
     };
     xhr.upload.onload = () => setUploadPct(null); // file fully sent → server now building the template
     xhr.onload = () => {
-      let d: { ok?: boolean; error?: string; document?: { title?: string } } | null = null;
+      let d: { ok?: boolean; error?: string; document?: { title?: string; kind?: string; signerCount?: number } } | null = null;
       try { d = JSON.parse(xhr.responseText); } catch { /* non-JSON */ }
       if (xhr.status >= 200 && xhr.status < 300 && d?.ok) {
-        done(`"${d.document?.title ?? title}" added — ready to send.`);
+        if (d.document?.kind === "multisig") {
+          done(`"${d.document?.title ?? title}" sent to ${d.document?.signerCount ?? uploadSigners.length} signer(s) — each received their own signing link.`);
+          setUploadSigners([]);
+          loadActivity();
+        } else {
+          done(`"${d.document?.title ?? title}" added — ready to send.`);
+        }
         loadDocuments();
       } else {
         done(d?.error ?? `Upload failed (HTTP ${xhr.status})`);
@@ -351,6 +411,50 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
 
           {!loading && tab === "upload" && (
             <Section>
+              <Label>Signature mode</Label>
+              <ChannelToggle>
+                <ChBtn $active={uploadKind === "waiver"} onClick={() => setUploadKind("waiver")}>
+                  Waiver — one shared link
+                </ChBtn>
+                <ChBtn $active={uploadKind === "multisig"} onClick={() => setUploadKind("multisig")}>
+                  Multiple signatures — named signers
+                </ChBtn>
+              </ChannelToggle>
+              {uploadKind === "multisig" && (
+                <>
+                  <Label>Signers (each gets their own signature box + emailed link)</Label>
+                  <Row>
+                    <DDM
+                      label="Add staff"
+                      ariaLabel="Add a staff signer"
+                      align="left"
+                      items={staff.map((s): DDMItem => ({
+                        key: s.username,
+                        label: `${s.username} · ${s.email}`,
+                        onClick: () => addUploadSigner(s.email, s.username),
+                      }))}
+                    />
+                    <Input
+                      placeholder="or type emails (comma-separated)"
+                      value={uploadSignerEmail}
+                      onChange={(e) => setUploadSignerEmail(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === "Enter") { addUploadSigner(uploadSignerEmail, null); setUploadSignerEmail(""); } }}
+                    />
+                    <AddBtn type="button" onClick={() => { addUploadSigner(uploadSignerEmail, null); setUploadSignerEmail(""); }}>Add</AddBtn>
+                  </Row>
+                  {uploadSigners.length > 0 && (
+                    <Chips>
+                      {uploadSigners.map((r, i) => (
+                        <Chip key={r.email}>
+                          {i + 1}. {r.name ? `${r.name} · ` : ""}{r.email}
+                          <ChipX type="button" onClick={() => removeUploadSigner(r.email)} aria-label="Remove"><XIcon size={12} /></ChipX>
+                        </Chip>
+                      ))}
+                    </Chips>
+                  )}
+                </>
+              )}
+
               <Label>Add a document</Label>
               <DropZone
                 $dragging={dragging}
@@ -375,7 +479,11 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
                   {uploading
                     ? uploadPct !== null
                       ? "Sending file to the server"
+                      : uploadKind === "multisig"
+                      ? "Creating the document and emailing each signer their own link…"
                       : "Creating signing template in Documenso…"
+                    : uploadKind === "multisig"
+                    ? `PDF · up to 20 MB · sends to ${uploadSigners.length || "your"} signer(s) on upload`
                     : "PDF · up to 20 MB · uploads automatically (named from the file)"}
                 </DzSub>
                 {uploading && (

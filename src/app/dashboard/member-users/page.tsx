@@ -1,6 +1,6 @@
 "use client";
 
-// /dashboard/member-users — admin surface for the member_users table (humans
+// /dashboard/member-users — admin surface for the members table (humans
 // who hold TGV.com member accounts, distinct from `members` which is the
 // tenant-deployment table). Phase 5 of tgv-member-auth-magic-link.md.
 //
@@ -14,7 +14,7 @@ import styled from "styled-components";
 import { colors, rgb } from "@/app/theme";
 import TopNav from "@/app/components/TopNav";
 
-type MemberUserRow = {
+type MemberRow = {
   id: string;
   email: string;
   name: string | null;
@@ -213,9 +213,9 @@ function fmtDate(iso: string | null) {
 }
 
 export default function MemberUsersPage() {
-  const [rows, setRows] = useState<MemberUserRow[] | null>(null);
+  const [rows, setRows] = useState<MemberRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [confirmTarget, setConfirmTarget] = useState<MemberUserRow | null>(null);
+  const [confirmTarget, setConfirmTarget] = useState<MemberRow | null>(null);
   const [typed, setTyped] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -225,14 +225,14 @@ export default function MemberUsersPage() {
       .then(async (r) => {
         const j = await r.json();
         if (!j.ok) { setError(j.error ?? "fetch failed"); return; }
-        setRows(j.memberUsers);
+        setRows(j.members);
       })
       .catch((e: Error) => setError(e.message ?? "network error"));
   }, []);
 
   useEffect(() => { load(); }, [load]);
 
-  const openConfirm = (row: MemberUserRow) => {
+  const openConfirm = (row: MemberRow) => {
     setTyped("");
     setConfirmTarget(row);
   };

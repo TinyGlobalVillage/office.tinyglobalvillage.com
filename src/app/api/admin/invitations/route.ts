@@ -60,7 +60,7 @@ export async function GET(req: NextRequest) {
            (select count(*) from invite_redemptions r where r.invite_code_id = c.id)::int
              as redeemed_count,
            (select ru.email from invite_redemptions r
-              join member_users ru on ru.id = r.member_user_id
+              join members ru on ru.id = r.member_user_id
              where r.invite_code_id = c.id order by r.redeemed_at desc limit 1)
              as latest_redeemer,
            (select max(r.redeemed_at) from invite_redemptions r where r.invite_code_id = c.id)

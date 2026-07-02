@@ -13,7 +13,7 @@
  *                          V1 wraps the static FASTMAIL_TOKEN_<USER> env vars
  *                          + JMAP enumerate (cached at the JMAP session
  *                          layer). DB-backed inbox_accounts comes when
- *                          @tgv/module-registry/member_users is real.
+ *                          @tgv/module-registry/members is real.
  *  3. ThemeAdapter       — hands the package office's color palette so
  *                          components match the rest of the dashboard.
  *

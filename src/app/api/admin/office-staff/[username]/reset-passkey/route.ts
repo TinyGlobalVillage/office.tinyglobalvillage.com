@@ -48,7 +48,7 @@ export async function POST(
 
   const passkeysCleared = user.webauthnCredentials?.length ?? 0;
 
-  // Resolve the member identity. A staffer with no member_users row can't be
+  // Resolve the member identity. A staffer with no members row can't be
   // fully reset here (their member credentials — the standing login — would be
   // left untouched), so fail LOUDLY rather than silently clearing only the
   // legacy store and reporting success.
@@ -69,7 +69,7 @@ export async function POST(
     const del = await client.query("DELETE FROM member_passkeys WHERE member_user_id = $1", [memberUserId]);
     memberPasskeysCleared = del.rowCount ?? 0;
     await client.query(
-      "UPDATE member_users SET recovery_codes_hash = '{}', totp_secret = NULL, totp_enrolled_at = NULL WHERE id = $1",
+      "UPDATE members SET recovery_codes_hash = '{}', totp_secret = NULL, totp_enrolled_at = NULL WHERE id = $1",
       [memberUserId],
     );
     await client.query("DELETE FROM member_sessions WHERE user_id = $1", [memberUserId]);

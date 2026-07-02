@@ -4,8 +4,8 @@
 //
 // Reuses Office's existing tgv_db Drizzle client (lib/db-drizzle) — the same
 // shared member_* tables tinyglobalvillage.com uses. Office staff live in
-// member_users (model A: one identity per human, role-scoped), so an operator
-// who is also a customer (e.g. refusionist) is a single member_users row.
+// members (model A: one identity per human, role-scoped), so an operator
+// who is also a customer (e.g. refusionist) is a single members row.
 //
 // This is mounted but NOT yet wired into the live auth flow — the central
 // helpers (requireAuth/getAuthToken/requireAdmin/proxy) bridge to it in the

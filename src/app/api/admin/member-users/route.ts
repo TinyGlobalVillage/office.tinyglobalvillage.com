@@ -1,6 +1,6 @@
 // GET /api/admin/member-users
 //
-// Lists every human in member_users with a derived 2FA-status indicator so
+// Lists every human in members with a derived 2FA-status indicator so
 // the admin surface can render the row-by-row "Reset 2FA" actions.
 //
 // Joins recent admin_audit_log rows for action='member_2fa_reset' so the table
@@ -51,25 +51,25 @@ export async function GET(req: NextRequest) {
 
   const rows = await db
     .select({
-      id: schema.memberUsers.id,
-      email: schema.memberUsers.email,
-      name: schema.memberUsers.name,
-      totpEnrolledAt: schema.memberUsers.totpEnrolledAt,
-      recoveryCodesRemaining: sql<number>`coalesce(array_length(${schema.memberUsers.recoveryCodesHash}, 1), 0)::int`,
-      lastLoginAt: schema.memberUsers.lastLoginAt,
-      createdAt: schema.memberUsers.createdAt,
+      id: schema.members.id,
+      email: schema.members.email,
+      name: schema.members.name,
+      totpEnrolledAt: schema.members.totpEnrolledAt,
+      recoveryCodesRemaining: sql<number>`coalesce(array_length(${schema.members.recoveryCodesHash}, 1), 0)::int`,
+      lastLoginAt: schema.members.lastLoginAt,
+      createdAt: schema.members.createdAt,
       passkeyCount: sql<number>`coalesce(${passkeyCounts.count}, 0)::int`,
       sessionCount: sql<number>`coalesce(${sessionCounts.count}, 0)::int`,
       lastResetAt: lastResets.lastResetAt,
     })
-    .from(schema.memberUsers)
-    .leftJoin(passkeyCounts, eq(passkeyCounts.memberUserId, schema.memberUsers.id))
-    .leftJoin(sessionCounts, eq(sessionCounts.userId, schema.memberUsers.id))
-    // admin_audit_log.target_id is text; member_users.id is uuid. Cast to uuid
+    .from(schema.members)
+    .leftJoin(passkeyCounts, eq(passkeyCounts.memberUserId, schema.members.id))
+    .leftJoin(sessionCounts, eq(sessionCounts.userId, schema.members.id))
+    // admin_audit_log.target_id is text; members.id is uuid. Cast to uuid
     // for the join (the subquery already filters targetType='member_user', so
     // every target_id here is a member_user uuid string).
-    .leftJoin(lastResets, eq(sql`${lastResets.targetId}::uuid`, schema.memberUsers.id))
-    .orderBy(desc(schema.memberUsers.createdAt));
+    .leftJoin(lastResets, eq(sql`${lastResets.targetId}::uuid`, schema.members.id))
+    .orderBy(desc(schema.members.createdAt));
 
-  return NextResponse.json({ ok: true, memberUsers: rows });
+  return NextResponse.json({ ok: true, members: rows });
 }

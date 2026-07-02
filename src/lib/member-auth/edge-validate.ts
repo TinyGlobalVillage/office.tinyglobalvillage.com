@@ -57,7 +57,7 @@ export async function validateMemberSession(
     const { rows } = await pgPool.query<{ two_factor_verified: boolean; email: string }>(
       `SELECT ms.two_factor_verified, lower(mu.email) AS email
          FROM member_sessions ms
-         JOIN member_users mu ON mu.id = ms.user_id
+         JOIN members mu ON mu.id = ms.user_id
         WHERE ms.session_token = $1 AND ms.expires >= now()
         LIMIT 1`,
       [sessionToken],

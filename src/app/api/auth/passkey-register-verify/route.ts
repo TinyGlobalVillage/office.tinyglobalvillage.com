@@ -84,7 +84,7 @@ export async function POST(req: NextRequest) {
     // Returned ONCE here for the user to save; only bcrypt hashes persist.
     let recoveryCodes: string[] | undefined;
     const { rows } = await pgPool.query<{ recovery_codes_hash: string[] }>(
-      "SELECT recovery_codes_hash FROM member_users WHERE id = $1",
+      "SELECT recovery_codes_hash FROM members WHERE id = $1",
       [memberUserId],
     );
     const currentCodes = rows[0]?.recovery_codes_hash ?? [];
@@ -94,7 +94,7 @@ export async function POST(req: NextRequest) {
       // double-mint and clobber a freshly-issued set. Show the codes only if
       // this write actually persisted them.
       const upd = await pgPool.query(
-        "UPDATE member_users SET recovery_codes_hash = $1 WHERE id = $2 AND (recovery_codes_hash = '{}' OR recovery_codes_hash IS NULL)",
+        "UPDATE members SET recovery_codes_hash = $1 WHERE id = $2 AND (recovery_codes_hash = '{}' OR recovery_codes_hash IS NULL)",
         [gen.hashes, memberUserId],
       );
       if (upd.rowCount && upd.rowCount > 0) recoveryCodes = gen.plaintext;

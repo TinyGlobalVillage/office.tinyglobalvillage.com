@@ -24,11 +24,11 @@ export async function resolveAdminActorId(
   const email = rosterEmailForUsername(officeUsername); // lowercased, roster-backed
   if (!email) return null;
 
-  // Convergence: resolve the actor against `member_users` (the legacy TGV.com `users` table is
-  // retired). member_users.id == the legacy users.id 1:1, so admin_audit_log.actor_user_id keeps
-  // matching until that FK is repointed to member_users.id at A4.
+  // Convergence: resolve the actor against `members` (the legacy TGV.com `users` table is
+  // retired). members.id == the legacy users.id 1:1, so admin_audit_log.actor_user_id keeps
+  // matching until that FK is repointed to members.id at A4.
   const { rows } = await pgPool.query<{ id: string }>(
-    "SELECT id FROM member_users WHERE lower(email) = $1 LIMIT 1",
+    "SELECT id FROM members WHERE lower(email) = $1 LIMIT 1",
     [email],
   );
   const id = rows[0]?.id;

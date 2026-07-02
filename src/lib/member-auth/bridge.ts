@@ -9,7 +9,7 @@
 // re-implement the email→username reverse lookup.
 //
 // Why email→username: `getActiveSession()` exposes `user.email` + a
-// `member_users` uuid, but every Office call site keys on the legacy short
+// `members` uuid, but every Office call site keys on the legacy short
 // username ("admin", "marmar", "employee3", …) into data/users.json. The only
 // field common to both stores is the email. data/office-staff.json is the
 // Office-local roster (username → { email, role }); emails are unique and
@@ -119,11 +119,11 @@ export function rosterEmailForUsername(username: string | undefined): string | n
   return readRoster()[username]?.email?.toLowerCase() ?? null;
 }
 
-/** Office username → member_users.id (via the roster email). Resolves the
+/** Office username → members.id (via the roster email). Resolves the
  *  member uuid for the CURRENT authenticated user regardless of session kind
  *  (member-session or NextAuth — both produce the same Office username). Used by
  *  the enrollment + recovery flows. Null if the username isn't on the roster or
- *  has no member_users row. */
+ *  has no members row. */
 export async function memberUserIdForUsername(
   username: string | undefined,
 ): Promise<string | null> {
@@ -131,7 +131,7 @@ export async function memberUserIdForUsername(
   if (!email) return null;
   try {
     const { rows } = await pgPool.query<{ id: string }>(
-      "SELECT id FROM member_users WHERE lower(email) = $1 LIMIT 1",
+      "SELECT id FROM members WHERE lower(email) = $1 LIMIT 1",
       [email],
     );
     return rows[0]?.id ?? null;
@@ -140,7 +140,7 @@ export async function memberUserIdForUsername(
   }
 }
 
-/** Office username for a member_users uuid (via email → roster), for
+/** Office username for a members uuid (via email → roster), for
  *  human-readable audit logs on the member login path. Null if the uuid has no
  *  email or the email isn't on the Office staff roster. */
 export async function usernameForMemberUserId(
@@ -148,7 +148,7 @@ export async function usernameForMemberUserId(
 ): Promise<string | null> {
   try {
     const { rows } = await pgPool.query<{ email: string }>(
-      "SELECT email FROM member_users WHERE id = $1 LIMIT 1",
+      "SELECT email FROM members WHERE id = $1 LIMIT 1",
       [memberUserId],
     );
     const email = rows[0]?.email?.toLowerCase();

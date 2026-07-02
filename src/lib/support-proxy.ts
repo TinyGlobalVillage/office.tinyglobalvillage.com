@@ -4,8 +4,8 @@
 // so a claim/reply/complete from the Office Front Desk is the SAME atomic operation on the SAME
 // support_tickets rows as the dashboard chat-bubble Support queue. tgv.com re-validates everything.
 //
-// The support desk attributes the real staffer by member_users.id; Office resolves its operator
-// (office username → roster email → member_users.id), mirroring resolveAdminActorId (which resolves
+// The support desk attributes the real staffer by members.id; Office resolves its operator
+// (office username → roster email → members.id), mirroring resolveAdminActorId (which resolves
 // the legacy users.id for the audit log).
 import "server-only";
 import { type NextRequest, NextResponse } from "next/server";
@@ -15,7 +15,7 @@ import { rosterEmailForUsername } from "./member-auth/bridge";
 
 const memberIdCache = new Map<string, string>();
 
-/** Office staff username → their member_users.id (the support staff identity). Cached per worker. */
+/** Office staff username → their members.id (the support staff identity). Cached per worker. */
 export async function resolveAdminMemberUserId(
   officeUsername: string | null | undefined,
 ): Promise<string | null> {
@@ -25,7 +25,7 @@ export async function resolveAdminMemberUserId(
   const email = rosterEmailForUsername(officeUsername); // lowercased, roster-backed
   if (!email) return null;
   const { rows } = await pgPool.query<{ id: string }>(
-    "SELECT id FROM member_users WHERE lower(email) = $1 AND deleted_at IS NULL LIMIT 1",
+    "SELECT id FROM members WHERE lower(email) = $1 AND deleted_at IS NULL LIMIT 1",
     [email],
   );
   const id = rows[0]?.id;

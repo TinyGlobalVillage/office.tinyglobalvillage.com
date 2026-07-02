@@ -1,7 +1,7 @@
 // Passkey enrollment — step 1 (options). Phase 3d: writes the canonical member
 // store. Resolves the enrolling user member-session-FIRST (requireAuth, not the
 // NextAuth-only getAuthToken — a member-session user has no JWT), maps to their
-// member_users uuid, excludes their existing member_passkeys, and stashes the
+// members uuid, excludes their existing member_passkeys, and stashes the
 // ceremony challenge in a durable signed cookie (no in-memory Map).
 import { NextRequest, NextResponse } from "next/server";
 import { generateRegistrationOptions } from "@simplewebauthn/server";

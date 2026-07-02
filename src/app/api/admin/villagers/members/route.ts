@@ -1,6 +1,6 @@
 // GET /api/admin/villagers/members?q=<search> — operator member search for the Villagers surface.
 //
-// Reads the shared tgv_db `member_users` table directly (raw SQL — it lives in @tgv/module-registry,
+// Reads the shared tgv_db `members` table directly (raw SQL — it lives in @tgv/module-registry,
 // not Office's drizzle schema; raw db.execute avoids the cross-bundle is(Column) crash). Operator-
 // only (requireAdmin). Returns a small id/email/name/role projection for the picker.
 import { type NextRequest, NextResponse } from "next/server";
@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
 
   const res = await db.execute(sql`
     select id, email, name, role
-      from member_users
+      from members
      where email ilike ${like} or coalesce(name, '') ilike ${like}
      order by coalesce(last_login_at, created_at) desc nulls last
      limit 25

@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
   if (gate instanceof NextResponse) return gate;
   const adminMemberUserId = await memberUserIdForUsername(gate.username);
   if (!adminMemberUserId)
-    return NextResponse.json({ ok: false, error: "no member_users row" }, { status: 409 });
+    return NextResponse.json({ ok: false, error: "no members row" }, { status: 409 });
 
   const body = await req.json().catch(() => ({}));
   const requestId = String(body.requestId ?? "");

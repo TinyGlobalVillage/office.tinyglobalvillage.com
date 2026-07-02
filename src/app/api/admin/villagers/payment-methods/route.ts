@@ -6,9 +6,9 @@
 //   chargeAuthorizedAt (null = "needs authorization") gates the operator "Charge saved card" action.
 //
 // Resolves the platform member → legacy card store entirely inside tgv_db:
-//   public.member_users.email  →  public.users (email bridge)  →  public.payment_methods
+//   public.members.email  →  public.users (email bridge)  →  public.payment_methods
 // (the same email bridge the HQ members modal uses; payment_methods is keyed on the
-// legacy users.id, not member_users.id).
+// legacy users.id, not members.id).
 //
 // DISPLAY ONLY: brand + last4 are all that exist (full PAN is never stored). No money
 // moves here — charging a saved card is a separate, explicitly-gated operator action.
@@ -58,7 +58,7 @@ export async function GET(req: NextRequest) {
            pm.cardholder_name     AS cardholder_name,
            pm.is_default          AS is_default,
            pm.charge_authorized_at AS charge_authorized_at
-    FROM public.member_users mu
+    FROM public.members mu
     JOIN public.users u            ON lower(u.email) = lower(mu.email)
     JOIN public.payment_methods pm ON pm.user_id = u.id
     WHERE mu.id = ${memberUserId}
