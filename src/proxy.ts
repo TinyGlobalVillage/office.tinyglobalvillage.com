@@ -26,6 +26,10 @@ const PUBLIC = [
   // via HMAC ticket minted by /api/transcripts/jobs/ticket on the main
   // host, so this endpoint MUST be exempt from cookie middleware.
   "/api/transcripts/jobs/upload-with-ticket",
+  // nginx auth_request backend for /sip-ws: must answer 401/204 itself — a
+  // middleware 307 here makes nginx auth_request fail closed as a 500 and
+  // kills every softphone WS handshake. The route runs requireAuth directly.
+  "/api/frontdesk/sip-ws-auth",
 ];
 
 // Paths that need auth but NOT 2FA (the 2FA setup/verify flow itself, plus internal API calls from authenticated sessions)
