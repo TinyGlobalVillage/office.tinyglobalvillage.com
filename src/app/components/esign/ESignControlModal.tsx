@@ -11,7 +11,7 @@
 // Self-contained (styled-components, per Office's no-Tailwind rule). Inline SVGs — no emoji.
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import styled, { keyframes } from "styled-components";
+import styled, { keyframes, css } from "styled-components";
 import DDM, { type DDMItem } from "@tgv/module-component-library/components/ui/DDM";
 
 // ── types (mirror the API payloads) ────────────────────────────────────────────
@@ -471,8 +471,8 @@ const Track = styled.div`position: relative; height: 5px; width: 70%; margin-top
 const Fill = styled.div<{ $pct: number | null }>`
   position: absolute; top: 0; bottom: 0; border-radius: 999px; background: #3aa0ff;
   ${(p) => (p.$pct !== null
-    ? `left: 0; width: ${p.$pct}%; transition: width 0.2s ease;`
-    : `width: 45%; animation: ${slide} 1.1s ease-in-out infinite;`)}
+    ? css`left: 0; width: ${p.$pct}%; transition: width 0.2s ease;`
+    : css`width: 45%; animation: ${slide} 1.1s ease-in-out infinite;`)}
 `;
 const List = styled.div`display: flex; flex-direction: column; gap: 6px; margin-top: 4px;`;
 const Item = styled.div`display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; border: 1px solid rgba(255,255,255,0.08); border-radius: 9px; background: rgba(255,255,255,0.02);`;

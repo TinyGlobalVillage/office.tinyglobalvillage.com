@@ -23,15 +23,23 @@ const DomainConsoleControlModal = dynamic(() => import("../../components/domain-
 const ESignControlModal = dynamic(() => import("../../components/esign/ESignControlModal"), { ssr: false });
 const DocumentsVaultModal = dynamic(() => import("../../components/esign/DocumentsVaultModal"), { ssr: false });
 import AutomationsTab from "../../components/automations/AutomationsTab";
-import {
-  TinyURLGenerator,
-  QRCodeGenerator,
-} from "@tgv/module-page-editor/editor/component-library/marketing/link-tools";
 import type { ShortLink } from "@tgv/module-page-editor/editor/component-library/marketing/link-tools";
-import {
-  Transcriber,
-  useTranscriberJobs,
-} from "@tgv/module-transcriber";
+// Heavy feature packages — lazy-loaded so they don't sit in the Utils page's first-load JS.
+// (These are the ~594 KB the page carried on every refresh.) The live-jobs hook stays static
+// because it's called on every render to drive the Transcriptions badge.
+import { useTranscriberJobs } from "@tgv/module-transcriber";
+const TinyURLGenerator = dynamic(
+  () => import("@tgv/module-page-editor/editor/component-library/marketing/link-tools").then((m) => m.TinyURLGenerator),
+  { ssr: false },
+);
+const QRCodeGenerator = dynamic(
+  () => import("@tgv/module-page-editor/editor/component-library/marketing/link-tools").then((m) => m.QRCodeGenerator),
+  { ssr: false },
+);
+const Transcriber = dynamic(
+  () => import("@tgv/module-transcriber").then((m) => m.Transcriber),
+  { ssr: false },
+);
 import AddmToggle from "@tgv/module-component-library/components/ui/AddmToggle";
 
 /* ── Types ────────────────────────────────────────────────────── */
