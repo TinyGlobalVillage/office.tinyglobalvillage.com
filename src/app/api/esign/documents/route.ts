@@ -18,6 +18,7 @@ import {
   listOfficeLegalDocuments,
   createOfficeLegalDocument,
   setDocumensoTemplate,
+  deactivateOfficeLegalDocument,
 } from "@tgv/module-documenso";
 
 export const runtime = "nodejs";
@@ -119,4 +120,20 @@ export async function POST(req: NextRequest) {
     },
     _ok: Boolean(linked),
   });
+}
+
+// DELETE /api/esign/documents?id=<uuid> — soft-delete (deactivate) an Office document so it
+// leaves the library, Send picker, and Documents gallery. Signed consent rows (legal_signatures)
+// are preserved as an audit record — this hides the doc, it does not erase signatures.
+export async function DELETE(req: NextRequest) {
+  const auth = await requireAdmin(req);
+  if (auth instanceof NextResponse) return auth;
+
+  const id = req.nextUrl.searchParams.get("id");
+  if (!id || !/^[0-9a-f-]{36}$/i.test(id)) {
+    return NextResponse.json({ error: "Missing or invalid document id" }, { status: 400 });
+  }
+  const removed = await deactivateOfficeLegalDocument(db, id);
+  if (!removed) return NextResponse.json({ error: "Document not found" }, { status: 404 });
+  return NextResponse.json({ ok: true, id: removed.id });
 }

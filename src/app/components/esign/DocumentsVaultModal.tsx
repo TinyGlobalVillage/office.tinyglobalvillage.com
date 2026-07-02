@@ -1,25 +1,31 @@
 "use client";
 
-// DocumentsVaultModal — read-only, searchable gallery (GPG) of every signed document stored on
-// disk (data/legal/signed/…). Utils → Documents tile, sibling to the E-Sign console.
-// Vocabulary: GPG (Gallery Pagination Group) — responsive grid, pageSize = current column count,
-// pager only when total > pageSize. Cards link to the signed PDF via /api/esign/pdf/[sigId].
+// DocumentsVaultModal — read/manage gallery (GPG) of every uploaded Office e-sign document.
+// Utils → Documents tile, sibling to the E-Sign console. Shows uploaded docs (legal_documents,
+// origin='office') with signed status layered on; open the signed PDF, copy the signing link, or
+// delete (soft-delete: hides the doc, keeps signed consent records).
+// Vocabulary: GPG — responsive grid, pageSize = column count, pager only when total > pageSize.
 // styled-components, SVG icons only (no emoji/glyphs).
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
 
 type VaultDoc = {
-  signatureId: string;
+  id: string;
   title: string;
+  createdAt: string;
+  sendable: boolean;
+  shareUrl: string | null;
+  signed: boolean;
+  signatureId: string | null;
+  signedAt: string | null;
   signerName: string | null;
   signerEmail: string | null;
-  signedAt: string | null;
+  hasSignedPdf: boolean;
   sizeKb: number | null;
-  onDisk: boolean;
 };
 
-const CARD_MIN = 190; // px — target min card width; drives column count
+const CARD_MIN = 190;
 const GAP = 12;
 
 const XIcon = ({ size = 18 }: { size?: number }) => (
@@ -33,7 +39,7 @@ const Chevron = ({ dir }: { dir: "left" | "right" }) => (
   </svg>
 );
 const DocIcon = () => (
-  <svg width={26} height={26} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+  <svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
     <path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" />
     <path d="M14 3v6h6" />
     <path d="M9 13h6M9 17h4" />
@@ -46,6 +52,7 @@ export default function DocumentsVaultModal({ onClose }: { onClose: () => void }
   const [q, setQ] = useState("");
   const [page, setPage] = useState(0);
   const [cols, setCols] = useState(3);
+  const [note, setNote] = useState("");
   const gridRef = useRef<HTMLDivElement>(null);
 
   const load = useCallback(async () => {
@@ -65,7 +72,6 @@ export default function DocumentsVaultModal({ onClose }: { onClose: () => void }
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  // Column count from the measured grid width (GPG: pageSize = columns).
   useEffect(() => {
     const el = gridRef.current;
     if (!el || typeof ResizeObserver === "undefined") return;
@@ -76,6 +82,21 @@ export default function DocumentsVaultModal({ onClose }: { onClose: () => void }
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
+
+  const remove = async (d: VaultDoc) => {
+    if (!window.confirm(`Delete "${d.title}"?\n\nIt will be removed from the library, Send picker, and this gallery. Any signed consent records are kept for audit.`)) return;
+    try {
+      const r = await fetch(`/api/esign/documents?id=${encodeURIComponent(d.id)}`, { method: "DELETE" });
+      const j = await r.json();
+      if (r.ok && j?.ok) { setNote(`Deleted "${d.title}".`); load(); }
+      else setNote(j?.error ?? "Delete failed");
+    } catch { setNote("Delete failed (server error)"); }
+  };
+
+  const copy = async (url: string) => {
+    try { await navigator.clipboard.writeText(url); setNote("Signing link copied to clipboard."); }
+    catch { setNote(url); }
+  };
 
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase();
@@ -100,37 +121,45 @@ export default function DocumentsVaultModal({ onClose }: { onClose: () => void }
         <Header>
           <div>
             <Title>Documents</Title>
-            <Sub>Signed documents stored on this server.</Sub>
+            <Sub>Every e-sign document you&apos;ve uploaded — signed status, signing link, and delete.</Sub>
           </div>
           <CloseBtn type="button" onClick={onClose} aria-label="Close"><XIcon /></CloseBtn>
         </Header>
 
         <SearchRow>
-          <SearchInput
-            placeholder="Search by document, signer, or email…"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-          />
+          <SearchInput placeholder="Search by document, signer, or email…" value={q} onChange={(e) => setQ(e.target.value)} />
           <Count>{filtered.length} {filtered.length === 1 ? "document" : "documents"}</Count>
         </SearchRow>
 
+        {note && <Note onClick={() => setNote("")}>{note}</Note>}
+
         <Body>
           {loading && <Dim>Loading…</Dim>}
-          {!loading && docs.length === 0 && <Dim>No signed documents on disk yet.</Dim>}
+          {!loading && docs.length === 0 && <Dim>No documents yet. Upload one from the E-Sign tile.</Dim>}
           {!loading && docs.length > 0 && filtered.length === 0 && <Dim>No matches for “{q}”.</Dim>}
 
           <Grid ref={gridRef} style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
             {paged.map((d) => (
-              <Card key={d.signatureId}>
-                <CardIcon><DocIcon /></CardIcon>
+              <Card key={d.id}>
+                <TopRow>
+                  <CardIcon><DocIcon /></CardIcon>
+                  <DeleteBtn type="button" onClick={() => remove(d)} aria-label="Delete document" title="Delete document"><XIcon size={14} /></DeleteBtn>
+                </TopRow>
                 <CardTitle title={d.title}>{d.title}</CardTitle>
-                <CardMeta>{d.signerName || d.signerEmail || "Unknown signer"}</CardMeta>
-                <CardMeta>{fmtDate(d.signedAt)}{d.sizeKb != null ? ` · ${d.sizeKb} KB` : ""}</CardMeta>
-                {d.onDisk ? (
-                  <ViewLink href={`/api/esign/pdf/${d.signatureId}`} target="_blank" rel="noreferrer">View PDF</ViewLink>
-                ) : (
-                  <Missing>File missing on disk</Missing>
-                )}
+                <StatusPill $s={d.signed ? "signed" : d.sendable ? "ready" : "draft"}>
+                  {d.signed ? "Signed" : d.sendable ? "Ready to send" : "No template"}
+                </StatusPill>
+                <CardMeta>
+                  {d.signed ? (d.signerName || d.signerEmail || "Signed") : `Added ${fmtDate(d.createdAt)}`}
+                  {d.signed && d.signedAt ? ` · ${fmtDate(d.signedAt)}` : ""}
+                  {d.sizeKb != null ? ` · ${d.sizeKb} KB` : ""}
+                </CardMeta>
+                <CardActions>
+                  {d.hasSignedPdf && d.signatureId && (
+                    <ActBtn as="a" href={`/api/esign/pdf/${d.signatureId}`} target="_blank" rel="noreferrer">View PDF</ActBtn>
+                  )}
+                  {d.shareUrl && <ActBtn type="button" onClick={() => copy(d.shareUrl!)}>Copy link</ActBtn>}
+                </CardActions>
               </Card>
             ))}
           </Grid>
@@ -176,24 +205,41 @@ const SearchInput = styled.input`
   &:focus { border-color: rgba(120,200,255,0.5); }
 `;
 const Count = styled.div`flex: 0 0 auto; font-size: 12px; color: rgba(232,232,239,0.5); font-variant-numeric: tabular-nums;`;
+const Note = styled.div`margin: 12px 22px 0; padding: 9px 12px; border-radius: 8px; font-size: 12.5px; background: rgba(120,200,255,0.1); border: 1px solid rgba(120,200,255,0.28); color: #cfe9ff; cursor: pointer;`;
 const Body = styled.div`padding: 16px 22px 22px; overflow-y: auto;`;
 const Dim = styled.div`font-size: 12.5px; color: rgba(232,232,239,0.45); padding: 8px 0;`;
 const Grid = styled.div`display: grid; gap: ${GAP}px;`;
 const Card = styled.div`
-  display: flex; flex-direction: column; gap: 5px; padding: 14px 13px;
+  display: flex; flex-direction: column; gap: 5px; padding: 12px 13px 13px;
   border: 1px solid rgba(255,255,255,0.09); border-radius: 11px; background: rgba(255,255,255,0.02);
   transition: border-color 0.15s, background 0.15s;
   &:hover { border-color: rgba(120,200,255,0.35); background: rgba(120,200,255,0.04); }
 `;
-const CardIcon = styled.div`color: #7fd0ff; margin-bottom: 2px;`;
+const TopRow = styled.div`display: flex; align-items: flex-start; justify-content: space-between;`;
+const CardIcon = styled.div`color: #7fd0ff;`;
+const DeleteBtn = styled.button`
+  background: transparent; border: none; color: rgba(232,232,239,0.4); cursor: pointer;
+  padding: 3px; border-radius: 6px; line-height: 0;
+  &:hover { color: #ff9a9a; background: rgba(255,90,90,0.12); }
+`;
 const CardTitle = styled.div`font-size: 13px; font-weight: 650; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;`;
 const CardMeta = styled.div`font-size: 11px; color: rgba(232,232,239,0.5); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;`;
-const ViewLink = styled.a`
-  margin-top: 6px; align-self: flex-start; font-size: 11.5px; font-weight: 600; text-decoration: none;
-  color: #001a2e; background: #3aa0ff; padding: 5px 12px; border-radius: 7px;
-  &:hover { background: #58b0ff; }
+const CardActions = styled.div`display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap;`;
+const ActBtn = styled.button`
+  font-size: 11px; font-weight: 600; text-decoration: none; cursor: pointer;
+  color: #cfe9ff; background: rgba(120,200,255,0.12); border: 1px solid rgba(120,200,255,0.28);
+  padding: 5px 11px; border-radius: 7px;
+  &:hover { background: rgba(120,200,255,0.2); border-color: rgba(120,200,255,0.5); }
 `;
-const Missing = styled.div`margin-top: 6px; font-size: 11px; color: #ff9a9a;`;
+const StatusPill = styled.span<{ $s: string }>`
+  align-self: flex-start; font-size: 10.5px; font-weight: 650; padding: 2px 9px; border-radius: 999px;
+  ${(p) =>
+    p.$s === "signed"
+      ? "background: rgba(80,220,140,0.14); color: #7ff0b0; border: 1px solid rgba(80,220,140,0.35);"
+      : p.$s === "ready"
+      ? "background: rgba(120,200,255,0.12); color: #bfe4ff; border: 1px solid rgba(120,200,255,0.3);"
+      : "background: rgba(255,200,80,0.12); color: #ffd587; border: 1px solid rgba(255,200,80,0.3);"}
+`;
 const Pager = styled.div`display: flex; align-items: center; justify-content: center; gap: 14px; padding: 18px 0 4px;`;
 const PagerBtn = styled.button`
   width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center;

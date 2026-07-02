@@ -1,12 +1,14 @@
-// /api/esign/vault — the signed-document vault: every signed PDF stored on disk
-// (data/legal/signed/…), enriched from legal_signatures + legal_documents. Read-only, admin-only.
-// Feeds the "Documents" gallery tile (a searchable GPG). Download reuses /api/esign/pdf/[sigId].
+// /api/esign/vault — the document library for the "Documents" gallery tile: every uploaded
+// Office e-sign document (legal_documents, origin='office', active), with its latest signature
+// layered on (signed status + signed-PDF pointer). Read-only, admin-only.
+// Download of a signed PDF reuses /api/esign/pdf/[sigId]; delete uses DELETE /api/esign/documents.
 import { type NextRequest, NextResponse } from "next/server";
 import { statSync } from "node:fs";
 import path from "node:path";
 import { sql } from "drizzle-orm";
 import { requireAdmin } from "@/lib/api-admin";
 import { db } from "@/lib/db-drizzle";
+import { directLinkUrl } from "@tgv/module-documenso";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -18,41 +20,57 @@ export async function GET(req: NextRequest) {
   if (auth instanceof NextResponse) return auth;
 
   const res = await db.execute(sql`
-    SELECT g.id::text            AS "signatureId",
-           g.pdf_ref             AS "pdfRef",
-           g.signer_name         AS "signerName",
-           g.signer_email        AS "signerEmail",
-           g.signed_at           AS "signedAt",
-           g.created_at          AS "createdAt",
-           COALESCE(d.title, g.doc_slug) AS "title"
-    FROM public.legal_signatures g
-    LEFT JOIN public.legal_documents d ON d.id = g.legal_document_id
-    WHERE g.pdf_ref IS NOT NULL AND g.revoked_at IS NULL AND g.status <> 'rejected'
-    ORDER BY g.signed_at DESC NULLS LAST, g.created_at DESC
+    SELECT d.id::text              AS "id",
+           d.title                 AS "title",
+           d.created_at            AS "createdAt",
+           d.documenso_direct_token AS "directToken",
+           (d.documenso_template_id IS NOT NULL AND d.documenso_direct_token IS NOT NULL) AS "sendable",
+           sig.id::text            AS "signatureId",
+           sig.signed_at           AS "signedAt",
+           sig.pdf_ref             AS "pdfRef",
+           sig.signer_name         AS "signerName",
+           sig.signer_email        AS "signerEmail"
+    FROM public.legal_documents d
+    LEFT JOIN LATERAL (
+      SELECT id, signed_at, pdf_ref, signer_name, signer_email
+      FROM public.legal_signatures g
+      WHERE g.legal_document_id = d.id AND g.status <> 'rejected' AND g.revoked_at IS NULL
+      ORDER BY g.created_at DESC LIMIT 1
+    ) sig ON true
+    WHERE d.origin = 'office' AND d.active = true
+    ORDER BY d.updated_at DESC
   `);
   const rows = ((res as unknown as { rows?: unknown[] }).rows ?? (res as unknown[])) as Array<{
-    signatureId: string; pdfRef: string; signerName: string | null; signerEmail: string | null;
-    signedAt: string | null; createdAt: string; title: string;
+    id: string; title: string; createdAt: string; directToken: string | null; sendable: boolean;
+    signatureId: string | null; signedAt: string | null; pdfRef: string | null;
+    signerName: string | null; signerEmail: string | null;
   }>;
 
   const documents = rows.map((r) => {
     let sizeKb: number | null = null;
-    let onDisk = false;
-    try {
-      const resolved = path.resolve(r.pdfRef);
-      if (resolved === LEGAL_ROOT || resolved.startsWith(LEGAL_ROOT + path.sep)) {
-        sizeKb = Math.max(1, Math.round(statSync(resolved).size / 1024));
-        onDisk = true;
-      }
-    } catch { /* file missing on disk */ }
+    let hasSignedPdf = false;
+    if (r.pdfRef) {
+      try {
+        const resolved = path.resolve(r.pdfRef);
+        if (resolved === LEGAL_ROOT || resolved.startsWith(LEGAL_ROOT + path.sep)) {
+          sizeKb = Math.max(1, Math.round(statSync(resolved).size / 1024));
+          hasSignedPdf = true;
+        }
+      } catch { /* file missing */ }
+    }
     return {
-      signatureId: r.signatureId,
+      id: r.id,
       title: r.title,
+      createdAt: r.createdAt,
+      sendable: r.sendable,
+      shareUrl: r.directToken ? directLinkUrl(r.directToken) : null,
+      signed: Boolean(r.signatureId),
+      signatureId: r.signatureId,
+      signedAt: r.signedAt,
       signerName: r.signerName,
       signerEmail: r.signerEmail,
-      signedAt: r.signedAt ?? r.createdAt,
+      hasSignedPdf,
       sizeKb,
-      onDisk,
     };
   });
 

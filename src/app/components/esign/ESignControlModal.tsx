@@ -212,6 +212,19 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
     catch { setMsg(url); }
   };
 
+  const deleteDoc = async (d: DocRow) => {
+    if (!window.confirm(`Delete "${d.title}"?\n\nIt leaves the library and the Send picker. Any signed consent records are kept for audit.`)) return;
+    try {
+      const r = await fetch(`/api/esign/documents?id=${encodeURIComponent(d.id)}`, { method: "DELETE" });
+      const j = await r.json();
+      if (r.ok && j?.ok) {
+        setMsg(`Deleted "${d.title}".`);
+        if (selectedDocId === d.id) setSelectedDocId("");
+        await loadDocuments();
+      } else setMsg(j?.error ?? "Delete failed");
+    } catch { setMsg("Delete failed (server error)"); }
+  };
+
   const sendableDocs = documents.filter((d) => d.sendable);
   const selectedDoc = documents.find((d) => d.id === selectedDocId) ?? null;
 
@@ -354,7 +367,10 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
                       <ItemTitle>{d.title}</ItemTitle>
                       <ItemSub>{d.sendable ? "Ready to send" : "No signing template"}</ItemSub>
                     </div>
-                    {d.shareUrl && <GhostBtn type="button" onClick={() => copyLink(d.shareUrl)}>Copy link</GhostBtn>}
+                    <ItemActions>
+                      {d.shareUrl && <GhostBtn type="button" onClick={() => copyLink(d.shareUrl)}>Copy link</GhostBtn>}
+                      <DelBtn type="button" onClick={() => deleteDoc(d)} aria-label="Delete document" title="Delete document"><XIcon size={13} /></DelBtn>
+                    </ItemActions>
                   </Item>
                 ))}
               </List>
@@ -476,6 +492,12 @@ const Fill = styled.div<{ $pct: number | null }>`
 `;
 const List = styled.div`display: flex; flex-direction: column; gap: 6px; margin-top: 4px;`;
 const Item = styled.div`display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; border: 1px solid rgba(255,255,255,0.08); border-radius: 9px; background: rgba(255,255,255,0.02);`;
+const ItemActions = styled.div`display: flex; align-items: center; gap: 8px; flex: 0 0 auto;`;
+const DelBtn = styled.button`
+  background: transparent; border: 1px solid rgba(255,255,255,0.1); color: rgba(232,232,239,0.45);
+  cursor: pointer; padding: 6px; border-radius: 7px; line-height: 0;
+  &:hover { color: #ff9a9a; border-color: rgba(255,90,90,0.4); background: rgba(255,90,90,0.1); }
+`;
 const ItemTitle = styled.div`font-size: 13.5px; font-weight: 600;`;
 const ItemSub = styled.div`font-size: 11.5px; color: rgba(232,232,239,0.5); margin-top: 2px;`;
 const ActItem = styled(Item)``;
