@@ -8,8 +8,8 @@
 // THREE views on a PillBar (2026-07-02 redesign — Upload+Send folded into one):
 //   New Document — pick the mode (waiver = one shared /d/{token} link; multiple signatures =
 //     Documenso document flow, each named signer gets their own emailed link + their own
-//     SIGNATURE/DATE boxes), add recipients/signers, drop the PDF → everything happens in one
-//     shot. Waiver recipients are optional (skip them to just get the link).
+//     SIGNATURE/DATE boxes), add recipients/signers, stage the PDF, then press SEND — nothing
+//     dispatches until the button. Waiver recipients are optional (skip them to just get the link).
 //   Activity — the outbox (sent → signed per recipient; X removes an entry, log-only).
 //   Documents — the library w/ kind filter, per-signer status, copy-link, delete.
 //
@@ -231,16 +231,25 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
     }
   };
 
-  // Drop/select a PDF → ONE action: create the document and dispatch it per the mode.
-  // XHR (not fetch) so we get a real upload-progress %; plus a hard timeout so it can't hang.
-  const handleFile = (f: File | null) => {
+  // Drop/select a PDF → STAGE it only. Nothing uploads or emails until the Send button.
+  const stageFile = (f: File | null) => {
     if (!f || uploading) return;
     if (f.type !== "application/pdf" && !f.name.toLowerCase().endsWith(".pdf")) {
       setMsg("Please choose a PDF file");
       return;
     }
+    setUploadFile(f);
+    setMsg("");
+  };
+  const clearStaged = () => { if (!uploading) setUploadFile(null); };
+
+  // SEND — create the document and dispatch it per the mode, in one click.
+  // XHR (not fetch) so we get a real upload-progress %; plus a hard timeout so it can't hang.
+  const submit = () => {
+    const f = uploadFile;
+    if (!f || uploading) return;
     if (!configured) {
-      setMsg("Documenso is not configured on this server — cannot upload.");
+      setMsg("Documenso is not configured on this server — cannot send.");
       return;
     }
     if (mode === "multisig" && recipients.length === 0) {
@@ -264,7 +273,6 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
       setMsg(message);
     };
 
-    setUploadFile(f);
     setUploading(true);
     setUploadPct(0);
     setRecordedUrl(null);
@@ -458,9 +466,15 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
                 onClick={() => { if (!uploading) fileInputRef.current?.click(); }}
                 onDragOver={(e) => { e.preventDefault(); if (!uploading && !dragging) setDragging(true); }}
                 onDragLeave={(e) => { e.preventDefault(); setDragging(false); }}
-                onDrop={(e) => { e.preventDefault(); setDragging(false); handleFile(e.dataTransfer.files?.[0] ?? null); }}
+                onDrop={(e) => { e.preventDefault(); setDragging(false); stageFile(e.dataTransfer.files?.[0] ?? null); }}
               >
-                <input ref={fileInputRef} type="file" accept="application/pdf" hidden onChange={(e) => handleFile(e.target.files?.[0] ?? null)} />
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="application/pdf"
+                  hidden
+                  onChange={(e) => { stageFile(e.target.files?.[0] ?? null); e.target.value = ""; }}
+                />
                 <svg width={30} height={30} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M12 16V4M8 8l4-4 4 4" />
                   <path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3" />
@@ -470,6 +484,8 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
                     ? uploadPct !== null
                       ? `Uploading ${uploadFile?.name ?? "PDF"} — ${uploadPct}%`
                       : `Processing ${uploadFile?.name ?? "PDF"}…`
+                    : uploadFile
+                    ? uploadFile.name
                     : "Drag a PDF here, or click to browse"}
                 </DzText>
                 <DzSub>
@@ -479,11 +495,9 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
                       : mode === "multisig"
                       ? "Creating the document and emailing each signer their own link…"
                       : "Creating signing template in Documenso…"
-                    : mode === "multisig"
-                    ? `PDF · up to 20 MB · sends to ${recipients.length || "your"} signer(s) on drop`
-                    : recipients.length > 0
-                    ? `PDF · up to 20 MB · uploads + ${channel === "email" ? `emails ${recipients.length} recipient(s)` : "records the link"} on drop`
-                    : "PDF · up to 20 MB · uploads on drop (named from the file)"}
+                    : uploadFile
+                    ? "Staged — nothing happens until you press Send. Click to swap the file."
+                    : "PDF · up to 20 MB · staged until you press Send"}
                 </DzSub>
                 {uploading && (
                   <Track>
@@ -491,6 +505,29 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
                   </Track>
                 )}
               </DropZone>
+
+              <Row>
+                {uploadFile && !uploading && (
+                  <GhostBtn type="button" onClick={clearStaged}>Clear file</GhostBtn>
+                )}
+                <PrimaryBtn
+                  type="button"
+                  disabled={!uploadFile || uploading || !configured || (mode === "multisig" && recipients.length === 0)}
+                  onClick={submit}
+                >
+                  {uploading
+                    ? "Sending…"
+                    : mode === "multisig"
+                    ? recipients.length
+                      ? `Send to ${recipients.length} signer${recipients.length === 1 ? "" : "s"}`
+                      : "Send to signers"
+                    : recipients.length > 0
+                    ? channel === "email"
+                      ? `Send to ${recipients.length} recipient${recipients.length === 1 ? "" : "s"}`
+                      : "Record & get link"
+                    : "Add to library"}
+                </PrimaryBtn>
+              </Row>
             </Section>
           )}
 
@@ -626,6 +663,11 @@ const Chips = styled.div`display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6
 const Chip = styled.span`display: inline-flex; align-items: center; gap: 6px; background: rgba(120,200,255,0.1); border: 1px solid rgba(120,200,255,0.28); border-radius: 999px; padding: 4px 10px; font-size: 12px;`;
 const ChipX = styled.button`background: transparent; border: none; color: inherit; cursor: pointer; display: inline-flex; padding: 0; opacity: 0.7; &:hover { opacity: 1; }`;
 const AddBtn = styled.button`${baseField} cursor: pointer; flex: 0 0 auto; &:hover { border-color: rgba(120,200,255,0.5); }`;
+const PrimaryBtn = styled.button`
+  margin-left: auto; background: #3aa0ff; color: #001a2e; border: none; border-radius: 8px;
+  padding: 9px 18px; font-size: 13px; font-weight: 650; cursor: pointer;
+  &:hover:not(:disabled) { background: #58b0ff; } &:disabled { opacity: 0.45; cursor: default; }
+`;
 const CopyIconBtn = styled.button`
   display: inline-flex; align-items: center; justify-content: center; padding: 8px;
   border-radius: 8px; border: 1px solid rgba(120,200,255,0.3); background: rgba(120,200,255,0.1);
