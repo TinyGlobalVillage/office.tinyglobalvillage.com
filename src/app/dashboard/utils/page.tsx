@@ -18,6 +18,7 @@ import BackupsControlModal from "../../components/backups/BackupsControlModal";
 import MigrateSiteControlModal from "../../components/migrate/MigrateSiteControlModal";
 import DomainConsoleControlModal from "../../components/domain-console/DomainConsoleControlModal";
 import ESignControlModal from "../../components/esign/ESignControlModal";
+import DocumentsVaultModal from "../../components/esign/DocumentsVaultModal";
 import AutomationsTab from "../../components/automations/AutomationsTab";
 import {
   TinyURLGenerator,
@@ -1596,6 +1597,7 @@ type UtilsAdlSurfaceProps = {
   onOpenBackups: () => void;
   onOpenMigrate: () => void;
   onOpenEsign: () => void;
+  onOpenEsignVault: () => void;
   onOpenDomainConsole: () => void;
   onOpenHardening: (kind: HardeningKind) => void;
   onOpenLinkTool: (kind: LinkTool) => void;
@@ -1605,7 +1607,7 @@ type UtilsAdlSurfaceProps = {
 
 function UtilsAdlSurface({
   sections, actionsById, isAdmin, overlay, onSaveDefaults,
-  onOpenBackups, onOpenMigrate, onOpenEsign, onOpenDomainConsole, onOpenHardening, onOpenLinkTool, onOpenTranscriber, onOpenTranscriptions,
+  onOpenBackups, onOpenMigrate, onOpenEsign, onOpenEsignVault, onOpenDomainConsole, onOpenHardening, onOpenLinkTool, onOpenTranscriber, onOpenTranscriptions,
 }: UtilsAdlSurfaceProps) {
   // Live transcription jobs — drives the per-job queued tiles + the badge
   // counter on the Transcriptions tile.
@@ -1741,6 +1743,23 @@ function UtilsAdlSurface({
                           Send any document to any recipient — staff or external email — for electronic
                           signature, for any purpose. Upload a PDF, email the signing link, and track
                           sent → signed in the Activity outbox. Self-hosted Documenso (esign.tgv.com).
+                        </HardeningTileSub>
+                      </HardeningTile>
+                    );
+                    if (tile.type === "esign-vault") return (
+                      <HardeningTile key={i} type="button" onClick={onOpenEsignVault}>
+                        <HardeningTileTop>
+                          <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: "-2px", marginRight: 8 }}>
+                            <rect x="3" y="3" width="7" height="7" rx="1.5" />
+                            <rect x="14" y="3" width="7" height="7" rx="1.5" />
+                            <rect x="3" y="14" width="7" height="7" rx="1.5" />
+                            <rect x="14" y="14" width="7" height="7" rx="1.5" />
+                          </svg>
+                          Documents
+                        </HardeningTileTop>
+                        <HardeningTileSub>
+                          A searchable visual gallery of every signed document stored on this server —
+                          filter by document, signer, or email; open any signed PDF. Read-only vault.
                         </HardeningTileSub>
                       </HardeningTile>
                     );
@@ -1979,6 +1998,7 @@ type TileSpec =
   | { type: "backups" }
   | { type: "migrate" }
   | { type: "esign" }
+  | { type: "esign-vault" }
   | { type: "domain-console" }
   | { type: "telephony" }
   | { type: "tenant-apps" }
@@ -2018,7 +2038,7 @@ const SECTIONS: Section[] = [
     actionIds: ["new-nextjs", "new-static", "start-client", "erase-project"] },
   { id: "documents", title: "Documents / E-Sign", accent: "gold",
     subtitle: "send any document to anyone for electronic signature — staff or external, for any purpose",
-    kind: "tiles", tiles: [{ type: "esign" }] },
+    kind: "tiles", tiles: [{ type: "esign" }, { type: "esign-vault" }] },
   { id: "domain-console", title: "Domain Console", accent: "gold",
     subtitle: "TGV-operated domain platform — registrar test/live switch (pricing & transfers later)",
     kind: "tiles", tiles: [{ type: "domain-console" }] },
@@ -2399,6 +2419,7 @@ export default function UtilsPage() {
   const [openBackups, setOpenBackups] = useState<boolean>(false);
   const [openMigrate, setOpenMigrate] = useState<boolean>(false);
   const [openEsign, setOpenEsign] = useState<boolean>(false);
+  const [openEsignVault, setOpenEsignVault] = useState<boolean>(false);
   const [openDomainConsole, setOpenDomainConsole] = useState<boolean>(false);
   const [openLinkTool, setOpenLinkTool] = useState<LinkTool | null>(null);
   const [qrSeed, setQrSeed] = useState<string>("");
@@ -2497,6 +2518,7 @@ export default function UtilsPage() {
           onOpenBackups={() => setOpenBackups(true)}
           onOpenMigrate={() => setOpenMigrate(true)}
           onOpenEsign={() => setOpenEsign(true)}
+          onOpenEsignVault={() => setOpenEsignVault(true)}
           onOpenDomainConsole={() => setOpenDomainConsole(true)}
           onOpenHardening={(kind) => setOpenHardening(kind)}
           onOpenLinkTool={(kind) => {
@@ -2551,6 +2573,10 @@ export default function UtilsPage() {
 
       {openEsign && (
         <ESignControlModal onClose={() => setOpenEsign(false)} />
+      )}
+
+      {openEsignVault && (
+        <DocumentsVaultModal onClose={() => setOpenEsignVault(false)} />
       )}
 
       {openDomainConsole && (
