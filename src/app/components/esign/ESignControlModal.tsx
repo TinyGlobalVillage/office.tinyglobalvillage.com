@@ -13,6 +13,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import styled, { keyframes, css } from "styled-components";
 import DDM, { type DDMItem } from "@tgv/module-component-library/components/ui/DDM";
+import ConfirmModal from "../frontdesk/ConfirmModal";
 
 // ── types (mirror the API payloads) ────────────────────────────────────────────
 type DocRow = {
@@ -80,6 +81,7 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
   const [channel, setChannel] = useState<"email" | "link">("email");
   const [sending, setSending] = useState(false);
   const [recordedUrl, setRecordedUrl] = useState<string | null>(null); // set after "Record & get link"; resets on doc change/close
+  const [confirm, setConfirm] = useState<{ title: string; message: string; detail?: string; run: () => Promise<void> } | null>(null);
 
   // library-tab upload state
   const [uploadFile, setUploadFile] = useState<File | null>(null);
@@ -223,8 +225,7 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
     catch { setMsg(url); }
   };
 
-  const deleteDoc = async (d: DocRow) => {
-    if (!window.confirm(`Delete "${d.title}"?\n\nIt leaves the library and the Send picker. Any signed consent records are kept for audit.`)) return;
+  const performDeleteDoc = async (d: DocRow) => {
     try {
       const r = await fetch(`/api/esign/documents?id=${encodeURIComponent(d.id)}`, { method: "DELETE" });
       const j = await r.json();
@@ -235,11 +236,19 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
       } else setMsg(j?.error ?? "Delete failed");
     } catch { setMsg("Delete failed (server error)"); }
   };
+  const askDeleteDoc = (d: DocRow) =>
+    setConfirm({
+      title: "Delete document",
+      message: `Delete “${d.title}”?`,
+      detail: "It leaves the library and the Send picker. Any signed consent records are kept for audit.",
+      run: () => performDeleteDoc(d),
+    });
 
   const sendableDocs = documents.filter((d) => d.sendable);
   const selectedDoc = documents.find((d) => d.id === selectedDocId) ?? null;
 
   return (
+    <>
     <Backdrop onClick={onClose}>
       <Panel onClick={(e) => e.stopPropagation()}>
         <Header>
@@ -391,7 +400,7 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
                     </div>
                     <ItemActions>
                       {d.shareUrl && <GhostBtn type="button" onClick={() => copyLink(d.shareUrl)}>Copy link</GhostBtn>}
-                      <DelBtn type="button" onClick={() => deleteDoc(d)} aria-label="Delete document" title="Delete document"><XIcon size={13} /></DelBtn>
+                      <DelBtn type="button" onClick={() => askDeleteDoc(d)} aria-label="Delete document" title="Delete document"><XIcon size={13} /></DelBtn>
                     </ItemActions>
                   </Item>
                 ))}
@@ -428,6 +437,17 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
         </Body>
       </Panel>
     </Backdrop>
+    <ConfirmModal
+      open={!!confirm}
+      title={confirm?.title ?? ""}
+      message={confirm?.message ?? ""}
+      detail={confirm?.detail}
+      confirmLabel="Delete"
+      intent="danger"
+      onConfirm={async () => { const c = confirm; setConfirm(null); await c?.run(); }}
+      onCancel={() => setConfirm(null)}
+    />
+    </>
   );
 }
 

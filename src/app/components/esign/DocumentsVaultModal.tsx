@@ -9,6 +9,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
+import ConfirmModal from "../frontdesk/ConfirmModal";
 
 type VaultDoc = {
   id: string;
@@ -83,8 +84,8 @@ export default function DocumentsVaultModal({ onClose }: { onClose: () => void }
     return () => ro.disconnect();
   }, []);
 
-  const remove = async (d: VaultDoc) => {
-    if (!window.confirm(`Delete "${d.title}"?\n\nIt will be removed from the library, Send picker, and this gallery. Any signed consent records are kept for audit.`)) return;
+  const [confirmDoc, setConfirmDoc] = useState<VaultDoc | null>(null);
+  const performRemove = async (d: VaultDoc) => {
     try {
       const r = await fetch(`/api/esign/documents?id=${encodeURIComponent(d.id)}`, { method: "DELETE" });
       const j = await r.json();
@@ -116,6 +117,7 @@ export default function DocumentsVaultModal({ onClose }: { onClose: () => void }
   const fmtDate = (s: string | null) => (s ? new Date(s).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" }) : "—");
 
   return (
+    <>
     <Backdrop onClick={onClose}>
       <Panel onClick={(e) => e.stopPropagation()}>
         <Header>
@@ -143,7 +145,7 @@ export default function DocumentsVaultModal({ onClose }: { onClose: () => void }
               <Card key={d.id}>
                 <TopRow>
                   <CardIcon><DocIcon /></CardIcon>
-                  <DeleteBtn type="button" onClick={() => remove(d)} aria-label="Delete document" title="Delete document"><XIcon size={14} /></DeleteBtn>
+                  <DeleteBtn type="button" onClick={() => setConfirmDoc(d)} aria-label="Delete document" title="Delete document"><XIcon size={14} /></DeleteBtn>
                 </TopRow>
                 <CardTitle title={d.title}>{d.title}</CardTitle>
                 <StatusPill $s={d.signed ? "signed" : d.sendable ? "ready" : "draft"}>
@@ -174,6 +176,17 @@ export default function DocumentsVaultModal({ onClose }: { onClose: () => void }
         </Body>
       </Panel>
     </Backdrop>
+    <ConfirmModal
+      open={!!confirmDoc}
+      title="Delete document"
+      message={confirmDoc ? `Delete “${confirmDoc.title}”?` : ""}
+      detail="It will be removed from the library, Send picker, and this gallery. Any signed consent records are kept for audit."
+      confirmLabel="Delete"
+      intent="danger"
+      onConfirm={async () => { const d = confirmDoc; setConfirmDoc(null); if (d) await performRemove(d); }}
+      onCancel={() => setConfirmDoc(null)}
+    />
+    </>
   );
 }
 

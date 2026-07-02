@@ -8,6 +8,7 @@
 import { useCallback, useEffect, useState } from "react";
 import styled from "styled-components";
 import HardeningControlModal, { type HCMSection } from "../HardeningControlModal";
+import ConfirmModal from "../../frontdesk/ConfirmModal";
 
 type Mode = "serial" | "multi";
 type AuditRow = { ts?: string; event?: string; reason?: string; to?: string; by?: string; sessions?: number };
@@ -28,14 +29,15 @@ export default function BuildGuardControlModal({ onClose }: { onClose: () => voi
   }, []);
   useEffect(() => { load(); }, [load]);
 
-  const setMode = async (mode: Mode) => {
-    if (mode === "multi" && !window.confirm("Allow MULTIPLE concurrent builds?\n\nThis lifts the serial-build guard. Two large builds can exhaust RAM and OOM-kill a build (which can take an app down). The watchdog will auto-revert to serial if it detects a crash. Proceed only when you're confident about memory.")) return;
+  const [askMulti, setAskMulti] = useState(false);
+  const applyMode = async (mode: Mode) => {
     setBusy(true);
     try {
       const r = await fetch("/api/hardening/build-guard", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mode }) });
       if (r.ok) await load();
     } finally { setBusy(false); }
   };
+  const setMode = (mode: Mode) => { if (mode === "multi") setAskMulti(true); else applyMode("serial"); };
 
   const mode = s?.mode ?? "serial";
   const fmt = (t?: string) => (t ? new Date(t).toLocaleString() : "—");
@@ -93,13 +95,25 @@ export default function BuildGuardControlModal({ onClose }: { onClose: () => voi
   );
 
   return (
-    <HardeningControlModal
-      title="Build Concurrency"
-      subtitle="serial vs. allow-multiple next builds — with an OOM/crash auto-revert watchdog"
-      sections={sections}
-      auditLogView={auditLogView}
-      onClose={onClose}
-    />
+    <>
+      <HardeningControlModal
+        title="Build Concurrency"
+        subtitle="serial vs. allow-multiple next builds — with an OOM/crash auto-revert watchdog"
+        sections={sections}
+        auditLogView={auditLogView}
+        onClose={onClose}
+      />
+      <ConfirmModal
+        open={askMulti}
+        title="Allow multiple concurrent builds?"
+        message="This lifts the serial-build guard."
+        detail="Two large builds at once can exhaust RAM and OOM-kill a build (which can take an app down). The watchdog will auto-revert to serial if it detects a crash. Proceed only when you're confident about memory."
+        confirmLabel="Allow multiple"
+        intent="primary"
+        onConfirm={async () => { setAskMulti(false); await applyMode("multi"); }}
+        onCancel={() => setAskMulti(false)}
+      />
+    </>
   );
 }
 
