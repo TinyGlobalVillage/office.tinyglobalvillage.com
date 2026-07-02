@@ -56,6 +56,14 @@ export type CallRecord = {
   durationSec: number;
   outcome: CallOutcome;
   recordingPath: string | null; // relative to data/telephony/recordings/
+  /**
+   * Mid-call record-toggle segments (2026-07). Each ON→OFF stretch is its
+   * own file; recordingPath mirrors the first segment for back-compat with
+   * pre-segment rows and consumers.
+   */
+  recordingPaths?: string[];
+  /** Audit trail of mid-call record toggles (includes the initial state). */
+  recordingEvents?: Array<{ at: string; action: "start" | "stop" }>;
   voicemailPath: string | null; // relative to data/telephony/voicemail/
   telnyxCallControlId: string | null;
   consentAcknowledged: boolean;

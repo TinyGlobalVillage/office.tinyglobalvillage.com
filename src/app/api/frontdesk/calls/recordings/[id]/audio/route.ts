@@ -42,10 +42,20 @@ export async function GET(
 
   const { id } = await params;
   const call = getCall(id);
-  if (!call?.recordingPath) {
+  // Mid-call toggling can leave several segment files per call; ?part=N
+  // selects one (default 0). Legacy rows only have recordingPath.
+  const paths = call
+    ? (call.recordingPaths?.length ? call.recordingPaths : (call.recordingPath ? [call.recordingPath] : []))
+    : [];
+  if (paths.length === 0) {
     return NextResponse.json({ error: "no recording" }, { status: 404 });
   }
-  const abs = resolveRecording(call.recordingPath);
+  const partRaw = new URL(req.url).searchParams.get("part");
+  const part = partRaw === null ? 0 : Number.parseInt(partRaw, 10);
+  if (!Number.isInteger(part) || part < 0 || part >= paths.length) {
+    return NextResponse.json({ error: "invalid part" }, { status: 400 });
+  }
+  const abs = resolveRecording(paths[part]);
   if (!abs) return NextResponse.json({ error: "invalid path" }, { status: 400 });
 
   // Prefer encrypted variant if present.

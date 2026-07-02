@@ -48,3 +48,6 @@ data/reconcile/
 # totpEnabled, recovery-code hashes, display data). NOT source. Lives on disk +
 # in the nightly Tier 1 restic backup; restore from backup on a rebuild, not git.
 data/users.json
+
+# Front Desk runtime data — live operator state; a deploy must never clobber it
+data/frontdesk/*.json

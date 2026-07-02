@@ -59,15 +59,18 @@ export async function DELETE(
   const call = getCall(id);
   if (!call) return NextResponse.json({ error: "not found" }, { status: 404 });
 
-  if (call.recordingPath) {
-    const abs = resolveRecording(call.recordingPath);
-    if (abs) {
-      try { await unlink(abs); } catch { /* already gone */ }
-      // GPG-encrypted sibling — see telephony-security Item 3 (Phase 2 wires
-      // the .gpg variant; Phase 1 leaves plain WAV). Try both for safety.
-      try { await unlink(abs + ".gpg"); } catch { /* not encrypted yet */ }
-    }
+  // Mid-call toggling can leave several segment files; delete them all.
+  const paths = call.recordingPaths?.length
+    ? call.recordingPaths
+    : (call.recordingPath ? [call.recordingPath] : []);
+  for (const p of paths) {
+    const abs = resolveRecording(p);
+    if (!abs) continue;
+    try { await unlink(abs); } catch { /* already gone */ }
+    // GPG-encrypted sibling — see telephony-security Item 3 (Phase 2 wires
+    // the .gpg variant; Phase 1 leaves plain WAV). Try both for safety.
+    try { await unlink(abs + ".gpg"); } catch { /* not encrypted yet */ }
   }
-  patchCall(id, { recordingPath: null });
+  patchCall(id, { recordingPath: null, recordingPaths: [], recordingEvents: call.recordingEvents ?? [] });
   return NextResponse.json({ ok: true });
 }

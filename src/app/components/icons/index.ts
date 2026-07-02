@@ -21,6 +21,7 @@ export { default as PauseIcon } from "./PauseIcon";
 export { default as WaveformIcon } from "./WaveformIcon";
 export { default as VideoIcon } from "./VideoIcon";
 export { default as PhoneIcon } from "./PhoneIcon";
+export { default as RecordIcon } from "./RecordIcon";
 export { default as DatabaseIcon } from "./DatabaseIcon";
 export { default as StorageIcon } from "./StorageIcon";
 export { default as EditorIcon } from "./EditorIcon";

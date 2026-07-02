@@ -265,7 +265,7 @@ export async function unregisterSoftphone(): Promise<void> {
 export async function invite(
   target: string,
   fromCid?: string,
-  record: boolean = true,
+  record: boolean = false,
 ): Promise<void> {
   if (!ua) {
     emit({ kind: "error", detail: "softphone not initialized" });
@@ -279,9 +279,10 @@ export async function invite(
     return;
   }
   // Pass the per-call consent decision into the dialplan via an X-* header.
-  // Default is record=true (opt-OUT model — user toggles off if they don't
-  // want recording for a specific call). The outbound-telnyx extension reads
-  // ${sip_h_X-Record} and only invokes record_session when it equals "true".
+  // Recording is OPT-IN (2026-07-02): default record=false; the operator
+  // checks the box pre-call or starts recording mid-call via uuid_record.
+  // The outbound-telnyx extension reads ${sip_h_X-Record}; the header is
+  // ALWAYS sent, so the dialplan's no-header fallback never applies here.
   const extraHeaders: string[] = [`X-Record: ${record ? "true" : "false"}`];
   if (fromCid) extraHeaders.unshift(`X-CID: ${fromCid}`);
   const inviter = new Inviter(ua, targetUri, {
@@ -332,6 +333,16 @@ export async function acceptIncoming(): Promise<void> {
   } catch (err) {
     emit({ kind: "error", detail: (err as Error).message });
   }
+}
+
+/**
+ * SIP Call-ID of the active session. FreeSWITCH stores this on the browser
+ * leg as ${sip_call_id}, which is how the mid-call record API locates the
+ * channel UUID without trusting any client-supplied identifier.
+ */
+export function getCurrentCallId(): string | null {
+  const s = currentSession as unknown as { request?: { callId?: string } } | null;
+  return s?.request?.callId ?? null;
 }
 
 export async function sendDtmf(digit: string): Promise<void> {

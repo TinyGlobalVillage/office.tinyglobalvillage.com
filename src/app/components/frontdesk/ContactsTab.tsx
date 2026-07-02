@@ -3,9 +3,10 @@
 import { useCallback, useEffect, useState } from "react";
 import styled from "styled-components";
 import { colors, rgb } from "../../theme";
-import type { Contact, ContactKind } from "@/lib/frontdesk/types";
+import type { Contact } from "@/lib/frontdesk/types";
 import ContactCardModal from "./ContactCardModal";
 import { PhoneIcon, ChatIcon, EditIcon, TrashIcon } from "../icons";
+import { formatPhoneDisplay } from "@/lib/frontdesk/phoneFormat";
 
 type Scope = "all" | "client" | "employee";
 
@@ -114,14 +115,15 @@ const RowSub = styled.div`
   gap: 0.75rem;
 `;
 
-const KindBadge = styled.span<{ $kind: ContactKind }>`
+/** Employee contacts wear a "Staff" badge; clients are unbadged. */
+const StaffBadge = styled.span`
   font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: 0.06em;
   padding: 1px 6px;
   border-radius: 0.25rem;
-  background: ${(p) => (p.$kind === "employee" ? `rgba(${rgb.cyan}, 0.15)` : `rgba(${rgb.gold}, 0.16)`)};
-  color: ${(p) => (p.$kind === "employee" ? colors.cyan : colors.gold)};
+  background: rgba(${rgb.cyan}, 0.15);
+  color: ${colors.cyan};
   text-transform: uppercase;
 `;
 
@@ -235,7 +237,7 @@ export default function ContactsTab() {
           {contacts.map(c => (
             <Row key={c.id} onClick={() => setModal({ contact: c, mode: "view" })}>
               <RowName>
-                <KindBadge $kind={c.kind}>{c.kind}</KindBadge>
+                {c.kind === "employee" && <StaffBadge>Staff</StaffBadge>}
                 {c.name}
               </RowName>
               <RowActions>
@@ -262,7 +264,7 @@ export default function ContactsTab() {
               </RowActions>
               <RowSub>
                 {c.company && <span>{c.company}</span>}
-                {c.phone && <span>{c.phone}</span>}
+                {c.phone && <span>{formatPhoneDisplay(c.phone) || c.phone}</span>}
                 {c.email && <span>{c.email}</span>}
               </RowSub>
             </Row>
@@ -274,6 +276,7 @@ export default function ContactsTab() {
         <ContactCardModal
           contact={modal.contact}
           mode={modal.mode}
+          defaultKind={scope === "employee" ? "employee" : "client"}
           onClose={() => setModal(null)}
           onSaved={onSaved}
           onDeleted={onDeleted}

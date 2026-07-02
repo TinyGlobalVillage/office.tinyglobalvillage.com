@@ -36,9 +36,25 @@ export async function POST(req: NextRequest) {
   // the CDR via these two fields so the Saved Calls modal can list playable
   // recordings without re-querying FreeSWITCH.
   const consentAcknowledged = body.consentAcknowledged === true;
+  // Segment list from the mid-call record toggle. Paths are only ever fed
+  // back to the audio route, which jails them to the recordings dir by
+  // basename — but cap the shapes here anyway.
+  const recordingPaths = Array.isArray(body.recordingPaths)
+    ? (body.recordingPaths as unknown[])
+        .filter((p): p is string => typeof p === "string" && p.length > 0 && p.length < 512)
+        .slice(0, 50)
+    : [];
+  const recordingEvents = Array.isArray(body.recordingEvents)
+    ? (body.recordingEvents as unknown[])
+        .filter((e): e is { at: string; action: "start" | "stop" } => {
+          const ev = e as { at?: unknown; action?: unknown };
+          return typeof ev?.at === "string" && (ev?.action === "start" || ev?.action === "stop");
+        })
+        .slice(0, 100)
+    : [];
   const recordingPath = typeof body.recordingPath === "string" && body.recordingPath
     ? body.recordingPath
-    : null;
+    : recordingPaths[0] ?? null;
   patchCall(record.id, {
     answeredAt,
     endedAt,
@@ -47,6 +63,8 @@ export async function POST(req: NextRequest) {
     ringTarget: null,
     consentAcknowledged,
     recordingPath,
+    ...(recordingPaths.length > 0 ? { recordingPaths } : {}),
+    ...(recordingEvents.length > 0 ? { recordingEvents } : {}),
   });
 
   return NextResponse.json({ ok: true, id: record.id });

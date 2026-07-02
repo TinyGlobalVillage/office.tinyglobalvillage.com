@@ -13,6 +13,12 @@ import {
   CloseBtn,
 } from "../../styled";
 import type { Contact, ContactKind } from "@/lib/frontdesk/types";
+import {
+  formatPhoneInput,
+  formatPhoneDisplay,
+  nextRawFromDisplayEdit,
+  stripPhoneFormatting,
+} from "@/lib/frontdesk/phoneFormat";
 
 // ── Styled ───────────────────────────────────────────────────────
 
@@ -62,22 +68,29 @@ const Textarea = styled.textarea`
   &:focus { border-color: rgba(${rgb.gold}, 0.55); }
 `;
 
-const KindRow = styled.div`
+const StaffCheckRow = styled.label<{ $disabled: boolean }>`
   display: inline-flex;
-  gap: 0.35rem;
-`;
-
-const KindChip = styled.button<{ $active: boolean }>`
-  padding: 0.35rem 0.75rem;
+  align-items: center;
+  gap: 0.5rem;
   font-size: 0.75rem;
   font-weight: 600;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  border-radius: 0.4rem;
-  cursor: pointer;
-  background: ${(p) => (p.$active ? `rgba(${rgb.gold}, 0.2)` : "transparent")};
-  border: 1px solid ${(p) => (p.$active ? `rgba(${rgb.gold}, 0.55)` : "var(--t-border)")};
-  color: ${(p) => (p.$active ? colors.gold : "var(--t-textFaint)")};
+  color: var(--t-textFaint);
+  cursor: ${(p) => (p.$disabled ? "default" : "pointer")};
+
+  input { accent-color: ${colors.cyan}; }
+`;
+
+const StaffBadge = styled.span`
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 1px 6px;
+  border-radius: 0.25rem;
+  background: rgba(${rgb.cyan}, 0.15);
+  color: ${colors.cyan};
+  text-transform: uppercase;
 `;
 
 const FooterRow = styled.div`
@@ -123,8 +136,8 @@ export type ContactDraft = {
   notes: string;
 };
 
-function emptyDraft(): ContactDraft {
-  return { kind: "client", name: "", phone: "", email: "", company: "", notes: "" };
+function emptyDraft(kind: ContactKind = "client"): ContactDraft {
+  return { kind, name: "", phone: "", email: "", company: "", notes: "" };
 }
 
 function fromContact(c: Contact): ContactDraft {
@@ -132,7 +145,7 @@ function fromContact(c: Contact): ContactDraft {
     id: c.id,
     kind: c.kind,
     name: c.name,
-    phone: c.phone ?? "",
+    phone: formatPhoneDisplay(c.phone),
     email: c.email ?? "",
     company: c.company ?? "",
     notes: c.notes,
@@ -144,21 +157,23 @@ function fromContact(c: Contact): ContactDraft {
 export default function ContactCardModal(props: {
   contact: Contact | null;
   mode: "view" | "edit" | "new";
+  /** Pre-selected kind for a NEW contact (e.g. Employees tab → "employee"). */
+  defaultKind?: ContactKind;
   onClose: () => void;
   onSaved: (contact: Contact) => void;
   onDeleted?: (id: string) => void;
 }) {
-  const { contact, mode, onClose, onSaved, onDeleted } = props;
-  const [draft, setDraft] = useState<ContactDraft>(emptyDraft);
+  const { contact, mode, defaultKind, onClose, onSaved, onDeleted } = props;
+  const [draft, setDraft] = useState<ContactDraft>(() => emptyDraft(defaultKind));
   const [editing, setEditing] = useState(mode !== "view");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    setDraft(contact ? fromContact(contact) : emptyDraft());
+    setDraft(contact ? fromContact(contact) : emptyDraft(defaultKind));
     setEditing(mode !== "view");
     setError(null);
-  }, [contact, mode]);
+  }, [contact, mode, defaultKind]);
 
   const save = async () => {
     if (!draft.name.trim()) { setError("Name is required."); return; }
@@ -215,20 +230,23 @@ export default function ContactCardModal(props: {
         </ModalHeader>
 
         <ModalBody>
-          <KindRow style={{ marginBottom: "0.9rem" }}>
-            <KindChip
-              type="button"
-              $active={draft.kind === "client"}
-              onClick={() => !readOnly && setDraft(d => ({ ...d, kind: "client" }))}
-              disabled={readOnly}
-            >Client</KindChip>
-            <KindChip
-              type="button"
-              $active={draft.kind === "employee"}
-              onClick={() => !readOnly && setDraft(d => ({ ...d, kind: "employee" }))}
-              disabled={readOnly}
-            >Employee</KindChip>
-          </KindRow>
+          <div style={{ marginBottom: "0.9rem", display: "flex", alignItems: "center", gap: "0.6rem" }}>
+            {readOnly ? (
+              draft.kind === "employee" && <StaffBadge>Staff</StaffBadge>
+            ) : (
+              <StaffCheckRow $disabled={readOnly}>
+                <input
+                  type="checkbox"
+                  checked={draft.kind === "employee"}
+                  disabled={readOnly}
+                  onChange={(e) =>
+                    setDraft(d => ({ ...d, kind: e.target.checked ? "employee" : "client" }))
+                  }
+                />
+                Staff member
+              </StaffCheckRow>
+            )}
+          </div>
 
           <FieldGrid>
             <FieldLabel>
@@ -245,8 +263,15 @@ export default function ContactCardModal(props: {
                 value={draft.phone}
                 readOnly={readOnly}
                 inputMode="tel"
-                placeholder="+15551234567"
-                onChange={(e) => setDraft(d => ({ ...d, phone: e.target.value }))}
+                placeholder="(555) 555-5555"
+                onChange={(e) =>
+                  setDraft(d => ({
+                    ...d,
+                    phone: formatPhoneInput(
+                      nextRawFromDisplayEdit(stripPhoneFormatting(d.phone), e.target.value),
+                    ),
+                  }))
+                }
               />
             </FieldLabel>
             <FieldLabel>

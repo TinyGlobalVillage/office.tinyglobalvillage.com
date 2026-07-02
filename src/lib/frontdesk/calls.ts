@@ -138,6 +138,35 @@ export function markOutcome(id: string, outcome: CallOutcome): CallRecord | null
   return patchCall(id, { outcome });
 }
 
+/**
+ * Attach a finished mid-call recording segment to the open (answered, not
+ * yet ended) inbound CDR from `fromE164`. Inbound CDRs exist during the call
+ * (created at ring by the webhook path) but nothing posts recording fields
+ * for them at hangup — without this, an inbound segment stopped from the
+ * REC toggle would exist on disk yet never appear in Saved Recordings.
+ * Newest match wins. No-op when no open inbound call matches.
+ */
+export function appendSegmentToOpenInboundCall(fromE164: string, segmentPath: string): CallRecord | null {
+  const db = read();
+  const open = db.calls
+    .filter(c =>
+      c.direction === "inbound" &&
+      c.fromE164 === fromE164 &&
+      c.answeredAt !== null &&
+      c.endedAt === null,
+    )
+    .sort((a, b) => b.startedAt.localeCompare(a.startedAt))[0];
+  if (!open) return null;
+  const paths = open.recordingPaths?.length
+    ? open.recordingPaths
+    : (open.recordingPath ? [open.recordingPath] : []);
+  if (!paths.includes(segmentPath)) paths.push(segmentPath);
+  open.recordingPaths = paths;
+  open.recordingPath = open.recordingPath ?? paths[0] ?? null;
+  write(db);
+  return open;
+}
+
 export function deleteCall(id: string): boolean {
   const db = read();
   const before = db.calls.length;

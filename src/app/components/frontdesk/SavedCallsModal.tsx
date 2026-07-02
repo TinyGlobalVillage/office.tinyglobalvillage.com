@@ -2,10 +2,11 @@
 
 // SavedCallsModal — admin surface for listening back, editing notes, and
 // deleting Front Desk call recordings. Surfaced from the PhoneTab settings
-// row (gear icon → "Saved Recordings"). Per telephony-security Item 4
-// (B2 / 2026-05-01): outbound calls record by default unless the user
-// opted out at dial time; inbound recordings only exist when the caller
-// pressed 1 at the consent IVR. This modal is the one place admins can
+// row (gear icon → "Saved Recordings"). Outbound recording is OPT-IN
+// (2026-07-02, supersedes the Item 4 / B2 opt-out default): calls record
+// only when the operator checks the box or hits the mid-call REC toggle;
+// inbound recordings only exist when the caller pressed 1 at the consent
+// IVR. This modal is the one place admins can
 // curate what's kept on disk; deletion removes the audio file (and its
 // .gpg sibling, see Item 3) and nulls out the CDR's recordingPath.
 
@@ -23,6 +24,7 @@ import {
 import NeonX from "../NeonX";
 import { TrashIcon, EditIcon } from "../icons";
 import type { CallRecord } from "@/lib/frontdesk/types";
+import { formatPhoneDisplay } from "@/lib/frontdesk/phoneFormat";
 
 export type SavedCallsModalProps = { onClose: () => void };
 
@@ -178,19 +180,32 @@ export default function SavedCallsModal({ onClose }: SavedCallsModalProps) {
             {calls && sorted.length === 0 && <Empty>No saved recordings.</Empty>}
             {sorted.map(call => {
               const peer = call.direction === "inbound" ? call.fromE164 : call.toE164;
-              const audioSrc = `/api/frontdesk/calls/recordings/${call.id}/audio`;
               const isEditing = editingId === call.id;
+              // Mid-call toggling produces one file per recorded stretch.
+              const partCount = call.recordingPaths?.length
+                ? call.recordingPaths.length
+                : (call.recordingPath ? 1 : 0);
               return (
                 <Row key={call.id}>
                   <Meta>
                     <PeerLine>
-                      {call.direction === "inbound" ? "←" : "→"} {peer}
+                      {call.direction === "inbound" ? "←" : "→"} {formatPhoneDisplay(peer) || peer}
                     </PeerLine>
                     <SubLine>
                       {fmtDateTime(call.startedAt)} · {fmtDuration(call.durationSec)} · {call.outcome}
                       {call.consentAcknowledged ? " · consent ✓" : " · no consent"}
+                      {partCount > 1 ? ` · ${partCount} parts` : ""}
                     </SubLine>
-                    <Audio controls preload="none" src={audioSrc} />
+                    {Array.from({ length: partCount }, (_, i) => (
+                      <div key={i}>
+                        {partCount > 1 && <SubLine>Part {i + 1}</SubLine>}
+                        <Audio
+                          controls
+                          preload="none"
+                          src={`/api/frontdesk/calls/recordings/${call.id}/audio${i > 0 ? `?part=${i}` : ""}`}
+                        />
+                      </div>
+                    ))}
                     {isEditing ? (
                       <>
                         <Notes

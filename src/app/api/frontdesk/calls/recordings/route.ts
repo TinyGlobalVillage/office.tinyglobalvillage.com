@@ -11,6 +11,8 @@ export async function GET(req: NextRequest) {
   if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const all = listCalls(2000);
-  const withRecordings = all.filter(c => c.recordingPath !== null);
+  const withRecordings = all.filter(
+    c => c.recordingPath !== null || (c.recordingPaths?.length ?? 0) > 0,
+  );
   return NextResponse.json({ calls: withRecordings });
 }

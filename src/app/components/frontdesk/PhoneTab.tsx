@@ -5,10 +5,17 @@ import styled, { css, keyframes } from "styled-components";
 import { colors, rgb } from "../../theme";
 import type { CallRecord, Did } from "@/lib/frontdesk/types";
 import NeonLineDDM from "./NeonLineDDM";
-import { TrashIcon, PhoneIcon } from "../icons";
+import { TrashIcon, PhoneIcon, RecordIcon } from "../icons";
 import { FRONTDESK_DATA_CHANGED_EVENT } from "./FrontDeskShiftBar";
 import { useSoftphone } from "@/lib/frontdesk/useSoftphone";
+import { getCurrentCallId } from "@/lib/frontdesk/softphone";
 import { playDtmf } from "@/lib/frontdesk/ringTones";
+import {
+  formatPhoneInput,
+  formatPhoneDisplay,
+  nextRawFromDisplayEdit,
+  stripPhoneFormatting,
+} from "@/lib/frontdesk/phoneFormat";
 
 // ── Styled ───────────────────────────────────────────────────────
 
@@ -294,6 +301,29 @@ const KeypadToggle = styled.button`
   &:hover { background: rgba(${rgb.gold}, 0.12); }
 `;
 
+const recBlink = keyframes`
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+`;
+
+const RecBtn = styled.button<{ $on: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: ${(p) => (p.$on ? `rgba(${rgb.pink}, 0.16)` : "transparent")};
+  border: 1px solid ${(p) => (p.$on ? `rgba(${rgb.pink}, 0.55)` : `rgba(${rgb.gold}, 0.3)`)};
+  color: ${(p) => (p.$on ? colors.pink : colors.gold)};
+  border-radius: 0.5rem;
+  padding: 0.3rem 0.8rem;
+  font-size: 0.6875rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  &:hover { background: ${(p) => (p.$on ? `rgba(${rgb.pink}, 0.26)` : `rgba(${rgb.gold}, 0.12)`)}; }
+  &:disabled { opacity: 0.5; cursor: wait; }
+  svg { ${(p) => (p.$on ? css`animation: ${recBlink} 1.2s ease-in-out infinite;` : "opacity: 0.7;")} }
+`;
+
 const Log = styled.ul`
   list-style: none;
   padding: 0;
@@ -485,11 +515,27 @@ export default function PhoneTab() {
     displayName: string;
     accentColor?: string;
   }>>([]);
-  // Outbound recording is OPT-OUT (telephony-security Item 4 / B2). Per-call
-  // toggle defaults to "on"; user can flip it off before pressing Call.
+  // Outbound recording is OPT-IN (operator decision 2026-07-02, supersedes
+  // the Item 4 / B2 opt-out default): the per-call checkbox defaults OFF and
+  // the operator can also start recording mid-call via the REC toggle.
   // The flag rides as `X-Record: true|false` into the FreeSWITCH dialplan
-  // and is also mirrored into the CDR consentAcknowledged field.
-  const [recordCall, setRecordCall] = useState(true);
+  // and recorded-at-any-point is mirrored into CDR consentAcknowledged.
+  const [recordCall, setRecordCall] = useState(false);
+  // Mid-call recording toggle. Each ON→OFF stretch is its own segment file
+  // (uuid_record via /api/frontdesk/calls/record); segments + toggle events
+  // ride into the CDR at hangup. Refs mirror state so the terminated-effect
+  // closure reads current values.
+  const [recActive, setRecActive] = useState(false);
+  const [recBusy, setRecBusy] = useState(false);
+  const recActiveRef = useRef(false);
+  const recRef = useRef<{
+    segments: string[];
+    events: Array<{ at: string; action: "start" | "stop" }>;
+    activeFile: string | null;
+    callId: string | null;
+    /** Set on the first manual toggle — the auto status-GET must not clobber it. */
+    userTouched: boolean;
+  }>({ segments: [], events: [], activeFile: null, callId: null, userTouched: false });
   const isExec = me ? EXEC_USERNAMES.has(me.username) : false;
 
   const softphone = useSoftphone();
@@ -550,7 +596,7 @@ export default function PhoneTab() {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent).detail as { to?: string; autoDial?: boolean } | undefined;
       if (!detail?.to) return;
-      setInput(detail.to);
+      setInput(stripPhoneFormatting(detail.to));
     };
     window.addEventListener("frontdesk-dial-prefill", handler);
     return () => window.removeEventListener("frontdesk-dial-prefill", handler);
@@ -585,6 +631,31 @@ export default function PhoneTab() {
     if (curr === "established" && activeCallRef.current && !activeCallRef.current.answeredAt) {
       activeCallRef.current.answeredAt = new Date().toISOString();
     }
+    if (curr === "established" && prev !== "established") {
+      // Fresh live call — ask FreeSWITCH whether the dialplan started a
+      // recording (X-Record outbound / consent IVR inbound) and learn its
+      // file path so the CDR can link it at hangup.
+      recRef.current = { segments: [], events: [], activeFile: null, callId: getCurrentCallId(), userTouched: false };
+      recActiveRef.current = false;
+      setRecActive(false);
+      const cid = recRef.current.callId;
+      if (cid) {
+        fetch(`/api/frontdesk/calls/record?callId=${encodeURIComponent(cid)}`)
+          .then((r) => (r.ok ? r.json() : null))
+          .then((j) => {
+            // Drop the response if the call changed OR the user already
+            // toggled manually — their POST result owns the state now.
+            if (!j || recRef.current.callId !== cid || recRef.current.userTouched) return;
+            if (j.active) {
+              recRef.current.activeFile = j.recordingFile ?? null;
+              recRef.current.events.push({ at: new Date().toISOString(), action: "start" });
+              recActiveRef.current = true;
+              setRecActive(true);
+            }
+          })
+          .catch(() => { /* status stays off; toggle still works */ });
+      }
+    }
     if (curr === "terminated") {
       setPeerName(null);
       setShowInCallKeypad(false);
@@ -593,6 +664,15 @@ export default function PhoneTab() {
       const call = activeCallRef.current;
       activeCallRef.current = null;
       const outcome = call.answeredAt ? "answered" : "missed";
+      // Fold the still-running segment (hangup ends it FS-side) into the list.
+      const rec = recRef.current;
+      if (recActiveRef.current && rec.activeFile) {
+        rec.segments.push(rec.activeFile);
+        rec.events.push({ at: new Date().toISOString(), action: "stop" });
+      }
+      recActiveRef.current = false;
+      setRecActive(false);
+      const recorded = rec.segments.length > 0;
       fetch("/api/frontdesk/calls/log", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -604,14 +684,53 @@ export default function PhoneTab() {
           answeredAt: call.answeredAt,
           endedAt: new Date().toISOString(),
           outcome,
-          // Outbound consent reflects the user's per-call toggle. Inbound
-          // consent comes from the dialplan IVR result (press 1) and is
-          // patched in by the FreeSWITCH webhook path, not from here.
-          consentAcknowledged: call.direction === "outbound" ? call.recordCall : false,
+          // Outbound consent = a recording was active at ANY point in the
+          // call (pre-call checkbox or mid-call toggle). Inbound consent
+          // comes from the dialplan IVR result (press 1) and is patched in
+          // by the FreeSWITCH webhook path, not from here.
+          consentAcknowledged: call.direction === "outbound" ? recorded : false,
+          recordingPath: rec.segments[0] ?? null,
+          recordingPaths: rec.segments,
+          recordingEvents: rec.events,
         }),
       }).then(() => loadAll()).catch(() => { /* offline — skip */ });
     }
   }, [softphone.callState, loadAll]);
+
+  const toggleRecording = async () => {
+    const cid = recRef.current.callId ?? getCurrentCallId();
+    if (!cid || recBusy) return;
+    recRef.current.userTouched = true;
+    setRecBusy(true);
+    setError(null);
+    try {
+      const action = recActiveRef.current ? "stop" : "start";
+      const res = await fetch("/api/frontdesk/calls/record", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ callId: cid, action }),
+      });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(j.error ?? `Recording ${action} failed`);
+      const at = new Date().toISOString();
+      if (action === "start") {
+        recRef.current.activeFile = typeof j.path === "string" && j.path ? j.path : null;
+        recRef.current.events.push({ at, action: "start" });
+        recActiveRef.current = true;
+        setRecActive(true);
+      } else {
+        if (typeof j.path === "string" && j.path) recRef.current.segments.push(j.path);
+        recRef.current.activeFile = null;
+        recRef.current.events.push({ at, action: "stop" });
+        recActiveRef.current = false;
+        setRecActive(false);
+      }
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setRecBusy(false);
+    }
+  };
 
   // In-call view: contact name for "Live call with …" + optional DTMF keypad.
   const [peerName, setPeerName] = useState<string | null>(null);
@@ -642,6 +761,11 @@ export default function PhoneTab() {
         answeredAt: null,
         recordCall,
       };
+      // Clear any previous call's recording bookkeeping — a call that never
+      // establishes must not inherit stale segments into its CDR.
+      recRef.current = { segments: [], events: [], activeFile: null, callId: null, userTouched: false };
+      recActiveRef.current = false;
+      setRecActive(false);
       // Resolve a contact name for the in-call view (best-effort, non-blocking).
       setPeerName(null);
       const last10 = normalized.replace(/\D/g, "").slice(-10);
@@ -672,7 +796,7 @@ export default function PhoneTab() {
       ) : activeDids.length === 1 ? (
         <LineCard>
           <LineLabel>{activeDids[0].label}</LineLabel>
-          <LineNum>{activeDids[0].e164}</LineNum>
+          <LineNum>{formatPhoneDisplay(activeDids[0].e164) || activeDids[0].e164}</LineNum>
         </LineCard>
       ) : (
         <NeonLineDDM
@@ -680,15 +804,19 @@ export default function PhoneTab() {
           onChange={(id) => setFromDidId(id)}
           disabled={onCall}
           title="Outbound caller-ID"
-          options={activeDids.map(d => ({ id: d.id, label: d.label, sublabel: d.e164 }))}
+          options={activeDids.map(d => ({
+            id: d.id,
+            label: d.label,
+            sublabel: formatPhoneDisplay(d.e164) || d.e164,
+          }))}
         />
       )}
 
       {!onCall ? (
       <>
       <Display
-        value={input}
-        onChange={(e) => setInput(e.target.value.replace(/[^\d+*#]/g, "").slice(0, 24))}
+        value={formatPhoneInput(input)}
+        onChange={(e) => setInput(nextRawFromDisplayEdit(input, e.target.value))}
         onKeyDown={(e) => {
           if (e.key === "Enter") {
             e.preventDefault();
@@ -696,7 +824,7 @@ export default function PhoneTab() {
             else dial();
           }
         }}
-        placeholder="5551234567 or +15551234567"
+        placeholder="(555) 555-5555 or +1 (555) 555-5555"
         inputMode="tel"
       />
 
@@ -721,7 +849,7 @@ export default function PhoneTab() {
           disabled={onCall}
           onChange={(e) => setRecordCall(e.target.checked)}
         />
-        Record this call (consent assumed; uncheck to opt out)
+        Record this call (off by default — can be switched on anytime during the call)
       </label>
 
       <ActionRow>
@@ -751,11 +879,26 @@ export default function PhoneTab() {
           <CallStage>
             {softphone.callState === "established" ? "Live call with" : "Calling"}
           </CallStage>
-          <CallWho>{peerName ?? activeCallRef.current?.toE164 ?? "unknown"}</CallWho>
+          <CallWho>
+            {peerName
+              ?? (activeCallRef.current?.toE164 ? formatPhoneDisplay(activeCallRef.current.toE164) : "unknown")}
+          </CallWho>
           {softphone.callState !== "established" ? (
             <CallHint>ringing…</CallHint>
           ) : (
             <>
+              <RecBtn
+                type="button"
+                $on={recActive}
+                disabled={recBusy}
+                onClick={toggleRecording}
+                title={recActive
+                  ? "Recording — click to stop (this segment is kept)"
+                  : "Not recording — click to record from this point"}
+              >
+                <RecordIcon size={12} />
+                {recActive ? "Recording" : "Record"}
+              </RecBtn>
               <KeypadToggle type="button" onClick={() => setShowInCallKeypad((v) => !v)}>
                 {showInCallKeypad ? "Hide keypad" : "Keypad"}
               </KeypadToggle>
@@ -811,14 +954,14 @@ export default function PhoneTab() {
               $tint={tint}
               title={`${c.outcome} — click to dial`}
               onClick={() => {
-                const peer = formatPeer(c).replace(/^\+/, "");
+                const peer = stripPhoneFormatting(formatPeer(c)).replace(/^\+/, "");
                 setInput(peer);
                 setError(null);
               }}
             >
               <Arrow $dir={c.direction}>{c.direction === "inbound" ? "↙" : "↗"}</Arrow>
               <Peer>
-                {formatPeer(c)}
+                {formatPhoneDisplay(formatPeer(c)) || formatPeer(c)}
                 <Meta style={{ marginLeft: "0.5rem" }}>{formatTimestamp(c.startedAt)}</Meta>
                 {isExec && handler && (
                   <AnsweredBy $color={handler.accentColor ?? "#f7b700"}>
