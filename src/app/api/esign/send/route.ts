@@ -13,7 +13,7 @@ import { db } from "@/lib/db-drizzle";
 import { getAccounts, getAccount, sendEmail } from "@/lib/fastmail";
 import {
   getLegalDocumentById,
-  getMemberUserByEmail,
+  getMemberByEmail,
   insertLegalSend,
   directLinkUrl,
   type LegalSendChannel,
@@ -99,12 +99,12 @@ export async function POST(req: NextRequest) {
       continue;
     }
     // Link this recipient to a member account when one matches (for later attribution).
-    const member = await getMemberUserByEmail(db, email).catch(() => null);
+    const member = await getMemberByEmail(db, email).catch(() => null);
     await insertLegalSend(db, {
       legalDocumentId: doc.id,
       recipientEmail: email,
       recipientName: name,
-      recipientMemberUserId: member?.id ?? null,
+      recipientMemberId: member?.id ?? null,
       sentBy,
       channel,
       note: note || null,

@@ -67,9 +67,9 @@ export default function MemberWalletModal({ onClose }: { onClose: () => void }) 
     return () => { clearTimeout(t); ctrl.abort(); };
   }, [query]);
 
-  const loadBalances = useCallback(async (memberUserId: string) => {
+  const loadBalances = useCallback(async (memberId: string) => {
     setBalances(null);
-    const res = await fetch(`/api/admin/villagers/member-wallet?memberUserId=${memberUserId}`, { cache: "no-store" });
+    const res = await fetch(`/api/admin/villagers/member-wallet?memberId=${memberId}`, { cache: "no-store" });
     const d = await res.json().catch(() => ({}));
     if (res.ok) setBalances(d.balances as Balances);
   }, []);
@@ -97,7 +97,7 @@ export default function MemberWalletModal({ onClose }: { onClose: () => void }) 
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          memberUserId: selected.id,
+          memberId: selected.id,
           amountTokens: amount,
           target,
           env: lane,

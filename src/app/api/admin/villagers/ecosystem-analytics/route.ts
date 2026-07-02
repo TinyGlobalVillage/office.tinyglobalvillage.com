@@ -2,7 +2,7 @@
 // token + money economy, for the Villagers Ecosystem Analytics tile.
 //
 // Every figure here is an AGGREGATE (sum / count / distinct-count) over tgv_db `token_ledger` and
-// `withdrawals` — no member_user_id, email, or name ever leaves this route. That's the "anonymized
+// `withdrawals` — no member_id, email, or name ever leaves this route. That's the "anonymized
 // ecosystem roll-up" contract: an operator sees the shape of the economy (tokens in circulation,
 // gift volume, referral rewards, service payments, cash paid out), never an individual's wallet.
 //
@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
   const bucketsRes = await db.execute(sql`
     select bucket,
            coalesce(sum(delta), 0)::int as outstanding,
-           count(distinct member_user_id)::int as holders
+           count(distinct member_id)::int as holders
       from token_ledger
      where env = ${env}
      group by bucket
@@ -49,7 +49,7 @@ export async function GET(req: NextRequest) {
 
   // Headline reach: distinct members who have ANY ledger entry + total entries.
   const reachRes = await db.execute(sql`
-    select count(distinct member_user_id)::int as members,
+    select count(distinct member_id)::int as members,
            count(*)::int as entries
       from token_ledger
      where env = ${env}

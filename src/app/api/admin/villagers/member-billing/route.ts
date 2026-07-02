@@ -1,6 +1,6 @@
 // /api/admin/villagers/member-billing — operator sets a member's billing INTENT.
 //
-// PUT { memberUserId, planInterval?, chargeStartAt?, customAmountCents?,
+// PUT { memberId, planInterval?, chargeStartAt?, customAmountCents?,
 //       waiverUntil?, notifyToPay? } → upsert member_billing; audited.
 //
 // This records the OPERATOR'S onboarding decisions only — it moves NO money and
@@ -46,7 +46,7 @@ export async function PUT(req: NextRequest) {
   }
 
   let body: {
-    memberUserId?: string;
+    memberId?: string;
     planInterval?: string | null;
     chargeStartAt?: string | null;
     customAmountCents?: number | null;
@@ -59,10 +59,10 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ ok: false, error: "Invalid JSON" }, { status: 400 });
   }
 
-  const memberUserId = (body.memberUserId ?? "").trim();
-  if (!UUID_RE.test(memberUserId)) {
+  const memberId = (body.memberId ?? "").trim();
+  if (!UUID_RE.test(memberId)) {
     return NextResponse.json(
-      { ok: false, error: "memberUserId must be a uuid" },
+      { ok: false, error: "memberId must be a uuid" },
       { status: 400 },
     );
   }
@@ -103,20 +103,20 @@ export async function PUT(req: NextRequest) {
     const prevRes = await tx.execute(sql`
       SELECT plan_interval, charge_start_at, custom_amount_cents,
              waiver_until, notify_to_pay
-      FROM public.member_billing WHERE member_user_id = ${memberUserId}
+      FROM public.member_billing WHERE member_id = ${memberId}
     `);
     const before =
       ((prevRes as unknown as { rows?: BillingSnapshot[] }).rows ?? [])[0] ?? null;
 
     await tx.execute(sql`
       INSERT INTO public.member_billing
-        (member_user_id, plan_interval, charge_start_at, custom_amount_cents,
+        (member_id, plan_interval, charge_start_at, custom_amount_cents,
          waiver_until, notify_to_pay, updated_by, updated_at)
       VALUES
-        (${memberUserId}, ${planInterval}, ${chargeStartAt}::timestamptz,
+        (${memberId}, ${planInterval}, ${chargeStartAt}::timestamptz,
          ${customAmountCents}::integer, ${waiverUntil}::timestamptz,
          ${notifyToPay}, ${gate.username}, now())
-      ON CONFLICT (member_user_id) DO UPDATE SET
+      ON CONFLICT (member_id) DO UPDATE SET
         plan_interval       = EXCLUDED.plan_interval,
         charge_start_at     = EXCLUDED.charge_start_at,
         custom_amount_cents = EXCLUDED.custom_amount_cents,
@@ -130,7 +130,7 @@ export async function PUT(req: NextRequest) {
       actorUserId,
       action: "member.billing_intent_set",
       targetType: "member_user",
-      targetId: memberUserId,
+      targetId: memberId,
       before: before ?? {},
       after: {
         planInterval,

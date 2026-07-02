@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
          (mu.totp_secret IS NOT NULL) AS totp_enabled,
          coalesce(array_length(mu.recovery_codes_hash, 1), 0)::int AS recovery_count
        FROM members mu
-       LEFT JOIN member_passkeys mp ON mp.member_user_id = mu.id
+       LEFT JOIN member_passkeys mp ON mp.member_id = mu.id
        WHERE lower(mu.email) = ANY($1)
        GROUP BY mu.email, mu.name, mu.totp_secret, mu.recovery_codes_hash`,
       [emails],

@@ -18,7 +18,7 @@ import { safeDest } from "@/lib/safe-redirect";
 import { logAuthEvent } from "@/lib/audit-log";
 import { rateLimit, clearRateLimit } from "@/lib/rate-limit";
 import { officeMemberAuth } from "@/lib/member-auth/config";
-import { usernameForMemberUserId } from "@/lib/member-auth/bridge";
+import { usernameForMemberId } from "@/lib/member-auth/bridge";
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null);
@@ -52,17 +52,17 @@ export async function POST(req: NextRequest) {
   // a TGV.com customer with a parent-scoped passkey) is rejected HERE, not left
   // to the downstream getBridgedMember/proxy checks alone. Resolving the
   // username also gives us the human-readable audit/2FA-cookie subject.
-  const auname = await usernameForMemberUserId(memberPasskey.memberUserId);
+  const auname = await usernameForMemberId(memberPasskey.memberId);
   if (!auname) {
-    logAuthEvent({ event: "passkey.assert", username: memberPasskey.memberUserId, success: false, ip, details: { reason: "not_staff" } });
+    logAuthEvent({ event: "passkey.assert", username: memberPasskey.memberId, success: false, ip, details: { reason: "not_staff" } });
     return NextResponse.json({ error: "Passkey not recognized" }, { status: 404 });
   }
 
   // Rate-limit per member account (the uuid), NOT the public credential id — a
   // credential id is observable, so keying on it would let anyone DoS a passkey.
-  const rlKey = `passkey-assert-member:${memberPasskey.memberUserId}`;
+  const rlKey = `passkey-assert-member:${memberPasskey.memberId}`;
   if (!rateLimit(rlKey, 10, 15 * 60 * 1000).ok) {
-    logAuthEvent({ event: "passkey.assert", username: memberPasskey.memberUserId, success: false, ip, details: { reason: "rate_limited" } });
+    logAuthEvent({ event: "passkey.assert", username: memberPasskey.memberId, success: false, ip, details: { reason: "rate_limited" } });
     return NextResponse.json({ error: "Too many attempts. Try again later." }, { status: 429 });
   }
 
@@ -76,7 +76,7 @@ export async function POST(req: NextRequest) {
       expectedChallenge,
     });
   } catch (e) {
-    logAuthEvent({ event: "passkey.assert", username: memberPasskey.memberUserId, success: false, ip, details: { reason: "db_error", error: String(e) } });
+    logAuthEvent({ event: "passkey.assert", username: memberPasskey.memberId, success: false, ip, details: { reason: "db_error", error: String(e) } });
     return NextResponse.json({ error: "Service temporarily unavailable. Try again." }, { status: 503 });
   }
 

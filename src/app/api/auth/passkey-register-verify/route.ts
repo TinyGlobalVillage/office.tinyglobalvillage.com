@@ -5,7 +5,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyRegistrationResponse } from "@simplewebauthn/server";
 import { requireAuth } from "@/lib/api-auth";
-import { memberUserIdForUsername } from "@/lib/member-auth/bridge";
+import { memberIdForUsername } from "@/lib/member-auth/bridge";
 import { officeMemberAuth } from "@/lib/member-auth/config";
 import {
   readPasskeyRegisterChallenge,
@@ -27,8 +27,8 @@ export async function POST(req: NextRequest) {
   const username = token?.username;
   if (!username) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const memberUserId = await memberUserIdForUsername(username);
-  if (!memberUserId) return NextResponse.json({ error: "Member not found" }, { status: 404 });
+  const memberId = await memberIdForUsername(username);
+  if (!memberId) return NextResponse.json({ error: "Member not found" }, { status: 404 });
 
   const body = await req.json().catch(() => null);
   if (!body) return NextResponse.json({ error: "Bad request" }, { status: 400 });
@@ -62,11 +62,11 @@ export async function POST(req: NextRequest) {
     const credentialId = Buffer.from(credentialID).toString("base64url");
 
     // Count BEFORE insert so we can report firstCredential in the audit log.
-    const existing = await officeMemberAuth.listPasskeysForUser(memberUserId);
+    const existing = await officeMemberAuth.listPasskeysForUser(memberId);
 
     await officeMemberAuth.insertPasskey({
       credentialId,
-      memberUserId,
+      memberId,
       publicKey: Buffer.from(credentialPublicKey).toString("base64url"),
       counter,
       transports: Array.isArray(body.response?.response?.transports)
@@ -85,7 +85,7 @@ export async function POST(req: NextRequest) {
     let recoveryCodes: string[] | undefined;
     const { rows } = await pgPool.query<{ recovery_codes_hash: string[] }>(
       "SELECT recovery_codes_hash FROM members WHERE id = $1",
-      [memberUserId],
+      [memberId],
     );
     const currentCodes = rows[0]?.recovery_codes_hash ?? [];
     if (currentCodes.length === 0) {
@@ -95,7 +95,7 @@ export async function POST(req: NextRequest) {
       // this write actually persisted them.
       const upd = await pgPool.query(
         "UPDATE members SET recovery_codes_hash = $1 WHERE id = $2 AND (recovery_codes_hash = '{}' OR recovery_codes_hash IS NULL)",
-        [gen.hashes, memberUserId],
+        [gen.hashes, memberId],
       );
       if (upd.rowCount && upd.rowCount > 0) recoveryCodes = gen.plaintext;
     }

@@ -32,7 +32,7 @@ type Card = {
 };
 
 type Props = {
-  memberUserId: string;
+  memberId: string;
   memberName: string;
   card: Card;
   onClose: () => void;
@@ -47,7 +47,7 @@ function newNonce(): string {
   }
 }
 
-export default function ChargeCardModal({ memberUserId, memberName, card, onClose, onCharged }: Props) {
+export default function ChargeCardModal({ memberId, memberName, card, onClose, onCharged }: Props) {
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
   const [nonce, setNonce] = useState(newNonce);
@@ -71,7 +71,7 @@ export default function ChargeCardModal({ memberUserId, memberName, card, onClos
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          memberUserId,
+          memberId,
           paymentMethodId: card.id,
           amountCents: cents,
           description: description.trim() || undefined,

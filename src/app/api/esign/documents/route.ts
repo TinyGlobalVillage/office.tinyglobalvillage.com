@@ -22,7 +22,7 @@ import {
   createOfficeLegalDocument,
   setDocumensoTemplate,
   deactivateOfficeLegalDocument,
-  getMemberUserByEmail,
+  getMemberByEmail,
   insertLegalSend,
   getPdfPageCount,
 } from "@tgv/module-documenso";
@@ -196,12 +196,12 @@ export async function POST(req: NextRequest) {
     const recipientByEmail = new Map(result.recipients.map((r) => [r.email, r.recipientId]));
     const signerInputs: InsertSignerInput[] = [];
     for (const [i, s] of signers.entries()) {
-      const member = await getMemberUserByEmail(db, s.email).catch(() => null);
+      const member = await getMemberByEmail(db, s.email).catch(() => null);
       signerInputs.push({
         signerEmail: s.email,
         signerName: s.name,
         signingOrder: i + 1,
-        memberUserId: member?.id ?? null,
+        memberId: member?.id ?? null,
         documensoRecipientId: recipientByEmail.get(s.email) ?? null,
         status: "sent",
       });
@@ -214,7 +214,7 @@ export async function POST(req: NextRequest) {
         legalDocumentId: doc.id,
         recipientEmail: s.signerEmail,
         recipientName: s.signerName ?? null,
-        recipientMemberUserId: s.memberUserId ?? null,
+        recipientMemberId: s.memberId ?? null,
         sentBy: auth.username,
         channel: "email",
         note: note || null,

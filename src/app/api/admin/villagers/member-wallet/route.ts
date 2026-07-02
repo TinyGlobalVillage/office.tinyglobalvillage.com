@@ -1,4 +1,4 @@
-// GET /api/admin/villagers/member-wallet?memberUserId=<uuid> — a member's 3-bucket token balances,
+// GET /api/admin/villagers/member-wallet?memberId=<uuid> — a member's 3-bucket token balances,
 // both lanes (live + test), for the Villagers Member Wallet screen.
 //
 // Reads tgv_db `token_ledger` directly (raw SQL — tgv.com-owned table, not in Office's schema;
@@ -17,15 +17,15 @@ export async function GET(req: NextRequest) {
   const gate = await requireAdmin(req);
   if (gate instanceof NextResponse) return gate;
 
-  const memberUserId = (new URL(req.url).searchParams.get("memberUserId") ?? "").trim();
-  if (!UUID_RE.test(memberUserId)) {
-    return NextResponse.json({ error: "memberUserId must be a uuid" }, { status: 400 });
+  const memberId = (new URL(req.url).searchParams.get("memberId") ?? "").trim();
+  if (!UUID_RE.test(memberId)) {
+    return NextResponse.json({ error: "memberId must be a uuid" }, { status: 400 });
   }
 
   const res = await db.execute(sql`
     select env, bucket, coalesce(sum(delta), 0)::int as sum
       from token_ledger
-     where member_user_id = ${memberUserId}
+     where member_id = ${memberId}
      group by env, bucket
   `);
 
@@ -39,5 +39,5 @@ export async function GET(req: NextRequest) {
       balances[lane][r.bucket] = Number(r.sum) || 0;
     }
   }
-  return NextResponse.json({ memberUserId, balances });
+  return NextResponse.json({ memberId, balances });
 }

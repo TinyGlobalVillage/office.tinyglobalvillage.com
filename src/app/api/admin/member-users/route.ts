@@ -18,11 +18,11 @@ export async function GET(req: NextRequest) {
 
   const passkeyCounts = db
     .select({
-      memberUserId: schema.memberPasskeys.memberUserId,
+      memberId: schema.memberPasskeys.memberId,
       count: sql<number>`count(*)::int`.as("passkey_count"),
     })
     .from(schema.memberPasskeys)
-    .groupBy(schema.memberPasskeys.memberUserId)
+    .groupBy(schema.memberPasskeys.memberId)
     .as("passkey_counts");
 
   const sessionCounts = db
@@ -63,11 +63,11 @@ export async function GET(req: NextRequest) {
       lastResetAt: lastResets.lastResetAt,
     })
     .from(schema.members)
-    .leftJoin(passkeyCounts, eq(passkeyCounts.memberUserId, schema.members.id))
+    .leftJoin(passkeyCounts, eq(passkeyCounts.memberId, schema.members.id))
     .leftJoin(sessionCounts, eq(sessionCounts.userId, schema.members.id))
     // admin_audit_log.target_id is text; members.id is uuid. Cast to uuid
     // for the join (the subquery already filters targetType='member_user', so
-    // every target_id here is a member_user uuid string).
+    // every target_id here is a member uuid string).
     .leftJoin(lastResets, eq(sql`${lastResets.targetId}::uuid`, schema.members.id))
     .orderBy(desc(schema.members.createdAt));
 

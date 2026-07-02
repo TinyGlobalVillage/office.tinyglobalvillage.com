@@ -1,7 +1,7 @@
 // /api/frontdesk/support/[...path] — Office Front Desk "Tickets" tab → tgv.com support desk.
 // Catch-all forwards queue-only subpaths (queue, queue/:id, queue/:id/{claim,reply,complete}) over the
 // internal seam. Villager routes (ticket/*) are NOT forwarded — and even if they were, tgv.com gates
-// those on a member session, not the seam, so they'd 401. requireAdmin + operator→member_user_id live
+// those on a member session, not the seam, so they'd 401. requireAdmin + operator→member_id live
 // in proxySupport.
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

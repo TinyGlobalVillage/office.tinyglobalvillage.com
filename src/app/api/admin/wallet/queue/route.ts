@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
     : sql``;
 
   const res = await db.execute(sql`
-    select id, member_user_id, env, amount_tokens, amount_cents, status, rail,
+    select id, member_id, env, amount_tokens, amount_cents, status, rail,
            external_ref, note, requested_at, updated_at
       from withdrawals
       ${where}

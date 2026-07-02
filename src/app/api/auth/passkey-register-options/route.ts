@@ -6,7 +6,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateRegistrationOptions } from "@simplewebauthn/server";
 import { requireAuth } from "@/lib/api-auth";
-import { memberUserIdForUsername } from "@/lib/member-auth/bridge";
+import { memberIdForUsername } from "@/lib/member-auth/bridge";
 import { officeMemberAuth } from "@/lib/member-auth/config";
 import { setPasskeyRegisterChallenge } from "@/lib/passkey-challenge-cookie";
 
@@ -25,15 +25,15 @@ export async function POST(req: NextRequest) {
   const username = token?.username;
   if (!username) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const memberUserId = await memberUserIdForUsername(username);
-  if (!memberUserId) return NextResponse.json({ error: "Member not found" }, { status: 404 });
+  const memberId = await memberIdForUsername(username);
+  if (!memberId) return NextResponse.json({ error: "Member not found" }, { status: 404 });
 
-  const existing = await officeMemberAuth.listPasskeysForUser(memberUserId);
+  const existing = await officeMemberAuth.listPasskeysForUser(memberId);
 
   const options = await generateRegistrationOptions({
     rpName: RP_NAME,
     rpID: RP_ID,
-    userID: memberUserId,
+    userID: memberId,
     userName: username,
     userDisplayName: username,
     attestationType: "none",

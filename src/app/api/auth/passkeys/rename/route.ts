@@ -9,7 +9,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/api-auth";
 import { readUsers, updateUser } from "@/lib/users";
 import { logAuthEvent } from "@/lib/audit-log";
-import { memberUserIdForUsername } from "@/lib/member-auth/bridge";
+import { memberIdForUsername } from "@/lib/member-auth/bridge";
 import { pgPool } from "@/lib/pg-pool";
 
 export const runtime = "nodejs";
@@ -31,13 +31,13 @@ export async function POST(req: NextRequest) {
   }
 
   // Canonical member store first: rename only the caller's own credential
-  // (the member_user_id predicate enforces ownership).
+  // (the member_id predicate enforces ownership).
   let renamed = false;
-  const memberUserId = await memberUserIdForUsername(username);
-  if (memberUserId) {
+  const memberId = await memberIdForUsername(username);
+  if (memberId) {
     const upd = await pgPool.query(
-      "UPDATE member_passkeys SET nickname = $1 WHERE credential_id = $2 AND member_user_id = $3",
-      [deviceName, credentialId, memberUserId],
+      "UPDATE member_passkeys SET nickname = $1 WHERE credential_id = $2 AND member_id = $3",
+      [deviceName, credentialId, memberId],
     );
     if (upd.rowCount && upd.rowCount > 0) renamed = true;
   }

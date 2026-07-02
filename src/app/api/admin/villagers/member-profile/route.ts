@@ -1,6 +1,6 @@
 // /api/admin/villagers/member-profile — operator view of ONE member (villager).
 //
-// GET ?memberUserId=<uuid> → { member, sites, billing }
+// GET ?memberId=<uuid> → { member, sites, billing }
 //   member  = members core (incl. created_at = "Member since")
 //   sites   = the member's tenants (villager + villager_clients → villager_sites;
 //             the B3 split of the old tenant-membership junction) + per-site
@@ -53,12 +53,12 @@ export async function GET(req: NextRequest) {
   const gate = await requireAdmin(req);
   if (gate instanceof NextResponse) return gate;
 
-  const memberUserId = (
-    new URL(req.url).searchParams.get("memberUserId") ?? ""
+  const memberId = (
+    new URL(req.url).searchParams.get("memberId") ?? ""
   ).trim();
-  if (!UUID_RE.test(memberUserId)) {
+  if (!UUID_RE.test(memberId)) {
     return NextResponse.json(
-      { ok: false, error: "memberUserId must be a uuid" },
+      { ok: false, error: "memberId must be a uuid" },
       { status: 400 },
     );
   }
@@ -66,7 +66,7 @@ export async function GET(req: NextRequest) {
   const memberRes = await db.execute(sql`
     SELECT id::text AS id, email, name, role, username, created_at, last_login_at
     FROM public.members
-    WHERE id = ${memberUserId}
+    WHERE id = ${memberId}
   `);
   const member =
     ((memberRes as unknown as { rows?: MemberRow[] }).rows ?? [])[0] ?? null;
@@ -84,16 +84,16 @@ export async function GET(req: NextRequest) {
            j.status                                          AS junction_status,
            (f.site_id IS NOT NULL AND f.revoked_at IS NULL) AS founding_active
     FROM (
-      SELECT member_user_id, site_id, 'owner' AS role, status, created_at FROM public.villager
+      SELECT member_id, site_id, 'owner' AS role, status, created_at FROM public.villager
       UNION ALL
-      SELECT member_user_id, site_id,
+      SELECT member_id, site_id,
              CASE WHEN is_staff THEN 'staff' ELSE 'customer' END AS role,
              status, created_at
       FROM public.villager_clients
     ) j
     JOIN public.villager_sites m ON m.id = j.site_id
     LEFT JOIN public.yellow_pages_founding_members f ON f.site_id = m.id
-    WHERE j.member_user_id = ${memberUserId}
+    WHERE j.member_id = ${memberId}
     ORDER BY m.created_at ASC
   `);
   const sites = (sitesRes as unknown as { rows?: SiteRow[] }).rows ?? [];
@@ -102,7 +102,7 @@ export async function GET(req: NextRequest) {
     SELECT plan_interval, charge_start_at, custom_amount_cents,
            waiver_until, notify_to_pay, updated_at, updated_by
     FROM public.member_billing
-    WHERE member_user_id = ${memberUserId}
+    WHERE member_id = ${memberId}
   `);
   const billing =
     ((billingRes as unknown as { rows?: BillingRow[] }).rows ?? [])[0] ?? null;

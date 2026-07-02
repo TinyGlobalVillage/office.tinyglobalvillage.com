@@ -1,5 +1,5 @@
 // POST /api/admin/villagers/charge-card?env=test|live
-//   body: { memberUserId, paymentMethodId, amountCents, description?, nonce? }
+//   body: { memberId, paymentMethodId, amountCents, description?, nonce? }
 //
 // Office operator → tgv.com PLATFORM off-session charge (/api/platform/charge). Mirrors the
 // managed-proxy seam (requireAdmin + INTERNAL_API_SECRET + x-operator-actor-id) but targets the

@@ -1,4 +1,4 @@
-// GET /api/admin/villagers/support-tickets?memberUserId=<uuid>
+// GET /api/admin/villagers/support-tickets?memberId=<uuid>
 //   → { ok, tickets: [{ id, status, subject, openedAt, closedAt, lastMessageAt, messageCount, closedByName }] }
 // The per-villager support archive (Office → Villagers → member → Support Tickets). Reads tgv_db
 // directly (raw db.execute — support_* aren't in the drizzle schema). requireAdmin. Read-only.
@@ -15,9 +15,9 @@ export async function GET(req: NextRequest) {
   const gate = await requireAdmin(req);
   if (gate instanceof NextResponse) return gate;
 
-  const memberUserId = (new URL(req.url).searchParams.get("memberUserId") ?? "").trim();
-  if (!UUID_RE.test(memberUserId)) {
-    return NextResponse.json({ ok: false, error: "memberUserId must be a uuid" }, { status: 400 });
+  const memberId = (new URL(req.url).searchParams.get("memberId") ?? "").trim();
+  if (!UUID_RE.test(memberId)) {
+    return NextResponse.json({ ok: false, error: "memberId must be a uuid" }, { status: 400 });
   }
 
   const res = await db.execute(sql`
@@ -25,8 +25,8 @@ export async function GET(req: NextRequest) {
            su.name AS closed_by_name,
            (SELECT count(*) FROM public.support_messages m WHERE m.ticket_id = t.id)::int AS message_count
       FROM public.support_tickets t
-      LEFT JOIN public.members su ON su.id = t.closed_by_member_user_id
-     WHERE t.member_user_id = ${memberUserId}
+      LEFT JOIN public.members su ON su.id = t.closed_by_member_id
+     WHERE t.member_id = ${memberId}
      ORDER BY t.opened_at DESC
   `);
   const rows = (res as unknown as { rows?: Record<string, unknown>[] }).rows ?? [];

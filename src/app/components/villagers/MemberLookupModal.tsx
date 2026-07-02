@@ -142,14 +142,14 @@ export default function MemberLookupModal({ onClose }: { onClose: () => void }) 
     };
   }, [query]);
 
-  const loadProfile = useCallback(async (memberUserId: string) => {
+  const loadProfile = useCallback(async (memberId: string) => {
     setProfile(null);
     setCards(null);
     setTickets(null);
     setOpenTicket(null);
     setMsg(null);
     const res = await fetch(
-      `/api/admin/villagers/member-profile?memberUserId=${memberUserId}`,
+      `/api/admin/villagers/member-profile?memberId=${memberId}`,
       { cache: "no-store" },
     );
     const d = await res.json().catch(() => ({}));
@@ -167,7 +167,7 @@ export default function MemberLookupModal({ onClose }: { onClose: () => void }) 
       // Saved cards — display-only (brand + last4). Best-effort; never blocks the profile.
       try {
         const cardsRes = await fetch(
-          `/api/admin/villagers/payment-methods?memberUserId=${memberUserId}`,
+          `/api/admin/villagers/payment-methods?memberId=${memberId}`,
           { cache: "no-store" },
         );
         const cd = await cardsRes.json().catch(() => ({}));
@@ -178,7 +178,7 @@ export default function MemberLookupModal({ onClose }: { onClose: () => void }) 
       // Support tickets archive — best-effort; never blocks the profile.
       try {
         const tRes = await fetch(
-          `/api/admin/villagers/support-tickets?memberUserId=${memberUserId}`,
+          `/api/admin/villagers/support-tickets?memberId=${memberId}`,
           { cache: "no-store" },
         );
         const td = await tRes.json().catch(() => ({}));
@@ -226,7 +226,7 @@ export default function MemberLookupModal({ onClose }: { onClose: () => void }) 
         method: "PUT",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          memberUserId: selected.id,
+          memberId: selected.id,
           planInterval: planInterval || null,
           chargeStartAt: chargeStartAt || null,
           customAmountCents: cents,
@@ -455,7 +455,7 @@ export default function MemberLookupModal({ onClose }: { onClose: () => void }) 
 
                 {chargeTarget && selected && (
                   <ChargeCardModal
-                    memberUserId={selected.id}
+                    memberId={selected.id}
                     memberName={selected.name ?? selected.email}
                     card={chargeTarget}
                     onClose={() => setChargeTarget(null)}

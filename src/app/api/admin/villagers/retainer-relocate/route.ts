@@ -1,7 +1,7 @@
 // POST /api/admin/villagers/retainer-relocate — proxy a member's retainer → available|cash MOVE to
 // tgv.com's relocate engine (advisory-locked, audited, balance-conserving, idempotent on moveId).
 //
-//   POST { memberUserId, amountTokens, target:'available'|'cash', moveId, env? }
+//   POST { memberId, amountTokens, target:'available'|'cash', moveId, env? }
 //
 // Office never touches the ledger — the move runs on tgv.com via the internal-secret (operator-auth)
 // seam, attributed to the operator's legacy users.id. Operator-only (requireAdmin).
@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
   if (!actorId) return NextResponse.json({ error: "no_actor_for_audit" }, { status: 500 });
 
   const body = (await req.json().catch(() => null)) as
-    | { memberUserId?: string; amountTokens?: number; target?: string; moveId?: string; env?: string }
+    | { memberId?: string; amountTokens?: number; target?: string; moveId?: string; env?: string }
     | null;
   if (!body || typeof body !== "object" || Array.isArray(body)) {
     return NextResponse.json({ error: "invalid_body" }, { status: 400 });
@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
   // Forward only what tgv.com's relocate route reads; it re-validates everything (uuid, target,
   // positive int) and is the authoritative boundary.
   const forward = {
-    memberUserId: body.memberUserId,
+    memberId: body.memberId,
     amountTokens: body.amountTokens,
     target: body.target,
     moveId: body.moveId,

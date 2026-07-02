@@ -72,7 +72,7 @@ export async function GET(req: NextRequest) {
         const bookingRows = (
           await db.execute(sql`
             select id::text as id, status::text as status, booked_online,
-                   member_user_id::text as member_user_id, created_at
+                   member_id::text as member_id, created_at
               from ${sch}.studio_bookings
              where site_id = ${mid}
              order by created_at desc
@@ -82,7 +82,7 @@ export async function GET(req: NextRequest) {
           id: string;
           status: string;
           booked_online: boolean;
-          member_user_id: string | null;
+          member_id: string | null;
           created_at: string | Date;
         }>;
         for (const r of bookingRows) {
@@ -93,7 +93,7 @@ export async function GET(req: NextRequest) {
             label: `${tenant}: booking ${r.status.replaceAll("_", " ")}`,
             detail: r.booked_online ? "online self-service" : "operator / walk-in",
             ip: null,
-            by: r.member_user_id,
+            by: r.member_id,
             outcome: WARN_BOOKING_STATUS.has(r.status) ? "warn" : "ok",
           });
         }

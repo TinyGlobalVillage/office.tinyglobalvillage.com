@@ -124,7 +124,7 @@ export function rosterEmailForUsername(username: string | undefined): string | n
  *  (member-session or NextAuth — both produce the same Office username). Used by
  *  the enrollment + recovery flows. Null if the username isn't on the roster or
  *  has no members row. */
-export async function memberUserIdForUsername(
+export async function memberIdForUsername(
   username: string | undefined,
 ): Promise<string | null> {
   const email = rosterEmailForUsername(username);
@@ -143,13 +143,13 @@ export async function memberUserIdForUsername(
 /** Office username for a members uuid (via email → roster), for
  *  human-readable audit logs on the member login path. Null if the uuid has no
  *  email or the email isn't on the Office staff roster. */
-export async function usernameForMemberUserId(
-  memberUserId: string,
+export async function usernameForMemberId(
+  memberId: string,
 ): Promise<string | null> {
   try {
     const { rows } = await pgPool.query<{ email: string }>(
       "SELECT email FROM members WHERE id = $1 LIMIT 1",
-      [memberUserId],
+      [memberId],
     );
     const email = rows[0]?.email?.toLowerCase();
     if (!email) return null;

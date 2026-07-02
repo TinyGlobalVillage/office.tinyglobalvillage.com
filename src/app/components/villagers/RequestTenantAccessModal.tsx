@@ -63,7 +63,7 @@ export default function RequestTenantAccessModal({ onClose }: { onClose: () => v
       const r = await fetch("/api/admin/consent/request", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ targetMemberId: tenantId, scopes: Array.from(scopes), note: note.trim() || undefined }),
+        body: JSON.stringify({ targetSiteId: tenantId, scopes: Array.from(scopes), note: note.trim() || undefined }),
       });
       const j = await r.json().catch(() => ({}));
       if (!r.ok || j?.ok === false) setErr(j?.error || `Failed (${r.status})`);

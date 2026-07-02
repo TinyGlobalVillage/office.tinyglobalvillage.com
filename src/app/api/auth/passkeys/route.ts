@@ -7,7 +7,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/api-auth";
 import { readUsers } from "@/lib/users";
-import { memberUserIdForUsername } from "@/lib/member-auth/bridge";
+import { memberIdForUsername } from "@/lib/member-auth/bridge";
 import { officeMemberAuth } from "@/lib/member-auth/config";
 
 export const runtime = "nodejs";
@@ -27,9 +27,9 @@ export async function GET(req: NextRequest) {
     byId.set(c.id, { id: c.id, deviceName: c.deviceName ?? "Passkey", createdAt: c.createdAt ?? "" });
   }
 
-  const memberUserId = await memberUserIdForUsername(username);
-  if (memberUserId) {
-    const mks = await officeMemberAuth.listPasskeysForUser(memberUserId);
+  const memberId = await memberIdForUsername(username);
+  if (memberId) {
+    const mks = await officeMemberAuth.listPasskeysForUser(memberId);
     for (const k of mks) {
       byId.set(k.credentialId, {
         id: k.credentialId,

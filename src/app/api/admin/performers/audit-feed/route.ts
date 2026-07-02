@@ -73,7 +73,7 @@ export async function GET(req: NextRequest) {
         const gigRows = (
           await db.execute(sql`
             select g.id::text as id, g.status::text as status, p.stage_name as performer,
-                   g.buyer_member_user_id::text as buyer, g.created_at
+                   g.buyer_member_id::text as buyer, g.created_at
               from ${sch}.performer_gigs g
               left join ${sch}.performer_profiles p on p.id = g.performer_id
              where g.site_id = ${mid}

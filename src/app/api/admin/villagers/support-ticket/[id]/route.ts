@@ -24,7 +24,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     SELECT t.id::text AS id, t.status, t.subject, t.requester_name, t.requester_email,
            t.opened_at, t.closed_at, asg.name AS assigned_name
       FROM public.support_tickets t
-      LEFT JOIN public.members asg ON asg.id = t.assigned_staff_member_user_id
+      LEFT JOIN public.members asg ON asg.id = t.assigned_staff_member_id
      WHERE t.id = ${id} LIMIT 1`);
   const t = rows(tr)[0];
   if (!t) return NextResponse.json({ ok: false, error: "not_found" }, { status: 404 });
@@ -32,7 +32,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   const mr = await db.execute(sql`
     SELECT m.id::text AS id, m.author_kind, m.body, m.created_at, au.name AS author_name
       FROM public.support_messages m
-      LEFT JOIN public.members au ON au.id = m.author_member_user_id
+      LEFT JOIN public.members au ON au.id = m.author_member_id
      WHERE m.ticket_id = ${id} ORDER BY m.created_at ASC`);
 
   const ticket = {

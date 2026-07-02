@@ -1,6 +1,6 @@
 // /api/admin/villagers/payment-methods — operator view of a member's saved cards.
 //
-// GET ?memberUserId=<uuid>
+// GET ?memberId=<uuid>
 //   → { ok, cards: [{ id, brand, last4, expMonth, expYear, cardholderName, isDefault,
 //        chargeAuthorizedAt }], hasCards }
 //   chargeAuthorizedAt (null = "needs authorization") gates the operator "Charge saved card" action.
@@ -39,12 +39,12 @@ export async function GET(req: NextRequest) {
   const gate = await requireAdmin(req);
   if (gate instanceof NextResponse) return gate;
 
-  const memberUserId = (
-    new URL(req.url).searchParams.get("memberUserId") ?? ""
+  const memberId = (
+    new URL(req.url).searchParams.get("memberId") ?? ""
   ).trim();
-  if (!UUID_RE.test(memberUserId)) {
+  if (!UUID_RE.test(memberId)) {
     return NextResponse.json(
-      { ok: false, error: "memberUserId must be a uuid" },
+      { ok: false, error: "memberId must be a uuid" },
       { status: 400 },
     );
   }
@@ -61,7 +61,7 @@ export async function GET(req: NextRequest) {
     FROM public.members mu
     JOIN public.users u            ON lower(u.email) = lower(mu.email)
     JOIN public.payment_methods pm ON pm.user_id = u.id
-    WHERE mu.id = ${memberUserId}
+    WHERE mu.id = ${memberId}
     ORDER BY pm.is_default DESC, pm.created_at ASC
   `);
   const rows = (res as unknown as { rows?: CardRow[] }).rows ?? [];

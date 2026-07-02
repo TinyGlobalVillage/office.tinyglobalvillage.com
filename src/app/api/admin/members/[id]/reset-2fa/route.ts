@@ -90,12 +90,12 @@ export async function POST(req: NextRequest, { params }: Params) {
 
     const deletedPasskeys = await tx
       .delete(schema.memberPasskeys)
-      .where(eq(schema.memberPasskeys.memberUserId, id))
+      .where(eq(schema.memberPasskeys.memberId, id))
       .returning({ credentialId: schema.memberPasskeys.credentialId });
 
     await tx
       .delete(schema.memberPasskeyChallenges)
-      .where(eq(schema.memberPasskeyChallenges.memberUserId, id));
+      .where(eq(schema.memberPasskeyChallenges.memberId, id));
 
     const deletedSessions = await tx
       .delete(schema.memberSessions)

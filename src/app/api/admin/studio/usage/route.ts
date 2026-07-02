@@ -88,7 +88,7 @@ export async function GET(req: NextRequest) {
               count(*) filter (where status = 'no_show')::int         as no_show,
               count(*) filter (where status = 'late_cancelled')::int  as late_cancelled,
               count(*) filter (where status = 'cancelled')::int       as cancelled,
-              count(distinct member_user_id)::int                     as clients
+              count(distinct member_id)::int                     as clients
             from ${sch}.studio_bookings
             where site_id = ${mid}
           `)

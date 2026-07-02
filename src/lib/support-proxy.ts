@@ -1,6 +1,6 @@
 // src/lib/support-proxy.ts
 // Office Front Desk "Tickets" tab → tgv.com's support desk (/api/support/queue/*). Office holds no
-// support logic; it forwards over the internal seam (INTERNAL_API_SECRET + x-operator-member-user-id),
+// support logic; it forwards over the internal seam (INTERNAL_API_SECRET + x-operator-member-id),
 // so a claim/reply/complete from the Office Front Desk is the SAME atomic operation on the SAME
 // support_tickets rows as the dashboard chat-bubble Support queue. tgv.com re-validates everything.
 //
@@ -16,7 +16,7 @@ import { rosterEmailForUsername } from "./member-auth/bridge";
 const memberIdCache = new Map<string, string>();
 
 /** Office staff username → their members.id (the support staff identity). Cached per worker. */
-export async function resolveAdminMemberUserId(
+export async function resolveAdminMemberId(
   officeUsername: string | null | undefined,
 ): Promise<string | null> {
   if (!officeUsername) return null;
@@ -48,15 +48,15 @@ export async function proxySupport(
   const secret = process.env.INTERNAL_API_SECRET;
   if (!secret) return NextResponse.json({ error: "internal_secret_unconfigured" }, { status: 503 });
 
-  const memberUserId = await resolveAdminMemberUserId(gate.username);
-  if (!memberUserId) return NextResponse.json({ error: "no_member_identity" }, { status: 403 });
+  const memberId = await resolveAdminMemberId(gate.username);
+  if (!memberId) return NextResponse.json({ error: "no_member_identity" }, { status: 403 });
 
   const init: RequestInit = {
     method: opts.method,
     headers: {
       "content-type": "application/json",
       "x-internal-secret": secret,
-      "x-operator-member-user-id": memberUserId,
+      "x-operator-member-id": memberId,
     },
     cache: "no-store",
   };

@@ -13,7 +13,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/api-admin";
 import { readUsers, updateUser } from "@/lib/users";
 import { logHardeningAction } from "@/lib/audit-log";
-import { memberUserIdForUsername } from "@/lib/member-auth/bridge";
+import { memberIdForUsername } from "@/lib/member-auth/bridge";
 import { pgPool } from "@/lib/pg-pool";
 
 export const runtime = "nodejs";
@@ -52,8 +52,8 @@ export async function POST(
   // fully reset here (their member credentials — the standing login — would be
   // left untouched), so fail LOUDLY rather than silently clearing only the
   // legacy store and reporting success.
-  const memberUserId = await memberUserIdForUsername(username);
-  if (!memberUserId) {
+  const memberId = await memberIdForUsername(username);
+  if (!memberId) {
     logHardeningAction({ action: "auth.passkey.reset", target: username, user: gate.username, success: false, details: { error: "no_member_row" } });
     return NextResponse.json({ error: "no_member_row" }, { status: 400 });
   }
@@ -66,13 +66,13 @@ export async function POST(
   const client = await pgPool.connect();
   try {
     await client.query("BEGIN");
-    const del = await client.query("DELETE FROM member_passkeys WHERE member_user_id = $1", [memberUserId]);
+    const del = await client.query("DELETE FROM member_passkeys WHERE member_id = $1", [memberId]);
     memberPasskeysCleared = del.rowCount ?? 0;
     await client.query(
       "UPDATE members SET recovery_codes_hash = '{}', totp_secret = NULL, totp_enrolled_at = NULL WHERE id = $1",
-      [memberUserId],
+      [memberId],
     );
-    await client.query("DELETE FROM member_sessions WHERE user_id = $1", [memberUserId]);
+    await client.query("DELETE FROM member_sessions WHERE user_id = $1", [memberId]);
     await client.query("COMMIT");
   } catch (e) {
     await client.query("ROLLBACK").catch(() => {});

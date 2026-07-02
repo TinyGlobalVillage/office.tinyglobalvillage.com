@@ -35,7 +35,7 @@ type WithdrawalStatus = "requested" | "approved" | "paid" | "failed" | "cancelle
 // snake_case — these rows come straight from tgv_db via the raw-SQL queue route.
 type WithdrawalRow = {
   id: string;
-  member_user_id: string;
+  member_id: string;
   env: string;
   amount_tokens: number;
   amount_cents: number;
@@ -294,7 +294,7 @@ export default function PayoutsModal({ onClose }: { onClose: () => void }) {
                       const rowErr = actionErr?.id === w.id ? actionErr.msg : null;
                       return (
                         <tr key={w.id}>
-                          <td><Mono>{w.member_user_id.slice(0, 8)}</Mono></td>
+                          <td><Mono>{w.member_id.slice(0, 8)}</Mono></td>
                           <td><EnvPill $live={w.env === "live"}>{w.env}</EnvPill></td>
                           <td>
                             {w.amount_tokens} tok <Dim>({usd(w.amount_cents)})</Dim>
