@@ -37,6 +37,13 @@ type Props = {
   onCancel: () => void;
 };
 
+// A confirm spawned FROM another modal must stack above it. The shared ModalBackdrop
+// sits at z-index 100, but callers live higher (e-sign modals 1000, MediaConverter
+// 10500, ChatDrawer 11000) — so this dialog gets its own top layer.
+const ConfirmBackdrop = styled(ModalBackdrop)`
+  z-index: 12000;
+`;
+
 const Footer = styled.div`
   display: flex;
   gap: 0.6rem;
@@ -111,7 +118,7 @@ export default function ConfirmModal({
   const titleColor = intent === "danger" ? colors.pink : colors.cyan;
 
   return (
-    <ModalBackdrop onClick={onCancel}>
+    <ConfirmBackdrop onClick={onCancel}>
       <ModalContainer
         $accent={accent}
         $maxWidth="28rem"
@@ -137,6 +144,6 @@ export default function ConfirmModal({
           </Footer>
         </ModalBody>
       </ModalContainer>
-    </ModalBackdrop>
+    </ConfirmBackdrop>
   );
 }
