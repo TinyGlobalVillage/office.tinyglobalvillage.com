@@ -22,6 +22,7 @@ const MigrateSiteControlModal = dynamic(() => import("../../components/migrate/M
 const DomainConsoleControlModal = dynamic(() => import("../../components/domain-console/DomainConsoleControlModal"), { ssr: false });
 const ESignControlModal = dynamic(() => import("../../components/esign/ESignControlModal"), { ssr: false });
 const DocumentsVaultModal = dynamic(() => import("../../components/esign/DocumentsVaultModal"), { ssr: false });
+const BuildGuardControlModal = dynamic(() => import("../../components/hardening/build-guard/BuildGuardControlModal"), { ssr: false });
 import AutomationsTab from "../../components/automations/AutomationsTab";
 import type { ShortLink } from "@tgv/module-page-editor/editor/component-library/marketing/link-tools";
 // Heavy feature packages — lazy-loaded so they don't sit in the Utils page's first-load JS.
@@ -1852,6 +1853,22 @@ function UtilsAdlSurface({
                         </HardeningTileSub>
                       </HardeningTile>
                     );
+                    if (tile.type === "build-guard") return (
+                      <HardeningTile key={i} type="button" onClick={() => onOpenHardening("build-guard")}>
+                        <HardeningTileTop>
+                          <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: "-2px", marginRight: 8 }}>
+                            <path d="M12 2l7 4v6c0 4-3 7-7 8-4-1-7-4-7-8V6z" />
+                            <path d="M9 12l2 2 4-4" />
+                          </svg>
+                          Build Concurrency
+                        </HardeningTileTop>
+                        <HardeningTileSub>
+                          Serial vs. allow-multiple next builds across sessions. Serial (default) blocks
+                          concurrent builds so two don&apos;t exhaust RAM; allow-multiple lifts it with an
+                          OOM/crash watchdog that auto-reverts to serial.
+                        </HardeningTileSub>
+                      </HardeningTile>
+                    );
                     if (tile.type === "tinyurl") return (
                       <LinkToolsTile key={i} type="button" onClick={() => onOpenLinkTool("tinyurl")}>
                         <LinkToolsTileTop>🔗 TinyURL Generator</LinkToolsTileTop>
@@ -1979,7 +1996,7 @@ type DefaultsOverlay = Record<string, Record<string, FieldValue>>;
 // opens its HardeningControlModal. New hardenings get a new tile + a new
 // `kind` value below.
 
-type HardeningKind = "telephony" | "tenant-apps" | "member-auth" | "office-staff" | "mesh-vpn" | "invitations" | "firewall";  // | "postgres" | "ssh" | "nginx" — future
+type HardeningKind = "telephony" | "tenant-apps" | "member-auth" | "office-staff" | "mesh-vpn" | "invitations" | "firewall" | "build-guard";  // | "postgres" | "ssh" | "nginx" — future
 
 // ── Link Tools (TinyURL + QR generators) ──────────────────────────────────
 //
@@ -2018,6 +2035,7 @@ type TileSpec =
   | { type: "mesh-vpn" }
   | { type: "invitations" }
   | { type: "firewall" }
+  | { type: "build-guard" }
   | { type: "tinyurl" }
   | { type: "qrcode" }
   | { type: "transcriber" }
@@ -2062,7 +2080,7 @@ const SECTIONS: Section[] = [
     kind: "actions", actionIds: ["gitrepo", "gitdelrepo"] },
   { id: "hardening", title: "Hardening", accent: "cyan",
     subtitle: "defensive mechanisms installed on RCS — controls + status + audit log",
-    kind: "tiles", tiles: [{ type: "firewall" }, { type: "telephony" }, { type: "tenant-apps" }, { type: "member-auth" }, { type: "office-staff" }, { type: "mesh-vpn" }, { type: "invitations" }] },
+    kind: "tiles", tiles: [{ type: "firewall" }, { type: "telephony" }, { type: "tenant-apps" }, { type: "member-auth" }, { type: "office-staff" }, { type: "mesh-vpn" }, { type: "invitations" }, { type: "build-guard" }] },
   { id: "linktools", title: "Link Tools", accent: "cyan",
     subtitle: "shorten URLs and generate scannable QR codes — pair them for printable mini-flyers",
     kind: "tiles", tiles: [{ type: "tinyurl" }, { type: "qrcode" }] },
@@ -2572,6 +2590,10 @@ export default function UtilsPage() {
 
       {openHardening === "firewall" && (
         <FirewallControlModal onClose={() => setOpenHardening(null)} />
+      )}
+
+      {openHardening === "build-guard" && (
+        <BuildGuardControlModal onClose={() => setOpenHardening(null)} />
       )}
 
       {openBackups && (

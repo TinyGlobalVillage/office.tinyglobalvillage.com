@@ -54,6 +54,12 @@ const DownloadIcon = ({ size = 15 }: { size?: number }) => (
     <path d="M12 3v12M7 11l5 5 5-5M4 21h16" />
   </svg>
 );
+const LinkIcon = ({ size = 15 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1" />
+    <path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1" />
+  </svg>
+);
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -73,6 +79,7 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
   const [note, setNote] = useState("");
   const [channel, setChannel] = useState<"email" | "link">("email");
   const [sending, setSending] = useState(false);
+  const [recordedUrl, setRecordedUrl] = useState<string | null>(null); // set after "Record & get link"; resets on doc change/close
 
   // library-tab upload state
   const [uploadFile, setUploadFile] = useState<File | null>(null);
@@ -171,6 +178,9 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
+  // A recorded link is per-document; changing the selected doc invalidates it.
+  useEffect(() => { setRecordedUrl(null); }, [selectedDocId]);
+
   const addRecipient = (email: string, name: string | null) => {
     const e = email.trim().toLowerCase();
     if (!EMAIL_RE.test(e)) { setMsg(`"${email}" is not a valid email`); return; }
@@ -197,8 +207,9 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
       setMsg(
         channel === "email"
           ? `Sent to ${recipients.length} recipient(s) — ${emailed} emailed${failed.length ? `, ${failed.length} failed` : ""}.`
-          : `Link recorded for ${recipients.length} recipient(s). Copy it below.`,
+          : `Link recorded for ${recipients.length} recipient(s). Use “Copy link”.`,
       );
+      if (channel === "link" && typeof d.url === "string") setRecordedUrl(d.url);
       setRecipients([]); setNote("");
       await loadActivity();
     } finally {
@@ -311,9 +322,20 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
                   <ChBtn $active={channel === "email"} onClick={() => setChannel("email")}>Email the link</ChBtn>
                   <ChBtn $active={channel === "link"} onClick={() => setChannel("link")}>Just record (copy link)</ChBtn>
                 </ChannelToggle>
-                <PrimaryBtn type="button" disabled={sending || !configured} onClick={send}>
-                  {sending ? "Sending…" : channel === "email" ? "Send for signature" : "Record & get link"}
-                </PrimaryBtn>
+                {channel === "email" ? (
+                  <PrimaryBtn type="button" disabled={sending || !configured} onClick={send}>
+                    {sending ? "Sending…" : "Send for signature"}
+                  </PrimaryBtn>
+                ) : (
+                  <LinkActions>
+                    <PrimaryBtn style={{ marginLeft: 0 }} type="button" disabled={sending || !configured || !!recordedUrl} onClick={send}>
+                      {sending ? "Recording…" : recordedUrl ? "Recorded" : "Record & get link"}
+                    </PrimaryBtn>
+                    <CopyIconBtn type="button" disabled={!recordedUrl} title="Copy signing link" aria-label="Copy signing link" onClick={() => copyLink(recordedUrl)}>
+                      <LinkIcon size={15} />
+                    </CopyIconBtn>
+                  </LinkActions>
+                )}
               </Row>
             </Section>
           )}
@@ -467,7 +489,15 @@ const ChBtn = styled.button<{ $active: boolean }>`
 const PrimaryBtn = styled.button`
   margin-left: auto; background: #3aa0ff; color: #001a2e; border: none; border-radius: 8px;
   padding: 9px 18px; font-size: 13px; font-weight: 650; cursor: pointer;
-  &:hover { background: #58b0ff; } &:disabled { opacity: 0.45; cursor: default; }
+  &:hover:not(:disabled) { background: #58b0ff; } &:disabled { opacity: 0.45; cursor: default; }
+`;
+const LinkActions = styled.div`margin-left: auto; display: flex; align-items: center; gap: 8px;`;
+const CopyIconBtn = styled.button`
+  display: inline-flex; align-items: center; justify-content: center; padding: 8px;
+  border-radius: 8px; border: 1px solid rgba(120,200,255,0.3); background: rgba(120,200,255,0.1);
+  color: #cfe9ff; cursor: pointer;
+  &:hover:not(:disabled) { background: rgba(120,200,255,0.2); border-color: rgba(120,200,255,0.55); }
+  &:disabled { opacity: 0.35; cursor: default; }
 `;
 const GhostBtn = styled.button`${baseField} cursor: pointer; flex: 0 0 auto; font-size: 12px; padding: 6px 12px; &:hover { border-color: rgba(120,200,255,0.5); }`;
 const DropZone = styled.div<{ $dragging: boolean }>`
