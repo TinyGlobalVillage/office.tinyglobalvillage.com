@@ -2,23 +2,26 @@
 
 import { useState, useEffect, useMemo, useRef, ReactNode } from "react";
 import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import styled, { keyframes } from "styled-components";
 import { colors, rgb } from "../../theme";
 import TopNav from "../../components/TopNav";
 import { useTerminal } from "../../components/TerminalProvider";
 import SettingsIcon from "../../components/icons/SettingsIcon";
-import TelephonyControlModal from "../../components/hardening/telephony/TelephonyControlModal";
-import TenantAppsControlModal from "../../components/hardening/tenant-apps/TenantAppsControlModal";
-import MemberAuthControlModal from "../../components/hardening/member-auth/MemberAuthControlModal";
-import OfficeStaffControlModal from "../../components/hardening/office-staff/OfficeStaffControlModal";
-import MeshVpnControlModal from "../../components/hardening/mesh-vpn/MeshVpnControlModal";
-import InvitationsControlModal from "../../components/hardening/invitations/InvitationsControlModal";
-import FirewallControlModal from "../../components/hardening/firewall/FirewallControlModal";
-import BackupsControlModal from "../../components/backups/BackupsControlModal";
-import MigrateSiteControlModal from "../../components/migrate/MigrateSiteControlModal";
-import DomainConsoleControlModal from "../../components/domain-console/DomainConsoleControlModal";
-import ESignControlModal from "../../components/esign/ESignControlModal";
-import DocumentsVaultModal from "../../components/esign/DocumentsVaultModal";
+// Modals are lazy-loaded (next/dynamic, client-only): each ships as its own chunk fetched
+// only when opened, so the Utils page's initial JS doesn't carry all 12 modals up front.
+const TelephonyControlModal = dynamic(() => import("../../components/hardening/telephony/TelephonyControlModal"), { ssr: false });
+const TenantAppsControlModal = dynamic(() => import("../../components/hardening/tenant-apps/TenantAppsControlModal"), { ssr: false });
+const MemberAuthControlModal = dynamic(() => import("../../components/hardening/member-auth/MemberAuthControlModal"), { ssr: false });
+const OfficeStaffControlModal = dynamic(() => import("../../components/hardening/office-staff/OfficeStaffControlModal"), { ssr: false });
+const MeshVpnControlModal = dynamic(() => import("../../components/hardening/mesh-vpn/MeshVpnControlModal"), { ssr: false });
+const InvitationsControlModal = dynamic(() => import("../../components/hardening/invitations/InvitationsControlModal"), { ssr: false });
+const FirewallControlModal = dynamic(() => import("../../components/hardening/firewall/FirewallControlModal"), { ssr: false });
+const BackupsControlModal = dynamic(() => import("../../components/backups/BackupsControlModal"), { ssr: false });
+const MigrateSiteControlModal = dynamic(() => import("../../components/migrate/MigrateSiteControlModal"), { ssr: false });
+const DomainConsoleControlModal = dynamic(() => import("../../components/domain-console/DomainConsoleControlModal"), { ssr: false });
+const ESignControlModal = dynamic(() => import("../../components/esign/ESignControlModal"), { ssr: false });
+const DocumentsVaultModal = dynamic(() => import("../../components/esign/DocumentsVaultModal"), { ssr: false });
 import AutomationsTab from "../../components/automations/AutomationsTab";
 import {
   TinyURLGenerator,
