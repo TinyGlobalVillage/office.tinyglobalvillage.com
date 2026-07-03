@@ -22,7 +22,6 @@ import type { ShiftAssignment } from "@/lib/frontdesk/types";
 import ShiftWorkerModal from "./ShiftWorkerModal";
 import DidManagerModal from "./DidManagerModal";
 import SystemToolsModal from "./SystemToolsModal";
-import SavedCallsModal from "./SavedCallsModal";
 import { EditIcon, SettingsIcon } from "../icons";
 
 const EXEC_USERNAMES = new Set(["admin", "marmar"]);
@@ -140,9 +139,6 @@ export default function FrontDeskShiftBar() {
             <AdminBtn type="button" onClick={() => setModal("dids")}>
               <EditIcon size={10} /> DIDs
             </AdminBtn>
-            <AdminBtn type="button" onClick={() => setModal("saved")} title="Saved call recordings">
-              <EditIcon size={10} /> Saved
-            </AdminBtn>
           </AdminRow>
         )}
       </Bar>
@@ -163,11 +159,6 @@ export default function FrontDeskShiftBar() {
       {modal === "dids" && (
         <DidManagerModal
           onClose={() => { setModal(null); broadcast(); }}
-        />
-      )}
-      {modal === "saved" && (
-        <SavedCallsModal
-          onClose={() => setModal(null)}
         />
       )}
     </>
