@@ -29,7 +29,7 @@ import {
   ModalBody,
 } from "@/app/styled";
 import NeonX from "../NeonX";
-import { askConfirm } from "../dialogService";
+import { askConfirm, askPrompt } from "../dialogService";
 
 type WithdrawalStatus = "requested" | "approved" | "paid" | "failed" | "cancelled";
 
@@ -170,10 +170,12 @@ export default function PayoutsModal({ onClose }: { onClose: () => void }) {
           )
             return;
         }
-        const ref = window.prompt(
-          `${op === "releaseNow" ? "Release (pay)" : "Mark"} ${tag} PAID.\n` +
-            `Enter the payout reference (bank / transfer id) — required for the operator_advance rail:`,
-        );
+        const ref = await askPrompt({
+          title: "Payout reference",
+          message: `${op === "releaseNow" ? "Release (pay)" : "Mark"} ${tag} PAID.`,
+          detail: "Enter the payout reference (bank / transfer id) — required for the operator_advance rail:",
+          placeholder: "bank / transfer id",
+        });
         if (ref === null) return; // dismissed
         if (!ref.trim()) {
           setActionErr({ id: w.id, msg: "A payout reference is required to pay." });
@@ -184,7 +186,10 @@ export default function PayoutsModal({ onClose }: { onClose: () => void }) {
         const verb = op === "approve" ? "Approve" : op === "markFailed" ? "Mark FAILED" : "Cancel";
         if (!(await askConfirm({ title: "Confirm payout action?", message: `${verb} withdrawal ${tag}?`, confirmLabel: "Confirm" }))) return;
         if (op === "markFailed" || op === "cancel") {
-          const n = window.prompt("Optional note (reason) — blank for none:") ?? "";
+          const n = (await askPrompt({
+            title: "Add a note?",
+            message: "Optional note (reason) — blank for none:",
+          })) ?? "";
           if (n.trim()) note = n.trim();
         }
       }

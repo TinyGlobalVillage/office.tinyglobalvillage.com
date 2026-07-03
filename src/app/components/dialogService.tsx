@@ -17,7 +17,9 @@
  * browser-only.
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import styled from "styled-components";
+import { rgb } from "../theme";
 import ConfirmModal from "./frontdesk/ConfirmModal";
 
 export type ConfirmOptions = {
@@ -36,11 +38,20 @@ export type NoticeOptions = {
   intent?: "danger" | "primary";
 };
 
-type PendingDialog = {
-  kind: "confirm" | "notice";
-  opts: ConfirmOptions;
-  resolve: (ok: boolean) => void;
+export type PromptOptions = {
+  title?: string;
+  message: string;
+  detail?: string;
+  placeholder?: string;
+  initialValue?: string;
+  confirmLabel?: string;
+  cancelLabel?: string;
+  intent?: "danger" | "primary";
 };
+
+type PendingDialog =
+  | { kind: "confirm" | "notice"; opts: ConfirmOptions; resolve: (ok: boolean) => void }
+  | { kind: "prompt"; opts: PromptOptions; resolve: (value: string | null) => void };
 
 const queue: PendingDialog[] = [];
 let notifyHost: (() => void) | null = null;
@@ -64,8 +75,29 @@ export function showNotice(opts: NoticeOptions): Promise<void> {
   );
 }
 
+/** Styled window.prompt. Resolves the entered string on OK, null on cancel. */
+export function askPrompt(opts: PromptOptions): Promise<string | null> {
+  if (typeof window === "undefined") return Promise.resolve(null);
+  return new Promise<string | null>((resolve) => enqueue({ kind: "prompt", opts, resolve }));
+}
+
+const PromptInput = styled.input`
+  width: 100%;
+  margin-top: 0.85rem;
+  padding: 0.55rem 0.75rem;
+  font-size: 0.875rem;
+  color: var(--t-textBase);
+  background: var(--t-inputBg);
+  border: 1px solid var(--t-border);
+  border-radius: 0.5rem;
+  outline: none;
+
+  &:focus { border-color: rgba(${rgb.cyan}, 0.55); }
+`;
+
 export function DialogHost() {
   const [current, setCurrent] = useState<PendingDialog | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const pump = () => {
@@ -78,8 +110,18 @@ export function DialogHost() {
     };
   }, []);
 
+  // Prompt mode: focus the input when the dialog appears (autoFocus lands on
+  // the confirm button otherwise).
+  useEffect(() => {
+    if (current?.kind === "prompt") inputRef.current?.focus();
+  }, [current]);
+
   const settle = (ok: boolean) => {
-    current?.resolve(ok);
+    if (current?.kind === "prompt") {
+      current.resolve(ok ? (inputRef.current?.value ?? "") : null);
+    } else {
+      current?.resolve(ok);
+    }
     // Show the next queued dialog (if any) after this one settles.
     setCurrent(queue.shift() ?? null);
   };
@@ -92,12 +134,26 @@ export function DialogHost() {
       title={opts.title ?? (kind === "notice" ? "Notice" : "Are you sure?")}
       message={opts.message}
       detail={opts.detail}
-      confirmLabel={opts.confirmLabel ?? (kind === "notice" ? "OK" : "Confirm")}
+      confirmLabel={opts.confirmLabel ?? (kind === "notice" ? "OK" : kind === "prompt" ? "OK" : "Confirm")}
       cancelLabel={opts.cancelLabel ?? "Cancel"}
-      intent={opts.intent ?? "danger"}
+      intent={opts.intent ?? (kind === "prompt" ? "primary" : "danger")}
       hideCancel={kind === "notice"}
       onConfirm={() => settle(true)}
       onCancel={() => settle(false)}
-    />
+    >
+      {kind === "prompt" && (
+        <PromptInput
+          ref={inputRef}
+          defaultValue={(opts as PromptOptions).initialValue ?? ""}
+          placeholder={(opts as PromptOptions).placeholder}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              settle(true);
+            }
+          }}
+        />
+      )}
+    </ConfirmModal>
   );
 }

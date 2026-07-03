@@ -45,6 +45,7 @@ import SandboxClaudeDrawer from "./SandboxClaudeDrawer";
 import { createPortal } from "react-dom";
 import Tooltip from "../ui/Tooltip";
 import { DeployIcon, EditIcon } from "../icons";
+import { askPrompt } from "../dialogService";
 
 const TT_ACCENT = "#ff4ecb";
 
@@ -2332,10 +2333,12 @@ function TemplatePreview({
               })}
               <TemplateAddSectionRow>
                 <TemplateSectionBtn
-                  onClick={() => {
-                    const type = window.prompt(
-                      "New section type (catalog entry id, e.g. 'text-rich-text'):",
-                    );
+                  onClick={async () => {
+                    const type = await askPrompt({
+                      title: "New section",
+                      message: "New section type (catalog entry id, e.g. 'text-rich-text'):",
+                      placeholder: "text-rich-text",
+                    });
                     if (!type) return;
                     updateDraft((m) => {
                       if (!m.sections) m.sections = [];

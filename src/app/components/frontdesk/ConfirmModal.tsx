@@ -10,6 +10,7 @@
  *   - "primary" — cyan accent, neutral confirm.
  */
 
+import { type ReactNode } from "react";
 import styled from "styled-components";
 import { useEscapeToClose } from "@tgv/module-component-library/components/hooks/useEscapeToClose";
 import { colors, rgb } from "../../theme";
@@ -35,6 +36,8 @@ type Props = {
   intent?: Intent;
   /** Notice mode: hide the cancel button (OK-only dialogs, alert() replacement). */
   hideCancel?: boolean;
+  /** Optional slot between detail and the footer (e.g. the prompt input). */
+  children?: ReactNode;
   onConfirm: () => void | Promise<void>;
   onCancel: () => void;
 };
@@ -110,6 +113,7 @@ export default function ConfirmModal({
   cancelLabel = "Cancel",
   intent = "danger",
   hideCancel = false,
+  children,
   onConfirm,
   onCancel,
 }: Props) {
@@ -139,6 +143,7 @@ export default function ConfirmModal({
         <ModalBody>
           <Message>{message}</Message>
           {detail && <Detail>{detail}</Detail>}
+          {children}
           <Footer>
             {!hideCancel && <Btn $variant="ghost" onClick={onCancel}>{cancelLabel}</Btn>}
             <Btn $variant={intent === "danger" ? "danger" : "primary"} onClick={onConfirm} autoFocus>
