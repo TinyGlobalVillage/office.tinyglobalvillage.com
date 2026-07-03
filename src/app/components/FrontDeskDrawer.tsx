@@ -263,6 +263,10 @@ const TabBar = styled.div`
   justify-content: center;
   gap: 0;
   padding: 0 0.5rem;
+  /* Inset like the ON-SHIFT card (its Bar uses 0.75rem side margins) so the
+     tab bands float with symmetric air instead of running edge-to-edge. */
+  margin: 0 0.75rem;
+  border-radius: 0.5rem;
   border-bottom: 1px solid rgba(${rgb.gold}, 0.15);
   background: rgba(${rgb.gold}, 0.035);
 `;
