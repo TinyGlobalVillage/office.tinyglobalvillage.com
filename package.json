@@ -59,7 +59,8 @@
     "three": "^0.184.0",
     "three-stdlib": "^2.0.0",
     "tslib": "^2.8.1",
-    "zod": "^4.3.6"
+    "zod": "^4.3.6",
+    "openid-client": "^6.1.7"
   },
   "devDependencies": {
     "@types/luxon": "^3.4.2",
