@@ -532,6 +532,14 @@ export default function PhoneTab() {
   // The flag rides as `X-Record: true|false` into the FreeSWITCH dialplan
   // and recorded-at-any-point is mirrored into CDR consentAcknowledged.
   const [recordCall, setRecordCall] = useState(false);
+  // Shared-line occupancy: while ANOTHER staff member is on the TGV line,
+  // the dialer is replaced by a "line in use" panel (operator ask 2026-07-03).
+  const [lineStatus, setLineStatus] = useState<{
+    inUse: boolean;
+    direction: "outbound" | "inbound" | null;
+    agent: string | null;
+    peer: string | null;
+  }>({ inUse: false, direction: null, agent: null, peer: null });
   // Mid-call recording toggle. Each ON→OFF stretch is its own segment file
   // (uuid_record via /api/frontdesk/calls/record); segments + toggle events
   // ride into the CDR at hangup. Refs mirror state so the terminated-effect
@@ -574,14 +582,24 @@ export default function PhoneTab() {
 
   const loadAll = useCallback(async () => {
     try {
-      const [didsRes, callsRes, meRes, profilesRes] = await Promise.all([
+      const [didsRes, callsRes, meRes, profilesRes, lineRes] = await Promise.all([
         fetch("/api/frontdesk/dids"),
         fetch("/api/frontdesk/calls/history?limit=50"),
         fetch("/api/users/me"),
         fetch("/api/users/profile"),
+        fetch("/api/frontdesk/calls/line-status", { cache: "no-store" }),
       ]);
       if (didsRes.ok) setDids((await didsRes.json()).dids ?? []);
       if (callsRes.ok) setCalls((await callsRes.json()).calls ?? []);
+      if (lineRes.ok) {
+        const j = await lineRes.json();
+        setLineStatus({
+          inUse: j.inUse === true,
+          direction: j.direction ?? null,
+          agent: j.agent ?? null,
+          peer: j.peer ?? null,
+        });
+      }
       if (meRes.ok) {
         const j = await meRes.json();
         setMe({ username: j.username, displayName: j.displayName });
@@ -695,6 +713,9 @@ export default function PhoneTab() {
     if (curr === "terminated") {
       setPeerName(null);
       setShowInCallKeypad(false);
+      // Refresh line-status promptly so my own just-ended call doesn't show
+      // as "line in use" until the next 15s poll.
+      setTimeout(() => void loadAll(), 1500);
     }
     if (curr === "terminated" && prev !== "terminated" && !activeCallRef.current) {
       // Inbound leg — the Telnyx webhook owns this CDR and never learns
@@ -834,7 +855,7 @@ export default function PhoneTab() {
           if (hit?.name) setPeerName(hit.name);
         })
         .catch(() => { /* name stays null → show the number */ });
-      await softphone.dial(normalized.replace(/^\+/, ""), selectedDid.e164, recordCall);
+      await softphone.dial(normalized.replace(/^\+/, ""), selectedDid.e164, recordCall, me?.username);
       setInput("");
     } catch (err) {
       activeCallRef.current = null;
@@ -880,7 +901,26 @@ export default function PhoneTab() {
         />
       )}
 
-      {!onCall ? (
+      {!onCall && lineStatus.inUse ? (
+        /* Someone ELSE is on the shared line — no dialer, just the status. */
+        <CallScreen>
+          <RingBadge $live={true}>
+            <PhoneIcon size={34} />
+          </RingBadge>
+          <CallStage>Line in use</CallStage>
+          <CallWho>
+            {lineStatus.agent
+              ? (profiles.find((p) => p.username === lineStatus.agent)?.displayName ?? lineStatus.agent)
+              : "A staff member"}
+          </CallWho>
+          <CallHint>
+            {lineStatus.direction === "outbound" ? "is on an outbound call"
+              : lineStatus.direction === "inbound" ? "is on an inbound call"
+              : "is on a call"}
+            {lineStatus.peer ? ` with ${formatPhoneDisplay(lineStatus.peer) || lineStatus.peer}` : ""}
+          </CallHint>
+        </CallScreen>
+      ) : !onCall ? (
       <>
       <Display
         value={formatPhoneInput(input)}

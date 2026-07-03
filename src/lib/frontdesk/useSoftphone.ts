@@ -116,7 +116,8 @@ export function useSoftphone() {
   }, []);
 
   const dial = useCallback(
-    (target: string, fromCid?: string, record: boolean = false) => invite(target, fromCid, record),
+    (target: string, fromCid?: string, record: boolean = false, agent?: string) =>
+      invite(target, fromCid, record, agent),
     [],
   );
   const hangup = useCallback(() => hangupCurrent(), []);

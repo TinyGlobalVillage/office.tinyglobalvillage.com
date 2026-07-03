@@ -174,6 +174,8 @@
         <action application="set" data="absolute_codec_string=PCMU,PCMA"/>
         <action application="set" data="ignore_early_media=ring_ready"/>
         <action application="set" data="instant_ringback=true"/>
+        <!-- Staff identity for the shared-line busy indicator (line-status API). -->
+        <action application="set" data="fd_agent=${sip_h_X-Agent}"/>
         <action application="set" data="effective_caller_id_number=${cond(${sip_h_X-CID} != '' ? ${sip_h_X-CID} : ${gw_tgv_office_caller_id})}"/>
         <!-- Outbound recording is OPT-IN (2026-07-02, supersedes the Item 4/B2
              opt-out): record ONLY when the softphone explicitly sent

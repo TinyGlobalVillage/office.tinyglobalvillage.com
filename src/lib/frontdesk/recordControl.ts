@@ -78,6 +78,43 @@ async function listChannelUuids(): Promise<string[]> {
   }
 }
 
+export type LineStatus = {
+  inUse: boolean;
+  /** Call direction from the BUSINESS's perspective (staff-outbound vs customer-inbound). */
+  direction: "outbound" | "inbound" | null;
+  /** Staff username when the call was placed from a Front Desk browser (X-Agent header). */
+  agent: string | null;
+  /** External party's number (dialed digits or caller-id), best-effort. */
+  peer: string | null;
+};
+
+/**
+ * Live line occupancy for the shared Front Desk line — other staff see a
+ * "line in use" panel instead of the dialer while a call is up. Staff
+ * identity rides the X-Agent INVITE header (dialplan copies it to fd_agent).
+ */
+export async function getLineStatus(): Promise<LineStatus> {
+  const uuids = await listChannelUuids();
+  if (uuids.length === 0) return { inUse: false, direction: null, agent: null, peer: null };
+
+  for (const uuid of uuids.slice(0, 6)) {
+    const agent = await getVar(uuid, "fd_agent");
+    if (agent) {
+      const dest = await getVar(uuid, "destination_number");
+      return { inUse: true, direction: "outbound", agent, peer: dest };
+    }
+  }
+  // No agent-placed leg → customer inbound; the caller's number is the
+  // caller_id of whichever leg has one that isn't an internal extension.
+  for (const uuid of uuids.slice(0, 6)) {
+    const cid = await getVar(uuid, "caller_id_number");
+    if (cid && !/^10\d\d$/.test(cid)) {
+      return { inUse: true, direction: "inbound", agent: null, peer: cid };
+    }
+  }
+  return { inUse: true, direction: null, agent: null, peer: null };
+}
+
 export type RecordingAnchor = {
   /** Channel the recording media-bug lives (or would live) on. */
   uuid: string;

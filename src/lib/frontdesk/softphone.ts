@@ -266,6 +266,7 @@ export async function invite(
   target: string,
   fromCid?: string,
   record: boolean = false,
+  agent?: string,
 ): Promise<void> {
   if (!ua) {
     emit({ kind: "error", detail: "softphone not initialized" });
@@ -285,6 +286,8 @@ export async function invite(
   // ALWAYS sent, so the dialplan's no-header fallback never applies here.
   const extraHeaders: string[] = [`X-Record: ${record ? "true" : "false"}`];
   if (fromCid) extraHeaders.unshift(`X-CID: ${fromCid}`);
+  // Staff identity for the shared-line busy indicator (dialplan → fd_agent).
+  if (agent) extraHeaders.push(`X-Agent: ${agent.replace(/[^\w.-]/g, "").slice(0, 32)}`);
   const inviter = new Inviter(ua, targetUri, {
     sessionDescriptionHandlerOptions: {
       constraints: { audio: true, video: false },
