@@ -9,6 +9,7 @@ import { TrashIcon, PhoneIcon, RecordIcon } from "../icons";
 import { FRONTDESK_DATA_CHANGED_EVENT } from "./FrontDeskShiftBar";
 import { useSoftphone } from "@/lib/frontdesk/useSoftphone";
 import { getCurrentCallId } from "@/lib/frontdesk/softphone";
+import { consumePendingDial } from "@/lib/frontdesk/dialBus";
 import { playDtmf } from "@/lib/frontdesk/ringTones";
 import {
   formatPhoneInput,
@@ -595,11 +596,22 @@ export default function PhoneTab() {
     };
   }, [loadAll]);
 
+  // Cross-tab dial intents. Tabs mount conditionally, so an intent fired
+  // from Contacts/SMS lands before this listener exists — the dialBus
+  // buffers it for the mount-time consume; the live event covers the
+  // already-mounted case (and clears the buffer so it can't double-fire).
+  const pendingAutoDialRef = useRef<string | null>(null);
   useEffect(() => {
+    const applyIntent = (intent: { to?: string; autoDial?: boolean } | null | undefined) => {
+      if (!intent?.to) return;
+      const raw = stripPhoneFormatting(intent.to);
+      setInput(raw);
+      pendingAutoDialRef.current = intent.autoDial ? raw : null;
+    };
+    applyIntent(consumePendingDial());
     const handler = (e: Event) => {
-      const detail = (e as CustomEvent).detail as { to?: string; autoDial?: boolean } | undefined;
-      if (!detail?.to) return;
-      setInput(stripPhoneFormatting(detail.to));
+      consumePendingDial();
+      applyIntent((e as CustomEvent).detail as { to?: string; autoDial?: boolean } | undefined);
     };
     window.addEventListener("frontdesk-dial-prefill", handler);
     return () => window.removeEventListener("frontdesk-dial-prefill", handler);
@@ -815,6 +827,18 @@ export default function PhoneTab() {
   };
 
   const hangup = () => softphone.hangup();
+
+  // Fire a buffered auto-dial once the softphone is actually ready — on a
+  // fresh tab mount the DID list and SIP registration arrive a beat after
+  // the prefill, so dialing inline at consume time would fail.
+  useEffect(() => {
+    const want = pendingAutoDialRef.current;
+    if (!want) return;
+    if (onCall || softphone.status !== "registered" || !selectedDid) return;
+    if (stripPhoneFormatting(input) !== want) return;
+    pendingAutoDialRef.current = null;
+    void dial();
+  }, [input, softphone.status, selectedDid, onCall]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <Wrap>

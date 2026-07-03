@@ -8,6 +8,7 @@ import type { SmsMessage } from "@/lib/frontdesk/types";
 import { SendIcon, PhoneIcon } from "../icons";
 import ConfirmModal from "./ConfirmModal";
 import { askConfirm, showNotice } from "../dialogService";
+import { consumePendingSms, setPendingDial } from "@/lib/frontdesk/dialBus";
 
 // Client-side phone normalizer (mirror of server's toE164 in lib/frontdesk/store.ts).
 // Loose by design — accepts US 10/11 digit, +<digits>, or short codes.
@@ -484,12 +485,18 @@ export default function SmsTab() {
   }, []);
 
   useEffect(() => {
-    const handler = (e: Event) => {
-      const detail = (e as CustomEvent).detail as { peer?: string } | undefined;
-      if (!detail?.peer) return;
-      setActivePeer(detail.peer);
+    const applyIntent = (intent: { peer?: string } | null | undefined) => {
+      if (!intent?.peer) return;
+      setActivePeer(intent.peer);
       setActivePeerName(null);
       setMessages([]);
+    };
+    // Tabs mount conditionally — consume an intent buffered while this tab
+    // was unmounted (Contacts → SMS); the live event covers the mounted case.
+    applyIntent(consumePendingSms());
+    const handler = (e: Event) => {
+      consumePendingSms();
+      applyIntent((e as CustomEvent).detail as { peer?: string } | undefined);
     };
     window.addEventListener("frontdesk-sms-open", handler);
     return () => window.removeEventListener("frontdesk-sms-open", handler);
@@ -618,6 +625,8 @@ export default function SmsTab() {
 
   const callPeer = () => {
     if (!activePeer) return;
+    // Prefill-only by design (operator confirms before calling an SMS peer).
+    setPendingDial({ to: activePeer, autoDial: false });
     window.dispatchEvent(new CustomEvent("frontdesk-dial-prefill", {
       detail: { to: activePeer, autoDial: false },
     }));

@@ -8,6 +8,7 @@ import ContactCardModal from "./ContactCardModal";
 import { PhoneIcon, ChatIcon, EditIcon, TrashIcon } from "../icons";
 import { formatPhoneDisplay } from "@/lib/frontdesk/phoneFormat";
 import { askConfirm } from "../dialogService";
+import { setPendingDial, setPendingSms } from "@/lib/frontdesk/dialBus";
 
 type Scope = "all" | "client" | "employee";
 
@@ -208,12 +209,17 @@ export default function ContactsTab() {
   const dialContact = (c: Contact, e: React.MouseEvent) => {
     e.stopPropagation();
     if (!c.phone) return;
-    window.dispatchEvent(new CustomEvent("frontdesk-dial-prefill", { detail: { to: c.phone } }));
+    // Buffer the intent — PhoneTab mounts AFTER the drawer switches tabs,
+    // so the CustomEvent alone is lost. autoDial: the contact Call button
+    // places the call immediately once the softphone is ready.
+    setPendingDial({ to: c.phone, autoDial: true });
+    window.dispatchEvent(new CustomEvent("frontdesk-dial-prefill", { detail: { to: c.phone, autoDial: true } }));
   };
 
   const smsContact = (c: Contact, e: React.MouseEvent) => {
     e.stopPropagation();
     if (!c.phone) return;
+    setPendingSms({ peer: c.phone });
     window.dispatchEvent(new CustomEvent("frontdesk-sms-open", { detail: { peer: c.phone } }));
   };
 
