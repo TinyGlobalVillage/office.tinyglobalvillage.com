@@ -298,6 +298,10 @@ const ContentWrap = styled.div`
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  /* The panel sits flush on the viewport edge — give the right side the
+     same visual air the left gets from the page boundary (operator ask
+     2026-07-03). */
+  padding-right: 0.5rem;
 `;
 
 const Resize = styled(DrawerResizeHandle).attrs<{ $anchor: "left" | "right" }>((p) => ({
