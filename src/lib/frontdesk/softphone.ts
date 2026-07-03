@@ -156,6 +156,19 @@ function attachMedia(session: Session) {
   sink.srcObject = stream;
 }
 
+// Live call state, tracked module-level so a REMOUNTING consumer (drawer
+// closed/reopened mid-call) can hydrate instead of assuming "initial" —
+// which made your own call render as someone else's (2026-07-03).
+let currentCallState: CallState = "initial";
+let currentCallDirection: CallDirection | null = null;
+
+export function getCurrentCallState(): CallState {
+  return currentCallState;
+}
+export function getCurrentCallDirection(): CallDirection | null {
+  return currentCallDirection;
+}
+
 function wireSession(session: Session, direction: CallDirection) {
   let mediaAttached = false;
   const tryAttach = () => {
@@ -170,16 +183,22 @@ function wireSession(session: Session, direction: CallDirection) {
   session.stateChange.addListener((state: SessionState) => {
     switch (state) {
       case SessionState.Establishing:
+        currentCallState = "establishing";
+        currentCallDirection = direction;
         emit({ kind: "call-state", state: "establishing", direction });
         // Early-media SDP may arrive with 183; attach ASAP to play it.
         setTimeout(tryAttach, 0);
         break;
       case SessionState.Established:
+        currentCallState = "established";
+        currentCallDirection = direction;
         tryAttach();
         emit({ kind: "call-state", state: "established", direction });
         break;
       case SessionState.Terminated:
         if (currentSession === session) currentSession = null;
+        currentCallState = "terminated";
+        currentCallDirection = null;
         emit({ kind: "call-state", state: "terminated", direction });
         break;
     }

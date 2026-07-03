@@ -115,6 +115,24 @@ export async function getLineStatus(): Promise<LineStatus> {
   return { inUse: true, direction: null, agent: null, peer: null };
 }
 
+/**
+ * Tag the browser's own channel with the staff username. Outbound dials
+ * carry X-Agent on the INVITE; inbound ANSWERS have no header path, so the
+ * answering tab calls /api/frontdesk/calls/claim which lands here. Powers
+ * the line-status busy panel's "who is on the call".
+ */
+export async function setAgentByCallId(sipCallId: string, agent: string): Promise<boolean> {
+  const clean = agent.replace(/[^\w.-]/g, "").slice(0, 32);
+  const wanted = sipCallId.trim();
+  if (!clean || !wanted || wanted.length > 256) return false;
+  for (const uuid of await listChannelUuids()) {
+    if ((await getVar(uuid, "sip_call_id")) !== wanted) continue;
+    await eslCommand(`uuid_setvar ${uuid} fd_agent ${clean}`);
+    return true;
+  }
+  return false;
+}
+
 export type RecordingAnchor = {
   /** Channel the recording media-bug lives (or would live) on. */
   uuid: string;

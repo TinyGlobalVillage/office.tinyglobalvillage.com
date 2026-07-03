@@ -693,6 +693,15 @@ export default function PhoneTab() {
       setRecActive(false);
       setEverRecorded(false);
       const cid = recRef.current.callId;
+      // Inbound answers have no X-Agent header path — claim the channel so
+      // line-status can show WHO answered (and other tabs can say "You").
+      if (cid && softphone.callDirection === "inbound") {
+        fetch("/api/frontdesk/calls/claim", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ callId: cid }),
+        }).catch(() => { /* label stays generic */ });
+      }
       if (cid) {
         fetch(`/api/frontdesk/calls/record?callId=${encodeURIComponent(cid)}`)
           .then((r) => (r.ok ? r.json() : null))
@@ -813,6 +822,33 @@ export default function PhoneTab() {
   const [peerName, setPeerName] = useState<string | null>(null);
   const [showInCallKeypad, setShowInCallKeypad] = useState(false);
 
+  // Batch delete for recent calls (exec-only; one confirm for many rows).
+  const [callSelectMode, setCallSelectMode] = useState(false);
+  const [selectedCalls, setSelectedCalls] = useState<Set<string>>(new Set());
+  const toggleCallSel = (id: string) => {
+    setSelectedCalls((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+  const batchDeleteCalls = async () => {
+    const ids = [...selectedCalls];
+    if (ids.length === 0) return;
+    if (!(await askConfirm({
+      title: "Delete calls?",
+      message: `Delete ${ids.length} call${ids.length === 1 ? "" : "s"} from history?`,
+      detail: "This cannot be undone.",
+      confirmLabel: `Delete ${ids.length}`,
+    }))) return;
+    for (const id of ids) {
+      await fetch(`/api/frontdesk/calls/history?id=${encodeURIComponent(id)}`, { method: "DELETE" });
+    }
+    setSelectedCalls(new Set());
+    setCallSelectMode(false);
+    loadAll();
+  };
+
   const dial = async () => {
     // Synchronous re-entry lock: onCall flips only when the SIP stack emits
     // "establishing" (~100-300ms later) — rapid clicks in that window used
@@ -926,12 +962,16 @@ export default function PhoneTab() {
           </RingBadge>
           <CallStage>Line in use</CallStage>
           <CallWho>
-            {lineStatus.agent
-              ? (profiles.find((p) => p.username === lineStatus.agent)?.displayName ?? lineStatus.agent)
-              : "A staff member"}
+            {lineStatus.agent === me?.username
+              ? "You"
+              : lineStatus.agent
+                ? (profiles.find((p) => p.username === lineStatus.agent)?.displayName ?? lineStatus.agent)
+                : "A staff member"}
           </CallWho>
           <CallHint>
-            {lineStatus.direction === "outbound" ? "is on an outbound call"
+            {lineStatus.agent === me?.username
+              ? "are on this call in another tab or window"
+              : lineStatus.direction === "outbound" ? "is on an outbound call"
               : lineStatus.direction === "inbound" ? "is on an inbound call"
               : "is on a call"}
             {lineStatus.peer ? ` with ${formatPhoneDisplay(lineStatus.peer) || lineStatus.peer}` : ""}
@@ -1059,20 +1099,39 @@ export default function PhoneTab() {
       <CallsHeader>
         <SectionHead>Recent calls</SectionHead>
         {isExec && calls.length > 0 && (
-          <ClearAllBtn
-            type="button"
-            onClick={async () => {
-              if (!(await askConfirm({
-                title: "Clear all recent calls?",
-                message: "This cannot be undone.",
-                confirmLabel: "Clear all",
-              }))) return;
-              await fetch("/api/frontdesk/calls/history", { method: "DELETE" });
-              loadAll();
-            }}
-          >
-            Clear all
-          </ClearAllBtn>
+          <div style={{ display: "flex", gap: "0.4rem" }}>
+            {callSelectMode ? (
+              <>
+                <ClearAllBtn type="button" onClick={() => setSelectedCalls(new Set(calls.slice(0, 25).map((c) => c.id)))}>
+                  All
+                </ClearAllBtn>
+                <ClearAllBtn type="button" onClick={() => { setCallSelectMode(false); setSelectedCalls(new Set()); }}>
+                  Cancel
+                </ClearAllBtn>
+                <ClearAllBtn type="button" disabled={selectedCalls.size === 0} onClick={batchDeleteCalls}>
+                  Delete ({selectedCalls.size})
+                </ClearAllBtn>
+              </>
+            ) : (
+              <>
+                <ClearAllBtn type="button" onClick={() => setCallSelectMode(true)}>Select</ClearAllBtn>
+                <ClearAllBtn
+                  type="button"
+                  onClick={async () => {
+                    if (!(await askConfirm({
+                      title: "Clear all recent calls?",
+                      message: "This cannot be undone.",
+                      confirmLabel: "Clear all",
+                    }))) return;
+                    await fetch("/api/frontdesk/calls/history", { method: "DELETE" });
+                    loadAll();
+                  }}
+                >
+                  Clear all
+                </ClearAllBtn>
+              </>
+            )}
+          </div>
         )}
       </CallsHeader>
       {calls.length === 0 ? (
@@ -1090,12 +1149,25 @@ export default function PhoneTab() {
               $tint={tint}
               title={`${c.outcome} — click to dial`}
               onClick={() => {
+                if (callSelectMode) {
+                  toggleCallSel(c.id);
+                  return;
+                }
                 const peer = stripPhoneFormatting(formatPeer(c)).replace(/^\+/, "");
                 setInput(peer);
                 setError(null);
               }}
             >
-              <Arrow $dir={c.direction}>{c.direction === "inbound" ? "↙" : "↗"}</Arrow>
+              {callSelectMode ? (
+                <input
+                  type="checkbox"
+                  checked={selectedCalls.has(c.id)}
+                  readOnly
+                  style={{ accentColor: colors.pink, cursor: "pointer", justifySelf: "center" }}
+                />
+              ) : (
+                <Arrow $dir={c.direction}>{c.direction === "inbound" ? "↙" : "↗"}</Arrow>
+              )}
               <Peer>
                 {formatPhoneDisplay(formatPeer(c)) || formatPeer(c)}
                 <Meta style={{ marginLeft: "0.5rem" }}>{formatTimestamp(c.startedAt)}</Meta>

@@ -97,6 +97,40 @@ const Empty = styled.div`
   font-size: 0.8125rem;
 `;
 
+const HeadRow = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+`;
+
+const HeadBtns = styled.div`
+  display: flex;
+  gap: 0.4rem;
+`;
+
+const SmallBtn = styled.button<{ $danger?: boolean }>`
+  background: transparent;
+  border: 1px solid ${(p) => (p.$danger ? `rgba(${rgb.pink}, 0.4)` : `rgba(${rgb.gold}, 0.35)`)};
+  color: ${(p) => (p.$danger ? colors.pink : colors.gold)};
+  padding: 0.2rem 0.55rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border-radius: 0.35rem;
+  cursor: pointer;
+  &:hover:not(:disabled) { background: ${(p) => (p.$danger ? `rgba(${rgb.pink}, 0.14)` : `rgba(${rgb.gold}, 0.12)`)}; }
+  &:disabled { opacity: 0.4; cursor: not-allowed; }
+`;
+
+const SelBox = styled.input`
+  align-self: start;
+  margin-top: 0.2rem;
+  accent-color: ${colors.pink};
+  cursor: pointer;
+`;
+
 function fmtWhen(iso: string): string {
   try {
     return new Date(iso).toLocaleString(undefined, {
@@ -116,6 +150,9 @@ function fmtDuration(m: VmMessage): string {
 export default function VoicemailsTab() {
   const [messages, setMessages] = useState<VmMessage[] | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  // Batch delete (operator ask 2026-07-03) — one confirm for many rows.
+  const [selectMode, setSelectMode] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
 
   const load = useCallback(async () => {
     try {
@@ -147,27 +184,85 @@ export default function VoicemailsTab() {
     } finally { setBusyId(null); }
   };
 
+  const toggleSel = (id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const batchDelete = async () => {
+    const ids = [...selected];
+    if (ids.length === 0) return;
+    if (!(await askConfirm({
+      title: "Delete voicemails?",
+      message: `Delete ${ids.length} voicemail${ids.length === 1 ? "" : "s"}?`,
+      detail: "The audio files are removed from disk. This cannot be undone.",
+      confirmLabel: `Delete ${ids.length}`,
+    }))) return;
+    setBusyId("batch");
+    try {
+      for (const id of ids) {
+        await fetch(`/api/frontdesk/voicemail/messages/${encodeURIComponent(id)}`, { method: "DELETE" });
+      }
+      setSelected(new Set());
+      setSelectMode(false);
+      await load();
+    } finally { setBusyId(null); }
+  };
+
   return (
     <Wrap>
-      <SectionHead>Voicemails</SectionHead>
+      <HeadRow>
+        <SectionHead>Voicemails</SectionHead>
+        {(messages?.length ?? 0) > 0 && (
+          <HeadBtns>
+            {selectMode ? (
+              <>
+                <SmallBtn onClick={() => setSelected(new Set((messages ?? []).map((m) => m.id)))}>All</SmallBtn>
+                <SmallBtn onClick={() => { setSelectMode(false); setSelected(new Set()); }}>Cancel</SmallBtn>
+                <SmallBtn $danger disabled={selected.size === 0 || busyId === "batch"} onClick={batchDelete}>
+                  Delete ({selected.size})
+                </SmallBtn>
+              </>
+            ) : (
+              <SmallBtn onClick={() => setSelectMode(true)}>Select</SmallBtn>
+            )}
+          </HeadBtns>
+        )}
+      </HeadRow>
       {messages === null && <Empty>Loading…</Empty>}
       {messages && messages.length === 0 && <Empty>No voicemails.</Empty>}
       {(messages ?? []).map((m) => (
-        <Row key={m.id}>
-          <div style={{ minWidth: 0 }}>
-            <Caller>
-              {m.callerE164 ? (formatPhoneDisplay(m.callerE164) || m.callerE164) : "Unknown caller"}
-            </Caller>
-            <Meta>{fmtWhen(m.recordedAt)}{fmtDuration(m)}</Meta>
-            <Audio controls preload="none" src={`/api/frontdesk/voicemail/messages/${encodeURIComponent(m.id)}/audio`} />
+        <Row
+          key={m.id}
+          onClick={selectMode ? () => toggleSel(m.id) : undefined}
+          style={selectMode ? { cursor: "pointer" } : undefined}
+        >
+          <div style={{ minWidth: 0, display: "flex", gap: "0.6rem" }}>
+            {selectMode && (
+              <SelBox type="checkbox" checked={selected.has(m.id)} readOnly />
+            )}
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <Caller>
+                {m.callerE164 ? (formatPhoneDisplay(m.callerE164) || m.callerE164) : "Unknown caller"}
+              </Caller>
+              <Meta>{fmtWhen(m.recordedAt)}{fmtDuration(m)}</Meta>
+              {!selectMode && (
+                <Audio controls preload="none" src={`/api/frontdesk/voicemail/messages/${encodeURIComponent(m.id)}/audio`} />
+              )}
+            </div>
           </div>
-          <DeleteBtn
-            title="Delete voicemail"
-            disabled={busyId === m.id}
-            onClick={() => remove(m)}
-          >
-            <TrashIcon size={12} />
-          </DeleteBtn>
+          {!selectMode && (
+            <DeleteBtn
+              title="Delete voicemail"
+              disabled={busyId === m.id}
+              onClick={() => remove(m)}
+            >
+              <TrashIcon size={12} />
+            </DeleteBtn>
+          )}
         </Row>
       ))}
     </Wrap>

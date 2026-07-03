@@ -11,6 +11,8 @@ import {
   sendDtmf,
   onEvent,
   getSoftphoneStatus,
+  getCurrentCallState,
+  getCurrentCallDirection,
   type SoftphoneStatus,
   type CallState,
   type CallDirection,
@@ -30,12 +32,14 @@ import {
 export type IncomingInfo = { from: string; displayName: string };
 
 export function useSoftphone() {
+  // Hydrate from the module singleton — a consumer mounting MID-CALL
+  // (drawer reopened) must see the live call, not "initial".
   const [status, setStatus] = useState<SoftphoneStatus>(getSoftphoneStatus());
-  const [callState, setCallState] = useState<CallState>("initial");
-  const [callDirection, setCallDirection] = useState<CallDirection | null>(null);
+  const [callState, setCallState] = useState<CallState>(() => getCurrentCallState());
+  const [callDirection, setCallDirection] = useState<CallDirection | null>(() => getCurrentCallDirection());
   const [incoming, setIncoming] = useState<IncomingInfo | null>(null);
   const [lastError, setLastError] = useState<string | null>(null);
-  const lastCallStateRef = useRef<CallState>("initial");
+  const lastCallStateRef = useRef<CallState>(getCurrentCallState());
 
   useEffect(() => {
     let cancelled = false;
