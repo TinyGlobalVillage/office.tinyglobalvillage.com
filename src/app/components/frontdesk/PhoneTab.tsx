@@ -550,6 +550,7 @@ export default function PhoneTab() {
   // THIS call actually recorded at some point.
   const [everRecorded, setEverRecorded] = useState(false);
   const recActiveRef = useRef(false);
+  const dialingRef = useRef(false);
   const recRef = useRef<{
     segments: string[];
     events: Array<{ at: string; action: "start" | "stop" }>;
@@ -813,8 +814,13 @@ export default function PhoneTab() {
   const [showInCallKeypad, setShowInCallKeypad] = useState(false);
 
   const dial = async () => {
-    if (onCall) return;
+    // Synchronous re-entry lock: onCall flips only when the SIP stack emits
+    // "establishing" (~100-300ms later) — rapid clicks in that window used
+    // to place parallel calls (2026-07-03 incident).
+    if (onCall || dialingRef.current) return;
+    dialingRef.current = true;
     setError(null);
+    try {
     if (softphone.status !== "registered") {
       setError(`Softphone ${softphone.status} — cannot dial`);
       return;
@@ -861,6 +867,11 @@ export default function PhoneTab() {
       activeCallRef.current = null;
       setError((err as Error).message);
     }
+    } finally {
+      // Safe to release here: once the Inviter exists, softphone.invite()'s
+      // own currentSession guard blocks any further dial attempts.
+      dialingRef.current = false;
+    }
   };
 
   const hangup = () => softphone.hangup();
@@ -871,7 +882,13 @@ export default function PhoneTab() {
   useEffect(() => {
     const want = pendingAutoDialRef.current;
     if (!want) return;
-    if (onCall || softphone.status !== "registered" || !selectedDid) return;
+    if (onCall) {
+      // A call is already up — drop the stale intent entirely so it can't
+      // ghost-dial the moment this call ends (2026-07-03 incident).
+      pendingAutoDialRef.current = null;
+      return;
+    }
+    if (softphone.status !== "registered" || !selectedDid) return;
     if (stripPhoneFormatting(input) !== want) return;
     pendingAutoDialRef.current = null;
     void dial();

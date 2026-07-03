@@ -272,6 +272,14 @@ export async function invite(
     emit({ kind: "error", detail: "softphone not initialized" });
     return;
   }
+  // HARD single-call guard (incident 2026-07-03): rapid dial clicks spawned
+  // three parallel Inviters; the singleton only tracked the last, the extra
+  // legs kept ringing the callee unsupervised and mid-call controls operated
+  // on the wrong (leaked) leg. One session at a time, full stop.
+  if (currentSession) {
+    emit({ kind: "error", detail: "a call is already in progress" });
+    return;
+  }
   const cfg = await fetchConfig();
   if (!cfg) return;
   const targetUri: URI | undefined = UserAgent.makeURI(`sip:${target}@${cfg.domain}`);
