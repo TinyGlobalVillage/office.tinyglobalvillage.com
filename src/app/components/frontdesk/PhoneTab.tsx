@@ -308,6 +308,15 @@ const recBlink = keyframes`
   50% { opacity: 0.35; }
 `;
 
+const RecStatus = styled.div<{ $on: boolean }>`
+  font-size: 0.6875rem;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+  color: ${(p) => (p.$on ? colors.pink : "var(--t-textFaint)")};
+  ${(p) => (p.$on ? css`text-shadow: 0 0 6px rgba(${rgb.pink}, 0.45);` : "")}
+  [data-theme="light"] & { text-shadow: none; }
+`;
+
 const RecBtn = styled.button<{ $on: boolean }>`
   display: inline-flex;
   align-items: center;
@@ -529,6 +538,9 @@ export default function PhoneTab() {
   // closure reads current values.
   const [recActive, setRecActive] = useState(false);
   const [recBusy, setRecBusy] = useState(false);
+  // Drives the "no longer being recorded" status line — only shown when
+  // THIS call actually recorded at some point.
+  const [everRecorded, setEverRecorded] = useState(false);
   const recActiveRef = useRef(false);
   const recRef = useRef<{
     segments: string[];
@@ -660,6 +672,7 @@ export default function PhoneTab() {
       };
       recActiveRef.current = false;
       setRecActive(false);
+      setEverRecorded(false);
       const cid = recRef.current.callId;
       if (cid) {
         fetch(`/api/frontdesk/calls/record?callId=${encodeURIComponent(cid)}`)
@@ -673,6 +686,7 @@ export default function PhoneTab() {
               recRef.current.events.push({ at: new Date().toISOString(), action: "start" });
               recActiveRef.current = true;
               setRecActive(true);
+              setEverRecorded(true);
             }
           })
           .catch(() => { /* status stays off; toggle still works */ });
@@ -758,6 +772,7 @@ export default function PhoneTab() {
         recRef.current.events.push({ at, action: "start" });
         recActiveRef.current = true;
         setRecActive(true);
+        setEverRecorded(true);
       } else {
         if (typeof j.path === "string" && j.path) recRef.current.segments.push(j.path);
         recRef.current.activeFile = null;
@@ -806,6 +821,7 @@ export default function PhoneTab() {
       recRef.current = { segments: [], events: [], activeFile: null, callId: null, inboundFrom: null, userTouched: false };
       recActiveRef.current = false;
       setRecActive(false);
+      setEverRecorded(false);
       // Resolve a contact name for the in-call view (best-effort, non-blocking).
       setPeerName(null);
       const last10 = normalized.replace(/\D/g, "").slice(-10);
@@ -945,12 +961,19 @@ export default function PhoneTab() {
                 disabled={recBusy}
                 onClick={toggleRecording}
                 title={recActive
-                  ? "Recording — click to stop (this segment is kept)"
-                  : "Not recording — click to record from this point"}
+                  ? "Stop recording — this segment is kept"
+                  : "Record this call from this point on"}
               >
                 <RecordIcon size={12} />
-                {recActive ? "Recording" : "Record"}
+                {recActive ? "Stop Recording" : "Record"}
               </RecBtn>
+              {(recActive || everRecorded) && (
+                <RecStatus $on={recActive}>
+                  {recActive
+                    ? "This call is now being recorded"
+                    : "This call is no longer being recorded"}
+                </RecStatus>
+              )}
               <KeypadToggle type="button" onClick={() => setShowInCallKeypad((v) => !v)}>
                 {showInCallKeypad ? "Hide keypad" : "Keypad"}
               </KeypadToggle>
