@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import styled from "styled-components";
+import { useEscapeToClose } from "@tgv/module-component-library/components/hooks/useEscapeToClose";
 import { colors, rgb } from "../../theme";
 import {
   ModalBackdrop,
@@ -78,6 +79,8 @@ export default function ShiftWorkerModal(props: {
   onSaved?: (shift: ShiftAssignment) => void;
 }) {
   const { onClose, onSaved } = props;
+  useEscapeToClose({ open: true, onClose });
+
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [current, setCurrent] = useState<ShiftAssignment | null>(null);
   const [selected, setSelected] = useState<string | null>(null);

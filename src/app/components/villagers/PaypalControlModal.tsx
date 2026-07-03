@@ -10,6 +10,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import styled from "styled-components";
+import { useEscapeToClose } from "@tgv/module-component-library/components/hooks/useEscapeToClose";
 import { colors, rgb } from "@/app/theme";
 import {
   ModalBackdrop,
@@ -39,6 +40,8 @@ const CRED_FIELDS: Array<{ key: keyof TenantConfig; label: string; placeholder: 
 ];
 
 export default function PaypalControlModal({ onClose }: { onClose: () => void }) {
+  useEscapeToClose({ open: true, onClose });
+
   const [config, setConfig] = useState<Config | null>(null);
   const [drafts, setDrafts] = useState<Record<string, TenantConfig>>({});
   const [loading, setLoading] = useState(false);

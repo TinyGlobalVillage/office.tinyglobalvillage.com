@@ -7,6 +7,7 @@
 // is OFF (queue route 403s).
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { askConfirm } from "../dialogService";
 import styled from "styled-components";
 import { rgb } from "../../theme";
 
@@ -38,7 +39,15 @@ export default function TicketsTab() {
   const [active, setActive] = useState<{ ticket: StaffTicket; messages: StaffMessage[] } | null>(null);
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
   const scrollRef = useRef<HTMLDivElement>(null);
+  const toggleSel = (id: string) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
 
   const loadQueue = useCallback(async () => {
     try {
@@ -175,16 +184,52 @@ export default function TicketsTab() {
     );
   }
 
+  const batchComplete = async () => {
+    const ids = [...selected];
+    if (ids.length === 0) return;
+    if (!(await askConfirm({
+      title: "Complete tickets?",
+      message: `Mark ${ids.length} ticket${ids.length === 1 ? "" : "s"} complete?`,
+      detail: "Support tickets live in the shared database — completing closes them out of the queue (they aren't hard-deleted).",
+      confirmLabel: `Complete ${ids.length}`,
+      intent: "primary",
+    }))) return;
+    for (const id of ids) {
+      await fetch(`${API}/queue/${id}/complete`, { method: "POST" });
+    }
+    setSelected(new Set());
+    setSelectMode(false);
+    void loadQueue();
+  };
+
   return (
     <Wrap>
+      {tickets.length > 0 && (
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.4rem", padding: "0 0 0.5rem" }}>
+          {selectMode ? (
+            <>
+              <SelBtn onClick={() => setSelected(new Set(tickets.map((t) => t.id)))}>All</SelBtn>
+              <SelBtn onClick={() => { setSelectMode(false); setSelected(new Set()); }}>Cancel</SelBtn>
+              <SelBtn disabled={selected.size === 0} onClick={batchComplete}>Complete ({selected.size})</SelBtn>
+            </>
+          ) : (
+            <SelBtn onClick={() => setSelectMode(true)}>Select</SelBtn>
+          )}
+        </div>
+      )}
       {tickets.length === 0 ? (
         <Note>Queue is empty.</Note>
       ) : (
         <List>
           {tickets.map((t) => (
-            <Item key={t.id} type="button" onClick={() => setActiveId(t.id)}>
+            <Item key={t.id} type="button" onClick={() => (selectMode ? toggleSel(t.id) : setActiveId(t.id))}>
               <ItemTop>
-                <ItemWho>{t.requesterName || t.requesterEmail}</ItemWho>
+                <ItemWho>
+                  {selectMode && (
+                    <input type="checkbox" checked={selected.has(t.id)} readOnly style={{ accentColor: "#f7b700", marginRight: "0.5rem" }} />
+                  )}
+                  {t.requesterName || t.requesterEmail}
+                </ItemWho>
                 <StatusTag $open={t.status === "open"}>{t.status}</StatusTag>
               </ItemTop>
               <ItemSub>{t.messageCount} message{t.messageCount === 1 ? "" : "s"}</ItemSub>
@@ -195,6 +240,21 @@ export default function TicketsTab() {
     </Wrap>
   );
 }
+
+const SelBtn = styled.button`
+  background: transparent;
+  border: 1px solid rgba(247, 183, 0, 0.35);
+  color: ${G};
+  padding: 0.2rem 0.55rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border-radius: 0.35rem;
+  cursor: pointer;
+  &:hover:not(:disabled) { background: rgba(247, 183, 0, 0.12); }
+  &:disabled { opacity: 0.4; cursor: not-allowed; }
+`;
 
 // ── styles (gold, Front Desk) ───────────────────────────────────────────────
 const G = "#f7b700";

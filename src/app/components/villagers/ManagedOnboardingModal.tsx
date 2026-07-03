@@ -16,6 +16,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import styled from "styled-components";
+import { useEscapeToClose } from "@tgv/module-component-library/components/hooks/useEscapeToClose";
 import { colors, rgb } from "@/app/theme";
 import {
   ModalBackdrop,
@@ -59,6 +60,8 @@ const PREVIEW_FIXTURES = {
 const usd = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 
 export default function ManagedOnboardingModal({ onClose }: { onClose: () => void }) {
+  useEscapeToClose({ open: true, onClose });
+
   // Preview ON (env=test) is the safe default — provisioning live requires flipping it off.
   const [preview, setPreview] = useState(true);
   const env: Env = preview ? "test" : "live";

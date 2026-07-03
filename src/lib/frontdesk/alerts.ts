@@ -59,6 +59,15 @@ export function markAlertRead(id: string, username: string): Alert | null {
   return alert;
 }
 
+export function deleteAlert(id: string): boolean {
+  const db = read();
+  const before = db.alerts.length;
+  db.alerts = db.alerts.filter(a => a.id !== id);
+  const removed = db.alerts.length !== before;
+  if (removed) write(db);
+  return removed;
+}
+
 export function archiveAlert(id: string): Alert | null {
   const db = read();
   const alert = db.alerts.find(a => a.id === id);

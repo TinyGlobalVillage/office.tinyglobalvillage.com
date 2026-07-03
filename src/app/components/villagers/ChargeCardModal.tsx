@@ -10,6 +10,7 @@
 
 import { useState } from "react";
 import styled from "styled-components";
+import { useEscapeToClose } from "@tgv/module-component-library/components/hooks/useEscapeToClose";
 import { colors, rgb } from "@/app/theme";
 import {
   ModalBackdrop,
@@ -48,6 +49,8 @@ function newNonce(): string {
 }
 
 export default function ChargeCardModal({ memberId, memberName, card, onClose, onCharged }: Props) {
+  useEscapeToClose({ open: true, onClose });
+
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
   const [nonce, setNonce] = useState(newNonce);

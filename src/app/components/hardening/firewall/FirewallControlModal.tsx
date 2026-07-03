@@ -13,6 +13,7 @@
 // ban/unban + rule-delete controls. There is no separate audit-feed endpoint for firewall
 // events, so this modal passes no auditLogView; the live ban list IS the activity record.
 
+import { useEscapeToClose } from "@tgv/module-component-library/components/hooks/useEscapeToClose";
 import HardeningControlModal, { type HCMSection } from "../HardeningControlModal";
 import Fail2banGlobalView from "../_shared/Fail2banGlobalView";
 import UfwGlobalView from "../_shared/UfwGlobalView";
@@ -20,6 +21,8 @@ import UfwGlobalView from "../_shared/UfwGlobalView";
 export type FirewallControlModalProps = { onClose: () => void };
 
 export default function FirewallControlModal({ onClose }: FirewallControlModalProps) {
+  useEscapeToClose({ open: true, onClose });
+
   const sections: HCMSection[] = [
     {
       id: "ufw",

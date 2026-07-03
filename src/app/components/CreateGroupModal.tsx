@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import styled from "styled-components";
+import { useEscapeToClose } from "@tgv/module-component-library/components/hooks/useEscapeToClose";
 import { colors, rgb } from "../theme";
 import { UserAvatar, type MemberProfile } from "./ChatSettingsModal";
 import { CancelIcon } from "./icons";
@@ -204,6 +205,8 @@ type Props = {
 };
 
 export default function CreateGroupModal({ profiles, currentUser, onClose, onCreated }: Props) {
+  useEscapeToClose({ open: true, onClose });
+
   const [name, setName] = useState("");
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<string[]>([]);

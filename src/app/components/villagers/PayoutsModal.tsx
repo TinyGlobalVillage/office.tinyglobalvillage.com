@@ -19,6 +19,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
+import { useEscapeToClose } from "@tgv/module-component-library/components/hooks/useEscapeToClose";
 import { colors, rgb } from "@/app/theme";
 import {
   ModalBackdrop,
@@ -76,6 +77,8 @@ function fmtRemaining(ms: number): string {
 }
 
 export default function PayoutsModal({ onClose }: { onClose: () => void }) {
+  useEscapeToClose({ open: true, onClose });
+
   const [config, setConfig] = useState<WithdrawalConfig | null>(null);
   const [gate, setGate] = useState<Gate | null>(null);
   const [rows, setRows] = useState<WithdrawalRow[]>([]);

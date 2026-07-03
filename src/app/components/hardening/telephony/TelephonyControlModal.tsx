@@ -10,6 +10,7 @@
 // global views, define their own panels, register on Utils.
 
 import { useCallback, useEffect, useState } from "react";
+import { useEscapeToClose } from "@tgv/module-component-library/components/hooks/useEscapeToClose";
 import HardeningControlModal, {
   type HCMSection,
 } from "../HardeningControlModal";
@@ -43,6 +44,8 @@ export type TelephonyControlModalProps = {
 };
 
 export default function TelephonyControlModal({ onClose }: TelephonyControlModalProps) {
+  useEscapeToClose({ open: true, onClose });
+
   const [status, setStatus] = useState<TelephonyStatus | null>(null);
 
   const refreshStatus = useCallback(async () => {

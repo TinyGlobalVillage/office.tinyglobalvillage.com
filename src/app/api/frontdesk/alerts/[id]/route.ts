@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/api-auth";
-import { archiveAlert, markAlertRead } from "@/lib/frontdesk/alerts";
+import { archiveAlert, deleteAlert, markAlertRead } from "@/lib/frontdesk/alerts";
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const token = await requireAuth(req);
@@ -18,4 +18,12 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   }
   if (!alert) return NextResponse.json({ error: "Not found" }, { status: 404 });
   return NextResponse.json({ alert });
+}
+
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const token = await requireAuth(req);
+  if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const { id } = await params;
+  if (!deleteAlert(id)) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  return NextResponse.json({ ok: true });
 }

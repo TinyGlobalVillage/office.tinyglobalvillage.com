@@ -5,6 +5,7 @@
 // the grant. Talks to /api/admin/consent/{tenants,request,outgoing,redeem}. Self-contained.
 import { useCallback, useEffect, useState } from "react";
 import styled from "styled-components";
+import { useEscapeToClose } from "@tgv/module-component-library/components/hooks/useEscapeToClose";
 import { ACCESS_SCOPES } from "@tgv/module-consent/components/scopes";
 
 interface Tenant {
@@ -21,6 +22,8 @@ interface Outgoing {
 }
 
 export default function RequestTenantAccessModal({ onClose }: { onClose: () => void }) {
+  useEscapeToClose({ open: true, onClose });
+
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [outgoing, setOutgoing] = useState<Outgoing[]>([]);
   const [tenantId, setTenantId] = useState("");

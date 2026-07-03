@@ -12,6 +12,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import styled from "styled-components";
+import { useEscapeToClose } from "@tgv/module-component-library/components/hooks/useEscapeToClose";
 import { colors, rgb } from "@/app/theme";
 import {
   ModalBackdrop,
@@ -90,6 +91,8 @@ const toDateInput = (v: string | null | undefined) =>
   v ? new Date(v).toISOString().slice(0, 10) : "";
 
 export default function MemberLookupModal({ onClose }: { onClose: () => void }) {
+  useEscapeToClose({ open: true, onClose });
+
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Member[]>([]);
   const [searching, setSearching] = useState(false);

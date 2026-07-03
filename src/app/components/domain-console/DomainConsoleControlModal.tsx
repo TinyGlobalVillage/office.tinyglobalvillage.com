@@ -12,6 +12,7 @@
 
 import { useEffect, useState } from "react";
 import styled from "styled-components";
+import { useEscapeToClose } from "@tgv/module-component-library/components/hooks/useEscapeToClose";
 import { colors, rgb } from "@/app/theme";
 import {
   ModalBackdrop,
@@ -137,6 +138,8 @@ const Meta = styled.div`
 `;
 
 export default function DomainConsoleControlModal({ onClose }: { onClose: () => void }) {
+  useEscapeToClose({ open: true, onClose });
+
   const [config, setConfig] = useState<Config | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);

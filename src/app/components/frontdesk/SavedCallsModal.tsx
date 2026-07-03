@@ -12,6 +12,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
+import { useEscapeToClose } from "@tgv/module-component-library/components/hooks/useEscapeToClose";
 import { colors, rgb } from "@/app/theme";
 import {
   ModalBackdrop,
@@ -118,6 +119,8 @@ function fmtDuration(sec: number): string {
 }
 
 export default function SavedCallsModal({ onClose }: SavedCallsModalProps) {
+  useEscapeToClose({ open: true, onClose });
+
   const [calls, setCalls] = useState<CallRecord[] | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draftNotes, setDraftNotes] = useState<string>("");

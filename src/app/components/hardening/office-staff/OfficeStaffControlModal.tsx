@@ -17,6 +17,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import styled from "styled-components";
+import { useEscapeToClose } from "@tgv/module-component-library/components/hooks/useEscapeToClose";
 import { colors, rgb } from "@/app/theme";
 import HardeningControlModal, { type HCMSection } from "../HardeningControlModal";
 import AuditLogTimeline from "../_shared/AuditLogTimeline";
@@ -355,6 +356,8 @@ function StaffSectionBody() {
 }
 
 export default function OfficeStaffControlModal({ onClose }: OfficeStaffControlModalProps) {
+  useEscapeToClose({ open: true, onClose });
+
   const sections: HCMSection[] = [
     {
       id: "staff-passkeys",

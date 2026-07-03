@@ -13,6 +13,7 @@
 
 import { useState } from "react";
 import styled from "styled-components";
+import { useEscapeToClose } from "@tgv/module-component-library/components/hooks/useEscapeToClose";
 import { colors, rgb } from "../../theme";
 import HardeningControlModal, { type HCMSection } from "../hardening/HardeningControlModal";
 import AuditLogTimeline from "../hardening/_shared/AuditLogTimeline";
@@ -130,6 +131,8 @@ const SaveBtn = styled.button`
 export type CourseControlModalProps = { onClose: () => void };
 
 export default function CourseControlModal({ onClose }: CourseControlModalProps) {
+  useEscapeToClose({ open: true, onClose });
+
   const { config, usage, loading, loadErr, saving, switchErr, save } = useSuiteControl<
     CourseConfig,
     UsageTenant,

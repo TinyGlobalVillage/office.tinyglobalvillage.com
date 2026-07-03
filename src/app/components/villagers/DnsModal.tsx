@@ -14,6 +14,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import styled from "styled-components";
+import { useEscapeToClose } from "@tgv/module-component-library/components/hooks/useEscapeToClose";
 import { colors, rgb, type GlowColor } from "@/app/theme";
 import {
   ModalBackdrop,
@@ -76,6 +77,8 @@ const zoneGlow = (z: Zone): GlowColor =>
   z.status !== "active" ? "red" : z.ownedByDc ? "green" : "gold";
 
 export default function DnsModal({ onClose }: { onClose: () => void }) {
+  useEscapeToClose({ open: true, onClose });
+
   const [zones, setZones] = useState<Zone[]>([]);
   const [zonesLoading, setZonesLoading] = useState(true);
   const [zonesErr, setZonesErr] = useState<string | null>(null);

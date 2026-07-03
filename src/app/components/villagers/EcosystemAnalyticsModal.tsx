@@ -16,6 +16,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import styled from "styled-components";
+import { useEscapeToClose } from "@tgv/module-component-library/components/hooks/useEscapeToClose";
 import { colors, rgb } from "@/app/theme";
 import HardeningControlModal, { type HCMSection } from "../hardening/HardeningControlModal";
 import AuditLogTimeline from "../hardening/_shared/AuditLogTimeline";
@@ -64,6 +65,8 @@ const REASON_LABEL: Record<string, string> = {
 };
 
 export default function EcosystemAnalyticsModal({ onClose }: { onClose: () => void }) {
+  useEscapeToClose({ open: true, onClose });
+
   const [lane, setLane] = useState<Lane>("live");
   const [data, setData] = useState<Analytics | null>(null);
   const [loading, setLoading] = useState(false);

@@ -10,6 +10,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
+import { useEscapeToClose } from "@tgv/module-component-library/components/hooks/useEscapeToClose";
 import { colors, rgb } from "@/app/theme";
 import {
   ModalBackdrop,
@@ -216,6 +217,8 @@ export type FeatureWorktreesControlModalProps = {
 export default function FeatureWorktreesControlModal({
   onClose,
 }: FeatureWorktreesControlModalProps) {
+  useEscapeToClose({ open: true, onClose });
+
   const [data, setData] = useState<GetResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);

@@ -15,6 +15,7 @@
 
 import { useRouter } from "next/navigation";
 import styled from "styled-components";
+import { useEscapeToClose } from "@tgv/module-component-library/components/hooks/useEscapeToClose";
 import { colors, rgb } from "@/app/theme";
 import HardeningControlModal, { type HCMSection } from "../HardeningControlModal";
 import AuditLogTimeline from "../_shared/AuditLogTimeline";
@@ -45,6 +46,8 @@ const PanelBody = styled.div`
 `;
 
 export default function MemberAuthControlModal({ onClose }: MemberAuthControlModalProps) {
+  useEscapeToClose({ open: true, onClose });
+
   const router = useRouter();
 
   const sections: HCMSection[] = [

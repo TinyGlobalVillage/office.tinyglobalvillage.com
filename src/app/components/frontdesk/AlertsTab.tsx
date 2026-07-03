@@ -6,6 +6,7 @@ import { colors, rgb } from "../../theme";
 import type { Alert } from "@/lib/frontdesk/types";
 import AnnouncementsPanel from "../AnnouncementsPanel";
 import { TrashIcon } from "../icons";
+import { askConfirm } from "../dialogService";
 
 // ── Styled ───────────────────────────────────────────────────────
 
@@ -95,6 +96,22 @@ const RowBtn = styled.button`
   svg { width: 10px; height: 10px; }
 `;
 
+
+const SelectBtn = styled.button<{ $danger?: boolean }>`
+  background: transparent;
+  border: 1px solid ${(p) => (p.$danger ? `rgba(${rgb.pink}, 0.4)` : `rgba(${rgb.gold}, 0.35)`)};
+  color: ${(p) => (p.$danger ? colors.pink : colors.gold)};
+  padding: 0.2rem 0.55rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border-radius: 0.35rem;
+  cursor: pointer;
+  &:hover:not(:disabled) { background: ${(p) => (p.$danger ? `rgba(${rgb.pink}, 0.14)` : `rgba(${rgb.gold}, 0.12)`)}; }
+  &:disabled { opacity: 0.4; cursor: not-allowed; }
+`;
+
 const Empty = styled.div`
   text-align: center;
   padding: 1rem 0;
@@ -106,6 +123,14 @@ const Empty = styled.div`
 
 export default function AlertsTab() {
   const [alerts, setAlerts] = useState<Alert[]>([]);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const toggleSel = (id: string) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
 
   const load = useCallback(async () => {
     try {
@@ -131,16 +156,60 @@ export default function AlertsTab() {
     setAlerts(prev => prev.filter(a => a.id !== id));
   };
 
+  const batchDelete = async () => {
+    const ids = [...selected];
+    if (ids.length === 0) return;
+    if (!(await askConfirm({
+      title: "Delete inquiries?",
+      message: `Delete ${ids.length} inquir${ids.length === 1 ? "y" : "ies"}?`,
+      detail: "This cannot be undone (archive keeps them recoverable instead).",
+      confirmLabel: `Delete ${ids.length}`,
+    }))) return;
+    for (const id of ids) {
+      await fetch(`/api/frontdesk/alerts/${id}`, { method: "DELETE" });
+    }
+    setSelected(new Set());
+    setSelectMode(false);
+    load();
+  };
+
   return (
     <Wrap>
-      <SectionHead>Inbound inquiries</SectionHead>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "0.5rem" }}>
+        <SectionHead>Inbound inquiries</SectionHead>
+        {alerts.length > 0 && (
+          <div style={{ display: "flex", gap: "0.4rem" }}>
+            {selectMode ? (
+              <>
+                <SelectBtn onClick={() => setSelected(new Set(alerts.map((a) => a.id)))}>All</SelectBtn>
+                <SelectBtn onClick={() => { setSelectMode(false); setSelected(new Set()); }}>Cancel</SelectBtn>
+                <SelectBtn $danger disabled={selected.size === 0} onClick={batchDelete}>
+                  Delete ({selected.size})
+                </SelectBtn>
+              </>
+            ) : (
+              <SelectBtn onClick={() => setSelectMode(true)}>Select</SelectBtn>
+            )}
+          </div>
+        )}
+      </div>
       {alerts.length === 0 ? (
         <Empty>No new inquiries.</Empty>
       ) : (
         <AlertList>
           {alerts.map(a => (
-            <AlertRow key={a.id} $unread={a.readBy.length === 0}>
-              <AlertSubject>{a.subject}</AlertSubject>
+            <AlertRow
+              key={a.id}
+              $unread={a.readBy.length === 0}
+              onClick={selectMode ? () => toggleSel(a.id) : undefined}
+              style={selectMode ? { cursor: "pointer" } : undefined}
+            >
+              <AlertSubject>
+                {selectMode && (
+                  <input type="checkbox" checked={selected.has(a.id)} readOnly style={{ accentColor: colors.pink, marginRight: "0.5rem" }} />
+                )}
+                {a.subject}
+              </AlertSubject>
               <AlertMeta>{new Date(a.createdAt).toLocaleString()}</AlertMeta>
               <AlertBody>{a.body}</AlertBody>
               <AlertFooter>

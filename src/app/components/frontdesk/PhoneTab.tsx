@@ -954,7 +954,7 @@ export default function PhoneTab() {
         />
       )}
 
-      {!onCall && lineStatus.inUse ? (
+      {!onCall && !softphone.incoming && lineStatus.inUse ? (
         /* Someone ELSE is on the shared line — no dialer, just the status. */
         <CallScreen>
           <RingBadge $live={true}>

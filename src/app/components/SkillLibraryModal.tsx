@@ -12,6 +12,7 @@
 
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import styled from "styled-components";
+import { useEscapeToClose } from "@tgv/module-component-library/components/hooks/useEscapeToClose";
 import { colors, rgb, glowRgba } from "../theme";
 import {
   ModalBackdrop,
@@ -217,6 +218,8 @@ function ADL({ skill, enabled, open, onToggleEnabled, onToggleOpen, children }: 
 type Props = { open: boolean; onClose: () => void };
 
 export default function SkillLibraryModal({ open, onClose }: Props) {
+  useEscapeToClose({ open, onClose });
+
   const [openSlug, setOpenSlug] = useState<string | null>(null);
   const [enabled, setEnabled] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(SKILLS.map((s) => [s.slug, s.status === "live"]))

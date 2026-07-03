@@ -20,6 +20,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import styled from "styled-components";
+import { useEscapeToClose } from "@tgv/module-component-library/components/hooks/useEscapeToClose";
 import { colors, rgb } from "@/app/theme";
 import {
   ModalBackdrop,
@@ -336,6 +337,8 @@ function timeAgo(iso: string | null | undefined): string {
 export type BackupsControlModalProps = { onClose: () => void };
 
 export default function BackupsControlModal({ onClose }: BackupsControlModalProps) {
+  useEscapeToClose({ open: true, onClose });
+
   const [status, setStatus] = useState<BackupStatus | null>(null);
   const [history, setHistory] = useState<HistoryResponse | null>(null);
   const [error, setError] = useState<string | null>(null);

@@ -7,6 +7,7 @@
 // optional headless walkthrough recording.
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useEscapeToClose } from "@tgv/module-component-library/components/hooks/useEscapeToClose";
 import HardeningControlModal, { type HCMSection } from "../hardening/HardeningControlModal";
 import AuditLogTimeline from "../hardening/_shared/AuditLogTimeline";
 
@@ -45,6 +46,8 @@ const input = {
 const label = { fontSize: "0.72rem", opacity: 0.65, marginBottom: "0.2rem", display: "block" } as const;
 
 export default function MigrateSiteControlModal({ onClose }: { onClose: () => void }) {
+  useEscapeToClose({ open: true, onClose });
+
   const [jobs, setJobs] = useState<MigrationJob[]>([]);
   const [loading, setLoading] = useState(true);
 

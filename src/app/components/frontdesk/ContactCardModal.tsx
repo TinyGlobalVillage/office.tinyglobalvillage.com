@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import styled from "styled-components";
+import { useEscapeToClose } from "@tgv/module-component-library/components/hooks/useEscapeToClose";
 import { colors, rgb } from "../../theme";
 import {
   ModalBackdrop,
@@ -165,6 +166,8 @@ export default function ContactCardModal(props: {
   onDeleted?: (id: string) => void;
 }) {
   const { contact, mode, defaultKind, onClose, onSaved, onDeleted } = props;
+  useEscapeToClose({ open: true, onClose });
+
   const [draft, setDraft] = useState<ContactDraft>(() => emptyDraft(defaultKind));
   const [editing, setEditing] = useState(mode !== "view");
   const [busy, setBusy] = useState(false);

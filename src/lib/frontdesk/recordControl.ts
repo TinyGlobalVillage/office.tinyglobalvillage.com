@@ -63,19 +63,23 @@ async function getVar(uuid: string, name: string): Promise<string | null> {
   return out;
 }
 
-type ChannelRow = { uuid?: string; context?: string };
+type ChannelRow = { uuid?: string; context?: string; callstate?: string };
 
-async function listChannelUuids(): Promise<string[]> {
+async function listChannels(): Promise<Array<{ uuid: string; callstate: string }>> {
   const body = await eslCommand("show channels as json");
   try {
     const parsed = JSON.parse(body) as { rows?: ChannelRow[] };
     return (parsed.rows ?? [])
-      .map(r => r.uuid ?? "")
-      .filter(u => UUID_RE.test(u))
+      .filter(r => r.uuid && UUID_RE.test(r.uuid))
+      .map(r => ({ uuid: r.uuid as string, callstate: (r.callstate ?? "").toUpperCase() }))
       .slice(0, 50);
   } catch {
     return [];
   }
+}
+
+async function listChannelUuids(): Promise<string[]> {
+  return (await listChannels()).map(c => c.uuid);
 }
 
 export type LineStatus = {
@@ -94,25 +98,41 @@ export type LineStatus = {
  * identity rides the X-Agent INVITE header (dialplan copies it to fd_agent).
  */
 export async function getLineStatus(): Promise<LineStatus> {
-  const uuids = await listChannelUuids();
-  if (uuids.length === 0) return { inUse: false, direction: null, agent: null, peer: null };
+  // RINGING/EARLY legs are NOT "in use" — an unanswered incoming call must
+  // show the accept overlay, not a busy panel (operator bug 2026-07-03).
+  // A lone ACTIVE inbound leg is a caller sitting in the voicemail IVR;
+  // that doesn't occupy an agent either.
+  const channels = await listChannels();
 
-  for (const uuid of uuids.slice(0, 6)) {
-    const agent = await getVar(uuid, "fd_agent");
-    if (agent) {
-      const dest = await getVar(uuid, "destination_number");
-      return { inUse: true, direction: "outbound", agent, peer: dest };
+  // Agent-tagged leg (X-Agent on outbound dials, /calls/claim on inbound
+  // answers) = an agent is genuinely on (or actively placing) a call.
+  for (const c of channels.slice(0, 8)) {
+    const agent = await getVar(c.uuid, "fd_agent");
+    if (!agent) continue;
+    const dest = await getVar(c.uuid, "destination_number");
+    if (dest && /^10\d\d$/.test(dest)) {
+      // Claimed inbound answer: the agent leg rings extension 10xx; the
+      // caller's number lives on the bridged partner.
+      const partner = await getVar(c.uuid, "signal_bond");
+      const cid = partner && UUID_RE.test(partner) ? await getVar(partner, "caller_id_number") : null;
+      return { inUse: true, direction: "inbound", agent, peer: cid };
+    }
+    return { inUse: true, direction: "outbound", agent, peer: dest };
+  }
+
+  // No agent tag → only a bridged ACTIVE pair counts as a conversation.
+  const active = channels.filter(c => c.callstate === "ACTIVE" || c.callstate === "HELD");
+  const activeSet = new Set(active.map(c => c.uuid));
+  for (const c of active.slice(0, 8)) {
+    const partner = await getVar(c.uuid, "signal_bond");
+    if (partner && activeSet.has(partner)) {
+      const cid = await getVar(c.uuid, "caller_id_number");
+      if (cid && !/^10\d\d$/.test(cid)) {
+        return { inUse: true, direction: "inbound", agent: null, peer: cid };
+      }
     }
   }
-  // No agent-placed leg → customer inbound; the caller's number is the
-  // caller_id of whichever leg has one that isn't an internal extension.
-  for (const uuid of uuids.slice(0, 6)) {
-    const cid = await getVar(uuid, "caller_id_number");
-    if (cid && !/^10\d\d$/.test(cid)) {
-      return { inUse: true, direction: "inbound", agent: null, peer: cid };
-    }
-  }
-  return { inUse: true, direction: null, agent: null, peer: null };
+  return { inUse: false, direction: null, agent: null, peer: null };
 }
 
 /**

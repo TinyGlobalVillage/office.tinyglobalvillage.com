@@ -137,6 +137,14 @@ function fmtDuration(sec: number): string {
 
 export default function RecordingsTab() {
   const [calls, setCalls] = useState<CallRecord[] | null>(null);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const toggleSel = (id: string) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draftNotes, setDraftNotes] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -184,9 +192,46 @@ export default function RecordingsTab() {
 
   const sorted = (calls ?? []).slice().sort((a, b) => b.startedAt.localeCompare(a.startedAt));
 
+  const batchDelete = async () => {
+    const ids = [...selected];
+    if (ids.length === 0) return;
+    if (!(await askConfirm({
+      title: "Delete recordings?",
+      message: `Delete ${ids.length} recording${ids.length === 1 ? "" : "s"}?`,
+      detail: "Audio files are removed from disk; the call log entries stay.",
+      confirmLabel: `Delete ${ids.length}`,
+    }))) return;
+    setBusyId("batch");
+    try {
+      for (const id of ids) {
+        await fetch(`/api/frontdesk/calls/recordings/${id}`, { method: "DELETE" });
+      }
+      setSelected(new Set());
+      setSelectMode(false);
+      await refresh();
+    } finally { setBusyId(null); }
+  };
+
   return (
     <Wrap>
-      <SectionHead>Recordings</SectionHead>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "0.5rem" }}>
+        <SectionHead>Recordings</SectionHead>
+        {sorted.length > 0 && (
+          <div style={{ display: "flex", gap: "0.4rem" }}>
+            {selectMode ? (
+              <>
+                <SmallBtn onClick={() => setSelected(new Set(sorted.map((c) => c.id)))}>All</SmallBtn>
+                <SmallBtn onClick={() => { setSelectMode(false); setSelected(new Set()); }}>Cancel</SmallBtn>
+                <SmallBtn disabled={selected.size === 0 || busyId === "batch"} onClick={batchDelete} style={{ borderColor: `rgba(${rgb.pink}, 0.4)`, color: colors.pink }}>
+                  Delete ({selected.size})
+                </SmallBtn>
+              </>
+            ) : (
+              <SmallBtn onClick={() => setSelectMode(true)}>Select</SmallBtn>
+            )}
+          </div>
+        )}
+      </div>
       {calls === null && <Empty>Loading…</Empty>}
       {calls && sorted.length === 0 && <Empty>No saved recordings.</Empty>}
       {sorted.map((call) => {
@@ -196,9 +241,16 @@ export default function RecordingsTab() {
           : (call.recordingPath ? 1 : 0);
         const isEditing = editingId === call.id;
         return (
-          <Row key={call.id}>
+          <Row
+            key={call.id}
+            onClick={selectMode ? () => toggleSel(call.id) : undefined}
+            style={selectMode ? { cursor: "pointer" } : undefined}
+          >
             <div style={{ minWidth: 0 }}>
               <PeerLine>
+                {selectMode && (
+                  <input type="checkbox" checked={selected.has(call.id)} readOnly style={{ accentColor: colors.pink, marginRight: "0.5rem" }} />
+                )}
                 {call.direction === "inbound" ? "←" : "→"} {formatPhoneDisplay(peer) || peer}
               </PeerLine>
               <SubLine>

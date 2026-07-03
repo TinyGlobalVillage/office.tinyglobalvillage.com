@@ -260,6 +260,7 @@ const ZoomDDMGlyph = styled.span`
 const TabBar = styled.div`
   display: flex;
   align-items: stretch;
+  justify-content: center;
   gap: 0;
   padding: 0 0.5rem;
   border-bottom: 1px solid rgba(${rgb.gold}, 0.15);
@@ -579,12 +580,13 @@ export default function FrontDeskDrawer() {
           </ControlRow>
         </Header>
 
-        {/* Row 1 (comms) → ON-SHIFT bar → Row 2 (inbox surfaces, A-Z). The
-            shift bar lives BETWEEN the rows so it's visible on every tab
-            (operator layout 2026-07-03). */}
+        {/* ON-SHIFT bar on top (visible on every tab), then the two
+            centered tab rows (operator layout 2026-07-03). */}
+        <div style={{ padding: "0.5rem 0.5rem 0.25rem" }}>
+          <FrontDeskShiftBar />
+        </div>
         {TAB_ROWS.map((row, i) => (
           <div key={i}>
-            {i === 1 && <FrontDeskShiftBar />}
             <TabBar style={i === 0 ? { borderBottom: "none" } : { marginBottom: "0.5rem" }}>
               {row.map((t) => {
                 const { label, Icon } = TAB_META[t];

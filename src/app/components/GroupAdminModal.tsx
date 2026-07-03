@@ -2,6 +2,7 @@
 
 import { useMemo, useState, type ReactNode } from "react";
 import styled from "styled-components";
+import { useEscapeToClose } from "@tgv/module-component-library/components/hooks/useEscapeToClose";
 import { colors, rgb } from "../theme";
 import { UserAvatar, type MemberProfile } from "./ChatSettingsModal";
 import { CancelIcon, TrashIcon } from "./icons";
@@ -306,6 +307,8 @@ type Props = {
 };
 
 export default function GroupAdminModal({ group, profiles, currentUser, onClose, onChanged, onDeleted }: Props) {
+  useEscapeToClose({ open: true, onClose });
+
   const [name, setName] = useState(group.name);
   const [visibility, setVisibility] = useState<Visibility>(group.visibility ?? "open");
   const [busy, setBusy] = useState(false);

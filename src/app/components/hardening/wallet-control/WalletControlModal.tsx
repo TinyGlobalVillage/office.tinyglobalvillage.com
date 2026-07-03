@@ -18,6 +18,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import styled from "styled-components";
+import { useEscapeToClose } from "@tgv/module-component-library/components/hooks/useEscapeToClose";
 import { colors, rgb } from "@/app/theme";
 import HardeningControlModal, { type HCMSection } from "../HardeningControlModal";
 import AuditLogTimeline from "../_shared/AuditLogTimeline";
@@ -66,6 +67,8 @@ const LIMIT_KEYS: (keyof WithdrawalConfig)[] = [
 ];
 
 export default function WalletControlModal({ onClose }: WalletControlModalProps) {
+  useEscapeToClose({ open: true, onClose });
+
   const [config, setConfig] = useState<WithdrawalConfig | null>(null);
   const [form, setForm] = useState<WithdrawalConfig | null>(null);
   const [gate, setGate] = useState<Gate | null>(null);

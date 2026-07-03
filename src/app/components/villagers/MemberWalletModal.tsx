@@ -13,6 +13,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import styled from "styled-components";
+import { useEscapeToClose } from "@tgv/module-component-library/components/hooks/useEscapeToClose";
 import { colors, rgb } from "@/app/theme";
 import {
   ModalBackdrop,
@@ -33,6 +34,8 @@ type Target = "available" | "cash";
 const usd = (tokens: number) => `$${(tokens * 0.25).toFixed(2)}`; // 1 token = $0.25
 
 export default function MemberWalletModal({ onClose }: { onClose: () => void }) {
+  useEscapeToClose({ open: true, onClose });
+
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Member[]>([]);
   const [searching, setSearching] = useState(false);

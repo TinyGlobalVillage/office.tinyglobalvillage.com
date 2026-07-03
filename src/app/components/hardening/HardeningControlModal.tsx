@@ -26,6 +26,7 @@
 
 import { type ReactNode } from "react";
 import styled from "styled-components";
+import { useEscapeToClose } from "@tgv/module-component-library/components/hooks/useEscapeToClose";
 import { colors, rgb } from "@/app/theme";
 import {
   ModalBackdrop,
@@ -146,6 +147,8 @@ function Section({ section }: { section: HCMSection }) {
 }
 
 export default function HardeningControlModal(props: HardeningControlModalProps) {
+  useEscapeToClose({ open: true, onClose: props.onClose });
+
   const [qmbmOpen, setQmbmOpen] = useState(false);
   return (
     <ModalBackdrop onClick={props.onClose}>

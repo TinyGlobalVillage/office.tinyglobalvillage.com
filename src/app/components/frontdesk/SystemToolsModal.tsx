@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import styled from "styled-components";
+import { useEscapeToClose } from "@tgv/module-component-library/components/hooks/useEscapeToClose";
 import { colors, rgb } from "../../theme";
 import {
   ModalBackdrop,
@@ -211,6 +212,7 @@ export default function SystemToolsModal(props: {
   onDidsChanged?: () => void;
 }) {
   const { onClose, onShiftSaved, onDidsChanged } = props;
+  useEscapeToClose({ open: true, onClose });
 
   // Data
   const [profiles, setProfiles] = useState<Profile[]>([]);

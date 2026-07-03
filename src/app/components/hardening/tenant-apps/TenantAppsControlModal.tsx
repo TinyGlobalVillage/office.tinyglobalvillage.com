@@ -15,6 +15,7 @@
 // tenant-app drift is rarely a firewall concern.
 
 import { useCallback, useEffect, useState } from "react";
+import { useEscapeToClose } from "@tgv/module-component-library/components/hooks/useEscapeToClose";
 import HardeningControlModal, { type HCMSection } from "../HardeningControlModal";
 import AuditLogTimeline from "../_shared/AuditLogTimeline";
 import {
@@ -29,6 +30,8 @@ export type TenantAppsControlModalProps = {
 };
 
 export default function TenantAppsControlModal({ onClose }: TenantAppsControlModalProps) {
+  useEscapeToClose({ open: true, onClose });
+
   const [rows, setRows] = useState<TenantAppRow[]>([]);
   const [drift, setDrift] = useState<DriftEntry[]>([]);
   const [counts, setCounts] = useState<{ pm2: number; infra: number; tenants: number; drifting: number } | null>(null);

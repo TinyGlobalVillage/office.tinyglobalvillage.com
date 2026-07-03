@@ -12,6 +12,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import styled from "styled-components";
+import { useEscapeToClose } from "@tgv/module-component-library/components/hooks/useEscapeToClose";
 import { colors, rgb } from "../../theme";
 import {
   ModalBackdrop,
@@ -130,6 +131,8 @@ type Props = {
 };
 
 export default function TrashModal({ open, onClose }: Props) {
+  useEscapeToClose({ open, onClose });
+
   const [items, setItems] = useState<TrashedThread[]>([]);
   const [retentionDays, setRetentionDays] = useState(30);
   const [loading, setLoading] = useState(false);

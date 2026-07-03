@@ -11,6 +11,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import styled from "styled-components";
+import { useEscapeToClose } from "@tgv/module-component-library/components/hooks/useEscapeToClose";
 import { colors, rgb } from "@/app/theme";
 import HardeningControlModal, { type HCMSection } from "../HardeningControlModal";
 import AuditLogTimeline from "../_shared/AuditLogTimeline";
@@ -53,6 +54,8 @@ function modeOf(c: CodeRow): string {
 }
 
 export default function InvitationsControlModal({ onClose }: InvitationsControlModalProps) {
+  useEscapeToClose({ open: true, onClose });
+
   const [codes, setCodes] = useState<CodeRow[]>([]);
   const [base, setBase] = useState("https://tinyglobalvillage.com");
   const [loading, setLoading] = useState(true);

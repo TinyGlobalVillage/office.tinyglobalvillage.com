@@ -10,6 +10,7 @@
 
 import React from "react";
 import styled from "styled-components";
+import { useEscapeToClose } from "@tgv/module-component-library/components/hooks/useEscapeToClose";
 import { CancelIcon } from "../icons";
 
 const ENDPOINT = "/api/sandbox/component-update-apply";
@@ -45,6 +46,8 @@ export default function ComponentUpdateModal({
   onClose: () => void;
   onApplied?: () => void;
 }) {
+  useEscapeToClose({ open: true, onClose });
+
   const [preview, setPreview] = React.useState<Preview | null>(null);
   const [busy, setBusy] = React.useState(true);
   const [err, setErr] = React.useState<string | null>(null);

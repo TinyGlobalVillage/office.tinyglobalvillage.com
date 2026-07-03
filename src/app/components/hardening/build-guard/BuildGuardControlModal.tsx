@@ -7,6 +7,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import styled from "styled-components";
+import { useEscapeToClose } from "@tgv/module-component-library/components/hooks/useEscapeToClose";
 import HardeningControlModal, { type HCMSection } from "../HardeningControlModal";
 import ConfirmModal from "../../frontdesk/ConfirmModal";
 
@@ -21,6 +22,8 @@ type Status = {
 };
 
 export default function BuildGuardControlModal({ onClose }: { onClose: () => void }) {
+  useEscapeToClose({ open: true, onClose });
+
   const [s, setS] = useState<Status | null>(null);
   const [busy, setBusy] = useState(false);
 

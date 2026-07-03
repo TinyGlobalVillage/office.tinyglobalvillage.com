@@ -11,6 +11,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import styled from "styled-components";
+import { useEscapeToClose } from "@tgv/module-component-library/components/hooks/useEscapeToClose";
 import { rgb } from "../../theme";
 import {
   ModalBackdrop,
@@ -109,6 +110,8 @@ type Props = {
 };
 
 export default function WhatsappRelayReadmeModal({ open, onClose }: Props) {
+  useEscapeToClose({ open, onClose });
+
   const [readme, setReadme] = useState<Readme | null>(null);
   const [error, setError] = useState<string | null>(null);
 

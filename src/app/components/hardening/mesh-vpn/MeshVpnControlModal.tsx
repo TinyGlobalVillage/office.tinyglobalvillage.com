@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
+import { useEscapeToClose } from "@tgv/module-component-library/components/hooks/useEscapeToClose";
 import { colors, rgb } from "@/app/theme";
 import HardeningControlModal, {
   type HCMSection,
@@ -431,6 +432,8 @@ export type MeshVpnControlModalProps = {
 };
 
 export default function MeshVpnControlModal({ onClose }: MeshVpnControlModalProps) {
+  useEscapeToClose({ open: true, onClose });
+
   const [status, setStatus] = useState<MeshVpnStatus | null>(null);
   const [forbidden, setForbidden] = useState(false);
 
