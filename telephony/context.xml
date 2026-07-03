@@ -42,18 +42,65 @@
         <action application="set" data="call_timeout=${cond(${vm_mode} == always ? 1 : 25)}"/>
         <action application="bridge" data="user/1001@office.tinyglobalvillage.com"/>
 
-        <!-- Voicemail flow (only reached on bridge fail / no-answer). -->
+        <!-- Voicemail flow (only reached on bridge fail / no-answer):
+             greeting (custom if recorded, else default) → vm-record IVR
+             below (instructions → tone → record; '#' opens the options
+             menu: listen / re-record / send). Prompts are Piper cori-high
+             (British female) — telephony/scripts/generate-prompts.sh. -->
         <action application="set" data="vm_greeting=${base_dir}/../../clients/office.tinyglobalvillage.com/telephony/data/voicemails/greeting.wav"/>
         <action application="set" data="vm_default_greeting=${base_dir}/../../clients/office.tinyglobalvillage.com/telephony/data/prompts/voicemail-default.wav"/>
         <action application="set" data="vm_message_file=${base_dir}/../../clients/office.tinyglobalvillage.com/telephony/data/voicemails/${strftime(%Y-%m-%d-%H-%M-%S)}_${uuid}.wav"/>
+        <action application="set" data="vm_prompts=${base_dir}/../../clients/office.tinyglobalvillage.com/telephony/data/prompts"/>
         <!-- Pick custom greeting if it exists; else default. file_exists()
              returns "true" or "false" as a string. -->
         <action application="set" data="vm_play=${cond(${file_exists(${vm_greeting})} == true ? ${vm_greeting} : ${vm_default_greeting})}"/>
         <action application="playback" data="${vm_play}"/>
-        <action application="playback" data="tone_stream://%(500,0,800)"/>
+        <action application="transfer" data="vm-record XML office.tinyglobalvillage.com"/>
+      </condition>
+    </extension>
+
+    <!-- Voicemail record + options IVR (2026-07-03). The caller records
+         after the tone; '#' (or 3s silence / 120s cap) ends the take and
+         opens the options menu: 1 = listen back, 2 = re-record (overwrites
+         the same take), 3 / timeout / hangup = send. Hanging up at ANY
+         point keeps the last take — api_hangup_hook encrypts it. -->
+    <extension name="vm-record">
+      <condition field="destination_number" expression="^vm-record$">
+        <action application="playback" data="${vm_prompts}/vm-instructions.wav"/>
+        <action application="set" data="RECORD_APPEND=false"/>
+        <action application="set" data="playback_terminators=#"/>
         <action application="set" data="api_hangup_hook=system /srv/refusion-core/telephony/scripts/encrypt-recording.sh ${vm_message_file}"/>
+        <action application="playback" data="tone_stream://%(500,0,800)"/>
         <action application="record" data="${vm_message_file} 120 200 3"/>
-        <action application="playback" data="${sounds_dir}/en/us/callie/voicemail/8000/vm-goodbye.wav"/>
+        <action application="transfer" data="vm-menu XML office.tinyglobalvillage.com"/>
+      </condition>
+    </extension>
+
+    <extension name="vm-menu">
+      <condition field="destination_number" expression="^vm-menu$">
+        <action application="set" data="vm_digit="/>
+        <action application="play_and_get_digits" data="0 1 3 6000 # ${vm_prompts}/vm-options.wav silence_stream://250 vm_digit [123]"/>
+        <action application="transfer" data="vm-menu-${vm_digit} XML office.tinyglobalvillage.com"/>
+      </condition>
+    </extension>
+
+    <extension name="vm-menu-1">
+      <condition field="destination_number" expression="^vm-menu-1$">
+        <action application="playback" data="${vm_message_file}"/>
+        <action application="transfer" data="vm-menu XML office.tinyglobalvillage.com"/>
+      </condition>
+    </extension>
+
+    <extension name="vm-menu-2">
+      <condition field="destination_number" expression="^vm-menu-2$">
+        <action application="transfer" data="vm-record XML office.tinyglobalvillage.com"/>
+      </condition>
+    </extension>
+
+    <!-- 3 = send; also the empty-digit (timeout / no input) landing. -->
+    <extension name="vm-menu-send">
+      <condition field="destination_number" expression="^vm-menu-(3)?$">
+        <action application="playback" data="${vm_prompts}/vm-goodbye.wav"/>
         <action application="hangup" data="NORMAL_CLEARING"/>
       </condition>
     </extension>

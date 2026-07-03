@@ -17,6 +17,7 @@ import SmsTab from "./frontdesk/SmsTab";
 import ContactsTab from "./frontdesk/ContactsTab";
 import AlertsTab from "./frontdesk/AlertsTab";
 import TicketsTab from "./frontdesk/TicketsTab";
+import VoicemailsTab from "./frontdesk/VoicemailsTab";
 import FrontDeskShiftBar from "./frontdesk/FrontDeskShiftBar";
 import {
   DrawerFrontDeskIcon,
@@ -25,6 +26,7 @@ import {
   ContactIcon,
   DrawerAlertsIcon,
   DrawerInboxIcon,
+  WaveformIcon,
 } from "./icons";
 import NeonX from "./NeonX";
 import { useKnobVisibility } from "../lib/drawerKnobs";
@@ -36,8 +38,13 @@ const MAX_W = 1400;
 const DEFAULT_W = 640;
 const DRAWER_ID = "frontdesk";
 
-type FrontDeskTab = "phone" | "sms" | "contacts" | "alerts" | "tickets";
-const TAB_ORDER: FrontDeskTab[] = ["phone", "sms", "contacts", "alerts", "tickets"];
+type FrontDeskTab = "phone" | "sms" | "contacts" | "voicemails" | "alerts" | "tickets";
+// Two tab rows (operator layout 2026-07-03): comms tools on top,
+// inbox-shaped surfaces (voicemails / alerts / tickets) below.
+const TAB_ROWS: FrontDeskTab[][] = [
+  ["phone", "sms", "contacts"],
+  ["voicemails", "alerts", "tickets"],
+];
 
 // Alphabetical stack with Alerts slot (gold, ~20% from top).
 function getDefaultTabY() {
@@ -298,11 +305,12 @@ const Resize = styled(DrawerResizeHandle).attrs<{ $anchor: "left" | "right" }>((
 // ── Tab metadata ─────────────────────────────────────────────────
 
 const TAB_META: Record<FrontDeskTab, { label: string; Icon: React.ComponentType<{ size?: number }> }> = {
-  phone:    { label: "Phone",    Icon: PhoneIcon },
-  sms:      { label: "SMS",      Icon: ChatIcon },
-  contacts: { label: "Contacts", Icon: ContactIcon },
-  alerts:   { label: "Alerts",   Icon: DrawerAlertsIcon },
-  tickets:  { label: "Tickets",  Icon: DrawerInboxIcon },
+  phone:      { label: "Phone",      Icon: PhoneIcon },
+  sms:        { label: "SMS",        Icon: ChatIcon },
+  contacts:   { label: "Contacts",   Icon: ContactIcon },
+  voicemails: { label: "Voicemails", Icon: WaveformIcon },
+  alerts:     { label: "Alerts",     Icon: DrawerAlertsIcon },
+  tickets:    { label: "Tickets",    Icon: DrawerInboxIcon },
 };
 
 // ── Component ────────────────────────────────────────────────────
@@ -568,17 +576,19 @@ export default function FrontDeskDrawer() {
           </ControlRow>
         </Header>
 
-        <TabBar>
-          {TAB_ORDER.map((t) => {
-            const { label, Icon } = TAB_META[t];
-            return (
-              <TabBtn key={t} $active={activeTab === t} onClick={() => switchTab(t)} title={label}>
-                <Icon size={14} />
-                {label}
-              </TabBtn>
-            );
-          })}
-        </TabBar>
+        {TAB_ROWS.map((row, i) => (
+          <TabBar key={i} style={i === 0 ? { borderBottom: "none" } : undefined}>
+            {row.map((t) => {
+              const { label, Icon } = TAB_META[t];
+              return (
+                <TabBtn key={t} $active={activeTab === t} onClick={() => switchTab(t)} title={label}>
+                  <Icon size={14} />
+                  {label}
+                </TabBtn>
+              );
+            })}
+          </TabBar>
+        ))}
 
         <FrontDeskShiftBar />
 
@@ -586,6 +596,7 @@ export default function FrontDeskDrawer() {
           {activeTab === "phone" && <PhoneTab />}
           {activeTab === "sms" && <SmsTab />}
           {activeTab === "contacts" && <ContactsTab />}
+          {activeTab === "voicemails" && <VoicemailsTab />}
           {activeTab === "alerts" && <AlertsTab />}
           {activeTab === "tickets" && <TicketsTab />}
         </ContentWrap>
