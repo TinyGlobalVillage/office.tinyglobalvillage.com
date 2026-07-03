@@ -17,7 +17,7 @@ import LoginClient from "./LoginClient";
 
 export const dynamic = "force-dynamic";
 
-type Search = Promise<{ from?: string; callbackUrl?: string; error?: string }>;
+type Search = Promise<{ from?: string; callbackUrl?: string; error?: string; recovery?: string }>;
 
 function safeLocalPath(raw: string | undefined, fallback: string): string {
   return raw && raw.startsWith("/") && !raw.startsWith("//") ? raw : fallback;
@@ -30,7 +30,12 @@ export default async function LoginPage({ searchParams }: { searchParams: Search
   const session = await officeMemberAuth.getActiveSession();
   if (session) redirect(cb);
 
-  if (AUTH_IDP === "keycloak" && !sp.error) {
+  // ?recovery=1 renders the LOCAL surface (recovery-code break-glass): the
+  // Keycloak passkey page must stay the zero-click default, and Keycloak
+  // renders a username form FIRST whenever a form-based alternative sits in
+  // the flow (KC behavior, priorities can't override it) — so the recovery
+  // path lives app-side until the conditional-LoA branch ships.
+  if (AUTH_IDP === "keycloak" && !sp.error && !sp.recovery) {
     redirect(`/api/auth/oidc/login?returnTo=${encodeURIComponent(cb)}`);
   }
 
