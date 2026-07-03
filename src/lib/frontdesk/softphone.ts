@@ -66,6 +66,52 @@ let status: SoftphoneStatus = "idle";
 let cachedConfig: SoftphoneConfig | null = null;
 const listeners = new Set<Listener>();
 
+// ── Transport resilience (2026-07-03) ────────────────────────────
+// Background tabs get their timers throttled and nginx idles out quiet
+// WebSockets, so the WSS (and with it the SIP registration) silently died —
+// inbound calls then found zero registrations and fell straight to
+// voicemail. Keepalive + reconnect-with-backoff + a re-register kick on
+// visibility/online keep the agent reachable while the tab merely exists.
+let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+let reconnectDelayMs = 2_000;
+let lifecycleHooked = false;
+
+function scheduleReconnect(immediate = false): void {
+  if (reconnectTimer || !ua) return;
+  reconnectTimer = setTimeout(async () => {
+    reconnectTimer = null;
+    if (!ua) return;
+    try {
+      await ua.reconnect();
+      reconnectDelayMs = 2_000;
+      await registerer?.register();
+    } catch {
+      reconnectDelayMs = Math.min(reconnectDelayMs * 2, 30_000);
+      scheduleReconnect();
+    }
+  }, immediate ? 250 : reconnectDelayMs);
+}
+
+/** Re-register if connected; reconnect if not. Fired on tab-visible/online. */
+function kickRegistration(): void {
+  if (!ua) return;
+  if (!ua.isConnected()) {
+    reconnectDelayMs = 2_000;
+    scheduleReconnect(true);
+    return;
+  }
+  registerer?.register().catch(() => { /* next kick retries */ });
+}
+
+function hookLifecycle(): void {
+  if (lifecycleHooked || typeof window === "undefined") return;
+  lifecycleHooked = true;
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) kickRegistration();
+  });
+  window.addEventListener("online", kickRegistration);
+}
+
 function emit(event: SoftphoneEvent) {
   for (const cb of listeners) {
     try { cb(event); } catch { /* swallow */ }
@@ -201,6 +247,8 @@ export async function initSoftphone(): Promise<void> {
     transportOptions: {
       server: cfg.wsUrl,
       traceSip: false,
+      // CRLF pings stop nginx from idling out the WSS in background tabs.
+      keepAliveInterval: 25,
     },
     logBuiltinEnabled: false,
     sessionDescriptionHandlerFactoryOptions: {
@@ -227,6 +275,10 @@ export async function initSoftphone(): Promise<void> {
         const displayName = invitation.remoteIdentity?.displayName ?? from;
         emit({ kind: "incoming", from, displayName, session: invitation });
       },
+      onDisconnect: () => {
+        setStatus("unregistered", "transport lost — reconnecting");
+        scheduleReconnect(true);
+      },
     },
   });
 
@@ -238,7 +290,12 @@ export async function initSoftphone(): Promise<void> {
     return;
   }
 
-  registerer = new Registerer(ua, { expires: 300 });
+  hookLifecycle();
+
+  // Long expiry: the WSS connection is the real liveness signal (keepalive
+  // above), and a long window survives background-tab timer throttling that
+  // used to let the 300s registration lapse.
+  registerer = new Registerer(ua, { expires: 3600 });
   registerer.stateChange.addListener((s) => {
     if (s === "Registered") setStatus("registered");
     else if (s === "Unregistered") setStatus("unregistered");

@@ -157,6 +157,9 @@ export default function IncomingCallOverlay() {
   const softphone = useSoftphone();
   const [apiState, setApiState] = useState<IncomingState>(null);
   const [busy, setBusy] = useState(false);
+  // Accept → media/ICE setup takes a beat; without feedback users re-click
+  // thinking it broke (operator feedback 2026-07-03).
+  const [accepting, setAccepting] = useState(false);
   const lastRingKeyRef = useRef<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -177,6 +180,12 @@ export default function IncomingCallOverlay() {
 
   const sipRing = softphone.incoming && softphone.callState !== "established" && softphone.callState !== "terminated";
   const showSip = Boolean(sipRing);
+
+  // Fresh ring (or ring cleared) → reset the connecting state so the next
+  // incoming call gets a live Accept button.
+  useEffect(() => {
+    if (!sipRing) setAccepting(false);
+  }, [sipRing]);
   const showApi = !showSip && Boolean(apiState);
   const ringing = showSip || showApi;
   const ringKey = showSip ? `sip:${softphone.incoming!.from}` : showApi ? `api:${apiState!.call.id}` : null;
@@ -232,12 +241,25 @@ export default function IncomingCallOverlay() {
           <RingDot><PhoneIcon size={44} /></RingDot>
           <NameLine>{peerLabel}</NameLine>
           <NumberLine>{peerNum}</NumberLine>
-          <MetaLine>Ringing (SIP direct)</MetaLine>
+          <MetaLine>{accepting ? "Connecting…" : "Ringing (SIP direct)"}</MetaLine>
           <CountdownBar $pct={100} />
           <ButtonRow>
-            <ActionBtn $variant="decline" onClick={() => softphone.hangup()}>Decline</ActionBtn>
+            <ActionBtn $variant="decline" disabled={accepting} onClick={() => softphone.hangup()}>Decline</ActionBtn>
             <ActionBtn $variant="team" disabled>Team</ActionBtn>
-            <ActionBtn $variant="accept" onClick={() => softphone.accept()}>Accept</ActionBtn>
+            <ActionBtn
+              $variant="accept"
+              disabled={accepting}
+              onClick={async () => {
+                setAccepting(true);
+                try {
+                  await softphone.accept();
+                } catch {
+                  setAccepting(false);
+                }
+              }}
+            >
+              {accepting ? "Connecting…" : "Accept"}
+            </ActionBtn>
           </ButtonRow>
         </Panel>
       </Backdrop>
