@@ -34,6 +34,22 @@ const ENCRYPT_SCRIPT =
   process.env.FRONTDESK_RECORDING_ENCRYPT_SCRIPT?.trim() ||
   "/srv/refusion-core/telephony/scripts/encrypt-recording.sh";
 
+// Piper-generated announcements (telephony/scripts/generate-prompts.sh)
+// broadcast into the live call when the REC toggle starts/stops a segment.
+const PROMPTS_DIR =
+  process.env.FRONTDESK_PROMPTS_DIR?.trim() ||
+  path.resolve(process.cwd(), "telephony", "data", "prompts");
+
+/** Play a prompt to BOTH legs of the anchor's call. Best-effort. */
+async function broadcastPrompt(uuid: string, fileName: string): Promise<void> {
+  assertUuid(uuid);
+  const file = path.join(PROMPTS_DIR, fileName);
+  if (!fs.existsSync(file)) return;
+  try {
+    await eslCommand(`uuid_broadcast ${uuid} ${file} both`);
+  } catch { /* announcement is best-effort — never fail the toggle */ }
+}
+
 function assertUuid(uuid: string): void {
   if (!UUID_RE.test(uuid)) throw new Error(`invalid channel uuid: ${uuid}`);
 }
@@ -148,6 +164,8 @@ export async function startSegment(anchor: RecordingAnchor): Promise<string> {
   await eslCommand(
     `uuid_setvar ${anchor.uuid} api_hangup_hook system ${ENCRYPT_SCRIPT} ${file}`,
   );
+  // Announce AFTER the bug is live so the announcement itself is on tape.
+  await broadcastPrompt(anchor.uuid, "rec-started.wav");
   return file;
 }
 
@@ -164,6 +182,7 @@ export async function stopSegment(anchor: RecordingAnchor): Promise<string | nul
   const res = await eslCommand(`uuid_record ${anchor.uuid} stop ${file}`);
   if (res.startsWith("-ERR")) throw new Error(`uuid_record stop failed: ${res.trim()}`);
   encryptSegment(file);
+  await broadcastPrompt(anchor.uuid, "rec-stopped.wav");
   return file;
 }
 

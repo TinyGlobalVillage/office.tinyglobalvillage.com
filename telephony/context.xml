@@ -6,17 +6,18 @@
     <!-- Inbound: every Front Desk DID (8772469848 toll-free + 7077508469
          Telnyx) lands here via public-dispatcher transfer.
 
-         Flat flow (no execute_extension recursion):
-           1. Answer + set ringback so caller hears US ring tone during bridge.
-           2. Consent IVR — pre-recorded WAV ("this call may be recorded;
-              press 1 to continue with recording, any other key to continue
-              without"). One digit, 5s window. Result lands in
-              ${consent_digit} ('1' = consent, anything else = no consent).
-           3. Conditional record_session (record-if-consented sub-extension).
-           4. Voicemail-mode check via mod_db `office/voicemail_mode`:
+         Flat flow (no execute_extension recursion) — REVISED 2026-07-02:
+         the press-1 consent IVR is RETIRED. Inbound calls are NOT recorded
+         at answer; recording starts only when the agent hits the REC toggle
+         (uuid_record via /api/frontdesk/calls/record), which broadcasts
+         "This call is now being recorded" into the call. Flow:
+           1. Answer + welcome prompt ("Welcome to Tiny Global Village, your
+              call is being forwarded to one of our agents"), ringback set so
+              the caller hears US ring tone during the bridge attempt.
+           2. Voicemail-mode check via mod_db `office/voicemail_mode`:
                 "always"   — skip bridge entirely (timeout=1).
                 "fallback" — try bridging to user/1001 for 25s. (default)
-           5. After bridge ends (success → hangup_after_bridge; failure →
+           3. After bridge ends (success → hangup_after_bridge; failure →
               continue_on_fail), play the voicemail greeting (custom if
               recorded, else default), beep, record caller message, encrypt
               on hangup. -->
@@ -26,17 +27,13 @@
         <action application="sleep" data="300"/>
         <action application="set" data="hangup_after_bridge=true"/>
         <action application="set" data="continue_on_fail=true"/>
-        <action application="set" data="RECORD_STEREO=true"/>
         <!-- US-style ring tone played to caller during the bridge attempt. -->
         <action application="set" data="ringback=%(2000,4000,440,480)"/>
         <action application="set" data="transfer_ringback=%(2000,4000,440,480)"/>
         <action application="set" data="instant_ringback=true"/>
 
-        <!-- Consent IVR. -->
-        <action application="play_and_get_digits" data="1 1 1 5000 # ${base_dir}/../../clients/office.tinyglobalvillage.com/telephony/data/prompts/consent-recording.wav silence_stream://250 consent_digit \d 1000"/>
-        <action application="set" data="consent_acknowledged=${cond(${consent_digit} == 1 ? true : false)}"/>
-        <action application="set" data="recording_file=${base_dir}/../../clients/office.tinyglobalvillage.com/telephony/data/recordings/${strftime(%Y-%m-%d-%H-%M-%S)}_${uuid}.wav"/>
-        <action application="execute_extension" data="record-if-consented XML office.tinyglobalvillage.com"/>
+        <!-- Welcome greeting (Piper TTS — telephony/scripts/generate-prompts.sh). -->
+        <action application="playback" data="${base_dir}/../../clients/office.tinyglobalvillage.com/telephony/data/prompts/welcome-forwarding.wav"/>
 
         <!-- Voicemail-mode toggle: shrinks the call_timeout to 1s when set
              to "always", so the bridge fails fast and we fall through to
@@ -61,11 +58,12 @@
       </condition>
     </extension>
 
-    <!-- Conditional recording — fired by frontdesk-inbound after consent IVR.
-         Only starts record_session if ${consent_acknowledged} == true. Kept
-         as a sub-extension (not a `<condition>` branch on the parent) so the
-         non-consenting branch still falls through to `bridge` cleanly without
-         a `<anti-action>` block.
+    <!-- Conditional recording — OUTBOUND-only since 2026-07-02 (the inbound
+         consent IVR is retired; inbound records exclusively via the agent's
+         mid-call REC toggle). Starts record_session when the softphone sent
+         X-Record: true (pre-call checkbox), and announces it to both legs
+         at answer. Kept as a sub-extension so the non-recording branch
+         falls through to `bridge` cleanly without an `<anti-action>` block.
 
          api_hangup_hook: on hangup FS runs `system <script> <wav>` which
          encrypts the recording with the TGV Recordings GPG public key and
@@ -78,6 +76,8 @@
       <condition field="${consent_acknowledged}" expression="^true$">
         <action application="record_session" data="${recording_file}"/>
         <action application="set" data="api_hangup_hook=system /srv/refusion-core/telephony/scripts/encrypt-recording.sh ${recording_file}"/>
+        <!-- Announce checkbox-started recording once the call is answered. -->
+        <action application="set" data="api_on_answer=uuid_broadcast ${uuid} ${base_dir}/../../clients/office.tinyglobalvillage.com/telephony/data/prompts/rec-started.wav both"/>
       </condition>
     </extension>
 

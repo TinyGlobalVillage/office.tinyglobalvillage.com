@@ -171,6 +171,10 @@ export function appendSegmentToOpenInboundCall(
   if (!paths.includes(segmentPath)) paths.push(segmentPath);
   open.recordingPaths = paths;
   open.recordingPath = open.recordingPath ?? paths[0] ?? null;
+  // Recording only starts via the REC toggle, which broadcasts "this call is
+  // now being recorded" to both parties — announced consent (the inbound
+  // press-1 IVR is retired 2026-07-02).
+  open.consentAcknowledged = true;
   write(db);
   return open;
 }
