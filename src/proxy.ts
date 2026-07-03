@@ -13,7 +13,7 @@ import { validateMemberSession } from "@/lib/member-auth/edge-validate";
 //       header, WhatsApp X-Hub-Signature-256). They MUST be public so Meta and
 //       Telegram can POST without a session cookie.
 const PUBLIC = [
-  "/login", "/api/auth", "/_next", "/favicon", "/og.png",
+  "/login", "/passkey", "/api/auth", "/_next", "/favicon", "/og.png",
   "/api/announcements",
   "/api/frontdesk/calls/webhook",
   "/api/frontdesk/sms/webhook",
