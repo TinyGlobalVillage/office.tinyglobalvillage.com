@@ -176,3 +176,17 @@ export async function stopSegment(anchor: RecordingAnchor): Promise<string | nul
 export async function getAnchorCallerNumber(anchor: RecordingAnchor): Promise<string | null> {
   return getVar(anchor.uuid, "caller_id_number");
 }
+
+/**
+ * Jail a client-supplied recording path to the recordings dir by basename
+ * and require the file to exist. Used by the post-hangup attach action,
+ * where the channel is gone and the path can't be re-read from FreeSWITCH.
+ */
+export function resolveExistingRecording(recordingPath: string): string | null {
+  const base = path.basename(recordingPath);
+  if (!base) return null;
+  const abs = path.join(RECORDINGS_DIR, base);
+  if (!abs.startsWith(RECORDINGS_DIR + path.sep)) return null;
+  if (!fs.existsSync(abs) && !fs.existsSync(abs + ".gpg")) return null;
+  return abs;
+}

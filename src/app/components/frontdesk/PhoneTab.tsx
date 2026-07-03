@@ -534,9 +534,11 @@ export default function PhoneTab() {
     events: Array<{ at: string; action: "start" | "stop" }>;
     activeFile: string | null;
     callId: string | null;
+    /** Caller number of an inbound leg — needed to attach segments to its webhook-owned CDR. */
+    inboundFrom: string | null;
     /** Set on the first manual toggle — the auto status-GET must not clobber it. */
     userTouched: boolean;
-  }>({ segments: [], events: [], activeFile: null, callId: null, userTouched: false });
+  }>({ segments: [], events: [], activeFile: null, callId: null, inboundFrom: null, userTouched: false });
   const isExec = me ? EXEC_USERNAMES.has(me.username) : false;
 
   const softphone = useSoftphone();
@@ -636,7 +638,14 @@ export default function PhoneTab() {
       // Fresh live call — ask FreeSWITCH whether the dialplan started a
       // recording (X-Record outbound / consent IVR inbound) and learn its
       // file path so the CDR can link it at hangup.
-      recRef.current = { segments: [], events: [], activeFile: null, callId: getCurrentCallId(), userTouched: false };
+      recRef.current = {
+        segments: [],
+        events: [],
+        activeFile: null,
+        callId: getCurrentCallId(),
+        inboundFrom: softphone.callDirection === "inbound" ? (softphone.incoming?.from ?? null) : null,
+        userTouched: false,
+      };
       recActiveRef.current = false;
       setRecActive(false);
       const cid = recRef.current.callId;
@@ -660,6 +669,24 @@ export default function PhoneTab() {
     if (curr === "terminated") {
       setPeerName(null);
       setShowInCallKeypad(false);
+    }
+    if (curr === "terminated" && prev !== "terminated" && !activeCallRef.current) {
+      // Inbound leg — the Telnyx webhook owns this CDR and never learns
+      // recording paths; attach what the browser observed at answer/toggle.
+      const rec = recRef.current;
+      if (recActiveRef.current && rec.activeFile) {
+        rec.segments.push(rec.activeFile);
+        rec.events.push({ at: new Date().toISOString(), action: "stop" });
+      }
+      recActiveRef.current = false;
+      setRecActive(false);
+      if (rec.segments.length > 0 && rec.inboundFrom) {
+        fetch("/api/frontdesk/calls/record", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "attach", fromE164: rec.inboundFrom, paths: rec.segments }),
+        }).then(() => loadAll()).catch(() => { /* best-effort */ });
+      }
     }
     if (curr === "terminated" && prev !== "terminated" && activeCallRef.current) {
       const call = activeCallRef.current;
@@ -696,7 +723,7 @@ export default function PhoneTab() {
         }),
       }).then(() => loadAll()).catch(() => { /* offline — skip */ });
     }
-  }, [softphone.callState, loadAll]);
+  }, [softphone.callState, softphone.callDirection, softphone.incoming, loadAll]);
 
   const toggleRecording = async () => {
     const cid = recRef.current.callId ?? getCurrentCallId();
@@ -764,7 +791,7 @@ export default function PhoneTab() {
       };
       // Clear any previous call's recording bookkeeping — a call that never
       // establishes must not inherit stale segments into its CDR.
-      recRef.current = { segments: [], events: [], activeFile: null, callId: null, userTouched: false };
+      recRef.current = { segments: [], events: [], activeFile: null, callId: null, inboundFrom: null, userTouched: false };
       recActiveRef.current = false;
       setRecActive(false);
       // Resolve a contact name for the in-call view (best-effort, non-blocking).

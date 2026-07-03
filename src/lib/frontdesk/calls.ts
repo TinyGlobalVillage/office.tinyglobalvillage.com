@@ -139,21 +139,29 @@ export function markOutcome(id: string, outcome: CallOutcome): CallRecord | null
 }
 
 /**
- * Attach a finished mid-call recording segment to the open (answered, not
- * yet ended) inbound CDR from `fromE164`. Inbound CDRs exist during the call
- * (created at ring by the webhook path) but nothing posts recording fields
- * for them at hangup — without this, an inbound segment stopped from the
- * REC toggle would exist on disk yet never appear in Saved Recordings.
- * Newest match wins. No-op when no open inbound call matches.
+ * Attach a finished mid-call recording segment to the answered inbound CDR
+ * from `fromE164`. Inbound CDRs exist during the call (created at ring by
+ * the webhook path) but nothing posts recording fields for them at hangup —
+ * without this, inbound recordings would exist on disk yet never appear in
+ * Saved Recordings. Newest match wins; `allowEndedWithinMs` accepts a CDR
+ * the Telnyx hangup webhook already closed (browser attach races it at
+ * termination). No-op when nothing matches.
  */
-export function appendSegmentToOpenInboundCall(fromE164: string, segmentPath: string): CallRecord | null {
+export function appendSegmentToOpenInboundCall(
+  fromE164: string,
+  segmentPath: string,
+  opts?: { allowEndedWithinMs?: number },
+): CallRecord | null {
+  const graceMs = opts?.allowEndedWithinMs ?? 0;
+  const now = Date.now();
   const db = read();
   const open = db.calls
     .filter(c =>
       c.direction === "inbound" &&
       c.fromE164 === fromE164 &&
       c.answeredAt !== null &&
-      c.endedAt === null,
+      (c.endedAt === null ||
+        (graceMs > 0 && now - Date.parse(c.endedAt) <= graceMs)),
     )
     .sort((a, b) => b.startedAt.localeCompare(a.startedAt))[0];
   if (!open) return null;

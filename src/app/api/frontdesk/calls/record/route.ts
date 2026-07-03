@@ -6,6 +6,7 @@ import {
   startSegment,
   stopSegment,
   getAnchorCallerNumber,
+  resolveExistingRecording,
 } from "@/lib/frontdesk/recordControl";
 import { appendSegmentToOpenInboundCall } from "@/lib/frontdesk/calls";
 import { toE164 } from "@/lib/frontdesk/store";
@@ -52,9 +53,33 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json().catch(() => ({}));
   const callId = typeof body.callId === "string" ? body.callId : "";
-  const action = body.action === "start" || body.action === "stop" ? body.action : null;
-  if (!callId.trim() || !action) {
-    return NextResponse.json({ error: "callId and action (start|stop) required" }, { status: 400 });
+  const action =
+    body.action === "start" || body.action === "stop" || body.action === "attach"
+      ? body.action
+      : null;
+  if (!action || (action !== "attach" && !callId.trim())) {
+    return NextResponse.json({ error: "callId and action (start|stop|attach) required" }, { status: 400 });
+  }
+
+  // attach — post-hangup CDR linkage for INBOUND calls (their CDR belongs to
+  // the Telnyx webhook, which never learns recording paths; the browser does,
+  // via the status GET at answer). The channel is gone by now, so paths are
+  // validated against the recordings dir (basename jail + must exist) instead
+  // of FreeSWITCH, and the match window tolerates a webhook-closed CDR.
+  if (action === "attach") {
+    const fromE164 = toE164(String(body.fromE164 ?? ""));
+    const rawPaths: string[] = Array.isArray(body.paths)
+      ? (body.paths as unknown[]).filter((p): p is string => typeof p === "string" && p.length < 512).slice(0, 50)
+      : [];
+    if (!fromE164 || rawPaths.length === 0) {
+      return NextResponse.json({ error: "fromE164 and paths[] required" }, { status: 400 });
+    }
+    let attached = 0;
+    for (const p of rawPaths) {
+      if (!resolveExistingRecording(p)) continue;
+      if (appendSegmentToOpenInboundCall(fromE164, p, { allowEndedWithinMs: 120_000 })) attached++;
+    }
+    return NextResponse.json({ ok: true, action, attached });
   }
 
   try {

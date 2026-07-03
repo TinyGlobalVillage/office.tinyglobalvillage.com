@@ -128,10 +128,14 @@
         <action application="set" data="ignore_early_media=ring_ready"/>
         <action application="set" data="instant_ringback=true"/>
         <action application="set" data="effective_caller_id_number=${cond(${sip_h_X-CID} != '' ? ${sip_h_X-CID} : ${gw_tgv_office_caller_id})}"/>
-        <!-- Outbound recording is OPT-OUT: default record unless the softphone
-             explicitly sent X-Record: false. consent_acknowledged tracks the
-             user's decision and propagates to the CDR via /api/frontdesk/calls/log. -->
-        <action application="set" data="consent_acknowledged=${cond(${sip_h_X-Record} == false ? false : true)}"/>
+        <!-- Outbound recording is OPT-IN (2026-07-02, supersedes the Item 4/B2
+             opt-out): record ONLY when the softphone explicitly sent
+             X-Record: true. The softphone always sends the header, so the
+             no-header fallback (false) only fires for non-softphone INVITEs —
+             which must never be silently recorded. Mid-call recording is
+             handled separately via uuid_record (/api/frontdesk/calls/record).
+             consent_acknowledged propagates to the CDR via /api/frontdesk/calls/log. -->
+        <action application="set" data="consent_acknowledged=${cond(${sip_h_X-Record} == true ? true : false)}"/>
         <action application="set" data="recording_file=${base_dir}/../../clients/office.tinyglobalvillage.com/telephony/data/recordings/${strftime(%Y-%m-%d-%H-%M-%S)}_${uuid}.wav"/>
         <action application="execute_extension" data="record-if-consented XML office.tinyglobalvillage.com"/>
         <!-- rtp_secure_media=mandatory is gated on Telnyx-side TLS+SRTP
