@@ -117,6 +117,55 @@ export type AuthAuditRow = {
 };
 
 /**
+ * Read recent entries whose action starts with one of `prefixes` (e.g.
+ * ["keycloak."]), newest-first, shaped for the shared AuditLogTimeline.
+ * `kind` is the action's second segment ("keycloak.realm.update" → "realm")
+ * so the timeline's kind filter groups by subsystem area. Never throws.
+ */
+export function readHardeningAuditRows(prefixes: string[], limit = 200): AuthAuditRow[] {
+  let raw = "";
+  try {
+    raw = fs.readFileSync(resolveLogPath(), "utf8");
+  } catch {
+    return [];
+  }
+  const rows: AuthAuditRow[] = [];
+  const lines = raw.split("\n");
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) continue;
+    let e: HardeningAuditEntry;
+    try {
+      e = JSON.parse(line) as HardeningAuditEntry;
+    } catch {
+      continue;
+    }
+    if (!e.action || !prefixes.some(p => e.action.startsWith(p))) continue;
+    const d = e.details;
+    let detail: string | null = null;
+    if (d && typeof d === "object") {
+      detail =
+        Object.entries(d as Record<string, unknown>)
+          .map(([k, v]) => `${k}: ${typeof v === "object" ? JSON.stringify(v) : v}`)
+          .join(" · ") || null;
+    } else if (typeof d === "string") {
+      detail = d;
+    }
+    rows.push({
+      id: `${e.ts}-${i}`,
+      ts: e.ts,
+      kind: e.action.split(".")[1] ?? e.action,
+      label: e.action.replace(/[._]/g, " "),
+      detail,
+      ip: null,
+      by: e.user ?? null,
+      outcome: e.success ? "ok" : "fail",
+    });
+  }
+  return rows.reverse().slice(0, limit);
+}
+
+/**
  * Read recent `auth.*` events from the JSONL audit log, newest-first, shaped
  * for the shared AuditLogTimeline component (the member-auth/office-staff HCMs
  * render this). Never throws — returns [] if the log is unreadable.

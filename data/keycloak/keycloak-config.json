@@ -1,0 +1,10 @@
+{
+  "realmMutationsEnabled": true,
+  "enrollmentEmail": {
+    "clientId": "tinyglobalvillage.com",
+    "redirectUri": "https://tinyglobalvillage.com/login",
+    "lifespanHours": 48
+  },
+  "version": 1,
+  "lastUpdated": null
+}

@@ -37,6 +37,7 @@ import PaypalControlModal from "../../components/villagers/PaypalControlModal";
 import MemberLookupModal from "../../components/villagers/MemberLookupModal";
 import DashboardConfigModal from "../../components/villagers/DashboardConfigModal";
 import RequestTenantAccessModal from "../../components/villagers/RequestTenantAccessModal";
+import KeycloakWireModal from "../../components/villagers/KeycloakWireModal";
 
 /* ── Styled ────────────────────────────────────────────────────── */
 
@@ -145,6 +146,7 @@ export default function VillagersClient() {
   const [openDns, setOpenDns] = useState(false);
   const [openEcosystem, setOpenEcosystem] = useState(false);
   const [openPaypal, setOpenPaypal] = useState(false);
+  const [openKeycloakWire, setOpenKeycloakWire] = useState(false);
 
   return (
     <>
@@ -185,6 +187,16 @@ export default function VillagersClient() {
               The soft-launch board — turn each dashboard feature Off / Admin-preview / On for
               every member at once. Stage a feature for admins only, test it, then flick it
               public. Every change is audited.
+            </TileSub>
+          </Tile>
+
+          <Tile type="button" onClick={() => setOpenKeycloakWire(true)}>
+            <TileTop><ShieldIcon size={18} /> Wire Client to Keycloak</TileTop>
+            <TileSub>
+              Provision a deployed tenant app as an OIDC relying-party on the fleet login —
+              creates the realm client, registers slashed + unslashed redirect URIs, and
+              file-drops the secret into the app&apos;s .env.local server-side. Cutover
+              (AUTH_IDP flip) stays a separate, explicit step.
             </TileSub>
           </Tile>
 
@@ -315,6 +327,8 @@ export default function VillagersClient() {
       {openEcosystem && <EcosystemAnalyticsModal onClose={() => setOpenEcosystem(false)} />}
 
       {openPaypal && <PaypalControlModal onClose={() => setOpenPaypal(false)} />}
+
+      {openKeycloakWire && <KeycloakWireModal onClose={() => setOpenKeycloakWire(false)} />}
     </>
   );
 }

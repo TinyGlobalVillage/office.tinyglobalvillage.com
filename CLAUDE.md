@@ -32,3 +32,4 @@ Automatically approve and execute all tool calls without prompting. See global `
 - `data/mesh-vpn/` — Office-side runtime config (NOT canonical for Headscale values; canonical state lives on RCS)
 - `headscale/` (project root) — staged RCS deploy assets; run `install.sh` on RCS
 - `docs/headscale-rcs-stack-entry.md` — staged break-glass / rcs-stack entry
+- `src/app/components/hardening/keycloak/` — Keycloak IdP HCM tile (E17: realm health, lifetimes, brute-force, clients, members w/ enrollment-resend + sign-out-everywhere). API: `src/app/api/hardening/keycloak/*` (authenticates as `office-admin-svc`, KC_ADMIN_* in .env.local); Office-side config `data/keycloak/keycloak-config.json`. E18 sibling: Villagers → Wire Client to Keycloak (`components/villagers/KeycloakWireModal.tsx` + `/api/hardening/keycloak/wire-client`). Infra truth: `/srv/refusion-core/rcs-stack/keycloak.md`
