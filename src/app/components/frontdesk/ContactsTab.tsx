@@ -75,6 +75,7 @@ const List = styled.ul`
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  scrollbar-gutter: stable both-edges;
   list-style: none;
   margin: 0;
   padding: 0.5rem;

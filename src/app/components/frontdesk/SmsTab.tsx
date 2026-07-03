@@ -64,6 +64,7 @@ const ThreadList = styled.ul`
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  scrollbar-gutter: stable both-edges;
   list-style: none;
   margin: 0;
   padding: 0.5rem;
@@ -196,6 +197,7 @@ const Messages = styled.div`
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  scrollbar-gutter: stable both-edges;
   padding: 0.75rem;
   display: flex;
   flex-direction: column;

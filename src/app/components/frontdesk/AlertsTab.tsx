@@ -14,6 +14,7 @@ const Wrap = styled.div`
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  scrollbar-gutter: stable both-edges;
   padding: 1rem;
 `;
 

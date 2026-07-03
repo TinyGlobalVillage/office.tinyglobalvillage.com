@@ -25,6 +25,7 @@ const Wrap = styled.div`
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  scrollbar-gutter: stable both-edges;
   display: flex;
   flex-direction: column;
   gap: 1rem;

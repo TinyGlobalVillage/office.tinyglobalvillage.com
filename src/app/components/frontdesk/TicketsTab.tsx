@@ -279,6 +279,7 @@ const List = styled.div`
   flex-direction: column;
   gap: 0.3rem;
   overflow-y: auto;
+  scrollbar-gutter: stable both-edges;
 `;
 const Item = styled.button`
   appearance: none;
@@ -349,6 +350,7 @@ const Scroll = styled.div`
   flex-direction: column;
   gap: 0.5rem;
   overflow-y: auto;
+  scrollbar-gutter: stable both-edges;
   padding: 0.25rem;
 `;
 const MsgRow = styled.div<{ $staff: boolean }>`
