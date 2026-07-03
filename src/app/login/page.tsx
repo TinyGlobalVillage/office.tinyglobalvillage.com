@@ -36,7 +36,13 @@ export default async function LoginPage({ searchParams }: { searchParams: Search
   // the flow (KC behavior, priorities can't override it) — so the recovery
   // path lives app-side until the conditional-LoA branch ships.
   if (AUTH_IDP === "keycloak" && !sp.error && !sp.recovery) {
-    redirect(`/api/auth/oidc/login?returnTo=${encodeURIComponent(cb)}`);
+    // prompt=login (Gio 2026-07-03): an EXPLICIT visit to a site's login —
+    // cold landing, or right after a logout — always runs the passkey
+    // ceremony, even when a live Keycloak SSO session could sign in
+    // silently. Seamless silent SSO stays available on the bare
+    // /api/auth/oidc/login endpoint (no prompt param) for dashboard-to-
+    // dashboard switching surfaces.
+    redirect(`/api/auth/oidc/login?returnTo=${encodeURIComponent(cb)}&prompt=login`);
   }
 
   return <LoginClient />;
