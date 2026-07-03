@@ -22,7 +22,9 @@ export async function GET(req: NextRequest) {
   if (AUTH_IDP !== "keycloak") return new NextResponse(null, { status: 404 });
 
   const result = await memberOidc.handleCallback(req.url);
-  const dest = (path: string) => NextResponse.redirect(new URL(path, req.nextUrl.origin));
+  // Redirects build against the CONFIGURED origin — behind nginx,
+  // req.nextUrl.origin reads as http://localhost:<port> (bug fixed 2026-07-03).
+  const dest = (path: string) => NextResponse.redirect(new URL(path, memberOidc.appOrigin));
 
   if (!result.ok) {
     // `login_required` = a prompt=none probe with no live SSO session.
