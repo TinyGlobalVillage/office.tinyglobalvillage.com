@@ -25,6 +25,7 @@ import {
 } from "@/app/styled";
 import NeonX from "../NeonX";
 import { askConfirm } from "../dialogService";
+import UploadDropzone from "../UploadDropzone";
 
 type FileItem = {
   kind: "root" | "vocab";
@@ -211,6 +212,38 @@ export default function ClaudeVocabModal({ onClose }: { onClose: () => void }) {
     }
   }
 
+  /** Drop .md files → one vocab term per file (filename = term name). */
+  async function importVocabFiles(fl: FileList) {
+    setError(null);
+    setSaving(true);
+    const skipped: string[] = [];
+    let firstImported: string | null = null;
+    try {
+      for (const f of Array.from(fl)) {
+        const safe = f.name.replace(/\.md$/i, "").trim().replace(/[^A-Za-z0-9_-]/g, "");
+        if (!safe) { skipped.push(f.name); continue; }
+        const file = `vocabulary/${safe}.md`;
+        if (terms.some((t) => t.name === file)) { skipped.push(`${safe} (exists)`); continue; }
+        const res = await fetch("/api/claude/files", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ file, content: await f.text() }),
+        });
+        if (!res.ok) { skipped.push(safe); continue; }
+        firstImported = firstImported ?? file;
+      }
+      await loadList();
+      if (firstImported) {
+        setCreating(false);
+        setNewTermName("");
+        await loadTerm(firstImported);
+      }
+      if (skipped.length) setError(`Skipped: ${skipped.join(", ")}`);
+    } finally {
+      setSaving(false);
+    }
+  }
+
   async function createTerm() {
     const safe = newTermName.trim().replace(/[^A-Za-z0-9_-]/g, "");
     if (!safe) { setError("Name must be alphanumeric (also _ -)"); return; }
@@ -320,6 +353,15 @@ export default function ClaudeVocabModal({ onClose }: { onClose: () => void }) {
                   onKeyDown={(e) => { if (e.key === "Enter") createTerm(); }}
                   placeholder="TermName"
                   autoFocus
+                />
+                <UploadDropzone
+                  headline="Drop your vocabulary files here to upload"
+                  hint="Works with any .MD file. The filename becomes the term name."
+                  recommendation="Existing terms are never overwritten."
+                  accept=".md,text/markdown"
+                  multiple
+                  disabled={saving}
+                  onFiles={importVocabFiles}
                 />
                 {error && <PanelError>{error}</PanelError>}
                 <BtnRow>

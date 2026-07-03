@@ -18,6 +18,7 @@ import ContactsTab from "./frontdesk/ContactsTab";
 import AlertsTab from "./frontdesk/AlertsTab";
 import TicketsTab from "./frontdesk/TicketsTab";
 import VoicemailsTab from "./frontdesk/VoicemailsTab";
+import RecordingsTab from "./frontdesk/RecordingsTab";
 import FrontDeskShiftBar from "./frontdesk/FrontDeskShiftBar";
 import {
   DrawerFrontDeskIcon,
@@ -27,6 +28,7 @@ import {
   DrawerAlertsIcon,
   DrawerInboxIcon,
   WaveformIcon,
+  RecordIcon,
 } from "./icons";
 import NeonX from "./NeonX";
 import { useKnobVisibility } from "../lib/drawerKnobs";
@@ -38,12 +40,12 @@ const MAX_W = 1400;
 const DEFAULT_W = 640;
 const DRAWER_ID = "frontdesk";
 
-type FrontDeskTab = "phone" | "sms" | "contacts" | "voicemails" | "alerts" | "tickets";
-// Two tab rows (operator layout 2026-07-03): comms tools on top,
-// inbox-shaped surfaces (voicemails / alerts / tickets) below.
+type FrontDeskTab = "phone" | "sms" | "contacts" | "voicemails" | "alerts" | "tickets" | "recordings";
+// Two tab rows (operator layout 2026-07-03): comms tools on top, the
+// ON-SHIFT bar between them, inbox-shaped surfaces below (alphabetical).
 const TAB_ROWS: FrontDeskTab[][] = [
   ["phone", "sms", "contacts"],
-  ["voicemails", "alerts", "tickets"],
+  ["alerts", "recordings", "tickets", "voicemails"],
 ];
 
 // Alphabetical stack with Alerts slot (gold, ~20% from top).
@@ -311,6 +313,7 @@ const TAB_META: Record<FrontDeskTab, { label: string; Icon: React.ComponentType<
   voicemails: { label: "Voicemails", Icon: WaveformIcon },
   alerts:     { label: "Alerts",     Icon: DrawerAlertsIcon },
   tickets:    { label: "Tickets",    Icon: DrawerInboxIcon },
+  recordings: { label: "Recordings", Icon: RecordIcon },
 };
 
 // ── Component ────────────────────────────────────────────────────
@@ -576,27 +579,32 @@ export default function FrontDeskDrawer() {
           </ControlRow>
         </Header>
 
+        {/* Row 1 (comms) → ON-SHIFT bar → Row 2 (inbox surfaces, A-Z). The
+            shift bar lives BETWEEN the rows so it's visible on every tab
+            (operator layout 2026-07-03). */}
         {TAB_ROWS.map((row, i) => (
-          <TabBar key={i} style={i === 0 ? { borderBottom: "none" } : undefined}>
-            {row.map((t) => {
-              const { label, Icon } = TAB_META[t];
-              return (
-                <TabBtn key={t} $active={activeTab === t} onClick={() => switchTab(t)} title={label}>
-                  <Icon size={14} />
-                  {label}
-                </TabBtn>
-              );
-            })}
-          </TabBar>
+          <div key={i}>
+            {i === 1 && <FrontDeskShiftBar />}
+            <TabBar style={i === 0 ? { borderBottom: "none" } : { marginBottom: "0.5rem" }}>
+              {row.map((t) => {
+                const { label, Icon } = TAB_META[t];
+                return (
+                  <TabBtn key={t} $active={activeTab === t} onClick={() => switchTab(t)} title={label}>
+                    <Icon size={14} />
+                    {label}
+                  </TabBtn>
+                );
+              })}
+            </TabBar>
+          </div>
         ))}
-
-        <FrontDeskShiftBar />
 
         <ContentWrap style={{ fontSize: `${zoom}rem` }}>
           {activeTab === "phone" && <PhoneTab />}
           {activeTab === "sms" && <SmsTab />}
           {activeTab === "contacts" && <ContactsTab />}
           {activeTab === "voicemails" && <VoicemailsTab />}
+          {activeTab === "recordings" && <RecordingsTab />}
           {activeTab === "alerts" && <AlertsTab />}
           {activeTab === "tickets" && <TicketsTab />}
         </ContentWrap>

@@ -235,7 +235,7 @@ export default function IncomingCallOverlay() {
     const peerLabel = softphone.incoming!.displayName;
     const peerNum = softphone.incoming!.from;
     return (
-      <Backdrop>
+      <Backdrop data-tgv-modal="1">
         <Panel>
           <Label>Incoming call</Label>
           <RingDot><PhoneIcon size={44} /></RingDot>
@@ -253,6 +253,9 @@ export default function IncomingCallOverlay() {
                 setAccepting(true);
                 try {
                   await softphone.accept();
+                  // Surface the live call: open the Front Desk drawer on the
+                  // Phone tab (detail-less prefill event = open only, no dial).
+                  window.dispatchEvent(new CustomEvent("frontdesk-dial-prefill"));
                 } catch {
                   setAccepting(false);
                 }
@@ -280,7 +283,7 @@ export default function IncomingCallOverlay() {
     : `Ringing you (${Math.max(0, DIRECT_RING_WINDOW_SEC - elapsedSec)}s until team)`;
 
   return (
-    <Backdrop>
+    <Backdrop data-tgv-modal="1">
       <Panel>
         <Label>Incoming call</Label>
         <RingDot><PhoneIcon size={44} /></RingDot>

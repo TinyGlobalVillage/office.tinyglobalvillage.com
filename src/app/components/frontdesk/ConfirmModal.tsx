@@ -125,7 +125,7 @@ export default function ConfirmModal({
   const titleColor = intent === "danger" ? colors.pink : colors.cyan;
 
   return (
-    <ConfirmBackdrop onClick={onCancel}>
+    <ConfirmBackdrop data-tgv-modal="1" onClick={onCancel}>
       <ModalContainer
         $accent={accent}
         $maxWidth="28rem"

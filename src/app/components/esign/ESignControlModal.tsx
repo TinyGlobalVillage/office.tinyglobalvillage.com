@@ -23,6 +23,7 @@ import styled, { keyframes, css } from "styled-components";
 import DDM, { type DDMItem } from "@tgv/module-component-library/components/ui/DDM";
 import PillBar from "@tgv/module-component-library/components/ui/PillBar";
 import ConfirmModal from "../frontdesk/ConfirmModal";
+import UploadDropzone from "../UploadDropzone";
 
 // ── types (mirror the API payloads) ────────────────────────────────────────────
 type DocKind = "waiver" | "multisig";
@@ -138,8 +139,6 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadPct, setUploadPct] = useState<number | null>(null); // 0–100 while sending; null = server processing
-  const [dragging, setDragging] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // documents-tab kind filter (PillBar)
   const [docFilter, setDocFilter] = useState<KindFilter>("all");
@@ -476,50 +475,35 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
               )}
 
               <Label>Document</Label>
-              <DropZone
-                $dragging={dragging}
-                onClick={() => { if (!uploading) fileInputRef.current?.click(); }}
-                onDragOver={(e) => { e.preventDefault(); if (!uploading && !dragging) setDragging(true); }}
-                onDragLeave={(e) => { e.preventDefault(); setDragging(false); }}
-                onDrop={(e) => { e.preventDefault(); setDragging(false); stageFile(e.dataTransfer.files?.[0] ?? null); }}
+              <UploadDropzone
+                accept="application/pdf"
+                disabled={uploading}
+                chooseLabel={uploadFile && !uploading ? "Choose Another File" : "Choose File"}
+                headline={uploading
+                  ? uploadPct !== null
+                    ? `Uploading ${uploadFile?.name ?? "PDF"} — ${uploadPct}%`
+                    : `Processing ${uploadFile?.name ?? "PDF"}…`
+                  : uploadFile
+                  ? uploadFile.name
+                  : "Drop your PDF here to upload"}
+                hint={uploading
+                  ? uploadPct !== null
+                    ? "Sending file to the server"
+                    : mode === "multisig"
+                    ? "Creating the document and emailing each signer their own link…"
+                    : "Creating signing template in Documenso…"
+                  : uploadFile
+                  ? "Staged — nothing happens until you press Send."
+                  : "Works with any .PDF file up to 20 MB."}
+                recommendation={!uploading && !uploadFile ? "Staged until you press Send" : undefined}
+                onFiles={(fl) => stageFile(fl[0] ?? null)}
               >
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="application/pdf"
-                  hidden
-                  onChange={(e) => { stageFile(e.target.files?.[0] ?? null); e.target.value = ""; }}
-                />
-                <svg width={30} height={30} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 16V4M8 8l4-4 4 4" />
-                  <path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3" />
-                </svg>
-                <DzText>
-                  {uploading
-                    ? uploadPct !== null
-                      ? `Uploading ${uploadFile?.name ?? "PDF"} — ${uploadPct}%`
-                      : `Processing ${uploadFile?.name ?? "PDF"}…`
-                    : uploadFile
-                    ? uploadFile.name
-                    : "Drag a PDF here, or click to browse"}
-                </DzText>
-                <DzSub>
-                  {uploading
-                    ? uploadPct !== null
-                      ? "Sending file to the server"
-                      : mode === "multisig"
-                      ? "Creating the document and emailing each signer their own link…"
-                      : "Creating signing template in Documenso…"
-                    : uploadFile
-                    ? "Staged — nothing happens until you press Send. Click to swap the file."
-                    : "PDF · up to 20 MB · staged until you press Send"}
-                </DzSub>
                 {uploading && (
                   <Track>
                     <Fill $pct={uploadPct} />
                   </Track>
                 )}
-              </DropZone>
+              </UploadDropzone>
 
               <Row>
                 {uploadFile && !uploading && (
@@ -697,18 +681,6 @@ const CopyIconBtn = styled.button`
   &:disabled { opacity: 0.35; cursor: default; }
 `;
 const GhostBtn = styled.button`${baseField} cursor: pointer; flex: 0 0 auto; font-size: 12px; padding: 6px 12px; &:hover { border-color: rgba(120,200,255,0.5); }`;
-const DropZone = styled.div<{ $dragging: boolean }>`
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
-  padding: 26px 18px; margin-top: 2px; cursor: pointer; text-align: center;
-  border: 1.5px dashed ${(p) => (p.$dragging ? "rgba(120,200,255,0.8)" : "rgba(255,255,255,0.18)")};
-  border-radius: 11px;
-  background: ${(p) => (p.$dragging ? "rgba(120,200,255,0.1)" : "rgba(255,255,255,0.02)")};
-  color: ${(p) => (p.$dragging ? "#bfe4ff" : "rgba(232,232,239,0.6)")};
-  transition: border-color 0.15s, background 0.15s, color 0.15s;
-  &:hover { border-color: rgba(120,200,255,0.5); color: #cfe9ff; }
-`;
-const DzText = styled.div`font-size: 13.5px; font-weight: 600; color: #e8e8ef; word-break: break-all;`;
-const DzSub = styled.div`font-size: 11.5px; color: rgba(232,232,239,0.45);`;
 const slide = keyframes`0% { left: -45%; } 100% { left: 100%; }`;
 const Track = styled.div`position: relative; height: 5px; width: 70%; margin-top: 8px; border-radius: 999px; background: rgba(255,255,255,0.09); overflow: hidden;`;
 const Fill = styled.div<{ $pct: number | null }>`
