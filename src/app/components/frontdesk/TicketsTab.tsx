@@ -244,7 +244,7 @@ export default function TicketsTab() {
 const SelBtn = styled.button`
   background: transparent;
   border: 1px solid rgba(247, 183, 0, 0.35);
-  color: ${G};
+  color: #f7b700;
   padding: 0.2rem 0.55rem;
   font-size: 0.6875rem;
   font-weight: 600;
