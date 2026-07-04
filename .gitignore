@@ -51,3 +51,7 @@ data/users.json
 
 # Front Desk runtime data — live operator state; a deploy must never clobber it
 data/frontdesk/*.json
+
+# Telephony runtime audio — live operator state; deploys must never clobber it
+telephony/data/voicemails/
+telephony/data/recordings/
