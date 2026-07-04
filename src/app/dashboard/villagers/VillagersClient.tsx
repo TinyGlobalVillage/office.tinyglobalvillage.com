@@ -38,6 +38,7 @@ import MemberLookupModal from "../../components/villagers/MemberLookupModal";
 import DashboardConfigModal from "../../components/villagers/DashboardConfigModal";
 import RequestTenantAccessModal from "../../components/villagers/RequestTenantAccessModal";
 import KeycloakWireModal from "../../components/villagers/KeycloakWireModal";
+import GuestClaimsModal from "../../components/villagers/GuestClaimsModal";
 
 /* ── Styled ────────────────────────────────────────────────────── */
 
@@ -147,6 +148,7 @@ export default function VillagersClient() {
   const [openEcosystem, setOpenEcosystem] = useState(false);
   const [openPaypal, setOpenPaypal] = useState(false);
   const [openKeycloakWire, setOpenKeycloakWire] = useState(false);
+  const [openGuestClaims, setOpenGuestClaims] = useState(false);
 
   return (
     <>
@@ -187,6 +189,15 @@ export default function VillagersClient() {
               The soft-launch board — turn each dashboard feature Off / Admin-preview / On for
               every member at once. Stage a feature for admins only, test it, then flick it
               public. Every change is audited.
+            </TileSub>
+          </Tile>
+
+          <Tile type="button" onClick={() => setOpenGuestClaims(true)}>
+            <TileTop><MembersIcon size={18} /> Guest Claims</TileTop>
+            <TileSub>
+              Guests who bought without an account — send a one-time claim link that
+              creates their passkey login and attaches their purchase history
+              (guest→member, F20). Issuance is audit-logged.
             </TileSub>
           </Tile>
 
@@ -329,6 +340,8 @@ export default function VillagersClient() {
       {openPaypal && <PaypalControlModal onClose={() => setOpenPaypal(false)} />}
 
       {openKeycloakWire && <KeycloakWireModal onClose={() => setOpenKeycloakWire(false)} />}
+
+      {openGuestClaims && <GuestClaimsModal onClose={() => setOpenGuestClaims(false)} />}
     </>
   );
 }
