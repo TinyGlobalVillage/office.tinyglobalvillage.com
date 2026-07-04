@@ -1,16 +1,19 @@
 // POST /api/admin/members/[id]/reset-2fa
 //
-// Admin-mediated 2FA recovery for a TGV member. Used when a member loses
-// their authenticator device AND has burned through their recovery codes.
-// Phase 5 of tgv-member-auth-magic-link.md.
+// Admin-mediated credential recovery for a TGV member. Used when a member
+// loses their authenticator device AND has burned through their recovery
+// codes.
 //
-// Resets, in one transaction:
-//   1. TOTP fields on members (totp_secret, totp_enrolled_at,
-//      recovery_codes_hash → [])
-//   2. All passkeys for the user (member_passkeys, member_passkey_challenges)
-//   3. All active sessions for the user (member_sessions)
-//   4. Writes one row to admin_audit_log capturing actor + counts of what
-//      was cleared.
+// F19 port (2026-07-03): Keycloak owns passkeys now — the local
+// member_passkeys wipe became a KC credential wipe (webauthn + KC-native
+// recovery codes) via office-admin-svc, plus KC logout-all and a fresh
+// enrollment email so the member has a path back in. Resets:
+//   1. KC credentials for the member's realm user + all KC SSO sessions,
+//      then sends the execute-actions enrollment email (passkey + recovery
+//      setup, 48h themed link).
+//   2. TOTP fields + LOCAL recovery codes on members (dormant break-glass).
+//   3. All active local sessions (member_sessions).
+//   4. One admin_audit_log row capturing actor + counts of what was cleared.
 //
 // Body: { confirmEmail: string } — must match the target user's email,
 // enforced both client-side (typed-confirmation modal) and server-side here.
@@ -19,6 +22,8 @@ import { eq } from "drizzle-orm";
 import { requireAdmin } from "@/lib/api-admin";
 import { db, schema } from "@/lib/db-drizzle";
 import { resolveAdminActorId } from "@/lib/admin-actor";
+import { kcAdmin } from "@/lib/keycloak/admin";
+import { readKeycloakConfig } from "@/lib/keycloak/config";
 
 export const runtime = "nodejs";
 
@@ -75,8 +80,46 @@ export async function POST(req: NextRequest, { params }: Params) {
     hadTotp: target.totpSecret !== null,
     totpEnrolledAt: target.totpEnrolledAt,
     recoveryCodesRemaining: target.recoveryCodesHash.length,
+    kcLinked: target.keycloakSub !== null,
   };
 
+  // 1) Keycloak side FIRST (not transactional with the DB — if the IdP is
+  //    unreachable we bail before touching local state, so a half-reset can't
+  //    strand the member). Wipe credentials, end SSO sessions, re-send the
+  //    enrollment email so they can re-enroll.
+  let kcCredentialsDeleted = 0;
+  let kcEnrollmentEmailSent = false;
+  if (target.keycloakSub) {
+    if (!kcAdmin) {
+      return NextResponse.json(
+        { ok: false, error: "KC_ADMIN_* not configured — cannot reset IdP credentials" },
+        { status: 503 },
+      );
+    }
+    try {
+      const creds = await kcAdmin.listCredentials(target.keycloakSub);
+      for (const c of creds) {
+        if (await kcAdmin.deleteCredential(target.keycloakSub, c.id)) {
+          kcCredentialsDeleted += 1;
+        }
+      }
+      await kcAdmin.logoutAllSessions(target.keycloakSub);
+      const { enrollmentEmail } = readKeycloakConfig();
+      kcEnrollmentEmailSent = await kcAdmin.sendEnrollmentEmail({
+        sub: target.keycloakSub,
+        clientId: enrollmentEmail.clientId,
+        redirectUri: enrollmentEmail.redirectUri,
+        lifespanSeconds: Math.floor(enrollmentEmail.lifespanHours * 3600),
+      });
+    } catch {
+      return NextResponse.json(
+        { ok: false, error: "Keycloak reset failed — nothing was changed locally" },
+        { status: 502 },
+      );
+    }
+  }
+
+  // 2+3) Local state, atomically, with the audit row.
   const result = await db.transaction(async (tx) => {
     await tx
       .update(schema.members)
@@ -88,22 +131,14 @@ export async function POST(req: NextRequest, { params }: Params) {
       })
       .where(eq(schema.members.id, id));
 
-    const deletedPasskeys = await tx
-      .delete(schema.memberPasskeys)
-      .where(eq(schema.memberPasskeys.memberId, id))
-      .returning({ credentialId: schema.memberPasskeys.credentialId });
-
-    await tx
-      .delete(schema.memberPasskeyChallenges)
-      .where(eq(schema.memberPasskeyChallenges.memberId, id));
-
     const deletedSessions = await tx
       .delete(schema.memberSessions)
       .where(eq(schema.memberSessions.userId, id))
       .returning({ sessionToken: schema.memberSessions.sessionToken });
 
     const after = {
-      passkeysDeleted: deletedPasskeys.length,
+      kcCredentialsDeleted,
+      kcEnrollmentEmailSent,
       sessionsDeleted: deletedSessions.length,
     };
 

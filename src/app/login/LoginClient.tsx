@@ -4,7 +4,6 @@ import { useState, useEffect, FormEvent, Suspense } from "react";
 import { signIn } from "next-auth/react";
 import { useSearchParams, useRouter } from "next/navigation";
 import styled from "styled-components";
-import { startAuthentication } from "@simplewebauthn/browser";
 import { colors, rgb } from "../theme";
 
 type Method = "passkey" | "recovery";
@@ -355,55 +354,16 @@ function LoginForm() {
     } catch { /* ignore */ }
   };
 
-  async function handlePasskey() {
+  function handlePasskey() {
+    // Local WebAuthn ceremony RETIRED (F19, 2026-07-03) — the passkey lives
+    // at the IdP. Any render of this view (e.g. ?recovery=1 then switching
+    // back) forwards into the OIDC flow; prompt=login = ceremony always.
     setError("");
     setInfo("");
     setLoading(true);
-    try {
-      // Usernameless / discoverable: no username needed. The browser offers the
-      // resident passkeys for this site and the server resolves the account
-      // from the assertion's userHandle. A typed username (optional) just
-      // narrows allowCredentials.
-      const optRes = await fetch("/api/auth/passkey-auth-options", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(username.trim() ? { username: username.trim() } : {}),
-      });
-      const options = await optRes.json();
-
-      // @simplewebauthn/browser handles all encoding + the ceremony.
-      const authResponse = await startAuthentication(options);
-
-      const verifyRes = await fetch("/api/auth/passkey-auth-verify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          username: username.trim() || undefined,
-          callbackUrl,
-          response: authResponse,
-        }),
-      });
-
-      const data = await verifyRes.json();
-      setLoading(false);
-      if (data.ok) {
-        if (username.trim()) persistRemember(username.trim());
-        // Passkey fully authenticates (server set the 2FA cookie) — go straight
-        // to the destination instead of the TOTP screen.
-        router.push(data.redirectTo || "/dashboard");
-        router.refresh();
-      } else {
-        setError(data.error ?? "Passkey verification failed.");
-      }
-    } catch (e: unknown) {
-      setLoading(false);
-      const msg = e instanceof Error ? e.message : String(e);
-      if (msg.includes("NotAllowedError") || msg.includes("cancelled")) {
-        setError("Passkey prompt cancelled.");
-      } else {
-        setError(msg);
-      }
-    }
+    window.location.href = `/api/auth/oidc/login?prompt=login&returnTo=${encodeURIComponent(
+      callbackUrl || "/dashboard",
+    )}`;
   }
 
   async function handleRecovery(e: FormEvent) {

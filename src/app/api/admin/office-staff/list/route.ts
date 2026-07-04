@@ -23,19 +23,20 @@ export async function GET(req: NextRequest) {
   const roster = readRoster();
   const emails = Object.values(roster).map((r) => r.email.toLowerCase());
 
-  let byEmail: Record<string, { name: string | null; passkey_count: number; totp_enabled: boolean; recovery_count: number }> = {};
+  // member_passkeys RETIRED (F19, 2026-07-03): Keycloak owns credentials.
+  // kc_linked (keycloak_sub set) is the enrollment signal; per-credential
+  // detail lives on the Keycloak HCM tile.
+  let byEmail: Record<string, { name: string | null; kc_linked: boolean; totp_enabled: boolean; recovery_count: number }> = {};
   if (emails.length) {
     const { rows } = await pgPool.query<{
-      email: string; name: string | null; passkey_count: number; totp_enabled: boolean; recovery_count: number;
+      email: string; name: string | null; kc_linked: boolean; totp_enabled: boolean; recovery_count: number;
     }>(
       `SELECT mu.email, mu.name,
-         count(mp.credential_id)::int AS passkey_count,
+         (mu.keycloak_sub IS NOT NULL) AS kc_linked,
          (mu.totp_secret IS NOT NULL) AS totp_enabled,
          coalesce(array_length(mu.recovery_codes_hash, 1), 0)::int AS recovery_count
        FROM members mu
-       LEFT JOIN member_passkeys mp ON mp.member_id = mu.id
-       WHERE lower(mu.email) = ANY($1)
-       GROUP BY mu.email, mu.name, mu.totp_secret, mu.recovery_codes_hash`,
+       WHERE lower(mu.email) = ANY($1)`,
       [emails],
     );
     byEmail = Object.fromEntries(rows.map((r) => [r.email.toLowerCase(), r]));
@@ -48,7 +49,7 @@ export async function GET(req: NextRequest) {
       displayName: m?.name ?? username,
       email: r.email,
       role: r.role,
-      passkeyCount: m?.passkey_count ?? 0,
+      kcLinked: m?.kc_linked ?? false,
       totpEnabled: m?.totp_enabled ?? false,
       recoveryCount: m?.recovery_count ?? 0,
     };

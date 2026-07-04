@@ -30,7 +30,7 @@ type StaffRow = {
   username: string;
   displayName: string;
   email: string;
-  passkeyCount: number;
+  kcLinked: boolean;
   totpEnabled: boolean;
   recoveryCount: number;
 };
@@ -308,8 +308,8 @@ function StaffSectionBody() {
                 </StaffTopRow>
 
                 <Counts>
-                  <CountPill $tone={row.passkeyCount > 0 ? "on" : "off"}>
-                    {row.passkeyCount} passkey{row.passkeyCount === 1 ? "" : "s"}
+                  <CountPill $tone={row.kcLinked ? "on" : "off"}>
+                    {row.kcLinked ? "IdP linked" : "IdP not linked"}
                   </CountPill>
                   <CountPill $tone={row.totpEnabled ? "on" : "off"}>
                     TOTP {row.totpEnabled ? "on" : "off"}

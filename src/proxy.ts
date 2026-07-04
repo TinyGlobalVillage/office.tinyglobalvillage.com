@@ -33,10 +33,9 @@ const PUBLIC = [
 ];
 
 // Paths that need auth but NOT 2FA (the 2FA setup/verify flow itself, plus internal API calls from authenticated sessions)
-const AUTH_ONLY = ["/verify-2fa", "/setup-2fa", "/setup-passkey",
+// Local passkey routes RETIRED (F19, 2026-07-03) — Keycloak owns credentials.
+const AUTH_ONLY = ["/verify-2fa", "/setup-2fa",
   "/api/auth/totp-verify", "/api/auth/totp-setup",
-  "/api/auth/passkey-register-options", "/api/auth/passkey-register-verify",
-  "/api/auth/passkey-auth-options", "/api/auth/passkey-auth-verify",
   "/api/presence/heartbeat"];
 
 export async function proxy(req: NextRequest) {

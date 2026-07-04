@@ -22,7 +22,7 @@ type MemberRow = {
   recoveryCodesRemaining: number;
   lastLoginAt: string | null;
   createdAt: string;
-  passkeyCount: number;
+  kcLinked: boolean;
   sessionCount: number;
   lastResetAt: string | null;
 };
@@ -316,7 +316,7 @@ export default function MemberUsersPage() {
               <tbody>
                 {rows.map((u) => {
                   const enrolled = u.totpEnrolledAt !== null;
-                  const canReset = enrolled || u.passkeyCount > 0 || u.sessionCount > 0 || u.recoveryCodesRemaining > 0;
+                  const canReset = enrolled || u.kcLinked || u.sessionCount > 0 || u.recoveryCodesRemaining > 0;
                   return (
                     <tr key={u.id}>
                       <td>{u.email}</td>
@@ -327,7 +327,7 @@ export default function MemberUsersPage() {
                         </Pill>
                       </td>
                       <td>{u.recoveryCodesRemaining}/10</td>
-                      <td>{u.passkeyCount}</td>
+                      <td>{u.kcLinked ? "IdP" : "—"}</td>
                       <td>{u.sessionCount}</td>
                       <td>{fmtDate(u.lastLoginAt)}</td>
                       <td>{fmtDate(u.lastResetAt)}</td>
@@ -358,7 +358,7 @@ export default function MemberUsersPage() {
               <ul style={{ margin: "0.1rem 0 0.2rem 1.1rem", padding: 0 }}>
                 <li>TOTP secret + enrollment timestamp</li>
                 <li>All recovery codes ({confirmTarget.recoveryCodesRemaining} remaining)</li>
-                <li>All passkeys ({confirmTarget.passkeyCount})</li>
+                <li>All Keycloak passkeys + recovery codes (IdP-side), with a fresh enrollment email sent</li>
                 <li>All active sessions ({confirmTarget.sessionCount})</li>
               </ul>
               <div>

@@ -16,15 +16,9 @@ export async function GET(req: NextRequest) {
   const gate = await requireAdmin(req);
   if (gate instanceof NextResponse) return gate;
 
-  const passkeyCounts = db
-    .select({
-      memberId: schema.memberPasskeys.memberId,
-      count: sql<number>`count(*)::int`.as("passkey_count"),
-    })
-    .from(schema.memberPasskeys)
-    .groupBy(schema.memberPasskeys.memberId)
-    .as("passkey_counts");
-
+  // passkeyCount RETIRED with the local stack (F19, 2026-07-03): Keycloak
+  // owns credentials now. kcLinked (keycloak_sub set) is the row-level
+  // signal; per-user credential detail lives on the Keycloak HCM tile.
   const sessionCounts = db
     .select({
       userId: schema.memberSessions.userId,
@@ -58,12 +52,11 @@ export async function GET(req: NextRequest) {
       recoveryCodesRemaining: sql<number>`coalesce(array_length(${schema.members.recoveryCodesHash}, 1), 0)::int`,
       lastLoginAt: schema.members.lastLoginAt,
       createdAt: schema.members.createdAt,
-      passkeyCount: sql<number>`coalesce(${passkeyCounts.count}, 0)::int`,
+      kcLinked: sql<boolean>`(${schema.members.keycloakSub} is not null)`,
       sessionCount: sql<number>`coalesce(${sessionCounts.count}, 0)::int`,
       lastResetAt: lastResets.lastResetAt,
     })
     .from(schema.members)
-    .leftJoin(passkeyCounts, eq(passkeyCounts.memberId, schema.members.id))
     .leftJoin(sessionCounts, eq(sessionCounts.userId, schema.members.id))
     // admin_audit_log.target_id is text; members.id is uuid. Cast to uuid
     // for the join (the subquery already filters targetType='member_user', so

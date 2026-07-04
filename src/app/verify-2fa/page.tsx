@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import styled, { keyframes } from "styled-components";
-import { startAuthentication } from "@simplewebauthn/browser";
 import { colors, rgb } from "../theme";
 
 /* ── Animations ────────────────────────────────────────────── */
@@ -317,42 +316,15 @@ function VerifyForm() {
   // Re-verify with a passkey (usernameless). The server resolves the account
   // from the assertion's userHandle and sets the 2FA cookie. This is what a
   // passkey-only user uses when their 2FA cookie has expired mid-session.
-  async function handlePasskey() {
+  function handlePasskey() {
+    // Local WebAuthn ceremony RETIRED (F19, 2026-07-03) — a fresh IdP login
+    // (prompt=login) re-mints the session fully 2FA-verified, which is what
+    // the expired-2FA-cookie case needs.
     setError("");
     setPasskeyLoading(true);
-    try {
-      const optRes = await fetch("/api/auth/passkey-auth-options", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
-      });
-      const options = await optRes.json();
-      const authResponse = await startAuthentication(options);
-      const verifyRes = await fetch("/api/auth/passkey-auth-verify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          callbackUrl: searchParams.get("callbackUrl") || "/dashboard",
-          response: authResponse,
-        }),
-      });
-      const data = await verifyRes.json();
-      setPasskeyLoading(false);
-      if (data.ok) {
-        router.push(data.redirectTo || "/dashboard");
-        router.refresh();
-      } else {
-        setError(data.error ?? "Passkey verification failed.");
-      }
-    } catch (e: unknown) {
-      setPasskeyLoading(false);
-      const msg = e instanceof Error ? e.message : String(e);
-      setError(
-        msg.includes("NotAllowedError") || msg.includes("cancelled")
-          ? "Passkey prompt cancelled."
-          : msg
-      );
-    }
+    window.location.href = `/api/auth/oidc/login?prompt=login&returnTo=${encodeURIComponent(
+      searchParams.get("callbackUrl") || "/dashboard",
+    )}`;
   }
 
   async function signOutTo(path: string) {
