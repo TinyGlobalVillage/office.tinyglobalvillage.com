@@ -447,7 +447,8 @@ function LoginForm() {
         <FormInner onSubmit={handleRecovery}>
           <HintText>
             Enter your username and one of your saved recovery codes. Each code
-            works once.
+            works once. TGV Office will never ask for a recovery code anywhere
+            except this page — treat any other request as a scam.
           </HintText>
           <Field
             label="Username"
