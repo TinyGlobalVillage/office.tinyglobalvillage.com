@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect } from "react";
 import styled from "styled-components";
-import { rgb } from "../theme";
+import { colors, rgb } from "../theme";
 import {
   DrawerPanel,
   DrawerHeader,
@@ -31,6 +31,7 @@ import {
   RecordIcon,
 } from "./icons";
 import NeonX from "./NeonX";
+import Tooltip from "./ui/Tooltip";
 import { useKnobVisibility } from "../lib/drawerKnobs";
 import { useDrawerLifecycle, DRAWER_DATA_ATTR } from "../lib/drawerStack";
 import { useDrawerPersistedState } from "../lib/drawerPersist";
@@ -263,9 +264,6 @@ const TabBar = styled.div`
   justify-content: center;
   gap: 0;
   padding: 0 0.5rem;
-  /* Inset like the ON-SHIFT card (its Bar uses 0.75rem side margins) so the
-     tab bands float with symmetric air instead of running edge-to-edge. */
-  margin: 0 0.75rem;
   border-radius: 0.5rem;
   border-bottom: 1px solid rgba(${rgb.gold}, 0.15);
   background: rgba(${rgb.gold}, 0.035);
@@ -302,10 +300,18 @@ const ContentWrap = styled.div`
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  /* The panel sits flush on the viewport edge — give the right side the
-     same visual air the left gets from the page boundary (operator ask
-     2026-07-03). */
-  padding-right: 0.5rem;
+`;
+
+/* Front-Desk-only symmetric gutter (operator spec 2026-07-03): 0.75rem of
+   mirrored side air normally; 2.25rem in fullscreen — the dashboard's knob
+   clearance (28px pill + 8px) — since that's the only mode where the
+   viewport-edge drawer knobs can overlap this drawer's content. */
+const Gutter = styled.div<{ $fs: boolean }>`
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 0 ${(p) => (p.$fs ? "2.25rem" : "0.75rem")};
 `;
 
 const Resize = styled(DrawerResizeHandle).attrs<{ $anchor: "left" | "right" }>((p) => ({
@@ -532,11 +538,17 @@ export default function FrontDeskDrawer() {
 
           <ControlRow>
             <ZoomTrio>
-              <ControlBtn onClick={zoomOut} title="Zoom out" disabled={zoom <= ZOOM_STEPS[0]}>−</ControlBtn>
-              <ZoomLabel onClick={zoomReset} title={`Zoom: ${Math.round(zoom * 100)}% (click to reset)`}>
-                {Math.round(zoom * 100)}%
-              </ZoomLabel>
-              <ControlBtn onClick={zoomIn} title="Zoom in" disabled={zoom >= ZOOM_STEPS[ZOOM_STEPS.length - 1]}>+</ControlBtn>
+              <Tooltip accent={colors.gold} label="Zoom out">
+                <ControlBtn onClick={zoomOut} disabled={zoom <= ZOOM_STEPS[0]}>−</ControlBtn>
+              </Tooltip>
+              <Tooltip accent={colors.gold} label={`Zoom ${Math.round(zoom * 100)}% — click to reset`}>
+                <ZoomLabel onClick={zoomReset}>
+                  {Math.round(zoom * 100)}%
+                </ZoomLabel>
+              </Tooltip>
+              <Tooltip accent={colors.gold} label="Zoom in">
+                <ControlBtn onClick={zoomIn} disabled={zoom >= ZOOM_STEPS[ZOOM_STEPS.length - 1]}>+</ControlBtn>
+              </Tooltip>
             </ZoomTrio>
 
             <ZoomDDMWrap onClick={(e) => e.stopPropagation()} onTouchStart={(e) => e.stopPropagation()}>
@@ -579,18 +591,27 @@ export default function FrontDeskDrawer() {
 
             <Separator />
 
-            <ControlBtn onClick={flipAnchor} title={flipTitle} aria-label={flipTitle}>⇄</ControlBtn>
-            <ControlBtn onClick={popout} title="Open in new window">⧉</ControlBtn>
-            <ControlBtn onClick={() => setFullscreen((p) => !p)} title={fullscreen ? "Exit full screen (Esc)" : "Full screen"}>
-              {fullscreen ? "⊡" : "⊞"}
-            </ControlBtn>
-            <NeonX accent="gold" onClick={() => { setOpen(false); setFullscreen(false); }} title="Close (Esc)" />
+            <Tooltip accent={colors.gold} label={flipTitle}>
+              <ControlBtn onClick={flipAnchor} aria-label={flipTitle}>⇄</ControlBtn>
+            </Tooltip>
+            <Tooltip accent={colors.gold} label="Open in new window">
+              <ControlBtn onClick={popout}>⧉</ControlBtn>
+            </Tooltip>
+            <Tooltip accent={colors.gold} label={fullscreen ? "Exit full screen (Esc)" : "Full screen"}>
+              <ControlBtn onClick={() => setFullscreen((p) => !p)}>
+                {fullscreen ? "⊡" : "⊞"}
+              </ControlBtn>
+            </Tooltip>
+            <Tooltip accent={colors.gold} label="Close (Esc)">
+              <NeonX accent="gold" onClick={() => { setOpen(false); setFullscreen(false); }} />
+            </Tooltip>
           </ControlRow>
         </Header>
 
         {/* ON-SHIFT bar on top (visible on every tab), then the two
             centered tab rows (operator layout 2026-07-03). */}
-        <div style={{ padding: "0.5rem 0.5rem 0.25rem" }}>
+        <Gutter $fs={fullscreen}>
+        <div style={{ padding: "0.5rem 0 0.25rem" }}>
           <FrontDeskShiftBar />
         </div>
         {TAB_ROWS.map((row, i) => (
@@ -599,10 +620,12 @@ export default function FrontDeskDrawer() {
               {row.map((t) => {
                 const { label, Icon } = TAB_META[t];
                 return (
-                  <TabBtn key={t} $active={activeTab === t} onClick={() => switchTab(t)} title={label}>
-                    <Icon size={14} />
-                    {label}
-                  </TabBtn>
+                  <Tooltip key={t} accent={colors.gold} label={label}>
+                    <TabBtn $active={activeTab === t} onClick={() => switchTab(t)}>
+                      <Icon size={14} />
+                      {label}
+                    </TabBtn>
+                  </Tooltip>
                 );
               })}
             </TabBar>
@@ -618,6 +641,7 @@ export default function FrontDeskDrawer() {
           {activeTab === "alerts" && <AlertsTab />}
           {activeTab === "tickets" && <TicketsTab />}
         </ContentWrap>
+        </Gutter>
 
         {!fullscreen && <Resize $anchor={anchor} onMouseDown={onResizeStart} title="Drag to resize" />}
       </Panel>

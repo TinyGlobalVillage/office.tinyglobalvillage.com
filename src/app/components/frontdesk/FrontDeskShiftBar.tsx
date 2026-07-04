@@ -22,6 +22,7 @@ import type { ShiftAssignment } from "@/lib/frontdesk/types";
 import ShiftWorkerModal from "./ShiftWorkerModal";
 import DidManagerModal from "./DidManagerModal";
 import SystemToolsModal from "./SystemToolsModal";
+import Tooltip from "../ui/Tooltip";
 import { EditIcon, SettingsIcon } from "../icons";
 
 const EXEC_USERNAMES = new Set(["admin", "marmar"]);
@@ -130,15 +131,21 @@ export default function FrontDeskShiftBar() {
         </div>
         {isExec && (
           <AdminRow>
-            <AdminBtn type="button" onClick={() => setModal("tools")} title="System tools">
+            <Tooltip accent={colors.gold} label="System tools">
+              <AdminBtn type="button" onClick={() => setModal("tools")}>
               <SettingsIcon size={10} /> Tools
-            </AdminBtn>
-            <AdminBtn type="button" onClick={() => setModal("shift")}>
-              <EditIcon size={10} /> Shift
-            </AdminBtn>
-            <AdminBtn type="button" onClick={() => setModal("dids")}>
-              <EditIcon size={10} /> DIDs
-            </AdminBtn>
+              </AdminBtn>
+            </Tooltip>
+            <Tooltip accent={colors.gold} label="Assign today's shift worker">
+              <AdminBtn type="button" onClick={() => setModal("shift")}>
+                <EditIcon size={10} /> Shift
+              </AdminBtn>
+            </Tooltip>
+            <Tooltip accent={colors.gold} label="Manage phone lines (DIDs)">
+              <AdminBtn type="button" onClick={() => setModal("dids")}>
+                <EditIcon size={10} /> DIDs
+              </AdminBtn>
+            </Tooltip>
           </AdminRow>
         )}
       </Bar>
