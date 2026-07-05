@@ -73,6 +73,32 @@ const SideTab = styled(DrawerTab).attrs<{ $anchor: "left" | "right" }>((p) => ({
 const Panel = styled(DrawerPanel)<{ $fs?: boolean; $anchor: "left" | "right" }>`
   ${(p) => (p.$anchor === "right" ? "right: 0;" : "left: 0;")}
   max-width: ${(p) => (p.$fs ? "100vw" : "85vw")};
+
+  /* The base DrawerPanel bakes 40px of tab-rail clearance onto the ANCHOR edge
+     only; the far edge gets none, so the Front Desk view hugs the non-anchored
+     side. Mirror that 40px onto the far edge too so the whole view sits
+     symmetrically inside the drawer (Gio 2026-07-04). */
+  ${(p) => (p.$anchor === "right" ? "padding-left: 40px;" : "padding-right: 40px;")}
+
+  /* Amber-neon scrollbars for the whole Front Desk view — overrides the app's
+     global cyan/pink scrollbar (globals.css) so every scrollable tab matches
+     the drawer's gold accent (Gio 2026-07-04). Webkit-only, matching the app's
+     scrollbar convention: keeps the global 6px width, just recolours to gold.
+     (Deliberately no scrollbar-color: it would force Chromium's wider standard
+     renderer and lose the 6px width.) */
+  & ::-webkit-scrollbar-track {
+    background: rgba(${rgb.gold}, 0.06);
+  }
+  & ::-webkit-scrollbar-thumb {
+    background: rgba(${rgb.gold}, 0.55);
+    border-radius: 3px;
+    box-shadow: 0 0 6px rgba(${rgb.gold}, 0.45);
+  }
+  & ::-webkit-scrollbar-thumb:hover {
+    background: #f7b700;
+    box-shadow: 0 0 8px rgba(${rgb.gold}, 0.7);
+  }
+
   ${(p) => (p.$anchor === "right"
     ? `border-left: ${p.$fs ? "none" : `1px solid rgba(${rgb.gold}, 0.18)`};`
     : `border-right: ${p.$fs ? "none" : `1px solid rgba(${rgb.gold}, 0.18)`};`)}
