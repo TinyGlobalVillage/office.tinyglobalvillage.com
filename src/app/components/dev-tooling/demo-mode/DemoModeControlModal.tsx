@@ -60,6 +60,7 @@ type Job = {
   createdBy: string;
   createdAt: string;
   ttlMs: number;
+  entryPath?: string; // route to open (the module's full dashboard); default "/"
   error?: string;
 };
 type WorkshopResp = {
@@ -391,7 +392,7 @@ export default function DemoModeControlModal({ onClose }: DemoModeControlModalPr
                           <Dot $s={i.status} title={i.status} />
                           <Mono>
                             {i.status === "ready" && i.url
-                              ? <Link href={i.url} target="_blank" rel="noreferrer">{i.url.replace(/^https?:\/\//, "")} ↗</Link>
+                              ? <Link href={i.url + (job.entryPath ?? "")} target="_blank" rel="noreferrer">{(i.url + (job.entryPath ?? "")).replace(/^https?:\/\//, "")} ↗</Link>
                               : i.status === "starting"
                                 ? `${i.site} — building…`
                                 : i.status === "error"
