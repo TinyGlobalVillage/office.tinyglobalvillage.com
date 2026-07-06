@@ -25,6 +25,7 @@ const DocumentsVaultModal = dynamic(() => import("../../components/esign/Documen
 const BuildGuardControlModal = dynamic(() => import("../../components/hardening/build-guard/BuildGuardControlModal"), { ssr: false });
 const TsserverControlModal = dynamic(() => import("../../components/hardening/tsserver/TsserverControlModal"), { ssr: false });
 const KeycloakControlModal = dynamic(() => import("../../components/hardening/keycloak/KeycloakControlModal"), { ssr: false });
+const DemoModeControlModal = dynamic(() => import("../../components/dev-tooling/demo-mode/DemoModeControlModal"), { ssr: false });
 import AutomationsTab from "../../components/automations/AutomationsTab";
 import type { ShortLink } from "@tgv/module-page-editor/editor/component-library/marketing/link-tools";
 // Heavy feature packages — lazy-loaded so they don't sit in the Utils page's first-load JS.
@@ -1904,6 +1905,18 @@ function UtilsAdlSurface({
                         </HardeningTileSub>
                       </HardeningTile>
                     );
+                    if (tile.type === "demo-mode") return (
+                      <HardeningTile key={i} type="button" onClick={() => onOpenHardening("demo-mode")}>
+                        <HardeningTileTop>
+                          🧪 Demo Mode
+                        </HardeningTileTop>
+                        <HardeningTileSub>
+                          Spin up isolated, hot-reloading previews of a @tgv package inside a host tenant,
+                          each on its own demo-N.tinyglobalvillage.com URL (non-prod tgv_demo DB). Workshop
+                          live, then merge to roll out to every tenant. Distinct from the Dev Mode user-switcher.
+                        </HardeningTileSub>
+                      </HardeningTile>
+                    );
                     if (tile.type === "tinyurl") return (
                       <LinkToolsTile key={i} type="button" onClick={() => onOpenLinkTool("tinyurl")}>
                         <LinkToolsTileTop>🔗 TinyURL Generator</LinkToolsTileTop>
@@ -2031,7 +2044,7 @@ type DefaultsOverlay = Record<string, Record<string, FieldValue>>;
 // opens its HardeningControlModal. New hardenings get a new tile + a new
 // `kind` value below.
 
-type HardeningKind = "telephony" | "tenant-apps" | "member-auth" | "office-staff" | "mesh-vpn" | "invitations" | "firewall" | "build-guard" | "tsserver" | "keycloak";  // | "postgres" | "ssh" | "nginx" — future
+type HardeningKind = "telephony" | "tenant-apps" | "member-auth" | "office-staff" | "mesh-vpn" | "invitations" | "firewall" | "build-guard" | "tsserver" | "keycloak" | "demo-mode";  // | "postgres" | "ssh" | "nginx" — future
 
 // ── Link Tools (TinyURL + QR generators) ──────────────────────────────────
 //
@@ -2073,6 +2086,7 @@ type TileSpec =
   | { type: "build-guard" }
   | { type: "tsserver" }
   | { type: "keycloak" }
+  | { type: "demo-mode" }
   | { type: "tinyurl" }
   | { type: "qrcode" }
   | { type: "transcriber" }
@@ -2102,6 +2116,9 @@ const SECTIONS: Section[] = [
     subtitle: "scaffold, start, and retire client projects",
     kind: "actions",
     actionIds: ["new-nextjs", "new-static", "start-client", "erase-project"] },
+  { id: "dev-tooling", title: "Dev Tooling", accent: "cyan",
+    subtitle: "live package previews on demo-N subdomains · workshop → roll out",
+    kind: "tiles", tiles: [{ type: "demo-mode" }] },
   { id: "documents", title: "Documents / E-Sign", accent: "gold",
     subtitle: "send any document to anyone for electronic signature — staff or external, for any purpose",
     kind: "tiles", tiles: [{ type: "esign" }, { type: "esign-vault" }] },
@@ -2639,6 +2656,9 @@ export default function UtilsPage() {
 
       {openHardening === "keycloak" && (
         <KeycloakControlModal onClose={() => setOpenHardening(null)} />
+      )}
+      {openHardening === "demo-mode" && (
+        <DemoModeControlModal onClose={() => setOpenHardening(null)} />
       )}
 
       {openBackups && (
