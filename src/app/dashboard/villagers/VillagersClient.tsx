@@ -39,6 +39,7 @@ import DashboardConfigModal from "../../components/villagers/DashboardConfigModa
 import RequestTenantAccessModal from "../../components/villagers/RequestTenantAccessModal";
 import KeycloakWireModal from "../../components/villagers/KeycloakWireModal";
 import GuestClaimsModal from "../../components/villagers/GuestClaimsModal";
+import StudioConfigModal from "../../components/villagers/StudioConfigModal";
 
 /* ── Styled ────────────────────────────────────────────────────── */
 
@@ -131,9 +132,47 @@ const TileSub = styled.div`
   line-height: 1.45;
 `;
 
+const TileWrap = styled.div`
+  position: relative;
+  display: grid;
+`;
+
+const TileGear = styled.button`
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  z-index: 1;
+  background: rgba(${rgb.gold}, 0.08);
+  border: 1px solid rgba(${rgb.gold}, 0.35);
+  color: ${colors.gold};
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 0.375rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+
+  &:hover {
+    border-color: rgba(${rgb.gold}, 0.7);
+    box-shadow: 0 0 8px rgba(${rgb.gold}, 0.25);
+  }
+`;
+
 /* ── Page ──────────────────────────────────────────────────────── */
 
 export default function VillagersClient() {
+  const openDemoTgvOperator = async () => {
+    try {
+      const r = await fetch('/api/demo-tgv/operator-link', { method: 'POST' });
+      const d = await r.json();
+      if (d?.url) window.open(d.url, '_blank', 'noopener');
+      else alert('Could not open DemoTGV — operator link not configured.');
+    } catch {
+      alert('Could not open DemoTGV.');
+    }
+  };
+
   const [openMemberWallet, setOpenMemberWallet] = useState(false);
   const [openMemberLookup, setOpenMemberLookup] = useState(false);
   const [openDashboardConfig, setOpenDashboardConfig] = useState(false);
@@ -149,6 +188,37 @@ export default function VillagersClient() {
   const [openPaypal, setOpenPaypal] = useState(false);
   const [openKeycloakWire, setOpenKeycloakWire] = useState(false);
   const [openGuestClaims, setOpenGuestClaims] = useState(false);
+  // Open the TGV Template Studio in a NEW TAB (not an iframe). The tgv.com
+  // editor is admin-gated by Keycloak, which refuses cross-origin framing
+  // (the iframe died with "connection closed") and its session cookie is not
+  // sent in a third-party frame anyway. A same-origin tab authenticates
+  // normally; the studio's "Close" button self-closes it. Slug/lang/base live
+  // behind the tile gear (StudioConfigModal), persisted to localStorage.
+  const launchTemplateStudio = () => {
+    const fallbackBase =
+      process.env.NEXT_PUBLIC_TGV_URL ?? "https://tinyglobalvillage.com";
+    let cfg = { slug: "home", lang: "en", base: fallbackBase };
+    try {
+      const raw = localStorage.getItem("tgv-studio-cfg");
+      if (raw) {
+        const c = JSON.parse(raw);
+        cfg = {
+          slug: typeof c.slug === "string" && c.slug ? c.slug : cfg.slug,
+          lang: typeof c.lang === "string" && c.lang ? c.lang : cfg.lang,
+          base: typeof c.base === "string" && c.base ? c.base : cfg.base,
+        };
+      }
+    } catch {
+      /* ignore malformed cfg */
+    }
+    const url = `${cfg.base}/${encodeURIComponent(cfg.lang)}/editor/${encodeURIComponent(
+      cfg.slug,
+    )}?studio=1&popout=1`;
+    // Deliberately NOT "noopener" so the studio tab stays script-closable and
+    // its "Close" button can window.close() it.
+    window.open(url, "_blank");
+  };
+  const [openStudioConfig, setOpenStudioConfig] = useState(false);
 
   return (
     <>
@@ -166,6 +236,24 @@ export default function VillagersClient() {
         </PageSubtitle>
 
         <Grid>
+          <TileWrap>
+            <Tile type="button" onClick={launchTemplateStudio}>
+              <TileTop><GlobeIcon size={18} /> Page Editor</TileTop>
+              <TileSub>
+                Template Studio - experiment with Paint Mode and the Site Theme on the
+                Village landing, then save reusable &quot;looks&quot; and page templates for
+                clients. Config behind the gear.
+              </TileSub>
+            </Tile>
+            <TileGear
+              type="button"
+              onClick={() => setOpenStudioConfig(true)}
+              title="Studio settings"
+              aria-label="Studio settings"
+            >
+              <SettingsIcon size={14} />
+            </TileGear>
+          </TileWrap>
           <Tile type="button" onClick={() => setOpenMemberWallet(true)}>
             <TileTop><WalletIcon size={18} /> Member Wallet</TileTop>
             <TileSub>
@@ -302,6 +390,15 @@ export default function VillagersClient() {
               straight to the tenant&apos;s own PayPal — off-stack, no tokens, no TGV float.
             </TileSub>
           </Tile>
+
+          <Tile type="button" onClick={openDemoTgvOperator}>
+            <TileTop><GlobeIcon size={18} /> Demo TGV</TileTop>
+            <TileSub>
+              Open the real DemoTGV as an operator and curate it in the page editor — this is the
+              MASTER that guest sessions clone. Save-draft / publish here flows to future guests.
+              Opens demo.tinyglobalvillage.com in a new tab via a short-lived staff token.
+            </TileSub>
+          </Tile>
         </Grid>
       </PageMain>
 
@@ -342,6 +439,10 @@ export default function VillagersClient() {
       {openKeycloakWire && <KeycloakWireModal onClose={() => setOpenKeycloakWire(false)} />}
 
       {openGuestClaims && <GuestClaimsModal onClose={() => setOpenGuestClaims(false)} />}
+
+      {openStudioConfig && (
+        <StudioConfigModal onClose={() => setOpenStudioConfig(false)} />
+      )}
     </>
   );
 }
