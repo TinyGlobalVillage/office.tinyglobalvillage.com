@@ -23,6 +23,7 @@ import {
   ModalBody,
 } from "@/app/styled";
 import NeonX from "../NeonX";
+import AuditLogTimeline from "../hardening/_shared/AuditLogTimeline";
 
 type Tenant = {
   id: string;
@@ -235,6 +236,15 @@ export default function MoneyStoresModal({ onClose }: { onClose: () => void }) {
                 ) : (
                   <Dim>No config available for this site.</Dim>
                 )}
+
+                {/* Recent changes (operator audit trail) — always available once a site is picked, */}
+                {/* independent of whether the live wallet/Stripe config happened to load. */}
+                <Axis>
+                  <AxisTitle>Recent changes</AxisTitle>
+                  <AuditLogTimeline
+                    endpoint={`/api/admin/villagers/site-money/audit-feed?siteId=${encodeURIComponent(tenant.id)}`}
+                  />
+                </Axis>
 
                 {msg && (msg.kind === "ok" ? <OkText>{msg.text}</OkText> : <ErrText>{msg.text}</ErrText>)}
               </Card>
