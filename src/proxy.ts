@@ -30,6 +30,12 @@ const PUBLIC = [
   // middleware 307 here makes nginx auth_request fail closed as a 500 and
   // kills every softphone WS handshake. The route runs requireAuth directly.
   "/api/frontdesk/sip-ws-auth",
+  // Workshop onboarding bootstrap (workshop-multiuser-authenticated Stage 3): a
+  // brand-new Mac has NO Office session yet — /script serves the bootstrap source
+  // (no secrets in it) and /progress authenticates itself with the wizard's
+  // one-time token (sha256 + constant-time compare; privileged writes audited).
+  "/api/workshop/onboard/script",
+  "/api/workshop/onboard/progress",
 ];
 
 // Paths that need auth but NOT 2FA (the 2FA setup/verify flow itself, plus internal API calls from authenticated sessions)
@@ -40,6 +46,14 @@ const AUTH_ONLY = ["/verify-2fa", "/setup-2fa",
 
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
+
+  // DEV-ONLY: the local /api/dev/login helper mints a session against the
+  // tunneled tgv_db (passkeys can't be used on localhost). Compiles to a no-op
+  // in prod — `next build` sets NODE_ENV=production, so this branch is dead and
+  // /api/dev/* stays fully gated on the real office.
+  if (process.env.NODE_ENV === "development" && pathname.startsWith("/api/dev/")) {
+    return NextResponse.next();
+  }
 
   const isPublic =
     PUBLIC.some((p) => pathname.startsWith(p)) ||

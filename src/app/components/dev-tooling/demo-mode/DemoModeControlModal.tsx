@@ -34,6 +34,7 @@ import {
 } from "@/app/styled";
 import NeonX from "../../NeonX";
 import { askConfirm } from "../../dialogService";
+import WorkshopOnboardingWizard from "./WorkshopOnboardingWizard";
 
 /* ── Types ─────────────────────────────────────────────────────── */
 type Compute = "local" | "rcs";
@@ -156,6 +157,7 @@ export default function DemoModeControlModal({ onClose }: DemoModeControlModalPr
   const [fanout, setFanout] = useState<Fanout>("single");
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState<{ tone: "ok" | "err"; msg: string } | null>(null);
+  const [wizardOpen, setWizardOpen] = useState(false); // "Set up this Mac" onboarding (Stage 3)
   const boxRamUpgraded = resp?.boxRamUpgraded ?? false;
   const boxRamRef = useRef(false);
   boxRamRef.current = boxRamUpgraded;
@@ -299,6 +301,10 @@ export default function DemoModeControlModal({ onClose }: DemoModeControlModalPr
                 {"\n"}<b>Local</b> runs on your Mac (instant edits, localhost only). <b>On RCS</b> gives a shareable
                 {" "}<code>demo-N</code> URL on the 7GB box{boxRamUpgraded ? "" : " — capped at one live workshop until the Box RAM upgrade"}.
               </Hint>
+              <Row>
+                <Btn onClick={() => setWizardOpen(true)}>🔑 Set up this Mac — authenticated workshop</Btn>
+                <Hint>first-time onboarding: real Office SSO + read-only prod data at workshop-&lt;you&gt;.tinyglobalvillage.com</Hint>
+              </Row>
             </Section>
 
             <Section>
@@ -387,7 +393,7 @@ export default function DemoModeControlModal({ onClose }: DemoModeControlModalPr
                         </Row>
                         <Btn $tone="danger" disabled={busy} onClick={() => void stop(job)}>Stop</Btn>
                       </CardHead>
-                      {(job.instances?.length ? job.instances : job.sites.map((s) => ({ site: s, url: "", port: 0, compute: job.compute, status: job.status as JobInstance["status"] }))).map((i) => (
+                      {(job.instances?.length ? job.instances : job.sites.map((s): JobInstance => ({ site: s, url: "", port: 0, compute: job.compute, status: job.status as JobInstance["status"] }))).map((i) => (
                         <SiteRow key={i.site}>
                           <Dot $s={i.status} title={i.status} />
                           <Mono>
@@ -412,6 +418,7 @@ export default function DemoModeControlModal({ onClose }: DemoModeControlModalPr
           </Stack>
         </ModalBody>
       </ModalContainer>
+      {wizardOpen && <WorkshopOnboardingWizard onClose={() => setWizardOpen(false)} />}
     </ModalBackdrop>
   );
 }
