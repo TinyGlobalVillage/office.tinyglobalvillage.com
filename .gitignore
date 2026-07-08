@@ -55,3 +55,6 @@ data/frontdesk/*.json
 # Telephony runtime audio — live operator state; deploys must never clobber it
 telephony/data/voicemails/
 telephony/data/recordings/
+*.bak
+*.bak-*
+*-backup.sql
