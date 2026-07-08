@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import styled from "styled-components";
 import { colors, rgb } from "../../theme";
 import TopNav from "../../components/TopNav";
-import { CloudIcon, AvatarIcon } from "../../components/icons";
+import { CloudIcon, AvatarIcon, EditIcon } from "../../components/icons";
 
 const CDN_BASE = "https://office.tinyglobalvillage.com/media";
 
@@ -296,6 +296,27 @@ const CardOpenBtn = styled.a`
   padding: 0.25rem 0.5rem;
   border-radius: 0.5rem;
   text-decoration: none;
+  transition: all 0.15s;
+  background: var(--t-inputBg);
+  border: 1px solid var(--t-borderStrong);
+  color: var(--t-textGhost);
+  box-shadow: 0 0 6px rgba(${rgb.pink}, 0.18);
+
+  &:hover {
+    color: ${colors.pink};
+    border-color: rgba(${rgb.pink}, 0.35);
+    box-shadow: 0 0 10px rgba(${rgb.pink}, 0.35);
+  }
+`;
+
+const CardRenameBtn = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
   transition: all 0.15s;
   background: var(--t-inputBg);
   border: 1px solid var(--t-borderStrong);
@@ -771,7 +792,7 @@ function UploadZone({
 
 /* ── File card component ───────────────────────────────────────── */
 
-function FileCard({ file, onDelete }: { file: CdnFile; onDelete: () => void }) {
+function FileCard({ file, onDelete, onRename }: { file: CdnFile; onDelete: () => void; onRename: () => void }) {
   const [copied, setCopied] = useState(false);
   const [confirmDel, setConfirmDel] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -780,6 +801,26 @@ function FileCard({ file, onDelete }: { file: CdnFile; onDelete: () => void }) {
     navigator.clipboard.writeText(file.url);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const rename = async () => {
+    const dot = file.name.lastIndexOf(".");
+    const currentBase = dot > 0 ? file.name.slice(0, dot) : file.name;
+    const input = window.prompt("Rename file (extension is kept):", currentBase);
+    if (input === null) return;
+    const trimmed = input.trim();
+    if (!trimmed || trimmed === currentBase) return;
+    const res = await fetch("/api/cdn/files", {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ project: file.project, name: file.name, newName: trimmed }),
+    });
+    if (!res.ok) {
+      const d = await res.json().catch(() => ({}));
+      alert(d.error || "Rename failed");
+      return;
+    }
+    onRename();
   };
 
   const del = async () => {
@@ -811,6 +852,9 @@ function FileCard({ file, onDelete }: { file: CdnFile; onDelete: () => void }) {
         <CardCopyBtn $copied={copied} onClick={copy} title="Copy CDN link">
           {copied ? "Copied!" : "Copy Link"}
         </CardCopyBtn>
+        <CardRenameBtn onClick={rename} title="Rename file" aria-label="Rename file">
+          <EditIcon size={12} />
+        </CardRenameBtn>
         <CardOpenBtn href={file.url} target="_blank" rel="noopener noreferrer" title="Open in new tab">
           ↗
         </CardOpenBtn>
@@ -1084,7 +1128,7 @@ function StoragePageInner() {
         ) : (
           <FileGrid>
             {filteredFiles.map((f) => (
-              <FileCard key={f.name} file={f} onDelete={() => handleDelete(f.name)} />
+              <FileCard key={f.name} file={f} onDelete={() => handleDelete(f.name)} onRename={() => loadFiles(activeProject, page)} />
             ))}
           </FileGrid>
         )}

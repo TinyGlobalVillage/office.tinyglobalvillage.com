@@ -1,9 +1,10 @@
 /**
  * GET /api/cdn/files?project=office&page=1    → list files (newest first, 50/page)
  * DELETE /api/cdn/files?project=office&name=x → delete a file
+ * PATCH  /api/cdn/files  {project,name,newName} → rename a file (ext kept)
  */
 import { NextRequest, NextResponse } from "next/server";
-import { readdirSync, statSync, unlinkSync, existsSync } from "fs";
+import { readdirSync, statSync, unlinkSync, existsSync, renameSync } from "fs";
 import path from "path";
 
 const CDN_ROOT = "/srv/refusion-core/cdn";
@@ -105,4 +106,58 @@ export async function DELETE(req: NextRequest) {
 
   unlinkSync(filePath);
   return NextResponse.json({ ok: true });
+}
+
+
+export async function PATCH(req: NextRequest) {
+  let body: { project?: string; name?: string; newName?: string };
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Bad JSON" }, { status: 400 });
+  }
+  const { project, name, newName } = body;
+  if (!project || !name || !newName) {
+    return NextResponse.json({ error: "Missing project, name, or newName" }, { status: 400 });
+  }
+
+  const safeProject = path.basename(project);
+  const safeOld = path.basename(name);
+  const oldExt = path.extname(safeOld); // includes the dot, e.g. ".png"
+
+  // Sanitize the requested new base to a URL-safe slug; always keep the
+  // original extension (rename ≠ convert).
+  const requested = path.basename(newName.trim());
+  const reqExt = path.extname(requested);
+  const rawBase = reqExt ? requested.slice(0, -reqExt.length) : requested;
+  const base = rawBase
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  if (!base) {
+    return NextResponse.json({ error: "Invalid name" }, { status: 400 });
+  }
+  const safeNew = base + oldExt;
+
+  const dir = path.join(CDN_ROOT, safeProject);
+  const oldPath = path.join(dir, safeOld);
+  const newPath = path.join(dir, safeNew);
+  const root = path.resolve(CDN_ROOT);
+  if (!path.resolve(oldPath).startsWith(root) || !path.resolve(newPath).startsWith(root)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+  if (!existsSync(oldPath)) {
+    return NextResponse.json({ error: "File not found" }, { status: 404 });
+  }
+  if (safeNew !== safeOld && existsSync(newPath)) {
+    return NextResponse.json({ error: "A file with that name already exists" }, { status: 409 });
+  }
+
+  renameSync(oldPath, newPath);
+  return NextResponse.json({
+    ok: true,
+    name: safeNew,
+    url: `${CDN_BASE_URL}/${safeProject}/${safeNew}`,
+  });
 }
