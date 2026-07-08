@@ -15,11 +15,14 @@ const OFFICE_URL = process.env.NEXT_PUBLIC_OFFICE_URL ?? "https://office.tinyglo
 export async function GET(req: NextRequest) {
   const auth = await requireAdmin(req);
   if (auth instanceof NextResponse) return auth;
+  // Resolve roster alias → canonical registry account (bridge maps Gio to office
+  // username "admin"; state files, subdomain and the one-liner key on canonical).
   const acct = readAccount(auth.username);
-  const state = readOnboard(auth.username);
+  const canon = acct?.account ?? auth.username;
+  const state = readOnboard(canon);
   return NextResponse.json({
     ok: true,
-    account: auth.username,
+    account: canon,
     registered: !!acct,
     approved: !!acct?.approved,
     bootstrappedAt: acct?.bootstrappedAt ?? null,
@@ -40,11 +43,12 @@ export async function POST(req: NextRequest) {
       { status: 403 },
     );
   }
-  const { token } = startOnboarding(auth.username);
-  logHardeningAction({ action: "workshop.onboard.start", target: auth.username, user: auth.username, success: true });
+  const canon = acct.account; // roster alias ("admin") → canonical registry account ("gio")
+  const { token } = startOnboarding(canon);
+  logHardeningAction({ action: "workshop.onboard.start", target: canon, user: auth.username, success: true });
   return NextResponse.json({
     ok: true,
-    account: auth.username,
-    oneliner: `bash <(curl -fsSL "${OFFICE_URL}/api/workshop/onboard/script") --account ${auth.username} --token ${token}`,
+    account: canon,
+    oneliner: `bash <(curl -fsSL "${OFFICE_URL}/api/workshop/onboard/script") --account ${canon} --token ${token}`,
   });
 }

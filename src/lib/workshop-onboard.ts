@@ -32,11 +32,15 @@ export type StepId = (typeof STEPS)[number];
 export type StepState = { status: "pending" | "run" | "ok" | "fail"; detail?: string; at?: string };
 
 export type AccountRec = {
-  account: string;
+  account: string; // canonical name — subdomain (workshop-<account>), ssh alias, creds all key on it
   macHost: string;
   webport: number;
   devport?: number;
   approved: boolean;
+  platform?: "mac" | "pc"; // pc = Windows/WSL2
+  wsRoot?: string; // workspace root override on the machine
+  officeUsernames?: string[]; // roster aliases: the member-auth bridge maps Gio's session to
+  // office username "admin" — requireAdmin hands routes THAT name, not the canonical account
   addedBy?: string;
   addedAt?: string;
   bootstrappedAt?: string;
@@ -61,7 +65,11 @@ export function readAccounts(): AccountRec[] {
   }
 }
 export function readAccount(account: string): AccountRec | null {
-  return readAccounts().find((a) => a.account === account) ?? null;
+  return (
+    readAccounts().find(
+      (a) => a.account === account || (a.officeUsernames ?? []).includes(account),
+    ) ?? null
+  );
 }
 export function patchAccount(account: string, patch: Partial<AccountRec>): void {
   const raw = JSON.parse(fs.readFileSync(ACCOUNTS, "utf8"));

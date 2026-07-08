@@ -15,6 +15,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import styled from "styled-components";
+import PillBar from "@tgv/module-component-library/components/ui/PillBar";
 import { useEscapeToClose } from "@tgv/module-component-library/components/hooks/useEscapeToClose";
 import { colors, rgb } from "@/app/theme";
 import {
@@ -44,8 +45,8 @@ type OnboardResp = {
 const STEP_LABELS: Record<string, string> = {
   "machine-check": "Machine check (node + pnpm)",
   "ssh-key": "SSH key created + sent to RCS",
-  "rcs-access": "This Mac can reach RCS",
-  "reverse-access": "RCS can reach this Mac",
+  "rcs-access": "This machine can reach RCS",
+  "reverse-access": "RCS can reach this machine",
   workspace: "Full @tgv workspace synced",
   install: "Dependencies installed (serialized)",
   "tunnel-test": "DB + web tunnels verified",
@@ -90,6 +91,7 @@ export default function WorkshopOnboardingWizard({ onClose }: { onClose: () => v
   useEscapeToClose({ open: true, onClose });
   const [info, setInfo] = useState<OnboardResp | null>(null);
   const [oneliner, setOneliner] = useState<string | null>(null);
+  const [platform, setPlatform] = useState<"mac" | "pc">("mac"); // For Mac | For PC (WSL2)
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -157,11 +159,28 @@ export default function WorkshopOnboardingWizard({ onClose }: { onClose: () => v
               <>
                 <Section>
                   <SectionTitle>1 · Before you start</SectionTitle>
-                  <Hint>
-                    Two things this wizard can’t click for you: <b>Tailscale</b> must be running (RCS reaches
-                    your laptop over the mesh), and <b>Remote Login</b> must be ON (System Settings → General →
-                    Sharing). Everything else — SSH keys, workspace sync, installs, tunnels — is automatic.
-                  </Hint>
+                  <PillBar
+                    segments={[{ key: "mac", label: "For Mac" }, { key: "pc", label: "For PC" }]}
+                    active={platform}
+                    onChange={(k) => setPlatform(k as "mac" | "pc")}
+                    accent={rgb.cyan}
+                    ariaLabel="Machine platform"
+                  />
+                  {platform === "mac" ? (
+                    <Hint>
+                      Two things this wizard can’t click for you: <b>Tailscale</b> must be running (RCS reaches
+                      your laptop over the mesh), and <b>Remote Login</b> must be ON (System Settings → General →
+                      Sharing). Everything else — SSH keys, workspace sync, installs, tunnels — is automatic.
+                    </Hint>
+                  ) : (
+                    <Hint>
+                      PC = Windows with <b>WSL2</b> (Ubuntu). Three prerequisites: WSL2 installed
+                      (<code>wsl --install</code> in PowerShell, once), then INSIDE the Ubuntu shell:{" "}
+                      <b>Tailscale</b> (<code>curl -fsSL https://tailscale.com/install.sh | sh && sudo tailscale up</code>)
+                      so RCS reaches the Linux side directly. The setup command below handles everything else —
+                      including starting sshd — and must be pasted into the <b>Ubuntu (WSL2)</b> terminal, not PowerShell.
+                    </Hint>
+                  )}
                   <Btn onClick={start} disabled={busy}>
                     {busy ? "Generating…" : oneliner ? "Regenerate command (new token)" : "Generate my setup command"}
                   </Btn>
@@ -170,9 +189,11 @@ export default function WorkshopOnboardingWizard({ onClose }: { onClose: () => v
 
                 {oneliner && (
                   <Section>
-                    <SectionTitle>2 · Paste this in Terminal on the new Mac</SectionTitle>
-                    <OneLiner>{oneliner}</OneLiner>
-                    <Btn onClick={() => { void navigator.clipboard.writeText(oneliner); }}>Copy</Btn>
+                    <SectionTitle>
+                      2 · Paste this in {platform === "mac" ? "Terminal on the new Mac" : "the Ubuntu (WSL2) terminal on the new PC"}
+                    </SectionTitle>
+                    <OneLiner>{oneliner + (platform === "pc" ? " --platform pc" : "")}</OneLiner>
+                    <Btn onClick={() => { void navigator.clipboard.writeText(oneliner + (platform === "pc" ? " --platform pc" : "")); }}>Copy</Btn>
                     <Hint>One-time token — regenerating invalidates the previous command.</Hint>
                   </Section>
                 )}
