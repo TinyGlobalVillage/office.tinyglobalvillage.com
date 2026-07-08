@@ -2522,9 +2522,9 @@ function ConcreteDrawerDemo({ accent, Icon, roster }: {
   );
 }
 
-// ── ADL (Accordion Dropdown with Lightswitch) demo ─────────────────────
+// ── ADDM (Accordion Dropdown) demo ─────────────────────────────────────
 
-const AdlDemoWrap = styled.div`
+const AddmDemoWrap = styled.div`
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
@@ -2535,7 +2535,7 @@ const AdlDemoWrap = styled.div`
   border: 1px solid color-mix(in srgb, #ff4ecb 22%, transparent);
 `;
 
-const AdlHeaderDemo = styled.button<{ $open: boolean }>`
+const AddmHeaderDemo = styled.button<{ $open: boolean }>`
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -2562,24 +2562,24 @@ const AdlHeaderDemo = styled.button<{ $open: boolean }>`
   }
 `;
 
-const AdlLabelDemo = styled.span`
+const AddmLabelDemo = styled.span`
   flex: 1;
 `;
 
-const AdlCountDemo = styled.span`
+const AddmCountDemo = styled.span`
   font-size: 0.6rem;
   color: rgba(255, 78, 203, 0.55);
   font-weight: 600;
 `;
 
-const AdlBodyDemo = styled.div<{ $open: boolean }>`
+const AddmBodyDemo = styled.div<{ $open: boolean }>`
   display: ${(p) => (p.$open ? "flex" : "none")};
   flex-direction: column;
   gap: 0.2rem;
   padding: 0.2rem 0.4rem 0.4rem;
 `;
 
-const AdlBodyItem = styled.div`
+const AddmBodyItem = styled.div`
   font-size: 0.65rem;
   font-family: var(--font-geist-mono, monospace);
   color: rgba(255, 255, 255, 0.55);
@@ -2588,33 +2588,33 @@ const AdlBodyItem = styled.div`
   &:hover { background: rgba(255, 78, 203, 0.08); color: rgba(255, 78, 203, 0.9); }
 `;
 
-function AdlDemoGroup({ label, items, defaultOpen }: { label: string; items: string[]; defaultOpen: boolean }) {
+function AddmDemoGroup({ label, items, defaultOpen }: { label: string; items: string[]; defaultOpen: boolean }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
     <div>
-      <AdlHeaderDemo $open={open} aria-expanded={open} onClick={() => setOpen((o) => !o)}>
-        <AdlLabelDemo>{label}</AdlLabelDemo>
-        <AdlCountDemo>{items.length}</AdlCountDemo>
+      <AddmHeaderDemo $open={open} aria-expanded={open} onClick={() => setOpen((o) => !o)}>
+        <AddmLabelDemo>{label}</AddmLabelDemo>
+        <AddmCountDemo>{items.length}</AddmCountDemo>
         <AddmToggle open={open} />
-      </AdlHeaderDemo>
-      <AdlBodyDemo $open={open}>
-        {items.map((it) => <AdlBodyItem key={it}>{it}</AdlBodyItem>)}
-      </AdlBodyDemo>
+      </AddmHeaderDemo>
+      <AddmBodyDemo $open={open}>
+        {items.map((it) => <AddmBodyItem key={it}>{it}</AddmBodyItem>)}
+      </AddmBodyDemo>
     </div>
   );
 }
 
-function ADLDemo() {
+function ADDMDemo() {
   return (
     <DrawerWrap>
-      <Highlight label="ADL">
-        <AdlDemoWrap>
-          <AdlDemoGroup label="Menus" defaultOpen={true} items={["FrontDeskDrawer", "ChatsDrawer", "Drawer", "Dropdown Menu"]} />
-          <AdlDemoGroup label="Navigation" defaultOpen={false} items={["ACR", "GPG", "Scrollbar"]} />
-          <AdlDemoGroup label="Toggles" defaultOpen={true} items={["DTog", "ECL", "Eyeball", "Lightswitch"]} />
-        </AdlDemoWrap>
+      <Highlight label="ADDM">
+        <AddmDemoWrap>
+          <AddmDemoGroup label="Menus" defaultOpen={true} items={["FrontDeskDrawer", "ChatsDrawer", "Drawer", "Dropdown Menu"]} />
+          <AddmDemoGroup label="Navigation" defaultOpen={false} items={["ACR", "GPG", "Scrollbar"]} />
+          <AddmDemoGroup label="Toggles" defaultOpen={true} items={["DTog", "ECL", "Eyeball", "Lightswitch"]} />
+        </AddmDemoWrap>
       </Highlight>
-      <DrawerCaption>Whole row is the hit target. Click anywhere on a header to toggle the mini Lightswitch AND collapse/expand the body together.</DrawerCaption>
+      <DrawerCaption>Whole row is the hit target. Click anywhere on a header to toggle the +/− AddmToggle AND collapse/expand the body together.</DrawerCaption>
     </DrawerWrap>
   );
 }
@@ -3356,11 +3356,11 @@ const ResetBtn = styled.button\`
 
   // ── Menus ─────────────────────────────────────────────────────────────
   {
-    key: "ADL",
-    name: "Accordion Dropdown with Lightswitch",
+    key: "ADDM",
+    name: "Accordion Dropdown",
     category: "Menus",
-    summary: "Collapsible group header pairing an accent-tinted uppercase label (+ optional item count) with a mini Lightswitch (28×14). Whole row is the hit target — click anywhere on the header toggles switch and body together. Default open; label is always low-alpha accent, never grey.",
-    usage: "Wrap any grouped sidebar or settings list. Hold open-state per group in a `Record<string, boolean>`. Click the AdlHeader to flip `$open`; the AdlBody below renders/hides accordingly. Canonical for the Sandbox Files sidebar categories (see `catOpen` state in SandboxModal).",
+    summary: "Collapsible group header pairing an accent-tinted uppercase label (+ optional item count) with a bold +/− AddmToggle (+ closed, − open). Whole row is the hit target — click anywhere on the header toggles the indicator and body together. Default open; label is always low-alpha accent, never grey.",
+    usage: "Wrap any grouped sidebar or settings list. Hold open-state per group in a `Record<string, boolean>`. Click the AddmHeader to flip `$open`; the AddmBody below renders/hides accordingly. Canonical for the Sandbox Files sidebar categories (see `catOpen` state in SandboxModal).",
     code: `const [catOpen, setCatOpen] = useState<Record<string, boolean>>(() =>
   Object.fromEntries(CATEGORIES.map((c) => [c, true]))
 );
@@ -3369,22 +3369,20 @@ const ResetBtn = styled.button\`
   const open = catOpen[cat] ?? true;
   return (
     <FileGroup key={cat}>
-      <AdlHeader
+      <AddmHeader
         $open={open}
         aria-expanded={open}
         onClick={() => setCatOpen((p) => ({ ...p, [cat]: !open }))}
       >
-        <AdlLabel>{cat}</AdlLabel>
-        <AdlCount>{grouped[cat].length}</AdlCount>
-        <AdlSwitchTrack $on={open} aria-hidden="true">
-          <AdlSwitchThumb $on={open} />
-        </AdlSwitchTrack>
-      </AdlHeader>
-      <AdlBody $open={open}>{/* items */}</AdlBody>
+        <AddmLabel>{cat}</AddmLabel>
+        <AddmCount>{grouped[cat].length}</AddmCount>
+        <AddmToggle open={open} />
+      </AddmHeader>
+      <AddmBody $open={open}>{/* items */}</AddmBody>
     </FileGroup>
   );
 })}`,
-    style: `const AdlHeader = styled.button<{ $open: boolean }>\`
+    style: `const AddmHeader = styled.button<{ $open: boolean }>\`
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -3408,36 +3406,11 @@ const ResetBtn = styled.button\`
   }
 \`;
 
-const AdlSwitchTrack = styled.span<{ $on: boolean }>\`
-  position: relative;
-  width: 28px;
-  height: 14px;
-  border-radius: 999px;
-  border: 1px solid \${(p) => (p.$on ? \`rgba(\${PINK_RGB}, 0.7)\` : "rgba(255,255,255,0.2)")};
-  background: \${(p) => (p.$on ? \`rgba(\${PINK_RGB}, 0.2)\` : "rgba(255,255,255,0.05)")};
-  box-shadow: \${(p) => (p.$on ? \`0 0 8px rgba(\${PINK_RGB}, 0.45)\` : "none")};
-  transition: all 0.18s;
-\`;
-
-const AdlSwitchThumb = styled.span<{ $on: boolean }>\`
-  position: absolute;
-  top: 1px;
-  left: \${(p) => (p.$on ? "15px" : "1px")};
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: \${(p) => (p.$on ? PINK : "rgba(255,255,255,0.35)")};
-  box-shadow: \${(p) => (p.$on
-    ? \`0 0 8px rgba(\${PINK_RGB}, 0.85), 0 0 2px rgba(\${PINK_RGB}, 1)\`
-    : "0 1px 2px rgba(0,0,0,0.3)")};
-  transition: all 0.18s;
-\`;
-
-const AdlBody = styled.div<{ $open: boolean }>\`
+const AddmBody = styled.div<{ $open: boolean }>\`
   display: \${(p) => (p.$open ? "block" : "none")};
 \`;`,
     stylePath: "src/app/components/sandbox/SandboxModal.tsx",
-    Demo: ADLDemo,
+    Demo: ADDMDemo,
   },
   {
     key: "FrontDeskDrawer",

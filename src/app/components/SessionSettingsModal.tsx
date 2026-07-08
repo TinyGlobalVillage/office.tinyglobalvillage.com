@@ -50,7 +50,7 @@ const Stack = styled.div`
   gap: 0.75rem;
 `;
 
-const ADLHeader = styled.button<{ $open: boolean }>`
+const AddmHeader = styled.button<{ $open: boolean }>`
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -75,19 +75,19 @@ const ADLHeader = styled.button<{ $open: boolean }>`
   }
 `;
 
-const ADLLabel = styled.span` flex: 1; `;
-const ADLCount = styled.span`
+const AddmLabel = styled.span` flex: 1; `;
+const AddmCount = styled.span`
   font-size: 0.5625rem;
   color: rgba(${rgb.pink}, 0.55);
   font-weight: 600;
 `;
 
-const ADLBody = styled.div<{ $open: boolean }>`
+const AddmBody = styled.div<{ $open: boolean }>`
   display: ${p => p.$open ? "block" : "none"};
   padding: 0.75rem 0.25rem 0.25rem;
 `;
 
-function ADLSection({ label, count, defaultOpen, children }: {
+function AddmSection({ label, count, defaultOpen, children }: {
   label: string;
   count?: number;
   defaultOpen?: boolean;
@@ -96,12 +96,12 @@ function ADLSection({ label, count, defaultOpen, children }: {
   const [open, setOpen] = useState(defaultOpen ?? true);
   return (
     <div>
-      <ADLHeader $open={open} onClick={() => setOpen(v => !v)} aria-expanded={open}>
-        <ADLLabel>{label}</ADLLabel>
-        {typeof count === "number" && <ADLCount>{count}</ADLCount>}
+      <AddmHeader $open={open} onClick={() => setOpen(v => !v)} aria-expanded={open}>
+        <AddmLabel>{label}</AddmLabel>
+        {typeof count === "number" && <AddmCount>{count}</AddmCount>}
         <AddmToggle open={open} />
-      </ADLHeader>
-      <ADLBody $open={open}>{children}</ADLBody>
+      </AddmHeader>
+      <AddmBody $open={open}>{children}</AddmBody>
     </div>
   );
 }
@@ -333,7 +333,7 @@ export default function SessionSettingsModal({
           <Stack>
             {error && <Err>✕ {error}</Err>}
 
-            <ADLSection label="General" defaultOpen>
+            <AddmSection label="General" defaultOpen>
               <FieldRow>
                 <div>
                   <FieldLabel>Name</FieldLabel>
@@ -385,9 +385,9 @@ export default function SessionSettingsModal({
                   )}
                 </FieldRow>
               )}
-            </ADLSection>
+            </AddmSection>
 
-            <ADLSection label="Members" count={session.memberIds.length} defaultOpen>
+            <AddmSection label="Members" count={session.memberIds.length} defaultOpen>
               {session.memberIds.length === 0 ? (
                 <Empty>No one is in this room.</Empty>
               ) : (
@@ -417,10 +417,10 @@ export default function SessionSettingsModal({
                   ))}
                 </MemberList>
               )}
-            </ADLSection>
+            </AddmSection>
 
             {viewerIsAdmin && (
-              <ADLSection label="Admin controls" defaultOpen={false}>
+              <AddmSection label="Admin controls" defaultOpen={false}>
                 <FieldRow>
                   <div>
                     <FieldLabel>Add invisible member</FieldLabel>
@@ -516,7 +516,7 @@ export default function SessionSettingsModal({
                     }}
                   >Force end</InlineBtn>
                 </FieldRow>
-              </ADLSection>
+              </AddmSection>
             )}
           </Stack>
         </ModalBody>

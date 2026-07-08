@@ -4,7 +4,7 @@
 // CatalogBlockEditor — Phase 3 (platform) + 4.3 (per-tenant) + edit-mode UX refactor.
 //
 // The DATA-mode editor for a mirrored page-editor catalog block (Sandbox workshop, admin),
-// broken into independently collapsible ADL sections so each piece can be shown/hidden:
+// broken into independently collapsible ADDM (Accordion Dropdown) sections so each piece can be shown/hidden:
 //   • Summary       — id · version · scope · status (read-only glance)
 //   • Scope & Deploy — scope SBDM (Platform default vs a tenant) + version + update badge +
 //                      Save / Deploy / Reset / Remove
@@ -81,7 +81,7 @@ export default function CatalogBlockEditor({
 }: {
   catalogId: string;
   /** Show/hide whole sections — driven by the modal's header Scope/Preview/Content buttons.
-   *  (The ADL lightswitches collapse a section's content while it is shown.) */
+   *  (The ADDM toggles collapse a section's content while it is shown.) */
   showPreview?: boolean;
   showScope?: boolean;
   showEdit?: boolean;
@@ -334,7 +334,7 @@ export default function CatalogBlockEditor({
       )}
 
       {/* Preview — shown/hidden by the modal's header Preview button (showPreview);
-          the ADL lightswitch collapses it while shown. */}
+          the ADDM toggle collapses it while shown. */}
       {showPreview && (
         <ADDM label="Preview" accent="cyan" open={open.preview} onOpenChange={(o) => toggle("preview", o)}>
           <PreviewFrame>

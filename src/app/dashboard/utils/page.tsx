@@ -1599,7 +1599,7 @@ const ActionTopRow = styled.div`
   gap: 0.5rem;
 `;
 
-/* ── Action lookup + ADL surface component ────────────────────────────── */
+/* ── Action lookup + ADDM surface component ────────────────────────────── */
 
 const ACTIONS_BY_ID: Map<string, Action> = new Map();
 for (const g of GROUPS) for (const a of g.actions) ACTIONS_BY_ID.set(a.id, a);
@@ -1656,7 +1656,7 @@ function UtilsAdlSurface({
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sections, pending.length, pending.map((j) => j.id + j.status).join(",")]);
-  // Default open per ADL rule. Operator can collapse what they don't care about.
+  // Default open per ADDM rule. Operator can collapse what they don't care about.
   const [openMap, setOpenMap] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(sections.map((s) => [s.id, true]))
   );
@@ -1678,9 +1678,9 @@ function UtilsAdlSurface({
           if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setAll(!allOpen); }
         }}
       >
-        <AdlSwitchTrack $on={allOpen} aria-hidden="true">
-          <AdlSwitchThumb $on={allOpen} />
-        </AdlSwitchTrack>
+        <CollapseAllTrack $on={allOpen} aria-hidden="true">
+          <CollapseAllThumb $on={allOpen} />
+        </CollapseAllTrack>
         <ParentTitle $allOpen={allOpen}>
           {allOpen ? "All sections expanded" : "All sections collapsed"}
         </ParentTitle>
@@ -1696,25 +1696,25 @@ function UtilsAdlSurface({
           0;
 
         return (
-          <AdlSectionTile key={section.id} $accent={accent} $open={open}>
-            <AdlHeader
+          <AddmSectionTile key={section.id} $accent={accent} $open={open}>
+            <AddmHeader
               type="button"
               $open={open}
               $accent={accent}
               aria-expanded={open}
               onClick={() => setOpenMap((p) => ({ ...p, [section.id]: !open }))}
             >
-              <AdlLabel>
-                <AdlLabelMain>{section.title}</AdlLabelMain>
-                {section.subtitle && <AdlLabelSub>{section.subtitle}</AdlLabelSub>}
-              </AdlLabel>
+              <AddmLabel>
+                <AddmLabelMain>{section.title}</AddmLabelMain>
+                {section.subtitle && <AddmLabelSub>{section.subtitle}</AddmLabelSub>}
+              </AddmLabel>
               {section.kind === "placeholder"
-                ? <AdlCountSoon $accent={accent}>soon</AdlCountSoon>
-                : <AdlCount $accent={accent}>{count}</AdlCount>}
+                ? <AddmCountSoon $accent={accent}>soon</AddmCountSoon>
+                : <AddmCount $accent={accent}>{count}</AddmCount>}
               <AddmToggle open={open} />
-            </AdlHeader>
+            </AddmHeader>
 
-            <AdlBody $open={open} $accent={accent}>
+            <AddmBody $open={open} $accent={accent}>
               {section.kind === "placeholder" && section.id === "automations" && (
                 <AutomationsTab />
               )}
@@ -2025,8 +2025,8 @@ function UtilsAdlSurface({
                   })}
                 </ActionsGrid>
               )}
-            </AdlBody>
-          </AdlSectionTile>
+            </AddmBody>
+          </AddmSectionTile>
         );
       })}
     </ParentTile>
@@ -2058,9 +2058,9 @@ type LinkTool = "tinyurl" | "qrcode";
 const LINKS_ORIGIN =
   process.env.NEXT_PUBLIC_LINKS_ORIGIN || "https://links.tinyglobalvillage.com";
 
-// ── ADL sections — alphabetical operator surface ─────────────────────────
+// ── ADDM sections — alphabetical operator surface ────────────────────────
 //
-// Vocabulary: ADL (Accordion Dropdown with Lightswitch). One accent per
+// Vocabulary: ADDM (Accordion Dropdown). One accent per
 // surface (pink) — individual tiles + action cards keep their own per-item
 // glow inside the body. Placeholders flag categories with no live tooling
 // yet so operators can see the structural roadmap.
@@ -2158,13 +2158,13 @@ const SECTIONS: Section[] = [
     hint: "Per-franchise admin surface · license issuance + revocation · per-tenant data scoping · update push (coming with tgv-franchise-rollout)." },
 ];
 
-/* ── ADL styled-components ──────────────────────────────────────────────
- * Pattern: ~/.claude/vocabulary/ADL.md. Each section is its own tile, its
+/* ── ADDM styled-components ─────────────────────────────────────────────
+ * Pattern: ~/.claude/vocabulary/ADDM.md. Each section is its own tile, its
  * accent matching the dominant color of the content within (gold for
  * Hardening + Backups, cyan for Link Tools + Domains, etc.).
  */
 
-const AdlSectionTile = styled.div<{ $accent: SectionAccent; $open: boolean }>`
+const AddmSectionTile = styled.div<{ $accent: SectionAccent; $open: boolean }>`
   width: 100%;
   border: 1px solid ${(p) => (p.$open
     ? `rgba(${rgb[p.$accent]}, 0.28)`
@@ -2177,7 +2177,7 @@ const AdlSectionTile = styled.div<{ $accent: SectionAccent; $open: boolean }>`
   overflow: hidden;
 `;
 
-const AdlHeader = styled.button<{ $open: boolean; $accent: SectionAccent }>`
+const AddmHeader = styled.button<{ $open: boolean; $accent: SectionAccent }>`
   display: flex;
   align-items: center;
   gap: 0.6rem;
@@ -2205,7 +2205,7 @@ const AdlHeader = styled.button<{ $open: boolean; $accent: SectionAccent }>`
   }
 `;
 
-const AdlLabel = styled.span`
+const AddmLabel = styled.span`
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -2213,9 +2213,9 @@ const AdlLabel = styled.span`
   text-align: left;
 `;
 
-const AdlLabelMain = styled.span``;
+const AddmLabelMain = styled.span``;
 
-const AdlLabelSub = styled.span`
+const AddmLabelSub = styled.span`
   font-size: 0.625rem;
   font-weight: 500;
   letter-spacing: 0.04em;
@@ -2223,14 +2223,14 @@ const AdlLabelSub = styled.span`
   color: var(--t-textFaint);
 `;
 
-const AdlCount = styled.span<{ $accent: SectionAccent }>`
+const AddmCount = styled.span<{ $accent: SectionAccent }>`
   font-size: 0.625rem;
   color: rgba(${(p) => rgb[p.$accent]}, 0.55);
   font-weight: 600;
   letter-spacing: 0.06em;
 `;
 
-const AdlCountSoon = styled.span<{ $accent: SectionAccent }>`
+const AddmCountSoon = styled.span<{ $accent: SectionAccent }>`
   font-size: 0.55rem;
   color: rgba(${(p) => rgb[p.$accent]}, 0.45);
   font-style: italic;
@@ -2239,7 +2239,7 @@ const AdlCountSoon = styled.span<{ $accent: SectionAccent }>`
   letter-spacing: 0.04em;
 `;
 
-const AdlSwitchTrack = styled.span<{ $on: boolean; $accent?: SectionAccent }>`
+const CollapseAllTrack = styled.span<{ $on: boolean; $accent?: SectionAccent }>`
   position: relative;
   display: inline-block;
   width: 28px;
@@ -2258,7 +2258,7 @@ const AdlSwitchTrack = styled.span<{ $on: boolean; $accent?: SectionAccent }>`
   flex-shrink: 0;
 `;
 
-const AdlSwitchThumb = styled.span<{ $on: boolean; $accent?: SectionAccent }>`
+const CollapseAllThumb = styled.span<{ $on: boolean; $accent?: SectionAccent }>`
   position: absolute;
   top: 1px;
   left: ${(p) => (p.$on ? "15px" : "1px")};
@@ -2275,7 +2275,7 @@ const AdlSwitchThumb = styled.span<{ $on: boolean; $accent?: SectionAccent }>`
   transition: all 0.18s;
 `;
 
-const AdlBody = styled.div<{ $open: boolean; $accent: SectionAccent }>`
+const AddmBody = styled.div<{ $open: boolean; $accent: SectionAccent }>`
   display: ${(p) => (p.$open ? "block" : "none")};
   padding: 0.5rem 0.875rem 1rem;
   border-top: 1px solid rgba(${(p) => rgb[p.$accent]}, 0.12);

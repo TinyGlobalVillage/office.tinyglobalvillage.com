@@ -870,9 +870,9 @@ export function UserAvatar({
   );
 }
 
-/* ── ADL section (Accordion + Lightswitch) ─────────────────────── */
+/* ── ADDM section (Accordion Dropdown) ─────────────────────────── */
 
-const ADLWrap = styled.div`
+const AddmWrap = styled.div`
   display: flex;
   flex-direction: column;
 `;
@@ -894,7 +894,7 @@ const MasterEclLabel = styled.span`
   letter-spacing: 0.12em;
 `;
 
-const ADLHeader = styled.button<{ $open: boolean }>`
+const AddmHeader = styled.button<{ $open: boolean }>`
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -920,17 +920,17 @@ const ADLHeader = styled.button<{ $open: boolean }>`
   }
 `;
 
-const ADLLabel = styled.span`
+const AddmLabel = styled.span`
   flex: 1;
 `;
 
-const ADLCount = styled.span`
+const AddmCount = styled.span`
   font-size: 0.5625rem;
   color: rgba(${rgb.pink}, 0.55);
   font-weight: 600;
 `;
 
-const ADLSwitchTrack = styled.span<{ $on: boolean }>`
+const CollapseAllTrack = styled.span<{ $on: boolean }>`
   position: relative;
   display: inline-block;
   width: 28px;
@@ -943,7 +943,7 @@ const ADLSwitchTrack = styled.span<{ $on: boolean }>`
   flex-shrink: 0;
 `;
 
-const ADLSwitchThumb = styled.span<{ $on: boolean }>`
+const CollapseAllThumb = styled.span<{ $on: boolean }>`
   position: absolute;
   top: 1px;
   left: ${(p) => (p.$on ? "15px" : "1px")};
@@ -958,12 +958,12 @@ const ADLSwitchThumb = styled.span<{ $on: boolean }>`
   transition: all 0.18s;
 `;
 
-const ADLBody = styled.div<{ $open: boolean }>`
+const AddmBody = styled.div<{ $open: boolean }>`
   display: ${(p) => (p.$open ? "block" : "none")};
   padding: 0.75rem 0 0.25rem;
 `;
 
-function ADLSection({
+function AddmSection({
   label,
   count,
   defaultOpen = true,
@@ -988,15 +988,15 @@ function ADLSection({
     else setOpenState(next);
   };
   return (
-    <ADLWrap>
-      <ADLHeader $open={open} aria-expanded={open} onClick={toggle}>
-        <ADLLabel>{label}</ADLLabel>
+    <AddmWrap>
+      <AddmHeader $open={open} aria-expanded={open} onClick={toggle}>
+        <AddmLabel>{label}</AddmLabel>
         <PreviewSaved data-visible={saved}>Saved</PreviewSaved>
-        {typeof count === "number" && <ADLCount>{count}</ADLCount>}
+        {typeof count === "number" && <AddmCount>{count}</AddmCount>}
         <AddmToggle open={open} />
-      </ADLHeader>
-      <ADLBody $open={open}>{children}</ADLBody>
-    </ADLWrap>
+      </AddmHeader>
+      <AddmBody $open={open}>{children}</AddmBody>
+    </AddmWrap>
   );
 }
 
@@ -1151,10 +1151,10 @@ function SettingsTab({
   const [fontFamilyOpen, setFontFamilyOpen] = useState(true);
   const [accentOpen, setAccentOpen] = useState(true);
   const [storageOpen, setStorageOpen] = useState(true);
-  // ADL open-state (controlled, so the master ECL can batch-toggle)
-  const ADL_KEYS = ["bio", "appearance", "chatprefs", "interface", "storage", "notifications", "privacy", "talk"] as const;
-  type ADLKey = typeof ADL_KEYS[number];
-  const [adlOpen, setAdlOpen] = useState<Record<ADLKey, boolean>>({
+  // ADDM open-state (controlled, so the master ECL can batch-toggle)
+  const ADDM_KEYS = ["bio", "appearance", "chatprefs", "interface", "storage", "notifications", "privacy", "talk"] as const;
+  type AddmKey = typeof ADDM_KEYS[number];
+  const [addmOpen, setAddmOpen] = useState<Record<AddmKey, boolean>>({
     bio: true,
     appearance: false,
     chatprefs: false,
@@ -1169,11 +1169,11 @@ function SettingsTab({
   const [devDrawerOn, setDevDrawerOnState] = useState(false);
   useEffect(() => { setDevDrawerOnState(readDevDrawerOn()); }, []);
   const router = useRouter();
-  const setOne = (k: ADLKey) => (next: boolean) => setAdlOpen((s) => ({ ...s, [k]: next }));
-  const allOpen = ADL_KEYS.every((k) => adlOpen[k]);
+  const setOne = (k: AddmKey) => (next: boolean) => setAddmOpen((s) => ({ ...s, [k]: next }));
+  const allOpen = ADDM_KEYS.every((k) => addmOpen[k]);
   const toggleAll = () => {
     const next = !allOpen;
-    setAdlOpen(ADL_KEYS.reduce((acc, k) => ({ ...acc, [k]: next }), {} as Record<ADLKey, boolean>));
+    setAddmOpen(ADDM_KEYS.reduce((acc, k) => ({ ...acc, [k]: next }), {} as Record<AddmKey, boolean>));
   };
 
   useEffect(() => {
@@ -1302,16 +1302,16 @@ function SettingsTab({
           aria-expanded={allOpen}
           style={{ background: "transparent", border: "none", padding: 0, cursor: "pointer", display: "inline-flex", alignItems: "center" }}
         >
-          <ADLSwitchTrack $on={allOpen} aria-hidden="true">
-            <ADLSwitchThumb $on={allOpen} />
-          </ADLSwitchTrack>
+          <CollapseAllTrack $on={allOpen} aria-hidden="true">
+            <CollapseAllThumb $on={allOpen} />
+          </CollapseAllTrack>
         </button>
       </MasterEclRow>
 
-      <ADLSection
+      <AddmSection
         label="Bio"
         saved={savedKey === "identity"}
-        open={adlOpen.bio}
+        open={addmOpen.bio}
         onOpenChange={setOne("bio")}
       >
         <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
@@ -1391,12 +1391,12 @@ function SettingsTab({
             </div>
           </div>
         </div>
-      </ADLSection>
+      </AddmSection>
 
-      <ADLSection
+      <AddmSection
         label="Appearance"
         saved={savedKey === "appearance"}
-        open={adlOpen.appearance}
+        open={addmOpen.appearance}
         onOpenChange={setOne("appearance")}
       >
         <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
@@ -1500,12 +1500,12 @@ function SettingsTab({
             </TileBody>
           </Tile>
         </div>
-      </ADLSection>
+      </AddmSection>
 
-      <ADLSection
+      <AddmSection
         label="Chat Preferences"
         saved={savedKey === "chatprefs"}
-        open={adlOpen.chatprefs}
+        open={addmOpen.chatprefs}
         onOpenChange={setOne("chatprefs")}
       >
         <ToggleRow>
@@ -1554,12 +1554,12 @@ function SettingsTab({
             </Tile>
           </TileRow>
         )}
-      </ADLSection>
+      </AddmSection>
 
       {isAdmin && (
-        <ADLSection
+        <AddmSection
           label={`Chat storage · ${storagePercent}%`}
-          open={adlOpen.storage}
+          open={addmOpen.storage}
           onOpenChange={setOne("storage")}
         >
           <Tile>
@@ -1574,13 +1574,13 @@ function SettingsTab({
               <ClearBtn onClick={onClearChat}><TrashIcon size={14} /> Clear All Chat &amp; Files</ClearBtn>
             </TileBody>
           </Tile>
-        </ADLSection>
+        </AddmSection>
       )}
 
-      <ADLSection
+      <AddmSection
         label="Notifications"
         saved={savedKey === "notifications"}
-        open={adlOpen.notifications}
+        open={addmOpen.notifications}
         onOpenChange={setOne("notifications")}
       >
         <ToggleRow>
@@ -1601,12 +1601,12 @@ function SettingsTab({
             <ToggleThumb $on={!!settings.mentionsOnly} />
           </Toggle>
         </ToggleRow>
-      </ADLSection>
+      </AddmSection>
 
-      <ADLSection
+      <AddmSection
         label="Privacy"
         saved={savedKey === "privacy"}
-        open={adlOpen.privacy}
+        open={addmOpen.privacy}
         onOpenChange={setOne("privacy")}
       >
         <ToggleRow>
@@ -1627,12 +1627,12 @@ function SettingsTab({
             <ToggleThumb $on={settings.sendTypingIndicators !== false} />
           </Toggle>
         </ToggleRow>
-      </ADLSection>
+      </AddmSection>
 
-      <ADLSection
+      <AddmSection
         label="Interface Controls"
         saved={savedKey === "interface"}
-        open={adlOpen.interface}
+        open={addmOpen.interface}
         onOpenChange={setOne("interface")}
       >
         <ToggleRow>
@@ -1675,12 +1675,12 @@ function SettingsTab({
             </Toggle>
           </ToggleRow>
         )}
-      </ADLSection>
+      </AddmSection>
 
       {isAdmin && (
-        <ADLSection
+        <AddmSection
           label="Talk-to-text"
-          open={adlOpen.talk}
+          open={addmOpen.talk}
           onOpenChange={setOne("talk")}
         >
           <Tile>
@@ -1704,7 +1704,7 @@ function SettingsTab({
               </div>
             </TileBody>
           </Tile>
-        </ADLSection>
+        </AddmSection>
       )}
 
       <SignOutRow>

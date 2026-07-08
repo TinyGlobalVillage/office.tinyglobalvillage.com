@@ -155,9 +155,9 @@ const Header = styled(PanelHeader)<{ $edit?: boolean }>`
 // Left section — title cluster + right-justified ECL. The column divider
 // itself now lives in the sibling <Rsd> element (see below) so it can align
 // with the DTog's OUTSIDE hairline (x = sidebar.width + 7) instead of its
-// inside edge. padding-right = 21px here mirrors the inset AdlHeader creates
-// inside FileSidebar (8px FileSidebar pad + 12px AdlHeader pad + 1px border),
-// so the ECL sits in the same vertical line as every ADL mini-switch below.
+// inside edge. padding-right = 21px here mirrors the inset AddmHeader creates
+// inside FileSidebar (8px FileSidebar pad + 12px AddmHeader pad + 1px border),
+// so the ECL sits in the same vertical line as every ADDM toggle below.
 // align-self: stretch overrides PanelHeader's align-items: center so the
 // column spans the full Header height edge-to-edge.
 const HeaderLeft = styled.div<{ $w: number; $edit?: boolean }>`
@@ -257,9 +257,9 @@ const Title = styled(DrawerTitle)<{ $edit?: boolean }>`
 `;
 
 // Sum-total of every sandbox entry, displayed just left of the header ECL.
-// Same visual language as AdlCount next to each category label in the file
+// Same visual language as AddmCount next to each category label in the file
 // list — small, low-alpha accent text, no glow — so the header reads as the
-// "all groups" row and each ADL below reads as its own category row.
+// "all groups" row and each ADDM below reads as its own category row.
 const HeaderTotal = styled.span<{ $edit?: boolean }>`
   margin-left: auto;
   font-size: 0.6rem;
@@ -665,7 +665,7 @@ function ReturnToMainGlyph() {
 // (ResizeHandle) below owns both edge hairlines of the column divider;
 // HeaderLeft's border-right above lines up with the DTog's LEFT hairline
 // for visual continuity top-to-bottom. Without this override we got a
-// doubled line AND a 1px math-offset that broke ECL/ADL-switch alignment.
+// doubled line AND a 1px math-offset that broke ECL/ADDM-toggle alignment.
 const FileSidebar = styled(PanelSidebar)<{ $w: number }>`
   /* On narrow the sidebar (when re-opened from its drawer) floats as an overlay so it doesn't
      squeeze the stacked Summary/Code/Preview column. Opaque backing — content scrolls under it. */
@@ -926,13 +926,13 @@ const FileGroup = styled.div`
   margin-bottom: 0.75rem;
 `;
 
-// ADL — Accordion Dropdown with Lightswitch.
-// Uniform rule: every ADL header is the same height and spans the full parent
+// ADDM — Accordion Dropdown.
+// Uniform rule: every ADDM header is the same height and spans the full parent
 // container width regardless of title length. box-sizing: border-box so width
 // 100% + padding/border collapses to the parent's exact width. Right padding
 // is bumped so the mini-switch sits in the same vertical line as the header
 // row's ECL (CollapseAllBtn) — ~21px clear of the column divider.
-const AdlHeader = styled.button<{ $open: boolean }>`
+const AddmHeader = styled.button<{ $open: boolean }>`
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -964,18 +964,18 @@ const AdlHeader = styled.button<{ $open: boolean }>`
   }
 `;
 
-const AdlLabel = styled.span`
+const AddmLabel = styled.span`
   flex: 1;
 `;
 
-const AdlCount = styled.span`
+const AddmCount = styled.span`
   font-size: 0.6rem;
   color: rgba(${PINK_RGB}, 0.55);
   font-weight: 600;
 `;
 
 
-const AdlBody = styled.div<{ $open: boolean }>`
+const AddmBody = styled.div<{ $open: boolean }>`
   display: ${(p) => (p.$open ? "block" : "none")};
 `;
 
@@ -3475,16 +3475,16 @@ export default function SandboxModal({
                 const items = grouped[cat];
                 return (
                   <FileGroup key={cat}>
-                    <AdlHeader
+                    <AddmHeader
                       $open={open}
                       aria-expanded={open}
                       onClick={() => setCatOpen((prev) => ({ ...prev, [cat]: !open }))}
                     >
-                      <AdlLabel>{cat}</AdlLabel>
-                      <AdlCount>{items.length}</AdlCount>
+                      <AddmLabel>{cat}</AddmLabel>
+                      <AddmCount>{items.length}</AddmCount>
                       <AddmToggle open={open} />
-                    </AdlHeader>
-                    <AdlBody $open={open}>
+                    </AddmHeader>
+                    <AddmBody $open={open}>
                       <FileItemsWrap>
                         {items.map((e) => (
                           <FileEntry
@@ -3500,24 +3500,24 @@ export default function SandboxModal({
                           />
                         ))}
                       </FileItemsWrap>
-                    </AdlBody>
+                    </AddmBody>
                   </FileGroup>
                 );
               })}
               {showPageTemplates && (
                 <FileGroup>
-                  <AdlHeader
+                  <AddmHeader
                     $open={pageTemplatesOpen}
                     aria-expanded={pageTemplatesOpen}
                     onClick={() => setPageTemplatesOpen((v) => !v)}
                   >
-                    <AdlLabel>Page Templates</AdlLabel>
-                    <AdlCount>
+                    <AddmLabel>Page Templates</AddmLabel>
+                    <AddmCount>
                       {pageTemplatesLoading ? "…" : pageTemplates.length}
-                    </AdlCount>
+                    </AddmCount>
                     <AddmToggle open={pageTemplatesOpen} />
-                  </AdlHeader>
-                  <AdlBody $open={pageTemplatesOpen}>
+                  </AddmHeader>
+                  <AddmBody $open={pageTemplatesOpen}>
                     {pageTemplatesError && (
                       <TemplateEmptyHint>
                         Failed to load: {pageTemplatesError}
@@ -3553,7 +3553,7 @@ export default function SandboxModal({
                         </FileItem>
                       ))}
                     </FileItemsWrap>
-                  </AdlBody>
+                  </AddmBody>
                 </FileGroup>
               )}
             </FileSidebar>

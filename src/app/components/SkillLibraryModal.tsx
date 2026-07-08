@@ -2,7 +2,7 @@
 
 /**
  * Skill Library — lists every TGV skill (from ~/.claude/SKILLS.md / skills repo)
- * as an ADL (Accordion Dropdown with Lightswitch). Clicking the row toggles
+ * as an ADDM (Accordion Dropdown). Clicking the row toggles
  * expansion; the Lightswitch toggles "skill enabled" (purely UI today —
  * skill enablement isn't yet wired to the agent system, so this is a
  * forward-compatible affordance).
@@ -52,9 +52,9 @@ const SKILLS: SkillEntry[] = [
   { slug: "orakle", title: "Orakle", status: "live", blurb: "Multi-system divination engine: astrology, numerology, tarot, tzolkin, cross-domain synthesis." },
 ];
 
-/* ── ADL primitives (matches ChatSettingsModal pattern) ─────────── */
+/* ── ADDM primitives (matches ChatSettingsModal pattern) ────────── */
 
-const ADLWrap = styled.div`
+const AddmWrap = styled.div`
   border: 1px solid var(--t-border);
   border-radius: 0.6rem;
   background: var(--t-inputBg);
@@ -62,7 +62,7 @@ const ADLWrap = styled.div`
   & + & { margin-top: 0.5rem; }
 `;
 
-const ADLHeader = styled.button<{ $open: boolean }>`
+const AddmHeader = styled.button<{ $open: boolean }>`
   width: 100%;
   display: grid;
   grid-template-columns: 1fr auto auto auto;
@@ -82,13 +82,13 @@ const ADLHeader = styled.button<{ $open: boolean }>`
   &:hover { background: ${glowRgba("violet", 0.06)}; }
 `;
 
-const ADLLabel = styled.span`
+const AddmLabel = styled.span`
   display: flex;
   flex-direction: column;
   gap: 0.15rem;
 `;
 
-const ADLBlurb = styled.span`
+const AddmBlurb = styled.span`
   font-size: 0.7rem;
   color: var(--t-textFaint);
   font-weight: 400;
@@ -116,7 +116,7 @@ const StatusBadge = styled.span<{ $status: string }>`
     : "var(--t-border)"};
 `;
 
-const ADLSwitchTrack = styled.span<{ $on: boolean }>`
+const SkillSwitchTrack = styled.span<{ $on: boolean }>`
   position: relative;
   display: inline-block;
   width: 32px;
@@ -130,7 +130,7 @@ const ADLSwitchTrack = styled.span<{ $on: boolean }>`
   transition: background 0.2s;
 `;
 
-const ADLSwitchThumb = styled.span<{ $on: boolean }>`
+const SkillSwitchThumb = styled.span<{ $on: boolean }>`
   position: absolute;
   top: 2px;
   left: ${(p) => (p.$on ? "16px" : "2px")};
@@ -142,7 +142,7 @@ const ADLSwitchThumb = styled.span<{ $on: boolean }>`
   transition: left 0.2s;
 `;
 
-const ADLBody = styled.div<{ $open: boolean }>`
+const AddmBody = styled.div<{ $open: boolean }>`
   max-height: ${(p) => (p.$open ? "60vh" : "0")};
   overflow-y: auto;
   transition: max-height 0.25s ease;
@@ -178,7 +178,7 @@ const LoadingNote = styled.div`
 
 /* ── Component ──────────────────────────────────────────────────── */
 
-type ADLProps = {
+type AddmProps = {
   skill: SkillEntry;
   enabled: boolean;
   open: boolean;
@@ -187,16 +187,16 @@ type ADLProps = {
   children: ReactNode;
 };
 
-function ADL({ skill, enabled, open, onToggleEnabled, onToggleOpen, children }: ADLProps) {
+function Addm({ skill, enabled, open, onToggleEnabled, onToggleOpen, children }: AddmProps) {
   return (
-    <ADLWrap>
-      <ADLHeader $open={open} onClick={onToggleOpen} aria-expanded={open}>
-        <ADLLabel>
+    <AddmWrap>
+      <AddmHeader $open={open} onClick={onToggleOpen} aria-expanded={open}>
+        <AddmLabel>
           <span>{skill.title}</span>
-          <ADLBlurb>{skill.blurb}</ADLBlurb>
-        </ADLLabel>
+          <AddmBlurb>{skill.blurb}</AddmBlurb>
+        </AddmLabel>
         <StatusBadge $status={skill.status}>{skill.status}</StatusBadge>
-        <ADLSwitchTrack
+        <SkillSwitchTrack
           $on={enabled}
           onClick={(e) => {
             e.stopPropagation();
@@ -206,12 +206,12 @@ function ADL({ skill, enabled, open, onToggleEnabled, onToggleOpen, children }: 
           aria-pressed={enabled}
           aria-label={`${skill.title} enabled`}
         >
-          <ADLSwitchThumb $on={enabled} />
-        </ADLSwitchTrack>
+          <SkillSwitchThumb $on={enabled} />
+        </SkillSwitchTrack>
         <AddmToggle open={open} />
-      </ADLHeader>
-      <ADLBody $open={open}>{open && children}</ADLBody>
-    </ADLWrap>
+      </AddmHeader>
+      <AddmBody $open={open}>{open && children}</AddmBody>
+    </AddmWrap>
   );
 }
 
@@ -266,7 +266,7 @@ export default function SkillLibraryModal({ open, onClose }: Props) {
             const isOpen = openSlug === skill.slug;
             const body = content[skill.slug];
             return (
-              <ADL
+              <Addm
                 key={skill.slug}
                 skill={skill}
                 enabled={enabled[skill.slug]}
@@ -283,7 +283,7 @@ export default function SkillLibraryModal({ open, onClose }: Props) {
                 ) : (
                   <Article dangerouslySetInnerHTML={{ __html: renderMarkdown(body) }} />
                 )}
-              </ADL>
+              </Addm>
             );
           })}
         </ModalBody>

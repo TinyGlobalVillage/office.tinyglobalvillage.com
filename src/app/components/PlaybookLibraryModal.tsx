@@ -189,9 +189,9 @@ const ScriptLink = styled.button`
   &:hover { color: ${colors.cyan}; }
 `;
 
-/* ── Scripts section (accordion, ADL-lite) ────────────────────────── */
+/* ── Scripts section (accordion, ADDM-lite) ───────────────────────── */
 
-const ADLWrap = styled.div`
+const AddmWrap = styled.div`
   border: 1px solid var(--t-border);
   border-radius: 0.55rem;
   background: var(--t-inputBg);
@@ -199,7 +199,7 @@ const ADLWrap = styled.div`
   & + & { margin-top: 0.4rem; }
 `;
 
-const ADLHeader = styled.button<{ $open: boolean }>`
+const AddmHeader = styled.button<{ $open: boolean }>`
   width: 100%;
   display: grid;
   grid-template-columns: 1fr auto;
@@ -218,13 +218,13 @@ const ADLHeader = styled.button<{ $open: boolean }>`
   &:hover { background: ${glowRgba("violet", 0.06)}; }
 `;
 
-const ADLLabel = styled.span`
+const AddmLabel = styled.span`
   display: flex;
   flex-direction: column;
   gap: 0.15rem;
 `;
 
-const ADLBlurb = styled.span`
+const AddmBlurb = styled.span`
   font-size: 0.68rem;
   color: var(--t-textFaint);
   font-weight: 400;
@@ -232,7 +232,7 @@ const ADLBlurb = styled.span`
 `;
 
 
-const ADLBody = styled.div<{ $open: boolean }>`
+const AddmBody = styled.div<{ $open: boolean }>`
   max-height: ${(p) => (p.$open ? "60vh" : "0")};
   overflow-y: auto;
   transition: max-height 0.25s ease;
@@ -411,15 +411,15 @@ export default function PlaybookLibraryModal({ onClose }: { onClose: () => void 
                         key={s.slug}
                         ref={(el) => { scriptRefs.current[s.slug] = el; }}
                       >
-                        <ADLWrap>
-                          <ADLHeader $open={isOpen} onClick={() => openScript(s.slug, s.readmeRel)} aria-expanded={isOpen}>
-                            <ADLLabel>
+                        <AddmWrap>
+                          <AddmHeader $open={isOpen} onClick={() => openScript(s.slug, s.readmeRel)} aria-expanded={isOpen}>
+                            <AddmLabel>
                               <span>{s.name}</span>
-                              <ADLBlurb>{s.summary || "—"}</ADLBlurb>
-                            </ADLLabel>
+                              <AddmBlurb>{s.summary || "—"}</AddmBlurb>
+                            </AddmLabel>
                             <AddmToggle open={isOpen} />
-                          </ADLHeader>
-                          <ADLBody $open={isOpen}>
+                          </AddmHeader>
+                          <AddmBody $open={isOpen}>
                             {isOpen && (
                               body === "loading" || body === undefined ? (
                                 <Loading>Loading…</Loading>
@@ -429,8 +429,8 @@ export default function PlaybookLibraryModal({ onClose }: { onClose: () => void 
                                 <Article dangerouslySetInnerHTML={{ __html: renderMarkdown(body) }} />
                               )
                             )}
-                          </ADLBody>
-                        </ADLWrap>
+                          </AddmBody>
+                        </AddmWrap>
                       </div>
                     );
                   })}

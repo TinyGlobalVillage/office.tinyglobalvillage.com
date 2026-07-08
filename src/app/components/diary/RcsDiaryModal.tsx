@@ -13,6 +13,7 @@ import {
   ModalBody,
 } from "@/app/styled";
 import NeonX from "../NeonX";
+import AddmToggle from "@tgv/module-component-library/components/ui/AddmToggle";
 
 type EntryType = "log" | "decision" | "observation" | "learning" | "incident";
 type FilterValue = "all" | EntryType;
@@ -195,12 +196,12 @@ const DayList = styled.div`
   gap: 0.5rem;
 `;
 
-const AdlOuter = styled.div`
+const AddmOuter = styled.div`
   width: 100%;
   box-sizing: border-box;
 `;
 
-const AdlOuterHeader = styled.button<{ $open: boolean }>`
+const AddmOuterHeader = styled.button<{ $open: boolean }>`
   width: 100%;
   display: flex;
   align-items: center;
@@ -242,36 +243,14 @@ const CountChip = styled.span`
   color: rgba(${rgb.cyan}, 0.6);
 `;
 
-const Switch = styled.span<{ $on: boolean }>`
-  width: 28px;
-  height: 14px;
-  border-radius: 999px;
-  border: 1px solid ${(p) => (p.$on ? `rgba(${rgb.cyan}, 0.7)` : "var(--t-border)")};
-  background: ${(p) => (p.$on ? `rgba(${rgb.cyan}, 0.3)` : "var(--t-inputBg)")};
-  position: relative;
-  flex-shrink: 0;
-  &::after {
-    content: "";
-    position: absolute;
-    top: 1px;
-    left: ${(p) => (p.$on ? "15px" : "1px")};
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background: ${(p) => (p.$on ? `rgb(${rgb.cyan})` : "var(--t-textFaint)")};
-    box-shadow: ${(p) => (p.$on ? `0 0 8px rgba(${rgb.cyan}, 0.6)` : "none")};
-    transition: left 120ms;
-  }
-`;
-
-const AdlOuterBody = styled.div`
+const AddmOuterBody = styled.div`
   padding: 0.5rem 0.5rem 0.5rem 1.5rem;
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
 `;
 
-const AdlInner = styled.div<{ $type: EntryType; $featured?: boolean }>`
+const AddmInner = styled.div<{ $type: EntryType; $featured?: boolean }>`
   border-left: 4px solid ${(p) => (p.$featured ? `rgb(${rgb.gold})` : TYPE_RGB[p.$type])};
   padding-left: 0;
   ${(p) =>
@@ -307,7 +286,7 @@ const FeaturedBadge = styled.span`
   white-space: nowrap;
 `;
 
-const AdlInnerHeader = styled.button<{ $open: boolean; $type: EntryType }>`
+const AddmInnerHeader = styled.button<{ $open: boolean; $type: EntryType }>`
   width: 100%;
   display: flex;
   align-items: center;
@@ -614,24 +593,24 @@ export default function RcsDiaryModal({ onClose }: Props) {
           {!loading && (
             <DayList>
               {visibleDays.map((d) => (
-                <AdlOuter key={d.date}>
-                  <AdlOuterHeader $open={openDates.has(d.date)} onClick={() => toggleDate(d.date)}>
+                <AddmOuter key={d.date}>
+                  <AddmOuterHeader $open={openDates.has(d.date)} onClick={() => toggleDate(d.date)}>
                     <Caret $open={openDates.has(d.date)}>▶</Caret>
                     <DayLabel>{d.date}</DayLabel>
                     <CountChip>
                       {d.count} {d.count === 1 ? "entry" : "entries"}
                     </CountChip>
-                    <Switch $on={openDates.has(d.date)} />
-                  </AdlOuterHeader>
+                    <AddmToggle open={openDates.has(d.date)} />
+                  </AddmOuterHeader>
                   {openDates.has(d.date) && (
-                    <AdlOuterBody>
+                    <AddmOuterBody>
                       {d.headlines.map((h) => {
                         const key = `${d.date}/${h.slug}`;
                         const isOpen = openEntries.has(key);
                         const full = isOpen ? openEntries.get(key) : null;
                         return (
-                          <AdlInner key={key} $type={h.type} $featured={h.featured}>
-                            <AdlInnerHeader
+                          <AddmInner key={key} $type={h.type} $featured={h.featured}>
+                            <AddmInnerHeader
                               $open={isOpen}
                               $type={h.type}
                               onClick={() => toggleEntry(d.date, h.slug)}
@@ -647,18 +626,18 @@ export default function RcsDiaryModal({ onClose }: Props) {
                               <SummaryText title={h.title}>
                                 {h.summary || h.title}
                               </SummaryText>
-                            </AdlInnerHeader>
+                            </AddmInnerHeader>
                             {isOpen && full && (
                               <EntryBody
                                 dangerouslySetInnerHTML={{ __html: renderMarkdown(full.body) }}
                               />
                             )}
-                          </AdlInner>
+                          </AddmInner>
                         );
                       })}
-                    </AdlOuterBody>
+                    </AddmOuterBody>
                   )}
-                </AdlOuter>
+                </AddmOuter>
               ))}
             </DayList>
           )}
