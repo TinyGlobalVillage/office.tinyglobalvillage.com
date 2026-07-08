@@ -6,6 +6,7 @@ import styled from "styled-components";
 import { colors, rgb } from "../../theme";
 import TopNav from "../../components/TopNav";
 import { CloudIcon, AvatarIcon, EditIcon } from "../../components/icons";
+import { askPrompt, showNotice } from "../../components/dialogService";
 
 const CDN_BASE = "https://office.tinyglobalvillage.com/media";
 
@@ -806,7 +807,12 @@ function FileCard({ file, onDelete, onRename }: { file: CdnFile; onDelete: () =>
   const rename = async () => {
     const dot = file.name.lastIndexOf(".");
     const currentBase = dot > 0 ? file.name.slice(0, dot) : file.name;
-    const input = window.prompt("Rename file (extension is kept):", currentBase);
+    const input = await askPrompt({
+      title: "Rename file",
+      message: "Rename file (the extension is kept):",
+      initialValue: currentBase,
+      confirmLabel: "Rename",
+    });
     if (input === null) return;
     const trimmed = input.trim();
     if (!trimmed || trimmed === currentBase) return;
@@ -817,7 +823,7 @@ function FileCard({ file, onDelete, onRename }: { file: CdnFile; onDelete: () =>
     });
     if (!res.ok) {
       const d = await res.json().catch(() => ({}));
-      alert(d.error || "Rename failed");
+      await showNotice({ message: d.error || "Rename failed", intent: "danger" });
       return;
     }
     onRename();
