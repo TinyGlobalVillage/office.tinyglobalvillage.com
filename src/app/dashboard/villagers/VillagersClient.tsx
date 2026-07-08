@@ -34,6 +34,7 @@ import PerformersControlModal from "../../components/villagers/PerformersControl
 import DnsModal from "../../components/villagers/DnsModal";
 import EcosystemAnalyticsModal from "../../components/villagers/EcosystemAnalyticsModal";
 import PaypalControlModal from "../../components/villagers/PaypalControlModal";
+import MoneyStoresModal from "../../components/villagers/MoneyStoresModal";
 import MemberLookupModal from "../../components/villagers/MemberLookupModal";
 import DashboardConfigModal from "../../components/villagers/DashboardConfigModal";
 import RequestTenantAccessModal from "../../components/villagers/RequestTenantAccessModal";
@@ -186,6 +187,7 @@ export default function VillagersClient() {
   const [openDns, setOpenDns] = useState(false);
   const [openEcosystem, setOpenEcosystem] = useState(false);
   const [openPaypal, setOpenPaypal] = useState(false);
+  const [openMoney, setOpenMoney] = useState(false);
   const [openKeycloakWire, setOpenKeycloakWire] = useState(false);
   const [openGuestClaims, setOpenGuestClaims] = useState(false);
   // Open the TGV Template Studio in a NEW TAB (not an iframe). The tgv.com
@@ -391,6 +393,15 @@ export default function VillagersClient() {
             </TileSub>
           </Tile>
 
+          <Tile type="button" onClick={() => setOpenMoney(true)}>
+            <TileTop><CashIcon size={18} /> Money &amp; Stores</TileTop>
+            <TileSub>
+              Per-site wallet &amp; Stripe config for a villager site — pool takings into one wallet or
+              keep a separate pool, and use the site&apos;s own managed Stripe account or share another of
+              the owner&apos;s. Moved off the villager dashboard; tgv.com re-validates every change.
+            </TileSub>
+          </Tile>
+
           <Tile type="button" onClick={openDemoTgvOperator}>
             <TileTop><GlobeIcon size={18} /> Demo TGV</TileTop>
             <TileSub>
@@ -435,6 +446,8 @@ export default function VillagersClient() {
       {openEcosystem && <EcosystemAnalyticsModal onClose={() => setOpenEcosystem(false)} />}
 
       {openPaypal && <PaypalControlModal onClose={() => setOpenPaypal(false)} />}
+
+      {openMoney && <MoneyStoresModal onClose={() => setOpenMoney(false)} />}
 
       {openKeycloakWire && <KeycloakWireModal onClose={() => setOpenKeycloakWire(false)} />}
 

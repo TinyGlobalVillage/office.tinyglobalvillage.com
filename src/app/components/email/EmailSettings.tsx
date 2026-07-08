@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import styled from "styled-components";
 import { colors, rgb } from "../../theme";
 import { ModalBackdrop, CloseBtn } from "../../styled";
+import { useEscapeToClose } from "@tgv/module-component-library/components/hooks/useEscapeToClose";
 import NeonX from "../NeonX";
 
 /* ------------------------------------------------------------------ */
@@ -417,6 +418,7 @@ const SaveBtn = styled.button<{ $saved: boolean }>`
 /* ------------------------------------------------------------------ */
 
 export default function EmailSettings({ accounts = [], onClose, onSaved }: Props) {
+  useEscapeToClose({ open: true, onClose }); // canonical focus-independent Esc (Backdrop has no click-to-close)
   const [settings, setSettings] = useState<Settings | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);

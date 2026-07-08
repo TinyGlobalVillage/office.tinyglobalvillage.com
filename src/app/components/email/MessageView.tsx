@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 import { colors, rgb } from "../../theme";
 import { ModalBackdrop, CloseBtn } from "../../styled";
+import { useEscapeToClose } from "@tgv/module-component-library/components/hooks/useEscapeToClose";
 import NeonX from "../NeonX";
 
 /* ------------------------------------------------------------------ */
@@ -468,6 +469,7 @@ const RawBody = styled.pre`
 /* ------------------------------------------------------------------ */
 
 function RawMessageModal({ email, onClose }: { email: EmailDetail; onClose: () => void }) {
+  useEscapeToClose({ open: true, onClose });
   const raw = [
     `From:    ${formatAddress(email.from)}`,
     `To:      ${formatAddress(email.to)}`,

@@ -3,7 +3,10 @@ import { colors, rgb, type GlowColor } from "./theme";
 
 /* ── Modal primitives ──────────────────────────────────────────── */
 
-export const ModalBackdrop = styled.div`
+// data-modal-backdrop tags every modal's backdrop so the app-root GlobalEscClose net can find the
+// topmost open modal and close it on Escape even when a modal's own ESC handling is focus-dependent
+// (some modals key off an onKeyDown on their container, which misses when focus is on <body>).
+export const ModalBackdrop = styled.div.attrs({ "data-modal-backdrop": "" })`
   position: fixed;
   inset: 0;
   z-index: 100;
