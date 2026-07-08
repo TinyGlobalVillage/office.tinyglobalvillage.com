@@ -2435,6 +2435,104 @@ function DrawerKnobDemo() {
   );
 }
 
+// ── Canvas Settings demo ──────────────────────────────────────────────────
+const CsStage = styled.div`
+  position: relative;
+  width: 300px;
+  height: 170px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px dashed rgba(255, 255, 255, 0.14);
+  overflow: hidden;
+`;
+const CsCanvasHint = styled.span`
+  position: absolute;
+  top: 8px;
+  left: 10px;
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.25);
+`;
+const CsSnapEdge = styled.div<{ $accent: string }>`
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  width: 6px;
+  background: color-mix(in srgb, ${(p) => p.$accent} 55%, transparent);
+  box-shadow: 0 0 12px color-mix(in srgb, ${(p) => p.$accent} 60%, transparent);
+`;
+const CsPanel = styled.div<{ $accent: string }>`
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  width: 158px;
+  border-radius: 8px;
+  background: color-mix(in srgb, ${(p) => p.$accent} 6%, #05060a 94%);
+  border: 1px solid color-mix(in srgb, ${(p) => p.$accent} 40%, transparent);
+  box-shadow: 0 0 16px color-mix(in srgb, ${(p) => p.$accent} 18%, transparent);
+  overflow: hidden;
+`;
+const CsPanelHeader = styled.div<{ $accent: string }>`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 8px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: ${(p) => p.$accent};
+  border-bottom: 1px solid color-mix(in srgb, ${(p) => p.$accent} 25%, transparent);
+  cursor: grab;
+`;
+const CsFieldRow = styled.div<{ $accent: string }>`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 8px;
+  font-size: 10px;
+  color: color-mix(in srgb, ${(p) => p.$accent} 70%, #ffffff 30%);
+`;
+const CsDdm = styled.span<{ $accent: string }>`
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 9px;
+  background: color-mix(in srgb, ${(p) => p.$accent} 14%, transparent);
+  border: 1px solid color-mix(in srgb, ${(p) => p.$accent} 45%, transparent);
+  color: ${(p) => p.$accent};
+`;
+
+function CanvasSettingsDemo() {
+  const accent = "#ff4ecb";
+  return (
+    <DrawerWrap>
+      <Highlight label="Canvas Settings">
+        <CsStage>
+          <CsCanvasHint>canvas</CsCanvasHint>
+          <CsSnapEdge $accent={accent} />
+          <CsPanel $accent={accent}>
+            <CsPanelHeader $accent={accent}>
+              <span>Canvas Settings</span>
+              <span>&#x2304;</span>
+            </CsPanelHeader>
+            <CsFieldRow $accent={accent}>
+              <span>Fill</span>
+              <CsDdm $accent={accent}>accent &#x25BE;</CsDdm>
+            </CsFieldRow>
+            <CsFieldRow $accent={accent}>
+              <span>Border</span>
+              <CsDdm $accent={accent}>solid &#x25BE;</CsDdm>
+            </CsFieldRow>
+          </CsPanel>
+        </CsStage>
+      </Highlight>
+      <DrawerCaption>Collapsible, draggable canvas-mode settings drawer — the dock edge highlights before snap; DDM-themed dropdowns; tooltips always render away from the snapped edge.</DrawerCaption>
+    </DrawerWrap>
+  );
+}
+
 function DrawerMenuButtonDemo() {
   const accent = "#ff4ecb";
   return (
@@ -3910,6 +4008,21 @@ const FileSidebar = styled.aside\`
   // lives at the bottom of the Navigation group below, importing from
   // @tgv/module-component-library/components/ui/TPG.)
 
+  // ── Editor Controls ───────────────────────────────────────────────────
+  {
+    key: "CS",
+    name: "Canvas Settings",
+    category: "Editor Controls",
+    summary:
+      "The canvas-mode style/toggle panel (CanvasInspector) as a collapsible drawer: click it open/closed at will, drag it out and around, and dock it into a side of the canvas viewport — the target edge highlights as it reads the panel is about to be joined. Every dropdown inside is DDM-themed (never a native OS select face). Canonical tooltip rule: tooltips on any docked bar render AWAY from the snapped edge (bottom bar \u2192 tooltip above). The same drawer/dock behavior applies to the Canvas Toolbar, the Layers panel, and the Arrange Bar (the bottom bar of z-order/align/distribute arrows).",
+    usage:
+      "Canvas Mode in the tgv.com page editor: the settings face for the selected canvas item (name, X/Y/W/H, rotation, block content/style faces, Fill/stroke PaintInspector). Collapse to a slim edge pill; drag the header to re-dock left/right/top/bottom with edge-highlight preview; dock + collapsed state persists per user. Dropdowns use the DDM pattern in the panel theme. Tooltips flip to stay in the line of sight wherever the bar is snapped.",
+    code: `// Canvas Settings drawer (Canvas Mode C11)\n<CanvasSettingsDrawer\n  dock="right"          // left | right | top | bottom — drag header to re-dock\n  collapsed={collapsed} // click open/closed at will\n  onDockPreview={(side) => highlightEdge(side)} // edge glows before snap\n>\n  <CanvasInspector item={selected} /> {/* DDM-themed dropdowns inside */}\n</CanvasSettingsDrawer>`,
+    stylePath:
+      "packages/@tgv/module-core/module-page-editor/editor/page-editor/grid-canvas/CanvasInspector.tsx",
+    Demo: CanvasSettingsDemo,
+  },
+
   // ── Toggles ───────────────────────────────────────────────────────────
   {
     key: "ECL",
@@ -4292,7 +4405,7 @@ export default function Layout({ children }) {
 ];
 
 export const CATEGORIES: Array<SandboxEntry["category"]> = [
-  "Buttons", "Icons", "Menus", "Modals", "Navigation", "React Three Fiber", "Toggles",
+  "Buttons", "Editor Controls", "Icons", "Menus", "Modals", "Navigation", "React Three Fiber", "Toggles",
   // Catalog page-block groups (zone-clustered), appended after the primitives.
   ...CATALOG_CATEGORIES,
 ];
