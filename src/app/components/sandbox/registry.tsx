@@ -3488,9 +3488,6 @@ function TgvNavDemo() {
           <TgvNavDemoItem $accent={colors.gold}>Alerts</TgvNavDemoItem>
           <TgvNavDemoItem $accent={colors.green}>Chats</TgvNavDemoItem>
           <TgvNavDemoItem $accent={colors.cyan}>Utils</TgvNavDemoItem>
-          <TgvNavDemoItem style={{ borderTop: "1px solid var(--t-border)" }}>
-            Site Settings (dashboard mode only)
-          </TgvNavDemoItem>
         </TgvNavDemoMenu>
       )}
     </TgvNavDemoWrap>
@@ -4014,18 +4011,17 @@ const [name, setName] = useState("");
     key: "TgvNav",
     name: "TgvNav (tgv-nav)",
     category: "Navigation",
-    summary: "THE canonical TGV navigation bar, lifted from Office TopNav. Balloon menu button (prop slot, default TgvBalloon; Office passes its own BalloonSVG) + 'Menu' label on desktop/tablet, balloon-only on mobile. All nav options fold into the balloon menu (sections with dividers + per-item accents). Center tab toggles 'Hide Menu' ⇄ 'Show Menu'. Two contexts: dashboard (injected Site Settings entry reachable) vs landing (not). leftSlot/rightSlot inject bar-end content (site-switcher SBDM, presence, LDM, sign-out). Publishes --nav-h / --nav-offset and a nav-hidden class on <html>.",
+    summary: "THE canonical TGV navigation bar, lifted from Office TopNav. Balloon menu button (prop slot, default TgvBalloon; Office passes its own BalloonSVG) + 'Menu' label on desktop/tablet, balloon-only on mobile. All nav options fold into the balloon menu (sections with dividers + per-item accents). Center tab toggles 'Hide Menu' ⇄ 'Show Menu'. Site Settings is NOT a menu entry (2026-07-09): dashboards render a gear icon next to the site switcher via leftSlot (see DashboardTgvNav) — dashboard-only by construction. leftSlot/rightSlot inject bar-end content (site-switcher SBDM + gear, presence, LDM, sign-out) at the uniform 2rem control height. Publishes --nav-h / --nav-offset and a nav-hidden class on <html>.",
     usage: "Office wraps it in TopNav. Tenant dashboards mount module-dashboard's DashboardTgvNav adapter (absorbs the retired SiteSwitcherBar + UnifiedBottomBar). Landing pages mount it directly with context=\"landing\". Never hardcode tenant values — balloon, accent, sections, and slots are all props.",
     code: `<TgvNav
-  context="dashboard"          // or "landing" — hides Site Settings
+  context="dashboard"          // or "landing"
   balloon={BalloonSVG}          // default: TgvBalloon
   accent="#ff4ecb" accentRgb="255,78,203"
   sections={[
     { key: "nav", items: [{ label: "Dashboard", href: "/dashboard" }] },
     { key: "tools", items: [{ label: "Alerts", accent: colors.gold, onSelect: openAlerts }] },
   ]}
-  siteSettings={{ render: (close) => <SiteSettingsModal onClose={close} /> }}
-  leftSlot={<BackForwardArrows />}
+  leftSlot={<><SiteSwitcherSBDM /><SettingsGearBtn /></>}  // gear = Site Settings (dashboards)
   rightSlot={<>{presenceChips}<LDM /><SignOutBtn /></>}
 />`,
     stylePath: "packages/@tgv/module-core/module-component-library/domains/navigation/components/TgvNav.tsx",
