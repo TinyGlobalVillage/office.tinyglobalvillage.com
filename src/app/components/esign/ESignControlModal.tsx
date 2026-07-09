@@ -380,7 +380,7 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
         )}
 
         <TabsRow>
-          <PillBar
+          <PillBar variant="flat"
             segments={TAB_SEGMENTS}
             active={tab}
             onChange={(k) => setTab(k as Tab)}
@@ -396,7 +396,7 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
 
           {!loading && tab === "new" && (
             <Section>
-              <PillBar
+              <PillBar variant="flat"
                 segments={MODE_SEGMENTS}
                 active={mode}
                 onChange={(k) => setMode(k as DocKind)}
@@ -455,7 +455,7 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
 
               {mode === "waiver" && recipients.length > 0 && (
                 <Row>
-                  <PillBar
+                  <PillBar variant="flat"
                     segments={CHANNEL_SEGMENTS}
                     active={channel}
                     onChange={(k) => setChannel(k as "email" | "link")}
@@ -532,7 +532,7 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
 
           {!loading && tab === "documents" && (
             <Section>
-              <PillBar
+              <PillBar variant="flat"
                 segments={KIND_SEGMENTS}
                 active={docFilter}
                 onChange={(k) => setDocFilter(k as KindFilter)}

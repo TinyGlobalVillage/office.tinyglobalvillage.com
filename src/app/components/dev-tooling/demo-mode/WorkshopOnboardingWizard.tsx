@@ -159,7 +159,7 @@ export default function WorkshopOnboardingWizard({ onClose }: { onClose: () => v
               <>
                 <Section>
                   <SectionTitle>1 · Before you start</SectionTitle>
-                  <PillBar
+                  <PillBar variant="flat"
                     segments={[{ key: "mac", label: "For Mac" }, { key: "pc", label: "For PC" }]}
                     active={platform}
                     onChange={(k) => setPlatform(k as "mac" | "pc")}

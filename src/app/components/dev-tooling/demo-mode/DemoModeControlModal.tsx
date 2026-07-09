@@ -310,14 +310,14 @@ export default function DemoModeControlModal({ onClose }: DemoModeControlModalPr
             <Section>
               <SectionTitle>Start a workshop</SectionTitle>
               <PillRow>
-                <PillBar
+                <PillBar variant="flat"
                   segments={[{ key: "local", label: "Local" }, { key: "rcs", label: "On RCS" }]}
                   active={compute}
                   onChange={(k) => void onCompute(k)}
                   accent={rgb.cyan}
                   ariaLabel="Compute home"
                 />
-                <PillBar
+                <PillBar variant="flat"
                   segments={[{ key: "single", label: "Single site" }, { key: "multi", label: "Multi-site" }]}
                   active={fanout}
                   onChange={(k) => void onFanout(k)}

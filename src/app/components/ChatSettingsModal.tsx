@@ -9,7 +9,6 @@ import { hexToRgb } from "./ProfileModal";
 import { useTheme } from "./ThemeProvider";
 import { TrashIcon } from "./icons";
 import { signOut } from "next-auth/react";
-import { useRouter } from "next/navigation";
 import { useModalLifecycle, getAutoHide, setAutoHide } from "@/app/lib/drawerKnobs";
 import { clearAllDrawerState } from "@/app/lib/drawerPersist";
 import AddmToggle from "@tgv/module-component-library/components/ui/AddmToggle";
@@ -302,52 +301,6 @@ const ToggleThumb = styled.span<{ $on?: boolean }>`
       ? `0 0 8px rgba(${rgb.pink}, 0.85), 0 0 2px rgba(${rgb.pink}, 1)`
       : "0 1px 2px rgba(0,0,0,0.3)"};
   transition: all 0.18s;
-`;
-
-const AdminJumpRow = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  padding: 0.75rem 0.875rem;
-  margin-bottom: 0.75rem;
-  border-radius: 0.625rem;
-  border: 1px solid rgba(0, 228, 253, 0.25);
-  background: rgba(0, 228, 253, 0.04);
-`;
-
-const AdminJumpLabel = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.125rem;
-  font-size: 0.75rem;
-  color: var(--t-text);
-  font-weight: 600;
-`;
-
-const AdminJumpHint = styled.span`
-  font-size: 0.625rem;
-  color: var(--t-textMuted);
-  font-weight: 400;
-`;
-
-const AdminJumpBtn = styled.button`
-  appearance: none;
-  border: 1px solid rgba(0, 228, 253, 0.45);
-  background: rgba(0, 228, 253, 0.08);
-  color: #00e4fd;
-  font-family: inherit;
-  font-size: 0.6875rem;
-  font-weight: 700;
-  letter-spacing: 0.3px;
-  padding: 0.45rem 0.85rem;
-  border-radius: 0.5rem;
-  cursor: pointer;
-  transition: all 0.15s;
-  white-space: nowrap;
-
-  &:hover { background: rgba(0, 228, 253, 0.16); border-color: rgba(0, 228, 253, 0.7); }
-  &:active { transform: scale(0.97); }
 `;
 
 const RadioBtn = styled.button<{ $active?: boolean }>`
@@ -1168,7 +1121,6 @@ function SettingsTab({
   useEffect(() => { setDrawerKnobsAutoHide(getAutoHide()); }, []);
   const [devDrawerOn, setDevDrawerOnState] = useState(false);
   useEffect(() => { setDevDrawerOnState(readDevDrawerOn()); }, []);
-  const router = useRouter();
   const setOne = (k: AddmKey) => (next: boolean) => setAddmOpen((s) => ({ ...s, [k]: next }));
   const allOpen = ADDM_KEYS.every((k) => addmOpen[k]);
   const toggleAll = () => {
@@ -1281,18 +1233,6 @@ function SettingsTab({
 
   return (
     <Section>
-      {isAdmin && (
-        <AdminJumpRow>
-          <AdminJumpLabel>
-            Office Dashboard
-            <AdminJumpHint>Admin-only workspace (not in the main nav)</AdminJumpHint>
-          </AdminJumpLabel>
-          <AdminJumpBtn type="button" onClick={() => router.push("/admin")}>
-            Go to Office Dashboard →
-          </AdminJumpBtn>
-        </AdminJumpRow>
-      )}
-
       <MasterEclRow>
         <MasterEclLabel>{allOpen ? "Collapse all" : "Expand all"}</MasterEclLabel>
         <button

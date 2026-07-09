@@ -1,9 +1,18 @@
 "use client";
+// Office TopNav — now a thin host wrapper around the canonical library TgvNav
+// (@tgv/module-component-library/domains/navigation/components/TgvNav), which
+// was lifted FROM this file (worktree-tgv-nav, 2026-07-08). Office-specific
+// concerns stay here: the office BalloonSVG identity, the pink accent, the
+// nav/tool menu items, back/forward history arrows, the presence-chip roster,
+// LDM, sign-out, and the ProfileModal. Layout, the balloon menu, and the
+// "Hide Menu"/"Show Menu" tab are the library's.
 
 import { useState, useEffect, useRef, Suspense } from "react";
-import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import styled from "styled-components";
+import TgvNav, {
+  type TgvNavSection,
+} from "@tgv/module-component-library/domains/navigation/components/TgvNav";
 import ProfileModal, { type Profile, type Memo, type Ping } from "./ProfileModal";
 import { UserAvatar } from "./ChatSettingsModal";
 import { signOut } from "next-auth/react";
@@ -37,7 +46,7 @@ const modalLinks: ModalLink[] = [
   { label: "Suggest", event: "open-suggestion", glow: "pink" },
 ];
 
-function BalloonSVG({ size = 30 }: { size?: number }) {
+export function BalloonSVG({ size = 30 }: { size?: number }) {
   return (
     <svg width={size} height={Math.round(size * 1.35)} viewBox="0 0 30 41" fill="none" xmlns="http://www.w3.org/2000/svg">
       <ellipse cx="15" cy="14" rx="13" ry="13.5" fill="#ff4ecb" />
@@ -54,47 +63,9 @@ function BalloonSVG({ size = 30 }: { size?: number }) {
   );
 }
 
-/* ── Styled ────────────────────────────────────────────────────── */
+/* ── Styled (office-local bar-end widgets) ─────────────────────── */
 
-const HeaderWrap = styled.header<{ $scrolled?: boolean; $hidden?: boolean }>`
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 50;
-  padding: 0.75rem 1rem 0.5rem;
-  background: ${(p) => (p.$scrolled ? "rgba(0,0,0,0.92)" : "transparent")};
-  transform: ${(p) => (p.$hidden ? "translateY(-110%)" : "translateY(0)")};
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), background 0.3s;
-
-  [data-theme="light"] & {
-    background: ${(p) => (p.$scrolled ? "rgba(248,246,243,0.92)" : "transparent")};
-  }
-`;
-
-const Nav = styled.nav`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.625rem 1.25rem;
-  max-width: 80rem;
-  margin: 0 auto;
-  border-radius: 1rem;
-  background: rgba(${rgb.pink}, 0.03);
-  border: 1px solid rgba(${rgb.pink}, 0.12);
-
-  [data-theme="light"] & {
-    background: rgba(${rgb.pink}, 0.02);
-    border-color: rgba(${rgb.pink}, 0.08);
-  }
-`;
-
-const LeftGroup = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex-shrink: 0;
-`;
+const NAV_BTN_HEIGHT = "2rem";
 
 const ArrowBtn = styled.button`
   width: 1.75rem;
@@ -118,113 +89,6 @@ const ArrowBtn = styled.button`
     opacity: 0.25;
     cursor: not-allowed;
   }
-`;
-
-const NAV_BTN_HEIGHT = "2rem";
-
-const DDMTrigger = styled.button<{ $open?: boolean }>`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  height: ${NAV_BTN_HEIGHT};
-  padding: 0 0.75rem;
-  border-radius: 0.5rem;
-  font-size: 0.6875rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.15em;
-  cursor: pointer;
-  transition: all 0.15s;
-  background: ${(p) => (p.$open ? `rgba(${rgb.pink}, 0.25)` : `rgba(${rgb.pink}, 0.08)`)};
-  border: 1px solid rgba(${rgb.pink}, 0.35);
-  color: ${colors.pink};
-
-  &:hover {
-    background: rgba(${rgb.pink}, 0.22);
-  }
-`;
-
-const DDMMenu = styled.div`
-  position: absolute;
-  top: 100%;
-  left: 0;
-  margin-top: 0.5rem;
-  border-radius: 0.75rem;
-  overflow: hidden;
-  z-index: 50;
-  min-width: 180px;
-  background: var(--t-surface);
-  border: 1px solid rgba(${rgb.pink}, 0.25);
-  box-shadow: 0 8px 40px rgba(${rgb.pink}, 0.12), 0 4px 20px rgba(0, 0, 0, 0.7);
-
-  [data-theme="light"] & {
-    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.08);
-  }
-`;
-
-const DDMLink = styled(Link)<{ $active?: boolean }>`
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 0.5rem;
-  width: 100%;
-  padding: 0.5rem 0.875rem;
-  font-size: 0.6875rem;
-  font-weight: 700;
-  text-align: left;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  text-decoration: none;
-  transition: all 0.15s;
-  color: ${(p) => (p.$active ? colors.pink : "var(--t-textFaint)")};
-  background: ${(p) => (p.$active ? `rgba(${rgb.pink}, 0.1)` : "transparent")};
-
-  &:hover {
-    color: ${colors.pink};
-    background: rgba(${rgb.pink}, 0.07);
-  }
-`;
-
-const DDMDivider = styled.div`
-  height: 1px;
-  margin: 0.25rem 0;
-  background: var(--t-border);
-`;
-
-const DDMBtn = styled.button<{ $glow?: string }>`
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 0.5rem;
-  width: 100%;
-  padding: 0.5rem 0.875rem;
-  font-size: 0.6875rem;
-  font-weight: 700;
-  text-align: left;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  background: none;
-  border: none;
-  cursor: pointer;
-  transition: background 0.15s;
-  color: ${(p) => p.$glow || "var(--t-textMuted)"};
-
-  &:hover {
-    background: var(--t-inputBg);
-  }
-`;
-
-const RightGroup = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex-shrink: 0;
-`;
-
-const MobileOnly = styled.span`
-  display: none;
-  align-items: center;
-  @media (max-width: 560px) { display: flex; }
 `;
 
 const DesktopOnly = styled.span`
@@ -368,48 +232,12 @@ const SignOutBtn = styled.button`
   }
 `;
 
-const DrawerTab = styled.button<{ $hidden?: boolean; $navH: number }>`
-  position: fixed;
-  left: 50%;
-  z-index: 49;
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;
-  transform: translateX(-50%);
-  top: ${(p) => (p.$hidden ? "0px" : `${p.$navH}px`)};
-  padding: 4px 14px;
-  border-radius: 0 0 10px 10px;
-  border: 1px solid rgba(${rgb.pink}, 0.35);
-  border-top: ${(p) => (p.$hidden ? `1px solid rgba(${rgb.pink}, 0.35)` : "none")};
-  background: rgba(${rgb.pink}, 0.12);
-  color: ${colors.pink};
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  backdrop-filter: blur(8px);
-  cursor: pointer;
-  transition: top 0.3s cubic-bezier(0.4, 0, 0.2, 1), background 0.2s;
-  box-shadow: 0 4px 20px rgba(${rgb.pink}, 0.15);
-
-  &:hover {
-    background: rgba(${rgb.pink}, 0.22);
-  }
-`;
-
-/* ── Component ───────────��─────────────────────────────────────── */
+/* ── Component ─────────────────────────────────────────────────── */
 
 function TopNavInner() {
   const searchParams = useSearchParams();
   const embedded = searchParams?.get("embedded") === "1";
   const popout = searchParams?.get("popout") === "1";
-  const [scrolled, setScrolled] = useState(false);
-  const [hidden, setHidden] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [navH, setNavH] = useState(0);
-  const pathname = usePathname();
-  const menuRef = useRef<HTMLDivElement>(null);
-  const headerRef = useRef<HTMLElement>(null);
   const { canBack, canForward, back, forward } = useNavHistory();
 
   const [profiles, setProfiles] = useState<Profile[]>([]);
@@ -454,48 +282,6 @@ function TopNavInner() {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 50);
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
-
-  useEffect(() => {
-    const measure = () => {
-      if (headerRef.current) {
-        const h = headerRef.current.offsetHeight;
-        setNavH(h);
-        document.documentElement.style.setProperty("--nav-h", `${h}px`);
-      }
-    };
-    measure();
-    const ro = new ResizeObserver(measure);
-    if (headerRef.current) ro.observe(headerRef.current);
-    return () => ro.disconnect();
-  }, []);
-
-  useEffect(() => {
-    // --nav-offset = total space to leave above page content.
-    // Includes navbar height + hide toggle pill + breathing gap.
-    const CLEARANCE = 56;
-    document.documentElement.style.setProperty(
-      "--nav-offset",
-      hidden ? `${CLEARANCE}px` : `${navH + CLEARANCE}px`
-    );
-    document.documentElement.classList.toggle("nav-hidden", hidden);
-  }, [hidden, navH]);
-
-  useEffect(() => {
-    const onDown = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
-    };
-    document.addEventListener("mousedown", onDown);
-    return () => document.removeEventListener("mousedown", onDown);
-  }, []);
-
-  useEffect(() => { setMenuOpen(false); }, [pathname]);
-
-  const currentPage = navLinks.find((l) => l.href === pathname)?.label ?? "Navigate";
   const myProfile = profiles.find((p) => p.username === currentUser);
 
   const sorted = [...profiles].sort((a, b) => {
@@ -540,87 +326,50 @@ function TopNavInner() {
     );
   };
 
-  if (embedded || popout) return null;
+  // Menu content: the Dashboard link, then every office tool (former modalLinks)
+  // — drawers/modals dispatch their window events, pages navigate.
+  const sections: TgvNavSection[] = [
+    {
+      key: "nav",
+      items: navLinks.map((l) => ({ label: l.label, href: l.href })),
+    },
+    {
+      key: "tools",
+      items: modalLinks.map((ml) => ({
+        label: ml.label,
+        href: ml.href,
+        accent: colors[ml.glow],
+        onSelect: ml.href
+          ? undefined
+          : () => {
+              if (ml.drawer) {
+                window.dispatchEvent(new CustomEvent("tgv-drawer-open", { detail: ml.drawer }));
+              } else if (ml.event) {
+                window.dispatchEvent(new CustomEvent(ml.event));
+              }
+            },
+      })),
+    },
+  ];
 
   return (
     <>
-      <HeaderWrap ref={headerRef} $scrolled={scrolled} $hidden={hidden}>
-        <Nav>
-          <LeftGroup>
-            <Link href="/dashboard" style={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
-              <BalloonSVG size={28} />
-            </Link>
-            <div style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
-              <ArrowBtn onClick={back} disabled={!canBack} title="Back (⌘[ / Alt+←)">‹</ArrowBtn>
-              <ArrowBtn onClick={forward} disabled={!canForward} title="Forward (⌘] / Alt+→)">›</ArrowBtn>
-            </div>
-            <div ref={menuRef} style={{ position: "relative" }}>
-              <DDMTrigger $open={menuOpen} onClick={() => setMenuOpen((p) => !p)}>
-                <MobileOnly>
-                  <svg width="14" height="10" viewBox="0 0 14 10" fill="currentColor">
-                    <rect x="0" y="0" width="14" height="1.5" rx="0.75"/>
-                    <rect x="0" y="4.25" width="14" height="1.5" rx="0.75"/>
-                    <rect x="0" y="8.5" width="14" height="1.5" rx="0.75"/>
-                  </svg>
-                </MobileOnly>
-                <DesktopOnly>
-                  <span>{currentPage}</span>
-                  <svg
-                    width="8" height="8" viewBox="0 0 8 8" fill="currentColor"
-                    style={{ transform: menuOpen ? "rotate(180deg)" : "none", transition: "transform 0.2s" }}
-                  >
-                    <path d="M4 6L0.5 1.5h7L4 6z" />
-                  </svg>
-                </DesktopOnly>
-              </DDMTrigger>
-              {menuOpen && (
-                <DDMMenu>
-                  {navLinks.map((link) => {
-                    const active = pathname === link.href;
-                    return (
-                      <DDMLink key={link.href} href={link.href} $active={active}>
-                        {link.label}
-                      </DDMLink>
-                    );
-                  })}
-                  <DDMDivider />
-                  {modalLinks.map((ml) => {
-                    if (ml.href) {
-                      return (
-                        <DDMLink
-                          key={ml.label}
-                          href={ml.href}
-                          $active={pathname === ml.href}
-                          style={{ color: colors[ml.glow] }}
-                          onClick={() => setMenuOpen(false)}
-                        >
-                          {ml.label}
-                        </DDMLink>
-                      );
-                    }
-                    return (
-                      <DDMBtn
-                        key={ml.label}
-                        $glow={colors[ml.glow]}
-                        onClick={() => {
-                          if (ml.drawer) {
-                            window.dispatchEvent(new CustomEvent("tgv-drawer-open", { detail: ml.drawer }));
-                          } else if (ml.event) {
-                            window.dispatchEvent(new CustomEvent(ml.event));
-                          }
-                          setMenuOpen(false);
-                        }}
-                      >
-                        {ml.label}
-                      </DDMBtn>
-                    );
-                  })}
-                </DDMMenu>
-              )}
-            </div>
-          </LeftGroup>
-
-          <RightGroup>
+      <TgvNav
+        context="dashboard"
+        balloon={BalloonSVG}
+        sections={sections}
+        accent={colors.pink}
+        accentRgb={rgb.pink}
+        maxWidth="80rem"
+        suppress={embedded || popout}
+        leftSlot={
+          <div style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
+            <ArrowBtn onClick={back} disabled={!canBack} title="Back (⌘[ / Alt+←)">‹</ArrowBtn>
+            <ArrowBtn onClick={forward} disabled={!canForward} title="Forward (⌘] / Alt+→)">›</ArrowBtn>
+          </div>
+        }
+        rightSlot={
+          <>
             {visibleChips.map(renderChip)}
             {showOverflow && (
               <div ref={overflowRef} style={{ position: "relative" }}>
@@ -662,25 +411,9 @@ function TopNavInner() {
               <span>⏏</span>
               <DesktopOnly>Sign out</DesktopOnly>
             </SignOutBtn>
-          </RightGroup>
-        </Nav>
-      </HeaderWrap>
-
-      <DrawerTab $hidden={hidden} $navH={navH} onClick={() => setHidden((p) => !p)} title={hidden ? "Show navigation" : "Hide navigation"}>
-        <svg
-          width="8" height="8" viewBox="0 0 8 8" fill={colors.pink}
-          style={{ transform: hidden ? "rotate(180deg)" : "none", transition: "transform 0.3s" }}
-        >
-          <path d="M4 2L7.5 6.5H0.5L4 2Z" />
-        </svg>
-        <span>{hidden ? "TGV Office" : "Hide"}</span>
-        <svg
-          width="8" height="8" viewBox="0 0 8 8" fill={colors.pink}
-          style={{ transform: hidden ? "rotate(180deg)" : "none", transition: "transform 0.3s" }}
-        >
-          <path d="M4 2L7.5 6.5H0.5L4 2Z" />
-        </svg>
-      </DrawerTab>
+          </>
+        }
+      />
 
       {openProfile && myProfile && (
         <ProfileModal

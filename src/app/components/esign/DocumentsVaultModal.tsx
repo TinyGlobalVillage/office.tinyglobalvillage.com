@@ -157,7 +157,7 @@ export default function DocumentsVaultModal({ onClose }: { onClose: () => void }
         </SearchRow>
 
         <FilterRow>
-          <PillBar
+          <PillBar variant="flat"
             segments={KIND_SEGMENTS}
             active={kindFilter}
             onChange={(k) => setKindFilter(k as KindFilter)}

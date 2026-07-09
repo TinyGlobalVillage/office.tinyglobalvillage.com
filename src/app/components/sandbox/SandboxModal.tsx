@@ -2540,7 +2540,10 @@ export default function SandboxModal({
   surface?: "library" | "workshop";
 }) {
   useModalLifecycle();
-  const [activeKey, setActiveKey] = useState<string>(REGISTRY[0]?.key ?? "");
+  // Start with NO selection (Gio 2026-07-08): the picker SBDM shows its blank
+  // "Pick a component…" search bar (type to filter, or open the arrow and
+  // scroll) instead of defaulting to the first registry entry (ResetButton).
+  const [activeKey, setActiveKey] = useState<string>("");
   const [popoutActive, setPopoutActive] = useState(false);
   const [fsOpen, setFsOpen] = useState(true);
   const [catOpen, setCatOpen] = useState<Record<string, boolean>>(() =>

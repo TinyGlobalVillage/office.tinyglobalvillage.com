@@ -7,6 +7,8 @@ import { colors, rgb } from "../../theme";
 import dynamic from "next/dynamic";
 import TPG from "@tgv/module-component-library/components/ui/TPG";
 import AddmToggle from "@tgv/module-component-library/components/ui/AddmToggle";
+import TgvBalloon from "@tgv/module-component-library/components/tgv-v5/brand/TgvBalloon";
+import PillBar from "@tgv/module-component-library/components/ui/PillBar";
 import {
   CATALOG_SANDBOX_ENTRIES,
   CATALOG_CATEGORIES,
@@ -3398,6 +3400,198 @@ function AdminWizardDemo() {
   );
 }
 
+// ── TgvNav / UnifiedBottomBar demos (non-fixed mock replicas — both real
+// components are position:fixed viewport chrome, so the demos render scaled
+// inline mocks; the balloon is the real TgvBalloon brand mark) ──────────────
+const TgvNavDemoWrap = styled.div`
+  display: grid;
+  gap: 10px;
+  width: min(460px, 100%);
+`;
+const TgvNavDemoBar = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.625rem 1rem;
+  border-radius: 1rem;
+  background: rgba(${rgb.pink}, 0.03);
+  border: 1px solid rgba(${rgb.pink}, 0.12);
+`;
+const TgvNavDemoTrigger = styled.button<{ $open?: boolean }>`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: 2rem;
+  padding: 0 0.75rem 0 0.5rem;
+  border-radius: 0.5rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  cursor: pointer;
+  background: ${(p) => (p.$open ? `rgba(${rgb.pink}, 0.25)` : `rgba(${rgb.pink}, 0.08)`)};
+  border: 1px solid rgba(${rgb.pink}, 0.35);
+  color: ${colors.pink};
+`;
+const TgvNavDemoMenu = styled.div`
+  border-radius: 0.75rem;
+  overflow: hidden;
+  min-width: 200px;
+  width: max-content;
+  background: var(--t-surface);
+  border: 1px solid rgba(${rgb.pink}, 0.25);
+  box-shadow: 0 8px 40px rgba(${rgb.pink}, 0.12);
+`;
+const TgvNavDemoItem = styled.div<{ $accent?: string }>`
+  padding: 0.5rem 0.875rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: ${(p) => p.$accent ?? "var(--t-textFaint)"};
+`;
+const TgvNavDemoTab = styled.div`
+  justify-self: center;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 4px 14px;
+  border-radius: 0 0 10px 10px;
+  border: 1px solid rgba(${rgb.pink}, 0.35);
+  border-top: none;
+  background: rgba(${rgb.pink}, 0.12);
+  color: ${colors.pink};
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+`;
+
+function TgvNavDemo() {
+  const [open, setOpen] = useState(true);
+  return (
+    <TgvNavDemoWrap>
+      <TgvNavDemoBar>
+        <TgvNavDemoTrigger $open={open} onClick={() => setOpen((p) => !p)}>
+          <TgvBalloon size={18} />
+          <span>Menu</span>
+          <span style={{ fontSize: 8 }}>▾</span>
+        </TgvNavDemoTrigger>
+        <span style={{ fontSize: "0.625rem", color: "var(--t-textFaint)" }}>
+          rightSlot: presence · LDM · sign-out
+        </span>
+      </TgvNavDemoBar>
+      <TgvNavDemoTab>▲ Hide Menu ▲</TgvNavDemoTab>
+      {open && (
+        <TgvNavDemoMenu>
+          <TgvNavDemoItem>Dashboard</TgvNavDemoItem>
+          <TgvNavDemoItem $accent={colors.gold}>Alerts</TgvNavDemoItem>
+          <TgvNavDemoItem $accent={colors.green}>Chats</TgvNavDemoItem>
+          <TgvNavDemoItem $accent={colors.cyan}>Utils</TgvNavDemoItem>
+          <TgvNavDemoItem style={{ borderTop: "1px solid var(--t-border)" }}>
+            Site Settings (dashboard mode only)
+          </TgvNavDemoItem>
+        </TgvNavDemoMenu>
+      )}
+    </TgvNavDemoWrap>
+  );
+}
+
+const UBBDemoShell = styled.div`
+  position: relative;
+  width: min(420px, 100%);
+  height: 64px;
+  display: grid;
+  grid-template-columns: 1fr 1fr auto 1fr 1fr;
+  align-items: center;
+  border-radius: 22px;
+  background: rgba(6, 12, 16, 0.72);
+  border: 1px solid rgba(0, 228, 253, 0.22);
+  box-shadow: 0 0 0 1px rgba(0, 228, 253, 0.08) inset, 0 16px 36px rgba(0, 0, 0, 0.35);
+`;
+const UBBDemoItem = styled.span`
+  display: grid;
+  place-items: center;
+  font-size: 0.5625rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(230, 255, 255, 0.78);
+`;
+const UBBDemoCenter = styled.span`
+  width: 50px;
+  height: 50px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.12);
+  border: 2px solid rgba(0, 228, 253, 0.65);
+  color: #00e4fd;
+  margin: 0 12px;
+`;
+
+function UnifiedBottomBarDemo() {
+  return (
+    <UBBDemoShell>
+      <UBBDemoItem>Search</UBBDemoItem>
+      <UBBDemoItem>Support</UBBDemoItem>
+      <UBBDemoCenter><TgvBalloon size={26} /></UBBDemoCenter>
+      <UBBDemoItem>Explore</UBBDemoItem>
+      <UBBDemoItem>Cart</UBBDemoItem>
+    </UBBDemoShell>
+  );
+}
+
+// ── PillBar demo (v1 canon vs flat, + count chips) ──────────────────────────
+const PillBarDemoWrap = styled.div`
+  display: grid;
+  gap: 14px;
+  justify-items: center;
+`;
+const PillBarDemoLabel = styled.div`
+  font-size: 0.5625rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--t-textFaint);
+  text-align: center;
+  margin-bottom: 4px;
+`;
+
+function PillBarDemo() {
+  const [v1Tab, setV1Tab] = useState("my");
+  const [flatTab, setFlatTab] = useState("appointments");
+  return (
+    <PillBarDemoWrap>
+      <div>
+        <PillBarDemoLabel>v1 (canon — 3D recessed rail, count chips)</PillBarDemoLabel>
+        <PillBar
+          segments={[
+            { key: "my", label: "My Courses", count: 3 },
+            { key: "browse", label: "Browse", count: 12 },
+          ]}
+          active={v1Tab}
+          onChange={setV1Tab}
+          ariaLabel="PillBar v1 demo"
+        />
+      </div>
+      <div>
+        <PillBarDemoLabel>flat (legacy variant — solid accent fill)</PillBarDemoLabel>
+        <PillBar
+          variant="flat"
+          segments={[
+            { key: "appointments", label: "Appointments" },
+            { key: "meeting-room", label: "Meeting Room" },
+          ]}
+          active={flatTab}
+          onChange={setFlatTab}
+          ariaLabel="PillBar flat demo"
+        />
+      </div>
+    </PillBarDemoWrap>
+  );
+}
+
 export const REGISTRY: SandboxEntry[] = [
   // ── Buttons ───────────────────────────────────────────────────────────
   {
@@ -3435,6 +3629,24 @@ const ResetBtn = styled.button\`
     style: "const SliderTrack = styled.div`\nflex: 1; height: 6px;\nborder-radius: 999px;\nbackground: rgba(255,255,255,0.06);\nposition: relative;\n`;\n\nconst SliderFill = styled.div<{ $pct: number }>`\nheight: 100%;\nborder-radius: 999px;\nbackground: linear-gradient(90deg, rgba(${rgb.cyan}, 0.4), ${colors.cyan});\nwidth: ${(p) => p.$pct}%;\n`;\n\nconst SliderThumb = styled.div`\nwidth: 16px; height: 16px;\nborder-radius: 50%;\nbackground: radial-gradient(circle at 40% 40%, ${colors.cyan}, rgba(${rgb.cyan}, 0.6));\nbox-shadow: 0 0 8px ${colors.cyan};\nposition: absolute;\ntop: -5px;\ncursor: grab;\n`;\n\nconst ValueInput = styled.input`\nwidth: 48px;\ntext-align: center;\nborder-radius: 4px;\nfont-size: 12px;\npadding: 2px 4px;\nbackground: rgba(255,255,255,0.05);\nborder: 1px solid rgba(${rgb.cyan}, 0.35);\ncolor: ${colors.cyan};\nfont-variant-numeric: tabular-nums;\n`;",
     stylePath: "src/app/dashboard/editor/page.tsx",
     Demo: SRTDemo,
+  },
+  {
+    key: "PillBar",
+    name: "PillBar",
+    category: "Toggles",
+    summary: "Segmented pill VIEW-SWITCHER. Canon v1 (default, from the Course tab's 'My Courses | Browse'): recessed dark rail (#16161c, border #2a2a35, radius 10) with the active pill FLOATING inside (radius 7 + 4px gutter, accent@14% fill + accent@40% border, accent text) — the 3D look; optional per-segment count chip (11px/700 @ .8 opacity). variant=\"flat\" keeps the legacy solid-accent-fill style (pre-canon surfaces pin it). Content-sized rail by default (never stretched); `fill` splits full width as equal columns.",
+    usage: "Switch mutually-exclusive VIEWS of one surface. NOT for on/off (Lightswitch), dropdowns (DDM), or icon/collapse-all rows (TSG). Accent is an \"r, g, b\" triple (default TGV cyan; course feeds #5b5bd6's triple).",
+    code: `<PillBar
+  segments={[
+    { key: "my", label: "My Courses", count: 3 },
+    { key: "browse", label: "Browse", count: 12 },
+  ]}
+  active={tab}
+  onChange={setTab}
+  // variant="flat" for the legacy solid-fill look
+/>`,
+    stylePath: "packages/@tgv/module-core/module-component-library/components/ui/PillBar.tsx",
+    Demo: PillBarDemo,
   },
   {
     key: "TSG",
@@ -3798,6 +4010,42 @@ const [name, setName] = useState("");
   },
 
   // ── Navigation ────────────────────────────────────────────────────────
+  {
+    key: "TgvNav",
+    name: "TgvNav (tgv-nav)",
+    category: "Navigation",
+    summary: "THE canonical TGV navigation bar, lifted from Office TopNav. Balloon menu button (prop slot, default TgvBalloon; Office passes its own BalloonSVG) + 'Menu' label on desktop/tablet, balloon-only on mobile. All nav options fold into the balloon menu (sections with dividers + per-item accents). Center tab toggles 'Hide Menu' ⇄ 'Show Menu'. Two contexts: dashboard (injected Site Settings entry reachable) vs landing (not). leftSlot/rightSlot inject bar-end content (site-switcher SBDM, presence, LDM, sign-out). Publishes --nav-h / --nav-offset and a nav-hidden class on <html>.",
+    usage: "Office wraps it in TopNav. Tenant dashboards mount module-dashboard's DashboardTgvNav adapter (absorbs the retired SiteSwitcherBar + UnifiedBottomBar). Landing pages mount it directly with context=\"landing\". Never hardcode tenant values — balloon, accent, sections, and slots are all props.",
+    code: `<TgvNav
+  context="dashboard"          // or "landing" — hides Site Settings
+  balloon={BalloonSVG}          // default: TgvBalloon
+  accent="#ff4ecb" accentRgb="255,78,203"
+  sections={[
+    { key: "nav", items: [{ label: "Dashboard", href: "/dashboard" }] },
+    { key: "tools", items: [{ label: "Alerts", accent: colors.gold, onSelect: openAlerts }] },
+  ]}
+  siteSettings={{ render: (close) => <SiteSettingsModal onClose={close} /> }}
+  leftSlot={<BackForwardArrows />}
+  rightSlot={<>{presenceChips}<LDM /><SignOutBtn /></>}
+/>`,
+    stylePath: "packages/@tgv/module-core/module-component-library/domains/navigation/components/TgvNav.tsx",
+    Demo: TgvNavDemo,
+  },
+  {
+    key: "UnifiedBottomBar",
+    name: "Mobile Bar (UnifiedBottomBar)",
+    category: "Navigation",
+    summary: "The tenant-agnostic mobile/bottom navigation pill: 5-slot grid (canonical order Search · Support · center logo · Explore/Services · Cart), portalled to <body>, mobile-only unless alwaysVisible, optional 5s auto-hide (per-user member_bottom_navbar.auto_hide). Reserved item keys select built-in shells: search (inline overlay), services (modal of config links), support (injected modal). Preserved canonically here after the tgv-nav sweep replaced its dashboard mounts.",
+    usage: "Configure per tenant via a src/config/bottomBar.config.tsx: items/icons/centerLogo/services in config, ModalFrame + SupportModal + useSupport injected. Member customization persists via /api/dashboard/mobile-nav (MobileNavConfigurator edits it).",
+    code: `<UnifiedBottomBar
+  config={{ items, services, centerLogo, alwaysVisible: true, autoHide: true }}
+  ModalFrame={ModalFrame}
+  SupportModal={SupportBody}
+  useSupport={useSupport}
+/>`,
+    stylePath: "packages/@tgv/module-core/module-component-library/domains/navigation/components/UnifiedBottomBar.tsx",
+    Demo: UnifiedBottomBarDemo,
+  },
   {
     key: "ACR",
     name: "Adaptive Collection Renderer",
