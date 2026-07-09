@@ -5,6 +5,11 @@
 // Claim / reply (emails the villager) / mark-complete are the SAME atomic ops on the SAME support_tickets
 // rows, so a ticket claimed here OR in the dashboard 409s the other. Self-shows "off" when the desk flag
 // is OFF (queue route 403s).
+//
+// Punch-in gate (Gio 2026-07-09): the queue is gated behind the staff time clock (migration 0092,
+// /api/frontdesk/timeclock → tgv.com /api/staff/timeclock — the SAME clock the TIM dashboard-bubble
+// tab drives). Off the clock = a Punch In prompt; on the clock = queue + [Time-Clock] punch-out
+// (re-gates) + [Take Break] (pauses the paid clock WITHOUT gating the queue).
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { askConfirm } from "../dialogService";
@@ -12,7 +17,25 @@ import styled from "styled-components";
 import { rgb } from "../../theme";
 
 const API = "/api/frontdesk/support";
+const CLOCK_API = "/api/frontdesk/timeclock";
 const POLL = 6000;
+
+type TimeclockState = {
+  status: "off" | "on" | "break";
+  entryId: string | null;
+  clockInAt: string | null;
+  breakStartedAt: string | null;
+  workedMs: number;
+  todayMs: number;
+};
+type Clock = TimeclockState & { fetchedAt: number };
+
+function fmtDuration(ms: number): string {
+  const mins = Math.max(0, Math.floor(ms / 60000));
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  return h > 0 ? `${h}h ${m}m` : `${m}m`;
+}
 
 type QueueTicket = {
   id: string;
@@ -34,6 +57,9 @@ type StaffTicket = QueueTicket & { closedAt: string | null };
 
 export default function TicketsTab() {
   const [disabled, setDisabled] = useState(false);
+  const [clock, setClock] = useState<Clock | null>(null);
+  const [clockLoaded, setClockLoaded] = useState(false);
+  const [clockBusy, setClockBusy] = useState(false);
   const [tickets, setTickets] = useState<QueueTicket[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [active, setActive] = useState<{ ticket: StaffTicket; messages: StaffMessage[] } | null>(null);
@@ -48,6 +74,58 @@ export default function TicketsTab() {
       if (next.has(id)) next.delete(id); else next.add(id);
       return next;
     });
+
+  // ── time clock ──────────────────────────────────────────────────────────
+  const onClock = clock?.status === "on" || clock?.status === "break";
+
+  useEffect(() => {
+    let alive = true;
+    const load = async () => {
+      try {
+        const res = await fetch(CLOCK_API, { cache: "no-store" });
+        if (!alive) return;
+        if (res.ok) setClock({ ...(await res.json()), fetchedAt: Date.now() });
+        setClockLoaded(true);
+      } catch {
+        /* transient */
+      }
+    };
+    void load();
+    const t = setInterval(load, 60000);
+    return () => {
+      alive = false;
+      clearInterval(t);
+    };
+  }, []);
+
+  const clockAction = useCallback(
+    async (action: "punch_in" | "punch_out" | "break_start" | "break_end") => {
+      if (clockBusy) return;
+      setClockBusy(true);
+      try {
+        const res = await fetch(CLOCK_API, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ action }),
+        });
+        if (res.ok) setClock({ ...(await res.json()), fetchedAt: Date.now() });
+      } catch {
+        /* transient */
+      } finally {
+        setClockBusy(false);
+      }
+    },
+    [clockBusy],
+  );
+
+  // Live worked-time readout — advances locally while ON (frozen on break), 1s tick.
+  const [, setClockTick] = useState(0);
+  useEffect(() => {
+    if (clock?.status !== "on") return;
+    const t = setInterval(() => setClockTick((n) => n + 1), 1000);
+    return () => clearInterval(t);
+  }, [clock?.status]);
+  const workedNowMs = clock ? clock.workedMs + (clock.status === "on" ? Date.now() - clock.fetchedAt : 0) : 0;
 
   const loadQueue = useCallback(async () => {
     try {
@@ -66,10 +144,11 @@ export default function TicketsTab() {
   }, []);
 
   useEffect(() => {
+    if (!onClock) return;
     void loadQueue();
     const t = setInterval(loadQueue, POLL);
     return () => clearInterval(t);
-  }, [loadQueue]);
+  }, [onClock, loadQueue]);
 
   const loadActive = useCallback(async (id: string) => {
     try {
@@ -136,10 +215,63 @@ export default function TicketsTab() {
     );
   }
 
+  // ── punch-in gate — no queue until on the clock ───────────────────────────
+  if (!onClock) {
+    return (
+      <Wrap>
+        {!clockLoaded ? (
+          <Note>Checking the time clock…</Note>
+        ) : (
+          <GateBox>
+            <Note style={{ padding: "0.5rem 0.75rem" }}>
+              You&rsquo;re off the clock. Punch in to open the support-ticket queue — your time is
+              tracked on the staff time clock (same clock as the dashboard chat-bubble).
+              {clock && clock.todayMs > 0 && <> Worked today: {fmtDuration(clock.todayMs)}.</>}
+            </Note>
+            <PunchInBtn type="button" disabled={clockBusy} onClick={() => void clockAction("punch_in")}>
+              Punch In
+            </PunchInBtn>
+          </GateBox>
+        )}
+      </Wrap>
+    );
+  }
+
+  const onBreak = clock?.status === "break";
+  const clockBar = (
+    <ClockBar $break={onBreak}>
+      <ClockInfo>
+        {onBreak ? "On break — clock paused" : "On the clock"} · {fmtDuration(workedNowMs)}
+      </ClockInfo>
+      <ClockBtns>
+        <ActBtn
+          type="button"
+          disabled={clockBusy}
+          onClick={() => void clockAction(onBreak ? "break_end" : "break_start")}
+        >
+          {onBreak ? "End Break" : "Take Break"}
+        </ActBtn>
+        <ActBtn
+          type="button"
+          $danger
+          disabled={clockBusy}
+          onClick={() => {
+            setActiveId(null);
+            setActive(null);
+            void clockAction("punch_out");
+          }}
+        >
+          Time-Clock
+        </ActBtn>
+      </ClockBtns>
+    </ClockBar>
+  );
+
   if (active) {
     const t = active.ticket;
     return (
       <Wrap>
+        {clockBar}
         <Bar>
           <Back type="button" onClick={() => { setActiveId(null); setActive(null); }}>← Queue</Back>
           <BarWho>
@@ -204,6 +336,7 @@ export default function TicketsTab() {
 
   return (
     <Wrap>
+      {clockBar}
       {tickets.length > 0 && (
         <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.4rem", padding: "0 0 0.5rem" }}>
           {selectMode ? (
@@ -258,6 +391,49 @@ const SelBtn = styled.button`
 
 // ── styles (gold, Front Desk) ───────────────────────────────────────────────
 const G = "#f7b700";
+const GateBox = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 1.25rem 0.75rem;
+`;
+const PunchInBtn = styled.button`
+  appearance: none;
+  cursor: pointer;
+  padding: 0.55rem 1.4rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  border-radius: 0.5rem;
+  color: #1a1304;
+  background: ${G};
+  border: 1px solid transparent;
+  &:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+`;
+const ClockBar = styled.div<{ $break?: boolean }>`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  padding: 0.45rem 0.7rem;
+  border-radius: 0.5rem;
+  background: ${(p) => (p.$break ? "rgba(255,206,109,0.09)" : `rgba(${rgb.gold}, 0.05)`)};
+  border: 1px solid rgba(${rgb.gold}, 0.22);
+`;
+const ClockInfo = styled.span`
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--t-text);
+`;
+const ClockBtns = styled.div`
+  display: flex;
+  gap: 0.4rem;
+`;
 const Wrap = styled.div`
   flex: 1;
   min-height: 0;
