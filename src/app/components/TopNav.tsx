@@ -3,9 +3,9 @@
 // (@tgv/module-component-library/domains/navigation/components/TgvNav), which
 // was lifted FROM this file (worktree-tgv-nav, 2026-07-08). Office-specific
 // concerns stay here: the office BalloonSVG identity, the pink accent, the
-// nav/tool menu items, back/forward history arrows, the presence-chip roster,
-// LDM, sign-out, and the ProfileModal. Layout, the balloon menu, and the
-// "Hide Menu"/"Show Menu" tab are the library's.
+// nav/tool menu items, the presence-chip roster, LDM, sign-out, and the
+// ProfileModal. Layout, the balloon menu, back/forward history (built-in,
+// ⌘R/⌘U), and the "Hide Menu"/"Show Menu" tab are the library's.
 
 import { useState, useEffect, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
@@ -16,7 +16,6 @@ import TgvNav, {
 import ProfileModal, { type Profile, type Memo, type Ping } from "./ProfileModal";
 import { UserAvatar } from "./ChatSettingsModal";
 import { signOut } from "next-auth/react";
-import { useNavHistory } from "./useNavHistory";
 import { clearAllDrawerState } from "../lib/drawerPersist";
 import LDM from "./LDM";
 import { colors, rgb } from "@/app/theme";
@@ -66,30 +65,6 @@ export function BalloonSVG({ size = 30 }: { size?: number }) {
 /* ── Styled (office-local bar-end widgets) ─────────────────────── */
 
 const NAV_BTN_HEIGHT = "2rem";
-
-const ArrowBtn = styled.button`
-  width: 1.75rem;
-  height: 1.75rem;
-  border-radius: 0.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.875rem;
-  cursor: pointer;
-  transition: all 0.15s;
-  background: rgba(${rgb.pink}, 0.06);
-  border: 1px solid rgba(${rgb.pink}, 0.22);
-  color: ${colors.pink};
-
-  &:hover {
-    background: rgba(${rgb.pink}, 0.18);
-  }
-
-  &:disabled {
-    opacity: 0.25;
-    cursor: not-allowed;
-  }
-`;
 
 const DesktopOnly = styled.span`
   display: flex;
@@ -238,7 +213,6 @@ function TopNavInner() {
   const searchParams = useSearchParams();
   const embedded = searchParams?.get("embedded") === "1";
   const popout = searchParams?.get("popout") === "1";
-  const { canBack, canForward, back, forward } = useNavHistory();
 
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [memos, setMemos] = useState<Memo[]>([]);
@@ -362,12 +336,6 @@ function TopNavInner() {
         accentRgb={rgb.pink}
         maxWidth="80rem"
         suppress={embedded || popout}
-        leftSlot={
-          <div style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
-            <ArrowBtn onClick={back} disabled={!canBack} title="Back (⌘[ / Alt+←)">‹</ArrowBtn>
-            <ArrowBtn onClick={forward} disabled={!canForward} title="Forward (⌘] / Alt+→)">›</ArrowBtn>
-          </div>
-        }
         rightSlot={
           <>
             {visibleChips.map(renderChip)}
