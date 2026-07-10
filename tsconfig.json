@@ -27,9 +27,9 @@
       "@/lib/components/*": ["../../packages/@tgv/module-core/module-component-library/dist/components/*"],
       "@/lib/helpers/page": ["../../packages/@tgv/module-core/module-cms/helpers/page/index.ts"],
       "@/lib/helpers/page/*": ["../../packages/@tgv/module-core/module-cms/helpers/page/*"],
-      "@/lib/helpers/api": ["../../packages/@tgv/module-core/module-component-library/dist/helpers/api/index.js"],
+      "@/lib/helpers/api": ["../../packages/@tgv/module-core/module-component-library/dist/helpers/api/index"],
       "@/lib/helpers/api/*": ["../../packages/@tgv/module-core/module-component-library/dist/helpers/api/*"],
-      "@/lib/helpers/utils": ["../../packages/@tgv/module-core/module-component-library/dist/helpers/utils/index.js"],
+      "@/lib/helpers/utils": ["../../packages/@tgv/module-core/module-component-library/dist/helpers/utils/index"],
       "@/lib/helpers/utils/*": ["../../packages/@tgv/module-core/module-component-library/dist/helpers/utils/*"],
       "@/lib/i18n/*": ["../../packages/@tgv/module-core/module-cms/i18n/*"],
       "@tgv/module-component-library/*": ["../../packages/@tgv/module-core/module-component-library/dist/*"]
