@@ -31,6 +31,7 @@
       "@/lib/helpers/api/*": ["../../packages/@tgv/module-core/module-component-library/helpers/api/*"],
       "@/lib/helpers/utils": ["../../packages/@tgv/module-core/module-component-library/helpers/utils/index.ts"],
       "@/lib/helpers/utils/*": ["../../packages/@tgv/module-core/module-component-library/helpers/utils/*"],
+      "@/lib/i18n/*": ["../../packages/@tgv/module-core/module-cms/i18n/*"],
       "@tgv/module-component-library/*": ["../../packages/@tgv/module-core/module-component-library/*"]
     }
   },
