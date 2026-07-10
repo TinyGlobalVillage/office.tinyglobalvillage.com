@@ -25,6 +25,12 @@
       "@/lib/domains/support/*": ["../../packages/@tgv/module-connect/module-support/support/*"],
       "@/lib/domains/editor/*": ["../../packages/@tgv/module-core/module-page-editor/editor/*"],
       "@/lib/components/*": ["../../packages/@tgv/module-core/module-component-library/components/*"],
+      "@/lib/helpers/page": ["../../packages/@tgv/module-core/module-cms/helpers/page/index.ts"],
+      "@/lib/helpers/page/*": ["../../packages/@tgv/module-core/module-cms/helpers/page/*"],
+      "@/lib/helpers/api": ["../../packages/@tgv/module-core/module-component-library/helpers/api/index.ts"],
+      "@/lib/helpers/api/*": ["../../packages/@tgv/module-core/module-component-library/helpers/api/*"],
+      "@/lib/helpers/utils": ["../../packages/@tgv/module-core/module-component-library/helpers/utils/index.ts"],
+      "@/lib/helpers/utils/*": ["../../packages/@tgv/module-core/module-component-library/helpers/utils/*"],
       "@tgv/module-component-library/*": ["../../packages/@tgv/module-core/module-component-library/*"]
     }
   },
