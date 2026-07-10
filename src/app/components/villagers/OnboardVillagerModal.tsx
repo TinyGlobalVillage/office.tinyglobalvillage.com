@@ -24,6 +24,7 @@ import {
   ModalBody,
 } from "@/app/styled";
 import NeonX from "../NeonX";
+import GPG from "@tgv/module-component-library/components/ui/GPG";
 
 type Template = {
   id: string;
@@ -37,6 +38,8 @@ type Template = {
 
 type WaivePreset = "none" | "3mo" | "6mo" | "1yr" | "forever" | "custom";
 
+type ReservedSite = { subdomain: string; url: string; templatePicked: string | null; migrationStarted: boolean };
+
 type Result = {
   ok?: boolean;
   error?: string;
@@ -46,10 +49,33 @@ type Result = {
   url?: string;
   templatePicked?: string | null;
   migrationStarted?: boolean;
+  reservedSites?: ReservedSite[];
+  reservedUntilHours?: number;
   enrollmentSent?: boolean;
 };
 
-type MemberLookup = { exists: boolean; name?: string | null; siteCount?: number };
+type MemberLookup = { exists: boolean; name?: string | null; siteCount?: number; reservationGated?: boolean };
+
+/** One site's design fields — shared by the first site and each reserved
+ *  additional-site tile. subTouched tracks whether the operator hand-edited the
+ *  subdomain (so the name→subdomain auto-fill stops). */
+type SiteForm = {
+  clientName: string;
+  subdomain: string;
+  subTouched: boolean;
+  sharedId: string | null;
+  migrateUrl: string;
+  rights: boolean;
+};
+
+const emptySite = (): SiteForm => ({
+  clientName: "",
+  subdomain: "",
+  subTouched: false,
+  sharedId: null,
+  migrateUrl: "",
+  rights: false,
+});
 
 type Plan = {
   id: string;
@@ -90,27 +116,128 @@ function waiverIso(preset: WaivePreset, customDate: string): string | null {
 const subFromName = (s: string) =>
   s.toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40);
 
+/** The name / subdomain / landing-template / migrate fields for ONE site.
+ *  Shared by the first site and every additional-site tile. */
+function SiteFields({
+  value,
+  onPatch,
+  rail,
+  namePlaceholder,
+  subPlaceholder,
+}: {
+  value: SiteForm;
+  onPatch: (patch: Partial<SiteForm>) => void;
+  rail: Template[];
+  namePlaceholder: string;
+  subPlaceholder: string;
+}) {
+  return (
+    <>
+      <FieldRow>
+        <Field>
+          <FLabel>Client / project name</FLabel>
+          <TextInput
+            value={value.clientName}
+            onChange={(e) =>
+              onPatch({
+                clientName: e.target.value,
+                ...(value.subTouched ? {} : { subdomain: subFromName(e.target.value) }),
+              })
+            }
+            placeholder={namePlaceholder}
+          />
+        </Field>
+        <Field>
+          <FLabel>Subdomain</FLabel>
+          <SubRow>
+            <TextInput
+              value={value.subdomain}
+              onChange={(e) => onPatch({ subTouched: true, subdomain: subFromName(e.target.value) })}
+              placeholder={subPlaceholder}
+            />
+            <Dim>.tinyglobalvillage.com</Dim>
+          </SubRow>
+        </Field>
+      </FieldRow>
+
+      <FLabel style={{ marginTop: "0.3rem" }}>Landing template</FLabel>
+      <GPG
+        items={[null, ...rail] as (Template | null)[]}
+        keyFor={(t) => (t ? t.id : "__blank__")}
+        breakpoints={[
+          { minWidth: 900, cols: 3 },
+          { minWidth: 600, cols: 2 },
+          { minWidth: 0, cols: 1 },
+        ]}
+        renderItem={(t) =>
+          t === null ? (
+            <TemplateCard type="button" $selected={value.sharedId === null} onClick={() => onPatch({ sharedId: null })}>
+              <NoThumb>No template</NoThumb>
+              <TplLabel>Blank start</TplLabel>
+            </TemplateCard>
+          ) : (
+            <TemplateCard
+              type="button"
+              $selected={value.sharedId === t.id}
+              onClick={() => onPatch({ sharedId: t.id })}
+              title={t.description ?? t.label}
+            >
+              {t.thumbnail ? <Thumb src={t.thumbnail} alt="" /> : <NoThumb>{t.label}</NoThumb>}
+              <TplLabel>{t.label}</TplLabel>
+            </TemplateCard>
+          )
+        }
+      />
+      <MigrateBox>
+        <FLabel>…or migrate their existing site (URL — crawled &amp; rebuilt by the designer)</FLabel>
+        <TextInput
+          value={value.migrateUrl}
+          onChange={(e) => onPatch({ migrateUrl: e.target.value })}
+          placeholder="https://their-current-site.com"
+        />
+        {value.migrateUrl.trim() && (
+          <>
+            <CheckRow>
+              <label>
+                <input type="checkbox" checked={value.rights} onChange={(e) => onPatch({ rights: e.target.checked })} />
+                <span>The client owns this content and has asked us to migrate it</span>
+              </label>
+            </CheckRow>
+            <Note>
+              The site provisions immediately{value.sharedId ? " with the picked template" : ""};
+              the rebuilt landing replaces it automatically when the migration finishes (~a few minutes).
+            </Note>
+          </>
+        )}
+      </MigrateBox>
+    </>
+  );
+}
+
 export default function OnboardVillagerModal({ onClose }: { onClose: () => void }) {
   useEscapeToClose({ open: true, onClose });
 
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
-  const [clientName, setClientName] = useState("");
-  const [subdomain, setSubdomain] = useState("");
-  const [subTouched, setSubTouched] = useState(false);
 
   const [templates, setTemplates] = useState<Template[]>([]);
-  const [sharedId, setSharedId] = useState<string | null>(null);
+
+  // The FIRST site (always provisioned, never reserved) + N additional sites
+  // (24h reservations — see below). Both use the shared SiteFields component.
+  const [firstSite, setFirstSite] = useState<SiteForm>(emptySite());
+  const [additionalSites, setAdditionalSites] = useState<SiteForm[]>([]);
+
+  // 24h multi-subdomain reservations (Gio 2026-07-10): the operator may add
+  // extra sites ONLY when the customer agrees to pay within 24h. Extras
+  // provision live but expire in 24h unless the member checks out (or is
+  // comped); a prior lapse gates the member from multi-reserving again.
+  const [payWithin24h, setPayWithin24h] = useState(false);
+
+  const clientName = firstSite.clientName;
 
   // Existing-member awareness: onboarding an email that already belongs to a
   // member ADDS A SITE to their dashboard (find-or-create), never duplicates.
   const [memberInfo, setMemberInfo] = useState<MemberLookup | null>(null);
-
-  // Migrate their pre-existing site ("provision now, publish later"): the site
-  // goes live immediately; the rebuilt landing replaces it when the crawl +
-  // AI rebuild finish (~a few minutes).
-  const [migrateUrl, setMigrateUrl] = useState("");
-  const [rights, setRights] = useState(false);
 
   // Plan/addons/promo INTENT (no money moves — the member completes checkout
   // from their own dashboard; recorded to member_billing.onboard_intent).
@@ -120,6 +247,23 @@ export default function OnboardVillagerModal({ onClose }: { onClose: () => void 
   const [planInterval, setPlanInterval] = useState<"monthly" | "yearly">("monthly");
   const [addonPicks, setAddonPicks] = useState<Set<string>>(new Set());
   const [promo, setPromo] = useState("");
+
+  const [addonInfo, setAddonInfo] = useState<string | null>(null);
+
+  const patchFirst = (patch: Partial<SiteForm>) => setFirstSite((s) => ({ ...s, ...patch }));
+  const patchAdditional = (i: number, patch: Partial<SiteForm>) =>
+    setAdditionalSites((arr) => arr.map((s, idx) => (idx === i ? { ...s, ...patch } : s)));
+  const addAdditional = () => setAdditionalSites((arr) => [...arr, emptySite()]);
+  const removeAdditional = (i: number) => setAdditionalSites((arr) => arr.filter((_, idx) => idx !== i));
+
+  // The +Add button is gated: the customer must agree to pay within 24h, and
+  // the member must not already be reservation-gated (a prior lapse). Non-home
+  // addons other than additional-hosting stay as manual checkboxes; the
+  // "TGV Additional Site" addon is DERIVED from the reserved-site count.
+  const reservationGated = memberInfo?.reservationGated === true;
+  const canReserve = payWithin24h && !reservationGated;
+  const additionalHosting = useMemo(() => addons.find((a) => a.key === "additional-hosting"), [addons]);
+  const otherAddons = useMemo(() => addons.filter((a) => a.key !== "additional-hosting"), [addons]);
 
   const [waive, setWaive] = useState<WaivePreset>("1yr");
   const [customDate, setCustomDate] = useState("");
@@ -166,36 +310,56 @@ export default function OnboardVillagerModal({ onClose }: { onClose: () => void 
     [templates],
   );
 
+  const siteValid = (s: SiteForm) =>
+    s.subdomain.trim().length > 0 && (!s.migrateUrl.trim() || s.rights);
+
   const canSubmit =
     /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) &&
-    clientName.trim().length > 0 &&
-    subdomain.trim().length > 0 &&
+    firstSite.clientName.trim().length > 0 &&
+    siteValid(firstSite) &&
+    additionalSites.every(siteValid) &&
     (waive !== "custom" || !!customDate) &&
-    (!migrateUrl.trim() || rights) &&
     !busy;
 
   const submit = async () => {
     setBusy(true);
     setErr(null);
     try {
+      // "TGV Additional Site" addon qty is DERIVED from the reserved-site count
+      // (the +Add button replaced its checkbox); merge with any manually-picked
+      // other addons for the intent record.
+      const intentAddons = [...addonPicks].map((id) => ({ addonId: id, qty: 1, mode: "recurring" }));
+      if (additionalSites.length > 0 && additionalHosting) {
+        intentAddons.push({ addonId: additionalHosting.id, qty: additionalSites.length, mode: "recurring" });
+      }
       const res = await fetch("/api/admin/villagers/onboard", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           email: email.trim(),
           name: name.trim() || undefined,
-          clientName: clientName.trim(),
-          subdomain: subdomain.trim(),
-          sharedId,
-          migrateUrl: migrateUrl.trim() || undefined,
-          rightsConfirmed: migrateUrl.trim() ? rights : undefined,
+          clientName: firstSite.clientName.trim(),
+          subdomain: firstSite.subdomain.trim(),
+          sharedId: firstSite.sharedId,
+          migrateUrl: firstSite.migrateUrl.trim() || undefined,
+          rightsConfirmed: firstSite.migrateUrl.trim() ? firstSite.rights : undefined,
+          payWithin24h: additionalSites.length > 0 ? payWithin24h : undefined,
+          additionalSites: additionalSites.length > 0
+            ? additionalSites.map((s) => ({
+                clientName: s.clientName.trim(),
+                subdomain: s.subdomain.trim(),
+                sharedId: s.sharedId,
+                migrateUrl: s.migrateUrl.trim() || undefined,
+                rightsConfirmed: s.migrateUrl.trim() ? s.rights : undefined,
+              }))
+            : undefined,
           waiverUntil: waiverIso(waive, customDate),
           planInterval: planId ? planInterval : undefined,
-          onboardIntent: planId || addonPicks.size || promo.trim()
+          onboardIntent: planId || intentAddons.length || promo.trim()
             ? {
                 planProductId: planId ?? undefined,
                 planInterval: planId ? planInterval : undefined,
-                addons: [...addonPicks].map((id) => ({ addonId: id, qty: 1, mode: "recurring" })),
+                addons: intentAddons,
                 promoCode: promo.trim() || undefined,
               }
             : undefined,
@@ -255,6 +419,14 @@ export default function OnboardVillagerModal({ onClose }: { onClose: () => void 
                     the new landing publishes automatically in a few minutes.
                   </Note>
                 )}
+                {result.reservedSites && result.reservedSites.length > 0 && (
+                  <Note>
+                    ⏳ {result.reservedSites.length} additional site{result.reservedSites.length === 1 ? "" : "s"}{" "}
+                    reserved for {result.reservedUntilHours ?? 24}h ({result.reservedSites.map((r) => r.subdomain).join(", ")}).
+                    They appear in the site switcher now but expire unless the member checks out (or you comp them)
+                    within the window — after which all but their first site are removed.
+                  </Note>
+                )}
                 <Note>
                   Own domain? They (or you) can bring it in from their dashboard:
                   Site Settings → Domain Console → <strong>Transfer a Domain In</strong> (needs the
@@ -298,74 +470,89 @@ export default function OnboardVillagerModal({ onClose }: { onClose: () => void 
 
               <div>
                 <Label>Their site</Label>
-                <FieldRow>
-                  <Field>
-                    <FLabel>Client / project name</FLabel>
-                    <TextInput
-                      value={clientName}
-                      onChange={(e) => {
-                        setClientName(e.target.value);
-                        if (!subTouched) setSubdomain(subFromName(e.target.value));
-                      }}
-                      placeholder="NEVLO Project"
-                    />
-                  </Field>
-                  <Field>
-                    <FLabel>Subdomain</FLabel>
-                    <SubRow>
-                      <TextInput
-                        value={subdomain}
-                        onChange={(e) => { setSubTouched(true); setSubdomain(subFromName(e.target.value)); }}
-                        placeholder="nevlo"
-                      />
-                      <Dim>.tinyglobalvillage.com</Dim>
-                    </SubRow>
-                  </Field>
-                </FieldRow>
+                <SiteFields
+                  value={firstSite}
+                  onPatch={patchFirst}
+                  rail={rail}
+                  namePlaceholder="NEVLO Project"
+                  subPlaceholder="nevlo"
+                />
               </div>
 
+              {/* Additional sites — 24h reservations (Gio 2026-07-10). Above Plan
+                  intent; the +Add button is gated behind the pay-within-24h
+                  agreement and a not-already-gated member. */}
               <div>
-                <Label>Landing template</Label>
-                <Rail>
-                  <TemplateCard type="button" $selected={sharedId === null} onClick={() => setSharedId(null)}>
-                    <NoThumb>No template</NoThumb>
-                    <TplLabel>Blank start</TplLabel>
-                  </TemplateCard>
-                  {rail.map((t) => (
-                    <TemplateCard
-                      key={t.id}
-                      type="button"
-                      $selected={sharedId === t.id}
-                      onClick={() => setSharedId(t.id)}
-                      title={t.description ?? t.label}
-                    >
-                      {t.thumbnail ? <Thumb src={t.thumbnail} alt="" /> : <NoThumb>{t.label}</NoThumb>}
-                      <TplLabel>{t.label}</TplLabel>
-                    </TemplateCard>
-                  ))}
-                </Rail>
-                <MigrateBox>
-                  <FLabel>…or migrate their existing site (URL — crawled &amp; rebuilt by the designer)</FLabel>
-                  <TextInput
-                    value={migrateUrl}
-                    onChange={(e) => setMigrateUrl(e.target.value)}
-                    placeholder="https://their-current-site.com"
-                  />
-                  {migrateUrl.trim() && (
-                    <>
-                      <CheckRow>
-                        <label>
-                          <input type="checkbox" checked={rights} onChange={(e) => setRights(e.target.checked)} />
-                          <span>The client owns this content and has asked us to migrate it</span>
-                        </label>
-                      </CheckRow>
-                      <Dim>
-                        The site provisions immediately{sharedId ? " with the picked template" : ""};
-                        the rebuilt landing replaces it automatically when the migration finishes (~a few minutes).
-                      </Dim>
-                    </>
-                  )}
-                </MigrateBox>
+                <Label>
+                  Additional sites {additionalHosting ? "($11/mo each)" : ""}
+                  <QmbmBubble
+                    type="button"
+                    style={{ marginLeft: "0.4rem" }}
+                    onClick={() => setAddonInfo(addonInfo === "__addl__" ? null : "__addl__")}
+                    aria-label="Explain additional sites"
+                    title="Explain additional sites"
+                  >
+                    ?
+                  </QmbmBubble>
+                </Label>
+                {addonInfo === "__addl__" && (
+                  <QmbmCard>
+                    {(additionalHosting?.description ?? "An extra published TGV site — editor, hosting, SSL & subdomain.")}{" "}
+                    Reserving more than one site requires the customer to agree to pay within 24 hours.
+                    Reserved sites appear in their site switcher immediately but expire (all but their first)
+                    unless they check out — or you comp them — within 24 hours. If that window lapses, the
+                    member can no longer multi-reserve and must purchase each additional site one at a time.
+                  </QmbmCard>
+                )}
+
+                {reservationGated ? (
+                  <ReserveGateNote>
+                    ⚠ This member previously let a reservation lapse — they can&apos;t multi-reserve.
+                    Add additional sites only after they&apos;ve purchased, one at a time.
+                  </ReserveGateNote>
+                ) : (
+                  <CheckRow>
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={payWithin24h}
+                        onChange={(e) => {
+                          setPayWithin24h(e.target.checked);
+                          if (!e.target.checked) setAdditionalSites([]);
+                        }}
+                      />
+                      <span>Customer agrees to pay within 24 hours (unlocks reserving extra sites)</span>
+                    </label>
+                  </CheckRow>
+                )}
+
+                {additionalSites.map((s, i) => (
+                  <ReserveTile key={i}>
+                    <ReserveTileHead>
+                      <ReserveTileTitle>Additional site {i + 1}</ReserveTileTitle>
+                      <RemoveBtn type="button" onClick={() => removeAdditional(i)} aria-label="Remove this site">
+                        Remove
+                      </RemoveBtn>
+                    </ReserveTileHead>
+                    <SiteFields
+                      value={s}
+                      onPatch={(patch) => patchAdditional(i, patch)}
+                      rail={rail}
+                      namePlaceholder="Second project"
+                      subPlaceholder="second-site"
+                    />
+                  </ReserveTile>
+                ))}
+
+                <AddSiteBtn type="button" disabled={!canReserve} onClick={addAdditional}>
+                  + Add Additional Site
+                </AddSiteBtn>
+                {additionalSites.length > 0 && (
+                  <Note style={{ marginTop: "0.4rem" }}>
+                    {additionalSites.length} extra site{additionalSites.length === 1 ? "" : "s"} —
+                    reserved for 24h; permanent once they check out (or you comp them).
+                  </Note>
+                )}
               </div>
 
               <div>
@@ -380,34 +567,52 @@ export default function OnboardVillagerModal({ onClose }: { onClose: () => void 
                 </Pills>
                 {planId && (
                   <>
-                    <Pills>
-                      <Pill type="button" $on={planInterval === "monthly"} onClick={() => setPlanInterval("monthly")}>Monthly</Pill>
-                      <Pill type="button" $on={planInterval === "yearly"} onClick={() => setPlanInterval("yearly")}>Yearly</Pill>
-                    </Pills>
-                    {addons.length > 0 && (
-                      <CheckRow>
-                        {addons.map((a) => (
-                          <label key={a.id} title={a.description ?? undefined}>
-                            <input
-                              type="checkbox"
-                              checked={addonPicks.has(a.id)}
-                              onChange={(e) => {
-                                const next = new Set(addonPicks);
-                                if (e.target.checked) next.add(a.id); else next.delete(a.id);
-                                setAddonPicks(next);
-                              }}
-                            />
-                            <span>{a.name}</span>
-                          </label>
-                        ))}
-                      </CheckRow>
-                    )}
-                    <FieldRow>
-                      <Field $narrow>
+                    {/* Interval + promo on ONE row (Gio 2026-07-10) — only after a
+                        plan is chosen. */}
+                    <IntervalPromoRow>
+                      <Pills style={{ marginBottom: 0 }}>
+                        <Pill type="button" $on={planInterval === "monthly"} onClick={() => setPlanInterval("monthly")}>Monthly</Pill>
+                        <Pill type="button" $on={planInterval === "yearly"} onClick={() => setPlanInterval("yearly")}>Yearly</Pill>
+                      </Pills>
+                      <PromoField>
                         <FLabel>Promo code (optional)</FLabel>
                         <TextInput value={promo} onChange={(e) => setPromo(e.target.value)} placeholder="FOUNDER100" />
-                      </Field>
-                    </FieldRow>
+                      </PromoField>
+                    </IntervalPromoRow>
+                    {otherAddons.length > 0 && (
+                      <>
+                        <CheckRow>
+                          {otherAddons.map((a) => (
+                            <AddonItem key={a.id}>
+                              <label>
+                                <input
+                                  type="checkbox"
+                                  checked={addonPicks.has(a.id)}
+                                  onChange={(e) => {
+                                    const next = new Set(addonPicks);
+                                    if (e.target.checked) next.add(a.id); else next.delete(a.id);
+                                    setAddonPicks(next);
+                                  }}
+                                />
+                                <span>{a.name}</span>
+                              </label>
+                              <QmbmBubble
+                                type="button"
+                                onClick={() => setAddonInfo(addonInfo === a.id ? null : a.id)}
+                                aria-label={`Explain ${a.name}`}
+                                title={`Explain ${a.name}`}
+                              >
+                                ?
+                              </QmbmBubble>
+                            </AddonItem>
+                          ))}
+                        </CheckRow>
+                        {addonInfo && otherAddons.some((a) => a.id === addonInfo) && (() => {
+                          const a = otherAddons.find((x) => x.id === addonInfo);
+                          return a ? <QmbmCard>{a.description ?? a.name}</QmbmCard> : null;
+                        })()}
+                      </>
+                    )}
                   </>
                 )}
               </div>
@@ -467,11 +672,47 @@ const Field = styled.div<{ $narrow?: boolean }>`display: flex; flex-direction: c
 const FLabel = styled.div`font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--t-textFaint);`;
 const TextInput = styled.input`width: 100%; padding: 0.4rem 0.55rem; background: rgba(0,0,0,0.3); border: 1px solid var(--t-border); border-radius: 0.375rem; color: var(--t-text); font-size: 0.8rem; &:focus { outline: none; border-color: rgba(${rgb.cyan}, 0.6); }`;
 const SubRow = styled.div`display: flex; align-items: center; gap: 0.4rem;`;
-const Rail = styled.div`display: flex; gap: 0.6rem; overflow-x: auto; padding-bottom: 0.35rem;`;
+const AddonItem = styled.span`display: inline-flex; align-items: center; gap: 0.35rem;`;
+const QmbmBubble = styled.button`
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 1.125rem; height: 1.125rem; border-radius: 50%;
+  border: 1px solid rgba(${rgb.cyan}, 0.4); background: transparent;
+  color: ${colors.cyan}; font-size: 0.625rem; font-weight: 700; cursor: pointer;
+  &:hover { background: rgba(${rgb.cyan}, 0.1); }
+`;
+const QmbmCard = styled.div`
+  margin-top: 0.5rem; padding: 0.625rem 0.75rem;
+  border: 1px solid rgba(${rgb.cyan}, 0.25); border-radius: 0.5rem;
+  background: rgba(0, 0, 0, 0.3); font-size: 0.75rem; line-height: 1.5;
+  color: var(--t-text); white-space: pre-wrap;
+`;
 const MigrateBox = styled.div`display: flex; flex-direction: column; gap: 0.45rem; margin-top: 0.6rem; padding: 0.7rem 0.85rem; border: 1px dashed rgba(${rgb.cyan}, 0.3); border-radius: 0.55rem;`;
 const ExistingNote = styled.div`font-size: 0.72rem; line-height: 1.45; color: #4ade80;`;
+const ReserveGateNote = styled.div`font-size: 0.72rem; line-height: 1.45; color: #f59e0b; padding: 0.5rem 0; `;
+const ReserveTile = styled.div`
+  display: flex; flex-direction: column; gap: 0.5rem;
+  margin-top: 0.6rem; padding: 0.75rem 0.85rem;
+  border: 1px solid rgba(${rgb.cyan}, 0.22); border-radius: 0.625rem;
+  background: rgba(${rgb.cyan}, 0.03);
+`;
+const ReserveTileHead = styled.div`display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;`;
+const ReserveTileTitle = styled.div`font-size: 0.72rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: ${colors.cyan};`;
+const RemoveBtn = styled.button`
+  padding: 0.2rem 0.6rem; font-size: 0.68rem; border-radius: 999px; cursor: pointer;
+  background: transparent; border: 1px solid rgba(255,110,110,0.4); color: ${colors.pink};
+  &:hover { background: rgba(255,110,110,0.1); }
+`;
+const AddSiteBtn = styled.button`
+  margin-top: 0.6rem; padding: 0.5rem 1rem; font-size: 0.78rem; font-weight: 600;
+  border-radius: 0.5rem; cursor: pointer; width: 100%;
+  background: rgba(${rgb.cyan}, 0.08); border: 1px dashed rgba(${rgb.cyan}, 0.5); color: ${colors.cyan};
+  &:hover:not(:disabled) { background: rgba(${rgb.cyan}, 0.16); }
+  &:disabled { opacity: 0.4; cursor: not-allowed; }
+`;
+const IntervalPromoRow = styled.div`display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 0.5rem;`;
+const PromoField = styled.div`display: flex; flex-direction: column; gap: 0.2rem; flex: 0 0 12rem;`;
 const TemplateCard = styled.button<{ $selected?: boolean }>`
-  flex: 0 0 9.5rem; display: flex; flex-direction: column; gap: 0.3rem; padding: 0.35rem;
+  width: 100%; display: flex; flex-direction: column; gap: 0.3rem; padding: 0.35rem;
   background: ${(p) => (p.$selected ? `rgba(${rgb.cyan}, 0.12)` : "rgba(0,0,0,0.25)")};
   border: 1px solid ${(p) => (p.$selected ? `rgba(${rgb.cyan}, 0.65)` : "var(--t-border)")};
   border-radius: 0.5rem; cursor: pointer; text-align: left;
