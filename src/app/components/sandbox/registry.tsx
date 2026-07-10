@@ -9,6 +9,15 @@ import TPG from "@tgv/module-component-library/components/ui/TPG";
 import AddmToggle from "@tgv/module-component-library/components/ui/AddmToggle";
 import TgvBalloon from "@tgv/module-component-library/components/tgv-v5/brand/TgvBalloon";
 import PillBar from "@tgv/module-component-library/components/ui/PillBar";
+import GPG from "@tgv/module-component-library/components/ui/GPG";
+import ExploreFeaturesModal, {
+  type ExploreFeatureDef,
+} from "@tgv/module-component-library/components/tgv-v5/ExploreFeaturesModal";
+import {
+  ClientDashboardIcon,
+  WebsiteBuilderIcon,
+  BookingsIcon,
+} from "@tgv/module-component-library/components/tgv-v5";
 import {
   CATALOG_SANDBOX_ENTRIES,
   CATALOG_CATEGORIES,
@@ -197,15 +206,7 @@ const MutedNote = styled.span`
   color: ${MUTED_TEXT};
 `;
 
-// ── GPG styled ──────────────────────────────────────────────────────────
-
-const GpgGrid = styled.div<{ $cols: number }>`
-  display: grid;
-  grid-template-columns: repeat(${(p) => p.$cols}, minmax(0, 1fr));
-  gap: 8px;
-  min-width: 240px;
-  width: 100%;
-`;
+// ── GPG styled (tile visuals only — grid + pager come from the library GPG) ──
 
 const GpgTile = styled.div`
   aspect-ratio: 1;
@@ -221,31 +222,6 @@ const GpgTileNum = styled.span`
   font-size: 10px;
   font-family: var(--font-geist-mono), monospace;
   color: ${MUTED_TEXT};
-`;
-
-const GpgPagerRow = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 12px;
-`;
-
-const GpgPagerBtn = styled.button<{ $disabled?: boolean }>`
-  width: 28px;
-  height: 28px;
-  border-radius: 999px;
-  border: 1px solid rgba(${PINK_RGB}, 0.5);
-  background: rgba(${PINK_RGB}, 0.12);
-  color: ${PINK};
-  font-size: 14px;
-  font-weight: 700;
-  cursor: ${(p) => (p.$disabled ? "not-allowed" : "pointer")};
-  opacity: ${(p) => (p.$disabled ? 0.4 : 1)};
-`;
-
-const GpgPagerInfo = styled.span`
-  color: ${PINK};
-  font-size: 12px;
-  font-weight: 700;
 `;
 
 // ── TPG styled ──────────────────────────────────────────────────────────
@@ -1242,67 +1218,26 @@ const SbSendBadge = styled.span`
   font-weight: 700;
 `;
 
-// ── GPG demo ────────────────────────────────────────────────────────────
-function useGPGColumns() {
-  const [cols, setCols] = useState(3);
-  useEffect(() => {
-    const update = () => {
-      const w = window.innerWidth;
-      if (w < 600) setCols(1);
-      else if (w < 900) setCols(2);
-      else if (w < 1200) setCols(3);
-      else setCols(5);
-    };
-    update();
-    window.addEventListener("resize", update);
-    return () => window.removeEventListener("resize", update);
-  }, []);
-  return cols;
-}
-
+// ── GPG demo — the library component IS the canon now (2026-07-09); this
+//    demo consumes it instead of re-implementing the hook/grid/pager.
 function GPGDemo() {
-  const total = 12;
-  const cols = useGPGColumns();
-  const [page, setPage] = useState(0);
-
-  useEffect(() => { setPage(0); }, [cols]);
-
-  const pageSize = cols;
-  const totalPages = Math.max(1, Math.ceil(total / pageSize));
-  const safePage = Math.min(page, totalPages - 1);
-  const start = safePage * pageSize;
-  const items = Array.from({ length: pageSize }, (_, i) => start + i).filter((n) => n < total);
-  const showPager = total > pageSize;
-
+  const items = Array.from({ length: 12 }, (_, i) => i + 1);
   return (
     <DemoCol>
-      <Highlight label={`GPG · ${cols}-col`}>
-        <GpgGrid $cols={cols}>
-          {items.map((i) => (
-            <GpgTile key={i}>
-              <GpgTileNum>{i + 1}</GpgTileNum>
-            </GpgTile>
-          ))}
-        </GpgGrid>
+      <Highlight label="GPG (library canon)">
+        <div style={{ width: "100%", ["--gpg-accent" as string]: "#ff4ecb" }}>
+          <GPG
+            items={items}
+            keyFor={(n) => n}
+            renderItem={(n) => (
+              <GpgTile>
+                <GpgTileNum>{n}</GpgTileNum>
+              </GpgTile>
+            )}
+          />
+        </div>
       </Highlight>
-
-      {showPager ? (
-        <GpgPagerRow>
-          <GpgPagerBtn
-            onClick={() => setPage((p) => Math.max(0, p - 1))}
-            disabled={safePage === 0}
-            $disabled={safePage === 0}
-          >‹</GpgPagerBtn>
-          <GpgPagerInfo>{safePage + 1} / {totalPages}</GpgPagerInfo>
-          <GpgPagerBtn
-            onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
-            disabled={safePage === totalPages - 1}
-            $disabled={safePage === totalPages - 1}
-          >›</GpgPagerBtn>
-        </GpgPagerRow>
-      ) : (
-        <MutedNote>(no pager — total ≤ pageSize)</MutedNote>
-      )}
+      <MutedNote>Resize the window — cols switch at 600/900/1200; pager only when total &gt; pageSize.</MutedNote>
     </DemoCol>
   );
 }
@@ -3589,6 +3524,30 @@ function PillBarDemo() {
   );
 }
 
+// ── ExploreFeaturesModal demo (click-to-open) ───────────────────────────────
+const EFM_DEMO_FEATURES: ExploreFeatureDef[] = [
+  { key: "dashboard", title: "Dashboard", blurb: "Your whole business in one place — the full demo dashboard.", href: "https://demo.tinyglobalvillage.com", icon: <ClientDashboardIcon size={22} color="currentColor" /> },
+  { key: "website-builder", title: "Website Builder", blurb: "Design your site with the visual page editor.", href: "https://demo.tinyglobalvillage.com/en/dashboard?tab=editor", icon: <WebsiteBuilderIcon size={22} color="currentColor" /> },
+  { key: "bookings", title: "Bookings", blurb: "Appointments, availability, and scheduling.", href: "https://demo.tinyglobalvillage.com/en/dashboard?tab=booking", icon: <BookingsIcon size={22} color="currentColor" /> },
+];
+
+function ExploreFeaturesModalDemo() {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <DemoOpenBtn type="button" onClick={() => setOpen(true)}>
+        Open Explore Features modal
+      </DemoOpenBtn>
+      {open && (
+        <ExploreFeaturesModal
+          features={EFM_DEMO_FEATURES}
+          onClose={() => setOpen(false)}
+        />
+      )}
+    </>
+  );
+}
+
 export const REGISTRY: SandboxEntry[] = [
   // ── Buttons ───────────────────────────────────────────────────────────
   {
@@ -3657,7 +3616,7 @@ const ResetBtn = styled.button\`
   <Lightswitch on={allExpanded} onChange={setAllExpanded} />
   <Label>{allExpanded ? "Collapse all" : "Expand all"}</Label>
 </TSG>`,
-    stylePath: "src/app/dashboard/page.tsx",
+    stylePath: "packages/@tgv/module-core/module-component-library/components/ui/GPG.tsx",
     Demo: TSGDemo,
   },
 
@@ -4162,10 +4121,15 @@ const DTog = styled.div<{
     key: "GPG",
     name: "Gallery Pagination Group",
     category: "Navigation",
-    summary: "Responsive paginated grid: columns scale 1 → 2 → 3 → 5 across the 600/900/1200px breakpoints, page size always equals column count. Pager (28px circle ‹ ›  + `N / M` counter) only renders when `total > pageSize` — small datasets show as a static grid with no pager.",
-    usage: "Wrap any repeated-card collection. Use TileGrid styled-component with responsive media queries at 600/900/1200px breakpoints. Track current column count via `matchMedia` for slicing. Reset page to 0 when filter or column count changes.",
-    code: "// Hook (mirrors refusionist AnnouncementsWidget)\nfunction useGPGColumns() {\n  const [cols, setCols] = useState(3);\n  useEffect(() => {\n    const update = () => {\n      const w = window.innerWidth;\n      if (w < 600) setCols(1);\n      else if (w < 900) setCols(2);\n      else if (w < 1200) setCols(3);\n      else setCols(5);\n    };\n    update();\n    window.addEventListener(\"resize\", update);\n    return () => window.removeEventListener(\"resize\", update);\n  }, []);\n  return cols;\n}\n\n// Render\nconst cols = useGPGColumns();\nconst pageSize = cols;\nconst totalPages = Math.max(1, Math.ceil(items.length / pageSize));\nconst showPager = items.length > pageSize;\nconst visible = items.slice(page * pageSize, (page + 1) * pageSize);\n\n<>\n  <TileGrid>\n    {visible.map(renderCard)}\n  </TileGrid>\n  {showPager && (\n    <PagerRow>\n      <PagerBtn disabled={page === 0} onClick={() => setPage(p => p - 1)}>‹</PagerBtn>\n      <PagerInfo>{page + 1} / {totalPages}</PagerInfo>\n      <PagerBtn disabled={page === totalPages - 1} onClick={() => setPage(p => p + 1)}>›</PagerBtn>\n    </PagerRow>\n  )}\n</>",
-    style: "const TileGrid = styled.section`\ndisplay: grid;\ngrid-template-columns: 1fr;\ngap: 0.75rem;\n\n@media (min-width: 600px) { grid-template-columns: repeat(2, 1fr); }\n@media (min-width: 900px) { grid-template-columns: repeat(3, 1fr); }\n@media (min-width: 1200px) { grid-template-columns: repeat(5, 1fr); }\n`;\n\nconst PagerRow = styled.div`\ndisplay: flex;\nalign-items: center;\njustify-content: center;\ngap: 0.75rem;\nmargin-top: 0.75rem;\n`;\n\nconst PagerBtn = styled.button`\nwidth: 28px; height: 28px;\nborder-radius: 50%;\nborder: 1px solid rgba(${rgb.pink}, 0.3);\nbackground: rgba(${rgb.pink}, 0.06);\ncolor: ${colors.pink};\ncursor: pointer;\n&:disabled { opacity: 0.3; cursor: not-allowed; }\n`;",
+    summary: "Responsive paginated gallery: columns scale 1 → 2 → 3 → 5 across the 600/900/1200px breakpoints, page size ALWAYS equals column count (gallery_columns_pagesize rule). Circle ‹ › pager + 'N / M' mono counter only render when total > pageSize. CANONIZED into the component library 2026-07-09 — import it, don't re-implement the hook/grid/pager. Themed via --gpg-accent / --gpg-accent-rgb (defaults cyan). First consumer: ExploreFeaturesModal.",
+    usage: "Pass `items` + `renderItem` (and `keyFor` for stable keys). Page resets when the items source changes and reclamps across breakpoint changes automatically. For tables needing an explicit page-size picker use TPG instead (ACR picks between them).",
+    code: `import GPG from "@tgv/module-component-library/components/ui/GPG";
+
+<GPG
+  items={features}
+  keyFor={(f) => f.key}
+  renderItem={(f) => <FeatureTile feature={f} />}
+/>`,
     stylePath: "src/app/dashboard/page.tsx",
     Demo: GPGDemo,
   },
@@ -4643,6 +4607,23 @@ export default function Layout({ children }) {
 />`,
     stylePath: "packages/@tgv/module-core/module-component-library/components/modals/PasskeyLoginModal.tsx",
     Demo: PasskeyLoginModalDemo,
+  },
+  {
+    key: "ExploreFeaturesModal",
+    name: "ExploreFeaturesModal",
+    category: "Modals",
+    summary: "The landing 'Explore Features' experience: a violet office-Modules-styled tile grid inside a dark modal, paginated by GPG. Opened by the TgvV5Hero secondary CTA (secondaryCtaAction=\"explore-modal\" dispatches OPEN_EXPLORE_FEATURES_EVENT; the tgv.com landing shell hosts the listener). Every tile deep-links a DemoTGV surface in a new tab — visitors try each module in isolation, separate from 'Try Demo' dashboard engineering.",
+    usage: "Config-driven: pass `features` (ExploreFeatureDef[]: key/title/blurb/href/icon) + `onClose`. TGV's core-6 config lives in tgv.com src/config/exploreFeatures.tsx. Theme via --efm-accent / --efm-accent-rgb.",
+    code: `import {
+  ExploreFeaturesModal,
+  OPEN_EXPLORE_FEATURES_EVENT,
+} from "@tgv/module-component-library/components/tgv-v5";
+
+window.dispatchEvent(new CustomEvent(OPEN_EXPLORE_FEATURES_EVENT)); // opener
+
+<ExploreFeaturesModal features={getExploreFeatures(lang)} onClose={close} />`,
+    stylePath: "packages/@tgv/module-core/module-component-library/components/tgv-v5/ExploreFeaturesModal.tsx",
+    Demo: ExploreFeaturesModalDemo,
   },
   // ── Page-editor catalog blocks (auto-mirrored from CATALOG; Phase 1 view-only) ──
   ...CATALOG_SANDBOX_ENTRIES,
