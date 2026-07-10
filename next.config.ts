@@ -8,16 +8,10 @@ const nextConfig: NextConfig = {
   // office's node_modules. Required for @tgv/module-calendar to find drizzle-orm,
   // pg, luxon, etc. at build time without each package shipping its own copies.
   transpilePackages: [
-    "@tgv/module-calendar",
-    "@tgv/module-component-library",
-    "@tgv/module-consent",
-    "@tgv/module-documenso",
-    "@tgv/module-inbox",
+    // BUILD-PIPELINE Phase 3 (2026-07-11): all runtime deps consume prebuilt
+    // dists via package exports; only the deferred types-only package stays
+    // source-transpiled (runtime flip = Phase 6).
     "@tgv/module-page-editor",
-    "@tgv/module-support",
-    "@tgv/module-relay",
-    "@tgv/module-transcriber",
-    "@tgv/module-village",
   ],
   typescript: {
     // Build-time type check runs in a separate worker that OOMs on the

@@ -21,18 +21,18 @@
     "preserveSymlinks": true,
     "paths": {
       "@/*": ["./src/*"],
-      "@/lib/domains/navigation/*": ["../../packages/@tgv/module-core/module-component-library/domains/navigation/*"],
-      "@/lib/domains/support/*": ["../../packages/@tgv/module-connect/module-support/support/*"],
+      "@/lib/domains/navigation/*": ["../../packages/@tgv/module-core/module-component-library/dist/domains/navigation/*"],
+      "@/lib/domains/support/*": ["../../packages/@tgv/module-connect/module-support/dist/support/*"],
       "@/lib/domains/editor/*": ["../../packages/@tgv/module-core/module-page-editor/editor/*"],
-      "@/lib/components/*": ["../../packages/@tgv/module-core/module-component-library/components/*"],
+      "@/lib/components/*": ["../../packages/@tgv/module-core/module-component-library/dist/components/*"],
       "@/lib/helpers/page": ["../../packages/@tgv/module-core/module-cms/helpers/page/index.ts"],
       "@/lib/helpers/page/*": ["../../packages/@tgv/module-core/module-cms/helpers/page/*"],
-      "@/lib/helpers/api": ["../../packages/@tgv/module-core/module-component-library/helpers/api/index.ts"],
-      "@/lib/helpers/api/*": ["../../packages/@tgv/module-core/module-component-library/helpers/api/*"],
-      "@/lib/helpers/utils": ["../../packages/@tgv/module-core/module-component-library/helpers/utils/index.ts"],
-      "@/lib/helpers/utils/*": ["../../packages/@tgv/module-core/module-component-library/helpers/utils/*"],
+      "@/lib/helpers/api": ["../../packages/@tgv/module-core/module-component-library/dist/helpers/api/index.js"],
+      "@/lib/helpers/api/*": ["../../packages/@tgv/module-core/module-component-library/dist/helpers/api/*"],
+      "@/lib/helpers/utils": ["../../packages/@tgv/module-core/module-component-library/dist/helpers/utils/index.js"],
+      "@/lib/helpers/utils/*": ["../../packages/@tgv/module-core/module-component-library/dist/helpers/utils/*"],
       "@/lib/i18n/*": ["../../packages/@tgv/module-core/module-cms/i18n/*"],
-      "@tgv/module-component-library/*": ["../../packages/@tgv/module-core/module-component-library/*"]
+      "@tgv/module-component-library/*": ["../../packages/@tgv/module-core/module-component-library/dist/*"]
     }
   },
   "include": [
