@@ -21,6 +21,8 @@
     "preserveSymlinks": true,
     "paths": {
       "@/*": ["./src/*"],
+      "@/lib/domains/navigation/*": ["../../packages/@tgv/module-core/module-component-library/domains/navigation/*"],
+      "@/lib/domains/support/*": ["../../packages/@tgv/module-connect/module-support/support/*"],
       "@/lib/domains/editor/*": ["../../packages/@tgv/module-core/module-page-editor/editor/*"],
       "@/lib/components/*": ["../../packages/@tgv/module-core/module-component-library/components/*"],
       "@tgv/module-component-library/*": ["../../packages/@tgv/module-core/module-component-library/*"]
