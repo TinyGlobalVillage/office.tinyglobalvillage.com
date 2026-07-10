@@ -4,15 +4,10 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import styled from "styled-components";
 import TopNav from "../components/TopNav";
 import UsersCard from "../components/UsersCard";
-import ActivityModal from "../components/ActivityModal";
 import AnnouncementsPanel from "../components/AnnouncementsPanel";
-import ClaudeIcon from "../components/claude/ClaudeIcon";
-import SandboxIcon from "../components/sandbox/SandboxIcon";
-import LibraryIcon from "../components/LibraryIcon";
 import DashboardPageModal from "../components/DashboardPageModal";
-import MyAlertsAccess from "../components/MyAlertsAccess";
-import RcsDiaryModal from "../components/diary/RcsDiaryModal";
-import { DatabaseIcon, StorageIcon, EditorIcon, UtilsIcon, SuggestionIcon, ProcessesIcon, DeployIcon, DrawerFrontDeskIcon, DrawerChatsIcon, DrawerInboxIcon, DrawerSessionsIcon, LogsIcon, SearchIcon, MembersIcon, ModulesIcon } from "../components/icons";
+import { OFFICE_TILES, dispatchTileAction } from "../components/dashboardTiles";
+import { SearchIcon } from "../components/icons";
 import { colors, rgb, type GlowColor } from "@/app/theme";
 
 type DashTile = {
@@ -506,8 +501,6 @@ const MoreLabel = styled.p`
 
 export default function Home() {
   const [activity, setActivity] = useState<ActivityEvent[]>([]);
-  const [activityOpen, setActivityOpen] = useState(false);
-  const [diaryOpen, setDiaryOpen] = useState(false);
 
   const [filter, setFilter] = useState("");
   const [open, setOpen] = useState(false);
@@ -550,12 +543,6 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    const onOpenActivity = () => setActivityOpen(true);
-    window.addEventListener("open-activity", onOpenActivity);
-    return () => window.removeEventListener("open-activity", onOpenActivity);
-  }, []);
-
-  useEffect(() => {
     if (!open) return;
     const onClick = (e: MouseEvent) => {
       if (sbdmRef.current && !sbdmRef.current.contains(e.target as Node)) setOpen(false);
@@ -569,27 +556,18 @@ export default function Home() {
     };
   }, [open]);
 
-  const tiles: DashTile[] = useMemo(() => [
-    { key: "Processes", title: "Processes", subtitle: "PM2", glow: "cyan", icon: <ProcessesIcon size={28} style={{ color: colors.cyan }} />, pageKey: "processes" },
-    { key: "Deploy", title: "Deploy", subtitle: "Projects", glow: "pink", icon: <DeployIcon size={28} style={{ color: colors.pink }} />, pageKey: "deploy" },
-    { key: "Database", title: "Database", subtitle: "PostgreSQL", glow: "gold", icon: <DatabaseIcon size={28} style={{ color: colors.gold }} />, pageKey: "database" },
-    { key: "Storage", title: "Storage", subtitle: "Files", glow: "pink", icon: <StorageIcon size={28} style={{ color: colors.pink }} />, pageKey: "storage" },
-    { key: "Editor", title: "Editor", subtitle: "Code", glow: "gold", icon: <EditorIcon size={28} style={{ color: colors.gold }} />, pageKey: "editor" },
-    { key: "Utils", title: "Utils", subtitle: "Tooling", glow: "cyan", icon: <UtilsIcon size={28} style={{ color: colors.cyan }} />, pageKey: "utils" },
-    { key: "Villagers", title: "Villagers", subtitle: "Members & wallets", glow: "gold", icon: <MembersIcon size={28} style={{ color: colors.gold }} />, pageKey: "villagers" },
-    { key: "Modules", title: "Modules", subtitle: "Platform surfaces", glow: "violet", icon: <ModulesIcon size={28} style={{ color: colors.violet }} />, pageKey: "modules" },
-    { key: "Claude", title: "Claude", subtitle: "AI Assistant", glow: "orange", icon: <ClaudeIcon size={28} color={colors.orange} />, onClick: () => window.dispatchEvent(new CustomEvent("open-claude")) },
-    { key: "Sandbox", title: "Sandbox", subtitle: "Component Lab", glow: "pink", icon: <SandboxIcon size={28} color={colors.pink} />, onClick: () => window.dispatchEvent(new CustomEvent("open-sandbox")) },
-    { key: "Library", title: "Library", subtitle: "Catalog", glow: "violet", icon: <LibraryIcon size={28} color={colors.violet} />, onClick: () => window.dispatchEvent(new CustomEvent("open-library")) },
-    { key: "Suggest", title: "Suggest", subtitle: "Feature ideas", glow: "pink", icon: <SuggestionIcon size={28} style={{ color: colors.pink }} />, onClick: () => window.dispatchEvent(new CustomEvent("open-suggestion")) },
-    { key: "FrontDesk", title: "Front Desk", subtitle: "Calls / SMS / Inquiries", glow: "gold", icon: <DrawerFrontDeskIcon size={28} style={{ color: colors.gold }} />, onClick: () => window.dispatchEvent(new CustomEvent("tgv-drawer-open", { detail: "frontdesk" })) },
-    { key: "Chats", title: "Chats", subtitle: "Team messaging", glow: "green", icon: <DrawerChatsIcon size={28} style={{ color: colors.green }} />, onClick: () => window.dispatchEvent(new CustomEvent("tgv-drawer-open", { detail: "chat" })) },
-    { key: "Inbox", title: "Inbox", subtitle: "Email", glow: "cyan", icon: <DrawerInboxIcon size={28} style={{ color: colors.cyan }} />, onClick: () => window.dispatchEvent(new CustomEvent("tgv-drawer-open", { detail: "inbox" })) },
-    { key: "Sessions", title: "Sessions", subtitle: "Video rooms", glow: "pink", icon: <DrawerSessionsIcon size={28} style={{ color: colors.pink }} />, onClick: () => window.dispatchEvent(new CustomEvent("tgv-drawer-open", { detail: "sessions" })) },
-    { key: "Logs", title: "Logs", subtitle: "Recent Activity", glow: "cyan", icon: <LogsIcon size={28} style={{ color: colors.cyan }} />, onClick: () => setActivityOpen(true) },
-    { key: "MyAlerts", title: "My Alerts", subtitle: "Personal reminders", glow: "gold", icon: <span style={{ fontSize: 24 }}>🔔</span>, onClick: () => window.dispatchEvent(new CustomEvent("open-my-alerts")) },
-    { key: "Diary", title: "Diary", subtitle: "RCS log", glow: "violet", icon: <span style={{ fontSize: 24 }}>📖</span>, onClick: () => setDiaryOpen(true) },
-  ], []);
+  // Tiles come from the shared registry (dashboardTiles.tsx) — the TgvNav
+  // Menu derives from the same list, so adding there updates both surfaces.
+  const tiles: DashTile[] = useMemo(() =>
+    OFFICE_TILES.filter((t) => t.inTiles !== false).map((t) => ({
+      key: t.key,
+      title: t.title,
+      subtitle: t.subtitle,
+      glow: t.glow,
+      icon: t.icon(28),
+      pageKey: "page" in t.action ? t.action.page : undefined,
+      onClick: "page" in t.action ? undefined : () => dispatchTileAction(t.action),
+    })), []);
 
   const filteredTiles = useMemo(() => {
     return tiles
@@ -615,9 +593,6 @@ export default function Home() {
 
   return (
     <>
-      {activityOpen && <ActivityModal onClose={() => setActivityOpen(false)} />}
-      {diaryOpen && <RcsDiaryModal onClose={() => setDiaryOpen(false)} />}
-      <MyAlertsAccess headless />
       {modalPage && (
         <DashboardPageModal
           pageKey={modalPage.pageKey}
@@ -792,7 +767,7 @@ export default function Home() {
           </SectionHeader>
           {activityExpanded && (
             <button
-              onClick={() => setActivityOpen(true)}
+              onClick={() => window.dispatchEvent(new CustomEvent("open-activity"))}
               style={{ textAlign: "left", width: "100%", padding: "0 0.375rem 0.375rem", background: "none", border: "none", cursor: "pointer" }}
             >
               <ActivitySub>Click to expand · PM2 + git</ActivitySub>

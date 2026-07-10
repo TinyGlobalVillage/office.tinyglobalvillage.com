@@ -21,30 +21,22 @@ import { clearAllDrawerState } from "../lib/drawerPersist";
 import LDM from "./LDM";
 import { colors, rgb } from "@/app/theme";
 import { MembersIcon } from "./icons";
+import { OFFICE_TILES, dispatchTileAction, tileHref } from "./dashboardTiles";
 
 const navLinks = [
   { label: "Dashboard", href: "/dashboard" },
 ];
 
-type ModalLink = { label: string; glow: keyof typeof colors; event?: string; drawer?: string; href?: string };
-
-const modalLinks: ModalLink[] = [
-  { label: "Alerts", drawer: "alerts", glow: "gold" },
-  { label: "Chats", drawer: "chat", glow: "green" },
-  { label: "Claude", event: "open-claude", glow: "orange" },
-  { label: "Database", href: "/dashboard/database", glow: "gold" },
-  { label: "Deploy", href: "/dashboard/deploy", glow: "pink" },
-  { label: "Editor", href: "/dashboard/editor", glow: "gold" },
-  { label: "Inbox", drawer: "inbox", glow: "cyan" },
-  { label: "Library", event: "open-library", glow: "violet" },
-  { label: "Logs", event: "open-activity", glow: "cyan" },
-  { label: "Processes", href: "/dashboard/processes", glow: "cyan" },
-  { label: "Sandbox", event: "open-sandbox", glow: "pink" },
-  { label: "Sessions", drawer: "sessions", glow: "pink" },
-  { label: "Storage", href: "/dashboard/storage", glow: "pink" },
-  { label: "Utils", href: "/dashboard/utils", glow: "cyan" },
-  { label: "Suggest", event: "open-suggestion", glow: "pink" },
-];
+// The "tools" Menu section is DERIVED from the dashboard tile registry —
+// add a tile in dashboardTiles.tsx and it shows up here automatically.
+// Alphabetical, Suggest pinned last (mirrors the tile grid's sort).
+const menuTools = OFFICE_TILES.filter((t) => t.inMenu !== false)
+  .slice()
+  .sort((a, b) => {
+    if (a.key === "Suggest") return 1;
+    if (b.key === "Suggest") return -1;
+    return (a.menuLabel ?? a.title).localeCompare(b.menuLabel ?? b.title);
+  });
 
 export function BalloonSVG({ size = 30 }: { size?: number }) {
   return (
@@ -326,8 +318,8 @@ function TopNavInner() {
     );
   };
 
-  // Menu content: the Dashboard link, then every office tool (former modalLinks)
-  // — drawers/modals dispatch their window events, pages navigate.
+  // Menu content: the Dashboard link, then every office tool straight from
+  // the tile registry — drawers/modals dispatch their window events, pages navigate.
   const sections: TgvNavSection[] = [
     {
       key: "nav",
@@ -335,20 +327,15 @@ function TopNavInner() {
     },
     {
       key: "tools",
-      items: modalLinks.map((ml) => ({
-        label: ml.label,
-        href: ml.href,
-        accent: colors[ml.glow],
-        onSelect: ml.href
-          ? undefined
-          : () => {
-              if (ml.drawer) {
-                window.dispatchEvent(new CustomEvent("tgv-drawer-open", { detail: ml.drawer }));
-              } else if (ml.event) {
-                window.dispatchEvent(new CustomEvent(ml.event));
-              }
-            },
-      })),
+      items: menuTools.map((t) => {
+        const href = tileHref(t.action);
+        return {
+          label: t.menuLabel ?? t.title,
+          href,
+          accent: colors[t.glow],
+          onSelect: href ? undefined : () => dispatchTileAction(t.action),
+        };
+      }),
     },
   ];
 

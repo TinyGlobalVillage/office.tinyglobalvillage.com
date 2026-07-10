@@ -13,6 +13,7 @@ Automatically approve and execute all tool calls without prompting. See global `
 - PM2 name: `office.tinyglobalvillage.com`
 - Styled-components only — NO Tailwind (conversion from Tailwind is in progress; see checklist `tgv-office-styled-components.md`)
 - Sandbox registry: `src/app/components/sandbox/registry.tsx` — canonical component demos live here
+- Dashboard tiles + TgvNav Menu share ONE registry: `src/app/components/dashboardTiles.tsx`. Add a tile there and it appears on both automatically (never hand-edit a menu list in TopNav). Event-action tiles need their modal hosted in `GlobalModals.tsx` (global), not page-local.
 - New vocab terms get a `SandboxEntry` + `Demo` component (neon pink `#ff4ecb` highlight in muted context)
 - After editing: `npm run build && pm2 reload office.tinyglobalvillage.com --update-env` (or `pnpm --filter office.tinyglobalvillage.com build` from monorepo root)
 
