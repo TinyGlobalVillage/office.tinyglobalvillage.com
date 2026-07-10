@@ -12,6 +12,9 @@ const nextConfig: NextConfig = {
     // dists via package exports; only the deferred types-only package stays
     // source-transpiled (runtime flip = Phase 6).
     "@tgv/module-page-editor",
+    // module-payroll is source-only (no dist yet) — stays transpiled until its
+    // dist/exports land (tracked with the deferred set for Phase 6 runtime flip).
+    "@tgv/module-payroll",
   ],
   typescript: {
     // Build-time type check runs in a separate worker that OOMs on the
