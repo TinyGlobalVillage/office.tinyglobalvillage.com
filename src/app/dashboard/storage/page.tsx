@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import styled from "styled-components";
 import { colors, rgb } from "../../theme";
 import TopNav from "../../components/TopNav";
-import { CloudIcon, AvatarIcon, EditIcon } from "../../components/icons";
+import { CloudIcon, AvatarIcon, EditIcon, CopyIcon, DownloadIcon, CheckIcon } from "../../components/icons";
 import { askPrompt, showNotice } from "../../components/dialogService";
 
 const CDN_BASE = "https://office.tinyglobalvillage.com/media";
@@ -185,6 +185,9 @@ const UploadedUrl = styled.span`
 
 const CopyBtn = styled.button<{ $copied: boolean }>`
   flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   font-size: 0.75rem;
   font-weight: 700;
   padding: 0.25rem 0.75rem;
@@ -273,81 +276,57 @@ const CardActions = styled.div`
   gap: 0.375rem;
 `;
 
-const CardCopyBtn = styled.button<{ $copied: boolean }>`
+const CardActionBtn = styled.button`
   flex: 1;
-  font-size: 10px;
-  font-weight: 700;
-  padding: 0.25rem 0;
-  border-radius: 0.5rem;
-  transition: all 0.15s;
-  cursor: pointer;
-  background: ${(p) => (p.$copied ? `rgba(${rgb.green}, 0.15)` : `rgba(${rgb.pink}, 0.1)`)};
-  border: 1px solid ${(p) => (p.$copied ? `rgba(${rgb.green}, 0.4)` : `rgba(${rgb.pink}, 0.35)`)};
-  color: ${(p) => (p.$copied ? "#00dc64" : colors.pink)};
-  box-shadow: ${(p) => (p.$copied ? `0 0 8px rgba(${rgb.green}, 0.3)` : `0 0 8px rgba(${rgb.pink}, 0.25)`)};
-
-  &:hover {
-    box-shadow: ${(p) => (p.$copied ? `0 0 12px rgba(${rgb.green}, 0.45)` : `0 0 12px rgba(${rgb.pink}, 0.45)`)};
-  }
-`;
-
-const CardOpenBtn = styled.a`
-  font-size: 10px;
-  font-weight: 700;
-  padding: 0.25rem 0.5rem;
-  border-radius: 0.5rem;
-  text-decoration: none;
-  transition: all 0.15s;
-  background: var(--t-inputBg);
-  border: 1px solid var(--t-borderStrong);
-  color: var(--t-textGhost);
-  box-shadow: 0 0 6px rgba(${rgb.pink}, 0.18);
-
-  &:hover {
-    color: ${colors.pink};
-    border-color: rgba(${rgb.pink}, 0.35);
-    box-shadow: 0 0 10px rgba(${rgb.pink}, 0.35);
-  }
-`;
-
-const CardRenameBtn = styled.button`
   display: inline-flex;
   align-items: center;
   justify-content: center;
   font-size: 10px;
-  padding: 0.25rem 0.5rem;
+  font-weight: 700;
+  line-height: 1;
+  padding: 0.3125rem 0;
   border-radius: 0.5rem;
-  cursor: pointer;
+  text-decoration: none;
   transition: all 0.15s;
-  background: var(--t-inputBg);
-  border: 1px solid var(--t-borderStrong);
-  color: var(--t-textGhost);
-  box-shadow: 0 0 6px rgba(${rgb.pink}, 0.18);
+  cursor: pointer;
+  background: rgba(${rgb.pink}, 0.1);
+  border: 1px solid rgba(${rgb.pink}, 0.35);
+  color: ${colors.pink};
+  box-shadow: 0 0 8px rgba(${rgb.pink}, 0.25);
 
   &:hover {
-    color: ${colors.pink};
-    border-color: rgba(${rgb.pink}, 0.35);
-    box-shadow: 0 0 10px rgba(${rgb.pink}, 0.35);
+    box-shadow: 0 0 12px rgba(${rgb.pink}, 0.45);
   }
 `;
 
-const CardDeleteBtn = styled.button<{ $confirm?: boolean }>`
-  font-size: 10px;
-  font-weight: 700;
-  padding: 0.25rem 0.5rem;
-  border-radius: 0.5rem;
-  transition: all 0.15s;
-  cursor: pointer;
-  background: ${(p) => (p.$confirm ? `rgba(${rgb.red}, 0.2)` : "var(--t-inputBg)")};
-  border: 1px solid ${(p) => (p.$confirm ? `rgba(${rgb.red}, 0.5)` : "var(--t-border)")};
-  color: ${(p) => (p.$confirm ? colors.red : "var(--t-textGhost)")};
-  box-shadow: ${(p) => (p.$confirm ? `0 0 10px rgba(${rgb.red}, 0.4)` : `0 0 6px rgba(${rgb.red}, 0.15)`)};
+const CardCopyBtn = styled(CardActionBtn)<{ $copied: boolean }>`
+  ${(p) =>
+    p.$copied &&
+    `
+    background: rgba(${rgb.green}, 0.15);
+    border-color: rgba(${rgb.green}, 0.4);
+    color: #00dc64;
+    box-shadow: 0 0 8px rgba(${rgb.green}, 0.3);
 
-  &:hover {
-    color: ${colors.red};
+    &:hover {
+      box-shadow: 0 0 12px rgba(${rgb.green}, 0.45);
+    }
+  `}
+`;
+
+const CardDeleteBtn = styled(CardActionBtn)<{ $confirm?: boolean }>`
+  ${(p) =>
+    p.$confirm &&
+    `
+    background: rgba(${rgb.red}, 0.2);
     border-color: rgba(${rgb.red}, 0.5);
+    color: ${colors.red};
     box-shadow: 0 0 10px rgba(${rgb.red}, 0.4);
-  }
+
+    &:hover {
+      box-shadow: 0 0 14px rgba(${rgb.red}, 0.55);
+    }
+  `}
 `;
 
 /* ── Project dropdown ──────────────────────────────────────────── */
@@ -782,8 +761,8 @@ function UploadZone({
         <UploadedBar>
           <UploadedLabel>✓ Uploaded</UploadedLabel>
           <UploadedUrl>{lastUrl}</UploadedUrl>
-          <CopyBtn $copied={copied} onClick={copy}>
-            {copied ? "Copied!" : "Copy Link"}
+          <CopyBtn $copied={copied} onClick={copy} title="Copy link" aria-label="Copy link">
+            {copied ? <CheckIcon size={14} /> : <CopyIcon size={14} />}
           </CopyBtn>
         </UploadedBar>
       )}
@@ -797,11 +776,36 @@ function FileCard({ file, onDelete, onRename }: { file: CdnFile; onDelete: () =>
   const [copied, setCopied] = useState(false);
   const [confirmDel, setConfirmDel] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [downloading, setDownloading] = useState(false);
 
   const copy = () => {
     navigator.clipboard.writeText(file.url);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const download = async () => {
+    if (downloading) return;
+    setDownloading(true);
+    try {
+      // Blob round-trip so the tap always saves (a bare download attr is
+      // ignored cross-origin, e.g. on localhost against the prod CDN).
+      const res = await fetch(file.url);
+      if (!res.ok) throw new Error();
+      const blob = await res.blob();
+      const href = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = href;
+      a.download = file.name;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(href);
+    } catch {
+      await showNotice({ message: "Download failed", intent: "danger" });
+    } finally {
+      setDownloading(false);
+    }
   };
 
   const rename = async () => {
@@ -855,15 +859,18 @@ function FileCard({ file, onDelete, onRename }: { file: CdnFile; onDelete: () =>
       </CardInfo>
 
       <CardActions>
-        <CardCopyBtn $copied={copied} onClick={copy} title="Copy CDN link">
-          {copied ? "Copied!" : "Copy Link"}
+        <CardCopyBtn $copied={copied} onClick={copy} title="Copy CDN link" aria-label="Copy CDN link">
+          {copied ? <CheckIcon size={12} /> : <CopyIcon size={12} />}
         </CardCopyBtn>
-        <CardRenameBtn onClick={rename} title="Rename file" aria-label="Rename file">
+        <CardActionBtn onClick={download} disabled={downloading} title="Download" aria-label="Download">
+          {downloading ? "…" : <DownloadIcon size={12} />}
+        </CardActionBtn>
+        <CardActionBtn onClick={rename} title="Rename file" aria-label="Rename file">
           <EditIcon size={12} />
-        </CardRenameBtn>
-        <CardOpenBtn href={file.url} target="_blank" rel="noopener noreferrer" title="Open in new tab">
+        </CardActionBtn>
+        <CardActionBtn as="a" href={file.url} target="_blank" rel="noopener noreferrer" title="Open in new tab">
           ↗
-        </CardOpenBtn>
+        </CardActionBtn>
         {confirmDel ? (
           <CardDeleteBtn $confirm onClick={del} disabled={deleting} title="Confirm delete">
             {deleting ? "…" : "Sure?"}

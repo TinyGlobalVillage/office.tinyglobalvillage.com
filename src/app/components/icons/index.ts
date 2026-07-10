@@ -60,3 +60,5 @@ export { default as StarIcon } from "./StarIcon";
 export { default as CheckIcon } from "./CheckIcon";
 export { default as BanIcon } from "./BanIcon";
 export { default as ModulesIcon } from "./ModulesIcon";
+export { default as CopyIcon } from "./CopyIcon";
+export { default as DownloadIcon } from "./DownloadIcon";
