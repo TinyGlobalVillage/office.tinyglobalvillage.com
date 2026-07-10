@@ -41,6 +41,7 @@ import RequestTenantAccessModal from "../../components/villagers/RequestTenantAc
 import KeycloakWireModal from "../../components/villagers/KeycloakWireModal";
 import GuestClaimsModal from "../../components/villagers/GuestClaimsModal";
 import StudioConfigModal from "../../components/villagers/StudioConfigModal";
+import OnboardVillagerModal from "../../components/villagers/OnboardVillagerModal";
 
 /* ── Styled ────────────────────────────────────────────────────── */
 
@@ -190,6 +191,7 @@ export default function VillagersClient() {
   const [openMoney, setOpenMoney] = useState(false);
   const [openKeycloakWire, setOpenKeycloakWire] = useState(false);
   const [openGuestClaims, setOpenGuestClaims] = useState(false);
+  const [openOnboardVillager, setOpenOnboardVillager] = useState(false);
   // Open the TGV Template Studio in a NEW TAB (not an iframe). The tgv.com
   // editor is admin-gated by Keycloak, which refuses cross-origin framing
   // (the iframe died with "connection closed") and its session cookie is not
@@ -261,6 +263,15 @@ export default function VillagersClient() {
             <TileSub>
               Search a villager and manage their token wallet — view Cash / Available /
               Retainer (live + test) and release retainer to Available or Cash on their behalf.
+            </TileSub>
+          </Tile>
+
+          <Tile type="button" onClick={() => setOpenOnboardVillager(true)}>
+            <TileTop><MembersIcon size={18} /> Onboard Villager</TileTop>
+            <TileSub>
+              Create a member + their first site on their behalf — pick their landing
+              template, waive the fees (comp levers, intent only), and send the
+              passkey-enrollment email. The operator path the public wizard can&apos;t cover.
             </TileSub>
           </Tile>
 
@@ -434,6 +445,7 @@ export default function VillagersClient() {
       )}
 
       {openManaged && <ManagedOnboardingModal onClose={() => setOpenManaged(false)} />}
+      {openOnboardVillager && <OnboardVillagerModal onClose={() => setOpenOnboardVillager(false)} />}
 
       {openCourse && <CourseControlModal onClose={() => setOpenCourse(false)} />}
 
