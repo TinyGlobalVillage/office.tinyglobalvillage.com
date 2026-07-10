@@ -42,6 +42,7 @@ import KeycloakWireModal from "../../components/villagers/KeycloakWireModal";
 import GuestClaimsModal from "../../components/villagers/GuestClaimsModal";
 import StudioConfigModal from "../../components/villagers/StudioConfigModal";
 import OnboardVillagerModal from "../../components/villagers/OnboardVillagerModal";
+import OnboardConfigModal from "../../components/villagers/OnboardConfigModal";
 
 /* ── Styled ────────────────────────────────────────────────────── */
 
@@ -192,6 +193,7 @@ export default function VillagersClient() {
   const [openKeycloakWire, setOpenKeycloakWire] = useState(false);
   const [openGuestClaims, setOpenGuestClaims] = useState(false);
   const [openOnboardVillager, setOpenOnboardVillager] = useState(false);
+  const [openOnboardConfig, setOpenOnboardConfig] = useState(false);
   // Open the TGV Template Studio in a NEW TAB (not an iframe). The tgv.com
   // editor is admin-gated by Keycloak, which refuses cross-origin framing
   // (the iframe died with "connection closed") and its session cookie is not
@@ -266,14 +268,25 @@ export default function VillagersClient() {
             </TileSub>
           </Tile>
 
-          <Tile type="button" onClick={() => setOpenOnboardVillager(true)}>
-            <TileTop><MembersIcon size={18} /> Onboard Villager</TileTop>
-            <TileSub>
-              Create a member + their first site on their behalf — pick their landing
-              template, waive the fees (comp levers, intent only), and send the
-              passkey-enrollment email. The operator path the public wizard can&apos;t cover.
-            </TileSub>
-          </Tile>
+          <TileWrap>
+            <Tile type="button" onClick={() => setOpenOnboardVillager(true)}>
+              <TileTop><MembersIcon size={18} /> Onboard Villager</TileTop>
+              <TileSub>
+                Create a member + their first site on their behalf — landing template or
+                migrate their existing site, waive fees / record plan intent, send the
+                passkey invite. Existing emails add a site, never a duplicate. Config
+                (AI designer beta) behind the gear.
+              </TileSub>
+            </Tile>
+            <TileGear
+              type="button"
+              onClick={() => setOpenOnboardConfig(true)}
+              title="Onboard config"
+              aria-label="Onboard config"
+            >
+              <SettingsIcon size={14} />
+            </TileGear>
+          </TileWrap>
 
           <Tile type="button" onClick={() => setOpenMemberLookup(true)}>
             <TileTop><SearchIcon size={18} /> Member Lookup</TileTop>
@@ -446,6 +459,7 @@ export default function VillagersClient() {
 
       {openManaged && <ManagedOnboardingModal onClose={() => setOpenManaged(false)} />}
       {openOnboardVillager && <OnboardVillagerModal onClose={() => setOpenOnboardVillager(false)} />}
+      {openOnboardConfig && <OnboardConfigModal onClose={() => setOpenOnboardConfig(false)} />}
 
       {openCourse && <CourseControlModal onClose={() => setOpenCourse(false)} />}
 

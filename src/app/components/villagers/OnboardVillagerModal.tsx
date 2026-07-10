@@ -45,7 +45,26 @@ type Result = {
   subdomain?: string;
   url?: string;
   templatePicked?: string | null;
+  migrationStarted?: boolean;
   enrollmentSent?: boolean;
+};
+
+type MemberLookup = { exists: boolean; name?: string | null; siteCount?: number };
+
+type Plan = {
+  id: string;
+  name: string;
+  description: string | null;
+  unit_amount: number | null;
+  unit_amount_yearly: number | null;
+};
+
+type Addon = {
+  id: string;
+  key: string;
+  name: string;
+  description: string | null;
+  monthly_amount_cents: number | null;
 };
 
 const WAIVE_LABELS: Record<WaivePreset, string> = {
@@ -83,6 +102,25 @@ export default function OnboardVillagerModal({ onClose }: { onClose: () => void 
   const [templates, setTemplates] = useState<Template[]>([]);
   const [sharedId, setSharedId] = useState<string | null>(null);
 
+  // Existing-member awareness: onboarding an email that already belongs to a
+  // member ADDS A SITE to their dashboard (find-or-create), never duplicates.
+  const [memberInfo, setMemberInfo] = useState<MemberLookup | null>(null);
+
+  // Migrate their pre-existing site ("provision now, publish later"): the site
+  // goes live immediately; the rebuilt landing replaces it when the crawl +
+  // AI rebuild finish (~a few minutes).
+  const [migrateUrl, setMigrateUrl] = useState("");
+  const [rights, setRights] = useState(false);
+
+  // Plan/addons/promo INTENT (no money moves — the member completes checkout
+  // from their own dashboard; recorded to member_billing.onboard_intent).
+  const [plans, setPlans] = useState<Plan[]>([]);
+  const [addons, setAddons] = useState<Addon[]>([]);
+  const [planId, setPlanId] = useState<string | null>(null);
+  const [planInterval, setPlanInterval] = useState<"monthly" | "yearly">("monthly");
+  const [addonPicks, setAddonPicks] = useState<Set<string>>(new Set());
+  const [promo, setPromo] = useState("");
+
   const [waive, setWaive] = useState<WaivePreset>("1yr");
   const [customDate, setCustomDate] = useState("");
   const [notifyToPay, setNotifyToPay] = useState(false);
@@ -97,7 +135,30 @@ export default function OnboardVillagerModal({ onClose }: { onClose: () => void 
       .then((r) => r.json())
       .then((d) => setTemplates(Array.isArray(d?.templates) ? d.templates : []))
       .catch(() => setTemplates([]));
+    fetch("/api/admin/villagers/onboard-plans")
+      .then((r) => r.json())
+      .then((d) => {
+        setPlans(Array.isArray(d?.plans) ? d.plans : []);
+        setAddons(Array.isArray(d?.addons) ? d.addons : []);
+      })
+      .catch(() => {});
   }, []);
+
+  const lookupMember = async () => {
+    const em = email.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) { setMemberInfo(null); return; }
+    try {
+      const res = await fetch("/api/admin/villagers/onboard", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ action: "lookup-member", email: em }),
+      });
+      const d = (await res.json().catch(() => null)) as MemberLookup | null;
+      setMemberInfo(d && typeof d.exists === "boolean" ? d : null);
+    } catch {
+      setMemberInfo(null);
+    }
+  };
 
   // Landing (home) templates lead the rail — they're the onboarding designs.
   const rail = useMemo(
@@ -110,6 +171,7 @@ export default function OnboardVillagerModal({ onClose }: { onClose: () => void 
     clientName.trim().length > 0 &&
     subdomain.trim().length > 0 &&
     (waive !== "custom" || !!customDate) &&
+    (!migrateUrl.trim() || rights) &&
     !busy;
 
   const submit = async () => {
@@ -125,7 +187,18 @@ export default function OnboardVillagerModal({ onClose }: { onClose: () => void 
           clientName: clientName.trim(),
           subdomain: subdomain.trim(),
           sharedId,
+          migrateUrl: migrateUrl.trim() || undefined,
+          rightsConfirmed: migrateUrl.trim() ? rights : undefined,
           waiverUntil: waiverIso(waive, customDate),
+          planInterval: planId ? planInterval : undefined,
+          onboardIntent: planId || addonPicks.size || promo.trim()
+            ? {
+                planProductId: planId ?? undefined,
+                planInterval: planId ? planInterval : undefined,
+                addons: [...addonPicks].map((id) => ({ addonId: id, qty: 1, mode: "recurring" })),
+                promoCode: promo.trim() || undefined,
+              }
+            : undefined,
           notifyToPay,
           sendEnrollmentEmail: sendEnrollment,
         }),
@@ -176,6 +249,17 @@ export default function OnboardVillagerModal({ onClose }: { onClose: () => void 
                 <Note>
                   Billing: {waive === "none" ? "no waiver — normal billing applies." : `fees waived (${WAIVE_LABELS[waive]}). Adjust anytime in Member Lookup → billing.`}
                 </Note>
+                {result.migrationStarted && (
+                  <Note>
+                    ⏳ Migration running — their current site is being crawled and rebuilt;
+                    the new landing publishes automatically in a few minutes.
+                  </Note>
+                )}
+                <Note>
+                  Own domain? They (or you) can bring it in from their dashboard:
+                  Site Settings → Domain Console → <strong>Transfer a Domain In</strong> (needs the
+                  EPP/auth code from the current registrar; the transfer adds a year of renewal).
+                </Note>
               </OkCard>
               <Actions>
                 <SecondaryBtn type="button" onClick={onClose}>Done</SecondaryBtn>
@@ -188,7 +272,22 @@ export default function OnboardVillagerModal({ onClose }: { onClose: () => void 
                 <FieldRow>
                   <Field>
                     <FLabel>Email (their login + invite)</FLabel>
-                    <TextInput value={email} onChange={(e) => setEmail(e.target.value)} placeholder="hello@nevloproject.org" autoFocus />
+                    <TextInput
+                      value={email}
+                      onChange={(e) => { setEmail(e.target.value); setMemberInfo(null); }}
+                      onBlur={lookupMember}
+                      placeholder="hello@nevloproject.org"
+                      autoFocus
+                    />
+                    {memberInfo?.exists ? (
+                      <ExistingNote>
+                        ✓ Existing member{memberInfo.name ? ` — ${memberInfo.name}` : ""}
+                        {typeof memberInfo.siteCount === "number" ? ` (${memberInfo.siteCount} site${memberInfo.siteCount === 1 ? "" : "s"})` : ""}.
+                        This adds a new site to their dashboard — no duplicate account.
+                      </ExistingNote>
+                    ) : memberInfo && !memberInfo.exists ? (
+                      <Dim>New member — account + passkey invite will be created.</Dim>
+                    ) : null}
                   </Field>
                   <Field>
                     <FLabel>Name (optional)</FLabel>
@@ -245,6 +344,72 @@ export default function OnboardVillagerModal({ onClose }: { onClose: () => void 
                     </TemplateCard>
                   ))}
                 </Rail>
+                <MigrateBox>
+                  <FLabel>…or migrate their existing site (URL — crawled &amp; rebuilt by the designer)</FLabel>
+                  <TextInput
+                    value={migrateUrl}
+                    onChange={(e) => setMigrateUrl(e.target.value)}
+                    placeholder="https://their-current-site.com"
+                  />
+                  {migrateUrl.trim() && (
+                    <>
+                      <CheckRow>
+                        <label>
+                          <input type="checkbox" checked={rights} onChange={(e) => setRights(e.target.checked)} />
+                          <span>The client owns this content and has asked us to migrate it</span>
+                        </label>
+                      </CheckRow>
+                      <Dim>
+                        The site provisions immediately{sharedId ? " with the picked template" : ""};
+                        the rebuilt landing replaces it automatically when the migration finishes (~a few minutes).
+                      </Dim>
+                    </>
+                  )}
+                </MigrateBox>
+              </div>
+
+              <div>
+                <Label>Plan intent (optional — member completes checkout from their dashboard)</Label>
+                <Pills>
+                  <Pill type="button" $on={planId === null} onClick={() => setPlanId(null)}>No plan yet</Pill>
+                  {plans.map((p) => (
+                    <Pill key={p.id} type="button" $on={planId === p.id} onClick={() => setPlanId(p.id)} title={p.description ?? undefined}>
+                      {p.name}
+                    </Pill>
+                  ))}
+                </Pills>
+                {planId && (
+                  <>
+                    <Pills>
+                      <Pill type="button" $on={planInterval === "monthly"} onClick={() => setPlanInterval("monthly")}>Monthly</Pill>
+                      <Pill type="button" $on={planInterval === "yearly"} onClick={() => setPlanInterval("yearly")}>Yearly</Pill>
+                    </Pills>
+                    {addons.length > 0 && (
+                      <CheckRow>
+                        {addons.map((a) => (
+                          <label key={a.id} title={a.description ?? undefined}>
+                            <input
+                              type="checkbox"
+                              checked={addonPicks.has(a.id)}
+                              onChange={(e) => {
+                                const next = new Set(addonPicks);
+                                if (e.target.checked) next.add(a.id); else next.delete(a.id);
+                                setAddonPicks(next);
+                              }}
+                            />
+                            <span>{a.name}</span>
+                          </label>
+                        ))}
+                      </CheckRow>
+                    )}
+                    <FieldRow>
+                      <Field $narrow>
+                        <FLabel>Promo code (optional)</FLabel>
+                        <TextInput value={promo} onChange={(e) => setPromo(e.target.value)} placeholder="FOUNDER100" />
+                      </Field>
+                    </FieldRow>
+                  </>
+                )}
               </div>
 
               <div>
@@ -303,6 +468,8 @@ const FLabel = styled.div`font-size: 0.62rem; text-transform: uppercase; letter-
 const TextInput = styled.input`width: 100%; padding: 0.4rem 0.55rem; background: rgba(0,0,0,0.3); border: 1px solid var(--t-border); border-radius: 0.375rem; color: var(--t-text); font-size: 0.8rem; &:focus { outline: none; border-color: rgba(${rgb.cyan}, 0.6); }`;
 const SubRow = styled.div`display: flex; align-items: center; gap: 0.4rem;`;
 const Rail = styled.div`display: flex; gap: 0.6rem; overflow-x: auto; padding-bottom: 0.35rem;`;
+const MigrateBox = styled.div`display: flex; flex-direction: column; gap: 0.45rem; margin-top: 0.6rem; padding: 0.7rem 0.85rem; border: 1px dashed rgba(${rgb.cyan}, 0.3); border-radius: 0.55rem;`;
+const ExistingNote = styled.div`font-size: 0.72rem; line-height: 1.45; color: #4ade80;`;
 const TemplateCard = styled.button<{ $selected?: boolean }>`
   flex: 0 0 9.5rem; display: flex; flex-direction: column; gap: 0.3rem; padding: 0.35rem;
   background: ${(p) => (p.$selected ? `rgba(${rgb.cyan}, 0.12)` : "rgba(0,0,0,0.25)")};
