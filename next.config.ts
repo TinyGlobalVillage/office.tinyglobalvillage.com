@@ -14,6 +14,7 @@ const nextConfig: NextConfig = {
     "@tgv/module-documenso",
     "@tgv/module-inbox",
     "@tgv/module-page-editor",
+    "@tgv/module-payroll",
     "@tgv/module-support",
     "@tgv/module-relay",
     "@tgv/module-transcriber",
