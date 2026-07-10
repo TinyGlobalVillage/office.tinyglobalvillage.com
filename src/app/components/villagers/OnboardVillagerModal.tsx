@@ -24,7 +24,7 @@ import {
   ModalBody,
 } from "@/app/styled";
 import NeonX from "../NeonX";
-import GPG from "@tgv/module-component-library/components/ui/GPG";
+import TPG from "@tgv/module-component-library/components/ui/TPG";
 
 type Template = {
   id: string;
@@ -131,6 +131,35 @@ function SiteFields({
   namePlaceholder: string;
   subPlaceholder: string;
 }) {
+  // Template gallery = a grid of tiles paginated by TPG (page-size DDM:
+  // 5/10/25/50/Custom, Gio 2026-07-10). "Blank start" leads as item 0.
+  const items = useMemo<(Template | null)[]>(() => [null, ...rail], [rail]);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const total = items.length;
+  const pageCount = Math.max(1, Math.ceil(total / pageSize));
+  const safePage = Math.min(page, pageCount);
+  const paged = items.slice((safePage - 1) * pageSize, safePage * pageSize);
+
+  const renderTile = (t: Template | null) =>
+    t === null ? (
+      <TemplateCard key="__blank__" type="button" $selected={value.sharedId === null} onClick={() => onPatch({ sharedId: null })}>
+        <NoThumb>No template</NoThumb>
+        <TplLabel>Blank start</TplLabel>
+      </TemplateCard>
+    ) : (
+      <TemplateCard
+        key={t.id}
+        type="button"
+        $selected={value.sharedId === t.id}
+        onClick={() => onPatch({ sharedId: t.id })}
+        title={t.description ?? t.label}
+      >
+        {t.thumbnail ? <Thumb src={t.thumbnail} alt="" /> : <NoThumb>{t.label}</NoThumb>}
+        <TplLabel>{t.label}</TplLabel>
+      </TemplateCard>
+    );
+
   return (
     <>
       <FieldRow>
@@ -161,32 +190,15 @@ function SiteFields({
       </FieldRow>
 
       <FLabel style={{ marginTop: "0.3rem" }}>Landing template</FLabel>
-      <GPG
-        items={[null, ...rail] as (Template | null)[]}
-        keyFor={(t) => (t ? t.id : "__blank__")}
-        breakpoints={[
-          { minWidth: 900, cols: 3 },
-          { minWidth: 600, cols: 2 },
-          { minWidth: 0, cols: 1 },
-        ]}
-        renderItem={(t) =>
-          t === null ? (
-            <TemplateCard type="button" $selected={value.sharedId === null} onClick={() => onPatch({ sharedId: null })}>
-              <NoThumb>No template</NoThumb>
-              <TplLabel>Blank start</TplLabel>
-            </TemplateCard>
-          ) : (
-            <TemplateCard
-              type="button"
-              $selected={value.sharedId === t.id}
-              onClick={() => onPatch({ sharedId: t.id })}
-              title={t.description ?? t.label}
-            >
-              {t.thumbnail ? <Thumb src={t.thumbnail} alt="" /> : <NoThumb>{t.label}</NoThumb>}
-              <TplLabel>{t.label}</TplLabel>
-            </TemplateCard>
-          )
-        }
+      <TemplateGrid>{paged.map(renderTile)}</TemplateGrid>
+      <TPG
+        total={total}
+        page={safePage}
+        pageSize={pageSize}
+        pageSizeOptions={[5, 10, 25, 50]}
+        itemNoun="template"
+        onPageChange={setPage}
+        onPageSizeChange={(n) => { setPageSize(n); setPage(1); }}
       />
       <MigrateBox>
         <FLabel>…or migrate their existing site (URL — crawled &amp; rebuilt by the designer)</FLabel>
@@ -711,6 +723,11 @@ const AddSiteBtn = styled.button`
 `;
 const IntervalPromoRow = styled.div`display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 0.5rem;`;
 const PromoField = styled.div`display: flex; flex-direction: column; gap: 0.2rem; flex: 0 0 12rem;`;
+const TemplateGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
+  gap: 0.6rem;
+`;
 const TemplateCard = styled.button<{ $selected?: boolean }>`
   width: 100%; display: flex; flex-direction: column; gap: 0.3rem; padding: 0.35rem;
   background: ${(p) => (p.$selected ? `rgba(${rgb.cyan}, 0.12)` : "rgba(0,0,0,0.25)")};
