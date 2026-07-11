@@ -1286,12 +1286,24 @@ function ActionCard({
 
   const flatten = (arr: FieldValue[]): string[] => arr.flat().map(String);
 
+  // When embedded in the dashboard iframe, the terminal PANEL (CliTerminal) is only mounted
+  // in the parent shell — so route the run to the parent, whose terminal renders the stream.
+  // Otherwise the output streams into this iframe's provider with nothing to display it
+  // (the "Run did nothing" bug). Mirrors the `>_ terminal` toggle's parent-postMessage path.
+  const runScript = (script: string, args: string[]) => {
+    if (typeof window !== "undefined" && window.parent !== window) {
+      window.parent.postMessage({ type: "tgv-run-command", script, args }, "*");
+    } else {
+      runCommand(script, args);
+    }
+  };
+
   const handleTrigger = () => {
     if (action.fields && action.fields.length > 0) {
       initDefaults();
       setShowForm(true);
     } else {
-      runCommand(action.script, flatten(action.buildArgs?.({}) ?? []));
+      runScript(action.script, flatten(action.buildArgs?.({}) ?? []));
     }
   };
 
@@ -1307,7 +1319,7 @@ function ActionCard({
       }
     }
     setShowForm(false);
-    runCommand(action.script, args);
+    runScript(action.script, args);
   };
 
   const canRun = (action.fields ?? [])

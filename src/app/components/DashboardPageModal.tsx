@@ -390,20 +390,25 @@ export default function DashboardPageModal({ pageKey, title, glow, onClose }: Pr
   // Same path is used by the iframe's `>_ terminal` button to open the
   // parent's CliTerminal on top of this modal — position:fixed elements
   // inside an iframe can't escape the iframe's bounds.
-  const { toggleTerminal } = useTerminal();
+  const { toggleTerminal, runCommand } = useTerminal();
   const { openPreview } = usePreview();
   useEffect(() => {
     const onMsg = (e: MessageEvent) => {
       const t = e.data?.type;
       if (t === "tgv-modal-close") onClose();
       else if (t === "tgv-toggle-terminal") toggleTerminal();
+      else if (t === "tgv-run-command" && typeof e.data?.script === "string") {
+        // An embedded Utils action Run forwards here so the parent's mounted CliTerminal
+        // renders the stream (runCommand opens the terminal itself).
+        runCommand(e.data.script, Array.isArray(e.data.args) ? e.data.args : []);
+      }
       else if (t === "tgv-open-preview" && typeof e.data?.domain === "string") {
         openPreview(e.data.domain);
       }
     };
     window.addEventListener("message", onMsg);
     return () => window.removeEventListener("message", onMsg);
-  }, [onClose, toggleTerminal, openPreview]);
+  }, [onClose, toggleTerminal, runCommand, openPreview]);
 
   // Popout ↔ main coordination via BroadcastChannel heartbeat.
   useEffect(() => {
