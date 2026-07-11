@@ -6,6 +6,12 @@ import styled from "styled-components";
 import { colors, rgb } from "../../theme";
 import TopNav from "../../components/TopNav";
 import { usePreview } from "../../components/PreviewDrawer";
+import dynamic from "next/dynamic";
+
+const DeployTargetsControlModal = dynamic(
+  () => import("../../components/hardening/deploy-targets/DeployTargetsControlModal"),
+  { ssr: false }
+);
 
 type Project = {
   name: string;
@@ -14,6 +20,16 @@ type Project = {
   pm2Status: string | null;
   pm2Restarts: number;
   lastCommit: { timeAgo: string; author: string; subject: string } | null;
+};
+
+type DeployState = {
+  jobId: string;
+  client: string;
+  startedBy: string;
+  state: "resolving" | "building" | "done" | "failed";
+  phase: string;
+  detail?: string;
+  finishedAt?: string;
 };
 
 const STATUS_COLOR: Record<string, string> = {
@@ -463,6 +479,22 @@ const TileActionLink = styled(Link)<{ $bg: string; $border: string; $color: stri
   color: ${(p) => p.$color};
 `;
 
+const TileActionButton = styled.button<{ $bg: string; $border: string; $color: string }>`
+  font-size: 10px;
+  font-weight: 700;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  background: ${(p) => p.$bg};
+  border: 1px solid ${(p) => p.$border};
+  color: ${(p) => p.$color};
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: default;
+  }
+`;
+
 /* ── Component ─────────────────────────────────────────────────── */
 
 export default function DeployPage() {
@@ -470,6 +502,49 @@ export default function DeployPage() {
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
   const { openPreview } = usePreview();
+
+  // Deploy button state — which clients are deployable + each one's latest deploy status.
+  const [deployable, setDeployable] = useState<string[]>([]);
+  const [deploys, setDeploys] = useState<Record<string, DeployState | null>>({});
+  const [targetsOpen, setTargetsOpen] = useState(false);
+
+  const loadDeploys = useCallback(async () => {
+    try {
+      const r = await fetch("/api/deploy", { cache: "no-store" });
+      if (r.ok) {
+        const d = await r.json();
+        setDeployable(d.deployable ?? []);
+        setDeploys(d.deploys ?? {});
+      }
+    } catch { /* */ }
+  }, []);
+  useEffect(() => { loadDeploys(); }, [loadDeploys]);
+
+  const anyDeploying = useMemo(
+    () => Object.values(deploys).some((d) => d && (d.state === "resolving" || d.state === "building")),
+    [deploys]
+  );
+  useEffect(() => {
+    if (!anyDeploying) return;
+    const t = setInterval(loadDeploys, 4000);
+    return () => clearInterval(t);
+  }, [anyDeploying, loadDeploys]);
+
+  const triggerDeploy = useCallback(async (name: string) => {
+    setDeploys((prev) => ({
+      ...prev,
+      [name]: { jobId: "", client: name, startedBy: "", state: "resolving", phase: "queued" },
+    }));
+    try {
+      await fetch("/api/deploy", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ client: name }),
+      });
+    } finally {
+      loadDeploys();
+    }
+  }, [loadDeploys]);
 
   const [filter, setFilter] = useState("");
   const [open, setOpen] = useState(false);
@@ -534,6 +609,7 @@ export default function DeployPage() {
           </div>
           <HeaderActions>
             <EditorLink href="/dashboard/editor">✎ Editor</EditorLink>
+            <RefreshBtn onClick={() => setTargetsOpen(true)}>⚙ Build Targets</RefreshBtn>
             <RefreshBtn onClick={load}>↺ Refresh</RefreshBtn>
           </HeaderActions>
         </HeaderRow>
@@ -607,6 +683,9 @@ export default function DeployPage() {
                 key={proj.name}
                 project={proj}
                 onClick={() => openPreview(proj.name)}
+                deployable={deployable.includes(proj.name)}
+                deploy={deploys[proj.name] ?? null}
+                onDeploy={() => triggerDeploy(proj.name)}
               />
             ))}
           </TileGrid>
@@ -633,13 +712,29 @@ export default function DeployPage() {
           </PaginationRow>
         )}
       </PageMain>
+      {targetsOpen && <DeployTargetsControlModal onClose={() => setTargetsOpen(false)} />}
     </>
   );
 }
 
-function ProjectTile({ project: p, onClick }: { project: Project; onClick: () => void }) {
+function ProjectTile({ project: p, onClick, deployable, deploy, onDeploy }: {
+  project: Project;
+  onClick: () => void;
+  deployable: boolean;
+  deploy: DeployState | null;
+  onDeploy: () => void;
+}) {
   const statusColor = p.pm2Status ? (STATUS_COLOR[p.pm2Status] ?? "#6b7280") : "#6b7280";
   const isOnline = p.pm2Status === "online";
+
+  const dst = deploy?.state;
+  const deployActive = dst === "resolving" || dst === "building";
+  const deployLabel = deployActive ? "⟳ …" : dst === "done" ? "✓ Deployed" : dst === "failed" ? "✗ Retry" : "⟳ Deploy";
+  const deployTone = dst === "failed"
+    ? { bg: "rgba(255,90,90,0.12)", border: "rgba(255,90,90,0.35)", color: colors.red }
+    : dst === "done"
+    ? { bg: "rgba(0,220,100,0.12)", border: "rgba(0,220,100,0.35)", color: "#00dc64" }
+    : { bg: "rgba(255,78,203,0.12)", border: "rgba(255,78,203,0.35)", color: colors.pink };
 
   return (
     <TileButton $isOnline={isOnline} onClick={onClick}>
@@ -687,6 +782,19 @@ function ProjectTile({ project: p, onClick }: { project: Project; onClick: () =>
           >
             📁 Upload
           </TileActionLink>
+          {deployable && (
+            <TileActionButton
+              type="button"
+              disabled={deployActive}
+              onClick={(e) => { e.stopPropagation(); onDeploy(); }}
+              title={deploy?.phase ? `${deploy.state}: ${deploy.phase}` : `Build ${p.name} on Mac → ship to RCS`}
+              $bg={deployTone.bg}
+              $border={deployTone.border}
+              $color={deployTone.color}
+            >
+              {deployLabel}
+            </TileActionButton>
+          )}
         </TileActions>
       </TileBottom>
     </TileButton>
