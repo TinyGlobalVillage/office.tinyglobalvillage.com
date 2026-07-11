@@ -7,15 +7,7 @@ const nextConfig: NextConfig = {
   // Transpile workspace-linked @tgv/* packages so their imports resolve from
   // office's node_modules. Required for @tgv/module-calendar to find drizzle-orm,
   // pg, luxon, etc. at build time without each package shipping its own copies.
-  transpilePackages: [
-    // BUILD-PIPELINE Phase 3 (2026-07-11): all runtime deps consume prebuilt
-    // dists via package exports; only the deferred types-only package stays
-    // source-transpiled (runtime flip = Phase 6).
-    "@tgv/module-page-editor",
-    // module-payroll is source-only (no dist yet) — stays transpiled until its
-    // dist/exports land (tracked with the deferred set for Phase 6 runtime flip).
-    "@tgv/module-payroll",
-  ],
+  // BUILD-PIPELINE P6d rollout (2026-07-11): transpilePackages removed — all @tgv/* consumed as prebuilt dists via exports.
   typescript: {
     // Build-time type check runs in a separate worker that OOMs on the
     // RCS box (SIGKILL → incomplete .next/). IDE + CI still type-check;
