@@ -14,6 +14,7 @@ import { ModalBackdrop, CloseBtn } from "@/app/styled";
 import NeonX from "./NeonX";
 import { useModalLifecycle } from "@/app/lib/drawerKnobs";
 import { askConfirm } from "./dialogService";
+import AlertSettingsPanel from "./frontdesk/AlertSettingsPanel";
 
 export type Profile = {
   username: string;
@@ -899,6 +900,13 @@ export default function ProfileModal({
             <div>
               <SectionLabel $accent={pa}>Role</SectionLabel>
               <BioText $accent={pa}>{profile.title}</BioText>
+            </div>
+          )}
+
+          {isOwn && (
+            <div>
+              <SectionLabel $accent={pa}>Alert preferences</SectionLabel>
+              <AlertSettingsPanel />
             </div>
           )}
 

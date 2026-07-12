@@ -6,9 +6,10 @@ import { colors, rgb } from "../../theme";
 import type { Alert } from "@/lib/frontdesk/types";
 import type { PersonalAlert } from "@tgv/module-calendar/alerts/types";
 import AnnouncementsPanel from "../AnnouncementsPanel";
-import { TrashIcon, EventIcon } from "../icons";
+import { TrashIcon, EventIcon, SettingsIcon } from "../icons";
 import { askConfirm } from "../dialogService";
 import AlertsCalendarModal from "./AlertsCalendarModal";
+import AlertSettingsModal from "./AlertSettingsModal";
 
 // ── Styled ───────────────────────────────────────────────────────
 
@@ -210,6 +211,7 @@ export default function AlertsTab() {
   const [calOpen, setCalOpen] = useState(false);
   const [calCreate, setCalCreate] = useState(false);
   const [viewAlert, setViewAlert] = useState<PersonalAlert | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const toggleSel = (id: string) =>
     setSelected((prev) => {
       const next = new Set(prev);
@@ -300,6 +302,14 @@ export default function AlertsTab() {
           <EventIcon size={11} /> Calendar
         </SelectBtn>
         <SelectBtn onClick={() => { setViewAlert(null); setCalCreate(true); setCalOpen(true); }}>＋ Add</SelectBtn>
+        <SelectBtn
+          onClick={() => setSettingsOpen(true)}
+          title="Alert preferences"
+          aria-label="Alert preferences"
+          style={{ display: "inline-flex", alignItems: "center" }}
+        >
+          <SettingsIcon size={12} />
+        </SelectBtn>
       </div>
       {visibleSched.length === 0 ? (
         <Empty style={{ padding: "0.5rem 0" }}>
@@ -388,6 +398,7 @@ export default function AlertsTab() {
         viewAlert={viewAlert}
         onClose={() => { setCalOpen(false); setViewAlert(null); loadSched(); }}
       />
+      <AlertSettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </Wrap>
   );
 }
