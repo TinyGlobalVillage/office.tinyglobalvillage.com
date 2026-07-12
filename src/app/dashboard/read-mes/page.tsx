@@ -1,5 +1,6 @@
 "use client";
 
+import { useEscapeToClose } from "@tgv/module-component-library/components/hooks/useEscapeToClose";
 import { useEffect, useState } from "react";
 import styled from "styled-components";
 import { rgb } from "../../theme";
@@ -115,6 +116,7 @@ export default function ReadMesPage() {
   const [items, setItems] = useState<ReadMe[]>([]);
   const [open, setOpen] = useState<ReadMe | null>(null);
   const [loading, setLoading] = useState(true);
+  useEscapeToClose({ open: open !== null, onClose: () => setOpen(null) });
 
   useEffect(() => {
     fetch("/api/readmes")

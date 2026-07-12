@@ -1,5 +1,6 @@
 "use client";
 
+import { useEscapeToClose } from "@tgv/module-component-library/components/hooks/useEscapeToClose";
 import {
   createContext,
   useContext,
@@ -216,13 +217,7 @@ export default function PreviewDrawer() {
 
   const currentUrl = domain ? `https://${domain}` : null;
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && isOpen) closePreview();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [isOpen, closePreview]);
+  useEscapeToClose({ open: isOpen, onClose: closePreview });
 
   return (
     <>

@@ -8,6 +8,7 @@
 // passkeys + sessions in one transaction, audit-logged). Routed to from the
 // MemberAuthControlModal tile under System Hardening on /dashboard/utils.
 
+import { useEscapeToClose } from "@tgv/module-component-library/components/hooks/useEscapeToClose";
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import styled from "styled-components";
@@ -242,6 +243,8 @@ export default function MemberUsersPage() {
     setConfirmTarget(null);
     setTyped("");
   };
+
+  useEscapeToClose({ open: confirmTarget !== null, onClose: closeConfirm });
 
   const performReset = async () => {
     if (!confirmTarget) return;

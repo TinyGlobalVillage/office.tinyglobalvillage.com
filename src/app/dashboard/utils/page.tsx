@@ -1,5 +1,6 @@
 "use client";
 
+import { useEscapeToClose } from "@tgv/module-component-library/components/hooks/useEscapeToClose";
 import { useState, useEffect, useMemo, useRef, ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
@@ -1477,11 +1478,7 @@ function FormModal({
 }) {
   const color = GLOW_COLOR[action.glow ?? "cyan"];
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  useEscapeToClose({ open: true, onClose });
 
   return (
     <ModalOverlay onClick={(e) => e.target === e.currentTarget && onClose()}>
@@ -1533,11 +1530,7 @@ function DefaultsEditModal({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  useEscapeToClose({ open: true, onClose });
 
   const handleSave = async () => {
     setSaving(true);

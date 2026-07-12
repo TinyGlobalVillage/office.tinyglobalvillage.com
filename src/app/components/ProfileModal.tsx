@@ -1,5 +1,6 @@
 "use client";
 
+import { useEscapeToClose } from "@tgv/module-component-library/components/hooks/useEscapeToClose";
 import { useState, useEffect, useRef, ChangeEvent } from "react";
 import styled from "styled-components";
 import ChatSettingsModal, {
@@ -733,20 +734,16 @@ export default function ProfileModal({
     };
   }, []);
 
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        e.stopPropagation();
-        if (showSettingsModal) {
-          setShowSettingsModal(false);
-          return;
-        }
-        onClose();
+  useEscapeToClose({
+    open: true,
+    onClose: () => {
+      if (showSettingsModal) {
+        setShowSettingsModal(false);
+        return;
       }
-    };
-    document.addEventListener("keydown", handler, { capture: true });
-    return () => document.removeEventListener("keydown", handler, { capture: true });
-  }, [onClose, showSettingsModal]);
+      onClose();
+    },
+  });
 
   const sendMemo = async () => {
     if (!newMemo.trim()) return;

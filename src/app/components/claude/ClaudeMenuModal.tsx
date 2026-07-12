@@ -1,5 +1,6 @@
 "use client";
 
+import { useEscapeToClose } from "@tgv/module-component-library/components/hooks/useEscapeToClose";
 import { useState, useEffect } from "react";
 import styled from "styled-components";
 import ClaudeIcon from "./ClaudeIcon";
@@ -140,17 +141,13 @@ export default function ClaudeMenuModal({ onClose }: { onClose: () => void }) {
   const [sub, setSub] = useState<SubModal>(null);
   const [fullscreen, setFullscreen] = useState(false);
 
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        e.stopPropagation();
-        if (sub) { setSub(null); return; }
-        onClose();
-      }
-    };
-    document.addEventListener("keydown", handler, { capture: true });
-    return () => document.removeEventListener("keydown", handler, { capture: true });
-  }, [onClose, sub]);
+  useEscapeToClose({
+    open: true,
+    onClose: () => {
+      if (sub) { setSub(null); return; }
+      onClose();
+    },
+  });
 
   return (
     <>

@@ -10,6 +10,7 @@
  * demand for each script's README body.
  */
 
+import { useEscapeToClose } from "@tgv/module-component-library/components/hooks/useEscapeToClose";
 import { useCallback, useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 import { colors, rgb, glowRgba } from "../theme";
@@ -283,11 +284,7 @@ export default function PlaybookLibraryModal({ onClose }: { onClose: () => void 
   const [readmes, setReadmes] = useState<Record<string, string | "loading" | "error">>({});
   const scriptRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") { e.stopPropagation(); onClose(); } };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  useEscapeToClose({ open: true, onClose });
 
   useEffect(() => {
     let cancelled = false;

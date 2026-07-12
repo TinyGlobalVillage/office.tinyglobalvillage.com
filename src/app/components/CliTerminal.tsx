@@ -1,5 +1,6 @@
 "use client";
 
+import { useEscapeToClose } from "@tgv/module-component-library/components/hooks/useEscapeToClose";
 import {
   useEffect, useRef, useState, KeyboardEvent, FormEvent, useCallback
 } from "react";
@@ -1078,14 +1079,7 @@ export default function CliTerminal({ standalone = false }: { standalone?: boole
   }, [open, mode]);
 
   // ESC to close
-  useEffect(() => {
-    if (standalone) return;
-    const onKey = (e: globalThis.KeyboardEvent) => {
-      if (e.key === "Escape" && isOpen) toggleTerminal();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [isOpen, standalone, toggleTerminal]);
+  useEscapeToClose({ open: !standalone && isOpen, onClose: toggleTerminal });
 
   // ── Resize: bottom edge ──────────────────────────────────────────────────
   const onBottomDrag = (e: React.MouseEvent) => {

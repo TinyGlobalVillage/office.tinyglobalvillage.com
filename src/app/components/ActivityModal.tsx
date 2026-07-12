@@ -1,5 +1,6 @@
 "use client";
 
+import { useEscapeToClose } from "@tgv/module-component-library/components/hooks/useEscapeToClose";
 import { useState, useEffect, useRef } from "react";
 import styled from "styled-components";
 import LogsModal, { type TabMode } from "./LogsModal";
@@ -267,17 +268,13 @@ export default function ActivityModal({ onClose }: { onClose: () => void }) {
       .catch(() => setLoading(false));
   }, []);
 
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        e.stopPropagation();
-        if (fullscreen) { setFullscreen(false); return; }
-        onClose();
-      }
-    };
-    document.addEventListener("keydown", handler, { capture: true });
-    return () => document.removeEventListener("keydown", handler, { capture: true });
-  }, [onClose, fullscreen]);
+  useEscapeToClose({
+    open: true,
+    onClose: () => {
+      if (fullscreen) { setFullscreen(false); return; }
+      onClose();
+    },
+  });
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {

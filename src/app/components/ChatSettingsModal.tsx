@@ -1,5 +1,6 @@
 "use client";
 
+import { useEscapeToClose } from "@tgv/module-component-library/components/hooks/useEscapeToClose";
 import { useState, useEffect, useRef, useCallback, ChangeEvent, ReactNode } from "react";
 import styled from "styled-components";
 import { colors, rgb } from "@/app/theme";
@@ -1855,16 +1856,7 @@ export default function ChatSettingsModal({
     [onProfileRefresh]
   );
 
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        e.stopPropagation();
-        onClose();
-      }
-    };
-    document.addEventListener("keydown", handler, { capture: true });
-    return () => document.removeEventListener("keydown", handler, { capture: true });
-  }, [onClose]);
+  useEscapeToClose({ open: true, onClose });
 
   return (
     <>

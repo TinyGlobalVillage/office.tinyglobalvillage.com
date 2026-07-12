@@ -1,5 +1,6 @@
 "use client";
 
+import { useEscapeToClose } from "@tgv/module-component-library/components/hooks/useEscapeToClose";
 import { useState, useRef, useEffect, useCallback } from "react";
 import styled, { keyframes } from "styled-components";
 import { colors, rgb } from "../theme";
@@ -1433,13 +1434,9 @@ function GifRangeModal({
     if (Math.abs(v.currentTime - t) > 0.05) v.currentTime = t;
   }, [start, end, scrubTarget]);
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") { e.stopImmediatePropagation(); onClose(); }
-    };
-    window.addEventListener("keydown", onKey, true);
-    return () => window.removeEventListener("keydown", onKey, true);
-  }, [onClose]);
+  // Nested GIF-range picker: on the shared stack it is topmost, so Escape closes
+  // it before the MediaConverter modal underneath.
+  useEscapeToClose({ open: true, onClose });
 
   const maxClip = Math.min(30, duration);
   const clipLen = Math.max(0, end - start);
@@ -1534,16 +1531,13 @@ export default function MediaConverterModal({
     onClose();
   }, [onClose, onMinimizeConversion]);
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key !== "Escape") return;
-      e.stopImmediatePropagation();
+  useEscapeToClose({
+    open: true,
+    onClose: () => {
       if (helpOpen) setHelpOpen(false);
       else tryClose();
-    };
-    window.addEventListener("keydown", onKey, true);
-    return () => window.removeEventListener("keydown", onKey, true);
-  }, [tryClose, helpOpen]);
+    },
+  });
 
   return (
     <Overlay onClick={(e) => { if (e.target === e.currentTarget) tryClose(); }}>

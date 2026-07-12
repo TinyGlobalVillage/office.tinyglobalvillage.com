@@ -18,6 +18,7 @@
 //
 // Self-contained (styled-components, per Office's no-Tailwind rule). Inline SVGs — no emoji.
 
+import { useEscapeToClose } from "@tgv/module-component-library/components/hooks/useEscapeToClose";
 import { useCallback, useEffect, useRef, useState } from "react";
 import styled, { keyframes, css } from "styled-components";
 import DDM, { type DDMItem } from "@tgv/module-component-library/components/ui/DDM";
@@ -176,11 +177,7 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
     })();
   }, [loadDocuments, loadActivity]);
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  useEscapeToClose({ open: true, onClose });
 
   // A recorded link belongs to one upload; switching mode invalidates it.
   useEffect(() => { setRecordedUrl(null); }, [mode]);

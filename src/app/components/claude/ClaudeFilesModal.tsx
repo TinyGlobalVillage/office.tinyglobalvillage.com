@@ -1,5 +1,6 @@
 "use client";
 
+import { useEscapeToClose } from "@tgv/module-component-library/components/hooks/useEscapeToClose";
 import { useState, useEffect, useCallback } from "react";
 import styled from "styled-components";
 import ClaudeIcon from "./ClaudeIcon";
@@ -161,18 +162,14 @@ export default function ClaudeFilesModal({ onClose }: { onClose: () => void }) {
 
   useEffect(() => { loadList(); }, [loadList]);
 
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        e.stopPropagation();
-        if (fullscreen) { setFullscreen(false); return; }
-        if (editing) { setEditing(false); setDraft(content); return; }
-        onClose();
-      }
-    };
-    document.addEventListener("keydown", handler, { capture: true });
-    return () => document.removeEventListener("keydown", handler, { capture: true });
-  }, [onClose, fullscreen, editing, content]);
+  useEscapeToClose({
+    open: true,
+    onClose: () => {
+      if (fullscreen) { setFullscreen(false); return; }
+      if (editing) { setEditing(false); setDraft(content); return; }
+      onClose();
+    },
+  });
 
   async function save() {
     if (!active) return;

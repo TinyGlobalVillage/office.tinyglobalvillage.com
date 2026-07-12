@@ -12,6 +12,7 @@
  * Today: one entry — 🌲 Feature Worktrees. Future migrations land alongside.
  */
 
+import { useEscapeToClose } from "@tgv/module-component-library/components/hooks/useEscapeToClose";
 import { useEffect, useState, type ReactNode } from "react";
 import styled from "styled-components";
 import { colors, glowRgba } from "../theme";
@@ -220,17 +221,13 @@ export default function UtilsLibraryModal({
   const [fullscreen, setFullscreen] = useState(false);
   const [child, setChild] = useState<Open>({ kind: "none" });
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        e.stopPropagation();
-        if (child.kind !== "none") setChild({ kind: "none" });
-        else onClose();
-      }
-    };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [child.kind, onClose]);
+  useEscapeToClose({
+    open: true,
+    onClose: () => {
+      if (child.kind !== "none") setChild({ kind: "none" });
+      else onClose();
+    },
+  });
 
   // Drop the backdrop below the nested modal's z-index so the child renders on top.
   const nestedOpen = child.kind !== "none";

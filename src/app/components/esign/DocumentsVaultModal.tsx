@@ -7,6 +7,7 @@
 // Vocabulary: GPG — responsive grid, pageSize = column count, pager only when total > pageSize.
 // styled-components, SVG icons only (no emoji/glyphs).
 
+import { useEscapeToClose } from "@tgv/module-component-library/components/hooks/useEscapeToClose";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
 import PillBar from "@tgv/module-component-library/components/ui/PillBar";
@@ -87,11 +88,7 @@ export default function DocumentsVaultModal({ onClose }: { onClose: () => void }
 
   useEffect(() => { load(); }, [load]);
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  useEscapeToClose({ open: true, onClose });
 
   useEffect(() => {
     const el = gridRef.current;

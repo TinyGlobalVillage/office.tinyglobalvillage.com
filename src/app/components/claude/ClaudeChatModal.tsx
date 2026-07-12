@@ -1,5 +1,6 @@
 "use client";
 
+import { useEscapeToClose } from "@tgv/module-component-library/components/hooks/useEscapeToClose";
 import { useState, useEffect, useRef } from "react";
 import styled from "styled-components";
 import ClaudeIcon from "./ClaudeIcon";
@@ -148,17 +149,13 @@ export default function ClaudeChatModal({ onClose }: { onClose: () => void }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const taRef = useRef<HTMLTextAreaElement>(null);
 
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        e.stopPropagation();
-        if (fullscreen) { setFullscreen(false); return; }
-        onClose();
-      }
-    };
-    document.addEventListener("keydown", handler, { capture: true });
-    return () => document.removeEventListener("keydown", handler, { capture: true });
-  }, [onClose, fullscreen]);
+  useEscapeToClose({
+    open: true,
+    onClose: () => {
+      if (fullscreen) { setFullscreen(false); return; }
+      onClose();
+    },
+  });
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;

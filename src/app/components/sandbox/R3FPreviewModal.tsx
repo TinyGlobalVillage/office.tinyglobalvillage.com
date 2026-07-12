@@ -1,5 +1,6 @@
 "use client";
 
+import { useEscapeToClose } from "@tgv/module-component-library/components/hooks/useEscapeToClose";
 import { useEffect, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import styled from "styled-components";
@@ -84,22 +85,9 @@ export default function R3FPreviewModal({ title, onClose, children }: R3FPreview
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        // SandboxModal listens on document with capture and was registered
-        // first, so it would win a same-target race. Capture on window fires
-        // BEFORE any document-level capture handler (window → document in
-        // the capture chain), so we intercept here and stop the event from
-        // ever reaching the sandbox.
-        e.stopImmediatePropagation();
-        e.preventDefault();
-        onClose();
-      }
-    };
-    window.addEventListener("keydown", onKey, { capture: true });
-    return () => window.removeEventListener("keydown", onKey, { capture: true });
-  }, [onClose]);
+  // On the shared Escape stack this nested preview is topmost, so it closes
+  // first without racing the SandboxModal underneath — no capture hack needed.
+  useEscapeToClose({ open: true, onClose });
 
   if (!mounted) return null;
 

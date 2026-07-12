@@ -1,5 +1,6 @@
 "use client";
 
+import { useEscapeToClose } from "@tgv/module-component-library/components/hooks/useEscapeToClose";
 import { useEffect, useRef, useState, useCallback } from "react";
 import styled from "styled-components";
 import { colors, rgb, glowRgba, type GlowColor } from "../theme";
@@ -365,11 +366,7 @@ export default function DashboardPageModal({ pageKey, title, glow, onClose }: Pr
     };
   }, [sidebarShown]);
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  useEscapeToClose({ open: true, onClose });
 
   useEffect(() => {
     if (!zoomDDMOpen) return;

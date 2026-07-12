@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEscapeToClose } from "@tgv/module-component-library/components/hooks/useEscapeToClose";
+import { useState } from "react";
 import styled from "styled-components";
 import LibraryIcon from "./LibraryIcon";
 import { colors, rgb, glowRgba } from "../theme";
@@ -151,11 +152,7 @@ export default function LibraryModal({ onClose }: { onClose: () => void }) {
   const [componentLibraryOpen, setComponentLibraryOpen] = useState(false);
   const [utilsLibraryOpen, setUtilsLibraryOpen] = useState(false);
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") { e.stopPropagation(); onClose(); } };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  useEscapeToClose({ open: true, onClose });
 
   // When a nested modal (Component Library / Skill / Playbook) is open,
   // drop the LibraryModal backdrop below the nested PanelBackdrop (z-index

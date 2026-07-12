@@ -1,5 +1,6 @@
 "use client";
 
+import { useEscapeToClose } from "@tgv/module-component-library/components/hooks/useEscapeToClose";
 import {
   Fragment,
   useState,
@@ -822,11 +823,8 @@ function FileLightbox({ file, onClose }: { file: File; onClose: () => void }) {
   const [scale, setScale] = useState(1);
   const url = URL.createObjectURL(file);
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
-    window.addEventListener("keydown", onKey);
-    return () => { window.removeEventListener("keydown", onKey); URL.revokeObjectURL(url); };
-  }, [onClose, url]);
+  useEscapeToClose({ open: true, onClose });
+  useEffect(() => () => URL.revokeObjectURL(url), [url]);
 
   const isVideo = file.type.startsWith("video/");
 

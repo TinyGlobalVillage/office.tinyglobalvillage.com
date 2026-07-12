@@ -1,5 +1,6 @@
 "use client";
 
+import { useEscapeToClose } from "@tgv/module-component-library/components/hooks/useEscapeToClose";
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import styled, { css } from "styled-components";
 import { colors, rgb } from "../../theme";
@@ -2905,18 +2906,14 @@ export default function SandboxModal({
     setUnsavedCode(null);
   }, [active]);
 
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        e.stopPropagation();
-        if (draftPickerOpen) { setDraftPickerOpen(false); return; }
-        if (fullscreen) { setFullscreen(false); return; }
-        onClose();
-      }
-    };
-    document.addEventListener("keydown", handler, { capture: true });
-    return () => document.removeEventListener("keydown", handler, { capture: true });
-  }, [onClose, fullscreen, draftPickerOpen]);
+  useEscapeToClose({
+    open: true,
+    onClose: () => {
+      if (draftPickerOpen) { setDraftPickerOpen(false); return; }
+      if (fullscreen) { setFullscreen(false); return; }
+      onClose();
+    },
+  });
 
   useEffect(() => {
     if (!draftPickerOpen) return;
