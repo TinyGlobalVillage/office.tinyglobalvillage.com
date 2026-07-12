@@ -1,12 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 import { colors, rgb } from "../../theme";
 import type { Alert } from "@/lib/frontdesk/types";
+import type { PersonalAlert } from "@tgv/module-calendar/alerts/types";
 import AnnouncementsPanel from "../AnnouncementsPanel";
-import { TrashIcon } from "../icons";
+import { TrashIcon, EventIcon } from "../icons";
 import { askConfirm } from "../dialogService";
+import AlertsCalendarModal from "./AlertsCalendarModal";
 
 // ── Styled ───────────────────────────────────────────────────────
 
@@ -120,12 +122,94 @@ const Empty = styled.div`
   font-size: 0.8125rem;
 `;
 
+const SchedRow = styled.li`
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 0.25rem 0.5rem;
+  padding: 0.5rem 0.7rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(${rgb.gold}, 0.2);
+  background: rgba(${rgb.gold}, 0.05);
+  cursor: pointer;
+  &:hover { border-color: rgba(${rgb.gold}, 0.4); background: rgba(${rgb.gold}, 0.1); }
+`;
+
+const SchedTitle = styled.div`
+  font-weight: 600;
+  color: var(--t-textBase);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+`;
+
+const SrcTag = styled.span<{ $manual: boolean }>`
+  font-size: 0.5625rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 1px 5px;
+  border-radius: 0.35rem;
+  color: ${(p) => (p.$manual ? colors.gold : colors.pink)};
+  border: 1px solid ${(p) => (p.$manual ? `rgba(${rgb.gold}, 0.4)` : `rgba(${rgb.pink}, 0.4)`)};
+`;
+
+// 3-column range pillbar for the inline scheduled-alerts peek.
+const RangeBar = styled.div`
+  display: inline-flex;
+  border: 1px solid rgba(${rgb.gold}, 0.35);
+  border-radius: 0.35rem;
+  overflow: hidden;
+`;
+
+const RangeSeg = styled.button<{ $active: boolean }>`
+  padding: 0.2rem 0.55rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  cursor: pointer;
+  border: none;
+  color: ${(p) => (p.$active ? "#0b0b0b" : colors.gold)};
+  background: ${(p) => (p.$active ? colors.gold : "transparent")};
+  & + & { border-left: 1px solid rgba(${rgb.gold}, 0.25); }
+  &:hover:not(:disabled) { background: ${(p) => (p.$active ? colors.gold : `rgba(${rgb.gold}, 0.14)`)}; }
+`;
+
+type SchedRange = "today" | "30d" | "12mo";
+const RANGES: { key: SchedRange; label: string }[] = [
+  { key: "today", label: "Today" },
+  { key: "30d", label: "30 Days" },
+  { key: "12mo", label: "12 Months" },
+];
+
+// Upper bound (ISO) of a range, measured from now. Alerts with trigger_at
+// between now and this bound show in that range.
+function rangeEndIso(range: SchedRange): string {
+  const d = new Date();
+  if (range === "today") d.setHours(23, 59, 59, 999);
+  else if (range === "30d") d.setDate(d.getDate() + 30);
+  else d.setMonth(d.getMonth() + 12);
+  return d.toISOString();
+}
+
+function fmtWhen(iso: string): string {
+  return new Date(iso).toLocaleString(undefined, {
+    month: "short", day: "numeric", hour: "numeric", minute: "2-digit",
+  });
+}
+
 // ── Component ────────────────────────────────────────────────────
 
 export default function AlertsTab() {
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [selectMode, setSelectMode] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [sched, setSched] = useState<PersonalAlert[]>([]);
+  const [range, setRange] = useState<SchedRange>("30d");
+  const [calOpen, setCalOpen] = useState(false);
+  const [calCreate, setCalCreate] = useState(false);
+  const [viewAlert, setViewAlert] = useState<PersonalAlert | null>(null);
   const toggleSel = (id: string) =>
     setSelected((prev) => {
       const next = new Set(prev);
@@ -142,11 +226,35 @@ export default function AlertsTab() {
     } catch { /* ignore */ }
   }, []);
 
+  // Upcoming team-scheduled alerts (System C) for the inline peek. Keep ALL
+  // future non-dismissed alerts; the range pillbar narrows what's shown.
+  const loadSched = useCallback(async () => {
+    try {
+      const res = await fetch("/api/frontdesk/team-alerts");
+      if (!res.ok) return;
+      const rows: PersonalAlert[] = await res.json();
+      const nowIso = new Date().toISOString();
+      setSched(
+        rows
+          .filter((r) => r.status !== "dismissed" && r.trigger_at >= nowIso)
+          .sort((a, b) => a.trigger_at.localeCompare(b.trigger_at))
+      );
+    } catch { /* ignore */ }
+  }, []);
+
+  // Narrow the peek to the selected range (Today / 30 days / 12 months). The
+  // far-future Hetzner migration alert (2027) only appears under "12 Months".
+  const visibleSched = useMemo(() => {
+    const endIso = rangeEndIso(range);
+    return sched.filter((a) => a.trigger_at <= endIso);
+  }, [sched, range]);
+
   useEffect(() => {
     load();
-    const id = setInterval(load, 20_000);
+    loadSched();
+    const id = setInterval(() => { load(); loadSched(); }, 20_000);
     return () => clearInterval(id);
-  }, [load]);
+  }, [load, loadSched]);
 
   const archive = async (id: string) => {
     await fetch(`/api/frontdesk/alerts/${id}`, {
@@ -176,6 +284,47 @@ export default function AlertsTab() {
 
   return (
     <Wrap>
+      <SectionHead style={{ textAlign: "center" }}>Scheduled alerts</SectionHead>
+      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "1.5rem", flexWrap: "wrap", marginBottom: "0.25rem" }}>
+        <RangeBar>
+          {RANGES.map((r) => (
+            <RangeSeg key={r.key} $active={range === r.key} onClick={() => setRange(r.key)}>
+              {r.label}
+            </RangeSeg>
+          ))}
+        </RangeBar>
+        <SelectBtn
+          onClick={() => { setViewAlert(null); setCalCreate(false); setCalOpen(true); }}
+          style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem" }}
+        >
+          <EventIcon size={11} /> Calendar
+        </SelectBtn>
+        <SelectBtn onClick={() => { setViewAlert(null); setCalCreate(true); setCalOpen(true); }}>＋ Add</SelectBtn>
+      </div>
+      {visibleSched.length === 0 ? (
+        <Empty style={{ padding: "0.5rem 0" }}>
+          No alerts {range === "today" ? "today" : range === "30d" ? "in the next 30 days" : "in the next 12 months"}.
+        </Empty>
+      ) : (
+        <AlertList style={{ marginTop: "0.5rem" }}>
+          {visibleSched.map((a) => (
+            <SchedRow
+              key={a.id}
+              onClick={() => { setViewAlert(a); setCalCreate(false); setCalOpen(true); }}
+              title="Open & edit this alert"
+            >
+              <SchedTitle>
+                {a.title}
+                {a.source !== "manual" && <SrcTag $manual={false}>{a.source}</SrcTag>}
+              </SchedTitle>
+              <AlertMeta>{fmtWhen(a.trigger_at)}</AlertMeta>
+            </SchedRow>
+          ))}
+        </AlertList>
+      )}
+
+      <Divider />
+
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "0.5rem" }}>
         <SectionHead>Inbound inquiries</SectionHead>
         {alerts.length > 0 && (
@@ -232,6 +381,13 @@ export default function AlertsTab() {
 
       <SectionHead>System announcements</SectionHead>
       <AnnouncementsPanel />
+
+      <AlertsCalendarModal
+        open={calOpen}
+        startInCreate={calCreate}
+        viewAlert={viewAlert}
+        onClose={() => { setCalOpen(false); setViewAlert(null); loadSched(); }}
+      />
     </Wrap>
   );
 }

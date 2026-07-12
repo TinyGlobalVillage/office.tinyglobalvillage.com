@@ -7,6 +7,7 @@ import { colors, rgb } from "../../theme";
 import TopNav from "../../components/TopNav";
 import { usePreview } from "../../components/PreviewDrawer";
 import dynamic from "next/dynamic";
+import TPG from "@tgv/module-component-library/components/ui/TPG";
 
 const DeployTargetsControlModal = dynamic(
   () => import("../../components/hardening/deploy-targets/DeployTargetsControlModal"),
@@ -38,7 +39,10 @@ const STATUS_COLOR: Record<string, string> = {
   errored: colors.red,
 };
 
-const PAGE_SIZE = 9;
+// TPG (Table Pagination Group) page-size options — multiples of the 3-col
+// tile grid so rows stay square; default preserves the prior 9-per-page.
+const DEFAULT_PAGE_SIZE = 9;
+const PAGE_SIZE_OPTIONS = [9, 18, 27, 50];
 
 /* ── Styled Components ─────────────────────────────────────────── */
 
@@ -303,46 +307,6 @@ const EmptyMessage = styled.div`
   padding: 3rem 0;
 `;
 
-const PaginationRow = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.75rem;
-  margin-top: 0.5rem;
-`;
-
-const PaginationBtn = styled.button`
-  width: 2rem;
-  height: 2rem;
-  border-radius: 9999px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.875rem;
-  background: var(--t-inputBg);
-  border: 1px solid var(--t-borderStrong);
-  color: var(--t-textMuted);
-  cursor: pointer;
-  transition: all 0.15s;
-
-  &:disabled {
-    opacity: 0.3;
-    cursor: not-allowed;
-  }
-
-  &:not(:disabled):hover {
-    border-color: rgba(${rgb.cyan}, 0.5);
-    color: ${colors.cyan};
-  }
-`;
-
-const PaginationLabel = styled.span`
-  font-size: 0.75rem;
-  font-family: monospace;
-  color: var(--t-textMuted);
-  font-variant-numeric: tabular-nums;
-`;
-
 /* ── Tile styled ───────────────────────────────────────────────── */
 
 const TileButton = styled.button<{ $isOnline: boolean }>`
@@ -501,6 +465,7 @@ export default function DeployPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const { openPreview } = usePreview();
 
   // Deploy button state — which clients are deployable + each one's latest deploy status.
@@ -592,9 +557,9 @@ export default function DeployPage() {
     return list;
   }, [projects, inner, asc]);
 
-  const totalPages = Math.max(1, Math.ceil(filteredProjects.length / PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(filteredProjects.length / pageSize));
   const safePage = Math.min(page, totalPages - 1);
-  const pageProjects = filteredProjects.slice(safePage * PAGE_SIZE, (safePage + 1) * PAGE_SIZE);
+  const pageProjects = filteredProjects.slice(safePage * pageSize, (safePage + 1) * pageSize);
 
   return (
     <>
@@ -691,25 +656,18 @@ export default function DeployPage() {
           </TileGrid>
         )}
 
-        {/* GPG pagination */}
-        {totalPages > 1 && (
-          <PaginationRow>
-            <PaginationBtn
-              onClick={() => setPage((p) => Math.max(0, p - 1))}
-              disabled={safePage === 0}
-            >
-              ‹
-            </PaginationBtn>
-            <PaginationLabel>
-              {safePage + 1} / {totalPages}
-            </PaginationLabel>
-            <PaginationBtn
-              onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
-              disabled={safePage === totalPages - 1}
-            >
-              ›
-            </PaginationBtn>
-          </PaginationRow>
+        {/* TPG — Table Pagination Group (info · page-size DDM · reset · prev/next) */}
+        {!loading && filteredProjects.length > 0 && (
+          <TPG
+            total={filteredProjects.length}
+            page={safePage + 1}
+            pageSize={pageSize}
+            defaultPageSize={DEFAULT_PAGE_SIZE}
+            pageSizeOptions={PAGE_SIZE_OPTIONS}
+            itemNoun="project"
+            onPageChange={(p) => setPage(p - 1)}
+            onPageSizeChange={(n) => { setPageSize(n); setPage(0); }}
+          />
         )}
       </PageMain>
       {targetsOpen && <DeployTargetsControlModal onClose={() => setTargetsOpen(false)} />}
