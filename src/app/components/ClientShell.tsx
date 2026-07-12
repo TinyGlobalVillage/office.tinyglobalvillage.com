@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode, Suspense } from "react";
+import { ReactNode, Suspense, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { TerminalProvider } from "./TerminalProvider";
 import { PreviewProvider } from "./PreviewDrawer";
@@ -24,6 +24,15 @@ function ShellInner({ children }: { children: ReactNode }) {
   const searchParams = useSearchParams();
   const embedded = searchParams?.get("embedded") === "1";
   const popout = searchParams?.get("popout") === "1";
+
+  // Deep link from a scheduled-alert email (…/dashboard?alert=<id>): open the
+  // Front Desk drawer on its alerts tab. AlertsTab reads the same ?alert= param
+  // on mount and opens that alert's detail card.
+  const deepAlert = searchParams?.get("alert");
+  useEffect(() => {
+    if (!deepAlert) return;
+    window.dispatchEvent(new CustomEvent("tgv-drawer-open", { detail: "alerts" }));
+  }, [deepAlert]);
 
   if (embedded) {
     // Embedded mode: stripped-down shell for iframe-mounted dashboard modals.

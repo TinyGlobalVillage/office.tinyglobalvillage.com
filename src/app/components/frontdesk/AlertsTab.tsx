@@ -258,6 +258,22 @@ export default function AlertsTab() {
     return () => clearInterval(id);
   }, [load, loadSched]);
 
+  // Deep link from a scheduled-alert email (…/dashboard?alert=<id>). ClientShell
+  // opens this drawer/tab; on mount we resolve the alert (full team list — so a
+  // past/triggered one still opens) and pop its detail card, then strip the param.
+  useEffect(() => {
+    const alertId = new URLSearchParams(window.location.search).get("alert");
+    if (!alertId) return;
+    window.history.replaceState({}, "", window.location.pathname);
+    (async () => {
+      try {
+        const rows: PersonalAlert[] = await fetch("/api/frontdesk/team-alerts").then((r) => r.json());
+        const a = Array.isArray(rows) ? rows.find((x) => x.id === alertId) : undefined;
+        if (a) { setViewAlert(a); setCalCreate(false); setCalOpen(true); }
+      } catch { /* ignore */ }
+    })();
+  }, []);
+
   const archive = async (id: string) => {
     await fetch(`/api/frontdesk/alerts/${id}`, {
       method: "PATCH",

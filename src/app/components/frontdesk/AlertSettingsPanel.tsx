@@ -84,6 +84,29 @@ const SaveBtn = styled.button`
   &:disabled { opacity: 0.45; cursor: not-allowed; }
 `;
 const Saved = styled.span`font-size: 0.75rem; color: #00dc64; font-weight: 700;`;
+const TextInput = styled.input`
+  padding: 0.5rem 0.7rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(${rgb.gold}, 0.35);
+  background: rgba(0, 0, 0, 0.25);
+  ${inkWhite}
+  font-size: 0.85rem;
+  outline: none;
+  &:focus { border-color: rgba(${rgb.gold}, 0.7); box-shadow: 0 0 0 2px rgba(${rgb.gold}, 0.15); }
+  &::placeholder { color: var(--t-textGhost); }
+  [data-theme="light"] & { background: rgba(0, 0, 0, 0.04); }
+`;
+const ResetLink = styled.button`
+  align-self: flex-start;
+  background: none;
+  border: none;
+  padding: 0;
+  color: ${colors.gold};
+  font-size: 0.68rem;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: underline;
+`;
 
 const TZ_OPTIONS = [
   "America/Los_Angeles", "America/Denver", "America/Chicago", "America/New_York",
@@ -105,6 +128,8 @@ export default function AlertSettingsPanel({ onSaved }: Props) {
   const [enabled, setEnabled] = useState(true);
   const [channels, setChannels] = useState<AlertChannel[]>(["dashboard"]);
   const [emailFromMode, setEmailFromMode] = useState<EmailFromMode>("own_fastmail");
+  const [alertEmail, setAlertEmail] = useState<string>("");
+  const [defaultEmail, setDefaultEmail] = useState<string>("");
   const [timezone, setTimezone] = useState<string>(detectTz());
   const [recurrence, setRecurrence] = useState<AlertRecurrence>("none");
   const [visibility, setVisibility] = useState<AlertVisibility>("personal");
@@ -117,6 +142,7 @@ export default function AlertSettingsPanel({ onSaved }: Props) {
       setEnabled(s.enabled);
       setChannels(s.default_channels as AlertChannel[]);
       setEmailFromMode(s.default_email_from_mode as EmailFromMode);
+      setAlertEmail((s as { alert_email?: string | null }).alert_email ?? "");
       setTimezone(s.timezone || detectTz());
       setRecurrence(s.default_recurrence as AlertRecurrence);
       setVisibility(s.default_visibility as AlertVisibility);
@@ -126,6 +152,14 @@ export default function AlertSettingsPanel({ onSaved }: Props) {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  // Default the recipient field to the signed-in user's canonical staff email.
+  useEffect(() => {
+    fetch("/api/frontdesk/me")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((me) => { if (me?.email) setDefaultEmail(me.email); })
+      .catch(() => {});
+  }, []);
 
   const toggleChan = (c: AlertChannel) =>
     setChannels((prev) => (prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]));
@@ -140,6 +174,7 @@ export default function AlertSettingsPanel({ onSaved }: Props) {
         default_recurrence: recurrence,
         default_visibility: visibility,
         default_email_from_mode: emailFromMode,
+        alert_email: alertEmail.trim() || null,
         timezone,
         enabled,
       });
@@ -191,6 +226,25 @@ export default function AlertSettingsPanel({ onSaved }: Props) {
             maxWidth="24rem"
             onChange={(v) => setEmailFromMode(v as EmailFromMode)}
           />
+        </Field>
+        <Field>
+          <Label>Send my alerts to</Label>
+          <TextInput
+            type="email"
+            value={alertEmail}
+            placeholder={defaultEmail || "you@tinyglobalvillage.com"}
+            onChange={(e) => setAlertEmail(e.target.value)}
+          />
+          <Hint>
+            {alertEmail.trim()
+              ? "Alerts assigned to you are delivered to this address."
+              : `Defaults to your staff email${defaultEmail ? ` (${defaultEmail})` : ""}.`}
+          </Hint>
+          {alertEmail.trim() && defaultEmail && (
+            <ResetLink type="button" onClick={() => setAlertEmail("")}>
+              Use my staff email ({defaultEmail})
+            </ResetLink>
+          )}
         </Field>
       </EmailBox>
 

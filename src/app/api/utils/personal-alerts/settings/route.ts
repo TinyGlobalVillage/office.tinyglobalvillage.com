@@ -44,6 +44,11 @@ export async function PUT(req: NextRequest) {
 
   // Upsert: insert with reasonable defaults for any unspecified field.
   const data = parsed.data;
+  // Empty string → null so the cron falls back to the user's staff email.
+  const alertEmail =
+    data.alert_email !== undefined
+      ? (data.alert_email && data.alert_email.trim()) || null
+      : undefined;
   const result = await alertsDb
     .insert(user_alert_settings)
     .values({
@@ -52,6 +57,7 @@ export async function PUT(req: NextRequest) {
       default_recurrence: data.default_recurrence ?? "none",
       default_visibility: data.default_visibility ?? "personal",
       default_email_from_mode: data.default_email_from_mode ?? "own_fastmail",
+      alert_email: alertEmail ?? null,
       timezone: data.timezone ?? "UTC",
       enabled: data.enabled ?? true,
       updated_at: new Date().toISOString(),
@@ -63,6 +69,7 @@ export async function PUT(req: NextRequest) {
         ...(data.default_recurrence !== undefined && { default_recurrence: data.default_recurrence }),
         ...(data.default_visibility !== undefined && { default_visibility: data.default_visibility }),
         ...(data.default_email_from_mode !== undefined && { default_email_from_mode: data.default_email_from_mode }),
+        ...(alertEmail !== undefined && { alert_email: alertEmail }),
         ...(data.timezone !== undefined && { timezone: data.timezone }),
         ...(data.enabled !== undefined && { enabled: data.enabled }),
         updated_at: new Date().toISOString(),
