@@ -7,12 +7,15 @@
 //
 // Reads /api/admin/villagers/member-profile; writes billing via
 // /api/admin/villagers/member-billing and founding via /api/admin/members/founding.
-// Billing here records operator decisions ONLY — no money moves; the membership
-// billing engine (tgv.com lane) reads member_billing. requireAdmin guards every route.
+// The Editor layers gate (page-editor design mode) reads + writes
+// /api/admin/villagers/layer-grant. Billing here records operator decisions
+// ONLY — no money moves; the membership billing engine (tgv.com lane) reads
+// member_billing. requireAdmin guards every route.
 
 import { useCallback, useEffect, useState } from "react";
 import styled from "styled-components";
 import { useEscapeToClose } from "@tgv/module-component-library/components/hooks/useEscapeToClose";
+import Lightswitch from "@tgv/module-component-library/components/ui/Lightswitch";
 import { colors, rgb } from "@/app/theme";
 import {
   ModalBackdrop,
@@ -99,6 +102,9 @@ export default function MemberLookupModal({ onClose }: { onClose: () => void }) 
   const [selected, setSelected] = useState<Member | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [foundingBusy, setFoundingBusy] = useState<string | null>(null);
+  // Editor layers gate — null = still loading the grant list for this member.
+  const [layerGrant, setLayerGrant] = useState<boolean | null>(null);
+  const [layerBusy, setLayerBusy] = useState(false);
   const [cards, setCards] = useState<SavedCard[] | null>(null);
   // The card the operator is charging (opens ChargeCardModal); null = closed.
   const [chargeTarget, setChargeTarget] = useState<SavedCard | null>(null);
@@ -150,6 +156,7 @@ export default function MemberLookupModal({ onClose }: { onClose: () => void }) 
     setCards(null);
     setTickets(null);
     setOpenTicket(null);
+    setLayerGrant(null);
     setMsg(null);
     const res = await fetch(
       `/api/admin/villagers/member-profile?memberId=${memberId}`,
@@ -188,6 +195,20 @@ export default function MemberLookupModal({ onClose }: { onClose: () => void }) 
         setTickets(tRes.ok && td.ok && Array.isArray(td.tickets) ? td.tickets : []);
       } catch {
         setTickets([]);
+      }
+      // Editor layers gate — best-effort; never blocks the profile.
+      try {
+        const gRes = await fetch("/api/admin/villagers/layer-grant", {
+          cache: "no-store",
+        });
+        const gd = await gRes.json().catch(() => ({}));
+        setLayerGrant(
+          gRes.ok && gd.ok && Array.isArray(gd.memberIds)
+            ? gd.memberIds.includes(memberId)
+            : false,
+        );
+      } catch {
+        setLayerGrant(false);
       }
     } else {
       setMsg({ kind: "err", text: d.error ?? `Couldn't load member (HTTP ${res.status}).` });
@@ -284,6 +305,34 @@ export default function MemberLookupModal({ onClose }: { onClose: () => void }) 
       setMsg({ kind: "err", text: "Founding toggle failed — couldn't reach the server." });
     } finally {
       setFoundingBusy(null);
+    }
+  };
+
+  // Editor layers gate — optimistic flip, revert on error (founding-toggle pattern).
+  const toggleLayerGrant = async () => {
+    if (!selected || layerGrant === null || layerBusy) return;
+    const next = !layerGrant;
+    setLayerGrant(next);
+    setLayerBusy(true);
+    try {
+      const res = await fetch("/api/admin/villagers/layer-grant", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ memberId: selected.id, granted: next }),
+      });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok || d.ok !== true) {
+        setLayerGrant(!next);
+        setMsg({
+          kind: "err",
+          text: d.error ?? `Editor layers toggle failed (HTTP ${res.status}).`,
+        });
+      }
+    } catch {
+      setLayerGrant(!next);
+      setMsg({ kind: "err", text: "Editor layers toggle failed — couldn't reach the server." });
+    } finally {
+      setLayerBusy(false);
     }
   };
 
@@ -395,6 +444,48 @@ export default function MemberLookupModal({ onClose }: { onClose: () => void }) 
                       ))}
                     </SiteList>
                   )}
+                </Card>
+
+                {/* Editor layers gate — page-editor design mode */}
+                <Card>
+                  <SectionTitle>Page Editor</SectionTitle>
+                  <SiteRow>
+                    <SiteLeft>
+                      <SiteName>Editor layers (design mode)</SiteName>
+                      <SiteMeta>
+                        {profile.member.role === "superadmin"
+                          ? "superadmins always have design mode"
+                          : layerGrant === null
+                            ? "Loading grant…"
+                            : layerGrant
+                              ? "Granted — full layer manipulation in the page editor"
+                              : "Off — the member edits content only"}
+                      </SiteMeta>
+                    </SiteLeft>
+                    <Lightswitch
+                      on={
+                        profile.member.role === "superadmin" || layerGrant === true
+                      }
+                      disabled={
+                        profile.member.role === "superadmin" ||
+                        layerGrant === null ||
+                        layerBusy
+                      }
+                      title={
+                        profile.member.role === "superadmin"
+                          ? "superadmins always have design mode"
+                          : layerGrant
+                            ? "Design mode granted — click to revoke"
+                            : "Content-only — click to grant design mode"
+                      }
+                      onChange={() => void toggleLayerGrant()}
+                    />
+                  </SiteRow>
+                  <HelpNote>
+                    Members get the Regular (content) editor by default. Granting design mode
+                    unlocks full layer manipulation in the TGV page editor. Grants are audited;
+                    revoking returns the member to content-only.
+                  </HelpNote>
                 </Card>
 
                 {/* Card on file — display + ad-hoc charge (consent-gated) */}
