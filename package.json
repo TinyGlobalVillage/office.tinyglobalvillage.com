@@ -26,6 +26,7 @@
     "@tgv/module-auth": "workspace:*",
     "@tgv/module-calendar": "workspace:*",
     "@tgv/module-component-library": "workspace:*",
+    "@tgv/module-email-campaigns": "workspace:*",
     "@tgv/module-consent": "workspace:*",
     "@tgv/module-documenso": "workspace:*",
     "@tgv/module-inbox": "workspace:*",
