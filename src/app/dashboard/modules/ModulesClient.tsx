@@ -18,6 +18,7 @@ import { colors, rgb } from "../../theme";
 import TopNav from "../../components/TopNav";
 import { ModulesIcon, EditorIcon, SettingsIcon } from "../../components/icons";
 import ModuleDashboardConfigModal from "../../components/modules/ModuleDashboardConfigModal";
+import { EmailCampaignsPanel } from "@tgv/module-email-campaigns";
 
 /* ── Styled (Villagers tile canon, violet accent) ─────────────────── */
 
@@ -137,10 +138,31 @@ const TileGear = styled.button`
   }
 `;
 
+const BackBtn = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.35rem 0.7rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  background: rgba(${rgb.violet}, 0.08);
+  border: 1px solid rgba(${rgb.violet}, 0.35);
+  color: ${colors.violet};
+  font-size: 0.8rem;
+  font-weight: 700;
+  transition: all 0.15s;
+
+  &:hover {
+    background: rgba(${rgb.violet}, 0.16);
+    border-color: rgba(${rgb.violet}, 0.6);
+  }
+`;
+
 /* ── Page ──────────────────────────────────────────────────────── */
 
 export default function ModulesClient() {
   const [openMdConfig, setOpenMdConfig] = useState(false);
+  const [view, setView] = useState<"grid" | "email">("grid");
 
   // Open the Module-Dashboard Harness Studio in a NEW TAB. Deliberately NOT
   // "noopener" so the studio's Close button can window.close() the tab (the
@@ -164,6 +186,32 @@ export default function ModulesClient() {
     const url = `${cfg.base}/${encodeURIComponent(cfg.lang)}/editor/module-dashboard?popout=1`;
     window.open(url, "_blank");
   };
+
+  // Email Campaigns opens INLINE (system-scoped editor) — same panel the member
+  // Support tab mounts tenant-scoped. Keeps everything inside the Modules surface
+  // instead of a separate top-level tile.
+  if (view === "email") {
+    return (
+      <>
+        <TopNav />
+        <PageMain>
+          <HeaderRow>
+            <BackBtn type="button" onClick={() => setView("grid")}>← Modules</BackBtn>
+            <TitleWrap>
+              <span style={{ fontSize: 22 }} aria-hidden>✉️</span>
+              <PageTitle>Email Campaigns</PageTitle>
+            </TitleWrap>
+          </HeaderRow>
+          <PageSubtitle style={{ marginBottom: "1.25rem" }}>
+            The TGV-wide outbound-email templates — pick a category, edit the branded email,
+            preview it live, and send yourself a test. Members edit their own site&apos;s copies
+            from their dashboard Support tab.
+          </PageSubtitle>
+          <EmailCampaignsPanel apiBase="/api/email-campaigns" scopeLabel="System" />
+        </PageMain>
+      </>
+    );
+  }
 
   return (
     <>
@@ -198,6 +246,17 @@ export default function ModulesClient() {
             >
               <SettingsIcon size={14} />
             </TileGear>
+          </TileWrap>
+
+          <TileWrap>
+            <Tile type="button" onClick={() => setView("email")}>
+              <TileTop><span style={{ fontSize: 18 }} aria-hidden>✉️</span> Email Campaigns</TileTop>
+              <TileSub>
+                Branded outbound-email templates — edit the system-wide copies every member
+                site inherits (welcome, receipts, domain reminders…). Preview live and send
+                yourself a test.
+              </TileSub>
+            </Tile>
           </TileWrap>
         </Grid>
       </PageMain>
