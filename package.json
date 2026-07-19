@@ -36,6 +36,7 @@
     "@tgv/module-relay": "workspace:*",
     "@tgv/module-transcriber": "workspace:*",
     "@tgv/module-village": "workspace:*",
+    "@tgv/module-wallet": "workspace:*",
     "@types/bcryptjs": "^2.4.6",
     "@types/nodemailer": "^8.0.0",
     "@types/qrcode": "^1.5.6",

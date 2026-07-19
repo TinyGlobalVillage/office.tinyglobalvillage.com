@@ -52,6 +52,11 @@ data/users.json
 # Front Desk runtime data — live operator state; a deploy must never clobber it
 data/frontdesk/*.json
 
+# Hardening audit trail — runtime security events (auth enrolments, killswitch
+# flips). Same class as data/users.json: written live, per-box, restored from
+# backup on a rebuild. Committing it would ship one box's log over another's.
+data/audit/
+
 # Telephony runtime audio — live operator state; deploys must never clobber it
 telephony/data/voicemails/
 telephony/data/recordings/

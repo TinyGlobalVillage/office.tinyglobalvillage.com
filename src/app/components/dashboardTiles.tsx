@@ -79,6 +79,7 @@ export const OFFICE_TILES: OfficeTileDef[] = [
   { key: "Villagers", title: "Villagers", subtitle: "Members & wallets", glow: "gold", icon: (s) => <MembersIcon size={s} style={{ color: colors.gold }} />, action: { page: "villagers" } },
   { key: "Modules", title: "Modules", subtitle: "Platform surfaces", glow: "violet", icon: (s) => <ModulesIcon size={s} style={{ color: colors.violet }} />, action: { page: "modules" } },
   { key: "Payroll", title: "Payroll", subtitle: "Staff hours & rates", glow: "gold", icon: (s) => <CashIcon size={s} style={{ color: colors.gold }} />, action: { page: "payroll" } },
+  { key: "Wallet", title: "Wallet", subtitle: "TGV business money", glow: "gold", icon: (s) => <CashIcon size={s} style={{ color: colors.gold }} />, action: { page: "wallet" } },
   // Email Campaigns is NOT a top-level tile — it lives inside Modules (Modules tile →
   // Email Campaigns) as a platform module surface. See dashboard/modules/ModulesClient.
   { key: "Claude", title: "Claude", subtitle: "AI Assistant", glow: "orange", icon: (s) => <ClaudeIcon size={s} color={colors.orange} />, action: { event: "open-claude" } },
