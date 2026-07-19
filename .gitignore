@@ -52,6 +52,21 @@ data/users.json
 # Front Desk runtime data — live operator state; a deploy must never clobber it
 data/frontdesk/*.json
 
+# Chat / DM / call / notes runtime state — same class as data/users.json above, but
+# these were left TRACKED, so every deploy's git sync tried to revert live messages
+# to whatever was last committed (caught 2026-07-18: direct-messages.json had 8 lines
+# of that day's DMs that a checkout would have thrown away). Untracked now; they live
+# on disk + in the nightly restic backup, restored from backup on a rebuild, not git.
+data/chat-messages.json
+data/direct-messages.json
+data/ring-calls.json
+data/user-notes.json
+
+# Backup bookkeeping — written by the backup/restore-test jobs on whichever box runs
+# them; committing it ships one box's history over another's.
+data/backups/manifest.json
+data/backups/restore-test-history.json
+
 # Hardening audit trail — runtime security events (auth enrolments, killswitch
 # flips). Same class as data/users.json: written live, per-box, restored from
 # backup on a rebuild. Committing it would ship one box's log over another's.
