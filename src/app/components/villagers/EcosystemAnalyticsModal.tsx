@@ -26,7 +26,7 @@ type Bucket = { bucket: string; outstanding: number; holders: number };
 type Reason = { reason: string; credited: number; debited: number; entries: number };
 type Withdrawal = { status: string; count: number; tokens: number; cents: number };
 
-type Population = { villagers: number | null; customers: number | null; members: number | null };
+type Population = { villagers: number | null; members: number | null };
 
 type Analytics = {
   env: string;
@@ -121,12 +121,10 @@ export default function EcosystemAnalyticsModal({ onClose }: { onClose: () => vo
           <Stat $accent>
             <SLabel>Villagers</SLabel>
             <SVal>{pop?.villagers ?? "—"}</SVal>
-            <Dim>own ≥1 village site</Dim>
           </Stat>
           <Stat>
             <SLabel>Members</SLabel>
             <SVal>{pop?.members ?? "—"}</SVal>
-            <Dim>villagers + their customers · deduped</Dim>
           </Stat>
         </PopRow>
       )}
@@ -251,11 +249,11 @@ export default function EcosystemAnalyticsModal({ onClose }: { onClose: () => vo
       id: "population",
       title: "Village population",
       qmbm:
-        "Who's in the village for the selected lane. Villagers = members who own at least one site " +
-        "(a villager is a status — owning a site makes you one). Members = the villagers AND all " +
-        "their customers as one total, DEDUPED — a villager who is also another villager's customer " +
-        "is counted once, and guests without an account aren't counted. Today customers is zero, so " +
-        "Members equals Villagers.",
+        "Two tiers of the village, top-down. Members = every active account — one per username, " +
+        "staff included. Villagers = the members who have a dashboard (they run at least one village " +
+        "site), counted once even if they run several. Villagers are a subset of Members; a member " +
+        "with no dashboard (e.g. a village's own customer) counts as a Member but not a Villager. " +
+        "Village-wide totals — not scoped to the live/test lane.",
       body: populationBody,
     },
     {
