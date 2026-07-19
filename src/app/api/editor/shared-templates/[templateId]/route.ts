@@ -1,5 +1,6 @@
 // GET /api/editor/shared-templates/[templateId]
 // PATCH /api/editor/shared-templates/[templateId]
+// DELETE /api/editor/shared-templates/[templateId]
 //
 // GET: returns the full template row including the PageModel JSON. Used
 // by the Library surface's Page Templates section to render a preview /
@@ -10,12 +11,16 @@
 //     suggestedTitle, model }
 // Status transitions go through the dedicated /status route so the two
 // concerns stay separated (edit vs publish).
+//
+// DELETE: soft delete (stamps deleted_at). Backs the Template Gallery's
+// Delete action, which is always behind a confirm modal.
 
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/api-admin";
 import {
   getSharedTemplate,
   patchSharedTemplate,
+  softDeleteSharedTemplate,
   type SharedTemplatePatch,
 } from "@/lib/db-shared-templates";
 
@@ -77,6 +82,23 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
     return NextResponse.json({ template });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Patch failed";
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
+}
+
+export async function DELETE(req: NextRequest, ctx: Ctx) {
+  const gate = await requireAdmin(req);
+  if (gate instanceof NextResponse) return gate;
+
+  const { templateId } = await ctx.params;
+  try {
+    const deleted = await softDeleteSharedTemplate(templateId);
+    if (!deleted) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+    return NextResponse.json({ ok: true });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Delete failed";
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

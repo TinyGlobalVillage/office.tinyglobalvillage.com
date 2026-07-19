@@ -14,7 +14,7 @@ import {
   jsonb,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
-import { and, desc, eq, isNull } from "drizzle-orm";
+import { and, asc, desc, eq, isNull } from "drizzle-orm";
 import { villagerSites } from "@tgv/module-registry/db";
 import { db } from "./db-drizzle";
 
@@ -29,6 +29,9 @@ export const sharedTemplates = pgTable(
     thumbnail: text("thumbnail"),
     suggestedSlug: text("suggested_slug").notNull(),
     suggestedTitle: text("suggested_title").notNull(),
+    /** Business-vertical tags (migration 0095) — the wizard's curated gallery
+     *  filters on these; the Template Gallery shows them on each tile. */
+    tags: text("tags").array().notNull().default([]),
     status: text("status").notNull().default("sandbox"),
     model: jsonb("model_json").notNull(),
     createdBy: uuid("created_by").references(() => villagerSites.id, {
@@ -57,6 +60,7 @@ export type SharedTemplateSummary = {
   thumbnail: string | null;
   suggestedSlug: string;
   suggestedTitle: string;
+  tags: string[];
   status: SharedTemplateStatus;
   createdBy: string | null;
   createdAt: string;
@@ -80,6 +84,7 @@ function rowToSummary(
     thumbnail: row.thumbnail,
     suggestedSlug: row.suggestedSlug,
     suggestedTitle: row.suggestedTitle,
+    tags: row.tags ?? [],
     status: row.status as SharedTemplateStatus,
     createdBy: row.createdBy,
     createdAt: row.createdAt.toISOString(),
@@ -103,6 +108,41 @@ export async function listSharedTemplatesForStatus(
     .orderBy(desc(sharedTemplates.updatedAt));
 
   return rows.map(rowToSummary);
+}
+
+/** Every live row regardless of status — the Template Gallery's "All" pill.
+ *  Live first, then most-recently-touched, so the gallery leads with what
+ *  members can actually pick. */
+export async function listAllSharedTemplates(): Promise<
+  SharedTemplateSummary[]
+> {
+  const rows = await db
+    .select()
+    .from(sharedTemplates)
+    .where(isNull(sharedTemplates.deletedAt))
+    .orderBy(asc(sharedTemplates.status), desc(sharedTemplates.updatedAt));
+
+  return rows.map(rowToSummary);
+}
+
+/** Soft delete — stamps deleted_at, row stays for audit/restore. The unique
+ *  index on template_id is NOT partial, so a deleted id can't be recreated
+ *  from the gallery; restoring means clearing deleted_at directly. */
+export async function softDeleteSharedTemplate(
+  templateId: string,
+): Promise<boolean> {
+  const rows = await db
+    .update(sharedTemplates)
+    .set({ deletedAt: new Date(), updatedAt: new Date() })
+    .where(
+      and(
+        eq(sharedTemplates.templateId, templateId),
+        isNull(sharedTemplates.deletedAt),
+      ),
+    )
+    .returning({ id: sharedTemplates.id });
+
+  return rows.length > 0;
 }
 
 export async function getSharedTemplate(

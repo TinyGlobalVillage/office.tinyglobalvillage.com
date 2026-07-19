@@ -16,8 +16,9 @@ import { useState } from "react";
 import styled from "styled-components";
 import { colors, rgb } from "../../theme";
 import TopNav from "../../components/TopNav";
-import { ModulesIcon, EditorIcon, SettingsIcon } from "../../components/icons";
+import { ModulesIcon, EditorIcon, SettingsIcon, PhotosIcon } from "../../components/icons";
 import ModuleDashboardConfigModal from "../../components/modules/ModuleDashboardConfigModal";
+import TemplateGalleryPanel from "../../components/modules/TemplateGalleryPanel";
 import { EmailCampaignsPanel } from "@tgv/module-email-campaigns";
 
 /* ── Styled (Villagers tile canon, violet accent) ─────────────────── */
@@ -162,7 +163,7 @@ const BackBtn = styled.button`
 
 export default function ModulesClient() {
   const [openMdConfig, setOpenMdConfig] = useState(false);
-  const [view, setView] = useState<"grid" | "email">("grid");
+  const [view, setView] = useState<"grid" | "email" | "templates">("grid");
 
   // Open the Module-Dashboard Harness Studio in a NEW TAB. Deliberately NOT
   // "noopener" so the studio's Close button can window.close() the tab (the
@@ -213,6 +214,34 @@ export default function ModulesClient() {
     );
   }
 
+  // Template Gallery opens INLINE for the same reason Email Campaigns does —
+  // it's a platform-library surface, not a separate destination. Edit hops out
+  // to the tgv.com editor in a new tab (see TemplateGalleryPanel's header).
+  if (view === "templates") {
+    return (
+      <>
+        <TopNav />
+        <PageMain>
+          <HeaderRow>
+            <BackBtn type="button" onClick={() => setView("grid")}>← Modules</BackBtn>
+            <TitleWrap>
+              <PhotosIcon size={22} style={{ color: colors.violet }} />
+              <PageTitle>Template Gallery</PageTitle>
+            </TitleWrap>
+          </HeaderRow>
+          <PageSubtitle style={{ marginBottom: "1.25rem" }}>
+            The page templates every member&apos;s editor picker and the onboarding wizard
+            offer. <strong>Live</strong> templates are pickable platform-wide;
+            <strong> Drafts</strong> stay here, invisible to members — that&apos;s how a
+            vertical gets pulled without deleting the work. Edits deploy to the database
+            immediately, no code release.
+          </PageSubtitle>
+          <TemplateGalleryPanel />
+        </PageMain>
+      </>
+    );
+  }
+
   return (
     <>
       <TopNav />
@@ -255,6 +284,17 @@ export default function ModulesClient() {
                 Branded outbound-email templates — edit the system-wide copies every member
                 site inherits (welcome, receipts, domain reminders…). Preview live and send
                 yourself a test.
+              </TileSub>
+            </Tile>
+          </TileWrap>
+
+          <TileWrap>
+            <Tile type="button" onClick={() => setView("templates")}>
+              <TileTop><PhotosIcon size={18} /> Template Gallery</TileTop>
+              <TileSub>
+                The page templates members can start a site from — Live, Drafts, or All.
+                Preview each one, edit it in the real editor, or move it to Drafts to pull
+                a vertical out of circulation without deleting the work.
               </TileSub>
             </Tile>
           </TileWrap>
