@@ -26,6 +26,8 @@ type Bucket = { bucket: string; outstanding: number; holders: number };
 type Reason = { reason: string; credited: number; debited: number; entries: number };
 type Withdrawal = { status: string; count: number; tokens: number; cents: number };
 
+type Population = { villagers: number | null; customers: number | null; members: number | null };
+
 type Analytics = {
   env: string;
   tokenValueUsd: number;
@@ -37,6 +39,7 @@ type Analytics = {
   byReason: Reason[];
   withdrawals: Withdrawal[];
   managedAccounts: number | null;
+  population?: Population;
 };
 
 const RATE = 0.25;
@@ -106,18 +109,40 @@ export default function EcosystemAnalyticsModal({ onClose }: { onClose: () => vo
     </LaneTabs>
   );
 
-  /* ── Overview section ── */
-  const overviewBody = (
+  /* ── Village population section (headcount, lane-scoped) ── */
+  const pop = data?.population;
+  const populationBody = (
     <Body>
       {laneTabs}
       {loading && <Dim>Loading…</Dim>}
       {err && <ErrText>{err}</ErrText>}
       {data && !loading && (
-        <StatRow>
+        <PopRow>
+          <Stat $accent>
+            <SLabel>Villagers</SLabel>
+            <SVal>{pop?.villagers ?? "—"}</SVal>
+            <Dim>own ≥1 village site</Dim>
+          </Stat>
           <Stat>
             <SLabel>Members</SLabel>
+            <SVal>{pop?.members ?? "—"}</SVal>
+            <Dim>villagers + their customers · deduped</Dim>
+          </Stat>
+        </PopRow>
+      )}
+    </Body>
+  );
+
+  /* ── Overview section ── */
+  const overviewBody = (
+    <Body>
+      {!data && !loading && <Dim>—</Dim>}
+      {data && !loading && (
+        <StatRow>
+          <Stat>
+            <SLabel>Active wallets</SLabel>
             <SVal>{data.members}</SVal>
-            <Dim>with wallet activity</Dim>
+            <Dim>members with token activity</Dim>
           </Stat>
           <Stat>
             <SLabel>In circulation</SLabel>
@@ -223,10 +248,21 @@ export default function EcosystemAnalyticsModal({ onClose }: { onClose: () => vo
 
   const sections: HCMSection[] = [
     {
+      id: "population",
+      title: "Village population",
+      qmbm:
+        "Who's in the village for the selected lane. Villagers = members who own at least one site " +
+        "(a villager is a status — owning a site makes you one). Members = the villagers AND all " +
+        "their customers as one total, DEDUPED — a villager who is also another villager's customer " +
+        "is counted once, and guests without an account aren't counted. Today customers is zero, so " +
+        "Members equals Villagers.",
+      body: populationBody,
+    },
+    {
       id: "overview",
       title: "Economy overview",
       qmbm:
-        "The headline shape of the economy for the selected lane (live vs test): members with wallet " +
+        "The headline shape of the economy for the selected lane (live vs test): wallets with token " +
         "activity, total tokens in circulation, member-to-member gift volume, and cash actually paid " +
         "out. Aggregates only — no individual wallets.",
       body: overviewBody,
@@ -264,8 +300,9 @@ export default function EcosystemAnalyticsModal({ onClose }: { onClose: () => vo
       qmbm={
         "The operator console for the whole token + money economy.\n\n" +
         "Top: a live feed of operator money actions (withdrawals + managed Stripe events). Then the " +
-        "economy by lane — overview, tokens per bucket, flows by reason, and the money side. Every " +
-        "number is an aggregate; no individual member's wallet is ever shown here."
+        "village by lane — who's in it (villagers + members), the economy overview, tokens per bucket, " +
+        "flows by reason, and the money side. Every number is an aggregate; no individual member's " +
+        "wallet is ever shown here."
       }
       onClose={onClose}
       sections={sections}
@@ -302,6 +339,10 @@ const StatRow = styled.div`
   @media (max-width: 640px) {
     grid-template-columns: repeat(2, 1fr);
   }
+`;
+const PopRow = styled(StatRow)`
+  grid-template-columns: repeat(2, 1fr);
+  max-width: 24rem;
 `;
 const Stat = styled.div<{ $accent?: boolean }>`
   display: flex;

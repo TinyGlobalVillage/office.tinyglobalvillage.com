@@ -9,7 +9,7 @@
 // Reads tgv_db directly (raw SQL — tgv.com-owned tables, not in Office's schema; mirrors the
 // member-wallet + cash-out queue routes). Operator-only (requireAdmin). Lane-scoped (live | test).
 import { type NextRequest, NextResponse } from "next/server";
-import { sql } from "drizzle-orm";
+import { sql, type SQL } from "drizzle-orm";
 import { requireAdmin } from "@/lib/api-admin";
 import { db } from "@/lib/db-drizzle";
 
@@ -77,6 +77,52 @@ export async function GET(req: NextRequest) {
     managedAccounts = null;
   }
 
+  // ── Village population (env-scoped through villager_sites) ──────────────────
+  // Villagers = members who OWN ≥1 site — a villager is a STATUS: owning a `villager`
+  // row makes you one (TGV HQ, Refusionist, ResonantWeaver, Nevlo, …). Customers =
+  // members who've bought from a villager's store (`customers` junction, guests with a
+  // null account excluded). Members = the DEDUPED UNION of the two — every unique person
+  // who is a villager and/or a customer, so a villager who also buys from another villager
+  // counts once. Each count is defensive: the live `customers` table carries a
+  // `seller_site_id` FK not reflected in every env's schema, so a failure degrades that
+  // figure to null (→ "—" in the UI) instead of 500-ing the whole roll-up.
+  const countOne = async (query: SQL): Promise<number | null> => {
+    try {
+      const r = await db.execute(query);
+      return Number((r.rows?.[0] as { n?: number } | undefined)?.n ?? 0);
+    } catch {
+      return null;
+    }
+  };
+  const villagers = await countOne(sql`
+    select count(distinct v.member_id)::int as n
+      from villager v
+      join villager_sites vs on vs.id = v.site_id
+     where vs.env = ${env}
+  `);
+  const customers = await countOne(sql`
+    select count(distinct c.customer_member_id)::int as n
+      from customers c
+      join villager_sites vs on vs.id = c.seller_site_id
+     where vs.env = ${env} and c.customer_member_id is not null
+  `);
+  let memberPeople = await countOne(sql`
+    select count(*)::int as n from (
+      select v.member_id as mid
+        from villager v
+        join villager_sites vs on vs.id = v.site_id
+       where vs.env = ${env}
+      union
+      select c.customer_member_id as mid
+        from customers c
+        join villager_sites vs on vs.id = c.seller_site_id
+       where vs.env = ${env} and c.customer_member_id is not null
+    ) u
+  `);
+  // Union failed (e.g. customers.seller_site_id absent in this env) → best-effort headcount
+  // is the villager count we already have.
+  if (memberPeople === null) memberPeople = villagers;
+
   const buckets = (bucketsRes.rows as Array<{ bucket: string; outstanding: number; holders: number }>).map(
     (r) => ({ bucket: r.bucket, outstanding: Number(r.outstanding) || 0, holders: Number(r.holders) || 0 }),
   );
@@ -112,5 +158,6 @@ export async function GET(req: NextRequest) {
     byReason,
     withdrawals,
     managedAccounts,
+    population: { villagers, customers, members: memberPeople },
   });
 }
