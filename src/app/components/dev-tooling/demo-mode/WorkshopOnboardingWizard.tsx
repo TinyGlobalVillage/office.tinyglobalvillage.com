@@ -136,7 +136,7 @@ export default function WorkshopOnboardingWizard({ onClose }: { onClose: () => v
       <ModalContainer onClick={(e) => e.stopPropagation()} style={{ maxWidth: "38rem" }}>
         <ModalHeader>
           <ModalHeaderLeft>
-            <ModalTitle $color={colors.cyan}>🔑 Set up this Mac for Workshop</ModalTitle>
+            <ModalTitle $color={colors.cyan}>🔑 Setup Your Computer for Workshop</ModalTitle>
             <ModalSubtitle>
               authenticated live-dev · workshop-{info?.account ?? "…"}.tinyglobalvillage.com
             </ModalSubtitle>
@@ -221,7 +221,7 @@ export default function WorkshopOnboardingWizard({ onClose }: { onClose: () => v
                   <Section>
                     <SectionTitle>4 · Ready 🎉</SectionTitle>
                     <Hint>
-                      This Mac is workshop-ready{info.webport ? ` (reserved webport ${info.webport})` : ""}. Close
+                      Your computer is workshop-ready{info.webport ? ` (reserved webport ${info.webport})` : ""}. Close
                       this wizard and click <b>Start workshop</b> — your instance will live at{" "}
                       <b>workshop-{info.account}.tinyglobalvillage.com</b> with your real Office login and
                       read-only prod data.

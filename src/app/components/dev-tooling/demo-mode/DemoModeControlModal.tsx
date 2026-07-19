@@ -302,7 +302,7 @@ export default function DemoModeControlModal({ onClose }: DemoModeControlModalPr
                 {" "}<code>demo-N</code> URL on the 7GB box{boxRamUpgraded ? "" : " — capped at one live workshop until the Box RAM upgrade"}.
               </Hint>
               <Row>
-                <Btn onClick={() => setWizardOpen(true)}>🔑 Set up this Mac — authenticated workshop</Btn>
+                <Btn onClick={() => setWizardOpen(true)}>🔑 Setup Your Computer — authenticated workshop</Btn>
                 <Hint>first-time onboarding: real Office SSO + read-only prod data at workshop-&lt;you&gt;.tinyglobalvillage.com</Hint>
               </Row>
             </Section>
