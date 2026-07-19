@@ -2,7 +2,7 @@
 // Office TopNav — now a thin host wrapper around the canonical library TgvNav
 // (@tgv/module-component-library/domains/navigation/components/TgvNav), which
 // was lifted FROM this file (worktree-tgv-nav, 2026-07-08). Office-specific
-// concerns stay here: the office BalloonSVG identity, the pink accent, the
+// concerns stay here: the pink accent, the
 // nav/tool menu items, back/forward history arrows, the presence-chip roster,
 // LDM, sign-out, and the ProfileModal. Layout, the balloon menu, and the
 // "Hide Menu"/"Show Menu" tab are the library's.
@@ -38,22 +38,11 @@ const menuTools = OFFICE_TILES.filter((t) => t.inMenu !== false)
     return (a.menuLabel ?? a.title).localeCompare(b.menuLabel ?? b.title);
   });
 
-export function BalloonSVG({ size = 30 }: { size?: number }) {
-  return (
-    <svg width={size} height={Math.round(size * 1.35)} viewBox="0 0 30 41" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <ellipse cx="15" cy="14" rx="13" ry="13.5" fill="#ff4ecb" />
-      <path d="M2 14 Q6 0 15 1 Q6 6 2 14Z" fill="rgba(255,255,255,0.12)" />
-      <path d="M28 14 Q24 0 15 1 Q24 6 28 14Z" fill="rgba(0,0,0,0.12)" />
-      <path d="M15 1 Q18 14 15 27.5 Q12 14 15 1Z" fill="rgba(255,255,255,0.10)" />
-      <ellipse cx="15" cy="14" rx="13" ry="2" fill="rgba(247,183,0,0.55)" />
-      <ellipse cx="11" cy="9" rx="3.5" ry="4" fill="rgba(255,255,255,0.22)" />
-      <path d="M11.5 27 L13 31.5 M18.5 27 L17 31.5" stroke="rgba(247,183,0,0.8)" strokeWidth="1.2" strokeLinecap="round" />
-      <rect x="11.5" y="31.5" width="7" height="5.5" rx="1.5" fill="rgba(247,183,0,0.85)" stroke="rgba(180,120,0,0.5)" strokeWidth="0.5" />
-      <line x1="15" y1="31.5" x2="15" y2="37" stroke="rgba(0,0,0,0.2)" strokeWidth="0.6" />
-      <line x1="11.5" y1="34" x2="18.5" y2="34" stroke="rgba(0,0,0,0.2)" strokeWidth="0.6" />
-    </svg>
-  );
-}
+// The office BalloonSVG that used to live here IS the canon TgvBalloon as of
+// 2026-07-19 — same artwork, now with a neon-tinted basket + ropes and the
+// idle wiggle. TgvNav's default mark is that component, so Office stopped
+// passing a `balloon` override rather than keeping a second copy in drift.
+// (public/favicon.svg still carries its own inline copy — static asset.)
 
 /* ── Styled (office-local bar-end widgets) ─────────────────────── */
 
@@ -343,7 +332,6 @@ function TopNavInner() {
     <>
       <TgvNav
         context="dashboard"
-        balloon={BalloonSVG}
         sections={sections}
         accent={colors.pink}
         accentRgb={rgb.pink}
