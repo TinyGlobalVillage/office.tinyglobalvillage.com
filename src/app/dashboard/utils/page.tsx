@@ -25,6 +25,7 @@ const ESignControlModal = dynamic(() => import("../../components/esign/ESignCont
 const DocumentsVaultModal = dynamic(() => import("../../components/esign/DocumentsVaultModal"), { ssr: false });
 const BuildGuardControlModal = dynamic(() => import("../../components/hardening/build-guard/BuildGuardControlModal"), { ssr: false });
 const TsserverControlModal = dynamic(() => import("../../components/hardening/tsserver/TsserverControlModal"), { ssr: false });
+const DomainDnsControlModal = dynamic(() => import("../../components/hardening/domain-dns/DomainDnsControlModal"), { ssr: false });
 const KeycloakControlModal = dynamic(() => import("../../components/hardening/keycloak/KeycloakControlModal"), { ssr: false });
 const DemoModeControlModal = dynamic(() => import("../../components/dev-tooling/demo-mode/DemoModeControlModal"), { ssr: false });
 import AutomationsTab from "../../components/automations/AutomationsTab";
@@ -1878,6 +1879,22 @@ function UtilsAdlSurface({
                         </HardeningTileSub>
                       </HardeningTile>
                     );
+                    if (tile.type === "domain-dns") return (
+                      <HardeningTile key={i} type="button" onClick={() => onOpenHardening("domain-dns")}>
+                        <HardeningTileTop>
+                          <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: "-2px", marginRight: 8 }}>
+                            <circle cx="12" cy="12" r="9" />
+                            <path d="M3 12h18M12 3c2.5 2.7 2.5 15.3 0 18M12 3c-2.5 2.7-2.5 15.3 0 18" />
+                          </svg>
+                          Domain DNS Health
+                        </HardeningTileTop>
+                        <HardeningTileSub>
+                          Registrar delegation vs. each domain&apos;s Cloudflare zone. Flags any TGV-managed
+                          domain whose nameservers drifted off its zone (the condition that silently lapses
+                          a zone), with one-click re-wire.
+                        </HardeningTileSub>
+                      </HardeningTile>
+                    );
                     if (tile.type === "tsserver") return (
                       <HardeningTile key={i} type="button" onClick={() => onOpenHardening("tsserver")}>
                         <HardeningTileTop>
@@ -2049,7 +2066,7 @@ type DefaultsOverlay = Record<string, Record<string, FieldValue>>;
 // opens its HardeningControlModal. New hardenings get a new tile + a new
 // `kind` value below.
 
-type HardeningKind = "telephony" | "tenant-apps" | "member-auth" | "office-staff" | "mesh-vpn" | "invitations" | "firewall" | "build-guard" | "tsserver" | "keycloak" | "demo-mode";  // | "postgres" | "ssh" | "nginx" — future
+type HardeningKind = "telephony" | "tenant-apps" | "member-auth" | "office-staff" | "mesh-vpn" | "invitations" | "firewall" | "build-guard" | "tsserver" | "keycloak" | "demo-mode" | "domain-dns";  // | "postgres" | "ssh" | "nginx" — future
 
 // ── Link Tools (TinyURL + QR generators) ──────────────────────────────────
 //
@@ -2089,6 +2106,7 @@ type TileSpec =
   | { type: "invitations" }
   | { type: "firewall" }
   | { type: "build-guard" }
+  | { type: "domain-dns" }
   | { type: "tsserver" }
   | { type: "keycloak" }
   | { type: "demo-mode" }
@@ -2139,7 +2157,7 @@ const SECTIONS: Section[] = [
     kind: "actions", actionIds: ["gitrepo", "gitdelrepo"] },
   { id: "hardening", title: "Hardening", accent: "cyan",
     subtitle: "defensive mechanisms installed on RCS — controls + status + audit log",
-    kind: "tiles", tiles: [{ type: "firewall" }, { type: "telephony" }, { type: "tenant-apps" }, { type: "member-auth" }, { type: "keycloak" }, { type: "office-staff" }, { type: "mesh-vpn" }, { type: "invitations" }, { type: "build-guard" }, { type: "tsserver" }] },
+    kind: "tiles", tiles: [{ type: "firewall" }, { type: "telephony" }, { type: "tenant-apps" }, { type: "member-auth" }, { type: "keycloak" }, { type: "office-staff" }, { type: "mesh-vpn" }, { type: "invitations" }, { type: "build-guard" }, { type: "tsserver" }, { type: "domain-dns" }] },
   { id: "linktools", title: "Link Tools", accent: "cyan",
     subtitle: "shorten URLs and generate scannable QR codes — pair them for printable mini-flyers",
     kind: "tiles", tiles: [{ type: "tinyurl" }, { type: "qrcode" }] },
@@ -2651,6 +2669,9 @@ export default function UtilsPage() {
         <FirewallControlModal onClose={() => setOpenHardening(null)} />
       )}
 
+      {openHardening === "domain-dns" && (
+        <DomainDnsControlModal onClose={() => setOpenHardening(null)} />
+      )}
       {openHardening === "build-guard" && (
         <BuildGuardControlModal onClose={() => setOpenHardening(null)} />
       )}
