@@ -15,6 +15,12 @@ type Props = {
   pageKey: string;
   title: string;
   glow: GlowColor;
+  /** Sub-view inside the embedded page (`?view=`), so a link can open a tile
+   *  at a specific panel rather than at its landing grid. */
+  view?: string;
+  /** The embedded page reporting that its own sub-view changed, so the parent
+   *  can keep the address bar shareable while you click around inside. */
+  onViewChange?: (view: string | null) => void;
   onClose: () => void;
 };
 
@@ -340,7 +346,7 @@ const SidebarSvg = ({ open }: { open: boolean }) => (
   </svg>
 );
 
-export default function DashboardPageModal({ pageKey, title, glow, onClose }: Props) {
+export default function DashboardPageModal({ pageKey, title, glow, view, onViewChange, onClose }: Props) {
   useModalLifecycle();
   const [sidebarShown, setSidebarShown] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
@@ -351,7 +357,14 @@ export default function DashboardPageModal({ pageKey, title, glow, onClose }: Pr
   const channelName = `tgv-dash-${pageKey}-popout`;
   const windowName = `tgv-dash-${pageKey}-popout`;
   const lastBeat = useRef<number>(0);
-  const iframeSrc = `/dashboard/${pageKey}?embedded=1`;
+
+  // Only the view we were OPENED at goes in the src. Once the iframe is live it
+  // reports its own view changes upward (tgv-view-change) and the parent writes
+  // them to the address bar — feeding those back into src would reload the
+  // iframe on every click and throw away whatever the operator was doing.
+  const openedAtView = useRef(view).current;
+  const viewQS = openedAtView ? `&view=${encodeURIComponent(openedAtView)}` : "";
+  const iframeSrc = `/dashboard/${pageKey}?embedded=1${viewQS}`;
 
   useEffect(() => {
     const prevModal = document.body.dataset.dashboardModal;
@@ -402,10 +415,13 @@ export default function DashboardPageModal({ pageKey, title, glow, onClose }: Pr
       else if (t === "tgv-open-preview" && typeof e.data?.domain === "string") {
         openPreview(e.data.domain);
       }
+      else if (t === "tgv-view-change") {
+        onViewChange?.(typeof e.data?.view === "string" && e.data.view ? e.data.view : null);
+      }
     };
     window.addEventListener("message", onMsg);
     return () => window.removeEventListener("message", onMsg);
-  }, [onClose, toggleTerminal, runCommand, openPreview]);
+  }, [onClose, toggleTerminal, runCommand, openPreview, onViewChange]);
 
   // Popout ↔ main coordination via BroadcastChannel heartbeat.
   useEffect(() => {
@@ -445,11 +461,11 @@ export default function DashboardPageModal({ pageKey, title, glow, onClose }: Pr
     const left = Math.round((window.screen.width - w) / 2);
     const top = Math.round((window.screen.height - h) / 2);
     window.open(
-      `/dashboard/${pageKey}?popout=1`,
+      `/dashboard/${pageKey}?popout=1${viewQS}`,
       windowName,
       `width=${w},height=${h},left=${left},top=${top}`
     );
-  }, [pageKey, windowName]);
+  }, [pageKey, windowName, viewQS]);
 
   const closePopout = useCallback(() => {
     if (typeof BroadcastChannel === "undefined") return;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import styled from "styled-components";
 import TopNav from "../components/TopNav";
 import UsersCard from "../components/UsersCard";
@@ -497,6 +497,48 @@ const MoreLabel = styled.p`
   }
 `;
 
+/* ── Tile deep-linking ─────────────────────────────────────────────
+   Tiles open an in-page modal over /dashboard, so without this the address bar
+   says "/dashboard" no matter what you are looking at and there is nothing to
+   send anyone. `?tile=<pageKey>` names the open tile and `?view=<sub>` the panel
+   inside it, so a link opens straight to where the sender was.
+
+   Deliberately window.location + history rather than useSearchParams/router:
+   useSearchParams would force this page under a Suspense boundary (same call as
+   dashboard/utils), and router.push would re-run the dashboard's server
+   component just to record which modal is open. */
+
+const TILE_PARAM = "tile";
+const VIEW_PARAM = "view";
+
+type OpenTile = { pageKey: string; title: string; glow: GlowColor; view?: string };
+
+/** ?tile=… → the tile it names, if it is a page tile that exists. */
+function tileFromParams(params: URLSearchParams): OpenTile | null {
+  const pageKey = params.get(TILE_PARAM);
+  if (!pageKey) return null;
+  const def = OFFICE_TILES.find((t) => "page" in t.action && t.action.page === pageKey);
+  if (!def) return null;
+  return {
+    pageKey,
+    title: def.title,
+    glow: def.glow,
+    view: params.get(VIEW_PARAM) ?? undefined,
+  };
+}
+
+function tileUrl(tile: OpenTile | null): string {
+  const params = new URLSearchParams(window.location.search);
+  params.delete(TILE_PARAM);
+  params.delete(VIEW_PARAM);
+  if (tile) {
+    params.set(TILE_PARAM, tile.pageKey);
+    if (tile.view) params.set(VIEW_PARAM, tile.view);
+  }
+  const qs = params.toString();
+  return `${window.location.pathname}${qs ? `?${qs}` : ""}`;
+}
+
 /* ── Component ─────────────────────────────────────────────────── */
 
 export default function Home() {
@@ -507,7 +549,7 @@ export default function Home() {
   const [inner, setInner] = useState("");
   const [asc, setAsc] = useState(true);
   const sbdmRef = useRef<HTMLDivElement | null>(null);
-  const [modalPage, setModalPage] = useState<{ pageKey: string; title: string; glow: GlowColor } | null>(null);
+  const [modalPage, setModalPage] = useState<OpenTile | null>(null);
   const [tilesExpanded, setTilesExpanded] = useState(true);
   const [teamExpanded, setTeamExpanded] = useState(true);
   const [activityExpanded, setActivityExpanded] = useState(true);
@@ -540,6 +582,38 @@ export default function Home() {
       .then((r) => r.json())
       .then(setActivity)
       .catch(() => {});
+  }, []);
+
+  // Open whatever ?tile= names on arrival — this is what makes a sent link land
+  // somewhere — and keep following it through Back/Forward, so the browser's
+  // own history closes and reopens tiles the way it closes any other page.
+  useEffect(() => {
+    const sync = () => setModalPage(tileFromParams(new URLSearchParams(window.location.search)));
+    sync();
+    window.addEventListener("popstate", sync);
+    return () => window.removeEventListener("popstate", sync);
+  }, []);
+
+  /** Opening a tile is a navigation: push, so Back closes it. */
+  const openTile = useCallback((tile: OpenTile) => {
+    setModalPage(tile);
+    window.history.pushState({}, "", tileUrl(tile));
+  }, []);
+
+  const closeTile = useCallback(() => {
+    setModalPage(null);
+    window.history.pushState({}, "", tileUrl(null));
+  }, []);
+
+  /** The embedded page moved to another panel. Replace, not push — clicking
+   *  around inside one tile shouldn't bury the dashboard under history. */
+  const setTileView = useCallback((view: string | null) => {
+    setModalPage((prev) => {
+      if (!prev) return prev;
+      const next = { ...prev, view: view ?? undefined };
+      window.history.replaceState({}, "", tileUrl(next));
+      return next;
+    });
   }, []);
 
   useEffect(() => {
@@ -595,10 +669,15 @@ export default function Home() {
     <>
       {modalPage && (
         <DashboardPageModal
+          // Remount on tile change so a link-driven switch can't leave the old
+          // iframe mounted; the view is carried by the modal, not the key.
+          key={modalPage.pageKey}
           pageKey={modalPage.pageKey}
           title={modalPage.title}
           glow={modalPage.glow}
-          onClose={() => setModalPage(null)}
+          view={modalPage.view}
+          onViewChange={setTileView}
+          onClose={closeTile}
         />
       )}
       <TopNav />
@@ -735,7 +814,7 @@ export default function Home() {
                 </TileOuter>
               );
               const handleClick = tile.pageKey
-                ? () => setModalPage({ pageKey: tile.pageKey!, title: tile.title, glow: tile.glow })
+                ? () => openTile({ pageKey: tile.pageKey!, title: tile.title, glow: tile.glow })
                 : tile.onClick;
               return (
                 <button

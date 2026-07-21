@@ -12,7 +12,7 @@
 //
 // Future siblings (Module-Storefront, Module-Course, …) slot in as more tiles here.
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import styled from "styled-components";
 import { colors, rgb } from "../../theme";
 import TopNav from "../../components/TopNav";
@@ -161,9 +161,43 @@ const BackBtn = styled.button`
 
 /* ── Page ──────────────────────────────────────────────────────── */
 
+type ModulesView = "grid" | "email" | "templates";
+const VIEWS: ModulesView[] = ["grid", "email", "templates"];
+
 export default function ModulesClient() {
   const [openMdConfig, setOpenMdConfig] = useState(false);
-  const [view, setView] = useState<"grid" | "email" | "templates">("grid");
+  const [view, setViewState] = useState<ModulesView>("grid");
+
+  // `?view=` makes each panel here addressable. Two consumers: a cold load of
+  // /dashboard/modules?view=templates (or the dashboard modal's iframe, which
+  // is handed the same param), and the parent dashboard — we post every change
+  // up so its address bar keeps naming what's actually on screen and stays
+  // copy-pasteable. Reading window.location instead of useSearchParams keeps
+  // this page out of a Suspense boundary (dashboard/utils made the same call).
+  useEffect(() => {
+    const raw = new URLSearchParams(window.location.search).get("view");
+    if (raw && (VIEWS as string[]).includes(raw)) setViewState(raw as ModulesView);
+  }, []);
+
+  const setView = useCallback((next: ModulesView) => {
+    setViewState(next);
+    try {
+      const url = new URL(window.location.href);
+      if (next === "grid") url.searchParams.delete("view");
+      else url.searchParams.set("view", next);
+      window.history.replaceState({}, "", url);
+    } catch {
+      /* history is best-effort — never block the view change on it */
+    }
+    // Embedded in the dashboard's page-modal: tell the parent so the SHAREABLE
+    // url (the one in the address bar) follows along. No-op when standalone.
+    if (window.parent !== window) {
+      window.parent.postMessage(
+        { type: "tgv-view-change", view: next === "grid" ? null : next },
+        window.location.origin,
+      );
+    }
+  }, []);
 
   // Open the Module-Dashboard Harness Studio in a NEW TAB. Deliberately NOT
   // "noopener" so the studio's Close button can window.close() the tab (the
