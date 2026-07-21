@@ -18,7 +18,15 @@
 // checked back in from the Studio overlay's "Save to template". New tab, not
 // an iframe — the tgv.com editor refuses cross-origin framing and its session
 // cookie isn't sent third-party (same lesson as the Villagers Page Editor and
-// Module-Dashboard tiles).
+// Module-Dashboard tiles). Clicking the TILE does the same thing — opening a
+// template in a gallery means editing it; the live render is "Preview" in the
+// 3-dot menu. Both are plain anchors, never window.open: a programmatic popup
+// gets blocked silently and reads as "Edit does nothing".
+//
+// That new tab lands on tgv.com's own passkey session, which is NOT the Office
+// one. If the operator isn't signed in there as an admin, the tgv.com route
+// says so on the page — it must never bounce to "/", which looks like Edit
+// opened the live site.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
@@ -183,21 +191,20 @@ export default function TemplateGalleryPanel() {
     }
   }, [confirmDelete, load]);
 
-  const openEditor = useCallback((t: Template) => {
-    setOpenMenuId(null);
-    window.open(
+  // Real hrefs, not window.open: a programmatic popup is silently swallowed by
+  // the browser's popup blocker often enough that Edit just "does nothing", and
+  // there is no error to show for it. An anchor with target=_blank always
+  // opens, and it gets middle-click / cmd-click / "open in new tab" for free.
+  const editHref = useCallback(
+    (t: Template) =>
       `${TGV_BASE}/${LANG}/editor/template/${encodeURIComponent(t.templateId)}`,
-      "_blank",
-    );
-  }, []);
-
-  const openPreview = useCallback((t: Template) => {
-    setOpenMenuId(null);
-    window.open(
+    [],
+  );
+  const previewHref = useCallback(
+    (t: Template) =>
       `${TGV_BASE}/${LANG}/preview/template/${encodeURIComponent(t.templateId)}`,
-      "_blank",
-    );
-  }, []);
+    [],
+  );
 
   return (
     <>
@@ -243,10 +250,14 @@ export default function TemplateGalleryPanel() {
                   </StatusChip>
                 </TileTitleRow>
 
+                {/* The tile itself opens the EDITOR with this template loaded —
+                    that's what an operator means by clicking a template in a
+                    gallery. Preview (the live render) stays in the 3-dot menu. */}
                 <Thumb
-                  type="button"
-                  onClick={() => openPreview(t)}
-                  title={`Preview ${t.label}`}
+                  href={editHref(t)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title={`Edit ${t.label}`}
                   $busy={busyId === t.templateId}
                 >
                   {thumb ? (
@@ -288,10 +299,12 @@ export default function TemplateGalleryPanel() {
                     onMouseDown={(e) => e.stopPropagation()}
                   >
                     <MenuLabel>Move to</MenuLabel>
+                    {/* Disable the destination you are ALREADY on — the pair was
+                        inverted, which left every template stuck in its status. */}
                     <MenuItem
                       role="menuitem"
                       type="button"
-                      disabled={!isLive}
+                      disabled={isLive}
                       onClick={() => setStatus(t, "published")}
                     >
                       Live
@@ -300,27 +313,31 @@ export default function TemplateGalleryPanel() {
                     <MenuItem
                       role="menuitem"
                       type="button"
-                      disabled={isLive}
+                      disabled={!isLive}
                       onClick={() => setStatus(t, "sandbox")}
                     >
                       Drafted
                       {!isLive && <Tick aria-hidden>✓</Tick>}
                     </MenuItem>
                     <MenuSep />
-                    <MenuItem
+                    <MenuItemLink
                       role="menuitem"
-                      type="button"
-                      onClick={() => openEditor(t)}
+                      href={editHref(t)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={() => setOpenMenuId(null)}
                     >
                       <EditIcon size={13} /> Edit
-                    </MenuItem>
-                    <MenuItem
+                    </MenuItemLink>
+                    <MenuItemLink
                       role="menuitem"
-                      type="button"
-                      onClick={() => openPreview(t)}
+                      href={previewHref(t)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={() => setOpenMenuId(null)}
                     >
                       <EyeIcon size={13} /> Preview
-                    </MenuItem>
+                    </MenuItemLink>
                     <MenuSep />
                     <MenuItem
                       role="menuitem"
@@ -440,7 +457,7 @@ const StatusChip = styled.span<{ $live: boolean }>`
     ${({ $live }) => ($live ? `rgba(${rgb.cyan}, 0.45)` : "var(--t-border)")};
 `;
 
-const Thumb = styled.button<{ $busy: boolean }>`
+const Thumb = styled.a<{ $busy: boolean }>`
   display: block;
   width: 100%;
   aspect-ratio: 16 / 10;
@@ -569,6 +586,11 @@ const MenuItem = styled.button<{ $danger?: boolean }>`
     opacity: 0.45;
     cursor: default;
   }
+`;
+
+/** Same skin as MenuItem, but a real link — see the editHref comment. */
+const MenuItemLink = styled(MenuItem).attrs({ as: "a" })`
+  text-decoration: none;
 `;
 
 const Tick = styled.span`
