@@ -33,6 +33,7 @@ import MemberWalletModal from "../../components/villagers/MemberWalletModal";
 import PayoutsModal from "../../components/villagers/PayoutsModal";
 import WalletControlModal from "../../components/hardening/wallet-control/WalletControlModal";
 import ManagedOnboardingModal from "../../components/villagers/ManagedOnboardingModal";
+import DiscountCodesModal from "../../components/villagers/DiscountCodesModal";
 import CourseControlModal from "../../components/villagers/CourseControlModal";
 import StudioControlModal from "../../components/villagers/StudioControlModal";
 import PerformersControlModal from "../../components/villagers/PerformersControlModal";
@@ -80,6 +81,7 @@ const DEFAULT_LAYOUT: SectionLayout[] = [
       "payouts",
       "paypalFaucet",
       "stripeOnboarding",
+      "promoDiscounts",
       "walletCashOut",
     ],
   },
@@ -454,6 +456,7 @@ export default function VillagersClient() {
   const [openPayouts, setOpenPayouts] = useState(false);
   const [openWalletControl, setOpenWalletControl] = useState(false);
   const [openManaged, setOpenManaged] = useState(false);
+  const [openDiscounts, setOpenDiscounts] = useState(false);
   const [openCourse, setOpenCourse] = useState(false);
   const [openStudio, setOpenStudio] = useState(false);
   const [openPerformers, setOpenPerformers] = useState(false);
@@ -601,6 +604,19 @@ export default function VillagersClient() {
           Set up a TGV-managed Stripe account for a tenant — obscured under TGV Connect — and
           watch the embedded onboarding through to charges-enabled. Flip Preview to run the whole
           pipeline in test mode with auto-filled details.
+        </>
+      ),
+    },
+    promoDiscounts: {
+      id: "promoDiscounts",
+      title: "Discount Codes",
+      icon: <StarIcon size={18} />,
+      onClick: () => setOpenDiscounts(true),
+      sub: (
+        <>
+          Create and manage the TGV-wide discount codes the signup wizard honors — percent or
+          fixed, aimed at all signups or one plan / add-on. The SAME codes as the HQ dashboard
+          (real Stripe promotion codes; Office proxies to HQ, which holds the keys).
         </>
       ),
     },
@@ -964,6 +980,7 @@ export default function VillagersClient() {
       )}
 
       {openManaged && <ManagedOnboardingModal onClose={() => setOpenManaged(false)} />}
+      {openDiscounts && <DiscountCodesModal onClose={() => setOpenDiscounts(false)} />}
       {openOnboardVillager && <OnboardVillagerModal onClose={() => setOpenOnboardVillager(false)} />}
       {openOnboardConfig && <OnboardConfigModal onClose={() => setOpenOnboardConfig(false)} />}
 
