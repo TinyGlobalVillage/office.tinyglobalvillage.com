@@ -111,6 +111,11 @@ const TitleText = styled(DrawerTitle).attrs({ $accent: "pink" })`
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  /* overflow:hidden (needed for the ellipsis) clips the neon text-shadow to a
+     hard box. Push the clip edge past the 20px glow radius and pull the same
+     amount back with negative margins — net-zero layout, uncropped glow. */
+  padding: 1.5rem;
+  margin: -1.5rem;
 `;
 
 const ControlBtn = styled(PanelIconBtn)`
@@ -426,8 +431,10 @@ const RoomName = styled.span`
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-
-  [data-theme="light"] & { text-shadow: none; }
+  /* Same glow-room trick as TitleText — keep the ellipsis clip past the 8px
+     glow radius so the shadow isn't boxed. */
+  padding: 0.625rem;
+  margin: -0.625rem;
 `;
 
 const RoomSub = styled.span`
