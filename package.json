@@ -35,6 +35,7 @@
     "@tgv/module-registry": "workspace:*",
     "@tgv/module-relay": "workspace:*",
     "@tgv/module-transcriber": "workspace:*",
+    "@tgv/module-video-calls": "workspace:*",
     "@tgv/module-village": "workspace:*",
     "@tgv/module-wallet": "workspace:*",
     "@types/bcryptjs": "^2.4.6",

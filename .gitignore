@@ -78,3 +78,6 @@ telephony/data/recordings/
 *.bak
 *.bak-*
 *-backup.sql
+
+# Playwright MCP UAT artifacts
+.playwright-mcp/

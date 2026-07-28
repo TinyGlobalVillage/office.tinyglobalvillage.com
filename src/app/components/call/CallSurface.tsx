@@ -1,8 +1,9 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import styled from "styled-components";
+import { getAvPrimed, primeAvPermission } from "@tgv/module-video-calls/meetings/av/avPermission";
 import useCallToken from "./useCallToken";
 import "@livekit/components-styles";
 
@@ -36,6 +37,29 @@ const Wrap = styled.div<{ $layout: "full" | "strip" }>`
 
   --lk-bg: var(--t-bg);
   --lk-fg: var(--t-text);
+
+  /* LiveKit's stock control bar picks icon+label vs icon-only off the WINDOW
+     width (760px media query), not this pane — inside a drawer the labels
+     overflow and clip (mic/camera pushed out of view). Make the pane a size
+     container: wrapping is the floor so every control stays reachable at any
+     width, and under 36rem the labels drop to icon-only. Each label is a text
+     node beside the button's svg, so zeroing font-size hides it without
+     touching icon geometry — except StartAudio (autoplay unlock), which is
+     text-ONLY and would turn into an empty pill. */
+  container-type: inline-size;
+
+  .lk-control-bar {
+    flex-wrap: wrap;
+    justify-content: center;
+    row-gap: 0.25rem;
+  }
+
+  @container (max-width: 36rem) {
+    .lk-control-bar .lk-button:not(.lk-start-audio-button) {
+      font-size: 0;
+      gap: 0;
+    }
+  }
 `;
 
 const StatusPad = styled.div`
@@ -76,12 +100,31 @@ export default function CallSurface({
   const initialVideo = video ?? !observer;
   const initialAudio = !observer;
 
+  // Meet's av primer (one getUserMedia({audio,video}) = ONE browser prompt).
+  // Hold connect until it settles so LiveKit's per-device acquisition lands on
+  // an already-answered permission instead of prompting mic and camera
+  // separately. Observers publish nothing at join; priming re-runs on the flip
+  // to active so the in-room toggles can't double-prompt later either.
+  const [avSettled, setAvSettled] = useState(() => getAvPrimed());
+  useEffect(() => {
+    if (observer || getAvPrimed()) {
+      setAvSettled(true);
+      return;
+    }
+    let alive = true;
+    void primeAvPermission().finally(() => { if (alive) setAvSettled(true); });
+    return () => { alive = false; };
+  }, [observer]);
+
   const body = useMemo(() => {
     if (error) {
       return <ErrorPad>✕ {FriendlyError[error.code] ?? error.message}</ErrorPad>;
     }
     if (loading || !token || !url) {
       return <StatusPad>Connecting…</StatusPad>;
+    }
+    if (!avSettled) {
+      return <StatusPad>Waiting for camera &amp; microphone permission…</StatusPad>;
     }
     return (
       <LiveKitRoom
@@ -97,7 +140,7 @@ export default function CallSurface({
         {children}
       </LiveKitRoom>
     );
-  }, [token, url, error, loading, initialVideo, initialAudio, onLeave, children]);
+  }, [token, url, error, loading, avSettled, initialVideo, initialAudio, onLeave, children]);
 
   return <Wrap $layout={layout} data-call-room={room}>{body}</Wrap>;
 }
