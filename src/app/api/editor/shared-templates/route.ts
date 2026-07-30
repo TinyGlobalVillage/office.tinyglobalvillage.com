@@ -14,6 +14,7 @@ import { requireAdmin } from "@/lib/api-admin";
 import {
   listAllSharedTemplates,
   listSharedTemplatesForStatus,
+  listSubmittedTemplates,
   type SharedTemplateStatus,
 } from "@/lib/db-shared-templates";
 
@@ -34,9 +35,11 @@ export async function GET(req: NextRequest) {
     const templates =
       statusParam === "all"
         ? await listAllSharedTemplates()
-        : await listSharedTemplatesForStatus(
-            isStatus(statusParam) ? statusParam : "published",
-          );
+        : statusParam === "submitted"
+          ? await listSubmittedTemplates()
+          : await listSharedTemplatesForStatus(
+              isStatus(statusParam) ? statusParam : "published",
+            );
     return NextResponse.json({ templates });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "List failed";

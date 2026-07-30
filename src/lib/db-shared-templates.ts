@@ -15,7 +15,6 @@ import {
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { and, asc, desc, eq, isNull } from "drizzle-orm";
-import { villagerSites } from "@tgv/module-registry/db";
 import { db } from "./db-drizzle";
 
 export const sharedTemplates = pgTable(
@@ -32,11 +31,20 @@ export const sharedTemplates = pgTable(
     /** Business-vertical tags (migration 0095) — the wizard's curated gallery
      *  filters on these; the Template Gallery shows them on each tile. */
     tags: text("tags").array().notNull().default([]),
+    /** 0105 vocabulary: 'private' | 'submitted' | 'declined' (member states)
+     *  + 'sandbox' | 'published' (staff states). App-enforced. */
     status: text("status").notNull().default("sandbox"),
     model: jsonb("model_json").notNull(),
-    createdBy: uuid("created_by").references(() => villagerSites.id, {
-      onDelete: "set null",
-    }),
+    /** 0105 — owning member for personal templates (FK-less uuid). */
+    ownerMemberId: uuid("owner_member_id"),
+    /** 0105 — 'page' | 'bundle' (bundle_json snapshot; private-only v1). */
+    kind: text("kind").notNull().default("page"),
+    bundle: jsonb("bundle_json"),
+    submittedAt: timestamp("submitted_at", { withTimezone: true }),
+    decidedAt: timestamp("decided_at", { withTimezone: true }),
+    decidedBy: uuid("decided_by"),
+    /** Always stored members.id — 0105 dropped the mistaken villager_sites FK. */
+    createdBy: uuid("created_by"),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
     publishedAt: timestamp("published_at", { withTimezone: true }),
@@ -49,7 +57,14 @@ export const sharedTemplates = pgTable(
   }),
 );
 
-export type SharedTemplateStatus = "sandbox" | "published";
+export type SharedTemplateStatus =
+  | "sandbox"
+  | "published"
+  // 0105 member states — surfaced ONLY via listSubmittedTemplates (private/
+  // declined member rows never enter staff listings).
+  | "private"
+  | "submitted"
+  | "declined";
 
 export type SharedTemplateSummary = {
   id: string;
@@ -110,6 +125,33 @@ export async function listSharedTemplatesForStatus(
   return rows.map(rowToSummary);
 }
 
+/** 0105 — member submissions awaiting review (FIFO). Extra fields the queue
+ *  row needs beyond the summary: kind + owner. */
+export type SubmittedTemplateSummary = SharedTemplateSummary & {
+  kind: string;
+  ownerMemberId: string | null;
+  submittedAt: string | null;
+};
+
+export async function listSubmittedTemplates(): Promise<SubmittedTemplateSummary[]> {
+  const rows = await db
+    .select()
+    .from(sharedTemplates)
+    .where(
+      and(
+        eq(sharedTemplates.status, "submitted"),
+        isNull(sharedTemplates.deletedAt),
+      ),
+    )
+    .orderBy(asc(sharedTemplates.submittedAt));
+  return rows.map((row) => ({
+    ...rowToSummary(row),
+    kind: row.kind,
+    ownerMemberId: row.ownerMemberId,
+    submittedAt: row.submittedAt ? row.submittedAt.toISOString() : null,
+  }));
+}
+
 /** Every live row regardless of status — the Template Gallery's "All" pill.
  *  Live first, then most-recently-touched, so the gallery leads with what
  *  members can actually pick. */
@@ -122,7 +164,11 @@ export async function listAllSharedTemplates(): Promise<
     .where(isNull(sharedTemplates.deletedAt))
     .orderBy(asc(sharedTemplates.status), desc(sharedTemplates.updatedAt));
 
-  return rows.map(rowToSummary);
+  // Members' personal rows (private/declined) stay OUT of staff listings —
+  // the Submitted pill is the only member-row surface (0105).
+  return rows
+    .filter((r) => r.status !== "private" && r.status !== "declined")
+    .map(rowToSummary);
 }
 
 /** Soft delete — stamps deleted_at, row stays for audit/restore. The unique
