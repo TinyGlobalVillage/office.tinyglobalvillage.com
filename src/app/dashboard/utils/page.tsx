@@ -28,6 +28,7 @@ const TsserverControlModal = dynamic(() => import("../../components/hardening/ts
 const DomainDnsControlModal = dynamic(() => import("../../components/hardening/domain-dns/DomainDnsControlModal"), { ssr: false });
 const KeycloakControlModal = dynamic(() => import("../../components/hardening/keycloak/KeycloakControlModal"), { ssr: false });
 const DemoModeControlModal = dynamic(() => import("../../components/dev-tooling/demo-mode/DemoModeControlModal"), { ssr: false });
+const MediaReducerModal = dynamic(() => import("../../components/media-reducer/MediaReducerModal"), { ssr: false });
 import AutomationsTab from "../../components/automations/AutomationsTab";
 import type { ShortLink } from "@tgv/module-page-editor/editor/component-library/marketing/link-tools";
 // Heavy feature packages — lazy-loaded so they don't sit in the Utils page's first-load JS.
@@ -1625,11 +1626,12 @@ type UtilsAdlSurfaceProps = {
   onOpenLinkTool: (kind: LinkTool) => void;
   onOpenTranscriber: () => void;
   onOpenTranscriptions: () => void;
+  onOpenMediaReducer: () => void;
 };
 
 function UtilsAdlSurface({
   sections, actionsById, isAdmin, overlay, onSaveDefaults,
-  onOpenBackups, onOpenMigrate, onOpenEsign, onOpenEsignVault, onOpenDomainConsole, onOpenHardening, onOpenLinkTool, onOpenTranscriber, onOpenTranscriptions,
+  onOpenBackups, onOpenMigrate, onOpenEsign, onOpenEsignVault, onOpenDomainConsole, onOpenHardening, onOpenLinkTool, onOpenTranscriber, onOpenTranscriptions, onOpenMediaReducer,
 }: UtilsAdlSurfaceProps) {
   // Live transcription jobs — drives the per-job queued tiles + the badge
   // counter on the Transcriptions tile.
@@ -2008,6 +2010,16 @@ function UtilsAdlSurface({
                         </LinkToolsTile>
                       );
                     }
+                    if (tile.type === "media-reducer") return (
+                      <LinkToolsTile key={i} type="button" onClick={onOpenMediaReducer}>
+                        <LinkToolsTileTop>🪶 Media Reducer</LinkToolsTileTop>
+                        <LinkToolsTileSub>
+                          Batch-downsize images &amp; videos for the web — drag a whole folder in, pick
+                          the format (WebP/AVIF/MP4/WebM…), then download to disk or upload straight
+                          into a tenant&apos;s CDN storage.
+                        </LinkToolsTileSub>
+                      </LinkToolsTile>
+                    );
                     if (tile.type === "transcriptions") return (
                       <LinkToolsTile key={i} type="button" onClick={onOpenTranscriptions}>
                         <LinkToolsTileTop>
@@ -2113,6 +2125,7 @@ type TileSpec =
   | { type: "tinyurl" }
   | { type: "qrcode" }
   | { type: "transcriber" }
+  | { type: "media-reducer" }
   | { type: "transcriptions" }
   | { type: "queued-job"; job: import("@tgv/module-transcriber").TranscriptionJob };
 
@@ -2165,8 +2178,8 @@ const SECTIONS: Section[] = [
     subtitle: "mail provider domain + folder + alias setup",
     kind: "actions", actionIds: ["mail-domain-setup"] },
   { id: "media", title: "Media & Transcription", accent: "cyan",
-    subtitle: "open-source audio transcription, subtitle export, voice utilities",
-    kind: "tiles", tiles: [{ type: "transcriber" }, { type: "transcriptions" }] },
+    subtitle: "open-source audio transcription, subtitle export, voice utilities, batch media reduction",
+    kind: "tiles", tiles: [{ type: "transcriber" }, { type: "transcriptions" }, { type: "media-reducer" }] },
   { id: "migrations", title: "Migrations", accent: "cyan",
     subtitle: "absorb a legacy site into TGV — per-surface fidelity, halt-review, dogfood",
     kind: "tiles", tiles: [{ type: "migrate" }] },
@@ -2533,6 +2546,7 @@ export default function UtilsPage() {
   const [qrFilenameStem, setQrFilenameStem] = useState<string>("qr");
   const [qrLinkedShortCode, setQrLinkedShortCode] = useState<string | null>(null);
   const [openTranscriber, setOpenTranscriber] = useState<null | "create" | "browse">(null);
+  const [openMediaReducer, setOpenMediaReducer] = useState(false);
 
   useEffect(() => {
     fetch("/api/users/me").then((r) => r.json()).then((d) => {
@@ -2638,6 +2652,7 @@ export default function UtilsPage() {
           }}
           onOpenTranscriber={() => setOpenTranscriber("create")}
           onOpenTranscriptions={() => setOpenTranscriber("browse")}
+          onOpenMediaReducer={() => setOpenMediaReducer(true)}
         />
       </PageMain>
 
@@ -2725,6 +2740,10 @@ export default function UtilsPage() {
           filenameStem={qrFilenameStem}
           onClose={() => setOpenLinkTool(null)}
         />
+      )}
+
+      {openMediaReducer && (
+        <MediaReducerModal onClose={() => setOpenMediaReducer(false)} />
       )}
 
       {openTranscriber && username && (
