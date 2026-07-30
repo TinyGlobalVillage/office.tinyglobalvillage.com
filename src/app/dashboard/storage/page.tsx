@@ -7,6 +7,7 @@ import { colors, rgb } from "../../theme";
 import TopNav from "../../components/TopNav";
 import { CloudIcon, AvatarIcon, EditIcon, CopyIcon, DownloadIcon, CheckIcon } from "../../components/icons";
 import { askPrompt, showNotice } from "../../components/dialogService";
+import StorageMeteringPanel from "../../components/storage/StorageMeteringPanel";
 
 const CDN_BASE = "https://office.tinyglobalvillage.com/media";
 
@@ -1100,6 +1101,8 @@ function StoragePageInner() {
             </div>
           </HeaderRow>
         )}
+
+        <StorageMeteringPanel />
 
         <ProjectDropdown
           projects={allProjects}
