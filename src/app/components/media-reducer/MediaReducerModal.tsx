@@ -42,12 +42,21 @@ type BatchItem = {
   out: File | null;
   error: string | null;
   savedUrl: string | null;
+  /** Live pre-convert projection of the output size (images; null = unknown). */
+  estSize: number | null;
 };
 
 type Phase = "edit" | "running" | "review" | "saving" | "saved";
 type Destination = "download" | "cdn";
 
 type Tenant = { id: string; domain: string; label: string };
+
+// Minimal File System Access API shapes (not in lib.dom yet) — the pick-a-
+// folder-once batch save. Chromium-only; callers must feature-detect.
+type WritableLike = { write(data: Blob): Promise<void>; close(): Promise<void> };
+type DirHandleLike = {
+  getFileHandle(name: string, opts: { create: boolean }): Promise<{ createWritable(): Promise<WritableLike> }>;
+};
 
 // ── Animations / chrome ───────────────────────────────────────────────────────
 
@@ -208,6 +217,18 @@ const Select = styled.select`
   &:focus { outline: none; border-color: rgba(${ACCENT_RGB}, 0.5); }
 `;
 
+const TextInput = styled.input`
+  flex: 1;
+  min-width: 140px;
+  background: var(--t-inputBg, rgba(255,255,255,0.05));
+  border: 1px solid rgba(${ACCENT_RGB}, 0.25);
+  border-radius: 0.5rem;
+  padding: 0.375rem 0.625rem;
+  color: var(--t-text);
+  font-size: 0.75rem;
+  &:focus { outline: none; border-color: rgba(${ACCENT_RGB}, 0.5); }
+`;
+
 const NumberInput = styled.input`
   width: 76px;
   background: var(--t-inputBg, rgba(255,255,255,0.05));
@@ -339,7 +360,12 @@ function FormatQmbm({ kind, onClose }: { kind: MediaKind; onClose: () => void })
 const ListCard = styled.div`
   border: 1px solid rgba(${ACCENT_RGB}, 0.14);
   border-radius: 0.75rem;
-  overflow: hidden;
+  overflow-y: auto;
+  /* ~6 rows, then the LIST scrolls — the controls + destination stay in view
+     instead of a long batch pushing them off-screen. */
+  max-height: 19rem;
+  scrollbar-width: thin;
+  flex-shrink: 0;
 `;
 
 const Row = styled.div<{ $status: ItemStatus }>`
@@ -663,6 +689,7 @@ export default function MediaReducerModal({ onClose }: { onClose: () => void }) 
 
   // Destination.
   const [dest, setDest] = useState<Destination>("download");
+  const [baseName, setBaseName] = useState("reduced");
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [tenantId, setTenantId] = useState("");
   const [tenantsError, setTenantsError] = useState<string | null>(null);
@@ -670,6 +697,36 @@ export default function MediaReducerModal({ onClose }: { onClose: () => void }) 
   const [phase, setPhase] = useState<Phase>("edit");
   const [error, setError] = useState<string | null>(null);
   const cancelRef = useRef(false);
+
+  // Live size projection: run each pending image through the SAME canvas pass
+  // the real conversion uses, so every row shows what it will reduce down to
+  // before anyone clicks Convert. Debounced so slider scrubs don't thrash; a
+  // run token drops stale passes; item identity (not content) drives re-runs
+  // so writing estSize back doesn't loop. GIF output is server-encoded and
+  // video output isn't predictable client-side — both stay unprojected.
+  const imgItemsRef = useRef(imgItems);
+  useEffect(() => { imgItemsRef.current = imgItems; });
+  const estRun = useRef(0);
+  const imgIds = imgItems.map((i) => i.id).join(",");
+  useEffect(() => {
+    if (kind !== "image" || imgFormat === "gif" || phase === "running" || phase === "saving") return;
+    const run = ++estRun.current;
+    const t = setTimeout(async () => {
+      const maxW = imgMaxW.trim() ? parseInt(imgMaxW, 10) || null : null;
+      const maxH = imgMaxH.trim() ? parseInt(imgMaxH, 10) || null : null;
+      for (const item of imgItemsRef.current.filter((i) => i.status === "queued")) {
+        if (estRun.current !== run) return;
+        let est: number | null = null;
+        try {
+          est = (await encodeImageClient(item.file, imgFormat, imgQuality, maxW, maxH)).size;
+        } catch { /* unencodable here (e.g. AVIF unsupported) — leave unprojected */ }
+        if (estRun.current !== run) return;
+        setImgItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, estSize: est } : i)));
+      }
+    }, 400);
+    return () => { clearTimeout(t); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [kind, imgIds, imgFormat, imgQuality, imgMaxW, imgMaxH, phase]);
 
   useEffect(() => {
     let alive = true;
@@ -705,6 +762,7 @@ export default function MediaReducerModal({ onClose }: { onClose: () => void }) 
         out: null,
         error: null,
         savedUrl: null,
+        estSize: null,
       };
       fresh.push(item);
     }
@@ -766,19 +824,59 @@ export default function MediaReducerModal({ onClose }: { onClose: () => void }) 
     if (!doneItems.length) return;
     setError(null);
     if (dest === "download") {
-      // Sequential anchor downloads — one user gesture covers the batch;
-      // stagger so the browser doesn't coalesce them.
+      // One folder prompt for the WHOLE batch (File System Access API), files
+      // named from the chosen stem with an auto-incrementing counter. Browsers
+      // block the old N-anchor-clicks approach after the first download
+      // ("multiple automatic downloads"), which is why only one save dialog
+      // ever appeared.
+      const stem = (baseName.trim() || "reduced").replace(/[/\\:*?"<>|]/g, "-");
+      const named = doneItems.map((item, idx) => {
+        const out = item.out as File;
+        const ext = out.name.match(/\.[^.]+$/)?.[0] ?? "";
+        return { item, out, name: doneItems.length === 1 ? `${stem}${ext}` : `${stem}-${idx + 1}${ext}` };
+      });
+      const picker = (window as unknown as {
+        showDirectoryPicker?: (o?: { mode?: string }) => Promise<DirHandleLike>;
+      }).showDirectoryPicker;
+      if (picker) {
+        let dir: DirHandleLike;
+        try {
+          dir = await picker({ mode: "readwrite" });
+        } catch {
+          return; // folder prompt dismissed — stay on the review screen
+        }
+        setPhase("saving");
+        let failed = 0;
+        for (const { item, out, name } of named) {
+          try {
+            const fh = await dir.getFileHandle(name, { create: true });
+            const ws = await fh.createWritable();
+            await ws.write(out);
+            await ws.close();
+            patchItem(item.id, { savedUrl: name });
+          } catch (e) {
+            failed++;
+            patchItem(item.id, { status: "error", error: e instanceof Error ? e.message : "Save failed" });
+          }
+        }
+        if (failed) setError(`${failed} file${failed === 1 ? "" : "s"} failed to save — the rest are in the folder.`);
+        setPhase("saved");
+        return;
+      }
+      // No File System Access API (Safari/Firefox) — numbered sequential
+      // downloads; the browser asks once to allow multiple downloads.
       setPhase("saving");
-      for (const item of doneItems) {
-        const url = URL.createObjectURL(item.out as File);
+      for (const { item, out, name } of named) {
+        const url = URL.createObjectURL(out);
         const a = document.createElement("a");
         a.href = url;
-        a.download = (item.out as File).name;
+        a.download = name;
         document.body.appendChild(a);
         a.click();
         a.remove();
         await new Promise((r) => setTimeout(r, 350));
         URL.revokeObjectURL(url);
+        patchItem(item.id, { savedUrl: name });
       }
       setPhase("saved");
       return;
@@ -804,7 +902,7 @@ export default function MediaReducerModal({ onClose }: { onClose: () => void }) 
     }
     if (failed) setError(`${failed} file${failed === 1 ? "" : "s"} failed to upload — the rest are saved.`);
     setPhase("saved");
-  }, [doneItems, dest, tenants, tenantId, patchItem]);
+  }, [doneItems, dest, baseName, tenants, tenantId, patchItem]);
 
   const discardBatch = useCallback(() => {
     items.forEach((i) => { if (i.thumbUrl) URL.revokeObjectURL(i.thumbUrl); });
@@ -817,6 +915,10 @@ export default function MediaReducerModal({ onClose }: { onClose: () => void }) 
   const beforeTotal = items.reduce((n, i) => n + i.file.size, 0);
   const afterTotal = doneItems.reduce((n, i) => n + (i.out?.size ?? 0), 0);
   const savingsPct = beforeTotal && afterTotal ? Math.max(0, Math.round((1 - afterTotal / beforeTotal) * 100)) : 0;
+  // Projection before conversion: real out sizes where done, estimates for the rest.
+  const projTotal = items.reduce((n, i) => n + (i.out?.size ?? i.estSize ?? 0), 0);
+  const projCovered = items.length > 0 && items.every((i) => i.out || i.estSize != null);
+  const projPct = beforeTotal && projTotal ? Math.max(0, Math.round((1 - projTotal / beforeTotal) * 100)) : 0;
   const running = phase === "running" || phase === "saving";
   const formatInfo = kind === "image" ? IMAGE_FORMATS[imgFormat] : VIDEO_FORMATS[vidFormat];
 
@@ -945,8 +1047,13 @@ export default function MediaReducerModal({ onClose }: { onClose: () => void }) 
                   {item.status === "working" && kind === "video" && <MiniBar $pct={item.percent} />}
                   <RowSizes>
                     {fmtBytes(item.file.size)}
-                    {item.out && <> → <b>{fmtBytes(item.out.size)}</b>{" "}
-                      <i>−{Math.max(0, Math.round((1 - item.out.size / item.file.size) * 100))}%</i></>}
+                    {item.out ? (
+                      <> → <b>{fmtBytes(item.out.size)}</b>{" "}
+                        <i>−{Math.max(0, Math.round((1 - item.out.size / item.file.size) * 100))}%</i></>
+                    ) : item.estSize != null ? (
+                      <> → ~{fmtBytes(item.estSize)}{" "}
+                        <i>−{Math.max(0, Math.round((1 - item.estSize / item.file.size) * 100))}%</i></>
+                    ) : null}
                   </RowSizes>
                   <RowStatus $status={item.status}>
                     {item.status === "queued" ? "queued"
@@ -999,15 +1106,28 @@ export default function MediaReducerModal({ onClose }: { onClose: () => void }) 
               </>
             )}
             {dest === "download" && (
-              <DestHint>
-                Files stay in the browser until the batch is done — you&apos;ll be prompted to save
-                or discard the whole batch. Nothing is uploaded.
-              </DestHint>
+              <>
+                <ControlRow>
+                  <Label>Filename</Label>
+                  <TextInput
+                    type="text"
+                    value={baseName}
+                    onChange={(e) => setBaseName(e.target.value)}
+                    placeholder="reduced"
+                    disabled={running}
+                  />
+                </ControlRow>
+                <DestHint>
+                  Save batch asks for a folder ONCE, then every file lands there as{" "}
+                  {(baseName.trim() || "reduced")}-1, {(baseName.trim() || "reduced")}-2, … Nothing
+                  is uploaded. (Browsers without folder access fall back to numbered downloads.)
+                </DestHint>
+              </>
             )}
           </DestCard>
 
           {error && <ErrorBox>{error}</ErrorBox>}
-          {phase === "saved" && savedCdnUrls.length > 0 && (
+          {phase === "saved" && dest === "cdn" && savedCdnUrls.length > 0 && (
             <SavedBox>
               Saved to {tenants.find((t) => t.id === tenantId)?.label}:{"\n"}
               {savedCdnUrls.map((i) => <div key={i.id}>{i.savedUrl}</div>)}
@@ -1019,7 +1139,11 @@ export default function MediaReducerModal({ onClose }: { onClose: () => void }) 
           {items.length > 0 && (
             <Totals>
               <b>{items.length}</b> file{items.length === 1 ? "" : "s"} · {fmtBytes(beforeTotal)}
-              {doneItems.length > 0 && <> → <b>{fmtBytes(afterTotal)}</b> <i>−{savingsPct}%</i></>}
+              {doneItems.length === items.length && doneItems.length > 0 ? (
+                <> → <b>{fmtBytes(afterTotal)}</b> <i>−{savingsPct}%</i></>
+              ) : projCovered ? (
+                <> → ~<b>{fmtBytes(projTotal)}</b> <i>−{projPct}%</i> projected</>
+              ) : null}
               {formatInfo && <> · {formatInfo.label}</>}
             </Totals>
           )}
