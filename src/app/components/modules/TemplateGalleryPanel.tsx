@@ -49,11 +49,12 @@ type Template = {
   tags: string[];
   thumbnail: string | null;
   suggestedSlug: string;
-  status: TemplateStatus;
+  /** 0105: member submissions ride the same table with status 'submitted'. */
+  status: TemplateStatus | "submitted";
   updatedAt: string;
 };
 
-type Filter = "published" | "sandbox" | "all";
+type Filter = "published" | "sandbox" | "submitted" | "all";
 
 const TGV_BASE =
   process.env.NEXT_PUBLIC_TGV_URL ?? "https://tinyglobalvillage.com";
@@ -104,9 +105,42 @@ export default function TemplateGalleryPanel() {
     return {
       published: all.filter((t) => t.status === "published").length,
       sandbox: all.filter((t) => t.status === "sandbox").length,
+      submitted: all.filter((t) => t.status === "submitted").length,
       all: all.length,
     };
   }, [templates]);
+
+  // 0105 — member-submission review: proxies to TGV's internal route (status
+  // flip + optional token reward + member alert in one implementation).
+  const [tokenAmounts, setTokenAmounts] = useState<Record<string, string>>({});
+  const review = useCallback(
+    async (t: Template, decision: "accept" | "decline") => {
+      setBusyId(t.templateId);
+      setError(null);
+      try {
+        const tokens = Number(tokenAmounts[t.templateId] ?? "") || 0;
+        const r = await fetch(
+          `/api/editor/shared-templates/${encodeURIComponent(t.templateId)}/review`,
+          {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({
+              decision,
+              ...(tokens > 0 ? { rewardTokens: tokens } : {}),
+            }),
+          },
+        );
+        const j = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(j.error ?? `HTTP ${r.status}`);
+        await load();
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Review failed");
+      } finally {
+        setBusyId(null);
+      }
+    },
+    [load, tokenAmounts],
+  );
 
   const filtered = useMemo(() => {
     const all = templates ?? [];
@@ -217,6 +251,7 @@ export default function TemplateGalleryPanel() {
           segments={[
             { key: "published", label: "Live", count: counts.published },
             { key: "sandbox", label: "Drafts", count: counts.sandbox },
+            { key: "submitted", label: "Submitted", count: counts.submitted },
             { key: "all", label: "All", count: counts.all },
           ]}
         />
@@ -232,7 +267,9 @@ export default function TemplateGalleryPanel() {
             ? "No drafted templates. Everything in the library is live to members."
             : filter === "published"
               ? "No live templates — members' editor pickers will show nothing from the DB."
-              : "No templates yet."}
+              : filter === "submitted"
+                ? "No member submissions awaiting review."
+                : "No templates yet."}
         </Note>
       )}
 
@@ -241,12 +278,13 @@ export default function TemplateGalleryPanel() {
           {visible.map((t) => {
             const thumb = thumbnailUrl(t.thumbnail);
             const isLive = t.status === "published";
+            const isSubmitted = t.status === "submitted";
             return (
               <TileWrap key={t.templateId}>
                 <TileTitleRow>
                   <TileTitle title={t.label}>{t.label}</TileTitle>
                   <StatusChip $live={isLive}>
-                    {isLive ? "Live" : "Draft"}
+                    {isLive ? "Live" : isSubmitted ? "Submitted" : "Draft"}
                   </StatusChip>
                 </TileTitleRow>
 
@@ -292,6 +330,42 @@ export default function TemplateGalleryPanel() {
                 >
                   <MoreIcon size={14} />
                 </MenuBtn>
+
+                {/* 0105: submitted tiles carry inline review controls — the
+                    decision (+ optional token reward) proxies to TGV so the
+                    flip/grant/alert logic lives once. */}
+                {isSubmitted && (
+                  <ReviewRow onMouseDown={(e) => e.stopPropagation()}>
+                    <ReviewTokens
+                      type="number"
+                      min={0}
+                      placeholder="tokens"
+                      title="Optional token reward for the submitter"
+                      value={tokenAmounts[t.templateId] ?? ""}
+                      onChange={(e) =>
+                        setTokenAmounts((m) => ({
+                          ...m,
+                          [t.templateId]: e.target.value,
+                        }))
+                      }
+                    />
+                    <ReviewBtn
+                      type="button"
+                      disabled={busyId === t.templateId}
+                      onClick={() => void review(t, "accept")}
+                    >
+                      Accept
+                    </ReviewBtn>
+                    <ReviewBtn
+                      type="button"
+                      $danger
+                      disabled={busyId === t.templateId}
+                      onClick={() => void review(t, "decline")}
+                    >
+                      Decline
+                    </ReviewBtn>
+                  </ReviewRow>
+                )}
 
                 {openMenuId === t.templateId && (
                   <Menu
@@ -455,6 +529,39 @@ const StatusChip = styled.span<{ $live: boolean }>`
     $live ? `rgba(${rgb.cyan}, 0.12)` : "var(--t-inputBg)"};
   border: 1px solid
     ${({ $live }) => ($live ? `rgba(${rgb.cyan}, 0.45)` : "var(--t-border)")};
+`;
+
+/* 0105 — inline review controls on submitted tiles. */
+const ReviewRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.35rem;
+`;
+
+const ReviewTokens = styled.input`
+  width: 4.2rem;
+  background: var(--t-inputBg);
+  border: 1px solid var(--t-border);
+  border-radius: 0.35rem;
+  color: inherit;
+  font-size: 0.7rem;
+  padding: 0.25rem 0.4rem;
+`;
+
+const ReviewBtn = styled.button<{ $danger?: boolean }>`
+  flex: 1;
+  background: transparent;
+  border: 1px solid
+    ${({ $danger }) => ($danger ? "rgba(255,120,120,.5)" : `rgba(${rgb.cyan}, 0.45)`)};
+  color: ${({ $danger }) => ($danger ? "rgb(255,160,160)" : colors.cyan)};
+  border-radius: 0.35rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.25rem 0.4rem;
+  cursor: pointer;
+  &:hover { background: rgba(255, 255, 255, 0.05); }
+  &:disabled { opacity: 0.5; cursor: default; }
 `;
 
 const Thumb = styled.a<{ $busy: boolean }>`

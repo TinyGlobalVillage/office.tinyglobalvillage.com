@@ -34,6 +34,7 @@ import PayoutsModal from "../../components/villagers/PayoutsModal";
 import WalletControlModal from "../../components/hardening/wallet-control/WalletControlModal";
 import ManagedOnboardingModal from "../../components/villagers/ManagedOnboardingModal";
 import DiscountCodesModal from "../../components/villagers/DiscountCodesModal";
+import ProductsControlModal from "../../components/villagers/ProductsControlModal";
 import CourseControlModal from "../../components/villagers/CourseControlModal";
 import StudioControlModal from "../../components/villagers/StudioControlModal";
 import PerformersControlModal from "../../components/villagers/PerformersControlModal";
@@ -82,6 +83,7 @@ const DEFAULT_LAYOUT: SectionLayout[] = [
       "paypalFaucet",
       "stripeOnboarding",
       "promoDiscounts",
+      "wizardPricing",
       "walletCashOut",
     ],
   },
@@ -457,6 +459,7 @@ export default function VillagersClient() {
   const [openWalletControl, setOpenWalletControl] = useState(false);
   const [openManaged, setOpenManaged] = useState(false);
   const [openDiscounts, setOpenDiscounts] = useState(false);
+  const [openProducts, setOpenProducts] = useState(false);
   const [openCourse, setOpenCourse] = useState(false);
   const [openStudio, setOpenStudio] = useState(false);
   const [openPerformers, setOpenPerformers] = useState(false);
@@ -617,6 +620,21 @@ export default function VillagersClient() {
           Create and manage the TGV-wide discount codes the signup wizard honors — percent or
           fixed, aimed at all signups or one plan / add-on. The SAME codes as the HQ dashboard
           (real Stripe promotion codes; Office proxies to HQ, which holds the keys).
+        </>
+      ),
+    },
+    wizardPricing: {
+      id: "wizardPricing",
+      title: "Wizard Pricing",
+      icon: <CashIcon size={18} />,
+      onClick: () => setOpenProducts(true),
+      sub: (
+        <>
+          Manage the signup wizard&apos;s pricing — its subscription PLANS and ADD-ONS. Create,
+          re-price, activate/deactivate, or delete them. The SAME rows as the HQ dashboard&apos;s
+          Products tile (real Stripe products/prices; Office proxies to HQ, which holds the keys and
+          mints Stripe first). Price edits change the monthly/base rate; yearly &amp; lifetime stay
+          as seeded.
         </>
       ),
     },
@@ -981,6 +999,7 @@ export default function VillagersClient() {
 
       {openManaged && <ManagedOnboardingModal onClose={() => setOpenManaged(false)} />}
       {openDiscounts && <DiscountCodesModal onClose={() => setOpenDiscounts(false)} />}
+      {openProducts && <ProductsControlModal onClose={() => setOpenProducts(false)} />}
       {openOnboardVillager && <OnboardVillagerModal onClose={() => setOpenOnboardVillager(false)} />}
       {openOnboardConfig && <OnboardConfigModal onClose={() => setOpenOnboardConfig(false)} />}
 
