@@ -6,7 +6,8 @@
     "dev": "next dev --webpack",
     "build": "NODE_OPTIONS=--max-old-space-size=6144 next build --webpack",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "svg:manifest": "node scripts/generate-svg-manifest.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.88.0",

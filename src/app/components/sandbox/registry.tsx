@@ -60,6 +60,10 @@ const AnchorMorphThreadsDyn = dynamic(
 // PlanetCanvas wrapper uses position:fixed inset:0, so we bypass it and
 // compose the scene directly inside a modal-sized Canvas.
 const R3FPreviewModal = dynamic(() => import("./R3FPreviewModal"), { ssr: false });
+
+// SVG Lab — heavy (imports the 162-icon generated manifest), so it only loads
+// when the demo's launch button is clicked.
+const SvgLabModalDyn = dynamic(() => import("../svg-lab/SvgLabModal"), { ssr: false });
 const Canvas3DDyn = dynamic(
   () => import("@react-three/fiber").then((m) => m.Canvas as React.ComponentType<Record<string, unknown>>),
   { ssr: false }
@@ -2357,6 +2361,39 @@ function DrawerIconDemo() {
   );
 }
 
+function SvgLabDemo() {
+  const [open, setOpen] = useState(false);
+  return (
+    <DrawerWrap>
+      <Highlight label="SVG Lab">
+        <SvgLabLaunchBtn type="button" onClick={() => setOpen(true)}>
+          <ClientDashboardIcon size={16} /> Open SVG Lab
+        </SvgLabLaunchBtn>
+      </Highlight>
+      <DrawerCaption>
+        Every ecosystem icon in one searchable lab — recolor, resize, reframe, nudge layers, save variants.
+      </DrawerCaption>
+      {open && <SvgLabModalDyn onClose={() => setOpen(false)} />}
+    </DrawerWrap>
+  );
+}
+
+const SvgLabLaunchBtn = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.45rem 0.9rem;
+  border-radius: 9999px;
+  background: rgba(${PINK_RGB}, 0.12);
+  border: 1px solid rgba(${PINK_RGB}, 0.45);
+  color: ${PINK};
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  text-shadow: 0 0 10px rgba(${PINK_RGB}, 0.4);
+  &:hover { background: rgba(${PINK_RGB}, 0.22); box-shadow: 0 0 14px rgba(${PINK_RGB}, 0.3); }
+`;
+
 function DrawerKnobDemo() {
   const accent = "#00bfff";
   return (
@@ -3862,6 +3899,22 @@ const [name, setName] = useState("");
 </TabPill>`,
     stylePath: "src/app/components/drawers/icons/",
     Demo: DrawerIconDemo,
+  },
+  {
+    key: "SvgLab",
+    name: "SVG Lab",
+    category: "Icons",
+    summary:
+      "Playground over every SVG icon the office app can reach (162 across office + @tgv packages, enumerated by the generate-svg-manifest engine). SBDM picker + browse grid load any icon; edit master currentColor, per-layer fill/stroke/stroke-width/opacity/visibility and X/Y nudge, grow/shrink the viewBox bounding box, set output width/height in px, and stage it on an artboard canvas (checker/dark/light/custom, frame, zoom). Copy markup, download .svg/.png, or save a named variant server-side.",
+    usage:
+      "Use to preview an icon in a new accent, recrop a tight viewBox, produce a resized/recolored export, or keep a shared tweaked variant (data/svg-lab/, staff-visible). Icons are edited as serialized copies — source components are never touched. Add new icons to any scanned source dir, then re-run `npm run svg:manifest` from the monorepo lane.",
+    code: `// engine: scripts/generate-svg-manifest.mjs → manifest.generated.ts
+<SBDM items={SVG_MANIFEST.map((e) => ({ key: e.key, label: e.name, group: e.sourceLabel }))}
+  onSelect={pick} placeholder="Pick an icon…" />
+// edits re-apply onto the serialized markup (svgModel.ts):
+applyEdits(baseMarkup, { viewBox, width, height, edits, layers })`,
+    stylePath: "src/app/components/svg-lab/SvgLabModal.tsx",
+    Demo: SvgLabDemo,
   },
   {
     key: "DrawerKnob",

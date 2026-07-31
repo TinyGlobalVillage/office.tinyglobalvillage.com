@@ -44,6 +44,10 @@ next-env.d.ts
 # Phase 4 reconciliation audit trail (runtime, per-env)
 data/reconcile/
 
+# SVG Lab saved variants — staff-created at runtime via /api/svg-lab/variants
+# (index.json + one json per variant). Per-box state; a deploy must never clobber it.
+data/svg-lab/
+
 # runtime auth/user store — written live by the app (passkey public keys,
 # totpEnabled, recovery-code hashes, display data). NOT source. Lives on disk +
 # in the nightly Tier 1 restic backup; restore from backup on a rebuild, not git.
