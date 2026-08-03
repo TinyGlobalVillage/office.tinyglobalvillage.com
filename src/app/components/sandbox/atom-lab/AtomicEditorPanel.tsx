@@ -19,6 +19,7 @@ import { colors, rgb } from "../../../theme";
 import Tooltip from "../../ui/Tooltip";
 import { type AtomSpec, SPEC_LIMITS } from "./atomSpec";
 import { type AtomDef } from "./atomRegistry";
+import PublishControls from "./PublishControls";
 import { SVG_MANIFEST, SVG_SOURCE_GROUPS } from "../../svg-lab/manifest.generated";
 
 const PINK = colors.pink;
@@ -487,6 +488,7 @@ export function AtomicEditorPanel({
   sectionOpen,
   toggleSection,
   box,
+  publishKey,
 }: {
   def: AtomDef;
   spec: AtomSpec;
@@ -503,6 +505,12 @@ export function AtomicEditorPanel({
   toggleSection: (key: string) => void;
   /** Rendered pixel box of the atom, for the Size readout. */
   box: { w: number; h: number };
+  /**
+   * The atom's key, when this spec is one a site can actually be shipped. The
+   * Atom Library passes it; the Component Composer does not — a node inside a
+   * composed component is not a shipped atom, so there is nothing to publish.
+   */
+  publishKey?: string;
 }) {
   const d = def.defaults;
   return (
@@ -510,9 +518,11 @@ export function AtomicEditorPanel({
       <EditorHead>
         <EditorTitle>Atomic Editor</EditorTitle>
         <EditorAtom>{label}</EditorAtom>
+        {/* Drafts, not releases — this atom looks like this in Office and nowhere else. */}
         <SaveChip $state={saveState}>
-          {saveState === "saving" ? "saving…" : saveState === "error" ? "save failed" : "auto-saved"}
+          {saveState === "saving" ? "saving…" : saveState === "error" ? "save failed" : "draft saved"}
         </SaveChip>
+        {publishKey && <PublishControls atomKey={publishKey} spec={spec} />}
         <Tooltip label="Undo (⌘/Ctrl+Z)" accent={PINK}>
           <HistoryBtn onClick={undo} disabled={!canUndo} aria-label="Undo">
             ↶

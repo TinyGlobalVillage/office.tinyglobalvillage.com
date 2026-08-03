@@ -6,6 +6,7 @@ import SessionWrapper from "./components/SessionWrapper";
 import ThemeProvider from "./components/ThemeProvider";
 import StyledRegistry from "./StyledRegistry";
 import DevModeMount from "./components/dev/DevModeMount";
+import AtomSpecStyles from "./components/AtomSpecStyles";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -63,6 +64,8 @@ export default function RootLayout({
       style={{ minHeight: "100%", WebkitFontSmoothing: "antialiased" }}
     >
       <body style={{ minHeight: "100%", display: "flex", flexDirection: "column" }}>
+        {/* First thing in the document, so a published atom never paints twice. */}
+        <AtomSpecStyles />
         <StyledRegistry><SessionWrapper><ThemeProvider>{children}<DevModeMount /></ThemeProvider></SessionWrapper></StyledRegistry>
       </body>
     </html>

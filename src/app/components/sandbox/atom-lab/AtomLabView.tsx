@@ -581,6 +581,7 @@ export default function AtomLabView({
           sectionOpen={sectionOpen}
           toggleSection={toggleSection}
           box={box}
+          publishKey={def.key}
         />
       </Editor>
     </Wrap>

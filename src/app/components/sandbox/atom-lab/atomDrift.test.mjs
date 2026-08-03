@@ -45,6 +45,31 @@ const LITERALS = {
   letterSpacing: /letter-spacing:\s*[\d.]/,
 };
 
+test("a migrated component opens the publish channel", () => {
+  // Scope is what a published spec arrives through. Without it the component
+  // still renders, still passes every other check here, and Publish silently
+  // does nothing — the failure mode this test exists for.
+  for (const [key, file] of Object.entries(COMPONENTS)) {
+    const src = read(file);
+    assert.match(src, new RegExp(`const KEY = "${key}"`), `${key}: no KEY to scope published vars by`);
+    assert.match(
+      src,
+      /specSkinToCss\([^;]*,\s*KEY\s*\)/,
+      `${key}: its surface CSS is unscoped, so publishing this atom would change nothing`,
+    );
+    assert.match(
+      src,
+      /specTextToCss\([^;]*,\s*textScope\(KEY\)\s*\)/,
+      `${key}: its label must be scoped under textScope(KEY) — surface and text both declare "color"`,
+    );
+    assert.match(
+      src,
+      /data-atom=\{KEY\}/,
+      `${key}: without data-atom there is nothing for the published rule to select`,
+    );
+  }
+});
+
 test("every shipped spec is already in range", () => {
   for (const key of Object.keys(SHIPPED_ATOMS)) {
     const spec = shippedSpec(key);
@@ -103,8 +128,14 @@ test("the Atom Library reads the shipped patch, not a copy of it", () => {
 test("Tile emits exactly the CSS it shipped with before the migration", () => {
   // The literals this replaced, kept here on purpose: this is the assertion
   // that the migration moved no pixels, and it is worth being able to read.
-  const css = specSkinToCss(shippedSpec("tile"), SHIPPED_ATOMS.tile.ungoverned.surface);
-  const decl = (p) => new RegExp(`^${p}: var\\(--atom-[a-z-]+, (.*)\\);$`, "m").exec(css)?.[1];
+  // Emitted the way Tile.tsx emits it — scoped, so a published spec can reach
+  // it. The baked value behind the chain is what shipped, and that is what this
+  // pins; the extra `var()` in front of it is the publish channel.
+  const css = specSkinToCss(shippedSpec("tile"), SHIPPED_ATOMS.tile.ungoverned.surface, "", "tile");
+  const decl = (p) =>
+    new RegExp(`^${p}: var\\(--atom-[a-z-]+, var\\(--atom-tile-[a-z-]+, (.*)\\)\\);$`, "m").exec(
+      css,
+    )?.[1];
   assert.equal(
     decl("background"),
     "linear-gradient(160deg, rgba(var(--atom-fill-rgb, 0, 228, 253), 0.04), rgba(var(--atom-fill-to-rgb, 0, 228, 253), 0.01))",
