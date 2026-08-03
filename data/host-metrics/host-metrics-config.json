@@ -1,0 +1,11 @@
+{
+  "sampleIntervalMs": 300000,
+  "retentionDays": 90,
+  "nicCapMbps": 1000,
+  "warnPct": 75,
+  "criticalPct": 90,
+  "samplingEnabled": true,
+  "alertsEnabled": true,
+  "lastUpdated": null,
+  "_note": "Office-side tunables for the Box Usage Monitor. Written by the Hardening modal via /api/admin/host-metrics/config; read by the in-process sampler on every tick, so changes apply without a redeploy. Values outside src/lib/host-metrics/config.ts CLAMPS are pulled to the nearest allowed one on read."
+}

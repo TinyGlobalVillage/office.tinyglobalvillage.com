@@ -21,6 +21,7 @@ import {
   diskPctFromBytes,
   ramPctFromMeminfo,
 } from "./compute";
+import { hostMetricsState } from "./state";
 
 /** Filesystems that count toward the disk headline — worst-of across them. */
 const DISK_PATHS = ["/", "/srv"];
@@ -39,13 +40,11 @@ type CpuCounters = { idle: number; total: number };
 type NetCounters = { rx: number; tx: number };
 
 /**
- * Baseline for the delta metrics. Module-level on purpose: the sampler is a
- * long-lived process, so consecutive ticks share it. A cold start (or a
- * process restart) yields one zero-delta sample, which is the honest answer.
+ * Baseline for the delta metrics. Kept on the shared global (see state.ts) so
+ * every bundle that samples differences against the SAME previous reading — a
+ * per-module copy would silently restart the window on each route. A cold start
+ * yields one zero-delta sample, which is the honest answer.
  */
-let prevCpu: CpuCounters | null = null;
-let prevNet: NetCounters | null = null;
-let prevAt: number | null = null;
 
 /** Parse the aggregate `cpu` line of /proc/stat into idle + total jiffies. */
 export function parseProcStat(text: string): CpuCounters | null {
@@ -136,14 +135,14 @@ async function readDiskPct(): Promise<number> {
   return worst;
 }
 
-/**
- * One sample. `cpuPct` and `bwPct` are 0 on the first call after start —
- * they need two readings to exist at all.
- */
-export async function readSample(
-  nicCapMbps: number = DEFAULTS.nicCapMbps,
-  now: number = Date.now(),
-): Promise<HostSample> {
+export type Baseline = { cpu: CpuCounters | null; net: NetCounters | null; at: number | null };
+
+/** One reading, differenced against `base`. Returns the sample and the new base. */
+async function readAgainst(
+  base: Baseline,
+  nicCapMbps: number,
+  now: number,
+): Promise<{ sample: HostSample; base: Baseline }> {
   const [cpu, ramPct, net, diskPct] = await Promise.all([
     readCpu(),
     readRamPct(),
@@ -152,22 +151,67 @@ export async function readSample(
   ]);
 
   let cpuPct = 0;
-  if (cpu && prevCpu) cpuPct = cpuPctFromDelta(prevCpu, cpu);
-  if (cpu) prevCpu = cpu;
+  if (cpu && base.cpu) cpuPct = cpuPctFromDelta(base.cpu, cpu);
 
   let bwPct = 0;
-  if (net && prevNet && prevAt !== null) {
-    bwPct = bwPctFromDelta(net.rx - prevNet.rx, net.tx - prevNet.tx, now - prevAt, nicCapMbps);
+  if (net && base.net && base.at !== null) {
+    bwPct = bwPctFromDelta(net.rx - base.net.rx, net.tx - base.net.tx, now - base.at, nicCapMbps);
   }
-  if (net) prevNet = net;
-  prevAt = now;
 
-  return { cpuPct, ramPct, diskPct, bwPct };
+  return {
+    sample: { cpuPct, ramPct, diskPct, bwPct },
+    base: { cpu: cpu ?? base.cpu, net: net ?? base.net, at: now },
+  };
+}
+
+/**
+ * One sample against the SHARED baseline — the sampler's call.
+ *
+ * `cpuPct` and `bwPct` are 0 on the first call after start: they need two
+ * readings to exist at all. Every later call measures the window since the
+ * previous one, which for the sampler is exactly its cadence.
+ */
+export async function readSample(
+  nicCapMbps: number = DEFAULTS.nicCapMbps,
+  now: number = Date.now(),
+): Promise<HostSample> {
+  const s = hostMetricsState();
+  const { sample, base } = await readAgainst(
+    { cpu: s.prevCpu, net: s.prevNet, at: s.prevAt },
+    nicCapMbps,
+    now,
+  );
+  s.prevCpu = base.cpu;
+  s.prevNet = base.net;
+  s.prevAt = base.at;
+  return sample;
+}
+
+/**
+ * A sample with its OWN baseline, taken over a short window — what a UI asking
+ * "what is the box doing right now" wants.
+ *
+ * It exists so the modal can't damage the history. Calling readSample() to
+ * paint a live gauge would advance the shared baseline, and the sampler's next
+ * row would then describe the seconds since the last UI poll instead of the
+ * five minutes it claims to. Two reads a beat apart cost one extra /proc pass
+ * and keep the two consumers independent.
+ */
+export async function readSampleIsolated(
+  nicCapMbps: number = DEFAULTS.nicCapMbps,
+  gapMs = 250,
+): Promise<HostSample> {
+  const t0 = Date.now();
+  const first = await readAgainst({ cpu: null, net: null, at: null }, nicCapMbps, t0);
+  await new Promise((r) => setTimeout(r, gapMs));
+  const second = await readAgainst(first.base, nicCapMbps, Date.now());
+  return second.sample;
 }
 
 /** Drop the delta baseline — for tests, and for a sampler restarting cleanly. */
 export function resetBaseline(): void {
-  prevCpu = null;
-  prevNet = null;
-  prevAt = null;
+  const s = hostMetricsState();
+  s.prevCpu = null;
+  s.prevNet = null;
+  s.prevAt = null;
 }

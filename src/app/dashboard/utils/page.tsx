@@ -27,6 +27,7 @@ const BuildGuardControlModal = dynamic(() => import("../../components/hardening/
 const TsserverControlModal = dynamic(() => import("../../components/hardening/tsserver/TsserverControlModal"), { ssr: false });
 const DomainDnsControlModal = dynamic(() => import("../../components/hardening/domain-dns/DomainDnsControlModal"), { ssr: false });
 const KeycloakControlModal = dynamic(() => import("../../components/hardening/keycloak/KeycloakControlModal"), { ssr: false });
+const BoxUsageControlModal = dynamic(() => import("../../components/hardening/box-usage/BoxUsageControlModal"), { ssr: false });
 const DemoModeControlModal = dynamic(() => import("../../components/dev-tooling/demo-mode/DemoModeControlModal"), { ssr: false });
 const MediaReducerModal = dynamic(() => import("../../components/media-reducer/MediaReducerModal"), { ssr: false });
 import AutomationsTab from "../../components/automations/AutomationsTab";
@@ -1913,6 +1914,22 @@ function UtilsAdlSurface({
                         </HardeningTileSub>
                       </HardeningTile>
                     );
+                    if (tile.type === "box-usage") return (
+                      <HardeningTile key={i} type="button" onClick={() => onOpenHardening("box-usage")}>
+                        <HardeningTileTop>
+                          <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: "-2px", marginRight: 8 }}>
+                            <path d="M4 18a8 8 0 1 1 16 0" />
+                            <path d="M12 18l4.5-5" />
+                          </svg>
+                          Box Usage
+                        </HardeningTileTop>
+                        <HardeningTileSub>
+                          How full this box is — CPU, RAM, disk and bandwidth sampled on a cadence and
+                          kept as history, headlined by whichever fills first. The box has already
+                          OOM-killed a build once; this is the number that says when to add another.
+                        </HardeningTileSub>
+                      </HardeningTile>
+                    );
                     if (tile.type === "keycloak") return (
                       <HardeningTile key={i} type="button" onClick={() => onOpenHardening("keycloak")}>
                         <HardeningTileTop>
@@ -2080,7 +2097,7 @@ type DefaultsOverlay = Record<string, Record<string, FieldValue>>;
 
 // Runtime list, not just a union: the ?view= deep-link reader has to validate a
 // string off the URL, and a second hand-kept list would drift.
-const HARDENING_KINDS = ["telephony", "tenant-apps", "member-auth", "office-staff", "mesh-vpn", "invitations", "firewall", "build-guard", "tsserver", "keycloak", "demo-mode", "domain-dns"] as const;  // | "postgres" | "ssh" | "nginx" — future
+const HARDENING_KINDS = ["telephony", "tenant-apps", "member-auth", "office-staff", "mesh-vpn", "invitations", "firewall", "build-guard", "tsserver", "keycloak", "demo-mode", "domain-dns", "box-usage"] as const;  // | "postgres" | "ssh" | "nginx" — future
 type HardeningKind = (typeof HARDENING_KINDS)[number];
 
 // ── Link Tools (TinyURL + QR generators) ──────────────────────────────────
@@ -2123,6 +2140,7 @@ type TileSpec =
   | { type: "build-guard" }
   | { type: "domain-dns" }
   | { type: "tsserver" }
+  | { type: "box-usage" }
   | { type: "keycloak" }
   | { type: "demo-mode" }
   | { type: "tinyurl" }
@@ -2173,7 +2191,7 @@ const SECTIONS: Section[] = [
     kind: "actions", actionIds: ["gitrepo", "gitdelrepo"] },
   { id: "hardening", title: "Hardening", accent: "cyan",
     subtitle: "defensive mechanisms installed on RCS — controls + status + audit log",
-    kind: "tiles", tiles: [{ type: "firewall" }, { type: "telephony" }, { type: "tenant-apps" }, { type: "member-auth" }, { type: "keycloak" }, { type: "office-staff" }, { type: "mesh-vpn" }, { type: "invitations" }, { type: "build-guard" }, { type: "tsserver" }, { type: "domain-dns" }] },
+    kind: "tiles", tiles: [{ type: "firewall" }, { type: "telephony" }, { type: "tenant-apps" }, { type: "member-auth" }, { type: "keycloak" }, { type: "office-staff" }, { type: "mesh-vpn" }, { type: "invitations" }, { type: "build-guard" }, { type: "tsserver" }, { type: "box-usage" }, { type: "domain-dns" }] },
   { id: "linktools", title: "Link Tools", accent: "cyan",
     subtitle: "shorten URLs and generate scannable QR codes — pair them for printable mini-flyers",
     kind: "tiles", tiles: [{ type: "tinyurl" }, { type: "qrcode" }] },
@@ -2743,6 +2761,9 @@ export default function UtilsPage() {
       )}
       {openHardening === "demo-mode" && (
         <DemoModeControlModal onClose={() => setOpenHardening(null)} />
+      )}
+      {openHardening === "box-usage" && (
+        <BoxUsageControlModal onClose={() => setOpenHardening(null)} />
       )}
 
       {openBackups && (

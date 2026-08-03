@@ -73,11 +73,19 @@ export function computeCapacity(sample: HostSample): Capacity {
   return { worstPct: byResource[worst], worst };
 }
 
-/** ok / warn(≥75) / critical(≥90). */
-export function evaluateThreshold(worstPct: number): ThresholdStatus {
+/**
+ * ok / warn(≥75) / critical(≥90). The bounds default to the plan's numbers but
+ * are arguments, because the Hardening modal can retune them per box — a build
+ * server that lives at 85% CPU shouldn't be permanently amber.
+ */
+export function evaluateThreshold(
+  worstPct: number,
+  warnPct: number = WARN_PCT,
+  criticalPct: number = CRITICAL_PCT,
+): ThresholdStatus {
   const pct = clampPct(worstPct);
-  if (pct >= CRITICAL_PCT) return "critical";
-  if (pct >= WARN_PCT) return "warn";
+  if (pct >= criticalPct) return "critical";
+  if (pct >= warnPct) return "warn";
   return "ok";
 }
 
@@ -123,6 +131,65 @@ export function rollingAverages(
     "7d": rollingAverage(samples, WINDOWS["7d"], now),
     "30d": rollingAverage(samples, WINDOWS["30d"], now),
   };
+}
+
+// ── Series shaping ──────────────────────────────────────────────────────
+
+export type Bucket = {
+  /** Start of the bucket, ms epoch. */
+  ts: number;
+  /** Mean of the samples in it, or null when the box reported nothing. */
+  worstPct: number | null;
+  /** Peak in the bucket — a spike must survive downsampling. */
+  peakPct: number | null;
+  count: number;
+};
+
+/**
+ * Fold a series into fixed-width buckets spanning `windowMs` back from `now`.
+ *
+ * Thirty days at a five-minute cadence is 8,640 points; nobody needs 8,640
+ * points in a sparkline and shipping them costs more than the whole rest of the
+ * payload. Buckets are fixed-width rather than "every Nth sample" so a gap in
+ * collection stays visibly a gap instead of being closed up.
+ *
+ * Each bucket carries BOTH mean and peak: the mean is the honest answer to
+ * "how loaded is this box", but a bucket-mean alone would smooth a 100% spike
+ * into nothing, and a spike is the whole reason to look at the chart.
+ */
+export function bucketSeries(
+  samples: Array<{ ts: number | Date; worstPct: number }>,
+  windowMs: number,
+  bucketCount: number,
+  now: number = Date.now(),
+): Bucket[] {
+  const n = Math.max(1, Math.floor(bucketCount));
+  const width = windowMs / n;
+  const start = now - windowMs;
+  const buckets: Bucket[] = Array.from({ length: n }, (_, i) => ({
+    ts: start + i * width,
+    worstPct: null,
+    peakPct: null,
+    count: 0,
+  }));
+  const totals = new Array<number>(n).fill(0);
+
+  for (const s of samples) {
+    const ts = s.ts instanceof Date ? s.ts.getTime() : s.ts;
+    if (!Number.isFinite(ts) || ts < start || ts > now) continue;
+    const idx = Math.min(n - 1, Math.floor((ts - start) / width));
+    const pct = clampPct(s.worstPct);
+    totals[idx] += pct;
+    buckets[idx].count += 1;
+    if (buckets[idx].peakPct === null || pct > (buckets[idx].peakPct as number)) {
+      buckets[idx].peakPct = pct;
+    }
+  }
+
+  for (let i = 0; i < n; i++) {
+    if (buckets[i].count > 0) buckets[i].worstPct = totals[i] / buckets[i].count;
+  }
+  return buckets;
 }
 
 // ── Raw readings → percentages ──────────────────────────────────────────

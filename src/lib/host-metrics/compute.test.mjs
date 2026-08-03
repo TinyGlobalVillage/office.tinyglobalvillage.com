@@ -11,6 +11,7 @@ import assert from "node:assert/strict";
 import {
   CRITICAL_PCT,
   WARN_PCT,
+  bucketSeries,
   bwPctFromDelta,
   clampPct,
   computeCapacity,
@@ -117,6 +118,62 @@ test("rollingAverages fills the three windows independently", () => {
   assert.equal(out["24h"], 20);
   assert.equal(out["7d"], 50);
   assert.equal(out["30d"], 50);
+});
+
+test("evaluateThreshold accepts retuned bounds", () => {
+  // A build box that idles at 85% shouldn't be permanently amber.
+  assert.equal(evaluateThreshold(85), "warn");
+  assert.equal(evaluateThreshold(85, 90, 97), "ok");
+  assert.equal(evaluateThreshold(98, 90, 97), "critical");
+});
+
+test("bucketSeries folds a long series into a fixed number of points", () => {
+  const now = 1_000_000;
+  const windowMs = 1000;
+  // 10 buckets of 100ms; two samples land in the first, one in the last.
+  const out = bucketSeries(
+    [
+      { ts: now - 1000, worstPct: 10 },
+      { ts: now - 950, worstPct: 30 },
+      { ts: now - 50, worstPct: 70 },
+    ],
+    windowMs,
+    10,
+    now,
+  );
+  assert.equal(out.length, 10);
+  assert.equal(out[0].count, 2);
+  assert.equal(out[0].worstPct, 20); // mean of 10 and 30
+  assert.equal(out[0].peakPct, 30); // …and the spike survives
+  assert.equal(out[9].worstPct, 70);
+});
+
+test("bucketSeries leaves gaps null instead of drawing a zero line", () => {
+  // A box that stopped reporting is not a box reporting 0% — the chart has to
+  // be able to show the hole.
+  const now = 1_000_000;
+  const out = bucketSeries([{ ts: now - 10, worstPct: 40 }], 1000, 4, now);
+  assert.deepEqual(
+    out.map((b) => b.worstPct),
+    [null, null, null, 40],
+  );
+  assert.deepEqual(out.map((b) => b.count), [0, 0, 0, 1]);
+});
+
+test("bucketSeries drops samples outside the window", () => {
+  const now = 1_000_000;
+  const out = bucketSeries(
+    [
+      { ts: now - 5000, worstPct: 99 }, // older than the window
+      { ts: now + 5000, worstPct: 99 }, // clock skew from the future
+      { ts: now - 100, worstPct: 50 },
+    ],
+    1000,
+    2,
+    now,
+  );
+  assert.equal(out.reduce((a, b) => a + b.count, 0), 1);
+  assert.equal(out[1].worstPct, 50);
 });
 
 test("cpuPctFromDelta measures the interval, not uptime", () => {

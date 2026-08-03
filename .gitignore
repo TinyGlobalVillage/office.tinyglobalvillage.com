@@ -80,6 +80,12 @@ data/backups/restore-test-history.json
 # backup on a rebuild. Committing it would ship one box's log over another's.
 data/audit/
 
+# Box Usage Monitor alert state — per-box "have I already alerted at this level"
+# bookkeeping. Shipping one box's copy would tell another box it had already
+# warned about a crossing it never saw, and swallow the real alert. The tunables
+# beside it (host-metrics-config.json) ARE tracked; only this is runtime.
+data/host-metrics/alert-state.json
+
 # Telephony runtime audio — live operator state; deploys must never clobber it
 telephony/data/voicemails/
 telephony/data/recordings/
