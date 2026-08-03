@@ -138,12 +138,67 @@ export function tileMatchScore(
   return total / tokens.length;
 }
 
-export function dispatchTileAction(action: OfficeTileAction) {
+/**
+ * Child surfaces — the modals and panels that live INSIDE a tile (Gio
+ * 2026-08-02: "the child modals should also show up in the filter list").
+ * They are searchable and openable in their own right, so "glossary" or
+ * "template gallery" finds the thing rather than the room it is in.
+ *
+ * `detail` is handed to the parent when it opens: page tiles receive it as
+ * ?view=, event tiles as the CustomEvent's detail, and the parent decides
+ * which sub-surface that names.
+ */
+export type OfficeChildDef = {
+  key: string;
+  title: string;
+  subtitle: string;
+  /** OfficeTileDef.key of the tile that hosts it. */
+  parent: string;
+  /** Which sub-surface inside the parent. */
+  detail: string;
+};
+
+export const OFFICE_CHILDREN: OfficeChildDef[] = [
+  // Library → its shelves
+  { key: "ComponentLibrary", title: "Component Library", subtitle: "in Library · catalog", parent: "Library", detail: "components" },
+  { key: "SkillLibrary", title: "Skill Library", subtitle: "in Library · agent skills", parent: "Library", detail: "skills" },
+  { key: "PlaybookLibrary", title: "Playbook Library", subtitle: "in Library · runbooks", parent: "Library", detail: "playbooks" },
+  { key: "UtilsLibrary", title: "Utils Library", subtitle: "in Library · tooling", parent: "Library", detail: "utils" },
+  { key: "Glossary", title: "Glossary", subtitle: "in Library · named concepts", parent: "Library", detail: "glossary" },
+  // Sandbox → its four columns
+  { key: "SandboxTemplates", title: "Templates", subtitle: "in Sandbox · page templates", parent: "Sandbox", detail: "templates" },
+  { key: "SandboxComponents", title: "Components", subtitle: "in Sandbox · groups of atoms", parent: "Sandbox", detail: "components" },
+  { key: "SandboxAtoms", title: "Atom Library", subtitle: "in Sandbox · solitary atoms", parent: "Sandbox", detail: "atoms" },
+  { key: "SandboxSvgs", title: "SVG Lab", subtitle: "in Sandbox · every ecosystem icon", parent: "Sandbox", detail: "svg" },
+  // Modules → its panels
+  { key: "TemplateGallery", title: "Template Gallery", subtitle: "in Modules · browse + review", parent: "Modules", detail: "templates" },
+  { key: "EmailCampaigns", title: "Email Campaigns", subtitle: "in Modules · sends & lists", parent: "Modules", detail: "email" },
+];
+
+/**
+ * `detail` names a sub-surface inside the tile (see OFFICE_CHILDREN); the
+ * modal host reads it off the event and opens straight to that child.
+ */
+export function dispatchTileAction(action: OfficeTileAction, detail?: string) {
   if ("drawer" in action) {
     window.dispatchEvent(new CustomEvent("tgv-drawer-open", { detail: action.drawer }));
   } else if ("event" in action) {
-    window.dispatchEvent(new CustomEvent(action.event));
+    window.dispatchEvent(new CustomEvent(action.event, { detail }));
   }
+}
+
+/**
+ * The shareable URL for a tile. Page tiles keep their page key so existing
+ * links stay valid; event and drawer tiles are named by their registry key.
+ * `view` carries the selection inside the tile (the Sandbox writes its own).
+ */
+export function shareUrlForTile(key: string, view?: string): string {
+  const def = OFFICE_TILES.find((t) => t.key === key);
+  const param = def && "page" in def.action ? def.action.page : key;
+  const params = new URLSearchParams();
+  params.set("tile", param);
+  if (view) params.set("view", view);
+  return `${window.location.origin}${window.location.pathname}?${params.toString()}`;
 }
 
 export function tileHref(action: OfficeTileAction): string | undefined {

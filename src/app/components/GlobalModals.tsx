@@ -14,6 +14,10 @@ import MyAlertsAccess from "./MyAlertsAccess";
 // is what lets a Menu entry work from ANY office page.
 export default function GlobalModals() {
   const [claudeOpen, setClaudeOpen] = useState(false);
+  // Which child surface the opener asked for (dashboardTiles OFFICE_CHILDREN),
+  // handed to the modal so a search result lands on the thing, not the room.
+  const [sandboxView, setSandboxView] = useState<string | undefined>();
+  const [libraryChild, setLibraryChild] = useState<string | undefined>();
   const [sandboxOpen, setSandboxOpen] = useState(false);
   const [libraryOpen, setLibraryOpen] = useState(false);
   const [suggestionOpen, setSuggestionOpen] = useState(false);
@@ -21,10 +25,16 @@ export default function GlobalModals() {
   const [diaryOpen, setDiaryOpen] = useState(false);
 
   useEffect(() => {
-    const handlers: Record<string, () => void> = {
+    const handlers: Record<string, (e: Event) => void> = {
       "open-claude": () => setClaudeOpen(true),
-      "open-sandbox": () => setSandboxOpen(true),
-      "open-library": () => setLibraryOpen(true),
+      "open-sandbox": (e) => {
+        setSandboxView((e as CustomEvent<string | undefined>).detail);
+        setSandboxOpen(true);
+      },
+      "open-library": (e) => {
+        setLibraryChild((e as CustomEvent<string | undefined>).detail);
+        setLibraryOpen(true);
+      },
       "open-suggestion": () => setSuggestionOpen(true),
       "open-activity": () => setActivityOpen(true),
       "open-rcs-diary": () => setDiaryOpen(true),
@@ -37,8 +47,8 @@ export default function GlobalModals() {
   return (
     <>
       {claudeOpen && <ClaudeMenuModal onClose={() => setClaudeOpen(false)} />}
-      {sandboxOpen && <SandboxModal onClose={() => setSandboxOpen(false)} />}
-      {libraryOpen && <LibraryModal onClose={() => setLibraryOpen(false)} />}
+      {sandboxOpen && <SandboxModal onClose={() => setSandboxOpen(false)} initialView={sandboxView} />}
+      {libraryOpen && <LibraryModal onClose={() => setLibraryOpen(false)} initialChild={libraryChild} />}
       {suggestionOpen && <SuggestionBoxModal onClose={() => setSuggestionOpen(false)} />}
       {activityOpen && <ActivityModal onClose={() => setActivityOpen(false)} />}
       {diaryOpen && <RcsDiaryModal onClose={() => setDiaryOpen(false)} />}

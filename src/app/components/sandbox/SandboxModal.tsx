@@ -2621,6 +2621,7 @@ export default function SandboxModal({
   mode = "main",
   title = "Sandbox",
   surface = "workshop",
+  initialView,
 }: {
   onClose: () => void;
   mode?: SandboxMode;
@@ -2638,6 +2639,8 @@ export default function SandboxModal({
    * LibraryModal's Component Library tile.
    */
   surface?: "library" | "workshop";
+  /** Open straight to one column — a search result for a child surface. */
+  initialView?: string;
 }) {
   useModalLifecycle();
   // Start with NO selection (Gio 2026-07-08): the picker SBDM shows its blank
@@ -2647,7 +2650,11 @@ export default function SandboxModal({
   // Sandbox view — "components" (classic registry sandbox) | "atoms" (Atom
   // Library Sandbox). Switched by the header PillBar; the atoms view swaps
   // the entire Body for AtomLabView and hides the components-only chrome.
-  const [labView, setLabView] = useState<"templates" | "components" | "atoms" | "svg">("components");
+  const [labView, setLabView] = useState<"templates" | "components" | "atoms" | "svg">(
+    initialView === "templates" || initialView === "atoms" || initialView === "svg"
+      ? initialView
+      : "components",
+  );
   // Header slot the Atom Lab portals its atom DDM into when its menu drawer
   // is collapsed (drawer-collapsed → DDM-on-header-row behavior).
   const [atomHeaderSlot, setAtomHeaderSlot] = useState<HTMLDivElement | null>(null);

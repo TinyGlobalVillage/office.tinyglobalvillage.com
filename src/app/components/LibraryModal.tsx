@@ -146,14 +146,22 @@ const CardBody = styled.p`
   margin: 0;
 `;
 
-export default function LibraryModal({ onClose }: { onClose: () => void }) {
+export default function LibraryModal({
+  onClose,
+  initialChild,
+}: {
+  onClose: () => void;
+  /** Open straight to one shelf — a search result for a child surface. */
+  initialChild?: string;
+}) {
   useModalLifecycle();
   const [fullscreen, setFullscreen] = useState(false);
-  const [skillsOpen, setSkillsOpen] = useState(false);
-  const [playbooksOpen, setPlaybooksOpen] = useState(false);
-  const [componentLibraryOpen, setComponentLibraryOpen] = useState(false);
-  const [utilsLibraryOpen, setUtilsLibraryOpen] = useState(false);
-  const [glossaryOpen, setGlossaryOpen] = useState(false);
+  const [skillsOpen, setSkillsOpen] = useState(initialChild === "skills");
+  const [playbooksOpen, setPlaybooksOpen] = useState(initialChild === "playbooks");
+  const [componentLibraryOpen, setComponentLibraryOpen] = useState(initialChild === "components");
+  const [utilsLibraryOpen, setUtilsLibraryOpen] = useState(initialChild === "utils");
+  const [glossaryOpen, setGlossaryOpen] = useState(initialChild === "glossary");
+  // A search result names a shelf; open it with the Library, not after it.
 
   useEscapeToClose({ open: true, onClose });
 

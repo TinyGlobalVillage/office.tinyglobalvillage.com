@@ -11,6 +11,7 @@ import {
   OFFICE_TILES,
   TILE_GROUPS,
   TILE_GROUP_ACCENT,
+  OFFICE_CHILDREN,
   tileMatchScore,
   dispatchTileAction,
   type OfficeTileGroup,
@@ -27,6 +28,9 @@ type DashTile = {
   group?: OfficeTileGroup;
   pageKey?: string;
   onClick?: () => void;
+  /** Set on child surfaces (a modal inside a tile) — searchable, not shown idle. */
+  childOf?: string;
+  detail?: string;
 };
 
 type ActivityEvent = {
@@ -573,19 +577,33 @@ const VIEW_PARAM = "view";
 
 type OpenTile = { pageKey: string; title: string; glow: GlowColor; view?: string };
 
-/** ?tile=… → the tile it names, if it is a page tile that exists. */
+/**
+ * Resolve ?tile=… against the registry. Accepts a page key ("processes") for
+ * the links already in circulation, or a registry key ("Sandbox") so EVERY
+ * tile is addressable — event and drawer tiles included (Gio 2026-08-02:
+ * "every tile and its selection should have a hyperlink").
+ */
+function tileDefFromParam(value: string | null) {
+  if (!value) return null;
+  return (
+    OFFICE_TILES.find((t) => "page" in t.action && t.action.page === value) ??
+    OFFICE_TILES.find((t) => t.key.toLowerCase() === value.toLowerCase()) ??
+    null
+  );
+}
+
+/** ?tile=… → the tile it names, only when that tile opens as a page modal. */
 function tileFromParams(params: URLSearchParams): OpenTile | null {
-  const pageKey = params.get(TILE_PARAM);
-  if (!pageKey) return null;
-  const def = OFFICE_TILES.find((t) => "page" in t.action && t.action.page === pageKey);
-  if (!def) return null;
+  const def = tileDefFromParam(params.get(TILE_PARAM));
+  if (!def || !("page" in def.action)) return null;
   return {
-    pageKey,
+    pageKey: def.action.page,
     title: def.title,
     glow: def.glow,
     view: params.get(VIEW_PARAM) ?? undefined,
   };
 }
+
 
 function tileUrl(tile: OpenTile | null): string {
   const params = new URLSearchParams(window.location.search);
@@ -707,9 +725,39 @@ export default function Home() {
   // Scored search (see tileMatchScore): closest match first, alphabetical
   // within a tier. Suggest is pinned last only while browsing — once you've
   // typed something, relevance decides, so searching "suggest" finds it.
+  // Child surfaces (Library shelves, Sandbox columns, Modules panels) are
+  // searchable in their own right — "glossary" should find the Glossary, not
+  // just the Library it lives in. They stay OUT of the idle grid so the
+  // dashboard still reads as one tile per room; a search brings them forward.
+  const childTiles: DashTile[] = useMemo(
+    () =>
+      OFFICE_CHILDREN.flatMap((c) => {
+        const parent = OFFICE_TILES.find((t) => t.key === c.parent);
+        if (!parent) return [];
+        return [{
+          key: `child:${c.key}`,
+          title: c.title,
+          subtitle: c.subtitle,
+          glow: parent.glow,
+          group: parent.group,
+          icon: parent.icon(28),
+          childOf: parent.title,
+          detail: c.detail,
+          pageKey: "page" in parent.action ? parent.action.page : undefined,
+          onClick:
+            "page" in parent.action
+              ? undefined
+              : () => dispatchTileAction(parent.action, c.detail),
+        }];
+      }),
+    [],
+  );
+
   const filteredTiles = useMemo(() => {
     const searching = filter.trim().length > 0;
-    return tiles
+    // Children only join the list once you're actually searching.
+    const pool = searching ? [...tiles, ...childTiles] : tiles;
+    return pool
       .map((t) => ({ tile: t, score: tileMatchScore(t, filter) }))
       .filter((r): r is { tile: DashTile; score: number } => r.score !== null)
       .sort((a, b) => {
@@ -722,7 +770,7 @@ export default function Home() {
         return a.tile.title.localeCompare(b.tile.title);
       })
       .map((r) => r.tile);
-  }, [tiles, filter]);
+  }, [tiles, childTiles, filter]);
 
   // Tiles render one sub-grid per category. A search still groups — it just
   // drops the categories that have no match, so the shape stays familiar.
@@ -735,6 +783,17 @@ export default function Home() {
       /* unreadable prefs — every group starts open */
     }
   }, []);
+  /** Collapse or expand every tile category at once. */
+  const setAllGroups = useCallback((collapsed: boolean) => {
+    const next = Object.fromEntries(TILE_GROUPS.map((g) => [g, collapsed]));
+    setGroupCollapsed(next);
+    try {
+      localStorage.setItem(TILE_GROUPS_COLLAPSED_KEY, JSON.stringify(next));
+    } catch {
+      /* private mode — still applies for this session */
+    }
+  }, []);
+
   const toggleGroup = useCallback((g: string) => {
     setGroupCollapsed((prev) => {
       const next = { ...prev, [g]: !prev[g] };
@@ -761,7 +820,7 @@ export default function Home() {
   // The picker panel uses the same matcher so it can never disagree with the
   // grid, but keeps its own A-Z / Z-A toggle as the primary sort.
   const panelList = useMemo(() => {
-    return tiles
+    return [...tiles, ...childTiles]
       .map((t) => ({ tile: t, score: tileMatchScore(t, inner) }))
       .filter((r): r is { tile: DashTile; score: number } => r.score !== null)
       .sort((a, b) => {
@@ -772,7 +831,7 @@ export default function Home() {
           : b.tile.title.localeCompare(a.tile.title);
       })
       .map((r) => r.tile);
-  }, [tiles, inner, asc]);
+  }, [tiles, childTiles, inner, asc]);
 
   return (
     <>
@@ -811,6 +870,9 @@ export default function Home() {
             setTeamExpanded(next);
             setActivityExpanded(next);
             setMasterExpanded(next);
+            // Collapse-all means ALL the way down (Gio 2026-08-02): the tile
+            // categories fold with their section, not just the section itself.
+            setAllGroups(!next);
           };
           const showBody = masterExpanded || anyInnerExpanded;
           return (
@@ -936,7 +998,13 @@ export default function Home() {
                         </TileOuter>
                       );
                       const handleClick = tile.pageKey
-                        ? () => openTile({ pageKey: tile.pageKey!, title: tile.title, glow: tile.glow })
+                        ? () =>
+                            openTile({
+                              pageKey: tile.pageKey!,
+                              title: tile.childOf ?? tile.title,
+                              glow: tile.glow,
+                              view: tile.detail,
+                            })
                         : tile.onClick;
                       return (
                         <button
