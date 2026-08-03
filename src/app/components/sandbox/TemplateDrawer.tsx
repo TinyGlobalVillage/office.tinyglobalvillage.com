@@ -110,6 +110,8 @@ export default function TemplateDrawer({
     const m: Record<string, TemplateRow[]> = {};
     for (const c of categories) m[c] = [];
     for (const t of templates) (m[t.category?.trim() || UNCATEGORIZED] ??= []).push(t);
+    // Rows A-Z inside every group, matching the other sandbox drawers.
+    for (const c of Object.keys(m)) m[c].sort((a, b) => a.label.localeCompare(b.label));
     return m;
   }, [categories, templates]);
 
@@ -162,11 +164,18 @@ export default function TemplateDrawer({
   const ddmOptions = useMemo(
     () => [
       { key: "__dashboard", label: "Dashboard (villager)", group: "Dashboard" },
-      ...templates.map((t) => ({
-        key: t.templateId,
-        label: t.label,
-        group: t.category?.trim() || UNCATEGORIZED,
-      })),
+      ...[...templates]
+        .sort(
+          (a, b) =>
+            (a.category?.trim() || UNCATEGORIZED).localeCompare(
+              b.category?.trim() || UNCATEGORIZED,
+            ) || a.label.localeCompare(b.label),
+        )
+        .map((t) => ({
+          key: t.templateId,
+          label: t.label,
+          group: t.category?.trim() || UNCATEGORIZED,
+        })),
     ],
     [templates],
   );

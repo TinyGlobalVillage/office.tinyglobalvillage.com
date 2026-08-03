@@ -151,10 +151,22 @@ export default function SvgLabModal({
     setZoom(Math.max(1, Math.min(12, Math.round(220 / Math.max(w0, h0)))));
   }
 
-  const filtered = useMemo(
-    () => (sourceFilter === "all" ? SVG_MANIFEST : SVG_MANIFEST.filter((e) => e.sourceLabel === sourceFilter)),
-    [sourceFilter],
+  // Sources A-Z, and icons A-Z inside each — every sandbox list sorts its
+  // groups AND their rows alphabetically (Gio 2026-08-02).
+  const sortedSources = useMemo(
+    () => [...SVG_SOURCE_GROUPS].sort((a, b) => a.label.localeCompare(b.label)),
+    [],
   );
+
+  const filtered = useMemo(() => {
+    const rows =
+      sourceFilter === "all"
+        ? SVG_MANIFEST
+        : SVG_MANIFEST.filter((e) => e.sourceLabel === sourceFilter);
+    return [...rows].sort(
+      (a, b) => a.sourceLabel.localeCompare(b.sourceLabel) || a.name.localeCompare(b.name),
+    );
+  }, [sourceFilter]);
 
   const editedMarkup = useMemo(() => {
     if (!baseMarkup || !parsed) return null;
@@ -365,7 +377,7 @@ export default function SvgLabModal({
         <PickerRow>
           <SBDM
             items={[{ key: "all", label: `All sources (${SVG_MANIFEST.length})` },
-              ...SVG_SOURCE_GROUPS.map((g) => ({ key: g.label, label: `${g.label} (${g.count})` }))]}
+              ...sortedSources.map((g) => ({ key: g.label, label: `${g.label} (${g.count})` }))]}
             value={sourceFilter}
             onSelect={setSourceFilter}
             placeholder="Source"

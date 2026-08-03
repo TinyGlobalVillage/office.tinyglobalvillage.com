@@ -447,9 +447,20 @@ export default function AtomLabView({
 
   const Render = def.Render;
 
-  const ddmOptions = useMemo(
-    () => ATOMS.map((a) => ({ key: a.key, label: a.name, group: a.group as string })),
+  // Every sandbox drawer sorts its groups AND their rows A-Z (Gio 2026-08-02).
+  const sortedGroups = useMemo(
+    () => [...ATOM_GROUPS].sort((a, b) => a.localeCompare(b)),
     [],
+  );
+
+  const ddmOptions = useMemo(
+    () =>
+      sortedGroups.flatMap((g) =>
+        ATOMS.filter((a) => a.group === g)
+          .sort((a, b) => a.name.localeCompare(b.name))
+          .map((a) => ({ key: a.key, label: a.name, group: g as string })),
+      ),
+    [sortedGroups],
   );
 
   const toggleSection = (k: string) => setSectionOpen((p) => ({ ...p, [k]: !p[k] }));
@@ -488,8 +499,10 @@ export default function AtomLabView({
             </Tooltip>
           </MenuHead>
           <MenuScroll>
-            {ATOM_GROUPS.map((g) => {
-              const items = ATOMS.filter((a) => a.group === g);
+            {sortedGroups.map((g) => {
+              const items = ATOMS.filter((a) => a.group === g).sort((a, b) =>
+                a.name.localeCompare(b.name),
+              );
               const open = groupOpen[g] ?? true;
               return (
                 <div key={g}>

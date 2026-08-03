@@ -3099,6 +3099,9 @@ export default function SandboxModal({
     const m: Record<string, SandboxEntry[]> = {};
     for (const c of COMPONENT_CATEGORIES) m[c] = [];
     for (const e of COMPONENT_REGISTRY) m[e.category].push(e);
+    // Rows sort A-Z inside every group; the groups themselves are already
+    // alphabetical (COMPONENT_CATEGORIES).
+    for (const c of COMPONENT_CATEGORIES) m[c].sort((a, b) => a.name.localeCompare(b.name));
     return m;
   }, []);
 

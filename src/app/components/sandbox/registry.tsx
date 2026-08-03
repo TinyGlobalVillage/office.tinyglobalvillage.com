@@ -2376,7 +2376,6 @@ function DrawerIconDemo() {
   );
 }
 
-
 function DrawerKnobDemo() {
   const accent = "#00bfff";
   return (
@@ -2393,102 +2392,6 @@ function DrawerKnobDemo() {
 }
 
 // ── Canvas Settings demo ──────────────────────────────────────────────────
-const CsStage = styled.div`
-  position: relative;
-  width: 300px;
-  height: 170px;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px dashed rgba(255, 255, 255, 0.14);
-  overflow: hidden;
-`;
-const CsCanvasHint = styled.span`
-  position: absolute;
-  top: 8px;
-  left: 10px;
-  font-size: 9px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.25);
-`;
-const CsSnapEdge = styled.div<{ $accent: string }>`
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  right: 0;
-  width: 6px;
-  background: color-mix(in srgb, ${(p) => p.$accent} 55%, transparent);
-  box-shadow: 0 0 12px color-mix(in srgb, ${(p) => p.$accent} 60%, transparent);
-`;
-const CsPanel = styled.div<{ $accent: string }>`
-  position: absolute;
-  top: 12px;
-  right: 14px;
-  width: 158px;
-  border-radius: 8px;
-  background: color-mix(in srgb, ${(p) => p.$accent} 6%, #05060a 94%);
-  border: 1px solid color-mix(in srgb, ${(p) => p.$accent} 40%, transparent);
-  box-shadow: 0 0 16px color-mix(in srgb, ${(p) => p.$accent} 18%, transparent);
-  overflow: hidden;
-`;
-const CsPanelHeader = styled.div<{ $accent: string }>`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 6px 8px;
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: ${(p) => p.$accent};
-  border-bottom: 1px solid color-mix(in srgb, ${(p) => p.$accent} 25%, transparent);
-  cursor: grab;
-`;
-const CsFieldRow = styled.div<{ $accent: string }>`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 6px 8px;
-  font-size: 10px;
-  color: color-mix(in srgb, ${(p) => p.$accent} 70%, #ffffff 30%);
-`;
-const CsDdm = styled.span<{ $accent: string }>`
-  padding: 2px 8px;
-  border-radius: 999px;
-  font-size: 9px;
-  background: color-mix(in srgb, ${(p) => p.$accent} 14%, transparent);
-  border: 1px solid color-mix(in srgb, ${(p) => p.$accent} 45%, transparent);
-  color: ${(p) => p.$accent};
-`;
-
-function CanvasSettingsDemo() {
-  const accent = "#ff4ecb";
-  return (
-    <DrawerWrap>
-      <Highlight label="Canvas Settings">
-        <CsStage>
-          <CsCanvasHint>canvas</CsCanvasHint>
-          <CsSnapEdge $accent={accent} />
-          <CsPanel $accent={accent}>
-            <CsPanelHeader $accent={accent}>
-              <span>Canvas Settings</span>
-              <span>&#x2304;</span>
-            </CsPanelHeader>
-            <CsFieldRow $accent={accent}>
-              <span>Fill</span>
-              <CsDdm $accent={accent}>accent &#x25BE;</CsDdm>
-            </CsFieldRow>
-            <CsFieldRow $accent={accent}>
-              <span>Border</span>
-              <CsDdm $accent={accent}>solid &#x25BE;</CsDdm>
-            </CsFieldRow>
-          </CsPanel>
-        </CsStage>
-      </Highlight>
-      <DrawerCaption>Collapsible, draggable canvas-mode settings drawer — the dock edge highlights before snap; DDM-themed dropdowns; tooltips always render away from the snapped edge.</DrawerCaption>
-    </DrawerWrap>
-  );
-}
 
 function DrawerMenuButtonDemo() {
   const accent = "#ff4ecb";
@@ -3569,99 +3472,9 @@ function ExploreFeaturesModalDemo() {
 }
 
 // ── GLC (Grouped Layer-Components) demo — self-contained mock ─────────────
-const GlcStage = styled.div`
-  position: relative;
-  height: 150px;
-  border: 1px solid rgba(0, 228, 253, 0.25);
-  border-radius: 10px;
-  overflow: hidden;
-  background-image: radial-gradient(circle, rgba(0, 228, 253, 0.18) 1px, transparent 1.4px);
-  background-size: 14px 14px;
-`;
-const GlcGroup = styled.div`
-  position: absolute;
-  left: 12px;
-  top: 12px;
-  width: 150px;
-  height: 118px;
-  border: 1px solid rgba(0, 228, 253, 0.3);
-  border-radius: 8px;
-`;
-const GlcSelected = styled.div`
-  position: absolute;
-  left: 14px;
-  bottom: 12px;
-  padding: 5px 14px;
-  font-size: 10px;
-  font-weight: 700;
-  border-radius: 99px;
-  color: #bff4ff;
-  border: 1px dashed rgba(0, 228, 253, 0.9);
-  background: rgba(0, 228, 253, 0.1);
-`;
-const GlcText = styled.div`
-  position: absolute;
-  left: 14px;
-  font-size: 10px;
-  color: rgba(234, 247, 250, 0.9);
-`;
-const GlcTree = styled.div`
-  position: absolute;
-  right: 10px;
-  top: 10px;
-  width: 130px;
-  display: grid;
-  gap: 3px;
-  font-size: 9px;
-  color: rgba(0, 228, 253, 0.85);
-
-  span {
-    padding: 2px 6px;
-    border-radius: 5px;
-    border: 1px solid rgba(0, 228, 253, 0.2);
-  }
-  span.sel {
-    background: rgba(0, 228, 253, 0.12);
-    border-color: rgba(0, 228, 253, 0.5);
-  }
-`;
-function GlcDemo() {
-  return (
-    <GlcStage>
-      <GlcGroup>
-        <GlcText style={{ top: 10, fontWeight: 700 }}>Heading layer</GlcText>
-        <GlcText style={{ top: 28, opacity: 0.7 }}>Body layer…</GlcText>
-        <GlcSelected>Button layer ⇱</GlcSelected>
-      </GlcGroup>
-      <GlcTree>
-        <span>▾ GROUP · Card</span>
-        <span style={{ marginLeft: 10 }}>TEXT · Heading</span>
-        <span style={{ marginLeft: 10 }}>TEXT · Body</span>
-        <span className="sel" style={{ marginLeft: 10 }}>BUTTON · CTA ⇱ ✕</span>
-      </GlcTree>
-    </GlcStage>
-  );
-}
 
 export const REGISTRY: SandboxEntry[] = [
   // ── Editor Engine ─────────────────────────────────────────────────────
-  {
-    key: "GroupedLayerComponents",
-    name: "Grouped Layer-Components (GLC)",
-    category: "Editor Controls",
-    summary:
-      "The page editor's atomic engine (chrysalis): a section is a tree of typed layers (text/image/shape/button/media/embed/group) with per-breakpoint absolute boxes inside a FIXED-height frame — nudging a child never grows the parent. Every layer carries the Content | Style pill with the ten style ADDMs (color/font/character/paragraph/padding/margin/rotation/axis/size/effects incl. hover diffs, single on-click action, on-enter animation).",
-    usage:
-      "In the page editor: Add section → any category → Grouped Elements tab → pick an (Atomic) entry. Click a layer on the canvas to select (arrows nudge on the 4px grid, Shift = 1px, Esc done; ⇱ Detach in the hint pill frees it from its group). The section row's tree edits content/styles per layer; drag a row onto a group to nest it, or onto the drop bar to un-group — groups auto-relabel when their shape matches a curated component signature. Catalog (Atomic) entries auto-appear in this sandbox via the catalog bridge.",
-    code: `// SectionModel.layers — a typed LayerNode tree (sanitized end-to-end)
-{ id, type: "button", text: "Join →", href: "/wizard",
-  box: { desktop: { x, y, w, h }, mobile: { x, y } },   // desktop-first partials
-  style: { color: { fill: "linear-gradient(135deg,#E34CFF,#FF4FD8)",
-                    shadow: "0 8px 24px rgba(227,76,255,0.35)" },
-           hover: { color: { border: "#fff" } } },       // diffs only
-  effects: { click: [{ kind: "open-modal", modal: "explore-features" }] } }`,
-    Demo: GlcDemo,
-  },
 
   // ── Buttons ───────────────────────────────────────────────────────────
   {
@@ -4343,19 +4156,6 @@ const FileSidebar = styled.aside\`
   // @tgv/module-component-library/components/ui/TPG.)
 
   // ── Editor Controls ───────────────────────────────────────────────────
-  {
-    key: "CS",
-    name: "Canvas Settings",
-    category: "Editor Controls",
-    summary:
-      "The canvas-mode style/toggle panel (CanvasInspector) as a collapsible drawer: click it open/closed at will, drag it out and around, and dock it into a side of the canvas viewport — the target edge highlights as it reads the panel is about to be joined. Every dropdown inside is DDM-themed (never a native OS select face). Canonical tooltip rule: tooltips on any docked bar render AWAY from the snapped edge (bottom bar \u2192 tooltip above). The same drawer/dock behavior applies to the Canvas Toolbar, the Layers panel, and the Arrange Bar (the bottom bar of z-order/align/distribute arrows).",
-    usage:
-      "Canvas Mode in the tgv.com page editor: the settings face for the selected canvas item (name, X/Y/W/H, rotation, block content/style faces, Fill/stroke PaintInspector). Collapse to a slim edge pill; drag the header to re-dock left/right/top/bottom with edge-highlight preview; dock + collapsed state persists per user. Dropdowns use the DDM pattern in the panel theme. Tooltips flip to stay in the line of sight wherever the bar is snapped.",
-    code: `// Canvas Settings drawer (Canvas Mode C11)\n<CanvasSettingsDrawer\n  dock="right"          // left | right | top | bottom — drag header to re-dock\n  collapsed={collapsed} // click open/closed at will\n  onDockPreview={(side) => highlightEdge(side)} // edge glows before snap\n>\n  <CanvasInspector item={selected} /> {/* DDM-themed dropdowns inside */}\n</CanvasSettingsDrawer>`,
-    stylePath:
-      "packages/@tgv/module-core/module-page-editor/editor/page-editor/grid-canvas/CanvasInspector.tsx",
-    Demo: CanvasSettingsDemo,
-  },
 
   // ── Toggles ───────────────────────────────────────────────────────────
   {
@@ -4780,10 +4580,14 @@ export const COMPONENT_REGISTRY: SandboxEntry[] = REGISTRY.filter(
 /** Registry rows whose design home is the Atom Library. */
 export const ATOM_TIER_KEYS: string[] = REGISTRY.filter((e) => e.tier === "atom").map((e) => e.key);
 
-/** Categories that still have at least one component after the atoms move out. */
+/**
+ * Categories that still have at least one component after the atoms move out,
+ * A-Z (Gio 2026-08-02 — every sandbox drawer sorts its groups AND their rows
+ * alphabetically, so a name is findable by eye without reading the whole list).
+ */
 export const COMPONENT_CATEGORIES: Array<SandboxEntry["category"]> = CATEGORIES.filter((c) =>
   COMPONENT_REGISTRY.some((e) => e.category === c),
-);
+).sort((a, b) => String(a).localeCompare(String(b)));
 
 // ── React Three Fiber demos ─────────────────────────────────────────────
 // Constrained-size demo wrappers for the r3f primitives. The fullscreen

@@ -21,6 +21,7 @@ import SkillLibraryModal from "./SkillLibraryModal";
 import PlaybookLibraryModal from "./PlaybookLibraryModal";
 import SandboxModal from "./sandbox/SandboxModal";
 import UtilsLibraryModal from "./UtilsLibraryModal";
+import GlossaryModal from "./library/glossary/GlossaryModal";
 
 const FsContainer = styled(ModalContainer)<{ $fs: boolean }>`
   ${(p) => p.$fs && `
@@ -78,6 +79,7 @@ const SECTIONS = [
   { title: "Playbook Library", body: "Reusable runbooks: gitrefuse, dep-check, deploy flows, incident response.", status: "live" },
   { title: "Utils Library", body: "Developer & niche tooling — feature worktrees today; default home for new RCS / Office utilities going forward.", status: "live" },
   { title: "Asset Library", body: "Logos, icons, brand colors, copy snippets — single source of truth for TGV + Refusionist.", status: "planned" },
+  { title: "Glossary", body: "Named TGV concepts — what a term means and where the real thing lives. Explainers, not building blocks: things you compose live in the Sandbox.", status: "live" },
   { title: "Knowledge Library", body: "Long-form references — Human Design corpus, registrar protocols, infra docs.", status: "live" },
 ];
 
@@ -151,6 +153,7 @@ export default function LibraryModal({ onClose }: { onClose: () => void }) {
   const [playbooksOpen, setPlaybooksOpen] = useState(false);
   const [componentLibraryOpen, setComponentLibraryOpen] = useState(false);
   const [utilsLibraryOpen, setUtilsLibraryOpen] = useState(false);
+  const [glossaryOpen, setGlossaryOpen] = useState(false);
 
   useEscapeToClose({ open: true, onClose });
 
@@ -196,6 +199,7 @@ export default function LibraryModal({ onClose }: { onClose: () => void }) {
                   : s.title === "Skill Library" && s.status === "live" ? () => setSkillsOpen(true)
                   : s.title === "Playbook Library" && s.status === "live" ? () => setPlaybooksOpen(true)
                   : s.title === "Utils Library" && s.status === "live" ? () => setUtilsLibraryOpen(true)
+                  : s.title === "Glossary" && s.status === "live" ? () => setGlossaryOpen(true)
                   : null;
                 const isClickable = onOpen !== null;
                 return (
@@ -229,6 +233,7 @@ export default function LibraryModal({ onClose }: { onClose: () => void }) {
         />
       )}
       {utilsLibraryOpen && <UtilsLibraryModal onClose={() => setUtilsLibraryOpen(false)} />}
+      {glossaryOpen && <GlossaryModal onClose={() => setGlossaryOpen(false)} />}
     </>
   );
 }
