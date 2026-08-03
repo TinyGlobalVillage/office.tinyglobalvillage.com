@@ -1,7 +1,7 @@
 "use client";
 
 import { useEscapeToClose } from "@tgv/module-component-library/components/hooks/useEscapeToClose";
-import { useState, useEffect, useMemo, useRef, ReactNode } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef, ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import styled, { keyframes } from "styled-components";
@@ -2078,7 +2078,10 @@ type DefaultsOverlay = Record<string, Record<string, FieldValue>>;
 // opens its HardeningControlModal. New hardenings get a new tile + a new
 // `kind` value below.
 
-type HardeningKind = "telephony" | "tenant-apps" | "member-auth" | "office-staff" | "mesh-vpn" | "invitations" | "firewall" | "build-guard" | "tsserver" | "keycloak" | "demo-mode" | "domain-dns";  // | "postgres" | "ssh" | "nginx" — future
+// Runtime list, not just a union: the ?view= deep-link reader has to validate a
+// string off the URL, and a second hand-kept list would drift.
+const HARDENING_KINDS = ["telephony", "tenant-apps", "member-auth", "office-staff", "mesh-vpn", "invitations", "firewall", "build-guard", "tsserver", "keycloak", "demo-mode", "domain-dns"] as const;  // | "postgres" | "ssh" | "nginx" — future
+type HardeningKind = (typeof HARDENING_KINDS)[number];
 
 // ── Link Tools (TinyURL + QR generators) ──────────────────────────────────
 //
@@ -2572,6 +2575,46 @@ export default function UtilsPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  /**
+   * `?view=<tile>` opens one of this page's modals directly (Gio 2026-08-03:
+   * searching "Mesh VPN" on the dashboard must land ON Mesh VPN, not on the
+   * Utils front door). The names are the TileSpec / HardeningKind values the
+   * ADDM sections already use, so OFFICE_CHILDREN in dashboardTiles.tsx needs
+   * no separate vocabulary. Unknown views are ignored — the page just opens.
+   *
+   * Unlike ?transcripts= above, the param is NOT stripped after use: it is the
+   * shareable address of this modal, and rewriting it would break the back
+   * button and any link an operator copied out of the bar.
+   */
+  const openUtilsView = useCallback((view: string) => {
+    switch (view) {
+      case "backups": setOpenBackups(true); return;
+      case "migrate": setOpenMigrate(true); return;
+      case "esign": setOpenEsign(true); return;
+      case "esign-vault": setOpenEsignVault(true); return;
+      case "domain-console": setOpenDomainConsole(true); return;
+      case "tinyurl": case "qrcode": setOpenLinkTool(view); return;
+      case "transcriber": setOpenTranscriber("create"); return;
+      case "transcriptions": setOpenTranscriber("browse"); return;
+      case "media-reducer": setOpenMediaReducer(true); return;
+      default:
+        if (HARDENING_KINDS.includes(view as HardeningKind)) {
+          setOpenHardening(view as HardeningKind);
+        }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const consume = () => {
+      const view = new URLSearchParams(window.location.search).get("view");
+      if (view) openUtilsView(view);
+    };
+    consume();
+    window.addEventListener("popstate", consume);
+    return () => window.removeEventListener("popstate", consume);
+  }, [openUtilsView]);
 
   const handleMakeQR = (shortUrl: string, link: ShortLink) => {
     setQrSeed(shortUrl);

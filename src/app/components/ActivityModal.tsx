@@ -248,7 +248,15 @@ const EventText = styled.span`
   white-space: nowrap;
 `;
 
-export default function ActivityModal({ onClose }: { onClose: () => void }) {
+export default function ActivityModal({
+  onClose,
+  /** Child surface from the dashboard search (OFFICE_CHILDREN → detail):
+   *  "logs" or "archive" opens that LogsModal straight away. */
+  initialTab,
+}: {
+  onClose: () => void;
+  initialTab?: string;
+}) {
   useModalLifecycle();
   const [activity, setActivity] = useState<ActivityEvent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -257,7 +265,9 @@ export default function ActivityModal({ onClose }: { onClose: () => void }) {
   const [showCustom, setShowCustom] = useState(false);
   const [page, setPage] = useState(0);
   const [fullscreen, setFullscreen] = useState(false);
-  const [logsTab, setLogsTab] = useState<TabMode | null>(null);
+  const [logsTab, setLogsTab] = useState<TabMode | null>(
+    initialTab === "logs" || initialTab === "archive" ? initialTab : null,
+  );
   const [showDropdown, setShowDropdown] = useState(false);
   const dropRef = useRef<HTMLDivElement>(null);
 

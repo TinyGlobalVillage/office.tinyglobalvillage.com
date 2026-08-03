@@ -18,6 +18,8 @@ export default function GlobalModals() {
   // handed to the modal so a search result lands on the thing, not the room.
   const [sandboxView, setSandboxView] = useState<string | undefined>();
   const [libraryChild, setLibraryChild] = useState<string | undefined>();
+  const [claudeTool, setClaudeTool] = useState<string | undefined>();
+  const [activityView, setActivityView] = useState<string | undefined>();
   const [sandboxOpen, setSandboxOpen] = useState(false);
   const [libraryOpen, setLibraryOpen] = useState(false);
   const [suggestionOpen, setSuggestionOpen] = useState(false);
@@ -26,7 +28,10 @@ export default function GlobalModals() {
 
   useEffect(() => {
     const handlers: Record<string, (e: Event) => void> = {
-      "open-claude": () => setClaudeOpen(true),
+      "open-claude": (e) => {
+        setClaudeTool((e as CustomEvent<string | undefined>).detail);
+        setClaudeOpen(true);
+      },
       "open-sandbox": (e) => {
         setSandboxView((e as CustomEvent<string | undefined>).detail);
         setSandboxOpen(true);
@@ -36,7 +41,10 @@ export default function GlobalModals() {
         setLibraryOpen(true);
       },
       "open-suggestion": () => setSuggestionOpen(true),
-      "open-activity": () => setActivityOpen(true),
+      "open-activity": (e) => {
+        setActivityView((e as CustomEvent<string | undefined>).detail);
+        setActivityOpen(true);
+      },
       "open-rcs-diary": () => setDiaryOpen(true),
     };
     const entries = Object.entries(handlers);
@@ -46,11 +54,11 @@ export default function GlobalModals() {
 
   return (
     <>
-      {claudeOpen && <ClaudeMenuModal onClose={() => setClaudeOpen(false)} />}
+      {claudeOpen && <ClaudeMenuModal onClose={() => setClaudeOpen(false)} initialTool={claudeTool} />}
       {sandboxOpen && <SandboxModal onClose={() => setSandboxOpen(false)} initialView={sandboxView} />}
       {libraryOpen && <LibraryModal onClose={() => setLibraryOpen(false)} initialChild={libraryChild} />}
       {suggestionOpen && <SuggestionBoxModal onClose={() => setSuggestionOpen(false)} />}
-      {activityOpen && <ActivityModal onClose={() => setActivityOpen(false)} />}
+      {activityOpen && <ActivityModal onClose={() => setActivityOpen(false)} initialTab={activityView} />}
       {diaryOpen && <RcsDiaryModal onClose={() => setDiaryOpen(false)} />}
       {/* self-listens for "open-my-alerts" */}
       <MyAlertsAccess headless />

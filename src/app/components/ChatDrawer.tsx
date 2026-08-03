@@ -23,6 +23,7 @@ import {
   Input,
 } from "../styled";
 import { useDrawerLifecycle, DRAWER_DATA_ATTR } from "../lib/drawerStack";
+import { DRAWER_TAB_EVENT, type DrawerTabDetail } from "./dashboardTiles";
 import { useDrawerPersistedState } from "../lib/drawerPersist";
 import ChatSettingsModal, { UserAvatar, resolveTimezone, type MemberProfile, type ChatSettings as ModalChatSettings } from "./ChatSettingsModal";
 import MediaConverterModal, { type MinimizedConversionInfo } from "./MediaConverterModal";
@@ -3726,6 +3727,19 @@ export default function ChatDrawer({ popout = false, popoutPeer = null, popoutGr
     open,
     setOpen,
   });
+
+  // Child-surface opener: searching "groups" on the dashboard opens this
+  // drawer with its sidebar already on the Groups tab (see OFFICE_CHILDREN).
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const d = (e as CustomEvent<DrawerTabDetail>).detail;
+      if (!d || d.drawer !== DRAWER_ID) return;
+      if (d.tab !== "users" && d.tab !== "groups") return;
+      setSidebarTab(d.tab);
+    };
+    window.addEventListener(DRAWER_TAB_EVENT, handler);
+    return () => window.removeEventListener(DRAWER_TAB_EVENT, handler);
+  }, [setSidebarTab]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;

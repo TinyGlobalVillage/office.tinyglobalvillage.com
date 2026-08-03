@@ -208,8 +208,12 @@ export default function PreviewDrawer() {
   useEffect(() => {
     fetch("/api/projects")
       .then((r) => r.json())
-      .then((data: Project[]) => {
-        setProjects(data);
+      .then((data: unknown) => {
+        // A 4xx/5xx from this route answers with `{ error }`, not a list — and
+        // this drawer mounts in ClientShell, so assigning that object and then
+        // calling .map() took the WHOLE dashboard down with a runtime
+        // TypeError. An unusable project picker is the correct failure here.
+        setProjects(Array.isArray(data) ? (data as Project[]) : []);
         setLoading(false);
       })
       .catch(() => setLoading(false));

@@ -173,7 +173,87 @@ export const OFFICE_CHILDREN: OfficeChildDef[] = [
   // Modules → its panels
   { key: "TemplateGallery", title: "Template Gallery", subtitle: "in Modules · browse + review", parent: "Modules", detail: "templates" },
   { key: "EmailCampaigns", title: "Email Campaigns", subtitle: "in Modules · sends & lists", parent: "Modules", detail: "email" },
+
+  // Utils → every modal tile in the ADDM sections. `detail` is the TileSpec
+  // type / HardeningKind the Utils page already switches on, so the ?view=
+  // reader there needs no second naming scheme.
+  { key: "UtilsBackups", title: "Backups", subtitle: "in Utils · off-site restic pipeline", parent: "Utils", detail: "backups" },
+  { key: "UtilsBuildGuard", title: "Build Guard", subtitle: "in Utils · parallel-build safety", parent: "Utils", detail: "build-guard" },
+  { key: "UtilsDemoMode", title: "Demo Mode", subtitle: "in Utils · package previews on demo-N", parent: "Utils", detail: "demo-mode" },
+  { key: "UtilsDomainConsole", title: "Domain Console", subtitle: "in Utils · registrar platform", parent: "Utils", detail: "domain-console" },
+  { key: "UtilsDomainDns", title: "Domain DNS", subtitle: "in Utils · Cloudflare zone hardening", parent: "Utils", detail: "domain-dns" },
+  { key: "UtilsEsign", title: "E-Sign", subtitle: "in Utils · send documents for signature", parent: "Utils", detail: "esign" },
+  { key: "UtilsEsignVault", title: "E-Sign Vault", subtitle: "in Utils · signed document archive", parent: "Utils", detail: "esign-vault" },
+  { key: "UtilsFirewall", title: "Firewall", subtitle: "in Utils · UFW + fail2ban", parent: "Utils", detail: "firewall" },
+  { key: "UtilsInvitations", title: "Invitations", subtitle: "in Utils · invite issuance + audit", parent: "Utils", detail: "invitations" },
+  { key: "UtilsKeycloak", title: "Keycloak", subtitle: "in Utils · IdP realm health", parent: "Utils", detail: "keycloak" },
+  { key: "UtilsMediaReducer", title: "Media Reducer", subtitle: "in Utils · batch media compression", parent: "Utils", detail: "media-reducer" },
+  { key: "UtilsMemberAuth", title: "Member Auth", subtitle: "in Utils · passkey sessions", parent: "Utils", detail: "member-auth" },
+  { key: "UtilsMeshVpn", title: "Mesh VPN", subtitle: "in Utils · Headscale mesh", parent: "Utils", detail: "mesh-vpn" },
+  { key: "UtilsMigrate", title: "Migrate a Site", subtitle: "in Utils · absorb a legacy site", parent: "Utils", detail: "migrate" },
+  { key: "UtilsOfficeStaff", title: "Office Staff", subtitle: "in Utils · roster + terminal grants", parent: "Utils", detail: "office-staff" },
+  { key: "UtilsQrCode", title: "QR Code", subtitle: "in Utils · scannable code generator", parent: "Utils", detail: "qrcode" },
+  { key: "UtilsTelephony", title: "Telephony", subtitle: "in Utils · FreeSWITCH + DID guard", parent: "Utils", detail: "telephony" },
+  { key: "UtilsTenantApps", title: "Tenant Apps", subtitle: "in Utils · per-tenant app guard", parent: "Utils", detail: "tenant-apps" },
+  { key: "UtilsTinyUrl", title: "TinyURL", subtitle: "in Utils · short link generator", parent: "Utils", detail: "tinyurl" },
+  { key: "UtilsTranscriber", title: "Transcriber", subtitle: "in Utils · open-source audio transcription", parent: "Utils", detail: "transcriber" },
+  { key: "UtilsTranscriptions", title: "Transcriptions", subtitle: "in Utils · saved transcript browser", parent: "Utils", detail: "transcriptions" },
+  { key: "UtilsTsServer", title: "TS Server", subtitle: "in Utils · typescript server guard", parent: "Utils", detail: "tsserver" },
+
+  // Villagers → its tile registry. `detail` is the TileDef id.
+  { key: "VillagersCourseSuite", title: "Course Suite", subtitle: "in Villagers · course products", parent: "Villagers", detail: "courseSuite" },
+  { key: "VillagersDashboardConfig", title: "Dashboard Config", subtitle: "in Villagers · villager dashboard", parent: "Villagers", detail: "dashboardConfig" },
+  { key: "VillagersDemoTgv", title: "Demo TGV", subtitle: "in Villagers · operator demo link", parent: "Villagers", detail: "demoTgv" },
+  { key: "VillagersDiscountCodes", title: "Discount Codes", subtitle: "in Villagers · promos", parent: "Villagers", detail: "promoDiscounts" },
+  { key: "VillagersDns", title: "DNS", subtitle: "in Villagers · member site records", parent: "Villagers", detail: "dns" },
+  { key: "VillagersEcosystemAnalytics", title: "Ecosystem Analytics", subtitle: "in Villagers · cross-site numbers", parent: "Villagers", detail: "ecosystemAnalytics" },
+  { key: "VillagersGuestClaims", title: "Guest Claims", subtitle: "in Villagers · guest → member", parent: "Villagers", detail: "guestClaims" },
+  { key: "VillagersMemberLookup", title: "Member Lookup", subtitle: "in Villagers · find a villager", parent: "Villagers", detail: "memberLookup" },
+  { key: "VillagersMemberWallet", title: "Member Wallet", subtitle: "in Villagers · balances + ledger", parent: "Villagers", detail: "memberWallet" },
+  { key: "VillagersMoneyStores", title: "Money & Stores", subtitle: "in Villagers · storefront money", parent: "Villagers", detail: "moneyStores" },
+  { key: "VillagersOnboardVillager", title: "Onboard Villager", subtitle: "in Villagers · new member intake", parent: "Villagers", detail: "onboardVillager" },
+  { key: "VillagersPageEditor", title: "Page Editor", subtitle: "in Villagers · member site pages", parent: "Villagers", detail: "pageEditor" },
+  { key: "VillagersPaypalFaucet", title: "PayPal Faucet", subtitle: "in Villagers · payout funding", parent: "Villagers", detail: "paypalFaucet" },
+  { key: "VillagersPayouts", title: "Payouts", subtitle: "in Villagers · pay a villager", parent: "Villagers", detail: "payouts" },
+  { key: "VillagersPerformersSuite", title: "Performers Suite", subtitle: "in Villagers · performer products", parent: "Villagers", detail: "performersSuite" },
+  { key: "VillagersRequestAccess", title: "Request Tenant Access", subtitle: "in Villagers · access grants", parent: "Villagers", detail: "requestAccess" },
+  { key: "VillagersStripeOnboarding", title: "Stripe Onboarding", subtitle: "in Villagers · connect a seller", parent: "Villagers", detail: "stripeOnboarding" },
+  { key: "VillagersStudioSuite", title: "Studio Suite", subtitle: "in Villagers · studio products", parent: "Villagers", detail: "studioSuite" },
+  { key: "VillagersWalletCashOut", title: "Wallet Cash-Out", subtitle: "in Villagers · withdraw to bank", parent: "Villagers", detail: "walletCashOut" },
+  { key: "VillagersKeycloakWire", title: "Wire Client to Keycloak", subtitle: "in Villagers · client → IdP", parent: "Villagers", detail: "keycloakWire" },
+  { key: "VillagersWizardPricing", title: "Wizard Pricing", subtitle: "in Villagers · site-build pricing", parent: "Villagers", detail: "wizardPricing" },
+
+  // Front Desk → its tabs (drawer child; `detail` is the FrontDeskTab).
+  { key: "FrontDeskAlerts", title: "Alerts", subtitle: "in Front Desk · operator alerts", parent: "FrontDesk", detail: "alerts" },
+  { key: "FrontDeskContacts", title: "Contacts", subtitle: "in Front Desk · address book", parent: "FrontDesk", detail: "contacts" },
+  { key: "FrontDeskPhone", title: "Phone", subtitle: "in Front Desk · dialer + live calls", parent: "FrontDesk", detail: "phone" },
+  { key: "FrontDeskRecordings", title: "Recordings", subtitle: "in Front Desk · call recordings", parent: "FrontDesk", detail: "recordings" },
+  { key: "FrontDeskSms", title: "SMS", subtitle: "in Front Desk · text conversations", parent: "FrontDesk", detail: "sms" },
+  { key: "FrontDeskTickets", title: "Tickets", subtitle: "in Front Desk · inquiry queue", parent: "FrontDesk", detail: "tickets" },
+  { key: "FrontDeskVoicemails", title: "Voicemails", subtitle: "in Front Desk · missed-call messages", parent: "FrontDesk", detail: "voicemails" },
+
+  // Chats → its sidebar tabs.
+  { key: "ChatsGroups", title: "Groups", subtitle: "in Chats · group conversations", parent: "Chats", detail: "groups" },
+  { key: "ChatsUsers", title: "Users", subtitle: "in Chats · direct messages", parent: "Chats", detail: "users" },
+
+  // Claude → its four tools.
+  { key: "ClaudeChat", title: "Claude Chat", subtitle: "in Claude · talk to Claude", parent: "Claude", detail: "chat" },
+  { key: "ClaudeFiles", title: "Claude Files", subtitle: "in Claude · global ~/.claude config", parent: "Claude", detail: "files" },
+  { key: "ClaudeLearn", title: "Learn", subtitle: "in Claude · how to work with Claude", parent: "Claude", detail: "guide" },
+  { key: "ClaudeVocabulary", title: "Vocabulary", subtitle: "in Claude · named UI patterns", parent: "Claude", detail: "vocab" },
+
+  // Logs → its two views.
+  { key: "LogsArchive", title: "Log Archive", subtitle: "in Logs · older activity", parent: "Logs", detail: "archive" },
+  { key: "LogsLive", title: "Live Logs", subtitle: "in Logs · streaming activity", parent: "Logs", detail: "logs" },
 ];
+
+/**
+ * A drawer's sub-surface can't ride on `tgv-drawer-open` — that event's detail
+ * IS the drawer id, and every drawer matches on it. So the tab travels as a
+ * second event, fired right after the open, which only the named drawer reads.
+ */
+export const DRAWER_TAB_EVENT = "tgv-drawer-tab";
+export type DrawerTabDetail = { drawer: string; tab: string };
 
 /**
  * `detail` names a sub-surface inside the tile (see OFFICE_CHILDREN); the
@@ -182,6 +262,13 @@ export const OFFICE_CHILDREN: OfficeChildDef[] = [
 export function dispatchTileAction(action: OfficeTileAction, detail?: string) {
   if ("drawer" in action) {
     window.dispatchEvent(new CustomEvent("tgv-drawer-open", { detail: action.drawer }));
+    if (detail) {
+      window.dispatchEvent(
+        new CustomEvent<DrawerTabDetail>(DRAWER_TAB_EVENT, {
+          detail: { drawer: action.drawer, tab: detail },
+        }),
+      );
+    }
   } else if ("event" in action) {
     window.dispatchEvent(new CustomEvent(action.event, { detail }));
   }

@@ -660,7 +660,9 @@ export default function Home() {
   useEffect(() => {
     fetch("/api/activity")
       .then((r) => r.json())
-      .then(setActivity)
+      // A 4xx/5xx answers `{ error }`, and .slice() on that threw the whole
+      // dashboard into its error boundary — an empty feed is the right failure.
+      .then((d: unknown) => setActivity(Array.isArray(d) ? (d as ActivityEvent[]) : []))
       .catch(() => {});
   }, []);
 

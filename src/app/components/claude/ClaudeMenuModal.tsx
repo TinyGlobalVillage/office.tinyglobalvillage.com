@@ -136,9 +136,22 @@ const TileSub = styled.span`
   color: var(--t-textFaint);
 `;
 
-export default function ClaudeMenuModal({ onClose }: { onClose: () => void }) {
+/** A dashboard search for "Vocabulary" should land ON the vocabulary tool, not
+ *  on the menu that contains it (OFFICE_CHILDREN → detail). Anything that isn't
+ *  one of the four tool keys opens the menu, which is the safe fallback. */
+function toolFromDetail(detail?: string): SubModal {
+  return tiles.some((t) => t.key === detail) ? (detail as SubModal) : null;
+}
+
+export default function ClaudeMenuModal({
+  onClose,
+  initialTool,
+}: {
+  onClose: () => void;
+  initialTool?: string;
+}) {
   useModalLifecycle();
-  const [sub, setSub] = useState<SubModal>(null);
+  const [sub, setSub] = useState<SubModal>(() => toolFromDetail(initialTool));
   const [fullscreen, setFullscreen] = useState(false);
 
   useEscapeToClose({

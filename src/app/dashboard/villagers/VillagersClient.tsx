@@ -787,6 +787,22 @@ export default function VillagersClient() {
     },
   };
 
+  /**
+   * `?view=<tileId>` opens one console directly (Gio 2026-08-03: searching
+   * "Payouts" on the dashboard must land ON Payouts, not on this grid). The
+   * param is a TileDef id, so the registry above IS the allow-list — a tile
+   * added there is deep-linkable with no second list to keep in step.
+   *
+   * The param stays in the URL: it is the shareable address of the console.
+   */
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const view = new URLSearchParams(window.location.search).get("view");
+    if (view) TILES[view]?.onClick();
+    // Registry ids are static; the tile's onClick only calls a setter.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // ── Layout state (persisted per-browser) ──
   const [layout, setLayout] = useState<SectionLayout[]>(DEFAULT_LAYOUT);
   const [editMode, setEditMode] = useState(false);

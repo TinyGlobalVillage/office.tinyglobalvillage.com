@@ -34,6 +34,7 @@ import NeonX from "./NeonX";
 import Tooltip from "./ui/Tooltip";
 import { useKnobVisibility } from "../lib/drawerKnobs";
 import { useDrawerLifecycle, DRAWER_DATA_ATTR } from "../lib/drawerStack";
+import { DRAWER_TAB_EVENT, type DrawerTabDetail } from "./dashboardTiles";
 import { useDrawerPersistedState } from "../lib/drawerPersist";
 
 const MIN_W = 420;
@@ -396,6 +397,22 @@ export default function FrontDeskDrawer() {
     };
     window.addEventListener("tgv-drawer-open", handler);
     return () => window.removeEventListener("tgv-drawer-open", handler);
+  }, [setActiveTab]);
+
+  // Child-surface opener: a dashboard search result for a Front Desk TAB
+  // ("Voicemails", "Tickets") fires tgv-drawer-open then this, so the drawer
+  // lands on the tab the operator actually searched for. Unknown tabs are
+  // ignored rather than blanking the panel.
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const d = (e as CustomEvent<DrawerTabDetail>).detail;
+      if (!d || d.drawer !== DRAWER_ID) return;
+      if (!TAB_ROWS.flat().includes(d.tab as FrontDeskTab)) return;
+      setOpen(true);
+      setActiveTab(d.tab as FrontDeskTab);
+    };
+    window.addEventListener(DRAWER_TAB_EVENT, handler);
+    return () => window.removeEventListener(DRAWER_TAB_EVENT, handler);
   }, [setActiveTab]);
 
   useEffect(() => {
