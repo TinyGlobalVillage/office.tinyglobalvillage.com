@@ -350,7 +350,9 @@ const TileCategoryHeader = styled.button`
   align-items: center;
   gap: 0.5rem;
   width: 100%;
-  padding: 0 0.25rem 0.5rem;
+  /* No right padding: the AddmToggle must line up with the section COLLAPSE
+     controls above it (measured 2026-08-02 — 0.25rem here put it 4px inside). */
+  padding: 0 0 0.5rem 0.25rem;
   background: none;
   border: none;
   cursor: pointer;
@@ -911,7 +913,14 @@ export default function Home() {
         <TilesTile $accent="orange">
           <TilesHeader
             type="button"
-            onClick={() => setTilesExpanded((v) => !v)}
+            onClick={() => {
+              // Tools' toggle drives its categories too (Gio 2026-08-02):
+              // expanding must actually open every category, not restore one
+              // that was left collapsed, and collapsing closes them all.
+              const next = !tilesExpanded;
+              setTilesExpanded(next);
+              setAllGroups(!next);
+            }}
             aria-expanded={tilesExpanded}
             aria-label={tilesExpanded ? "Collapse Tools tiles" : "Expand Tools tiles"}
           >

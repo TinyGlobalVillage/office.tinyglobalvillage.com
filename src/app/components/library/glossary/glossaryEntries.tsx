@@ -92,6 +92,10 @@ const Caption = styled.p`
 
 const GlcStage = styled.div`
   position: relative;
+  /* Every child is absolutely positioned, so the stage has no intrinsic width —
+     it relied on the sandbox cell to stretch it. Sized here: the group ends at
+     162px and the 130px tree sits 10px off the right edge. */
+  width: 330px;
   height: 150px;
   border: 1px solid rgba(0, 228, 253, 0.25);
   border-radius: 10px;
