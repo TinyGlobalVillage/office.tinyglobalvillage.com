@@ -20,6 +20,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { writeFile, mkdir } from "fs/promises";
 import { existsSync } from "fs";
 import path from "path";
+import { randomBytes } from "crypto";
 import { requireAuth } from "@/lib/api-auth";
 
 const CDN_ROOT = "/srv/refusion-core/cdn";
@@ -75,7 +76,9 @@ function slugify(name: string): string {
 }
 
 function randomHex(n = 6): string {
-  return Math.random().toString(36).slice(2, 2 + n);
+  // crypto-strong (bug cdn-media-unauthenticated step 3): Math.random() made
+  // "unguessable" suffixes predictable on a public, unauthenticated alias.
+  return randomBytes(Math.ceil(n / 2)).toString("hex").slice(0, n);
 }
 
 function sanitizeProject(p: string): string {

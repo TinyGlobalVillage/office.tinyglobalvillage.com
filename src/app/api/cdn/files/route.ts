@@ -6,6 +6,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { readdirSync, statSync, unlinkSync, existsSync, renameSync } from "fs";
 import path from "path";
+// Route-level auth (bug cdn-media-unauthenticated step 4): these handlers were
+// saved only by middleware — the sibling upload route gates explicitly.
+import { requireAuth } from "@/lib/api-auth";
 
 const CDN_ROOT = "/srv/refusion-core/cdn";
 const CDN_BASE_URL = "https://office.tinyglobalvillage.com/media";
@@ -64,6 +67,8 @@ function listFiles(project: string): CdnFile[] {
 }
 
 export async function GET(req: NextRequest) {
+  const token = await requireAuth(req);
+  if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const project = req.nextUrl.searchParams.get("project");
   const page = Math.max(1, parseInt(req.nextUrl.searchParams.get("page") ?? "1", 10));
 
@@ -85,6 +90,8 @@ export async function GET(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
+  const token = await requireAuth(req);
+  if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const project = req.nextUrl.searchParams.get("project");
   const name = req.nextUrl.searchParams.get("name");
 
@@ -110,6 +117,8 @@ export async function DELETE(req: NextRequest) {
 
 
 export async function PATCH(req: NextRequest) {
+  const token = await requireAuth(req);
+  if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   let body: { project?: string; name?: string; newName?: string };
   try {
     body = await req.json();

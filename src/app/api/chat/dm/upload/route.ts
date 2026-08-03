@@ -1,11 +1,16 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/api-auth";
+import { randomBytes } from "crypto";
 import fs from "fs";
 import path from "path";
 
 const DM_FILE = path.join(process.cwd(), "data", "direct-messages.json");
-const CDN_ROOT = "/srv/refusion-core/cdn";
-const CDN_BASE_URL = "https://office.tinyglobalvillage.com/media";
+// Bug cdn-media-unauthenticated (fixed 2026-07-30): DM attachments moved OUT
+// of the nginx-aliased public CDN root (paths were fully derivable from two
+// usernames) into cdn-private/, served only through the authed
+// /api/files/[...path] route (participants-or-admin authorization).
+const PRIVATE_ROOT = "/srv/refusion-core/cdn-private";
+const FILES_BASE_URL = "https://office.tinyglobalvillage.com/api/files";
 const MAX_BYTES = 1024 * 1024 * 1024; // 1 GB
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 MB per file
 
@@ -56,7 +61,7 @@ function writeDb(db: DmDb) {
 
 function calcStorageBytes(chatId: string): number {
   let total = 0;
-  const cdnChatDir = path.join(CDN_ROOT, "chat", chatId);
+  const cdnChatDir = path.join(PRIVATE_ROOT, "chat", chatId);
   try {
     if (fs.existsSync(cdnChatDir)) {
       const walk = (dir: string) => {
@@ -100,16 +105,17 @@ export async function POST(req: NextRequest) {
   const mime = file.type || "application/octet-stream";
   const type = mimeToType(mime);
   const sanitizedName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 80);
-  const fileName = `${datePart()}_${sanitizedName}`;
+  // Random segment (bug step 3): the path must not be derivable even authed.
+  const fileName = `${datePart()}_${randomBytes(4).toString("hex")}_${sanitizedName}`;
 
-  const destDir = path.join(CDN_ROOT, "chat", chatId, username, type);
+  const destDir = path.join(PRIVATE_ROOT, "chat", chatId, username, type);
   fs.mkdirSync(destDir, { recursive: true });
 
   const destPath = path.join(destDir, fileName);
   const buffer = Buffer.from(await file.arrayBuffer());
   fs.writeFileSync(destPath, buffer);
 
-  const fileUrl = `${CDN_BASE_URL}/chat/${chatId}/${username}/${type}/${fileName}`;
+  const fileUrl = `${FILES_BASE_URL}/chat/${chatId}/${username}/${type}/${fileName}`;
 
   const db = readDb();
   const key = threadKey(username, to);
