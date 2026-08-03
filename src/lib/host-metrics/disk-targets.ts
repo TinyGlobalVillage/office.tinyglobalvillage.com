@@ -221,6 +221,9 @@ export const DISK_TARGETS: DiskTarget[] = [
     what: "Marthe's home directory.",
     consequence: "MEASURED ONLY. Someone else's files.",
     sweep: null,
+    // Not readable by the Office user, and a permission-denied du silently
+    // totals 0 — which would report someone's 5GB home as empty.
+    needsRoot: true,
   },
 ];
 

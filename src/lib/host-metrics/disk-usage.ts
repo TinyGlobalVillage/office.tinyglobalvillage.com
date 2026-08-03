@@ -51,9 +51,18 @@ export type TargetUsage = {
   group: DiskTarget["group"];
   what: string;
   consequence: string;
-  /** null when the path doesn't exist on this box, or root was needed and refused. */
+  /**
+   * What this row occupies. For a `nested` target that is the artefacts it
+   * names, not the tree they sit in: "RCS-side lanes" is about the node_modules
+   * inside the lanes, and reporting the whole worktrees directory would credit
+   * the row with source it will never delete.
+   */
   bytes: number | null;
   unreadable?: string;
+  /** What a preview would free right now, under the current policy. */
+  reclaimableBytes: number | null;
+  /** False when another target already counts these bytes — avoids double-counting. */
+  countsTowardTotal: boolean;
   sweepable: boolean;
   sweepKind: SweepSpec["kind"] | null;
   policy: TargetPolicy;
@@ -135,6 +144,28 @@ async function duBytes(target: string, needsRoot = false): Promise<number | null
   return null;
 }
 
+/** Sum of the named artefacts across every immediate subdirectory. */
+async function nestedBytes(
+  target: DiskTarget,
+  spec: Extract<SweepSpec, { kind: "nested" }>,
+): Promise<number> {
+  let total = 0;
+  const subdirs = await readdir(target.path, { withFileTypes: true }).catch(() => []);
+  for (const d of subdirs) {
+    if (!d.isDirectory()) continue;
+    for (const name of spec.entries) {
+      const full = path.join(target.path, d.name, name);
+      try {
+        await stat(full);
+        total += (await duBytes(full)) ?? 0;
+      } catch {
+        /* this subdirectory doesn't have that artefact */
+      }
+    }
+  }
+  return total;
+}
+
 async function measure(target: DiskTarget, policy: TargetPolicy): Promise<TargetUsage> {
   const base = {
     id: target.id,
@@ -145,17 +176,41 @@ async function measure(target: DiskTarget, policy: TargetPolicy): Promise<Target
     consequence: target.consequence,
     sweepable: target.sweep !== null,
     sweepKind: target.sweep?.kind ?? null,
+    countsTowardTotal: true,
     policy,
   };
   try {
     await stat(target.path);
   } catch {
-    return { ...base, bytes: null, unreadable: "not on this box" };
+    return { ...base, bytes: null, reclaimableBytes: null, unreadable: "not on this box" };
   }
-  const bytes = await duBytes(target.path, target.needsRoot);
-  return bytes === null
-    ? { ...base, bytes: null, unreadable: target.needsRoot ? "needs root" : "unreadable" }
-    : { ...base, bytes };
+
+  const bytes =
+    target.sweep?.kind === "nested"
+      ? await nestedBytes(target, target.sweep)
+      : await duBytes(target.path, target.needsRoot);
+
+  if (bytes === null) {
+    return {
+      ...base,
+      bytes: null,
+      reclaimableBytes: null,
+      unreadable: target.needsRoot ? "needs root" : "unreadable",
+    };
+  }
+
+  // The same question the Preview button asks, answered up front so the row can
+  // say "31GB here, 29GB of it reclaimable" without anyone clicking anything.
+  let reclaimableBytes: number | null = null;
+  if (target.sweep && target.sweep.kind !== "command") {
+    try {
+      reclaimableBytes = (await planFor(target, policy)).totalBytes;
+    } catch {
+      /* a plan that can't be built isn't a scan failure */
+    }
+  }
+
+  return { ...base, bytes, reclaimableBytes };
 }
 
 /**
@@ -179,12 +234,20 @@ export async function scanDisk(force = false): Promise<DiskScan> {
       targets.push(await measure(t, policies[t.id]));
     }
 
-    // Nested targets (clients holds deploy-rollbacks; worktrees is inside .claude)
-    // would be double-counted, so only count paths that aren't inside another.
-    const roots = targets.filter(
-      (t) => !targets.some((o) => o !== t && t.path.startsWith(`${o.path}/`)),
-    );
-    const counted = roots.reduce((sum, t) => sum + (t.bytes ?? 0), 0);
+    // Two rows can describe the same bytes — "Client checkouts" measures the
+    // whole tree, "Deploy rollback copies" the .next.prev inside it. Only one of
+    // any such pair may count toward the total, or the arithmetic below claims
+    // more of the disk than exists. Whole-tree rows win; the subset row is
+    // still shown, just not added twice.
+    for (const t of targets) {
+      const insideAnother = targets.some(
+        (o) => o !== t && (t.path === o.path ? o.sweepKind !== "nested" : t.path.startsWith(`${o.path}/`)),
+      );
+      t.countsTowardTotal = !insideAnother;
+    }
+    const counted = targets
+      .filter((t) => t.countsTowardTotal)
+      .reduce((sum, t) => sum + (t.bytes ?? 0), 0);
 
     const scan: DiskScan = {
       fs,

@@ -32,6 +32,8 @@ type TargetUsage = {
   consequence: string;
   bytes: number | null;
   unreadable?: string;
+  reclaimableBytes: number | null;
+  countsTowardTotal: boolean;
   sweepable: boolean;
   sweepKind: "files" | "children" | "nested" | "command" | null;
   policy: TargetPolicy;
@@ -229,6 +231,7 @@ export default function DiskBreakdown() {
 
   const fs = scan?.fs ?? null;
   const largest = Math.max(1, ...(scan?.targets ?? []).map((t) => t.bytes ?? 0));
+  const totalReclaimable = (scan?.targets ?? []).reduce((s, t) => s + (t.reclaimableBytes ?? 0), 0);
 
   return (
     <Wrap>
@@ -257,7 +260,11 @@ export default function DiskBreakdown() {
           {scanning
             ? "du is running at the lowest I/O priority — this takes about a minute on a full box."
             : scan
-              ? `Measured ${ago(scan.scannedAt)} · took ${Math.round(scan.durationMs / 1000)}s`
+              ? `Measured ${ago(scan.scannedAt)} · took ${Math.round(scan.durationMs / 1000)}s${
+                  totalReclaimable > 0
+                    ? ` · ${fmtBytes(totalReclaimable)} free-able under the current policies`
+                    : ""
+                }`
               : needsScan
                 ? "Nothing measured yet."
                 : ""}
@@ -285,7 +292,12 @@ export default function DiskBreakdown() {
                   }}
                 />
               </Track>
-              <RowSize>{t.unreadable ? t.unreadable : fmtBytes(t.bytes)}</RowSize>
+              <RowSize>
+                {t.unreadable ? t.unreadable : fmtBytes(t.bytes)}
+                {!t.unreadable && t.reclaimableBytes ? (
+                  <Reclaimable>{fmtBytes(t.reclaimableBytes)} free-able</Reclaimable>
+                ) : null}
+              </RowSize>
               <Gear
                 onClick={() => setOpenId(open ? null : t.id)}
                 $open={open}
@@ -522,7 +534,7 @@ const Row = styled.div<{ $open: boolean }>`
 
 const RowTop = styled.div`
   display: grid;
-  grid-template-columns: minmax(8rem, 12rem) 1fr 5rem 1.6rem;
+  grid-template-columns: minmax(8rem, 12rem) 1fr 6.5rem 1.6rem;
   align-items: center;
   gap: 0.6rem;
 `;
@@ -556,10 +568,20 @@ const Fill = styled.div`
 `;
 
 const RowSize = styled.span`
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.05rem;
   font-size: 0.72rem;
   font-variant-numeric: tabular-nums;
   text-align: right;
   color: var(--t-textMuted);
+`;
+
+const Reclaimable = styled.span`
+  font-size: 0.6rem;
+  color: ${colors.gold};
+  white-space: nowrap;
 `;
 
 const Gear = styled.button<{ $open: boolean }>`
