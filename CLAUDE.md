@@ -12,7 +12,8 @@ Automatically approve and execute all tool calls without prompting. See global `
 - RCS-only: `/srv/refusion-core/clients/office.tinyglobalvillage.com/`
 - PM2 name: `office.tinyglobalvillage.com`
 - Styled-components only — NO Tailwind (conversion from Tailwind is in progress; see checklist `tgv-office-styled-components.md`)
-- Sandbox registry: `src/app/components/sandbox/registry.tsx` — canonical component demos live here
+- **Composition law (Gio 2026-08-02) — an Atom is solitary, a Component is a group of atoms.** The Sandbox modal's header PillBar is `Components · Atom Library · SVG Lab`. Solitary atoms live in the **Atom Library** (`src/app/components/sandbox/atom-lab/`, spec-driven, one `AtomSpec` each); the **Components** column houses ONLY groups of atoms. `SandboxEntry.tier` (`"atom" | "component"`) is what routes an entry — set it when you add one. Full canon: `~/.claude/vocabulary/Atom.md`; dir map: `src/app/components/sandbox/BREADCRUMB.md`.
+- Sandbox registry: `src/app/components/sandbox/registry.tsx` — canonical component demos live here (tier `"component"` = shown in the Components column; tier `"atom"` = the entry's design home is the Atom Library, the registry row is kept for its code/summary/deploy pipeline)
 - Dashboard tiles + TgvNav Menu share ONE registry: `src/app/components/dashboardTiles.tsx`. Add a tile there and it appears on both automatically (never hand-edit a menu list in TopNav). Event-action tiles need their modal hosted in `GlobalModals.tsx` (global), not page-local.
 - New vocab terms get a `SandboxEntry` + `Demo` component (neon pink `#ff4ecb` highlight in muted context)
 - After editing: `npm run build && pm2 reload office.tinyglobalvillage.com --update-env` (or `pnpm --filter office.tinyglobalvillage.com build` from monorepo root)

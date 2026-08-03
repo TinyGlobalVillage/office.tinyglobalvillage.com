@@ -110,9 +110,25 @@ const PINK_RGB = rgb.pink;
 const MUTED = "rgba(255,255,255,0.18)";
 const MUTED_TEXT = "rgba(255,255,255,0.35)";
 
+/**
+ * Composition law (Gio 2026-08-02): an ATOM is solitary, a COMPONENT is a group
+ * of atoms. `tier` routes an entry between the Sandbox's two columns:
+ *
+ *   "component" (default) → listed in the Components column.
+ *   "atom"                → its design home is the Atom Library; the registry
+ *                           row is KEPT so its code / summary / styles / edit +
+ *                           deploy pipeline all keep working, it just doesn't
+ *                           clutter the components list.
+ *
+ * Set it deliberately on every new entry. Canon: ~/.claude/vocabulary/Atom.md.
+ */
+export type SandboxTier = "atom" | "component";
+
 export type SandboxEntry = {
   key: string;
   name: string;
+  /** Defaults to "component" when omitted (see ATOM_KEYS below). */
+  tier?: SandboxTier;
   // Hand-coded primitives use the canonical seven labels; catalog-mirrored page
   // blocks use zone-qualified labels (e.g. "Sections: Banners") from catalogBridge.
   // Kept as a free string so both families share one registry without a brittle union.
@@ -3684,6 +3700,7 @@ export const REGISTRY: SandboxEntry[] = [
   // ── Buttons ───────────────────────────────────────────────────────────
   {
     key: "ResetButton",
+    tier: "atom",
     name: "Reset Button",
     category: "Buttons",
     summary: "20×20 cyan-bordered square with ↺ glyph. Canonical 'back to default' affordance. Sits left of editable value inputs.",
@@ -3837,6 +3854,7 @@ const AddmBody = styled.div<{ $open: boolean }>\`
   },
   {
     key: "DaB",
+    tier: "atom",
     name: "Dashed+Add Button",
     category: "Buttons",
     summary: "Dashed-border accent-tinted tile reading `+Add <thing>`. On click, it expands **in place** into an inline form (input + confirm + cancel). Collapses back to the tile on confirm or cancel — never opens a modal. The dashed border signals 'not-a-thing-yet' and visually separates it from real existing items. Used for lightweight creation flows where a full modal would be overkill.",
@@ -3890,6 +3908,7 @@ const [name, setName] = useState("");
   },
   {
     key: "DrawerIcon",
+    tier: "atom",
     name: "DrawerIcon",
     category: "Icons",
     summary: "Abstract styling pattern for the SVG glyph on a Drawer's tab pill + popout header. Rules: 13–14px, outline preferred, accent-colored, open-state swaps for 10×10 × close icon. Per-drawer specifics (bell/bubble/envelope/camera) live in the `<Name>Drawer` entries.",
@@ -3918,6 +3937,7 @@ applyEdits(baseMarkup, { viewBox, width, height, edits, layers })`,
   },
   {
     key: "DrawerKnob",
+    tier: "atom",
     name: "DrawerKnob",
     category: "Buttons",
     summary: "The 28px edge-pinned tab pill that represents a closed Drawer and opens/closes it. Accent-tinted, rounded on the non-edge side only, stacks the drawer's identity SVG on top of a vertical-rl label. Whole pill is the hit target. Drag along Y to reposition; position persists to localStorage per drawer. One accent per drawer.",
@@ -3932,6 +3952,7 @@ applyEdits(baseMarkup, { viewBox, width, height, edits, layers })`,
   },
   {
     key: "DrawerMenuButton",
+    tier: "atom",
     name: "DrawerMenuButton",
     category: "Buttons",
     summary: "Abstract styling pattern for a Drawer's header control buttons. Rules: 2.125rem square, low-alpha accent bg + thin accent border + bold accent glyph + text-shadow glow (dark) + box-shadow glow on hover. One accent per drawer; destructive actions may stay red. Per-drawer button rosters in the concrete `<Name>Drawer` entries.",
@@ -3989,6 +4010,7 @@ applyEdits(baseMarkup, { viewBox, width, height, edits, layers })`,
   },
   {
     key: "NeonButton",
+    tier: "atom",
     name: "NeonButton",
     category: "Buttons",
     summary: "Rounded accent-pill button. Thin accent border (alpha ~0.3–0.4), low-alpha accent background (~0.1–0.14), full-strength accent text. Dark mode adds text-shadow glow; hover intensifies bg and adds box-shadow glow. Compact uppercase variant for toggle pills. Canonical CTA style inside any drawer/panel.",
@@ -4067,6 +4089,7 @@ applyEdits(baseMarkup, { viewBox, width, height, edits, layers })`,
   },
   {
     key: "Tile",
+    tier: "atom",
     name: "Tile",
     category: "Menus",
     summary: "Non-clickable accent-tinted rounded container (aka SectionCard). Things *sit on* a Tile — it's not a launcher. Always-on ambient box-shadow glow (the key tell vs. TileButton). Uppercase accent title + optional subtitle + arbitrary children. Canonical way to break a modal or page into labeled sections.",
@@ -4082,6 +4105,7 @@ applyEdits(baseMarkup, { viewBox, width, height, edits, layers })`,
   },
   {
     key: "TileButton",
+    tier: "atom",
     name: "TileButton",
     category: "Buttons",
     summary: "Clickable launcher sibling of Tile. Same accent palette + border-radius, but icon + uppercase label + sub layout and hover-only outer glow (vs. Tile's always-on ambient glow). Canonical on the dashboard's 1→2→3→5 launcher grid. Dashed-border sub-variant (transparent bg + 2px dashed border) for '+Add' / SuggestionBox slots.",
@@ -4097,6 +4121,7 @@ applyEdits(baseMarkup, { viewBox, width, height, edits, layers })`,
   },
   {
     key: "Tooltip",
+    tier: "atom",
     name: "Tooltip",
     category: "Menus",
     summary: "Portal-rendered themed bubble that replaces native `title=` on buttons, icons, and controls. Small bubble appears below the trigger with an upward-pointing arrow. Three themes (cyan default, lavender for Orakle, neutral tan). Auto-dismisses at 2s; viewport-clamped; arrow always points at the true trigger center. Canonical source lives in `@tgv/core`.",
@@ -4165,6 +4190,7 @@ applyEdits(baseMarkup, { viewBox, width, height, edits, layers })`,
   },
   {
     key: "DTog",
+    tier: "atom",
     name: "Drag Toggle",
     category: "Toggles",
     summary: "Grabbable divider between two resizable panels. ~8px **closed-rectangle** rail (1px hairline on all four sides) with a visible **neon SVG grip** (3 bars + up/down triangles) dead-center between the left/right hairlines, inheriting accent via `currentColor` for dark/light mode. **Whole rectangle glows on hover** (outer + inset box-shadow). **Drag to resize, plain click to collapse** (≤4px slop = click → snap). When a panel snaps fully collapsed, the restore tab shows a matching SVG `ExpandIcon` (bars + directional arrow) — never an emoji. When paired with an [RSD](#RSD) above/beside it, the RSD MUST align with the DTog's OUTSIDE (right) hairline AND that outside hairline adopts the RSD's accent color at rest (other three edges stay neutral), so one continuous neon line runs from the RSD straight through the DTog's outer edge.",
@@ -4283,6 +4309,7 @@ const DTog = styled.div<{
   },
   {
     key: "RSD",
+    tier: "atom",
     name: "Row Section Divider",
     category: "Navigation",
     summary: "1px neon-tinted vertical (or horizontal) hairline that separates labeled sections within a single row. Structural, never interactive — no glow, no animation. Accent low-alpha (`rgba(accent, 0.35)` dark, `rgba(accent, 0.22)` light), spans edge-to-edge via `align-self: stretch`. The static cousin of [DTog](#DTog): DTog is the grabbable divider between resizable panels; RSD is the fixed divider inside a fixed row. **Pairing rule:** when an RSD sits above/beside a DTog on the same vertical line, the RSD is the source of truth for that line's color — the DTog's OUTSIDE hairline adopts the RSD's accent at rest so the line reads as one continuous neon stroke from row into body.",
@@ -4311,6 +4338,7 @@ const DTog = styled.div<{
   },
   {
     key: "Scrollbar",
+    tier: "atom",
     name: "Scrollbar",
     category: "Navigation",
     summary: "Themed thin scrollbar for TGV surfaces. Pink accent thumb (rounded pill, `background-clip: padding-box` inset) on a transparent track in dark mode; tinted track + stronger thumb in light mode. Emitted as a styled-components `css` mixin; both modes switched via `[data-theme=\"light\"] &`.",
@@ -4382,6 +4410,7 @@ const FileSidebar = styled.aside\`
   // ── Toggles ───────────────────────────────────────────────────────────
   {
     key: "ECL",
+    tier: "atom",
     name: "Expand-Collapse Lightswitch",
     category: "Toggles",
     summary: "A single Lightswitch per component that toggles whether the component's interactive controls are visible (off = controls hidden; label, row, and ECL itself stay visible). Side-label reads 'Collapse' when expanded, 'Expand' when collapsed — immediately left of the switch.",
@@ -4397,6 +4426,7 @@ const FileSidebar = styled.aside\`
   },
   {
     key: "Eyeball",
+    tier: "atom",
     name: "Eyeball",
     category: "Toggles",
     summary: "22×22 cyan square button with inline eye / eye-off SVG (open eyeball when visible, slashed eyeball when hidden). Toggles whether a component **renders on the page** (show/hide). Replaces the Lightswitch for visibility specifically — Lightswitch is reserved for expand/collapse and on/off state. SVG matches the TGV editor accordion toggle on the editor taskbar; never use emoji.",
@@ -4410,6 +4440,7 @@ const FileSidebar = styled.aside\`
   },
   {
     key: "LDM",
+    tier: "atom",
     name: "Light-Dark Mode Toggle",
     category: "Toggles",
     summary: "Moon/sun icon button that toggles between dark (default) and light themes. On first switch to light, a popup explains dark mode uses less power and is better for the environment, with 'Stay dark', 'Switch anyway', and 'Do not show again' options. Persists choice to localStorage. Theme applied via data-theme attribute on <html>.",
@@ -4430,6 +4461,7 @@ import LDM from "./LDM";
   },
   {
     key: "Lightswitch",
+    tier: "atom",
     name: "Lightswitch",
     category: "Toggles",
     summary: "The 3D circle-on-a-stick toggle for collapse/expand and on/off semantics. Glows when on, dims when off, greyed when there's no content to toggle. Use for collapse/expand, on/off, mobile-preview switchers, batch-collapse in TSG.",
@@ -4445,6 +4477,7 @@ import LDM from "./LDM";
   },
   {
     key: "AdminWizard",
+    tier: "atom",
     name: "Preview Toggle (Admin Wizard)",
     category: "Toggles",
     summary:
@@ -4463,6 +4496,7 @@ function enablePreview() {           // auto-fill fixtures + flip to the test la
   },
   {
     key: "RRT",
+    tier: "atom",
     name: "Read Receipt Tag",
     category: "Toggles",
     summary: "Small neon-accent pill (canonical copy \"NEW\") that hugs the right side of a list-row title to flag a freshly-added entry. Dismisses on intentional click — the same gesture that opens the row — not on hover, focus, or scroll. Seen-keys persist per browser via localStorage; first visit seeds the baseline so brand-new users don't see NEW flashing on every item.",
@@ -4782,6 +4816,24 @@ export const CATEGORIES: Array<SandboxEntry["category"]> = [
   // Catalog page-block groups (zone-clustered), appended after the primitives.
   ...CATALOG_CATEGORIES,
 ];
+
+/**
+ * The Components column's view of the registry: groups of atoms only. Solitary
+ * atoms (tier "atom") are designed in the Atom Library — their registry rows
+ * stay put so code / summary / styles / deploy keep working, they just don't
+ * belong in a list of components. Composition law: ~/.claude/vocabulary/Atom.md.
+ */
+export const COMPONENT_REGISTRY: SandboxEntry[] = REGISTRY.filter(
+  (e) => (e.tier ?? "component") === "component",
+);
+
+/** Registry rows whose design home is the Atom Library. */
+export const ATOM_TIER_KEYS: string[] = REGISTRY.filter((e) => e.tier === "atom").map((e) => e.key);
+
+/** Categories that still have at least one component after the atoms move out. */
+export const COMPONENT_CATEGORIES: Array<SandboxEntry["category"]> = CATEGORIES.filter((c) =>
+  COMPONENT_REGISTRY.some((e) => e.category === c),
+);
 
 // ── React Three Fiber demos ─────────────────────────────────────────────
 // Constrained-size demo wrappers for the r3f primitives. The fullscreen

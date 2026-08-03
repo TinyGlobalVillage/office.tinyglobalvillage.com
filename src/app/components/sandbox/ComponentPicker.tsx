@@ -2,18 +2,19 @@
 
 // ComponentPicker — searchable component selector for sandbox edit mode.
 //
-// A gold SBDM (searchable dropdown) over the whole sandbox REGISTRY, grouped by category. Lives in
+// A gold SBDM (searchable dropdown) over the sandbox's COMPONENTS (groups of atoms), grouped by
+// category — solitary atoms live in the Atom Library, not here. Lives in
 // the edit toolbar so an admin can switch which component they're editing WITHOUT the left file
 // sidebar — collapse the sidebar and you still have this. Selecting an entry sets the modal's
 // activeKey (same mechanism as clicking a sidebar row).
 
 import SBDM, { type SBDMItem } from "@tgv/module-component-library/components/ui/SBDM";
-import { REGISTRY, CATEGORIES } from "./registry";
+import { COMPONENT_REGISTRY, COMPONENT_CATEGORIES } from "./registry";
 
-// Category display order = the sidebar's CATEGORIES order (zone-clustered). CATEGORIES is string[].
-const CAT_ORDER = new Map<string, number>(CATEGORIES.map((c, i) => [String(c), i]));
+// Category display order = the sidebar's COMPONENT_CATEGORIES order (zone-clustered); string[].
+const CAT_ORDER = new Map<string, number>(COMPONENT_CATEGORIES.map((c, i) => [String(c), i]));
 
-const ITEMS: SBDMItem[] = REGISTRY.map((e) => ({ key: e.key, label: e.name, group: e.category }))
+const ITEMS: SBDMItem[] = COMPONENT_REGISTRY.map((e) => ({ key: e.key, label: e.name, group: e.category }))
   .slice()
   .sort((a, b) => {
     const ca = CAT_ORDER.get(a.group ?? "") ?? 999;

@@ -19,13 +19,22 @@ import {
 } from "../../styled";
 import SandboxIcon from "./SandboxIcon";
 import AddmToggle from "@tgv/module-component-library/components/ui/AddmToggle";
-import { REGISTRY, CATEGORIES, type SandboxEntry } from "./registry";
+import {
+  REGISTRY,
+  COMPONENT_REGISTRY,
+  COMPONENT_CATEGORIES,
+  type SandboxEntry,
+} from "./registry";
 import CatalogBlockEditor from "./CatalogBlockEditor";
 import ComponentPicker from "./ComponentPicker";
 import PillBar from "@tgv/module-component-library/components/ui/PillBar";
 import AtomLabView from "./atom-lab/AtomLabView";
 import { ATOMS, ATOM_BY_KEY } from "./atom-lab/atomRegistry";
 import { clampSpec } from "./atom-lab/atomSpec";
+import type { ComponentDoc } from "./atom-lab/componentDoc";
+// The composer only mounts when a component is being built — keep it out of
+// the initial Sandbox bundle.
+const ComponentComposer = dynamic(() => import("./atom-lab/ComponentComposer"), { ssr: false });
 // SVG Lab is client-only (DOMParser/XMLSerializer) and heavy — load it only
 // when its pill is picked.
 const SvgLabEmbedded = dynamic(() => import("../svg-lab/SvgLabModal"), { ssr: false });
@@ -1054,6 +1063,24 @@ const FileItemLabel = styled.span`
 // row's IntersectionObserver (see FileEntry) fires once when the tag is
 // visible in the sidebar scroll viewport and marks the key as seen, so
 // the tag disappears permanently for that user on subsequent renders.
+const NewComponentBtn = styled.button`
+  margin-top: 4px;
+  width: 100%;
+  text-align: left;
+  padding: 7px 10px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: rgba(${PINK_RGB}, 0.8);
+  background: transparent;
+  border: 1px dashed rgba(${PINK_RGB}, 0.4);
+  border-radius: 8px;
+  cursor: pointer;
+  &:hover {
+    background: rgba(${PINK_RGB}, 0.08);
+    color: ${PINK};
+  }
+`;
+
 const NewTag = styled.span`
   margin-left: auto;
   flex-shrink: 0;
@@ -2612,10 +2639,25 @@ export default function SandboxModal({
   const [atomHeaderSlot, setAtomHeaderSlot] = useState<HTMLDivElement | null>(null);
   // Atom to open the Atom Library on — set when the SVG Lab applies an SVG.
   const [pendingAtomKey, setPendingAtomKey] = useState<string | null>(null);
+  // Component Composer: null = closed, "" = a fresh component, id = editing one.
+  const [composerId, setComposerId] = useState<string | null>(null);
+  const [savedComponents, setSavedComponents] = useState<ComponentDoc[]>([]);
+  const [savedOpen, setSavedOpen] = useState(true);
+
+  const loadSavedComponents = useCallback(() => {
+    fetch("/api/atom-lab/components")
+      .then((r) => (r.ok ? r.json() : { docs: [] }))
+      .then((d: { docs?: ComponentDoc[] }) => setSavedComponents(d.docs ?? []))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    loadSavedComponents();
+  }, [loadSavedComponents]);
   const [popoutActive, setPopoutActive] = useState(false);
   const [fsOpen, setFsOpen] = useState(true);
   const [catOpen, setCatOpen] = useState<Record<string, boolean>>(() =>
-    Object.fromEntries(CATEGORIES.map((c) => [c, true]))
+    Object.fromEntries(COMPONENT_CATEGORIES.map((c) => [c, true]))
   );
   // ── Page Templates (DB-backed) ──────────────────────────────────────
   // Both surfaces render published shared_templates as an extra sidebar
@@ -2663,9 +2705,9 @@ export default function SandboxModal({
   // Collapse-all covers EVERY sidebar group — the component categories AND the
   // Page Templates section (it has its own open-state, so set both together).
   const allCatsOpen =
-    CATEGORIES.every((c) => catOpen[c] ?? true) && pageTemplatesOpen;
+    COMPONENT_CATEGORIES.every((c) => catOpen[c] ?? true) && pageTemplatesOpen;
   const toggleAllCats = () => {
-    setCatOpen(Object.fromEntries(CATEGORIES.map((c) => [c, !allCatsOpen])));
+    setCatOpen(Object.fromEntries(COMPONENT_CATEGORIES.map((c) => [c, !allCatsOpen])));
     setPageTemplatesOpen(!allCatsOpen);
   };
   const [deployingTemplateId, setDeployingTemplateId] = useState<string | null>(
@@ -3041,8 +3083,8 @@ export default function SandboxModal({
 
   const grouped = useMemo(() => {
     const m: Record<string, SandboxEntry[]> = {};
-    for (const c of CATEGORIES) m[c] = [];
-    for (const e of REGISTRY) m[e.category].push(e);
+    for (const c of COMPONENT_CATEGORIES) m[c] = [];
+    for (const e of COMPONENT_REGISTRY) m[e.category].push(e);
     return m;
   }, []);
 
@@ -3318,7 +3360,7 @@ export default function SandboxModal({
               minTriggerWidth={0}
             />
             </PillGroup>
-            <HeaderTotal $edit={editMode}>{REGISTRY.length}</HeaderTotal>
+            <HeaderTotal $edit={editMode}>{COMPONENT_REGISTRY.length}</HeaderTotal>
             <Tooltip label={allCatsOpen ? "Collapse all groups" : "Expand all groups"} accent={TT_ACCENT}>
               <CollapseAllBtn
                 $on={allCatsOpen}
@@ -3598,7 +3640,7 @@ export default function SandboxModal({
           )}
           {labView === "components" && fsOpen && !sidebar.snapped && (
             <FileSidebar $w={sidebar.width}>
-              {CATEGORIES.map((cat) => {
+              {COMPONENT_CATEGORIES.map((cat) => {
                 const open = catOpen[cat] ?? true;
                 const items = grouped[cat];
                 return (
@@ -3622,6 +3664,7 @@ export default function SandboxModal({
                             isNew={newKeys.has(e.key)}
                             onClick={() => {
                               setActiveTemplateId(null);
+                              setComposerId(null);
                               setActiveKey(e.key);
                             }}
                             onSeen={markSeen}
@@ -3632,6 +3675,51 @@ export default function SandboxModal({
                   </FileGroup>
                 );
               })}
+              {/* Composed components — groups of atoms built in the Composer.
+                  The composition law's payoff: components you assemble, not files
+                  you write. Canon: ~/.claude/vocabulary/ComponentComposer.md */}
+              <FileGroup>
+                <AddmHeader
+                  $open={savedOpen}
+                  aria-expanded={savedOpen}
+                  onClick={() => setSavedOpen((v) => !v)}
+                >
+                  <AddmLabel>Composed</AddmLabel>
+                  <AddmCount>{savedComponents.length}</AddmCount>
+                  <AddmToggle open={savedOpen} />
+                </AddmHeader>
+                <AddmBody $open={savedOpen}>
+                  <FileItemsWrap>
+                    {savedComponents.map((c) => (
+                      <FileItem
+                        key={c.id}
+                        $active={composerId === c.id}
+                        onClick={() => {
+                          setActiveKey("");
+                          setActiveTemplateId(null);
+                          setComposerId(c.id);
+                        }}
+                      >
+                        <FileItemRow>
+                          <FileItemLabel>{c.name}</FileItemLabel>
+                          <FileItemSub $active={composerId === c.id}>
+                            {c.nodes.length} atom{c.nodes.length === 1 ? "" : "s"}
+                          </FileItemSub>
+                        </FileItemRow>
+                      </FileItem>
+                    ))}
+                    <NewComponentBtn
+                      onClick={() => {
+                        setActiveKey("");
+                        setActiveTemplateId(null);
+                        setComposerId("");
+                      }}
+                    >
+                      + New component
+                    </NewComponentBtn>
+                  </FileItemsWrap>
+                </AddmBody>
+              </FileGroup>
               {showPageTemplates && (
                 <FileGroup>
                   <AddmHeader
@@ -3705,7 +3793,18 @@ export default function SandboxModal({
             </Tooltip>
           )}
 
-          {labView === "components" && (active || activeTemplate || (canEdit && editMode)) && (
+          {labView === "components" && composerId !== null && (
+            <ComponentComposer
+              docId={composerId || null}
+              onSaved={(d) => {
+                loadSavedComponents();
+                setComposerId(d.id);
+              }}
+              onClose={() => setComposerId(null)}
+            />
+          )}
+          {labView === "components" && composerId === null &&
+            (active || activeTemplate || (canEdit && editMode)) && (
           <CenterPane>
             {canEdit && editMode && (
               <SandboxEditToolbar

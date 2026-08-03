@@ -1,12 +1,19 @@
 "use client";
 /**
- * Atom Lab registry — the 12 seed atoms: 6 basic primitives + 6 migrated
- * component-groups (DDM, PillBar, Lightswitch, Tooltip, ADDM, NeonButton —
- * the vocab six). Every renderer is a spec-driven silhouette: EVERY visual
- * decision (size, colors, effects, text) comes off the AtomSpec so the
- * Atomic Editor controls all of it live. Composites deliberately re-draw
- * the vocab shapes here instead of importing the shared components — the
- * whole point is that nothing is pinned.
+ * Atom Lab registry — every SOLITARY atom in the ecosystem.
+ *
+ * Composition law (Gio 2026-08-02): an atom is one indivisible unit; anything
+ * made of two or more atoms is a COMPONENT and belongs in the Components
+ * column, not here. That is why DDM, PillBar, ADDM, SBDM, SRT, TSG and the
+ * drawers are absent — they are groups, built in the Component Composer.
+ *
+ * Every renderer is a spec-driven silhouette: EVERY visual decision (size,
+ * colors, effects, text, icon) comes off the AtomSpec so the Atomic Editor
+ * controls all of it live. Atoms deliberately re-draw their vocabulary shape
+ * here rather than importing the shipped component — the shipped ones hardcode
+ * their styling, and the whole point is that nothing is pinned.
+ *
+ * Canon: ~/.claude/vocabulary/Atom.md · AtomLibrary.md · AtomSpec.md
  */
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
@@ -21,13 +28,16 @@ import {
 import { SVG_MANIFEST } from "../../svg-lab/manifest.generated";
 import { sanitizeSvgMarkup } from "../../svg-lab/svgModel";
 
+export const ATOM_GROUP_NAMES = ["Surfaces", "Controls", "Toggles", "Text & Icons"] as const;
+export type AtomGroup = (typeof ATOM_GROUP_NAMES)[number];
+
 export type AtomBox = { w: number; h: number };
 export type AtomRenderProps = { spec: AtomSpec; box: AtomBox };
 
 export type AtomDef = {
   key: string;
   name: string;
-  group: "Basic Atoms" | "Component Groups";
+  group: AtomGroup;
   blurb: string;
   defaults: AtomSpec;
   /** Renderer draws an SVG → the editor grows its Icon (SVG) section. */
@@ -35,7 +45,7 @@ export type AtomDef = {
   Render: React.FC<AtomRenderProps>;
 };
 
-export const ATOM_GROUPS = ["Basic Atoms", "Component Groups"] as const;
+export const ATOM_GROUPS = ATOM_GROUP_NAMES;
 
 // ── Spec → style helpers ────────────────────────────────────────────────
 
@@ -304,124 +314,6 @@ function PillAtom({ spec, box }: AtomRenderProps) {
   );
 }
 
-// ── Component-groups (the vocab six) ────────────────────────────────────
-
-function DdmAtom({ spec, box }: AtomRenderProps) {
-  const [open, setOpen] = useState(true);
-  const acc = spec.colors.accent;
-  const accRgb = hexToRgbTriple(acc);
-  const f = fontPx(spec, box);
-  const items = ["Save Word", "Save PDF", "Copy Text"];
-  return (
-    <div style={{ position: "relative", width: box.w }}>
-      <HoverLift
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        aria-expanded={open}
-        style={{ ...surfaceStyle(spec, box), width: "100%", justifyContent: "flex-start", padding: `0 ${Math.max(10, Math.round(box.h * 0.3))}px`, gap: 8, position: "relative" }}
-      >
-        <LeadIcon spec={spec} box={box} />
-        {spec.text.enabled && <span style={{ ...textStyle(spec, box), flex: 1, textAlign: "left" }}>{spec.text.content}</span>}
-        {/* Filled triangle, never a chevron stroke — DDM canon. */}
-        <span
-          aria-hidden="true"
-          style={{
-            width: 0,
-            height: 0,
-            borderLeft: `${f * 0.38}px solid transparent`,
-            borderRight: `${f * 0.38}px solid transparent`,
-            borderTop: `${f * 0.5}px solid ${acc}`,
-            transform: open ? "rotate(180deg)" : "none",
-            transition: "transform 0.15s ease",
-          }}
-        />
-      </HoverLift>
-      {open && (
-        <div
-          role="menu"
-          style={{
-            position: "absolute",
-            top: box.h + 6,
-            left: 0,
-            width: "100%",
-            background: `rgba(13, 11, 22, 0.97)`,
-            border: `1px solid rgba(${accRgb}, 0.4)`,
-            borderRadius: Math.min(spec.effects.radius, 14),
-            boxShadow: `0 0 ${Math.round(spec.effects.glow * 0.5 + 8)}px rgba(${accRgb}, 0.3)`,
-            padding: 5,
-            zIndex: 2,
-          }}
-        >
-          {items.map((it, i) => (
-            <div
-              key={it}
-              role="menuitem"
-              style={{
-                padding: `${Math.max(4, Math.round(f * 0.45))}px 9px`,
-                borderRadius: Math.min(Math.max(spec.effects.radius - 4, 4), 9),
-                fontSize: Math.max(9, Math.round(f * 0.85)),
-                fontWeight: 600,
-                color: i === 0 ? acc : spec.colors.text,
-                background: i === 0 ? `rgba(${accRgb}, 0.14)` : "transparent",
-                cursor: "pointer",
-              }}
-            >
-              {it}
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function PillBarAtom({ spec, box }: AtomRenderProps) {
-  const [active, setActive] = useState(0);
-  const acc = spec.colors.accent;
-  const accRgb = hexToRgbTriple(acc);
-  const f = fontPx(spec, box);
-  const labels = [spec.text.enabled ? spec.text.content : "One", "Browse", "Saved"];
-  return (
-    <div
-      role="tablist"
-      style={{
-        ...surfaceStyle(spec, box),
-        width: box.w,
-        height: box.h,
-        display: "flex",
-        alignItems: "stretch",
-        gap: 6,
-        padding: 4,
-      }}
-    >
-      {labels.map((l, i) => (
-        <HoverLift
-          key={i}
-          type="button"
-          role="tab"
-          aria-selected={active === i}
-          onClick={() => setActive(i)}
-          style={{
-            flex: "1 1 0",
-            background: active === i ? `rgba(${accRgb}, 0.14)` : "transparent",
-            border: `1px solid ${active === i ? `rgba(${accRgb}, 0.4)` : "transparent"}`,
-            borderRadius: Math.max(spec.effects.radius - 3, 3),
-            color: active === i ? acc : spec.colors.text,
-            fontSize: f,
-            fontWeight: spec.text.weight,
-            letterSpacing: `${spec.text.tracking}em`,
-            textTransform: spec.text.uppercase ? "uppercase" : "none",
-            whiteSpace: "nowrap",
-            overflow: "hidden",
-          }}
-        >
-          {l}
-        </HoverLift>
-      ))}
-    </div>
-  );
-}
-
 function LightswitchAtom({ spec, box }: AtomRenderProps) {
   const [on, setOn] = useState(true);
   const acc = spec.colors.accent;
@@ -538,73 +430,6 @@ function TooltipAtom({ spec, box }: AtomRenderProps) {
   );
 }
 
-function AddmAtom({ spec, box }: AtomRenderProps) {
-  const [open, setOpen] = useState(true);
-  const acc = spec.colors.accent;
-  const accRgb = hexToRgbTriple(acc);
-  const f = fontPx(spec, box);
-  return (
-    <div style={{ width: box.w }}>
-      <HoverLift
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        aria-expanded={open}
-        style={{
-          ...surfaceStyle(spec, { w: box.w, h: box.h }),
-          width: "100%",
-          justifyContent: "flex-start",
-          gap: 8,
-          padding: `0 ${Math.max(10, Math.round(box.h * 0.3))}px`,
-        }}
-      >
-        <span
-          style={{
-            ...textStyle(spec, box),
-            color: `rgba(${accRgb}, 0.85)`,
-            textTransform: spec.text.uppercase ? "uppercase" : "none",
-            flex: 1,
-            textAlign: "left",
-          }}
-        >
-          {spec.text.enabled ? spec.text.content : "Group"}
-        </span>
-        <span style={{ fontSize: Math.max(8, Math.round(f * 0.75)), fontWeight: 700, color: `rgba(${accRgb}, 0.6)` }}>6</span>
-        <span style={{ fontSize: Math.round(f * 1.1), fontWeight: 800, color: acc, lineHeight: 1 }}>
-          {open ? "−" : "+"}
-        </span>
-      </HoverLift>
-      {open && (
-        <div
-          style={{
-            marginTop: 4,
-            border: `1px solid rgba(${accRgb}, 0.18)`,
-            borderRadius: Math.min(spec.effects.radius, 10),
-            padding: 5,
-            display: "flex",
-            flexDirection: "column",
-            gap: 3,
-          }}
-        >
-          {["First item", "Second item", "Third item"].map((it) => (
-            <div
-              key={it}
-              style={{
-                padding: `${Math.max(3, Math.round(f * 0.35))}px 8px`,
-                borderRadius: 6,
-                fontSize: Math.max(8, Math.round(f * 0.8)),
-                color: spec.colors.text,
-                background: `rgba(${accRgb}, 0.05)`,
-              }}
-            >
-              {it}
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
 function NeonButtonAtom({ spec, box }: AtomRenderProps) {
   const acc = spec.colors.accent;
   const accRgb = hexToRgbTriple(acc);
@@ -634,12 +459,432 @@ function NeonButtonAtom({ spec, box }: AtomRenderProps) {
   );
 }
 
+// ── Surfaces ────────────────────────────────────────────────────────────
+
+/** Tile — accent-tinted section card: ambient glow + uppercase accent title. */
+function TileAtom({ spec, box }: AtomRenderProps) {
+  const acc = spec.colors.accent;
+  const f = fontPx(spec, box);
+  return (
+    <div
+      style={{
+        ...surfaceStyle(spec, box),
+        display: "flex",
+        flexDirection: "column",
+        gap: Math.round(box.h * 0.06),
+        padding: Math.max(8, Math.round(box.h * 0.09)),
+        position: "relative",
+      }}
+    >
+      {spec.text.enabled && (
+        <span
+          style={{
+            ...textStyle(spec, box),
+            fontSize: Math.max(8, Math.round(f * 0.5)),
+            color: acc,
+            textTransform: "uppercase",
+            letterSpacing: `${Math.max(spec.text.tracking, 0.1)}em`,
+          }}
+        >
+          {spec.text.content}
+        </span>
+      )}
+      <div
+        style={{
+          flex: 1,
+          borderRadius: Math.max(spec.effects.radius - 4, 3),
+          background: `rgba(${hexToRgbTriple(acc)}, 0.05)`,
+          border: `1px dashed rgba(${hexToRgbTriple(acc)}, 0.2)`,
+        }}
+      />
+    </div>
+  );
+}
+
+/** RSD — Row Section Divider: a 1px accent hairline. Structural, no glow. */
+function RsdAtom({ spec, box }: AtomRenderProps) {
+  const acc = hexToRgbTriple(spec.colors.border);
+  const vertical = box.h >= box.w;
+  return (
+    <div
+      style={{
+        width: vertical ? Math.max(1, spec.effects.borderWidth) : box.w,
+        height: vertical ? box.h : Math.max(1, spec.effects.borderWidth),
+        background: `rgba(${acc}, ${spec.colors.borderAlpha})`,
+        opacity: spec.effects.opacity,
+        borderRadius: spec.effects.radius,
+      }}
+    />
+  );
+}
+
+/** Scrollbar — themed thin track + accent thumb. */
+function ScrollbarAtom({ spec, box }: AtomRenderProps) {
+  const acc = hexToRgbTriple(spec.colors.accent);
+  const vertical = box.h >= box.w;
+  const thickness = Math.max(4, vertical ? box.w : box.h);
+  return (
+    <div
+      style={{
+        width: vertical ? thickness : box.w,
+        height: vertical ? box.h : thickness,
+        background: `rgba(${hexToRgbTriple(spec.colors.fill)}, ${spec.colors.fillAlpha})`,
+        borderRadius: spec.effects.radius,
+        opacity: spec.effects.opacity,
+        display: "flex",
+        alignItems: vertical ? "flex-start" : "center",
+        padding: 1,
+      }}
+    >
+      <div
+        style={{
+          width: vertical ? "100%" : "45%",
+          height: vertical ? "45%" : "100%",
+          borderRadius: spec.effects.radius,
+          background: `rgba(${acc}, ${spec.colors.borderAlpha})`,
+          boxShadow: spec.effects.glow > 0 ? `0 0 ${Math.round(spec.effects.glow * 0.3)}px rgba(${acc}, 0.6)` : "none",
+        }}
+      />
+    </div>
+  );
+}
+
+// ── Controls ────────────────────────────────────────────────────────────
+
+/** ResetButton — the canonical 20×20 cyan square with the ↺ glyph. */
+function ResetButtonAtom({ spec, box }: AtomRenderProps) {
+  const s = Math.min(box.w, box.h);
+  return (
+    <HoverLift type="button" style={{ ...surfaceStyle(spec, { w: s, h: s }), position: "relative" }}>
+      <span style={{ ...textStyle(spec, { w: s, h: s }), color: spec.colors.accent }}>↺</span>
+    </HoverLift>
+  );
+}
+
+/** DaB — Dashed+Add Button: dashed border, accent "+ Add" label. */
+function DashedAddAtom({ spec, box }: AtomRenderProps) {
+  const acc = spec.colors.accent;
+  return (
+    <HoverLift
+      type="button"
+      style={{
+        ...surfaceStyle(spec, box),
+        border: `${Math.max(1, spec.effects.borderWidth)}px dashed rgba(${hexToRgbTriple(spec.colors.border)}, ${spec.colors.borderAlpha})`,
+        gap: Math.round(box.h * 0.14),
+        position: "relative",
+      }}
+    >
+      <span style={{ ...textStyle(spec, box), color: acc, fontWeight: 800 }}>+</span>
+      {spec.text.enabled && <span style={{ ...textStyle(spec, box), color: acc }}>{spec.text.content}</span>}
+    </HoverLift>
+  );
+}
+
+/** TileButton — clickable launcher: icon over uppercase label + sub-line. */
+function TileButtonAtom({ spec, box }: AtomRenderProps) {
+  const acc = spec.colors.accent;
+  const f = fontPx(spec, box);
+  return (
+    <HoverLift
+      type="button"
+      style={{
+        ...surfaceStyle(spec, box),
+        flexDirection: "column",
+        gap: Math.round(box.h * 0.07),
+        padding: Math.max(6, Math.round(box.h * 0.1)),
+        position: "relative",
+      }}
+    >
+      {spec.icon.enabled && <SpecIcon spec={spec} size={Math.max(10, box.h * (spec.icon.sizePct / 100) * 0.42)} />}
+      {spec.text.enabled && (
+        <>
+          <span style={{ ...textStyle(spec, box), fontSize: Math.max(8, Math.round(f * 0.55)), color: acc, textTransform: "uppercase" }}>
+            {spec.text.content}
+          </span>
+          <span style={{ ...textStyle(spec, box), fontSize: Math.max(7, Math.round(f * 0.4)), fontWeight: 500, color: `rgba(${hexToRgbTriple(acc)}, 0.6)` }}>
+            sub-line
+          </span>
+        </>
+      )}
+    </HoverLift>
+  );
+}
+
+/** DrawerMenuButton — accent-FILLED square with a bold glyph + glow. */
+function DrawerMenuButtonAtom({ spec, box }: AtomRenderProps) {
+  const acc = spec.colors.accent;
+  const accRgb = hexToRgbTriple(acc);
+  const s = Math.min(box.w, box.h);
+  return (
+    <HoverLift
+      type="button"
+      style={{
+        width: s,
+        height: s,
+        background: `rgba(${accRgb}, ${spec.colors.fillAlpha})`,
+        border: `${spec.effects.borderWidth}px solid rgba(${accRgb}, ${spec.colors.borderAlpha})`,
+        borderRadius: spec.effects.radius,
+        boxShadow: spec.effects.glow > 0 ? `0 0 ${Math.round(spec.effects.glow * 0.4)}px rgba(${accRgb}, 0.7)` : "none",
+        opacity: spec.effects.opacity,
+        position: "relative",
+      }}
+    >
+      {spec.icon.enabled ? (
+        <SpecIcon spec={spec} size={s * (spec.icon.sizePct / 100) * 0.7} />
+      ) : (
+        <span style={{ ...textStyle(spec, { w: s, h: s }), color: spec.colors.text, fontWeight: 800 }}>
+          {spec.text.enabled ? spec.text.content : "≡"}
+        </span>
+      )}
+    </HoverLift>
+  );
+}
+
+/** DrawerKnob — edge-pinned tab pill: identity glyph + vertical-rl label. */
+function DrawerKnobAtom({ spec, box }: AtomRenderProps) {
+  const acc = spec.colors.accent;
+  const accRgb = hexToRgbTriple(acc);
+  const r = spec.effects.radius;
+  return (
+    <HoverLift
+      type="button"
+      style={{
+        width: box.w,
+        height: box.h,
+        flexDirection: "column",
+        gap: Math.round(box.h * 0.05),
+        background: `rgba(${accRgb}, ${spec.colors.fillAlpha})`,
+        border: `${spec.effects.borderWidth}px solid rgba(${accRgb}, ${spec.colors.borderAlpha})`,
+        borderLeft: "none",
+        // Rounded on the non-edge side only — the knob is pinned to an edge.
+        borderRadius: `0 ${r}px ${r}px 0`,
+        boxShadow: shadowStack(spec),
+        opacity: spec.effects.opacity,
+        position: "relative",
+      }}
+    >
+      {spec.icon.enabled && <SpecIcon spec={spec} size={Math.max(9, box.w * (spec.icon.sizePct / 100) * 0.6)} />}
+      {spec.text.enabled && (
+        <span
+          style={{
+            ...textStyle(spec, box),
+            writingMode: "vertical-rl",
+            fontSize: Math.max(7, Math.round(fontPx(spec, box) * 0.3)),
+            color: acc,
+            textTransform: "uppercase",
+            letterSpacing: `${Math.max(spec.text.tracking, 0.14)}em`,
+          }}
+        >
+          {spec.text.content}
+        </span>
+      )}
+    </HoverLift>
+  );
+}
+
+// ── Toggles ─────────────────────────────────────────────────────────────
+
+function EclAtom({ spec, box }: AtomRenderProps) {
+  const [open, setOpen] = useState(true);
+  const acc = spec.colors.accent;
+  const s = Math.min(box.w, box.h);
+  return (
+    <HoverLift
+      type="button"
+      onClick={() => setOpen((v) => !v)}
+      aria-pressed={open}
+      style={{ ...surfaceStyle(spec, { w: s, h: s }), position: "relative" }}
+    >
+      <span
+        style={{
+          width: s * 0.42,
+          height: s * 0.42,
+          borderRadius: "50%",
+          background: open ? acc : "transparent",
+          border: `${Math.max(1, spec.effects.borderWidth)}px solid ${acc}`,
+          boxShadow: open && spec.effects.glow > 0 ? `0 0 ${Math.round(spec.effects.glow * 0.3)}px ${acc}` : "none",
+          transition: "background 0.15s ease",
+        }}
+      />
+    </HoverLift>
+  );
+}
+
+/** Eyeball — square with the inline eye / eye-off SVG. Always SVG, never emoji. */
+function EyeballAtom({ spec, box }: AtomRenderProps) {
+  const [on, setOn] = useState(true);
+  const acc = spec.colors.accent;
+  const s = Math.min(box.w, box.h);
+  const g = s * 0.62;
+  return (
+    <HoverLift
+      type="button"
+      onClick={() => setOn((v) => !v)}
+      aria-pressed={on}
+      style={{ ...surfaceStyle(spec, { w: s, h: s }), position: "relative" }}
+    >
+      <svg width={g} height={g} viewBox="0 0 24 24" fill="none" stroke={acc} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M1.5 12S5 5.5 12 5.5 22.5 12 22.5 12 19 18.5 12 18.5 1.5 12 1.5 12Z" />
+        <circle cx="12" cy="12" r="3.2" />
+        {!on && <path d="M3 3 L21 21" />}
+      </svg>
+    </HoverLift>
+  );
+}
+
+/** LDM — Light-Dark Mode: moon ⇄ sun. */
+function LdmAtom({ spec, box }: AtomRenderProps) {
+  const [dark, setDark] = useState(true);
+  const acc = spec.colors.accent;
+  const s = Math.min(box.w, box.h);
+  const g = s * 0.6;
+  return (
+    <HoverLift
+      type="button"
+      onClick={() => setDark((v) => !v)}
+      aria-pressed={dark}
+      style={{ ...surfaceStyle(spec, { w: s, h: s }), position: "relative" }}
+    >
+      <svg width={g} height={g} viewBox="0 0 24 24" fill="none" stroke={acc} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        {dark ? (
+          <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z" />
+        ) : (
+          <>
+            <circle cx="12" cy="12" r="4.2" />
+            <path d="M12 1.6v2.6M12 19.8v2.6M4.2 4.2l1.9 1.9M17.9 17.9l1.9 1.9M1.6 12h2.6M19.8 12h2.6M4.2 19.8l1.9-1.9M17.9 6.1l1.9-1.9" />
+          </>
+        )}
+      </svg>
+    </HoverLift>
+  );
+}
+
+/** DTog — Drag Toggle: thin rail + hairline + neon grip (3 bars + triangles). */
+function DtogAtom({ spec, box }: AtomRenderProps) {
+  const acc = spec.colors.accent;
+  const accRgb = hexToRgbTriple(acc);
+  const w = Math.max(6, box.w);
+  return (
+    <div
+      style={{
+        width: w,
+        height: box.h,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        position: "relative",
+        opacity: spec.effects.opacity,
+        cursor: "col-resize",
+      }}
+    >
+      {/* the rail's outside hairline — what an RSD aligns to */}
+      <span
+        style={{
+          position: "absolute",
+          right: 0,
+          top: 0,
+          bottom: 0,
+          width: Math.max(1, spec.effects.borderWidth),
+          background: `rgba(${accRgb}, ${spec.colors.borderAlpha})`,
+        }}
+      />
+      <svg width={Math.min(w, 10)} height={Math.min(box.h, 26)} viewBox="0 0 10 26" fill={acc} aria-hidden="true"
+        style={{ filter: spec.effects.glow > 0 ? `drop-shadow(0 0 ${Math.round(spec.effects.glow * 0.25)}px rgba(${accRgb}, 0.9))` : undefined }}>
+        <path d="M5 0 L8 4 H2 Z" />
+        <rect x="1.5" y="8" width="7" height="1.4" rx="0.7" />
+        <rect x="1.5" y="12" width="7" height="1.4" rx="0.7" />
+        <rect x="1.5" y="16" width="7" height="1.4" rx="0.7" />
+        <path d="M5 26 L8 22 H2 Z" />
+      </svg>
+    </div>
+  );
+}
+
+/** Preview Toggle — labelled pill switch (the admin-wizard shape). */
+function PreviewToggleAtom({ spec, box }: AtomRenderProps) {
+  const [on, setOn] = useState(true);
+  const acc = spec.colors.accent;
+  const accRgb = hexToRgbTriple(acc);
+  const track = Math.max(22, box.h * 0.8);
+  return (
+    <HoverLift
+      type="button"
+      onClick={() => setOn((v) => !v)}
+      aria-pressed={on}
+      style={{
+        ...surfaceStyle(spec, box),
+        gap: Math.round(box.h * 0.2),
+        padding: `0 ${Math.max(8, Math.round(box.h * 0.28))}px`,
+        justifyContent: "space-between",
+        position: "relative",
+      }}
+    >
+      {spec.text.enabled && <span style={textStyle(spec, box)}>{spec.text.content}</span>}
+      <span
+        style={{
+          flex: "none",
+          width: track,
+          height: track * 0.55,
+          borderRadius: 999,
+          position: "relative",
+          background: on ? `rgba(${accRgb}, 0.35)` : "rgba(255,255,255,0.08)",
+          border: `1px solid rgba(${accRgb}, ${on ? 0.7 : 0.25})`,
+        }}
+      >
+        <span
+          style={{
+            position: "absolute",
+            top: "50%",
+            left: on ? `calc(100% - ${track * 0.42}px)` : "2px",
+            transform: "translateY(-50%)",
+            width: track * 0.36,
+            height: track * 0.36,
+            borderRadius: "50%",
+            background: on ? acc : "rgba(255,255,255,0.5)",
+            boxShadow: on ? `0 0 ${Math.round(spec.effects.glow * 0.25 + 3)}px rgba(${accRgb}, 0.8)` : "none",
+            transition: "left 0.15s ease",
+          }}
+        />
+      </span>
+    </HoverLift>
+  );
+}
+
+// ── Text & Icons ────────────────────────────────────────────────────────
+
+/** RRT — Read Receipt Tag: the small neon "NEW" pill on a list row. */
+function RrtAtom({ spec, box }: AtomRenderProps) {
+  const acc = spec.colors.accent;
+  const accRgb = hexToRgbTriple(acc);
+  return (
+    <Center
+      style={{
+        ...surfaceStyle(spec, box),
+        background: `rgba(${accRgb}, ${spec.colors.fillAlpha})`,
+        cursor: "pointer",
+      }}
+    >
+      {spec.text.enabled && (
+        <span
+          style={{
+            ...textStyle(spec, box),
+            color: acc,
+            textShadow: spec.effects.glow > 0 ? `0 0 ${Math.round(spec.effects.glow * 0.2)}px rgba(${accRgb}, 0.9)` : "none",
+          }}
+        >
+          {spec.text.content}
+        </span>
+      )}
+    </Center>
+  );
+}
+
 // ── Registry ────────────────────────────────────────────────────────────
 
 function def(
   key: string,
   name: string,
-  group: AtomDef["group"],
+  group: AtomGroup,
   blurb: string,
   patch: AtomSpecPatch,
   Render: React.FC<AtomRenderProps>,
@@ -649,81 +894,160 @@ function def(
 }
 
 export const ATOMS: AtomDef[] = [
-  // ── Basic Atoms ──
-  def("box", "Box", "Basic Atoms", "The bare surface every other atom sits on.", {
+  // ── Surfaces ──
+  def("box", "Box", "Surfaces", "The bare surface every other atom sits on.", {
     size: { widthPct: 40, heightPct: 30 },
     colors: { fill: "#10131d" },
     text: { enabled: false },
   }, BoxAtom),
-  def("button", "Button", "Basic Atoms", "A clickable box with centered text and an optional icon.", {
+  def("tile", "Tile", "Surfaces", "Accent-tinted section card — uppercase title + a content well.", {
+    size: { widthPct: 46, heightPct: 40 },
+    colors: { fill: "#12111f", borderAlpha: 0.35 },
+    effects: { radius: 14, glow: 22, shadow: 10 },
+    text: { content: "Section", ratio: 22, weight: 800, tracking: 0.12, uppercase: true },
+  }, TileAtom),
+  def("rsd", "RSD", "Surfaces", "Row Section Divider — a 1px accent hairline. Structural, no glow.", {
+    size: { widthPct: 5, heightPct: 46 },
+    colors: { border: "#ff4ecb", borderAlpha: 0.35 },
+    effects: { borderWidth: 1, radius: 0, glow: 0, shadow: 0 },
+    text: { enabled: false },
+  }, RsdAtom),
+  def("scrollbar", "Scrollbar", "Surfaces", "Thin themed track with an accent thumb.", {
+    size: { widthPct: 3, heightPct: 52 },
+    colors: { fill: "#0f1320", fillAlpha: 0.6, borderAlpha: 0.55 },
+    effects: { radius: 200, borderWidth: 0, glow: 10, shadow: 0 },
+    text: { enabled: false },
+  }, ScrollbarAtom),
+
+  // ── Controls ──
+  def("button", "Button", "Controls", "A clickable box with centered text and an optional icon.", {
     size: { widthPct: 30, heightPct: 14 },
     colors: { fill: "#1a1f2e" },
     effects: { radius: 10 },
     text: { content: "Button", ratio: 36 },
   }, ButtonAtom, true),
-  def("text", "Text", "Basic Atoms", "Type only — size as ratio of its box.", {
+  def("neonbutton", "NeonButton", "Controls", "Accent pill with the text-shadow glow.", {
+    size: { widthPct: 26, heightPct: 12 },
+    colors: { fill: "#00e4fd", fillAlpha: 0.1, accent: "#00e4fd", border: "#00e4fd", borderAlpha: 0.45 },
+    effects: { radius: 200, glow: 40 },
+    text: { content: "Launch", ratio: 36, weight: 700, tracking: 0.06 },
+  }, NeonButtonAtom, true),
+  def("resetbutton", "ResetButton", "Controls", "The canonical 20×20 cyan square with the ↺ glyph.", {
+    size: { widthPct: 6, heightPct: 9 },
+    colors: { fill: "#22d3ee", fillAlpha: 0.08, accent: "#22d3ee", border: "#22d3ee", borderAlpha: 0.4 },
+    effects: { radius: 5, glow: 0, shadow: 0 },
+    text: { content: "↺", ratio: 62, weight: 600, tracking: 0 },
+  }, ResetButtonAtom),
+  def("dab", "Dashed+Add Button", "Controls", "Dashed border, accent “+ Add” — the empty-slot affordance.", {
+    size: { widthPct: 24, heightPct: 13 },
+    colors: { fillAlpha: 0.04, borderAlpha: 0.45 },
+    effects: { radius: 10, glow: 0, shadow: 0 },
+    text: { content: "Add", ratio: 34, weight: 700 },
+  }, DashedAddAtom),
+  def("tilebutton", "TileButton", "Controls", "Launcher tile — icon over an uppercase label and a sub-line.", {
+    size: { widthPct: 22, heightPct: 34 },
+    colors: { fill: "#12111f", borderAlpha: 0.3 },
+    effects: { radius: 12, glow: 16, shadow: 12 },
+    text: { content: "Sandbox", ratio: 20, weight: 800, tracking: 0.1 },
+    icon: { enabled: true, sizePct: 70 },
+  }, TileButtonAtom, true),
+  def("drawermenubutton", "DrawerMenuButton", "Controls", "Accent-FILLED square with a bold glyph and glow.", {
+    size: { widthPct: 8, heightPct: 12 },
+    colors: { fillAlpha: 0.9, accent: "#ffb020", border: "#ffb020", borderAlpha: 0.7, text: "#0b0d13" },
+    effects: { radius: 7, borderWidth: 1, glow: 30 },
+    text: { content: "≡", ratio: 58, weight: 800 },
+  }, DrawerMenuButtonAtom, true),
+  def("drawerknob", "DrawerKnob", "Controls", "Edge-pinned tab pill — identity glyph + vertical label.", {
+    size: { widthPct: 6, heightPct: 30 },
+    colors: { fill: "#12111f", accent: "#22d3ee", border: "#22d3ee", borderAlpha: 0.45 },
+    effects: { radius: 10, glow: 18, shadow: 10 },
+    text: { content: "Inbox", ratio: 30, tracking: 0.18, uppercase: true },
+    icon: { enabled: true, sizePct: 80 },
+  }, DrawerKnobAtom, true),
+  def("input", "Input", "Controls", "A text field — placeholder rides the text controls.", {
+    size: { widthPct: 44, heightPct: 13 },
+    colors: { fill: "#0f1320", borderAlpha: 0.4, text: "#9aa3c0" },
+    effects: { radius: 9, glow: 8 },
+    text: { content: "Type here…", ratio: 34, weight: 500 },
+  }, InputAtom),
+
+  // ── Toggles ──
+  def("lightswitch", "Lightswitch", "Toggles", "Circle-on-stick toggle — click it.", {
+    size: { widthPct: 12, heightPct: 22 },
+    colors: { accent: "#22d3ee", fill: "#10131d" },
+    effects: { glow: 25, borderWidth: 2, shadow: 0 },
+    text: { enabled: false },
+  }, LightswitchAtom),
+  def("ecl", "ECL", "Toggles", "Expand-Collapse Lightswitch — the per-component mini toggle.", {
+    size: { widthPct: 6, heightPct: 9 },
+    colors: { fill: "#10131d", accent: "#ff4ecb", borderAlpha: 0.5 },
+    effects: { radius: 5, glow: 12, shadow: 0, borderWidth: 1 },
+    text: { enabled: false },
+  }, EclAtom),
+  def("eyeball", "Eyeball", "Toggles", "22×22 square with the inline eye / eye-off SVG. Never an emoji.", {
+    size: { widthPct: 6.5, heightPct: 10 },
+    colors: { fill: "#22d3ee", fillAlpha: 0.08, accent: "#22d3ee", border: "#22d3ee", borderAlpha: 0.4 },
+    effects: { radius: 5, glow: 0, shadow: 0 },
+    text: { enabled: false },
+  }, EyeballAtom),
+  def("ldm", "LDM", "Toggles", "Light-Dark Mode — moon ⇄ sun.", {
+    size: { widthPct: 7, heightPct: 11 },
+    colors: { fill: "#12111f", accent: "#ffb020", border: "#ffb020", borderAlpha: 0.4 },
+    effects: { radius: 200, glow: 18, shadow: 0 },
+    text: { enabled: false },
+  }, LdmAtom),
+  def("dtog", "DTog", "Toggles", "Drag Toggle — rail + hairline + neon grip. Drag to resize, click to collapse.", {
+    size: { widthPct: 3, heightPct: 30 },
+    colors: { accent: "#ff4ecb", border: "#ff4ecb", borderAlpha: 0.25 },
+    effects: { borderWidth: 1, glow: 20, shadow: 0 },
+    text: { enabled: false },
+  }, DtogAtom),
+  def("previewtoggle", "Preview Toggle", "Toggles", "Labelled pill switch — the admin-wizard shape.", {
+    size: { widthPct: 34, heightPct: 13 },
+    colors: { fill: "#12111f", accent: "#ff4ecb", borderAlpha: 0.3 },
+    effects: { radius: 10, glow: 10 },
+    text: { content: "Preview", ratio: 30, weight: 700 },
+  }, PreviewToggleAtom),
+
+  // ── Text & Icons ──
+  def("text", "Text", "Text & Icons", "Type only — size as a ratio of its box.", {
     size: { widthPct: 62, heightPct: 14 },
     colors: { fillAlpha: 0 },
     effects: { borderWidth: 0, glow: 0, shadow: 0 },
     text: { content: "The quick brown fox", ratio: 44, weight: 600 },
   }, TextAtom),
-  def("icon", "Icon", "Basic Atoms", "Any ecosystem icon — or the built-in spark — fully repaintable.", {
+  def("icon", "Icon", "Text & Icons", "Any ecosystem icon — or the built-in spark — fully repaintable.", {
     size: { widthPct: 16, heightPct: 24 },
     colors: { fillAlpha: 0 },
     effects: { borderWidth: 0, glow: 0, shadow: 0 },
     text: { enabled: false },
     icon: { enabled: true, glow: 30 },
   }, IconAtom, true),
-  def("input", "Input", "Basic Atoms", "A text field — placeholder rides the text controls.", {
-    size: { widthPct: 44, heightPct: 13 },
-    colors: { fill: "#0f1320", borderAlpha: 0.4, text: "#9aa3c0" },
-    effects: { radius: 9, glow: 8 },
-    text: { content: "Type here…", ratio: 34, weight: 500 },
-  }, InputAtom),
-  def("pill", "Pill / Badge", "Basic Atoms", "The little rounded status chip.", {
+  def("drawericon", "DrawerIcon", "Text & Icons", "A drawer's identity glyph — small, outline, accent-colored.", {
+    size: { widthPct: 8, heightPct: 12 },
+    colors: { fillAlpha: 0, accent: "#22d3ee" },
+    effects: { borderWidth: 0, glow: 0, shadow: 0 },
+    text: { enabled: false },
+    icon: { enabled: true, sizePct: 92, fillMode: "none", strokeMode: "accent", strokeWidth: 1.4, glow: 14 },
+  }, IconAtom, true),
+  def("pill", "Pill / Badge", "Text & Icons", "The little rounded status chip.", {
     size: { widthPct: 16, heightPct: 9 },
     colors: { fill: "#ff4ecb", fillAlpha: 0.16, borderAlpha: 0.5 },
     effects: { radius: 200, glow: 14 },
     text: { content: "NEW", ratio: 42, tracking: 0.12, uppercase: true },
   }, PillAtom, true),
-
-  // ── Component Groups ──
-  def("ddm", "DDM", "Component Groups", "Dropdown Menu — pill trigger + floating menu card.", {
-    size: { widthPct: 32, heightPct: 12 },
-    colors: { fill: "#171325", accent: "#b18cff", border: "#b18cff", borderAlpha: 0.5 },
+  def("rrt", "RRT", "Text & Icons", "Read Receipt Tag — the neon “NEW” pill that dismisses on click.", {
+    size: { widthPct: 13, heightPct: 8 },
+    colors: { fill: "#4ade80", fillAlpha: 0.14, accent: "#4ade80", border: "#4ade80", borderAlpha: 0.5 },
     effects: { radius: 200, glow: 20 },
-    text: { content: "Save Word", ratio: 34, weight: 600 },
-  }, DdmAtom, true),
-  def("pillbar", "PillBar", "Component Groups", "Segmented view-switcher — recessed rail, floating pill.", {
-    size: { widthPct: 52, heightPct: 11 },
-    colors: { fill: "#16161c", accent: "#00e4fd", border: "#2a2a35", borderAlpha: 1 },
-    effects: { radius: 10, glow: 0, shadow: 8 },
-    text: { content: "My Courses", ratio: 34, weight: 700 },
-  }, PillBarAtom),
-  def("lightswitch", "Lightswitch", "Component Groups", "Circle-on-stick toggle — click it.", {
-    size: { widthPct: 12, heightPct: 22 },
-    colors: { accent: "#22d3ee", fill: "#10131d" },
-    effects: { glow: 25, borderWidth: 2, shadow: 0 },
-    text: { enabled: false },
-  }, LightswitchAtom),
-  def("tooltip", "Tooltip", "Component Groups", "Themed bubble + arrow above its target.", {
+    text: { content: "NEW", ratio: 46, weight: 800, tracking: 0.14, uppercase: true },
+  }, RrtAtom),
+  def("tooltip", "Tooltip", "Text & Icons", "Themed bubble + arrow above its target.", {
     size: { widthPct: 28, heightPct: 22 },
     colors: { fill: "#171325", accent: "#22d3ee", border: "#22d3ee", borderAlpha: 0.5 },
     effects: { radius: 10, glow: 22 },
     text: { content: "Copied!", ratio: 26, weight: 700, tracking: 0.08 },
   }, TooltipAtom),
-  def("addm", "ADDM", "Component Groups", "Accordion group header with +/− toggle.", {
-    size: { widthPct: 56, heightPct: 12 },
-    colors: { fill: "#131722", accent: "#ff4ecb" },
-    effects: { radius: 8, glow: 6 },
-    text: { content: "Buttons", ratio: 30, weight: 800, tracking: 0.08, uppercase: true },
-  }, AddmAtom),
-  def("neonbutton", "NeonButton", "Component Groups", "Accent pill with the text-shadow glow.", {
-    size: { widthPct: 26, heightPct: 12 },
-    colors: { fill: "#00e4fd", fillAlpha: 0.1, accent: "#00e4fd", border: "#00e4fd", borderAlpha: 0.45 },
-    effects: { radius: 200, glow: 40 },
-    text: { content: "Launch", ratio: 36, weight: 700, tracking: 0.06 },
-  }, NeonButtonAtom, true),
 ];
 
 export const ATOM_BY_KEY: Record<string, AtomDef> = Object.fromEntries(
