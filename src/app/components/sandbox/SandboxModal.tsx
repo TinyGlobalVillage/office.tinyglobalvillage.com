@@ -946,6 +946,41 @@ const DrawerTab = styled.button<{ $side: "left" | "right" }>`
   }
 `;
 
+/* Collapsed files column — the same full-height rail the Atom Library
+   collapses into, so both sandboxes read identically. Replaces the old
+   floating mid-height tab; the modal header row is left alone. */
+const FilesRail = styled.button`
+  flex: 0 0 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: rgba(${PINK_RGB}, 0.05);
+  border: none;
+  border-right: 1px solid rgba(${PINK_RGB}, 0.2);
+  color: ${PINK};
+  cursor: pointer;
+
+  &:hover {
+    background: rgba(${PINK_RGB}, 0.12);
+  }
+`;
+
+const FilesRailGlyph = styled.span`
+  font-size: 14px;
+  font-weight: 800;
+`;
+
+const FilesRailLabel = styled.span`
+  writing-mode: vertical-rl;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(${PINK_RGB}, 0.65);
+`;
+
 const FileGroup = styled.div`
   margin-bottom: 0.75rem;
 `;
@@ -3200,7 +3235,10 @@ export default function SandboxModal({
         $fs={fullscreen}
       >
         <Header $edit={editMode}>
-          <HeaderLeft $w={sidebar.snapped ? 0 : sidebar.width} $edit={editMode}>
+          {/* Collapsing the files column leaves the header alone (Gio 2026-08-02):
+              the title + pills keep their column, the body swaps the panel for a
+              rail — same as the Atom Library. */}
+          <HeaderLeft $w={sidebar.width || SIDEBAR_DEFAULT} $edit={editMode}>
             <TitleCluster>
               <SandboxIcon size={22} color={editMode ? GOLD : PINK} />
               <Title $edit={editMode}>{title}{editMode ? " · Editing" : ""}</Title>
@@ -3294,26 +3332,9 @@ export default function SandboxModal({
             </>)}
           </HeaderLeft>
 
-          {!sidebar.snapped && <Rsd $edit={editMode} />}
+          <Rsd $edit={editMode} />
 
           <HeaderRight>
-            {sidebar.snapped && (
-              <>
-                <SandboxIcon size={22} color={editMode ? GOLD : PINK} />
-                <Title $edit={editMode}>
-                  {title}{editMode ? " · Editing" : ""}
-                </Title>
-                {/* Sidebar collapsed → the Files SBDM keeps component selection reachable. */}
-                {labView === "components" && (
-                  <ComponentPicker
-                    activeKey={activeKey}
-                    onSelect={(k) => { setActiveTemplateId(null); setActiveKey(k); }}
-                    accent="pink"
-                    minTriggerWidth={0}
-                  />
-                )}
-              </>
-            )}
             <WideControls>
               {labView === "components" && (<>
               {canEdit && (
@@ -3676,10 +3697,11 @@ export default function SandboxModal({
             </ResizeHandle>
           )}
           {labView === "components" && fsOpen && sidebar.snapped && (
-            <Tooltip label="Restore file panel" accent={TT_ACCENT}>
-              <DrawerTab $side="left" onClick={sidebar.restore}>
-                <ExpandIcon side="left" />
-              </DrawerTab>
+            <Tooltip label="Expand files panel" accent={TT_ACCENT}>
+              <FilesRail onClick={sidebar.restore} aria-label="Expand files panel">
+                <FilesRailGlyph>›</FilesRailGlyph>
+                <FilesRailLabel>Files</FilesRailLabel>
+              </FilesRail>
             </Tooltip>
           )}
 
