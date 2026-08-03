@@ -59,10 +59,18 @@ export type TargetUsage = {
    */
   bytes: number | null;
   unreadable?: string;
+  /**
+   * For a `nested` target, the whole directory the artefacts sit in — so a row
+   * can say "8GB of artefacts inside a 21GB tree" instead of quietly reporting
+   * the smaller number as if it were the directory.
+   */
+  containerBytes?: number | null;
   /** What a preview would free right now, under the current policy. */
   reclaimableBytes: number | null;
   /** False when another target already counts these bytes — avoids double-counting. */
   countsTowardTotal: boolean;
+  /** The enclosing row's label, when there is one. Renders as "within X". */
+  withinLabel?: string | null;
   sweepable: boolean;
   sweepKind: SweepSpec["kind"] | null;
   policy: TargetPolicy;
@@ -185,10 +193,11 @@ async function measure(target: DiskTarget, policy: TargetPolicy): Promise<Target
     return { ...base, bytes: null, reclaimableBytes: null, unreadable: "not on this box" };
   }
 
-  const bytes =
-    target.sweep?.kind === "nested"
-      ? await nestedBytes(target, target.sweep)
-      : await duBytes(target.path, target.needsRoot);
+  const nested = target.sweep?.kind === "nested" ? target.sweep : null;
+  const containerBytes = nested ? await duBytes(target.path, target.needsRoot) : undefined;
+  const bytes = nested
+    ? await nestedBytes(target, nested)
+    : await duBytes(target.path, target.needsRoot);
 
   if (bytes === null) {
     return {
@@ -210,7 +219,7 @@ async function measure(target: DiskTarget, policy: TargetPolicy): Promise<Target
     }
   }
 
-  return { ...base, bytes, reclaimableBytes };
+  return { ...base, bytes, containerBytes, reclaimableBytes };
 }
 
 /**
@@ -240,14 +249,24 @@ export async function scanDisk(force = false): Promise<DiskScan> {
     // more of the disk than exists. Whole-tree rows win; the subset row is
     // still shown, just not added twice.
     for (const t of targets) {
-      const insideAnother = targets.some(
-        (o) => o !== t && (t.path === o.path ? o.sweepKind !== "nested" : t.path.startsWith(`${o.path}/`)),
-      );
-      t.countsTowardTotal = !insideAnother;
+      // The tightest row that encloses this one, if any — "within RCS core"
+      // reads better than a list where the same gigabytes appear three times
+      // with no relationship shown.
+      const enclosing = targets
+        .filter(
+          (o) => o !== t && (t.path === o.path ? o.sweepKind !== "nested" : t.path.startsWith(`${o.path}/`)),
+        )
+        .sort((a, b) => b.path.length - a.path.length)[0];
+      t.countsTowardTotal = !enclosing;
+      t.withinLabel = enclosing?.label ?? null;
     }
     const counted = targets
       .filter((t) => t.countsTowardTotal)
-      .reduce((sum, t) => sum + (t.bytes ?? 0), 0);
+      .reduce((sum, t) => sum + (t.containerBytes ?? t.bytes ?? 0), 0);
+
+    // Biggest first: the panel exists to answer "what is eating the disk", and
+    // that answer should be the first row, not wherever it sits in the file.
+    targets.sort((a, b) => (b.bytes ?? -1) - (a.bytes ?? -1));
 
     const scan: DiskScan = {
       fs,

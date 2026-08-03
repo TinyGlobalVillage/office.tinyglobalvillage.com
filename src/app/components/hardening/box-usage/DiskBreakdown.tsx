@@ -32,8 +32,10 @@ type TargetUsage = {
   consequence: string;
   bytes: number | null;
   unreadable?: string;
+  containerBytes?: number | null;
   reclaimableBytes: number | null;
   countsTowardTotal: boolean;
+  withinLabel?: string | null;
   sweepable: boolean;
   sweepKind: "files" | "children" | "nested" | "command" | null;
   policy: TargetPolicy;
@@ -282,7 +284,10 @@ export default function DiskBreakdown() {
             <RowTop>
               <RowLabel>
                 {t.label}
-                <RowGroup>{GROUP_LABEL[t.group]}</RowGroup>
+                <RowGroup>
+                  {GROUP_LABEL[t.group]}
+                  {t.withinLabel ? ` · within ${t.withinLabel}` : ""}
+                </RowGroup>
               </RowLabel>
               <Track>
                 <Fill
@@ -311,6 +316,12 @@ export default function DiskBreakdown() {
             {open && (
               <Pop>
                 <PopPath>{t.path}</PopPath>
+                {typeof t.containerBytes === "number" && (
+                  <Muted>
+                    {fmtBytes(t.bytes)} of artefacts inside a {fmtBytes(t.containerBytes)} tree — the
+                    rest is source, and stays.
+                  </Muted>
+                )}
                 <PopText>{t.what}</PopText>
                 <PopText $warn>{t.consequence}</PopText>
 

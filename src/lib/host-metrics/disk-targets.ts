@@ -181,6 +181,40 @@ export const DISK_TARGETS: DiskTarget[] = [
     consequence: "Same as Playwright: old versions go, newest stays, re-downloaded on demand.",
     sweep: { kind: "children", match: ".", minAgeDays: 30, keep: 1 },
   },
+  // ── the three roots ──────────────────────────────────────────────────
+  // Without these, everything the named rows DON'T cover lands in a single
+  // "unaccounted" number and the panel can't answer "so where is the rest of
+  // it". They are pure context: measured, never swept, and the rows inside them
+  // are marked as such so nobody reads the same gigabytes twice.
+  {
+    id: "refusion-core",
+    label: "RCS core (all)",
+    path: "/srv/refusion-core",
+    group: "system",
+    what: "Everything under /srv/refusion-core — the apps, the packages, the logs, the lanes.",
+    consequence: "MEASURED ONLY. The rows below break it down.",
+    sweep: null,
+  },
+  {
+    id: "admin-home",
+    label: "admin home (all)",
+    path: "/home/admin",
+    group: "system",
+    what:
+      "The service account's home: package caches, the VS Code remote server, pm2's state and logs.",
+    consequence: "MEASURED ONLY. The cache rows below are the reclaimable parts of it.",
+    sweep: null,
+  },
+  {
+    id: "var-lib",
+    label: "/var/lib (all)",
+    path: "/var/lib",
+    group: "system",
+    what: "System service state — containerd, snapd, postgres, clamav.",
+    consequence: "MEASURED ONLY.",
+    sweep: null,
+    needsRoot: true,
+  },
   {
     id: "containerd",
     label: "containerd images",
