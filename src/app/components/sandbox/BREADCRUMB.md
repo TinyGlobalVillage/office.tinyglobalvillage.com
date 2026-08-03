@@ -2,7 +2,7 @@
 
 > Status: verified · 2026-08-02
 
-**One-liner:** the Office Sandbox modal — one surface, three views behind a header [[PillBar]]: **Components** (groups of atoms), **Atom Library** (solitary atoms), **SVG Lab** (icons).
+**One-liner:** the Office Sandbox modal — one surface, four views behind a header [[PillBar]]: **Templates** · **Components** (groups of atoms) · **Atoms** (solitary atoms) · **SVGs**.
 
 **Composition law (Gio 2026-08-02):** an **Atom is solitary**; a **Component is a group of atoms**. Nothing is both. Canon: `~/.claude/vocabulary/Atom.md`.
 
@@ -19,10 +19,11 @@
 - `catalogBridge.tsx` — mirrors page-editor catalog blocks in as extra categories.
 - `CatalogBlockEditor.tsx` · `SandboxEditToolbar.tsx` · `SandboxClaudeDrawer.tsx` · `useDraftStore.ts` — edit-mode: drafts, data editing, Claude assist, deploy.
 - `ComponentPicker.tsx` — the header SBDM over registry components.
+- `TemplateDrawer.tsx` — the Templates column: ADDM groups are the template's **category and nothing else** (status lives in the template editor's switcher DDM, not here). New categories are created here as empty groups; dragging a template into one PATCHes its `category` (the DB column stays the source of truth — the local file only remembers categories nothing has been dragged into yet). **Dashboard** is its own group at the top and opens the villager dashboard in the TGV page editor in a new tab, the same launch Modules uses. The visual tile gallery stays in Modules.
 
 ## Storage
-- `data/atom-lab/<key>.json` — one saved `AtomSpec` per atom · `data/atom-lab/components/` — saved composed components · `data/svg-lab/` — saved SVG variants. All index+entry layout, all gitignored (per-box runtime state; a deploy must never clobber them).
-- APIs: `src/app/api/atom-lab/specs`, `src/app/api/atom-lab/components`, `src/app/api/svg-lab/variants`.
+- `data/atom-lab/<key>.json` — one saved `AtomSpec` per atom · `data/atom-lab/components/` — saved composed components · `data/svg-lab/` — saved SVG variants · `data/templates/categories.json` — sandbox-created empty template categories. All index+entry layout, all gitignored (per-box runtime state; a deploy must never clobber them).
+- APIs: `src/app/api/atom-lab/specs`, `src/app/api/atom-lab/components`, `src/app/api/svg-lab/variants`, `src/app/api/editor/template-categories`. Templates themselves come from `src/app/api/editor/shared-templates/*` (`shared_templates` in tgv_db).
 
 ## Related
 `../svg-lab/` (SVG Lab surface + manifest) · `~/.claude/vocabulary/Atom.md`, `AtomLibrary.md`, `AtomSpec.md`, `AtomicEditor.md`, `ComponentComposer.md`, `SVGLab.md` · project `CLAUDE.md`

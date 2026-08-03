@@ -89,3 +89,7 @@ telephony/data/recordings/
 
 # Playwright MCP UAT artifacts
 .playwright-mcp/
+
+# Sandbox-created template categories (empty groups with no template in them yet;
+# a template's real category is a shared_templates column). Per-box runtime state.
+data/templates/

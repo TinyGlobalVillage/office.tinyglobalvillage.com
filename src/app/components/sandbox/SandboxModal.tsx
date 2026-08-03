@@ -27,6 +27,7 @@ import {
 } from "./registry";
 import CatalogBlockEditor from "./CatalogBlockEditor";
 import ComponentPicker from "./ComponentPicker";
+import TemplateDrawer from "./TemplateDrawer";
 import PillBar from "@tgv/module-component-library/components/ui/PillBar";
 import AtomLabView from "./atom-lab/AtomLabView";
 import { ATOMS, ATOM_BY_KEY } from "./atom-lab/atomRegistry";
@@ -235,11 +236,16 @@ const PillGroup = styled.div`
 // from Header through the Body split. flex-basis: 1px + align-self: stretch
 // guarantees a 1px-wide, full-height rail. See ~/.claude/vocabulary/RSD.md.
 // PillBar auto-centers itself (margin auto) — neutralize inside the flex header.
+// Four segments no longer fit the files-column width at every size, so the rail
+// is allowed to shrink and wrap rather than clip its last pill.
 const PillBarWrap = styled.div`
-  flex: none;
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
   & > div {
     margin-left: 0;
     margin-right: 0;
+    max-width: 100%;
   }
 `;
 
@@ -1042,7 +1048,6 @@ const AddmCount = styled.span`
   font-weight: 600;
 `;
 
-
 const AddmBody = styled.div<{ $open: boolean }>`
   display: ${(p) => (p.$open ? "block" : "none")};
 `;
@@ -1774,12 +1779,6 @@ const TemplateEditTextarea = styled.textarea`
   }
 `;
 
-const TemplateEmptyHint = styled.div`
-  padding: 0.5rem 1.25rem 0.75rem;
-  font-size: 0.625rem;
-  color: var(--t-textFaint);
-  font-style: italic;
-`;
 
 const CodePane = styled.div<{ $w: number }>`
   @container sandboxbody (max-width: 1100px) {
@@ -2633,7 +2632,7 @@ export default function SandboxModal({
   // Sandbox view — "components" (classic registry sandbox) | "atoms" (Atom
   // Library Sandbox). Switched by the header PillBar; the atoms view swaps
   // the entire Body for AtomLabView and hides the components-only chrome.
-  const [labView, setLabView] = useState<"components" | "atoms" | "svg">("components");
+  const [labView, setLabView] = useState<"templates" | "components" | "atoms" | "svg">("components");
   // Header slot the Atom Lab portals its atom DDM into when its menu drawer
   // is collapsed (drawer-collapsed → DDM-on-header-row behavior).
   const [atomHeaderSlot, setAtomHeaderSlot] = useState<HTMLDivElement | null>(null);
@@ -3286,22 +3285,23 @@ export default function SandboxModal({
               <Title $edit={editMode}>{title}{editMode ? " · Editing" : ""}</Title>
             </TitleCluster>
 
-            {/* Sandbox view switcher — Components | Atom Library | SVG Lab. */}
+            {/* Sandbox view switcher — Templates | Components | Atoms | SVGs (Gio 2026-08-02). */}
             <PillBarWrap>
               <PillBar
                 segments={[
+                  { key: "templates", label: "Templates" },
                   { key: "components", label: "Components" },
-                  { key: "atoms", label: "Atom Library" },
-                  { key: "svg", label: "SVG Lab" },
+                  { key: "atoms", label: "Atoms" },
+                  { key: "svg", label: "SVGs" },
                 ]}
                 active={labView}
-                onChange={(k) => setLabView(k as "components" | "atoms" | "svg")}
+                onChange={(k) => setLabView(k as typeof labView)}
                 accent={PINK_RGB}
                 ariaLabel="Sandbox view"
               />
             </PillBarWrap>
             {/* Atom Lab portals its atom DDM here when its menu drawer is collapsed. */}
-            {labView === "atoms" && <AtomDdmSlot ref={setAtomHeaderSlot} />}
+            {(labView === "atoms" || labView === "templates") && <AtomDdmSlot ref={setAtomHeaderSlot} />}
 
             {labView === "components" && (<>
             {/* Pills wrap BELOW the heading as ONE group: they share a row with the title
@@ -3618,6 +3618,27 @@ export default function SandboxModal({
             the files panel, above Summary/Preview) — see CenterPane below. */}
 
         <Body ref={bodyRef}>
+          {labView === "templates" && (
+            <TemplateDrawer
+              templates={pageTemplates.map((t) => ({
+                templateId: t.templateId,
+                label: t.label,
+                category: t.category,
+                status: t.status,
+              }))}
+              loading={pageTemplatesLoading}
+              error={pageTemplatesError}
+              activeId={activeTemplateId}
+              onSelect={(id) => {
+                setActiveKey("");
+                setComposerId(null);
+                setActiveTemplateId(id);
+                setDeployTemplateError(null);
+              }}
+              onCategoryChanged={() => setTemplatesReloadKey((k) => k + 1)}
+              headerSlot={atomHeaderSlot}
+            />
+          )}
           {labView === "atoms" && (
             <AtomLabView headerSlot={atomHeaderSlot} initialKey={pendingAtomKey} />
           )}
@@ -3720,58 +3741,8 @@ export default function SandboxModal({
                   </FileItemsWrap>
                 </AddmBody>
               </FileGroup>
-              {showPageTemplates && (
-                <FileGroup>
-                  <AddmHeader
-                    $open={pageTemplatesOpen}
-                    aria-expanded={pageTemplatesOpen}
-                    onClick={() => setPageTemplatesOpen((v) => !v)}
-                  >
-                    <AddmLabel>Page Templates</AddmLabel>
-                    <AddmCount>
-                      {pageTemplatesLoading ? "…" : pageTemplates.length}
-                    </AddmCount>
-                    <AddmToggle open={pageTemplatesOpen} />
-                  </AddmHeader>
-                  <AddmBody $open={pageTemplatesOpen}>
-                    {pageTemplatesError && (
-                      <TemplateEmptyHint>
-                        Failed to load: {pageTemplatesError}
-                      </TemplateEmptyHint>
-                    )}
-                    {!pageTemplatesError &&
-                      !pageTemplatesLoading &&
-                      pageTemplates.length === 0 && (
-                        <TemplateEmptyHint>
-                          {surface === "workshop"
-                            ? "No templates yet."
-                            : "No published templates yet."}
-                        </TemplateEmptyHint>
-                      )}
-                    <FileItemsWrap>
-                      {pageTemplates.map((t) => (
-                        <FileItem
-                          key={t.templateId}
-                          $active={activeTemplateId === t.templateId}
-                          onClick={() => {
-                            setActiveKey("");
-                            setActiveTemplateId(t.templateId);
-                            setDeployTemplateError(null);
-                          }}
-                        >
-                          <FileItemRow>
-                            <FileItemLabel>{t.label}</FileItemLabel>
-                            <FileItemSub $active={activeTemplateId === t.templateId}>
-                              {t.status === "sandbox" ? "sandbox · " : ""}
-                              {t.category}
-                            </FileItemSub>
-                          </FileItemRow>
-                        </FileItem>
-                      ))}
-                    </FileItemsWrap>
-                  </AddmBody>
-                </FileGroup>
-              )}
+              {/* Page Templates moved OUT of this column (Gio 2026-08-02) — templates
+                  are their own pill now, with their own category drawer. */}
             </FileSidebar>
           )}
           {labView === "components" && fsOpen && !sidebar.snapped && (
@@ -3803,8 +3774,9 @@ export default function SandboxModal({
               onClose={() => setComposerId(null)}
             />
           )}
-          {labView === "components" && composerId === null &&
-            (active || activeTemplate || (canEdit && editMode)) && (
+          {((labView === "components" && composerId === null &&
+            (active || activeTemplate || (canEdit && editMode))) ||
+            (labView === "templates" && activeTemplate)) && (
           <CenterPane>
             {canEdit && editMode && (
               <SandboxEditToolbar
