@@ -15,6 +15,7 @@ import styled from "styled-components";
 import { colors, rgb } from "@/app/theme";
 import HardeningControlModal, { type HCMSection } from "../HardeningControlModal";
 import AuditLogTimeline from "../_shared/AuditLogTimeline";
+import DiskBreakdown from "./DiskBreakdown";
 import type { Bucket, Resource, ThresholdStatus } from "@/lib/host-metrics/compute";
 import type { HostMetricsConfig } from "@/lib/host-metrics/config";
 
@@ -224,6 +225,16 @@ export default function BoxUsageControlModal({ onClose }: { onClose: () => void 
           )}
         </Body>
       ),
+    },
+    {
+      id: "disk",
+      title: "Disk breakdown",
+      qmbm:
+        "Disk is the resource that actually fills on this box, and 'it's at 93%' is only half an answer — the other half is which directories, and whether any of them are safe to reclaim.\n\n" +
+        "Each row is a directory measured with du. The gear opens what it is, what cleaning it up would cost you, and the knobs for how aggressive that cleanup is. Rows without a gear action are measured only: production checkouts, the archive, someone else's home directory.\n\n" +
+        "Nothing deletes without a preview. Reclaim stays disabled until Preview has listed exactly what would go, then asks once more. A request never carries a path — it names a target from a hard-coded list, and every candidate is re-checked to be inside that target immediately before it is touched.\n\n" +
+        "Scans are cached for 30 minutes and run niced and ioniced to the floor: a monitor that browns out the box it is monitoring has defeated itself.",
+      body: <DiskBreakdown />,
     },
     {
       id: "history",
@@ -497,10 +508,14 @@ function NumField({
   disabled?: boolean;
   onCommit: (v: number) => void;
 }) {
+  // Re-sync on a saved change without an effect — React's "adjust state during
+  // render" pattern, which is one render instead of two.
   const [draft, setDraft] = useState(String(value));
-  useEffect(() => {
+  const [seen, setSeen] = useState(value);
+  if (seen !== value) {
+    setSeen(value);
     setDraft(String(value));
-  }, [value]);
+  }
 
   const commit = () => {
     const n = Number(draft);

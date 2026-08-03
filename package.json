@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "svg:manifest": "node scripts/generate-svg-manifest.mjs",
-    "test:host-metrics": "node --experimental-strip-types --test src/lib/host-metrics/compute.test.mjs src/lib/host-metrics/alert-policy.test.mjs"
+    "test:host-metrics": "node --import ./src/lib/host-metrics/ts-resolve.mjs --conditions=react-server --experimental-strip-types --test src/lib/host-metrics/compute.test.mjs src/lib/host-metrics/alert-policy.test.mjs src/lib/host-metrics/disk-usage.test.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.88.0",

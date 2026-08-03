@@ -86,6 +86,11 @@ data/audit/
 # beside it (host-metrics-config.json) ARE tracked; only this is runtime.
 data/host-metrics/alert-state.json
 
+# Box Usage Monitor disk-cleanup policy — per-box "is this sweep armed, how old
+# must a file be". Same class as alert-state: one box's arming decisions are not
+# another's, and shipping them would arm a delete somewhere nobody armed it.
+data/host-metrics/disk-policy.json
+
 # Telephony runtime audio — live operator state; deploys must never clobber it
 telephony/data/voicemails/
 telephony/data/recordings/
