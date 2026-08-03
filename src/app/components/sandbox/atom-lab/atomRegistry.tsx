@@ -36,6 +36,7 @@ import {
   surfaceDecls,
   textDecls,
 } from "@tgv/module-component-library/atoms/specToCss";
+import { SHIPPED_ATOMS } from "@tgv/module-component-library/atoms/shipped";
 import { SVG_MANIFEST } from "../../svg-lab/manifest.generated";
 import { sanitizeSvgMarkup } from "../../svg-lab/svgModel";
 
@@ -863,12 +864,10 @@ export const ATOMS: AtomDef[] = [
     colors: { fill: "#10131d" },
     text: { enabled: false },
   }, BoxAtom),
-  def("tile", "Tile", "Surfaces", "Accent-tinted section card — uppercase title + a content well.", {
-    size: { widthPct: 46, heightPct: 40 },
-    colors: { fill: "#12111f", borderAlpha: 0.35 },
-    effects: { radius: 14, glow: 22, shadow: 10 },
-    text: { content: "Section", ratio: 22, weight: 800, tracking: 0.12, uppercase: true },
-  }, TileAtom),
+  // Read off the shipped <Tile>, not drawn to look like it — see
+  // @tgv/module-component-library/atoms/shipped.ts.
+  def("tile", "Tile", "Surfaces", "Accent-tinted section card — uppercase title + a content well.",
+    SHIPPED_ATOMS.tile.patch, TileAtom),
   def("rsd", "RSD", "Surfaces", "Row Section Divider — a 1px accent hairline. Structural, no glow.", {
     size: { widthPct: 5, heightPct: 46 },
     colors: { border: "#ff4ecb", borderAlpha: 0.35 },

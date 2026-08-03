@@ -9,7 +9,7 @@
     "lint": "eslint",
     "svg:manifest": "node scripts/generate-svg-manifest.mjs",
     "test:host-metrics": "node --import ./src/lib/host-metrics/ts-resolve.mjs --conditions=react-server --experimental-strip-types --test src/lib/host-metrics/compute.test.mjs src/lib/host-metrics/alert-policy.test.mjs src/lib/host-metrics/disk-usage.test.mjs",
-    "test:atoms": "node --import ./src/lib/host-metrics/ts-resolve.mjs --test src/app/components/sandbox/atom-lab/specToCss.test.mjs"
+    "test:atoms": "node --import ./src/lib/host-metrics/ts-resolve.mjs --test src/app/components/sandbox/atom-lab/specToCss.test.mjs src/app/components/sandbox/atom-lab/atomDrift.test.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.88.0",

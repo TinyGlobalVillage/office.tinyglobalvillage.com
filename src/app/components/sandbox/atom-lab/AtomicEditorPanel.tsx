@@ -568,6 +568,16 @@ export function AtomicEditorPanel({
             <SectionBody>
               <ColorRow label="Fill" value={spec.colors.fill} defaultValue={d.colors.fill} onChange={(v) => setField("colors", "fill", v)} />
               <SliderRow label="Fill alpha" value={spec.colors.fillAlpha} min={0} max={1} step={0.01} defaultValue={d.colors.fillAlpha} onChange={(v) => setField("colors", "fillAlpha", v)} />
+              {/* Off by default: an atom is a flat surface until someone says
+                  otherwise, and the second stop's controls stay out of the way
+                  until they mean something. */}
+              <ToggleRow label="Gradient" value={spec.colors.gradient} onChange={(v) => setField("colors", "gradient", v)} />
+              {spec.colors.gradient && (
+                <>
+                  <ColorRow label="Fill to" value={spec.colors.fillTo} defaultValue={d.colors.fillTo} onChange={(v) => setField("colors", "fillTo", v)} />
+                  <SliderRow label="Fill to alpha" value={spec.colors.fillToAlpha} min={0} max={1} step={0.01} defaultValue={d.colors.fillToAlpha} onChange={(v) => setField("colors", "fillToAlpha", v)} />
+                </>
+              )}
               <ColorRow label="Border" value={spec.colors.border} defaultValue={d.colors.border} onChange={(v) => setField("colors", "border", v)} />
               <SliderRow label="Border alpha" value={spec.colors.borderAlpha} min={0} max={1} step={0.01} defaultValue={d.colors.borderAlpha} onChange={(v) => setField("colors", "borderAlpha", v)} />
               <ColorRow label="Text" value={spec.colors.text} defaultValue={d.colors.text} onChange={(v) => setField("colors", "text", v)} />
@@ -588,6 +598,9 @@ export function AtomicEditorPanel({
               <SliderRow label="Glow" value={spec.effects.glow} min={0} max={100} defaultValue={d.effects.glow} onChange={(v) => setField("effects", "glow", v)} />
               <SliderRow label="Shadow" value={spec.effects.shadow} min={0} max={100} defaultValue={d.effects.shadow} onChange={(v) => setField("effects", "shadow", v)} />
               <SliderRow label="Opacity" value={spec.effects.opacity} min={0.1} max={1} step={0.01} defaultValue={d.effects.opacity} onChange={(v) => setField("effects", "opacity", v)} />
+              {spec.colors.gradient && (
+                <SliderRow label="Gradient angle" value={spec.effects.gradientAngle} min={0} max={360} defaultValue={d.effects.gradientAngle} onChange={(v) => setField("effects", "gradientAngle", v)} />
+              )}
             </SectionBody>
           )}
         </Section>

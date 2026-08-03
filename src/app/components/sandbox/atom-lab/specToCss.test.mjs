@@ -63,10 +63,14 @@ test("text sizes as a ratio of the atom, not the canvas", () => {
 test("glow grows an inner bloom past 40, shadow stacks after it", () => {
   const off = mergeSpec(DEFAULT_SPEC, { effects: { glow: 0, shadow: 0 } });
   assert.equal(shadowStack(off), "none");
+  // The accent reads through its channel var, so a consumer can retint the
+  // glow without restating the whole stack; with nothing set it resolves to
+  // the spec's own accent.
+  const ACC = "rgba(var(--atom-accent-rgb, 255, 78, 203)";
   const low = shadowStack(mergeSpec(DEFAULT_SPEC, { effects: { glow: 40, shadow: 0 } }));
-  assert.equal(low, "0 0 24px rgba(255, 78, 203, 0.44)");
+  assert.equal(low, `0 0 24px ${ACC}, 0.44)`);
   const high = shadowStack(mergeSpec(DEFAULT_SPEC, { effects: { glow: 41, shadow: 0 } }));
-  assert.equal(high, "0 0 25px rgba(255, 78, 203, 0.45), inset 0 0 10px rgba(255, 78, 203, 0.14)");
+  assert.equal(high, `0 0 25px ${ACC}, 0.45), inset 0 0 10px ${ACC}, 0.14)`);
   // The drop shadow is last, so the glow reads as light and the shadow as depth.
   const both = shadowStack(mergeSpec(DEFAULT_SPEC, { effects: { glow: 41, shadow: 20 } }));
   assert.equal(both, `${high}, 0 4px 11px rgba(0, 0, 0, 0.26)`);
