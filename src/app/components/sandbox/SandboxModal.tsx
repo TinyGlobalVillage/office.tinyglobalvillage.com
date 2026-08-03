@@ -21,6 +21,8 @@ import AddmToggle from "@tgv/module-component-library/components/ui/AddmToggle";
 import { REGISTRY, CATEGORIES, type SandboxEntry } from "./registry";
 import CatalogBlockEditor from "./CatalogBlockEditor";
 import ComponentPicker from "./ComponentPicker";
+import PillBar from "@tgv/module-component-library/components/ui/PillBar";
+import AtomLabView from "./atom-lab/AtomLabView";
 
 // Wire-shape for /api/editor/shared-templates list response. Mirrors
 // SharedTemplateSummary in src/lib/db-shared-templates.ts but kept inline
@@ -217,6 +219,21 @@ const PillGroup = styled.div`
 // OUTSIDE hairline (sidebar.width + 7), keeping the vertical line continuous
 // from Header through the Body split. flex-basis: 1px + align-self: stretch
 // guarantees a 1px-wide, full-height rail. See ~/.claude/vocabulary/RSD.md.
+// PillBar auto-centers itself (margin auto) — neutralize inside the flex header.
+const PillBarWrap = styled.div`
+  flex: none;
+  & > div {
+    margin-left: 0;
+    margin-right: 0;
+  }
+`;
+
+const AtomDdmSlot = styled.div`
+  display: flex;
+  align-items: center;
+  min-width: 0;
+`;
+
 const Rsd = styled.div<{ $edit?: boolean }>`
   flex: 0 0 1px;
   align-self: stretch;
@@ -2545,6 +2562,13 @@ export default function SandboxModal({
   // "Pick a component…" search bar (type to filter, or open the arrow and
   // scroll) instead of defaulting to the first registry entry (ResetButton).
   const [activeKey, setActiveKey] = useState<string>("");
+  // Sandbox view — "components" (classic registry sandbox) | "atoms" (Atom
+  // Library Sandbox). Switched by the header PillBar; the atoms view swaps
+  // the entire Body for AtomLabView and hides the components-only chrome.
+  const [labView, setLabView] = useState<"components" | "atoms">("components");
+  // Header slot the Atom Lab portals its atom DDM into when its menu drawer
+  // is collapsed (drawer-collapsed → DDM-on-header-row behavior).
+  const [atomHeaderSlot, setAtomHeaderSlot] = useState<HTMLDivElement | null>(null);
   const [popoutActive, setPopoutActive] = useState(false);
   const [fsOpen, setFsOpen] = useState(true);
   const [catOpen, setCatOpen] = useState<Record<string, boolean>>(() =>
@@ -3144,6 +3168,23 @@ export default function SandboxModal({
               <Title $edit={editMode}>{title}{editMode ? " · Editing" : ""}</Title>
             </TitleCluster>
 
+            {/* Sandbox view switcher — Components (classic) | Atom Library. */}
+            <PillBarWrap>
+              <PillBar
+                segments={[
+                  { key: "components", label: "Components" },
+                  { key: "atoms", label: "Atom Library" },
+                ]}
+                active={labView}
+                onChange={(k) => setLabView(k as "components" | "atoms")}
+                accent={PINK_RGB}
+                ariaLabel="Sandbox view"
+              />
+            </PillBarWrap>
+            {/* Atom Lab portals its atom DDM here when its menu drawer is collapsed. */}
+            {labView === "atoms" && <AtomDdmSlot ref={setAtomHeaderSlot} />}
+
+            {labView === "components" && (<>
             {/* Pills wrap BELOW the heading as ONE group: they share a row with the title
                 only when everything fits; if either would clip, both stack under it. */}
             <PillGroup>
@@ -3211,6 +3252,7 @@ export default function SandboxModal({
                 <CollapseAllThumb $on={allCatsOpen} />
               </CollapseAllBtn>
             </Tooltip>
+            </>)}
           </HeaderLeft>
 
           {!sidebar.snapped && <Rsd $edit={editMode} />}
@@ -3223,15 +3265,18 @@ export default function SandboxModal({
                   {title}{editMode ? " · Editing" : ""}
                 </Title>
                 {/* Sidebar collapsed → the Files SBDM keeps component selection reachable. */}
-                <ComponentPicker
-                  activeKey={activeKey}
-                  onSelect={(k) => { setActiveTemplateId(null); setActiveKey(k); }}
-                  accent="pink"
-                  minTriggerWidth={0}
-                />
+                {labView === "components" && (
+                  <ComponentPicker
+                    activeKey={activeKey}
+                    onSelect={(k) => { setActiveTemplateId(null); setActiveKey(k); }}
+                    accent="pink"
+                    minTriggerWidth={0}
+                  />
+                )}
               </>
             )}
             <WideControls>
+              {labView === "components" && (<>
               {canEdit && (
                 <ToggleBtn
                   $active={editMode}
@@ -3301,6 +3346,7 @@ export default function SandboxModal({
                 <CodeBracketsIcon />
                 <BtnLabel>Code</BtnLabel>
               </ToggleBtn>
+              </>)}
 
               <Spacer />
 
@@ -3336,6 +3382,7 @@ export default function SandboxModal({
             </WideControls>
 
             <NarrowControls>
+              {labView === "components" && (
               <MenuDdmWrap ref={toolbarMenuRef}>
                 <Tooltip label="Toolbar menu" accent={TT_ACCENT}>
                   <SandboxCtrlBtn
@@ -3456,6 +3503,7 @@ export default function SandboxModal({
                   </MenuDdmPanel>
                 )}
               </MenuDdmWrap>
+              )}
 
               <Tooltip label="Close (Esc)" accent={TT_ACCENT}>
                 <SandboxCtrlBtn onClick={onClose}>✕</SandboxCtrlBtn>
@@ -3468,7 +3516,8 @@ export default function SandboxModal({
             the files panel, above Summary/Preview) — see CenterPane below. */}
 
         <Body ref={bodyRef}>
-          {fsOpen && !sidebar.snapped && (
+          {labView === "atoms" && <AtomLabView headerSlot={atomHeaderSlot} />}
+          {labView === "components" && fsOpen && !sidebar.snapped && (
             <FileSidebar $w={sidebar.width}>
               {CATEGORIES.map((cat) => {
                 const open = catOpen[cat] ?? true;
@@ -3558,7 +3607,7 @@ export default function SandboxModal({
               )}
             </FileSidebar>
           )}
-          {fsOpen && !sidebar.snapped && (
+          {labView === "components" && fsOpen && !sidebar.snapped && (
             <ResizeHandle
               $dragging={sidebar.dragging}
               $edit={editMode}
@@ -3568,7 +3617,7 @@ export default function SandboxModal({
               <DTogGrip />
             </ResizeHandle>
           )}
-          {fsOpen && sidebar.snapped && (
+          {labView === "components" && fsOpen && sidebar.snapped && (
             <Tooltip label="Restore file panel" accent={TT_ACCENT}>
               <DrawerTab $side="left" onClick={sidebar.restore}>
                 <ExpandIcon side="left" />
@@ -3576,7 +3625,7 @@ export default function SandboxModal({
             </Tooltip>
           )}
 
-          {(active || activeTemplate || (canEdit && editMode)) && (
+          {labView === "components" && (active || activeTemplate || (canEdit && editMode)) && (
           <CenterPane>
             {canEdit && editMode && (
               <SandboxEditToolbar
@@ -3721,7 +3770,7 @@ export default function SandboxModal({
           </CenterPane>
           )}
 
-          {codeOpen && active && !codePanel.snapped && (
+          {labView === "components" && codeOpen && active && !codePanel.snapped && (
             <ResizeHandle
               $dragging={codePanel.dragging}
               $edit={editMode}
@@ -3730,14 +3779,14 @@ export default function SandboxModal({
               <DTogGrip />
             </ResizeHandle>
           )}
-          {codeOpen && codePanel.snapped && (
+          {labView === "components" && codeOpen && codePanel.snapped && (
             <Tooltip label="Restore code panel" accent={TT_ACCENT}>
               <DrawerTab $side="right" onClick={codePanel.restore}>
                 <ExpandIcon side="right" />
               </DrawerTab>
             </Tooltip>
           )}
-          {codeOpen && active && !codePanel.snapped && (
+          {labView === "components" && codeOpen && active && !codePanel.snapped && (
             <CodePane $w={codePanel.width}>
               <CodeHeader>
                 <CodeLabel $edit={editMode}>Code</CodeLabel>

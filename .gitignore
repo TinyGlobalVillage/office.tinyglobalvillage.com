@@ -48,6 +48,10 @@ data/reconcile/
 # (index.json + one json per variant). Per-box state; a deploy must never clobber it.
 data/svg-lab/
 
+# Atom Lab saved specs — staff-edited at runtime via /api/atom-lab/specs
+# (index.json + one json per atom). Same class as svg-lab: per-box state.
+data/atom-lab/
+
 # runtime auth/user store — written live by the app (passkey public keys,
 # totpEnabled, recovery-code hashes, display data). NOT source. Lives on disk +
 # in the nightly Tier 1 restic backup; restore from backup on a rebuild, not git.
