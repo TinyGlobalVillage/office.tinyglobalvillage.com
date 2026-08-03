@@ -17,6 +17,7 @@ import SessionsDrawer from "./SessionsDrawer";
 import DashboardPopoutBeacon from "./DashboardPopoutBeacon";
 import GlobalModals from "./GlobalModals";
 import DrawerStackController from "./DrawerStackController";
+import TileUrlSync from "./TileUrlSync";
 import { IncomingCallToast } from "./call";
 import type { RingChannel } from "./call";
 
@@ -77,6 +78,8 @@ function ShellInner({ children }: { children: ReactNode }) {
         <PresenceHeartbeat />
         <PingNotifier />
         <DrawerStackController />
+        {/* ?tile= opens modals and drawers on arrival, on every page — see TileUrlSync. */}
+        <TileUrlSync />
         <FrontDeskDrawer />
         <IncomingCallOverlay />
         <ChatDrawer />

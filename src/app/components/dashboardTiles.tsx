@@ -17,6 +17,7 @@
 
 import type { ReactNode } from "react";
 import { colors, type GlowColor } from "@/app/theme";
+import { pushTileUrl } from "@/app/lib/tileUrl";
 import ClaudeIcon from "./claude/ClaudeIcon";
 import SandboxIcon from "./sandbox/SandboxIcon";
 import LibraryIcon from "./LibraryIcon";
@@ -256,11 +257,32 @@ export const OFFICE_CHILDREN: OfficeChildDef[] = [
 export const DRAWER_TAB_EVENT = "tgv-drawer-tab";
 export type DrawerTabDetail = { drawer: string; tab: string };
 
+/** The registry key for an action — how a dispatch knows what to put in the URL. */
+export function tileKeyForAction(action: OfficeTileAction): string | null {
+  const def = OFFICE_TILES.find((t) => {
+    if ("page" in action) return "page" in t.action && t.action.page === action.page;
+    if ("event" in action) return "event" in t.action && t.action.event === action.event;
+    return "drawer" in t.action && t.action.drawer === action.drawer;
+  });
+  return def?.key ?? null;
+}
+
 /**
  * `detail` names a sub-surface inside the tile (see OFFICE_CHILDREN); the
  * modal host reads it off the event and opens straight to that child.
+ *
+ * The URL is written here rather than at each call site because this is the one
+ * chokepoint every opener already goes through — the dashboard grid, the TgvNav
+ * Menu, and the search results all land on it, so all three get a shareable
+ * address for free. `url: false` is for the reader that opens a tile BECAUSE
+ * the URL already said so; without it the arrival would push the address it
+ * just read.
  */
-export function dispatchTileAction(action: OfficeTileAction, detail?: string) {
+export function dispatchTileAction(
+  action: OfficeTileAction,
+  detail?: string,
+  opts: { url?: boolean } = {},
+) {
   if ("drawer" in action) {
     window.dispatchEvent(new CustomEvent("tgv-drawer-open", { detail: action.drawer }));
     if (detail) {
@@ -273,6 +295,10 @@ export function dispatchTileAction(action: OfficeTileAction, detail?: string) {
   } else if ("event" in action) {
     window.dispatchEvent(new CustomEvent(action.event, { detail }));
   }
+
+  if (opts.url === false) return;
+  const key = tileKeyForAction(action);
+  if (key) pushTileUrl(key, detail);
 }
 
 /**

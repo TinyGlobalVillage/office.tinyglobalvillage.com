@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { clearTileUrl, currentTile } from "@/app/lib/tileUrl";
 import ClaudeMenuModal from "./claude/ClaudeMenuModal";
 import SandboxModal from "./sandbox/SandboxModal";
 import LibraryModal from "./LibraryModal";
@@ -52,14 +53,41 @@ export default function GlobalModals() {
     return () => entries.forEach(([ev, fn]) => window.removeEventListener(ev, fn));
   }, []);
 
+  // Back closes what Back opened. dispatchTileAction pushed an entry when the
+  // modal opened, so popping it has to take the modal down too — otherwise the
+  // address bar says /dashboard while the Sandbox is still covering the screen.
+  useEffect(() => {
+    const sync = () => {
+      const named = (currentTile().tile ?? "").toLowerCase();
+      if (named !== "claude") setClaudeOpen(false);
+      if (named !== "sandbox") setSandboxOpen(false);
+      if (named !== "library") setLibraryOpen(false);
+      if (named !== "suggest") setSuggestionOpen(false);
+      if (named !== "logs") setActivityOpen(false);
+      if (named !== "diary") setDiaryOpen(false);
+    };
+    window.addEventListener("popstate", sync);
+    return () => window.removeEventListener("popstate", sync);
+  }, []);
+
+  /**
+   * Closing takes the address with it. `clearTileUrl(key)` only fires when the
+   * URL is describing THIS modal, so dismissing one surface can't wipe a link
+   * that still points at another one still open.
+   */
+  const close = (set: (v: boolean) => void, key: string) => () => {
+    set(false);
+    clearTileUrl(key);
+  };
+
   return (
     <>
-      {claudeOpen && <ClaudeMenuModal onClose={() => setClaudeOpen(false)} initialTool={claudeTool} />}
-      {sandboxOpen && <SandboxModal onClose={() => setSandboxOpen(false)} initialView={sandboxView} />}
-      {libraryOpen && <LibraryModal onClose={() => setLibraryOpen(false)} initialChild={libraryChild} />}
-      {suggestionOpen && <SuggestionBoxModal onClose={() => setSuggestionOpen(false)} />}
-      {activityOpen && <ActivityModal onClose={() => setActivityOpen(false)} initialTab={activityView} />}
-      {diaryOpen && <RcsDiaryModal onClose={() => setDiaryOpen(false)} />}
+      {claudeOpen && <ClaudeMenuModal onClose={close(setClaudeOpen, "Claude")} initialTool={claudeTool} />}
+      {sandboxOpen && <SandboxModal onClose={close(setSandboxOpen, "Sandbox")} initialView={sandboxView} />}
+      {libraryOpen && <LibraryModal onClose={close(setLibraryOpen, "Library")} initialChild={libraryChild} />}
+      {suggestionOpen && <SuggestionBoxModal onClose={close(setSuggestionOpen, "Suggest")} />}
+      {activityOpen && <ActivityModal onClose={close(setActivityOpen, "Logs")} initialTab={activityView} />}
+      {diaryOpen && <RcsDiaryModal onClose={close(setDiaryOpen, "Diary")} />}
       {/* self-listens for "open-my-alerts" */}
       <MyAlertsAccess headless />
     </>

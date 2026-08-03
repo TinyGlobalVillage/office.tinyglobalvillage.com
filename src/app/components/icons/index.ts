@@ -39,6 +39,7 @@ export { default as DrawerFrontDeskIcon } from "./DrawerFrontDeskIcon";
 export { default as DrawerChatsIcon } from "./DrawerChatsIcon";
 export { default as DrawerInboxIcon } from "./DrawerInboxIcon";
 export { default as DrawerSessionsIcon } from "./DrawerSessionsIcon";
+export { default as LinkIcon } from "./LinkIcon";
 export { default as LogsIcon } from "./LogsIcon";
 export { default as ArchiveIcon } from "./ArchiveIcon";
 export { default as SearchIcon } from "./SearchIcon";

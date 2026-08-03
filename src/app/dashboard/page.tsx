@@ -14,8 +14,11 @@ import {
   OFFICE_CHILDREN,
   tileMatchScore,
   dispatchTileAction,
+  shareUrlForTile,
   type OfficeTileGroup,
 } from "../components/dashboardTiles";
+import CopyLinkButton from "../components/CopyLinkButton";
+import { TILE_PARAM, VIEW_PARAM, tileUrlFor } from "@/app/lib/tileUrl";
 import { SearchIcon } from "../components/icons";
 import { colors, rgb, type GlowColor } from "@/app/theme";
 
@@ -31,6 +34,8 @@ type DashTile = {
   /** Set on child surfaces (a modal inside a tile) — searchable, not shown idle. */
   childOf?: string;
   detail?: string;
+  /** OFFICE_TILES key this row links to — a child shares its PARENT's key + detail. */
+  shareKey: string;
 };
 
 type ActivityEvent = {
@@ -440,6 +445,27 @@ const TileGrid = styled.section`
   @media (min-width: 1200px) { grid-template-columns: repeat(5, 1fr); }
 `;
 
+/* One tile's cell: the tile button, plus a copy-link control tucked in the
+   corner. Keyboard focus reveals it too — a control that only exists on hover
+   doesn't exist for anyone navigating by tab. */
+const TileSlot = styled.div`
+  position: relative;
+
+  &:hover > span,
+  &:focus-within > span {
+    opacity: 1;
+  }
+`;
+
+const TileCopy = styled.span`
+  position: absolute;
+  top: 0.3rem;
+  right: 0.3rem;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  z-index: 2;
+`;
+
 const TileOuter = styled.div<{ $glow: GlowColor; $isSuggest?: boolean }>`
   display: flex;
   flex-direction: column;
@@ -574,9 +600,6 @@ const MoreLabel = styled.p`
    dashboard/utils), and router.push would re-run the dashboard's server
    component just to record which modal is open. */
 
-const TILE_PARAM = "tile";
-const VIEW_PARAM = "view";
-
 type OpenTile = { pageKey: string; title: string; glow: GlowColor; view?: string };
 
 /**
@@ -608,15 +631,7 @@ function tileFromParams(params: URLSearchParams): OpenTile | null {
 
 
 function tileUrl(tile: OpenTile | null): string {
-  const params = new URLSearchParams(window.location.search);
-  params.delete(TILE_PARAM);
-  params.delete(VIEW_PARAM);
-  if (tile) {
-    params.set(TILE_PARAM, tile.pageKey);
-    if (tile.view) params.set(VIEW_PARAM, tile.view);
-  }
-  const qs = params.toString();
-  return `${window.location.pathname}${qs ? `?${qs}` : ""}`;
+  return tileUrlFor(tile ? tile.pageKey : null, tile?.view);
 }
 
 /* ── Component ─────────────────────────────────────────────────── */
@@ -723,6 +738,7 @@ export default function Home() {
       group: t.group,
       icon: t.icon(28),
       pageKey: "page" in t.action ? t.action.page : undefined,
+      shareKey: t.key,
       onClick: "page" in t.action ? undefined : () => dispatchTileAction(t.action),
     })), []);
 
@@ -747,6 +763,7 @@ export default function Home() {
           icon: parent.icon(28),
           childOf: parent.title,
           detail: c.detail,
+          shareKey: parent.key,
           pageKey: "page" in parent.action ? parent.action.page : undefined,
           onClick:
             "page" in parent.action
@@ -1018,13 +1035,23 @@ export default function Home() {
                             })
                         : tile.onClick;
                       return (
-                        <button
-                          key={tile.key}
-                          onClick={handleClick}
-                          style={{ padding: 0, background: "none", border: "none", textAlign: "left", cursor: "pointer" }}
-                        >
-                          {inner}
-                        </button>
+                        // The copy control is a SIBLING of the tile button, not a
+                        // child: a button inside a button is invalid HTML and one
+                        // of the two stops working.
+                        <TileSlot key={tile.key}>
+                          <button
+                            onClick={handleClick}
+                            style={{ padding: 0, background: "none", border: "none", textAlign: "left", cursor: "pointer", width: "100%" }}
+                          >
+                            {inner}
+                          </button>
+                          <TileCopy>
+                            <CopyLinkButton
+                              url={() => shareUrlForTile(tile.shareKey, tile.detail)}
+                              label={`Copy link to ${tile.title}`}
+                            />
+                          </TileCopy>
+                        </TileSlot>
                       );
                     })}
                   </TileGrid>

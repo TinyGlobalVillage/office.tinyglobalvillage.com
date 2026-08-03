@@ -6,6 +6,7 @@ import styled from "styled-components";
 import { colors, rgb, glowRgba, type GlowColor } from "../theme";
 import { DrawerTitle } from "../styled";
 import NeonX from "./NeonX";
+import CopyLinkButton from "./CopyLinkButton";
 import Tooltip from "./ui/Tooltip";
 import { useModalLifecycle } from "../lib/drawerKnobs";
 import { useTerminal } from "./TerminalProvider";
@@ -597,6 +598,15 @@ export default function DashboardPageModal({ pageKey, title, glow, view, onViewC
             >
               {fullscreen ? "⊡" : "⊞"}
             </CtrlBtn>
+          </Tooltip>
+
+          {/* The URL already describes this modal — the button is the shortcut
+              for sending it to someone without going near the address bar. */}
+          <Tooltip accent={colors[glow]} label="Copy link to this view">
+            <CopyLinkButton
+              url={() => window.location.href}
+              label={`Copy link to ${title}`}
+            />
           </Tooltip>
 
           <Tooltip accent={colors[glow]} label="Close (Esc)">

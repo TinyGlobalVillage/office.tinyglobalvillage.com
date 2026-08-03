@@ -13,7 +13,13 @@ type DrawerEntry = {
 };
 
 let stack: DrawerEntry[] = [];
-const CHANGE_EVENT = "tgv-drawer-stack-change";
+/**
+ * Fired with the open-drawer ids on every register/unregister. Exported because
+ * a drawer leaving this stack is the only close signal drawers have — TileUrlSync
+ * listens for it to drop ?tile= when the drawer it names is dismissed.
+ */
+export const DRAWER_STACK_EVENT = "tgv-drawer-stack-change";
+const CHANGE_EVENT = DRAWER_STACK_EVENT;
 
 function emitChange() {
   if (typeof window === "undefined") return;
@@ -40,6 +46,12 @@ export function getStack(): string[] {
 
 export function getTopId(): string | null {
   return stack.length > 0 ? stack[stack.length - 1].id : null;
+}
+
+/** Close one drawer by id, wherever it sits in the stack. No-op if it isn't open. */
+export function closeDrawerById(id: string) {
+  const entry = stack.find((e) => e.id === id);
+  if (entry) entry.close();
 }
 
 export function closeTop() {
