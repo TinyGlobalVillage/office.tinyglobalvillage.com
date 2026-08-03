@@ -519,6 +519,7 @@ export default function AtomLabView({
                     items.map((a) => (
                       <AtomItem
                         key={a.key}
+                        data-atom-key={a.key}
                         $active={active === a.key}
                         onClick={() => setActive(a.key)}
                       >
@@ -545,7 +546,10 @@ export default function AtomLabView({
       )}
 
       <Stage>
+        {/* The two data hooks are how a UAT walks the library: pick an atom by
+            key, then assert its canvas actually painted something. */}
         <CanvasFrame
+          data-atom-canvas={def.key}
           style={{
             width: spec.canvas.width,
             height: spec.canvas.height,

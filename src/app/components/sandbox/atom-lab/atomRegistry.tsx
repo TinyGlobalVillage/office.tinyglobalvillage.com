@@ -9,9 +9,12 @@
  *
  * Every renderer is a spec-driven silhouette: EVERY visual decision (size,
  * colors, effects, text, icon) comes off the AtomSpec so the Atomic Editor
- * controls all of it live. Atoms deliberately re-draw their vocabulary shape
- * here rather than importing the shipped component — the shipped ones hardcode
- * their styling, and the whole point is that nothing is pinned.
+ * controls all of it live. Atoms re-draw their vocabulary shape here rather
+ * than importing the shipped component, so that nothing is pinned — but the
+ * VALUES are no longer redrawn: surface, text and icon paint all come from
+ * @tgv/module-component-library/atoms/specToCss, the same emitter the shipped
+ * atoms use. A silhouette can differ in structure from its shipped twin; it can
+ * no longer differ in color, radius, glow or size.
  *
  * Canon: ~/.claude/vocabulary/Atom.md · AtomLibrary.md · AtomSpec.md
  */
@@ -25,13 +28,21 @@ import {
   mergeSpec,
   hexToRgbTriple,
 } from "./atomSpec";
+import {
+  type AtomBox,
+  fontPx as specFontPx,
+  iconPaint,
+  shadowStack,
+  surfaceDecls,
+  textDecls,
+} from "@tgv/module-component-library/atoms/specToCss";
 import { SVG_MANIFEST } from "../../svg-lab/manifest.generated";
 import { sanitizeSvgMarkup } from "../../svg-lab/svgModel";
 
 export const ATOM_GROUP_NAMES = ["Surfaces", "Controls", "Toggles", "Text & Icons"] as const;
 export type AtomGroup = (typeof ATOM_GROUP_NAMES)[number];
 
-export type AtomBox = { w: number; h: number };
+export type { AtomBox };
 export type AtomRenderProps = { spec: AtomSpec; box: AtomBox };
 
 export type AtomDef = {
@@ -48,52 +59,23 @@ export type AtomDef = {
 export const ATOM_GROUPS = ATOM_GROUP_NAMES;
 
 // ── Spec → style helpers ────────────────────────────────────────────────
-
-function shadowStack(spec: AtomSpec): string {
-  const acc = hexToRgbTriple(spec.colors.accent);
-  const parts: string[] = [];
-  const { glow, shadow } = spec.effects;
-  if (glow > 0) {
-    parts.push(`0 0 ${Math.round(glow * 0.6)}px rgba(${acc}, ${(0.2 + glow * 0.006).toFixed(2)})`);
-    if (glow > 40) parts.push(`inset 0 0 ${Math.round(glow * 0.25)}px rgba(${acc}, 0.14)`);
-  }
-  if (shadow > 0) {
-    parts.push(`0 ${Math.round(shadow * 0.2)}px ${Math.round(shadow * 0.55)}px rgba(0, 0, 0, ${(0.18 + shadow * 0.004).toFixed(2)})`);
-  }
-  return parts.join(", ") || "none";
-}
+//
+// Three one-liners over the package emitter. They exist so the renderers below
+// read the way they always did — and so there is exactly one place that would
+// have to change if the lab ever wanted to style an atom differently from its
+// shipped twin, which is a change that should be hard to make by accident.
 
 /** The atom's surface box — bg/border/radius/glow/shadow/opacity off the spec. */
 export function surfaceStyle(spec: AtomSpec, box: AtomBox): React.CSSProperties {
-  const { colors, effects } = spec;
-  return {
-    width: box.w,
-    height: box.h,
-    background: `rgba(${hexToRgbTriple(colors.fill)}, ${colors.fillAlpha})`,
-    border: `${effects.borderWidth}px solid rgba(${hexToRgbTriple(colors.border)}, ${colors.borderAlpha})`,
-    borderRadius: effects.radius,
-    boxShadow: shadowStack(spec),
-    opacity: effects.opacity,
-    color: colors.text,
-  };
+  return surfaceDecls(spec, box) as React.CSSProperties;
 }
 
 export function fontPx(spec: AtomSpec, box: AtomBox): number {
-  return spec.text.mode === "ratio"
-    ? Math.max(6, Math.round(box.h * (spec.text.ratio / 100)))
-    : spec.text.px;
+  return specFontPx(spec, box);
 }
 
 export function textStyle(spec: AtomSpec, box: AtomBox): React.CSSProperties {
-  return {
-    fontSize: fontPx(spec, box),
-    fontWeight: spec.text.weight,
-    letterSpacing: `${spec.text.tracking}em`,
-    textTransform: spec.text.uppercase ? "uppercase" : "none",
-    color: spec.colors.text,
-    lineHeight: 1.15,
-    whiteSpace: "nowrap",
-  };
+  return textDecls(spec, box) as React.CSSProperties;
 }
 
 const Center = styled.div`
@@ -208,24 +190,9 @@ export function SpecIcon({ spec, size }: { spec: AtomSpec; size: number }) {
     };
   }, [variantId]);
 
-  const acc = spec.colors.accent;
-  const fill =
-    icon.fillMode === "none"
-      ? "none"
-      : `rgba(${hexToRgbTriple(icon.fillMode === "accent" ? acc : icon.fill)}, ${icon.fillAlpha})`;
-  const stroke =
-    icon.strokeMode === "none"
-      ? "none"
-      : `rgba(${hexToRgbTriple(icon.strokeMode === "accent" ? acc : icon.stroke)}, ${icon.strokeAlpha})`;
-  const glowRgb = hexToRgbTriple(
-    icon.strokeMode === "accent" || icon.fillMode === "accent" ? acc : icon.stroke,
-  );
-  const filters = [
-    icon.glow > 0 ? `drop-shadow(0 0 ${Math.round(icon.glow * 0.3)}px rgba(${glowRgb}, 0.85))` : "",
-    icon.blur > 0 ? `blur(${(icon.blur * 0.4).toFixed(2)}px)` : "",
-  ]
-    .filter(Boolean)
-    .join(" ");
+  // Fill, stroke, glow and transform come off the shared emitter — the same
+  // numbers a shipped atom's glyph would paint itself with.
+  const { fill, stroke, filter: filters, transform } = iconPaint(spec);
 
   // The serialized markup carries its own viewBox + geometry; the children go
   // into a fresh <svg> so the paint attributes cascade onto every path.
@@ -259,11 +226,7 @@ export function SpecIcon({ spec, size }: { spec: AtomSpec; size: number }) {
           opacity: icon.opacity,
           // Variants can carry currentColor; resolve it to the icon's paint.
           color: icon.strokeMode === "none" ? undefined : stroke,
-          transform: [
-            `translate(${icon.offsetX}%, ${icon.offsetY}%)`,
-            `rotate(${icon.rotate}deg)`,
-            `scale(${icon.scale * (icon.flipX ? -1 : 1)}, ${icon.scale * (icon.flipY ? -1 : 1)})`,
-          ].join(" "),
+          transform,
           overflow: "visible",
         }}
         aria-hidden="true"

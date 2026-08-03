@@ -1,0 +1,139 @@
+/**
+ * The emitter's guard: `npm run test:atoms`.
+ *
+ * Runs against the BUILT package (`@tgv/module-component-library/atoms/…`), not
+ * the source, because the built dist is what Office actually loads — a spec
+ * change that never made it through `tsc` should fail here rather than ship.
+ *
+ * What it is really protecting: the lab reads `surfaceDecls`/`textDecls` as
+ * inline styles while a shipped atom reads `specToCss` as a CSS string. Those
+ * two have to keep describing the same atom. The round-trip test below parses
+ * the emitted CSS back into values and compares it to the object the lab uses,
+ * so the day someone adds a declaration to one and not the other, this fails.
+ */
+
+import test from "node:test";
+import assert from "node:assert/strict";
+import { DEFAULT_SPEC, mergeSpec } from "@tgv/module-component-library/atoms/spec";
+import {
+  fontPx,
+  iconPaint,
+  shadowStack,
+  specTextToCss,
+  specToBox,
+  specToCss,
+  specToVars,
+  surfaceDecls,
+  textDecls,
+} from "@tgv/module-component-library/atoms/specToCss";
+
+/** "width: var(--atom-width, 163px);" → { "width": ["--atom-width", "163px"] } */
+function parse(css) {
+  const out = {};
+  for (const line of css.split("\n")) {
+    const m = /^\s*([a-z-]+):\s*var\((--atom-[a-z-]+),\s*(.*)\);$/.exec(line);
+    if (m) out[m[1]] = [m[2], m[3]];
+  }
+  return out;
+}
+const kebab = (k) => k.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`);
+
+test("canvas-relative size bakes to pixels", () => {
+  // 34% of a 480px canvas, 16% of 320px — the numbers the lab prints under the
+  // preview. A shipped atom built from this spec is that many pixels.
+  assert.deepEqual(specToBox(DEFAULT_SPEC), { w: 163, h: 51 });
+  assert.deepEqual(
+    specToBox(mergeSpec(DEFAULT_SPEC, { size: { widthPct: 100, heightPct: 100 } })),
+    { w: 480, h: 320 },
+  );
+  // Never smaller than 8px, or the atom vanishes at the bottom of the range.
+  assert.deepEqual(
+    specToBox(mergeSpec(DEFAULT_SPEC, { canvas: { width: 120, height: 80 }, size: { widthPct: 4, heightPct: 4 } })),
+    { w: 8, h: 8 },
+  );
+});
+
+test("text sizes as a ratio of the atom, not the canvas", () => {
+  const box = specToBox(DEFAULT_SPEC);
+  assert.equal(fontPx(DEFAULT_SPEC, box), Math.round(box.h * 0.34));
+  const px = mergeSpec(DEFAULT_SPEC, { text: { mode: "px", px: 22 } });
+  assert.equal(fontPx(px, box), 22, "px mode ignores the box entirely");
+});
+
+test("glow grows an inner bloom past 40, shadow stacks after it", () => {
+  const off = mergeSpec(DEFAULT_SPEC, { effects: { glow: 0, shadow: 0 } });
+  assert.equal(shadowStack(off), "none");
+  const low = shadowStack(mergeSpec(DEFAULT_SPEC, { effects: { glow: 40, shadow: 0 } }));
+  assert.equal(low, "0 0 24px rgba(255, 78, 203, 0.44)");
+  const high = shadowStack(mergeSpec(DEFAULT_SPEC, { effects: { glow: 41, shadow: 0 } }));
+  assert.equal(high, "0 0 25px rgba(255, 78, 203, 0.45), inset 0 0 10px rgba(255, 78, 203, 0.14)");
+  // The drop shadow is last, so the glow reads as light and the shadow as depth.
+  const both = shadowStack(mergeSpec(DEFAULT_SPEC, { effects: { glow: 41, shadow: 20 } }));
+  assert.equal(both, `${high}, 0 4px 11px rgba(0, 0, 0, 0.26)`);
+});
+
+test("the CSS string and the inline styles describe the same atom", () => {
+  const specs = [
+    DEFAULT_SPEC,
+    mergeSpec(DEFAULT_SPEC, { effects: { glow: 0, shadow: 0, radius: 0, borderWidth: 0 } }),
+    mergeSpec(DEFAULT_SPEC, { effects: { glow: 100, shadow: 100, opacity: 0.5 } }),
+    mergeSpec(DEFAULT_SPEC, { text: { uppercase: true, mode: "px", px: 9, tracking: 0.3 } }),
+  ];
+  for (const spec of specs) {
+    const box = specToBox(spec);
+    for (const [decls, css] of [
+      [surfaceDecls(spec, box), specToCss(spec, box)],
+      [textDecls(spec, box), specTextToCss(spec, box)],
+    ]) {
+      const parsed = parse(css);
+      assert.deepEqual(
+        Object.keys(parsed).sort(),
+        Object.keys(decls).map(kebab).sort(),
+        "every inline declaration is emitted as CSS, and nothing extra",
+      );
+      for (const [prop, v] of Object.entries(decls)) {
+        const [name, fallback] = parsed[kebab(prop)];
+        assert.equal(name, `--atom-${kebab(prop)}`);
+        const expected =
+          typeof v === "number" && !["opacity", "font-weight", "line-height"].includes(kebab(prop))
+            ? `${v}px`
+            : String(v);
+        assert.equal(fallback, expected, `${kebab(prop)} differs between the two surfaces`);
+      }
+    }
+  }
+});
+
+test("every declaration is overridable by one custom property", () => {
+  const css = specToCss(DEFAULT_SPEC);
+  // No literal values: an instance that sets --atom-background must win without
+  // a more specific selector.
+  for (const line of css.split("\n")) assert.match(line, /var\(--atom-/);
+  const vars = specToVars(DEFAULT_SPEC);
+  for (const prop of Object.keys(surfaceDecls(DEFAULT_SPEC, specToBox(DEFAULT_SPEC)))) {
+    assert.ok(`--atom-${kebab(prop)}` in vars, `${prop} has no variable`);
+  }
+  assert.equal(vars["--atom-accent"], DEFAULT_SPEC.colors.accent);
+  assert.equal(vars["--atom-accent-rgb"], "255, 78, 203");
+});
+
+test("icon paint resolves accent modes and skips empty filters", () => {
+  const plain = mergeSpec(DEFAULT_SPEC, { icon: { glow: 0, blur: 0, fillMode: "none", strokeMode: "accent" } });
+  const p = iconPaint(plain);
+  assert.equal(p.fill, "none");
+  assert.equal(p.stroke, `rgba(255, 78, 203, ${plain.icon.strokeAlpha})`);
+  assert.equal(p.filter, "", "no glow and no blur means no filter at all");
+  const lit = mergeSpec(DEFAULT_SPEC, { icon: { glow: 30, blur: 2 } });
+  assert.match(iconPaint(lit).filter, /^drop-shadow\(0 0 9px rgba\(255, 78, 203, 0\.85\)\) blur\(0\.80px\)$/);
+  const flipped = mergeSpec(DEFAULT_SPEC, { icon: { flipX: true, scale: 2 } });
+  assert.match(iconPaint(flipped).transform, /scale\(-2, 2\)$/);
+});
+
+test("a spec off the wire cannot smuggle a value past the emitter", () => {
+  // clampSpec is the sanitizer, but the emitter is the last stop before CSS —
+  // it must not interpolate anything it wasn't handed as a number or a hex.
+  const box = specToBox(DEFAULT_SPEC);
+  const css = specToCss(DEFAULT_SPEC, box) + specTextToCss(DEFAULT_SPEC, box);
+  assert.ok(!css.includes("}"), "no declaration can close its own block");
+  assert.ok(!css.includes("@"), "no at-rule can be injected through a value");
+});
