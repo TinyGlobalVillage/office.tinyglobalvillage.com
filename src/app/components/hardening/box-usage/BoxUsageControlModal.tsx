@@ -106,6 +106,7 @@ export default function BoxUsageControlModal({ onClose }: { onClose: () => void 
   const [windowKey, setWindowKey] = useState<WindowKey>("24h");
   const [host, setHost] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [headlineMode, setHeadlineMode] = useState<"24h" | "now">("24h");
 
   const load = useCallback(async () => {
     setError(null);
@@ -164,7 +165,15 @@ export default function BoxUsageControlModal({ onClose }: { onClose: () => void 
   };
 
   const cfg = snap?.config;
-  const headline = snap?.headlinePct ?? snap?.live?.worstPct ?? null;
+  const average = snap?.headlinePct ?? null;
+  const live = snap?.live?.worstPct ?? null;
+
+  // Which number gets to be the big one. The average is the default because it
+  // answers "do we need a bigger box"; "now" is what you want standing in front
+  // of a box you just changed, and the other one is always beside it either way.
+  const headline = headlineMode === "now" ? (live ?? average) : (average ?? live);
+  const secondary = headlineMode === "now" ? average : live;
+  const secondaryLabel = headlineMode === "now" ? "24h average" : "right now";
   const tone = cfg ? toneFor(headline, cfg) : "none";
 
   const sections: HCMSection[] = [
@@ -189,30 +198,42 @@ export default function BoxUsageControlModal({ onClose }: { onClose: () => void 
                       : "HEALTHY"}
               </Pill>
               <Muted>
-                worst-of · 24h average
+                worst-of · {headlineMode === "now" ? "live reading" : "24h average"}
                 {snap?.live ? ` · right now the ceiling is ${RESOURCE_LABEL[snap.live.worst]}` : ""}
               </Muted>
+              <Rowline>
+                <TBtn $active={headlineMode === "24h"} onClick={() => setHeadlineMode("24h")}>
+                  24h
+                </TBtn>
+                <TBtn $active={headlineMode === "now"} onClick={() => setHeadlineMode("now")}>
+                  now
+                </TBtn>
+              </Rowline>
             </HeadlineMeta>
 
-            {/* The big number is an AVERAGE, so it lags a change by design. After a
-                cleanup that is exactly when someone reads it as broken — so the
-                instant reading sits beside it, and says so when the two diverge. */}
-            {snap?.live && (
+            {/* Whichever number isn't the headline sits beside it. The average lags
+                a change by design, which reads as broken right after a cleanup —
+                so the other reading is never more than a glance away. */}
+            {secondary !== null && (
               <LiveNow>
-                <StatLabel>right now</StatLabel>
-                <LiveValue style={{ color: TONE_COLOR[cfg ? toneFor(snap.live.worstPct, cfg) : "none"] }}>
-                  {pct(snap.live.worstPct)}
+                <StatLabel>{secondaryLabel}</StatLabel>
+                <LiveValue style={{ color: TONE_COLOR[cfg ? toneFor(secondary, cfg) : "none"] }}>
+                  {pct(secondary)}
                 </LiveValue>
               </LiveNow>
             )}
           </Headline>
 
-          {snap?.live && headline !== null && Math.abs(headline - snap.live.worstPct) >= 5 && (
-            <Muted>
-              The headline is the 24-hour average, so it still carries the hours before this
-              changed — it falls as the window rolls forward, not the moment the box does.
-            </Muted>
-          )}
+          {headlineMode === "24h" &&
+            live !== null &&
+            average !== null &&
+            Math.abs(average - live) >= 5 && (
+              <Muted>
+                The headline is the 24-hour average, so it still carries the hours before this
+                changed — it falls as the window rolls forward, not the moment the box does. Switch
+                to <strong>now</strong> for the instant reading.
+              </Muted>
+            )}
 
           <Bars>
             {(["cpu", "ram", "disk", "bandwidth"] as Resource[]).map((r) => {
