@@ -137,6 +137,34 @@ test("a database that falls over freezes the atoms, it does not blank them", asy
   assert.deepEqual(await readLiveSpecs(db, 0), {}, "a cold start with no database publishes nothing");
 });
 
+test("a database that hangs does not hold the page hostage", async () => {
+  invalidateLiveSpecs();
+  let release;
+  // Accepted the connection, then never answered — the failure a connect
+  // timeout does not catch, and the one that matters most here: this read sits
+  // in a root layout, so an unbounded wait is every page on three sites.
+  const hung = { query: () => new Promise((resolve) => (release = () => resolve({ rows: [] }))) };
+
+  const started = Date.now();
+  assert.deepEqual(await readLiveSpecs(hung, 0, 40), {}, "it gives up and the atoms render what shipped");
+  assert.ok(Date.now() - started < 1_000, "the render waited for the timeout, not for the query");
+  release();
+});
+
+test("a cold start against a dead database fails once, not once per render", async () => {
+  invalidateLiveSpecs();
+  const db = fakeDb();
+  db.fail = true;
+  await readLiveSpecs(db, 60_000);
+  await readLiveSpecs(db, 60_000);
+  await readLiveSpecs(db, 60_000);
+  assert.equal(
+    db.calls.length,
+    1,
+    "the empty answer is remembered for the TTL too — otherwise a burst of renders each pays its own failed connection",
+  );
+});
+
 test("the live read is cached, and a publish drops the cache", async () => {
   invalidateLiveSpecs();
   const db = fakeDb([{ key: "tile", spec: shippedSpec("tile") }]);
