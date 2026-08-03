@@ -6,7 +6,14 @@ import TopNav from "../components/TopNav";
 import UsersCard from "../components/UsersCard";
 import AnnouncementsPanel from "../components/AnnouncementsPanel";
 import DashboardPageModal from "../components/DashboardPageModal";
-import { OFFICE_TILES, dispatchTileAction } from "../components/dashboardTiles";
+import AddmToggle from "@tgv/module-component-library/components/ui/AddmToggle";
+import {
+  OFFICE_TILES,
+  TILE_GROUPS,
+  TILE_GROUP_ACCENT,
+  dispatchTileAction,
+  type OfficeTileGroup,
+} from "../components/dashboardTiles";
 import { SearchIcon } from "../components/icons";
 import { colors, rgb, type GlowColor } from "@/app/theme";
 
@@ -16,6 +23,7 @@ type DashTile = {
   subtitle: string;
   glow: GlowColor;
   icon: React.ReactNode;
+  group?: OfficeTileGroup;
   pageKey?: string;
   onClick?: () => void;
 };
@@ -34,6 +42,9 @@ const TYPE_COLOR: Record<string, string> = {
 };
 
 const TILES_COLLAPSED_KEY = "tgv_dash_tiles_collapsed";
+// Per-category collapse for the tile grid (Gio 2026-08-02) — one JSON map so a
+// new category doesn't need a new storage key.
+const TILE_GROUPS_COLLAPSED_KEY = "tgv_dash_tile_groups_collapsed";
 const TEAM_COLLAPSED_KEY = "tgv_dash_team_collapsed";
 const ACTIVITY_COLLAPSED_KEY = "tgv_dash_activity_collapsed";
 const MASTER_COLLAPSED_KEY = "tgv_dash_master_collapsed";
@@ -317,6 +328,54 @@ const SectionTitle = styled.h2<{ $accent: GlowColor }>`
 `;
 
 const TilesTitle = styled(SectionTitle)``;
+
+/* ── Tile categories (Gio 2026-08-02) ──────────────────────────────
+   The grid is split into one sub-grid per category. The header row is a
+   quiet accent label + count + a hairline rule that eats the remaining
+   width, so the categories read as dividers rather than as competing
+   headings against the section titles above them. */
+const TileCategory = styled.div`
+  & + & {
+    margin-top: 1.25rem;
+  }
+`;
+
+const TileCategoryHeader = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0 0.25rem 0.5rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+`;
+
+const TileCategoryTitle = styled.span<{ $accent: GlowColor }>`
+  font-size: 0.625rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: rgba(${(p) => rgb[p.$accent]}, 0.75);
+  white-space: nowrap;
+`;
+
+const TileCategoryCount = styled.span<{ $accent: GlowColor }>`
+  font-size: 0.625rem;
+  font-weight: 700;
+  color: rgba(${(p) => rgb[p.$accent]}, 0.45);
+`;
+
+const TileCategoryRule = styled.span<{ $accent: GlowColor }>`
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    rgba(${(p) => rgb[p.$accent]}, 0.25),
+    rgba(${(p) => rgb[p.$accent]}, 0)
+  );
+`;
 
 const EclRow = styled.div`
   display: flex;
@@ -638,6 +697,7 @@ export default function Home() {
       title: t.title,
       subtitle: t.subtitle,
       glow: t.glow,
+      group: t.group,
       icon: t.icon(28),
       pageKey: "page" in t.action ? t.action.page : undefined,
       onClick: "page" in t.action ? undefined : () => dispatchTileAction(t.action),
@@ -653,6 +713,40 @@ export default function Home() {
         return a.title.localeCompare(b.title);
       });
   }, [tiles, filter]);
+
+  // Tiles render one sub-grid per category. A search still groups — it just
+  // drops the categories that have no match, so the shape stays familiar.
+  const [groupCollapsed, setGroupCollapsed] = useState<Record<string, boolean>>({});
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(TILE_GROUPS_COLLAPSED_KEY);
+      if (raw) setGroupCollapsed(JSON.parse(raw) as Record<string, boolean>);
+    } catch {
+      /* unreadable prefs — every group starts open */
+    }
+  }, []);
+  const toggleGroup = useCallback((g: string) => {
+    setGroupCollapsed((prev) => {
+      const next = { ...prev, [g]: !prev[g] };
+      try {
+        localStorage.setItem(TILE_GROUPS_COLLAPSED_KEY, JSON.stringify(next));
+      } catch {
+        /* private mode — collapse still works for this session */
+      }
+      return next;
+    });
+  }, []);
+
+  const groupedTiles = useMemo(() => {
+    const order: Array<OfficeTileGroup | "Other"> = [...TILE_GROUPS, "Other"];
+    return order
+      .map((g) => ({
+        group: g,
+        accent: g === "Other" ? ("pink" as GlowColor) : TILE_GROUP_ACCENT[g],
+        tiles: filteredTiles.filter((t) => (t.group ?? "Other") === g),
+      }))
+      .filter((row) => row.tiles.length > 0);
+  }, [filteredTiles]);
 
   const panelList = useMemo(() => {
     return tiles
@@ -800,34 +894,51 @@ export default function Home() {
           )}
         </SBDMWrap>
 
-        <TileGrid>
-          {filteredTiles.length === 0 ? (
+        {filteredTiles.length === 0 ? (
+          <TileGrid>
             <EmptyTiles>No tiles match &ldquo;{filter}&rdquo;</EmptyTiles>
-          ) : (
-            filteredTiles.map((tile) => {
-              const isSuggest = tile.key === "Suggest";
-              const inner = (
-                <TileOuter $glow={tile.glow} $isSuggest={isSuggest}>
-                  {tile.icon}
-                  <TileLabel $glow={tile.glow}>{tile.title}</TileLabel>
-                  <TileSub>{tile.subtitle}</TileSub>
-                </TileOuter>
-              );
-              const handleClick = tile.pageKey
-                ? () => openTile({ pageKey: tile.pageKey!, title: tile.title, glow: tile.glow })
-                : tile.onClick;
-              return (
-                <button
-                  key={tile.key}
-                  onClick={handleClick}
-                  style={{ padding: 0, background: "none", border: "none", textAlign: "left", cursor: "pointer" }}
-                >
-                  {inner}
-                </button>
-              );
-            })
-          )}
-        </TileGrid>
+          </TileGrid>
+        ) : (
+          groupedTiles.map(({ group, accent, tiles: groupTiles }) => {
+            const collapsed = groupCollapsed[group] ?? false;
+            return (
+              <TileCategory key={group}>
+                <TileCategoryHeader onClick={() => toggleGroup(group)} aria-expanded={!collapsed}>
+                  <TileCategoryTitle $accent={accent}>{group}</TileCategoryTitle>
+                  <TileCategoryCount $accent={accent}>{groupTiles.length}</TileCategoryCount>
+                  <TileCategoryRule $accent={accent} />
+                  <AddmToggle open={!collapsed} />
+                </TileCategoryHeader>
+                {!collapsed && (
+                  <TileGrid>
+                    {groupTiles.map((tile) => {
+                      const isSuggest = tile.key === "Suggest";
+                      const inner = (
+                        <TileOuter $glow={tile.glow} $isSuggest={isSuggest}>
+                          {tile.icon}
+                          <TileLabel $glow={tile.glow}>{tile.title}</TileLabel>
+                          <TileSub>{tile.subtitle}</TileSub>
+                        </TileOuter>
+                      );
+                      const handleClick = tile.pageKey
+                        ? () => openTile({ pageKey: tile.pageKey!, title: tile.title, glow: tile.glow })
+                        : tile.onClick;
+                      return (
+                        <button
+                          key={tile.key}
+                          onClick={handleClick}
+                          style={{ padding: 0, background: "none", border: "none", textAlign: "left", cursor: "pointer" }}
+                        >
+                          {inner}
+                        </button>
+                      );
+                    })}
+                  </TileGrid>
+                )}
+              </TileCategory>
+            );
+          })
+        )}
           </>)}
         </TilesTile>
 
