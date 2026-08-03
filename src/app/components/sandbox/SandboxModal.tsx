@@ -236,16 +236,23 @@ const PillGroup = styled.div`
 // from Header through the Body split. flex-basis: 1px + align-self: stretch
 // guarantees a 1px-wide, full-height rail. See ~/.claude/vocabulary/RSD.md.
 // PillBar auto-centers itself (margin auto) — neutralize inside the flex header.
-// Four segments no longer fit the files-column width at every size, so the rail
-// is allowed to shrink and wrap rather than clip its last pill.
+// All four segments must sit on ONE row (Gio 2026-08-02), and the canon pill
+// metrics (6px 13px / 12.5px) overflow the files-column width at four, so the
+// pills are tightened HERE rather than changing PillBar for every surface.
 const PillBarWrap = styled.div`
-  flex: 0 1 auto;
+  flex: none;
   min-width: 0;
-  max-width: 100%;
   & > div {
     margin-left: 0;
     margin-right: 0;
-    max-width: 100%;
+    flex-wrap: nowrap;
+    gap: 4px;
+    padding: 3px;
+  }
+  & [role="tab"] {
+    padding: 5px 8px;
+    font-size: 11px;
+    white-space: nowrap;
   }
 `;
 
