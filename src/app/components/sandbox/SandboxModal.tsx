@@ -1,6 +1,7 @@
 "use client";
 
 import { useEscapeToClose } from "@tgv/module-component-library/components/hooks/useEscapeToClose";
+import dynamic from "next/dynamic";
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import styled, { css } from "styled-components";
 import { colors, rgb } from "../../theme";
@@ -23,6 +24,11 @@ import CatalogBlockEditor from "./CatalogBlockEditor";
 import ComponentPicker from "./ComponentPicker";
 import PillBar from "@tgv/module-component-library/components/ui/PillBar";
 import AtomLabView from "./atom-lab/AtomLabView";
+import { ATOMS, ATOM_BY_KEY } from "./atom-lab/atomRegistry";
+import { clampSpec } from "./atom-lab/atomSpec";
+// SVG Lab is client-only (DOMParser/XMLSerializer) and heavy — load it only
+// when its pill is picked.
+const SvgLabEmbedded = dynamic(() => import("../svg-lab/SvgLabModal"), { ssr: false });
 
 // Wire-shape for /api/editor/shared-templates list response. Mirrors
 // SharedTemplateSummary in src/lib/db-shared-templates.ts but kept inline
@@ -2565,10 +2571,12 @@ export default function SandboxModal({
   // Sandbox view — "components" (classic registry sandbox) | "atoms" (Atom
   // Library Sandbox). Switched by the header PillBar; the atoms view swaps
   // the entire Body for AtomLabView and hides the components-only chrome.
-  const [labView, setLabView] = useState<"components" | "atoms">("components");
+  const [labView, setLabView] = useState<"components" | "atoms" | "svg">("components");
   // Header slot the Atom Lab portals its atom DDM into when its menu drawer
   // is collapsed (drawer-collapsed → DDM-on-header-row behavior).
   const [atomHeaderSlot, setAtomHeaderSlot] = useState<HTMLDivElement | null>(null);
+  // Atom to open the Atom Library on — set when the SVG Lab applies an SVG.
+  const [pendingAtomKey, setPendingAtomKey] = useState<string | null>(null);
   const [popoutActive, setPopoutActive] = useState(false);
   const [fsOpen, setFsOpen] = useState(true);
   const [catOpen, setCatOpen] = useState<Record<string, boolean>>(() =>
@@ -2586,6 +2594,36 @@ export default function SandboxModal({
   const [activeTemplateId, setActiveTemplateId] = useState<string | null>(null);
   const [pageTemplatesOpen, setPageTemplatesOpen] = useState(true);
   const [templatesReloadKey, setTemplatesReloadKey] = useState(0);
+
+  /**
+   * Merge a saved SVG variant onto an atom's stored spec (server-side, so the
+   * Atom Library picks it up when it remounts). Reads the atom's current spec
+   * first so applying an icon never clobbers styling already on that atom.
+   */
+  const applyVariantToAtom = useCallback(async (atomKey: string, variantId: string) => {
+    const def = ATOM_BY_KEY[atomKey];
+    if (!def) return;
+    let base = def.defaults;
+    try {
+      const res = await fetch("/api/atom-lab/specs");
+      if (res.ok) {
+        const data = (await res.json()) as { specs?: Record<string, unknown> };
+        const saved = data.specs?.[atomKey];
+        if (saved) base = clampSpec(saved, def.defaults);
+      }
+    } catch {
+      // No saved spec reachable — the registry defaults are a fine base.
+    }
+    const spec = {
+      ...base,
+      icon: { ...base.icon, enabled: true, source: `variant:${variantId}` },
+    };
+    await fetch("/api/atom-lab/specs", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key: atomKey, spec }),
+    }).catch(() => {});
+  }, []);
 
   // Collapse-all covers EVERY sidebar group — the component categories AND the
   // Page Templates section (it has its own open-state, so set both together).
@@ -3168,15 +3206,16 @@ export default function SandboxModal({
               <Title $edit={editMode}>{title}{editMode ? " · Editing" : ""}</Title>
             </TitleCluster>
 
-            {/* Sandbox view switcher — Components (classic) | Atom Library. */}
+            {/* Sandbox view switcher — Components | Atom Library | SVG Lab. */}
             <PillBarWrap>
               <PillBar
                 segments={[
                   { key: "components", label: "Components" },
                   { key: "atoms", label: "Atom Library" },
+                  { key: "svg", label: "SVG Lab" },
                 ]}
                 active={labView}
-                onChange={(k) => setLabView(k as "components" | "atoms")}
+                onChange={(k) => setLabView(k as "components" | "atoms" | "svg")}
                 accent={PINK_RGB}
                 ariaLabel="Sandbox view"
               />
@@ -3516,7 +3555,26 @@ export default function SandboxModal({
             the files panel, above Summary/Preview) — see CenterPane below. */}
 
         <Body ref={bodyRef}>
-          {labView === "atoms" && <AtomLabView headerSlot={atomHeaderSlot} />}
+          {labView === "atoms" && (
+            <AtomLabView headerSlot={atomHeaderSlot} initialKey={pendingAtomKey} />
+          )}
+          {/* SVG Lab, embedded: same component as the standalone modal, minus
+              its overlay/header chrome (the Sandbox header owns those).
+              "Apply to atom" saves the SVG as a variant, writes it onto that
+              atom's spec, then flips to the Atom Library on that atom — the
+              lab remounts and hydrates the new spec from the server. */}
+          {labView === "svg" && (
+            <SvgLabEmbedded
+              onClose={onClose}
+              embedded
+              atomTargets={ATOMS.map((a) => ({ key: a.key, label: a.name, group: a.group }))}
+              onApplyToAtom={async (atomKey, variantId) => {
+                await applyVariantToAtom(atomKey, variantId);
+                setPendingAtomKey(atomKey);
+                setLabView("atoms");
+              }}
+            />
+          )}
           {labView === "components" && fsOpen && !sidebar.snapped && (
             <FileSidebar $w={sidebar.width}>
               {CATEGORIES.map((cat) => {

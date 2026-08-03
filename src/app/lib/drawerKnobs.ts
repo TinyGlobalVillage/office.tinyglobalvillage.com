@@ -31,12 +31,17 @@ export function popModal() {
   }
 }
 
-// Call this once at the top of any modal component.
-export function useModalLifecycle() {
+// Call this once at the top of any modal component. `skip` is for components
+// that also render EMBEDDED inside another modal (e.g. SVG Lab inside the
+// Sandbox): the host already counts, so a second push would leave the body
+// flag stuck when only the inner view unmounts.
+export function useModalLifecycle(opts?: { skip?: boolean }) {
+  const skip = opts?.skip ?? false;
   useEffect(() => {
+    if (skip) return;
     pushModal();
     return () => popModal();
-  }, []);
+  }, [skip]);
 }
 
 // ── Auto-hide preference (Interface Controls) ───────────────────────

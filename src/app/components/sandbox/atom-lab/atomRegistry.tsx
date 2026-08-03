@@ -8,15 +8,18 @@
  * the vocab shapes here instead of importing the shared components — the
  * whole point is that nothing is pinned.
  */
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
 import {
   type AtomSpec,
   type AtomSpecPatch,
+  type IconSpec,
   DEFAULT_SPEC,
   mergeSpec,
   hexToRgbTriple,
 } from "./atomSpec";
+import { SVG_MANIFEST } from "../../svg-lab/manifest.generated";
+import { sanitizeSvgMarkup } from "../../svg-lab/svgModel";
 
 export type AtomBox = { w: number; h: number };
 export type AtomRenderProps = { spec: AtomSpec; box: AtomBox };
@@ -27,6 +30,8 @@ export type AtomDef = {
   group: "Basic Atoms" | "Component Groups";
   blurb: string;
   defaults: AtomSpec;
+  /** Renderer draws an SVG → the editor grows its Icon (SVG) section. */
+  hasIcon?: boolean;
   Render: React.FC<AtomRenderProps>;
 };
 
@@ -113,9 +118,19 @@ function BoxAtom({ spec, box }: AtomRenderProps) {
   );
 }
 
+/** Leading icon for atoms that can carry one — nothing unless icon.enabled. */
+function LeadIcon({ spec, box }: AtomRenderProps) {
+  if (!spec.icon.enabled) return null;
+  return <SpecIcon spec={spec} size={Math.max(8, box.h * (spec.icon.sizePct / 100) * 0.62)} />;
+}
+
 function ButtonAtom({ spec, box }: AtomRenderProps) {
   return (
-    <HoverLift type="button" style={surfaceStyle(spec, box)}>
+    <HoverLift
+      type="button"
+      style={{ ...surfaceStyle(spec, box), gap: Math.round(box.h * 0.16), position: "relative" }}
+    >
+      <LeadIcon spec={spec} box={box} />
       {spec.text.enabled && <span style={textStyle(spec, box)}>{spec.text.content}</span>}
     </HoverLift>
   );
@@ -131,30 +146,128 @@ function TextAtom({ spec, box }: AtomRenderProps) {
   );
 }
 
-function IconAtom({ spec, box }: AtomRenderProps) {
-  const s = Math.max(10, Math.min(box.w, box.h));
+/** The four-point spark used when no manifest icon is picked. */
+const BUILTIN_GLYPH =
+  '<svg viewBox="0 0 24 24"><path d="M12 2 L14.6 9.4 L22 12 L14.6 14.6 L12 22 L9.4 14.6 L2 12 L9.4 9.4 Z" /></svg>';
+
+/**
+ * Renders the spec's icon: the built-in glyph, or any SVG_MANIFEST entry
+ * serialized once from a hidden mount (the SVG Lab's trick — icon components
+ * stay untouched, we paint a serialized copy) and re-painted from the IconSpec
+ * on every edit.
+ */
+export function SpecIcon({ spec, size }: { spec: AtomSpec; size: number }) {
+  const icon: IconSpec = spec.icon;
+  const variantId = icon.source.startsWith("variant:") ? icon.source.slice(8) : null;
+  const entry = useMemo(
+    () =>
+      icon.source && !variantId
+        ? SVG_MANIFEST.find((e) => e.key === icon.source) ?? null
+        : null,
+    [icon.source, variantId],
+  );
+  const captureRef = useRef<HTMLSpanElement | null>(null);
+  const [markup, setMarkup] = useState<string>(BUILTIN_GLYPH);
+
+  useEffect(() => {
+    if (variantId) return; // fetched by the effect below
+    if (!entry) {
+      setMarkup(BUILTIN_GLYPH);
+      return;
+    }
+    const el = captureRef.current?.querySelector("svg");
+    if (el) setMarkup(sanitizeSvgMarkup(el.outerHTML));
+  }, [entry, variantId]);
+
+  // Saved SVG Lab variants live server-side — fetch the markup for variant:<id>.
+  useEffect(() => {
+    if (!variantId) return;
+    let alive = true;
+    fetch("/api/svg-lab/variants")
+      .then((r) => (r.ok ? r.json() : { variants: [] }))
+      .then((d: { variants?: Array<{ id: string; svg: string }> }) => {
+        if (!alive) return;
+        const v = d.variants?.find((x) => x.id === variantId);
+        setMarkup(v ? sanitizeSvgMarkup(v.svg) : BUILTIN_GLYPH);
+      })
+      .catch(() => {
+        if (alive) setMarkup(BUILTIN_GLYPH);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [variantId]);
+
   const acc = spec.colors.accent;
-  const accRgb = hexToRgbTriple(acc);
+  const fill =
+    icon.fillMode === "none"
+      ? "none"
+      : `rgba(${hexToRgbTriple(icon.fillMode === "accent" ? acc : icon.fill)}, ${icon.fillAlpha})`;
+  const stroke =
+    icon.strokeMode === "none"
+      ? "none"
+      : `rgba(${hexToRgbTriple(icon.strokeMode === "accent" ? acc : icon.stroke)}, ${icon.strokeAlpha})`;
+  const glowRgb = hexToRgbTriple(
+    icon.strokeMode === "accent" || icon.fillMode === "accent" ? acc : icon.stroke,
+  );
+  const filters = [
+    icon.glow > 0 ? `drop-shadow(0 0 ${Math.round(icon.glow * 0.3)}px rgba(${glowRgb}, 0.85))` : "",
+    icon.blur > 0 ? `blur(${(icon.blur * 0.4).toFixed(2)}px)` : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  // The serialized markup carries its own viewBox + geometry; the children go
+  // into a fresh <svg> so the paint attributes cascade onto every path.
+  const inner = markup.replace(/^<svg[^>]*>/i, "").replace(/<\/svg\s*>$/i, "");
+  const vb = /viewBox\s*=\s*["']([^"']+)["']/i.exec(markup)?.[1] ?? "0 0 24 24";
+
   return (
-    <Center style={{ ...surfaceStyle(spec, box), overflow: "visible" }}>
+    <>
+      {entry && (
+        <span
+          ref={captureRef}
+          aria-hidden
+          style={{ position: "absolute", width: 0, height: 0, overflow: "hidden", opacity: 0 }}
+        >
+          <entry.Comp />
+        </span>
+      )}
       <svg
-        width={s * 0.82}
-        height={s * 0.82}
-        viewBox="0 0 24 24"
-        fill={`rgba(${accRgb}, 0.2)`}
-        stroke={acc}
-        strokeWidth={1.6}
-        strokeLinejoin="round"
+        width={size}
+        height={size}
+        viewBox={vb}
+        fill={fill}
+        stroke={stroke}
+        strokeWidth={icon.strokeWidth}
+        strokeLinecap={icon.linecap}
+        strokeLinejoin={icon.linejoin}
+        strokeDasharray={icon.dash > 0 ? `${icon.dash} ${icon.dashGap}` : undefined}
+        strokeDashoffset={icon.dash > 0 ? icon.dashOffset : undefined}
         style={{
-          filter:
-            spec.effects.glow > 0
-              ? `drop-shadow(0 0 ${Math.round(spec.effects.glow * 0.3)}px rgba(${accRgb}, 0.8))`
-              : undefined,
+          filter: filters || undefined,
+          opacity: icon.opacity,
+          // Variants can carry currentColor; resolve it to the icon's paint.
+          color: icon.strokeMode === "none" ? undefined : stroke,
+          transform: [
+            `translate(${icon.offsetX}%, ${icon.offsetY}%)`,
+            `rotate(${icon.rotate}deg)`,
+            `scale(${icon.scale * (icon.flipX ? -1 : 1)}, ${icon.scale * (icon.flipY ? -1 : 1)})`,
+          ].join(" "),
+          overflow: "visible",
         }}
         aria-hidden="true"
-      >
-        <path d="M12 2 L14.6 9.4 L22 12 L14.6 14.6 L12 22 L9.4 14.6 L2 12 L9.4 9.4 Z" />
-      </svg>
+        dangerouslySetInnerHTML={{ __html: inner }}
+      />
+    </>
+  );
+}
+
+function IconAtom({ spec, box }: AtomRenderProps) {
+  const s = Math.max(10, Math.min(box.w, box.h) * (spec.icon.sizePct / 100));
+  return (
+    <Center style={{ ...surfaceStyle(spec, box), overflow: "visible", position: "relative" }}>
+      <SpecIcon spec={spec} size={s} />
     </Center>
   );
 }
@@ -180,7 +293,8 @@ function InputAtom({ spec, box }: AtomRenderProps) {
 
 function PillAtom({ spec, box }: AtomRenderProps) {
   return (
-    <Center style={surfaceStyle(spec, box)}>
+    <Center style={{ ...surfaceStyle(spec, box), gap: Math.round(box.h * 0.18), position: "relative" }}>
+      <LeadIcon spec={spec} box={box} />
       {spec.text.enabled && (
         <span style={{ ...textStyle(spec, box), color: spec.colors.accent }}>
           {spec.text.content}
@@ -204,9 +318,10 @@ function DdmAtom({ spec, box }: AtomRenderProps) {
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
-        style={{ ...surfaceStyle(spec, box), width: "100%", justifyContent: "space-between", padding: `0 ${Math.max(10, Math.round(box.h * 0.3))}px`, gap: 8 }}
+        style={{ ...surfaceStyle(spec, box), width: "100%", justifyContent: "flex-start", padding: `0 ${Math.max(10, Math.round(box.h * 0.3))}px`, gap: 8, position: "relative" }}
       >
-        {spec.text.enabled && <span style={textStyle(spec, box)}>{spec.text.content}</span>}
+        <LeadIcon spec={spec} box={box} />
+        {spec.text.enabled && <span style={{ ...textStyle(spec, box), flex: 1, textAlign: "left" }}>{spec.text.content}</span>}
         {/* Filled triangle, never a chevron stroke — DDM canon. */}
         <span
           aria-hidden="true"
@@ -499,8 +614,11 @@ function NeonButtonAtom({ spec, box }: AtomRenderProps) {
       style={{
         ...surfaceStyle(spec, box),
         color: acc,
+        gap: Math.round(box.h * 0.16),
+        position: "relative",
       }}
     >
+      <LeadIcon spec={spec} box={box} />
       {spec.text.enabled && (
         <span
           style={{
@@ -525,8 +643,9 @@ function def(
   blurb: string,
   patch: AtomSpecPatch,
   Render: React.FC<AtomRenderProps>,
+  hasIcon = false,
 ): AtomDef {
-  return { key, name, group, blurb, defaults: mergeSpec(DEFAULT_SPEC, patch), Render };
+  return { key, name, group, blurb, defaults: mergeSpec(DEFAULT_SPEC, patch), hasIcon, Render };
 }
 
 export const ATOMS: AtomDef[] = [
@@ -536,24 +655,25 @@ export const ATOMS: AtomDef[] = [
     colors: { fill: "#10131d" },
     text: { enabled: false },
   }, BoxAtom),
-  def("button", "Button", "Basic Atoms", "A clickable box with centered text.", {
+  def("button", "Button", "Basic Atoms", "A clickable box with centered text and an optional icon.", {
     size: { widthPct: 30, heightPct: 14 },
     colors: { fill: "#1a1f2e" },
     effects: { radius: 10 },
     text: { content: "Button", ratio: 36 },
-  }, ButtonAtom),
+  }, ButtonAtom, true),
   def("text", "Text", "Basic Atoms", "Type only — size as ratio of its box.", {
     size: { widthPct: 62, heightPct: 14 },
     colors: { fillAlpha: 0 },
     effects: { borderWidth: 0, glow: 0, shadow: 0 },
     text: { content: "The quick brown fox", ratio: 44, weight: 600 },
   }, TextAtom),
-  def("icon", "Icon", "Basic Atoms", "A four-point spark scaled to its box.", {
+  def("icon", "Icon", "Basic Atoms", "Any ecosystem icon — or the built-in spark — fully repaintable.", {
     size: { widthPct: 16, heightPct: 24 },
     colors: { fillAlpha: 0 },
-    effects: { borderWidth: 0, glow: 30, shadow: 0 },
+    effects: { borderWidth: 0, glow: 0, shadow: 0 },
     text: { enabled: false },
-  }, IconAtom),
+    icon: { enabled: true, glow: 30 },
+  }, IconAtom, true),
   def("input", "Input", "Basic Atoms", "A text field — placeholder rides the text controls.", {
     size: { widthPct: 44, heightPct: 13 },
     colors: { fill: "#0f1320", borderAlpha: 0.4, text: "#9aa3c0" },
@@ -565,7 +685,7 @@ export const ATOMS: AtomDef[] = [
     colors: { fill: "#ff4ecb", fillAlpha: 0.16, borderAlpha: 0.5 },
     effects: { radius: 200, glow: 14 },
     text: { content: "NEW", ratio: 42, tracking: 0.12, uppercase: true },
-  }, PillAtom),
+  }, PillAtom, true),
 
   // ── Component Groups ──
   def("ddm", "DDM", "Component Groups", "Dropdown Menu — pill trigger + floating menu card.", {
@@ -573,7 +693,7 @@ export const ATOMS: AtomDef[] = [
     colors: { fill: "#171325", accent: "#b18cff", border: "#b18cff", borderAlpha: 0.5 },
     effects: { radius: 200, glow: 20 },
     text: { content: "Save Word", ratio: 34, weight: 600 },
-  }, DdmAtom),
+  }, DdmAtom, true),
   def("pillbar", "PillBar", "Component Groups", "Segmented view-switcher — recessed rail, floating pill.", {
     size: { widthPct: 52, heightPct: 11 },
     colors: { fill: "#16161c", accent: "#00e4fd", border: "#2a2a35", borderAlpha: 1 },
@@ -603,7 +723,7 @@ export const ATOMS: AtomDef[] = [
     colors: { fill: "#00e4fd", fillAlpha: 0.1, accent: "#00e4fd", border: "#00e4fd", borderAlpha: 0.45 },
     effects: { radius: 200, glow: 40 },
     text: { content: "Launch", ratio: 36, weight: 700, tracking: 0.06 },
-  }, NeonButtonAtom),
+  }, NeonButtonAtom, true),
 ];
 
 export const ATOM_BY_KEY: Record<string, AtomDef> = Object.fromEntries(

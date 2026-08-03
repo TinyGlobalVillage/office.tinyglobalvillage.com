@@ -11,18 +11,21 @@
  *
  * Specs persist server-side per atom (data/atom-lab via /api/atom-lab/specs,
  * debounced auto-save); Reset deletes the saved row and falls back to the
- * atom's registry defaults.
+ * atom's registry defaults. Every edit pushes onto a per-atom undo stack —
+ * cmd/ctrl+Z undoes, cmd/ctrl+shift+Z redoes.
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import styled, { css } from "styled-components";
 import AddmToggle from "@tgv/module-component-library/components/ui/AddmToggle";
 import DdmSelect from "@tgv/module-component-library/components/ui/DdmSelect";
+import SBDM from "@tgv/module-component-library/components/ui/SBDM";
 import { colors, rgb } from "../../../theme";
 import { PanelSidebarItem } from "../../../styled";
 import Tooltip from "../../ui/Tooltip";
-import { type AtomSpec, clampSpec } from "./atomSpec";
+import { type AtomSpec, clampSpec, SPEC_LIMITS } from "./atomSpec";
 import { ATOMS, ATOM_BY_KEY, ATOM_GROUPS, type AtomDef } from "./atomRegistry";
+import { SVG_MANIFEST, SVG_SOURCE_GROUPS } from "../../svg-lab/manifest.generated";
 
 const PINK = colors.pink;
 const PINK_RGB = rgb.pink;
@@ -292,6 +295,29 @@ const SaveChip = styled.span<{ $state: "idle" | "saving" | "saved" | "error" }>`
   white-space: nowrap;
 `;
 
+const HistoryBtn = styled.button`
+  flex: none;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  line-height: 1;
+  border-radius: 6px;
+  background: rgba(${PINK_RGB}, 0.08);
+  border: 1px solid rgba(${PINK_RGB}, 0.3);
+  color: ${PINK};
+  cursor: pointer;
+  &:hover:not(:disabled) {
+    background: rgba(${PINK_RGB}, 0.18);
+  }
+  &:disabled {
+    opacity: 0.3;
+    cursor: default;
+  }
+`;
+
 const ResetAtomBtn = styled.button`
   font-size: 10px;
   font-weight: 800;
@@ -353,6 +379,25 @@ const SectionBody = styled.div`
   flex-direction: column;
   gap: 7px;
   padding: 4px 6px 10px;
+`;
+
+/* Sub-group label inside a section (Fill / Stroke / Transform / Icon effects). */
+const SubHead = styled.div`
+  margin-top: 6px;
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(${PINK_RGB}, 0.45);
+  border-top: 1px solid rgba(${PINK_RGB}, 0.12);
+  padding-top: 7px;
+`;
+
+const IconHint = styled.div`
+  font-size: 10px;
+  line-height: 1.4;
+  color: rgba(${PINK_RGB}, 0.45);
+  padding: 0 2px;
 `;
 
 // ── Control rows ────────────────────────────────────────────────────────
@@ -627,8 +672,17 @@ function ToggleRow({
 
 // ── Main view ───────────────────────────────────────────────────────────
 
-export default function AtomLabView({ headerSlot }: { headerSlot?: HTMLElement | null }) {
-  const [active, setActive] = useState<string>(ATOMS[0].key);
+export default function AtomLabView({
+  headerSlot,
+  initialKey,
+}: {
+  headerSlot?: HTMLElement | null;
+  /** Atom to open on — the SVG Lab sets this after "Apply to atom". */
+  initialKey?: string | null;
+}) {
+  const [active, setActive] = useState<string>(
+    initialKey && ATOM_BY_KEY[initialKey] ? initialKey : ATOMS[0].key,
+  );
   const [specs, setSpecs] = useState<Record<string, AtomSpec>>(() =>
     Object.fromEntries(ATOMS.map((a) => [a.key, a.defaults])),
   );
@@ -642,7 +696,13 @@ export default function AtomLabView({ headerSlot }: { headerSlot?: HTMLElement |
     colors: true,
     effects: true,
     text: true,
+    icon: true,
   });
+  // Per-atom undo/redo. past/future hold whole specs — the spec is small and
+  // whole-object history keeps every control (including the Reset squares and
+  // the icon picker) undoable without per-field bookkeeping.
+  const [past, setPast] = useState<Record<string, AtomSpec[]>>({});
+  const [future, setFuture] = useState<Record<string, AtomSpec[]>>({});
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const saveTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const flashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -704,20 +764,81 @@ export default function AtomLabView({ headerSlot }: { headerSlot?: HTMLElement |
   const def: AtomDef = ATOM_BY_KEY[active] ?? ATOMS[0];
   const spec: AtomSpec = specs[def.key] ?? def.defaults;
 
-  const setField = useCallback(
-    (section: keyof AtomSpec, field: string, value: unknown) => {
+  const HISTORY_MAX = 80;
+
+  /** Commit a new spec for `key`, pushing the outgoing one onto its undo stack. */
+  const commit = useCallback(
+    (key: string, produce: (cur: AtomSpec) => AtomSpec, fallback: AtomSpec) => {
       setSpecs((prev) => {
-        const cur = prev[def.key] ?? def.defaults;
-        const next = {
-          ...cur,
-          [section]: { ...(cur[section] as Record<string, unknown>), [field]: value },
-        } as AtomSpec;
-        queueSave(def.key, next);
-        return { ...prev, [def.key]: next };
+        const cur = prev[key] ?? fallback;
+        const next = produce(cur);
+        if (JSON.stringify(next) === JSON.stringify(cur)) return prev;
+        setPast((p) => ({ ...p, [key]: [...(p[key] ?? []), cur].slice(-HISTORY_MAX) }));
+        setFuture((f) => (f[key]?.length ? { ...f, [key]: [] } : f));
+        queueSave(key, next);
+        return { ...prev, [key]: next };
       });
     },
-    [def, queueSave],
+    [queueSave],
   );
+
+  const setField = useCallback(
+    (section: keyof AtomSpec, field: string, value: unknown) => {
+      commit(
+        def.key,
+        (cur) =>
+          ({
+            ...cur,
+            [section]: { ...(cur[section] as Record<string, unknown>), [field]: value },
+          }) as AtomSpec,
+        def.defaults,
+      );
+    },
+    [def, commit],
+  );
+
+  const undo = useCallback(() => {
+    const stack = past[def.key] ?? [];
+    if (!stack.length) return;
+    const prevSpec = stack[stack.length - 1];
+    setPast((p) => ({ ...p, [def.key]: stack.slice(0, -1) }));
+    setFuture((f) => ({ ...f, [def.key]: [specs[def.key] ?? def.defaults, ...(f[def.key] ?? [])] }));
+    setSpecs((s) => ({ ...s, [def.key]: prevSpec }));
+    queueSave(def.key, prevSpec);
+  }, [def, past, specs, queueSave]);
+
+  const redo = useCallback(() => {
+    const stack = future[def.key] ?? [];
+    if (!stack.length) return;
+    const nextSpec = stack[0];
+    setFuture((f) => ({ ...f, [def.key]: stack.slice(1) }));
+    setPast((p) => ({ ...p, [def.key]: [...(p[def.key] ?? []), specs[def.key] ?? def.defaults].slice(-HISTORY_MAX) }));
+    setSpecs((s) => ({ ...s, [def.key]: nextSpec }));
+    queueSave(def.key, nextSpec);
+  }, [def, future, specs, queueSave]);
+
+  // cmd/ctrl+Z undo, cmd/ctrl+shift+Z (and cmd/ctrl+Y) redo. Scoped to this
+  // view's ownerDocument so it keeps working in the Sandbox pop-out window,
+  // and it stays out of the way while a text field has focus.
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const doc = rootRef.current?.ownerDocument ?? document;
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.metaKey || e.ctrlKey)) return;
+      const k = e.key.toLowerCase();
+      if (k !== "z" && k !== "y") return;
+      const t = e.target as HTMLElement | null;
+      const tag = t?.tagName;
+      if (tag === "INPUT" && (t as HTMLInputElement).type === "text") return;
+      if (tag === "TEXTAREA" || t?.isContentEditable) return;
+      e.preventDefault();
+      e.stopPropagation();
+      if (k === "y" || e.shiftKey) redo();
+      else undo();
+    };
+    doc.addEventListener("keydown", onKey, true);
+    return () => doc.removeEventListener("keydown", onKey, true);
+  }, [undo, redo]);
 
   const resetAtom = useCallback(() => {
     const t = saveTimers.current;
@@ -725,7 +846,15 @@ export default function AtomLabView({ headerSlot }: { headerSlot?: HTMLElement |
       clearTimeout(t[def.key]);
       delete t[def.key];
     }
-    setSpecs((prev) => ({ ...prev, [def.key]: def.defaults }));
+    // Undoable like any other edit — Reset pushes onto the stack rather than
+    // wiping it, so cmd+Z brings the styling back.
+    setSpecs((prev) => {
+      const cur = prev[def.key] ?? def.defaults;
+      if (JSON.stringify(cur) === JSON.stringify(def.defaults)) return prev;
+      setPast((p) => ({ ...p, [def.key]: [...(p[def.key] ?? []), cur].slice(-HISTORY_MAX) }));
+      setFuture((f) => (f[def.key]?.length ? { ...f, [def.key]: [] } : f));
+      return { ...prev, [def.key]: def.defaults };
+    });
     fetch(`/api/atom-lab/specs?key=${encodeURIComponent(def.key)}`, { method: "DELETE" }).catch(
       () => {},
     );
@@ -755,8 +884,11 @@ export default function AtomLabView({ headerSlot }: { headerSlot?: HTMLElement |
 
   const toggleSection = (k: string) => setSectionOpen((p) => ({ ...p, [k]: !p[k] }));
 
+  const canUndo = (past[def.key]?.length ?? 0) > 0;
+  const canRedo = (future[def.key]?.length ?? 0) > 0;
+
   return (
-    <Wrap>
+    <Wrap ref={rootRef}>
       {/* Collapsed menu → DDM on the modal header row shows the selection. */}
       {!menuOpen &&
         headerSlot &&
@@ -854,6 +986,16 @@ export default function AtomLabView({ headerSlot }: { headerSlot?: HTMLElement |
           <SaveChip $state={saveState}>
             {saveState === "saving" ? "saving…" : saveState === "error" ? "save failed" : "auto-saved"}
           </SaveChip>
+          <Tooltip label="Undo (⌘/Ctrl+Z)" accent={PINK}>
+            <HistoryBtn onClick={undo} disabled={!canUndo} aria-label="Undo">
+              ↶
+            </HistoryBtn>
+          </Tooltip>
+          <Tooltip label="Redo (⌘/Ctrl+⇧+Z)" accent={PINK}>
+            <HistoryBtn onClick={redo} disabled={!canRedo} aria-label="Redo">
+              ↷
+            </HistoryBtn>
+          </Tooltip>
           <Tooltip label="Back to this atom's defaults" accent={PINK}>
             <ResetAtomBtn onClick={resetAtom}>Reset</ResetAtomBtn>
           </Tooltip>
@@ -922,6 +1064,164 @@ export default function AtomLabView({ headerSlot }: { headerSlot?: HTMLElement |
               </SectionBody>
             )}
           </Section>
+
+          {/* Icon (SVG) — populates only for atoms whose renderer draws one. */}
+          {def.hasIcon && (
+            <Section>
+              <SectionHead onClick={() => toggleSection("icon")} aria-expanded={sectionOpen.icon}>
+                <SectionTitle>Icon (SVG)</SectionTitle>
+                <AddmToggle open={sectionOpen.icon} />
+              </SectionHead>
+              {sectionOpen.icon && (
+                <SectionBody>
+                  {def.key !== "icon" && (
+                    <ToggleRow
+                      label="Show icon"
+                      value={spec.icon.enabled}
+                      onChange={(v) => setField("icon", "enabled", v)}
+                    />
+                  )}
+                  {(spec.icon.enabled || def.key === "icon") && (
+                    <>
+                      <Row>
+                        <RowLabel>Glyph</RowLabel>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <SBDM
+                            items={[
+                              { key: "", label: "Built-in spark" },
+                              ...SVG_MANIFEST.map((e) => ({
+                                key: e.key,
+                                label: e.name,
+                                group: e.sourceLabel,
+                              })),
+                            ]}
+                            value={spec.icon.source}
+                            onSelect={(k) => setField("icon", "source", k)}
+                            placeholder="Built-in spark"
+                            searchPlaceholder={`Search ${SVG_MANIFEST.length} icons…`}
+                            ariaLabel="Pick an icon"
+                            minTriggerWidth={0}
+                          />
+                        </div>
+                      </Row>
+                      <IconHint>
+                        {SVG_MANIFEST.length} icons · {SVG_SOURCE_GROUPS.length} sources · per-layer
+                        editing lives in the SVG Lab tab
+                      </IconHint>
+                      <SliderRow label="Size %" value={spec.icon.sizePct} min={SPEC_LIMITS.icon.sizePct[0]} max={SPEC_LIMITS.icon.sizePct[1]} defaultValue={d.icon.sizePct} onChange={(v) => setField("icon", "sizePct", v)} />
+
+                      <SubHead>Fill</SubHead>
+                      <Row>
+                        <RowLabel>Mode</RowLabel>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <DdmSelect
+                            value={spec.icon.fillMode}
+                            onChange={(v) => setField("icon", "fillMode", v)}
+                            options={[
+                              { key: "accent", label: "Follow accent" },
+                              { key: "solid", label: "Custom color" },
+                              { key: "none", label: "No fill" },
+                            ]}
+                            ariaLabel="Icon fill mode"
+                            accent={PINK}
+                            accentRgb={PINK_RGB}
+                          />
+                        </div>
+                      </Row>
+                      {spec.icon.fillMode === "solid" && (
+                        <ColorRow label="Fill color" value={spec.icon.fill} defaultValue={d.icon.fill} onChange={(v) => setField("icon", "fill", v)} />
+                      )}
+                      {spec.icon.fillMode !== "none" && (
+                        <SliderRow label="Fill alpha" value={spec.icon.fillAlpha} min={0} max={1} step={0.01} defaultValue={d.icon.fillAlpha} onChange={(v) => setField("icon", "fillAlpha", v)} />
+                      )}
+
+                      <SubHead>Stroke</SubHead>
+                      <Row>
+                        <RowLabel>Mode</RowLabel>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <DdmSelect
+                            value={spec.icon.strokeMode}
+                            onChange={(v) => setField("icon", "strokeMode", v)}
+                            options={[
+                              { key: "accent", label: "Follow accent" },
+                              { key: "solid", label: "Custom color" },
+                              { key: "none", label: "No stroke" },
+                            ]}
+                            ariaLabel="Icon stroke mode"
+                            accent={PINK}
+                            accentRgb={PINK_RGB}
+                          />
+                        </div>
+                      </Row>
+                      {spec.icon.strokeMode === "solid" && (
+                        <ColorRow label="Stroke color" value={spec.icon.stroke} defaultValue={d.icon.stroke} onChange={(v) => setField("icon", "stroke", v)} />
+                      )}
+                      {spec.icon.strokeMode !== "none" && (
+                        <>
+                          <SliderRow label="Width" value={spec.icon.strokeWidth} min={SPEC_LIMITS.icon.strokeWidth[0]} max={SPEC_LIMITS.icon.strokeWidth[1]} step={0.1} defaultValue={d.icon.strokeWidth} onChange={(v) => setField("icon", "strokeWidth", v)} />
+                          <SliderRow label="Stroke alpha" value={spec.icon.strokeAlpha} min={0} max={1} step={0.01} defaultValue={d.icon.strokeAlpha} onChange={(v) => setField("icon", "strokeAlpha", v)} />
+                          <Row>
+                            <RowLabel>Line cap</RowLabel>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <DdmSelect
+                                value={spec.icon.linecap}
+                                onChange={(v) => setField("icon", "linecap", v)}
+                                options={[
+                                  { key: "round", label: "Round" },
+                                  { key: "butt", label: "Butt" },
+                                  { key: "square", label: "Square" },
+                                ]}
+                                ariaLabel="Stroke linecap"
+                                accent={PINK}
+                                accentRgb={PINK_RGB}
+                              />
+                            </div>
+                          </Row>
+                          <Row>
+                            <RowLabel>Line join</RowLabel>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <DdmSelect
+                                value={spec.icon.linejoin}
+                                onChange={(v) => setField("icon", "linejoin", v)}
+                                options={[
+                                  { key: "round", label: "Round" },
+                                  { key: "miter", label: "Miter" },
+                                  { key: "bevel", label: "Bevel" },
+                                ]}
+                                ariaLabel="Stroke linejoin"
+                                accent={PINK}
+                                accentRgb={PINK_RGB}
+                              />
+                            </div>
+                          </Row>
+                          <SliderRow label="Dash" value={spec.icon.dash} min={SPEC_LIMITS.icon.dash[0]} max={SPEC_LIMITS.icon.dash[1]} step={0.5} defaultValue={d.icon.dash} onChange={(v) => setField("icon", "dash", v)} />
+                          {spec.icon.dash > 0 && (
+                            <>
+                              <SliderRow label="Dash gap" value={spec.icon.dashGap} min={SPEC_LIMITS.icon.dashGap[0]} max={SPEC_LIMITS.icon.dashGap[1]} step={0.5} defaultValue={d.icon.dashGap} onChange={(v) => setField("icon", "dashGap", v)} />
+                              <SliderRow label="Dash offset" value={spec.icon.dashOffset} min={SPEC_LIMITS.icon.dashOffset[0]} max={SPEC_LIMITS.icon.dashOffset[1]} step={0.5} defaultValue={d.icon.dashOffset} onChange={(v) => setField("icon", "dashOffset", v)} />
+                            </>
+                          )}
+                        </>
+                      )}
+
+                      <SubHead>Transform</SubHead>
+                      <SliderRow label="Rotate" value={spec.icon.rotate} min={SPEC_LIMITS.icon.rotate[0]} max={SPEC_LIMITS.icon.rotate[1]} defaultValue={d.icon.rotate} onChange={(v) => setField("icon", "rotate", v)} />
+                      <SliderRow label="Scale" value={spec.icon.scale} min={SPEC_LIMITS.icon.scale[0]} max={SPEC_LIMITS.icon.scale[1]} step={0.01} defaultValue={d.icon.scale} onChange={(v) => setField("icon", "scale", v)} />
+                      <SliderRow label="Offset X" value={spec.icon.offsetX} min={SPEC_LIMITS.icon.offset[0]} max={SPEC_LIMITS.icon.offset[1]} defaultValue={d.icon.offsetX} onChange={(v) => setField("icon", "offsetX", v)} />
+                      <SliderRow label="Offset Y" value={spec.icon.offsetY} min={SPEC_LIMITS.icon.offset[0]} max={SPEC_LIMITS.icon.offset[1]} defaultValue={d.icon.offsetY} onChange={(v) => setField("icon", "offsetY", v)} />
+                      <ToggleRow label="Flip X" value={spec.icon.flipX} onChange={(v) => setField("icon", "flipX", v)} />
+                      <ToggleRow label="Flip Y" value={spec.icon.flipY} onChange={(v) => setField("icon", "flipY", v)} />
+
+                      <SubHead>Icon effects</SubHead>
+                      <SliderRow label="Glow" value={spec.icon.glow} min={SPEC_LIMITS.icon.glow[0]} max={SPEC_LIMITS.icon.glow[1]} defaultValue={d.icon.glow} onChange={(v) => setField("icon", "glow", v)} />
+                      <SliderRow label="Blur" value={spec.icon.blur} min={SPEC_LIMITS.icon.blur[0]} max={SPEC_LIMITS.icon.blur[1]} step={0.1} defaultValue={d.icon.blur} onChange={(v) => setField("icon", "blur", v)} />
+                      <SliderRow label="Opacity" value={spec.icon.opacity} min={0.1} max={1} step={0.01} defaultValue={d.icon.opacity} onChange={(v) => setField("icon", "opacity", v)} />
+                    </>
+                  )}
+                </SectionBody>
+              )}
+            </Section>
+          )}
 
           <Section>
             <SectionHead onClick={() => toggleSection("text")} aria-expanded={sectionOpen.text}>

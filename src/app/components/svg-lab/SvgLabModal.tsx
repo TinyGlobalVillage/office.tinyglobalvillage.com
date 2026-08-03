@@ -15,7 +15,7 @@
 import SBDM from "@tgv/module-component-library/components/ui/SBDM";
 import { useEscapeToClose } from "@tgv/module-component-library/components/hooks/useEscapeToClose";
 import { useEffect, useMemo, useRef, useState } from "react";
-import styled, { keyframes } from "styled-components";
+import styled, { css, keyframes } from "styled-components";
 import { colors, rgb } from "../../theme";
 import NeonX from "../NeonX";
 import { useModalLifecycle } from "../../lib/drawerKnobs";
@@ -39,12 +39,42 @@ type SvgVariant = {
 
 const SWATCHES = [colors.pink, colors.cyan, colors.gold, colors.green, colors.violet, "#ffffff", "#0d0f1a"];
 
-export default function SvgLabModal({ onClose }: { onClose: () => void }) {
-  useModalLifecycle();
+/** Icon-grid drawer geometry: below MIN it snaps shut, MAX keeps the stage usable. */
+const GRID_MIN_H = 56;
+const GRID_MAX_H = 420;
+const GRID_DEFAULT_H = 120;
+const GRID_CLICK_SLOP = 4;
+
+export type AtomApplyTarget = { key: string; label: string; group?: string };
+
+export default function SvgLabModal({
+  onClose,
+  embedded = false,
+  atomTargets,
+  onApplyToAtom,
+}: {
+  onClose: () => void;
+  /**
+   * Render WITHOUT the overlay/modal chrome so the lab can live inside another
+   * surface — the Sandbox modal's "SVG Lab" PillBar segment. Same body, same
+   * state; only the frame, the title header, and Escape-to-close differ (the
+   * host owns those).
+   */
+  embedded?: boolean;
+  /** Atoms this SVG can be applied to. Omit to hide the "Apply to atom" action. */
+  atomTargets?: AtomApplyTarget[];
+  /** Called with the chosen atom + the saved variant id once it's on disk. */
+  onApplyToAtom?: (atomKey: string, variantId: string) => void | Promise<void>;
+}) {
+  useModalLifecycle(embedded ? { skip: true } : undefined);
 
   // ── picker ──
   const [sourceFilter, setSourceFilter] = useState<string>("all");
   const [gridOpen, setGridOpen] = useState(true);
+  // Icon grid drawer height (px). Drag the rail under it to resize; drag below
+  // GRID_MIN_H (or click the rail) and it collapses to the "Browse" pill.
+  const [gridH, setGridH] = useState(GRID_DEFAULT_H);
+  const [gridDragging, setGridDragging] = useState(false);
   const [pendingKey, setPendingKey] = useState<string | null>(null);
   const captureRef = useRef<HTMLDivElement | null>(null);
 
@@ -74,8 +104,9 @@ export default function SvgLabModal({ onClose }: { onClose: () => void }) {
   const [saveName, setSaveName] = useState("");
   const [variants, setVariants] = useState<SvgVariant[]>([]);
   const [note, setNote] = useState<string | null>(null);
+  const [applying, setApplying] = useState(false);
 
-  useEscapeToClose({ open: true, onClose });
+  useEscapeToClose({ open: !embedded, onClose });
 
   useEffect(() => {
     let alive = true;
@@ -145,6 +176,38 @@ export default function SvgLabModal({ onClose }: { onClose: () => void }) {
 
   function padViewBox(d: number) {
     setViewBox((vb) => (vb ? { x: vb.x - d, y: vb.y - d, w: Math.max(1, vb.w + d * 2), h: Math.max(1, vb.h + d * 2) } : vb));
+  }
+
+  // Drag the rail to resize the icon grid; a plain click (no movement) toggles
+  // it shut, and dragging up past GRID_MIN_H collapses it the same way.
+  function onGridResizeDown(e: React.PointerEvent) {
+    e.preventDefault();
+    const startY = e.clientY;
+    const startH = gridH;
+    let moved = false;
+    setGridDragging(true);
+
+    const onMove = (ev: PointerEvent) => {
+      const dy = ev.clientY - startY;
+      if (!moved && Math.abs(dy) < GRID_CLICK_SLOP) return;
+      moved = true;
+      const raw = startH + dy;
+      if (raw < GRID_MIN_H) {
+        setGridOpen(false);
+        setGridH(GRID_DEFAULT_H);
+      } else {
+        setGridOpen(true);
+        setGridH(Math.min(GRID_MAX_H, raw));
+      }
+    };
+    const onUp = () => {
+      setGridDragging(false);
+      document.removeEventListener("pointermove", onMove);
+      document.removeEventListener("pointerup", onUp);
+      if (!moved) setGridOpen((p) => !p);
+    };
+    document.addEventListener("pointermove", onMove);
+    document.addEventListener("pointerup", onUp);
   }
 
   function patchLayer(idx: number, patch: Partial<LayerEdit>) {
@@ -233,6 +296,32 @@ export default function SvgLabModal({ onClose }: { onClose: () => void }) {
     setNote(`Saved “${name}”.`);
   }
 
+  /**
+   * Put the current SVG on an atom. The atom spec stores `variant:<id>`, so the
+   * markup must exist server-side first — the variant IS the saved artifact
+   * (named after the icon when the name field is blank).
+   */
+  async function applyToAtom(atomKey: string) {
+    const m = exportMarkup(bakeColor);
+    if (!m) { setNote("Load an icon first."); return; }
+    const name = saveName.trim() || `${currentName || "icon"} → ${atomKey}`;
+    setApplying(true);
+    try {
+      const res = await fetch("/api/svg-lab/variants", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, sourceKey: currentKey ?? "", svg: m }),
+      }).catch(() => null);
+      if (!res?.ok) { setNote("Could not save the SVG."); return; }
+      const d = await res.json();
+      setVariants((prev) => [...prev, d.variant]);
+      await onApplyToAtom?.(atomKey, d.variant.id);
+      setNote(`Applied “${name}” to ${atomKey}.`);
+    } finally {
+      setApplying(false);
+    }
+  }
+
   async function deleteVariantById(id: string) {
     const res = await fetch(`/api/svg-lab/variants/${encodeURIComponent(id)}`, { method: "DELETE" }).catch(() => null);
     if (res?.ok) setVariants((prev) => prev.filter((v) => v.id !== id));
@@ -253,20 +342,25 @@ export default function SvgLabModal({ onClose }: { onClose: () => void }) {
   const layer = selLayer !== null && parsed ? parsed.layers[selLayer] : null;
   const layerEdit = selLayer !== null ? edits[selLayer] : null;
 
+  const Frame = embedded ? EmbeddedFrame : Modal;
+  const Shell = embedded ? Passthrough : Overlay;
+
   return (
-    <Overlay onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <Modal
+    <Shell onMouseDown={(e) => { if (!embedded && e.target === e.currentTarget) onClose(); }}>
+      <Frame
         style={{
           ["--ddm-accent" as string]: ACCENT,
           ["--ddm-accent-rgb" as string]: ACCENT_RGB,
         }}
-        onMouseDown={(e) => e.stopPropagation()}
+        onMouseDown={(e) => { if (!embedded) e.stopPropagation(); }}
       >
-        <ModalHeader>
-          <ModalTitle>🧪 SVG Lab</ModalTitle>
-          <HeaderSub>{SVG_MANIFEST.length} icons · {SVG_SOURCE_GROUPS.length} sources</HeaderSub>
-          <NeonX accent="pink" size="sm" onClick={onClose} title="Close" />
-        </ModalHeader>
+        {!embedded && (
+          <ModalHeader>
+            <ModalTitle>🧪 SVG Lab</ModalTitle>
+            <HeaderSub>{SVG_MANIFEST.length} icons · {SVG_SOURCE_GROUPS.length} sources</HeaderSub>
+            <NeonX accent="pink" size="sm" onClick={onClose} title="Close" />
+          </ModalHeader>
+        )}
 
         <PickerRow>
           <SBDM
@@ -302,7 +396,7 @@ export default function SvgLabModal({ onClose }: { onClose: () => void }) {
         </PickerRow>
 
         {gridOpen && (
-          <GridStrip>
+          <GridStrip $h={gridH}>
             {filtered.map((e) => (
               <GridCell
                 key={e.key}
@@ -316,6 +410,15 @@ export default function SvgLabModal({ onClose }: { onClose: () => void }) {
             ))}
           </GridStrip>
         )}
+        <GridResizer
+          $dragging={gridDragging}
+          onPointerDown={onGridResizeDown}
+          title={gridOpen ? "Drag to resize · click to collapse" : "Click to open the icon grid"}
+          role="separator"
+          aria-orientation="horizontal"
+        >
+          <GridGrip />
+        </GridResizer>
 
         <Body>
           <Stage $checker={canvasBg === "checker"} style={stageBg ? { background: stageBg } : undefined}>
@@ -510,6 +613,19 @@ export default function SvgLabModal({ onClose }: { onClose: () => void }) {
             <ActionBtn type="button" disabled={!editedMarkup || !saveName.trim()} onClick={saveVariant}>
               Save variant
             </ActionBtn>
+            {/* Host-supplied (Sandbox): saves the variant AND puts it on an atom. */}
+            {atomTargets && atomTargets.length > 0 && (
+              <ApplyWrap>
+                <SBDM
+                  items={atomTargets.map((t) => ({ key: t.key, label: t.label, group: t.group }))}
+                  onSelect={applyToAtom}
+                  triggerLabel={applying ? "Applying…" : "Apply to atom"}
+                  placeholder="Apply to atom"
+                  ariaLabel="Apply this SVG to an atom"
+                  minTriggerWidth={0}
+                />
+              </ApplyWrap>
+            )}
           </BtnRow>
         </Footer>
 
@@ -518,8 +634,8 @@ export default function SvgLabModal({ onClose }: { onClose: () => void }) {
             <pendingEntry.Comp />
           </HiddenCapture>
         )}
-      </Modal>
-    </Overlay>
+      </Frame>
+    </Shell>
   );
 }
 
@@ -561,6 +677,53 @@ function EyeOffSvg() {
 const fadeIn = keyframes`
   from { opacity: 0; transform: scale(0.97); }
   to   { opacity: 1; transform: scale(1); }
+`;
+
+/* Lab-themed scrollbar (Scrollbar vocab): pink accent thumb on a transparent
+   track, both WebKit and Firefox, light mode included. Every scrolling surface
+   in the lab uses it so nothing falls back to the OS white bar. */
+const labScrollbar = css`
+  scrollbar-width: thin;
+  scrollbar-color: rgba(${ACCENT_RGB}, 0.45) transparent;
+
+  &::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: rgba(${ACCENT_RGB}, 0.35);
+    border-radius: 4px;
+  }
+  &::-webkit-scrollbar-thumb:hover {
+    background: rgba(${ACCENT_RGB}, 0.6);
+  }
+  &::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+
+  [data-theme="light"] & {
+    scrollbar-color: rgba(${ACCENT_RGB}, 0.55) transparent;
+  }
+`;
+
+/* Embedded (inside the Sandbox modal): no fixed overlay, no card chrome —
+   just fill the host's body row. The lab's own sections keep their styling. */
+const Passthrough = styled.div`
+  display: contents;
+`;
+
+const EmbeddedFrame = styled.div`
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+  background: transparent;
 `;
 
 const Overlay = styled.div`
@@ -653,17 +816,41 @@ const GridToggle = styled.button<{ $on?: boolean }>`
   &:hover { background: rgba(${ACCENT_RGB}, 0.22); }
 `;
 
-const GridStrip = styled.div`
+/* Icon browse grid — a drag-resizable drawer. The rail below it drags the
+   height; drag past the minimum (or click the rail) and it collapses. */
+const GridStrip = styled.div<{ $h: number }>`
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
   padding: 0.5rem 1rem;
-  max-height: 7.5rem;
+  height: ${(p) => p.$h}px;
   overflow-y: auto;
-  scrollbar-width: thin;
   flex-shrink: 0;
-  border-bottom: 1px solid rgba(${ACCENT_RGB}, 0.08);
   background: rgba(255, 255, 255, 0.015);
+  ${labScrollbar}
+`;
+
+const GridResizer = styled.div<{ $dragging: boolean }>`
+  flex-shrink: 0;
+  height: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: ns-resize;
+  touch-action: none;
+  border-bottom: 1px solid rgba(${ACCENT_RGB}, 0.08);
+  background: ${(p) => (p.$dragging ? `rgba(${ACCENT_RGB}, 0.14)` : "transparent")};
+  &:hover {
+    background: rgba(${ACCENT_RGB}, 0.1);
+  }
+`;
+
+const GridGrip = styled.span`
+  width: 44px;
+  height: 3px;
+  border-radius: 2px;
+  background: rgba(${ACCENT_RGB}, 0.5);
+  box-shadow: 0 0 6px rgba(${ACCENT_RGB}, 0.4);
 `;
 
 const GridCell = styled.button<{ $active?: boolean }>`
@@ -705,7 +892,7 @@ const Stage = styled.div<{ $checker: boolean }>`
   align-items: center;
   justify-content: center;
   overflow: auto;
-  scrollbar-width: thin;
+  ${labScrollbar}
   ${(p) =>
     p.$checker
       ? `background: repeating-conic-gradient(rgba(255,255,255,0.07) 0% 25%, rgba(0,0,0,0.12) 0% 50%) 0 0 / 18px 18px;`
@@ -733,7 +920,7 @@ const Controls = styled.div`
   width: 320px;
   flex-shrink: 0;
   overflow-y: auto;
-  scrollbar-width: thin;
+  ${labScrollbar}
   display: flex;
   flex-direction: column;
   gap: 0.625rem;
@@ -895,7 +1082,7 @@ const LayerList = styled.div`
   gap: 2px;
   max-height: 10rem;
   overflow-y: auto;
-  scrollbar-width: thin;
+  ${labScrollbar}
 `;
 
 const LayerRow = styled.div<{ $active?: boolean }>`
@@ -1001,6 +1188,16 @@ const ActionBtn = styled.button`
   color: ${ACCENT};
   &:hover:not(:disabled) { box-shadow: 0 0 14px rgba(${ACCENT_RGB}, 0.35); }
   &:disabled { opacity: 0.4; cursor: not-allowed; }
+`;
+
+const ApplyWrap = styled.div`
+  margin-left: auto;
+  & button[aria-haspopup],
+  & button[aria-expanded] {
+    background: rgba(${ACCENT_RGB}, 0.18);
+    border-color: rgba(${ACCENT_RGB}, 0.5);
+    color: ${ACCENT};
+  }
 `;
 
 const HiddenCapture = styled.div`
