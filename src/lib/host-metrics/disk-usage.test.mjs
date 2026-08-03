@@ -104,6 +104,10 @@ test("nested: finds the named artefacts inside each subdirectory, respecting age
     await writeFile(path.join(dir, lane, "node_modules", "f"), "x".repeat(50));
     await mkdir(path.join(dir, lane, "src"), { recursive: true }); // not in `entries`
   }
+  // Buried inside the doomed node_modules — must NOT be listed separately, or
+  // the plan double-counts what one rm already takes.
+  await mkdir(path.join(dir, "lane-a", "node_modules", "pkg", ".next"), { recursive: true });
+  await ageFile(path.join(dir, "lane-a", "node_modules", "pkg", ".next"), 30);
   await ageFile(path.join(dir, "lane-a", "node_modules"), 30);
   await ageFile(path.join(dir, "lane-b", "node_modules"), 1); // too young
 
@@ -120,6 +124,34 @@ test("nested: finds the named artefacts inside each subdirectory, respecting age
 
   assert.equal(plan.candidates.length, 1);
   assert.ok(plan.candidates[0].path.endsWith("lane-a/node_modules"));
+  await rm(dir, { recursive: true, force: true });
+});
+
+test("nested: reaches artefacts below the first level", async () => {
+  // A lane is a whole monorepo checkout: its node_modules live at
+  // clients/<app>/node_modules too, not only at the top. The one-level version
+  // of this left 19GB of a 21GB directory behind on RCS and reported success.
+  const dir = await scratch();
+  const deep = path.join(dir, "lane-a", "clients", "site.com", "node_modules");
+  await mkdir(deep, { recursive: true });
+  await writeFile(path.join(deep, "f"), "x".repeat(400));
+  await ageFile(deep, 30);
+  // Source at the same depth is not touched.
+  await mkdir(path.join(dir, "lane-a", "clients", "site.com", "src"), { recursive: true });
+
+  const target = {
+    id: "test-deep",
+    label: "test",
+    path: dir,
+    group: "builds",
+    what: "",
+    consequence: "",
+    sweep: { kind: "nested", entries: ["node_modules"], minAgeDays: 14 },
+  };
+  const plan = await planFor(target, { enabled: true, minAgeDays: 14, keep: 0 });
+
+  assert.equal(plan.candidates.length, 1);
+  assert.ok(plan.candidates[0].path.endsWith("clients/site.com/node_modules"), plan.candidates[0]?.path);
   await rm(dir, { recursive: true, force: true });
 });
 

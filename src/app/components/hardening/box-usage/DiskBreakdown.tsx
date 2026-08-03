@@ -63,7 +63,9 @@ type SweepPlan = {
 type SweepResult = {
   targetId: string;
   applied: boolean;
+  /** Measured from the filesystem, not summed from the plan. */
   freedBytes: number;
+  claimedBytes: number;
   removed: number;
   errors: string[];
   commandOutput?: string;
@@ -98,7 +100,7 @@ function ago(iso: string): string {
   return `${Math.round(m / 60)}h ago`;
 }
 
-export default function DiskBreakdown() {
+export default function DiskBreakdown({ onReclaimed }: { onReclaimed?: () => void | Promise<void> }) {
   const [scan, setScan] = useState<DiskScan | null>(null);
   const [needsScan, setNeedsScan] = useState(false);
   const [scanning, setScanning] = useState(false);
@@ -226,6 +228,8 @@ export default function DiskBreakdown() {
         return rest;
       });
       await runScan();
+      // The gauge upstairs is now describing a box that no longer exists.
+      await onReclaimed?.();
     } finally {
       setBusyId(null);
     }
@@ -409,12 +413,25 @@ export default function DiskBreakdown() {
                     )}
 
                     {result && (
-                      <Muted>
-                        Reclaimed {fmtBytes(result.freedBytes)} from {result.removed} item
-                        {result.removed === 1 ? "" : "s"}
-                        {result.commandOutput ? ` · ${result.commandOutput.split("\n")[0]}` : ""}
-                        {result.errors.length ? ` · ${result.errors.length} error(s)` : ""}
-                      </Muted>
+                      <>
+                        <Muted>
+                          Freed {fmtBytes(result.freedBytes)} — measured on the filesystem — from{" "}
+                          {result.removed} item{result.removed === 1 ? "" : "s"}
+                          {result.commandOutput ? ` · ${result.commandOutput.split("\n")[0]}` : ""}
+                          {result.errors.length ? ` · ${result.errors.length} error(s)` : ""}
+                        </Muted>
+                        {/* Deleting a hardlink frees nothing while another link survives.
+                            Saying so beats a success message the disk disagrees with. */}
+                        {result.claimedBytes > 0 &&
+                          result.freedBytes < result.claimedBytes * 0.5 && (
+                            <PopText $warn>
+                              The plan expected {fmtBytes(result.claimedBytes)}, the disk gave back{" "}
+                              {fmtBytes(result.freedBytes)}. These files are hardlinked into the pnpm
+                              store, so removing them only dropped a reference — run the pnpm store
+                              prune row to actually free the content.
+                            </PopText>
+                          )}
+                      </>
                     )}
                     {result?.errors.slice(0, 3).map((e) => (
                       <ErrText key={e}>{e}</ErrText>

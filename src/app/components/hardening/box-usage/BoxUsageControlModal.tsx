@@ -193,7 +193,26 @@ export default function BoxUsageControlModal({ onClose }: { onClose: () => void 
                 {snap?.live ? ` · right now the ceiling is ${RESOURCE_LABEL[snap.live.worst]}` : ""}
               </Muted>
             </HeadlineMeta>
+
+            {/* The big number is an AVERAGE, so it lags a change by design. After a
+                cleanup that is exactly when someone reads it as broken — so the
+                instant reading sits beside it, and says so when the two diverge. */}
+            {snap?.live && (
+              <LiveNow>
+                <StatLabel>right now</StatLabel>
+                <LiveValue style={{ color: TONE_COLOR[cfg ? toneFor(snap.live.worstPct, cfg) : "none"] }}>
+                  {pct(snap.live.worstPct)}
+                </LiveValue>
+              </LiveNow>
+            )}
           </Headline>
+
+          {snap?.live && headline !== null && Math.abs(headline - snap.live.worstPct) >= 5 && (
+            <Muted>
+              The headline is the 24-hour average, so it still carries the hours before this
+              changed — it falls as the window rolls forward, not the moment the box does.
+            </Muted>
+          )}
 
           <Bars>
             {(["cpu", "ram", "disk", "bandwidth"] as Resource[]).map((r) => {
@@ -234,7 +253,10 @@ export default function BoxUsageControlModal({ onClose }: { onClose: () => void 
         "Each row is a directory measured with du. The gear opens what it is, what cleaning it up would cost you, and the knobs for how aggressive that cleanup is. Rows without a gear action are measured only: production checkouts, the archive, someone else's home directory.\n\n" +
         "Nothing deletes without a preview. Reclaim stays disabled until Preview has listed exactly what would go, then asks once more. A request never carries a path — it names a target from a hard-coded list, and every candidate is re-checked to be inside that target immediately before it is touched.\n\n" +
         "Scans are cached for 30 minutes and run niced and ioniced to the floor: a monitor that browns out the box it is monitoring has defeated itself.",
-      body: <DiskBreakdown />,
+      // A reclaim changes the very thing the Capacity section reports, so it
+      // takes a fresh sample immediately instead of leaving the gauge stale
+      // until the next five-minute tick.
+      body: <DiskBreakdown onReclaimed={sampleNow} />,
     },
     {
       id: "history",
@@ -582,6 +604,21 @@ const HeadlineMeta = styled.div`
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
+`;
+
+const LiveNow = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  padding-left: 0.9rem;
+  border-left: 1px solid var(--t-border);
+`;
+
+const LiveValue = styled.div`
+  font-size: 1.15rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
 `;
 
 const Pill = styled.span<{ $tone: "ok" | "warn" | "critical" | "none" }>`

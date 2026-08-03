@@ -377,34 +377,65 @@ async function planChildren(
   return out;
 }
 
+/**
+ * Directories a walk never descends into. They can't contain the artefacts we
+ * are looking for, and walking them is what makes a filesystem crawl expensive.
+ * A name that IS being looked for is matched before this list is consulted.
+ */
+const NEVER_DESCEND = new Set(["node_modules", ".next", ".next.prev", ".turbo", ".git", "dist", "build"]);
+const NESTED_MAX_DEPTH = 5;
+
+/**
+ * Walk for named artefacts, at any depth.
+ *
+ * One level down is not enough: a lane is a whole monorepo checkout, so its
+ * node_modules live at clients/<app>/node_modules and packages/@tgv/<pkg>/
+ * node_modules as well as at the top. Sweeping only the top left 19GB of the
+ * 21GB behind (measured on RCS 2026-08-03) — the shallow version looked like it
+ * worked because the number it printed was the number it had planned.
+ *
+ * A match is never descended into, so nothing inside a doomed directory is
+ * listed twice.
+ */
 async function planNested(
   target: DiskTarget,
   spec: Extract<SweepSpec, { kind: "nested" }>,
   policy: TargetPolicy,
 ): Promise<SweepCandidate[]> {
-  const subdirs = await readdir(target.path, { withFileTypes: true });
+  const wanted = new Set(spec.entries);
   const out: SweepCandidate[] = [];
-  for (const d of subdirs) {
-    if (!d.isDirectory()) continue;
-    const dir = path.join(target.path, d.name);
-    for (const name of spec.entries) {
-      const full = path.join(dir, name);
-      try {
-        const st = await stat(full);
-        // Age is the artefact's own — a lane whose source was touched yesterday
-        // can still be carrying a node_modules from March.
-        if (ageDays(st.mtimeMs) < policy.minAgeDays) continue;
-        out.push({
-          path: full,
-          bytes: (await duBytes(full)) ?? 0,
-          ageDays: Math.floor(ageDays(st.mtimeMs)),
-          action: "delete",
-        });
-      } catch {
-        /* this lane doesn't have that entry */
+
+  const walk = async (dir: string, depth: number): Promise<void> => {
+    if (depth > NESTED_MAX_DEPTH) return;
+    const entries = await readdir(dir, { withFileTypes: true }).catch(() => []);
+    for (const e of entries) {
+      if (!e.isDirectory()) continue;
+      const full = path.join(dir, e.name);
+
+      if (wanted.has(e.name)) {
+        try {
+          const st = await stat(full);
+          // Age is the artefact's own — a lane whose source was touched
+          // yesterday can still be carrying a node_modules from March.
+          if (ageDays(st.mtimeMs) < policy.minAgeDays) continue;
+          out.push({
+            path: full,
+            bytes: (await duBytes(full)) ?? 0,
+            ageDays: Math.floor(ageDays(st.mtimeMs)),
+            action: "delete",
+          });
+        } catch {
+          /* vanished mid-walk */
+        }
+        continue; // never descend into something already condemned
       }
+
+      if (NEVER_DESCEND.has(e.name)) continue;
+      await walk(full, depth + 1);
     }
-  }
+  };
+
+  await walk(target.path, 1);
   return out;
 }
 
@@ -464,11 +495,33 @@ export async function planSweep(targetId: string): Promise<SweepPlan> {
 export type SweepResult = {
   targetId: string;
   applied: boolean;
+  /**
+   * What the filesystem actually gained, measured with statfs either side.
+   *
+   * This is NOT the sum of the candidate sizes, and the difference matters:
+   * pnpm's node_modules are HARDLINKS into its store, so deleting one of them
+   * removes a reference and frees nothing while the store still holds the
+   * other. On RCS 2026-08-03 a sweep that planned 8.39GB moved the disk by
+   * roughly nothing, and reported success — because it reported its own plan
+   * back to itself. Measuring the filesystem is the only honest answer.
+   */
   freedBytes: number;
+  /** What the plan expected to free. Compare with freedBytes to spot hardlinks. */
+  claimedBytes: number;
   removed: number;
   errors: string[];
   commandOutput?: string;
 };
+
+/** Bytes available to a non-root user right now. */
+async function availBytes(): Promise<number | null> {
+  try {
+    const fs = await statfs("/");
+    return Number(fs.bavail) * Number(fs.bsize);
+  } catch {
+    return null;
+  }
+}
 
 /**
  * The last gate. A candidate is only touched if, at this moment, it still
@@ -490,7 +543,15 @@ export async function isInsideTarget(candidate: string, targetPath: string): Pro
 
 export async function applySweep(targetId: string): Promise<SweepResult> {
   const target = DISK_TARGETS.find((t) => t.id === targetId);
-  const result: SweepResult = { targetId, applied: false, freedBytes: 0, removed: 0, errors: [] };
+  const result: SweepResult = {
+    targetId,
+    applied: false,
+    freedBytes: 0,
+    claimedBytes: 0,
+    removed: 0,
+    errors: [],
+  };
+  const availBefore = await availBytes();
   if (!target || !target.sweep) {
     result.errors.push("target is measured only");
     return result;
@@ -512,6 +573,8 @@ export async function applySweep(targetId: string): Promise<SweepResult> {
     } catch (err) {
       result.errors.push(err instanceof Error ? err.message : String(err));
     }
+    result.freedBytes = await measureFreed(availBefore);
+    scanState().scan = null;
     return result;
   }
 
@@ -524,15 +587,29 @@ export async function applySweep(targetId: string): Promise<SweepResult> {
     try {
       if (c.action === "truncate") await truncate(c.path, 0);
       else await rm(c.path, { recursive: true, force: true });
-      result.freedBytes += c.bytes;
+      result.claimedBytes += c.bytes;
       result.removed += 1;
     } catch (err) {
       result.errors.push(`${c.path}: ${err instanceof Error ? err.message : String(err)}`);
     }
   }
   result.applied = true;
+  result.freedBytes = await measureFreed(availBefore);
 
   // The scan we have is now a lie about the box.
   scanState().scan = null;
   return result;
+}
+
+/**
+ * Free space gained, from the filesystem's own accounting.
+ *
+ * A shared box is doing other things while this runs, so the delta is noisy and
+ * can even come out negative — floored at 0 rather than reported as a loss.
+ * Noisy and true beats precise and invented.
+ */
+async function measureFreed(before: number | null): Promise<number> {
+  if (before === null) return 0;
+  const after = await availBytes();
+  return after === null ? 0 : Math.max(0, after - before);
 }

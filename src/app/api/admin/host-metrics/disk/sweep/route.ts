@@ -57,7 +57,10 @@ export async function POST(req: NextRequest) {
       targetId,
       path: target.path,
       removed: String(result.removed),
+      // Both, always: the gap between them is the hardlink story, and a log that
+      // only kept the plan's number would repeat the same lie a month later.
       freedBytes: String(result.freedBytes),
+      claimedBytes: String(result.claimedBytes),
       // Enough to recognise what went without pasting a hundred paths into the log.
       sample: plan.candidates.slice(0, 5).map((c) => c.path).join(", ") || plan.opaqueCommand || "—",
       ...(result.errors.length ? { errors: result.errors.slice(0, 3).join(" · ") } : {}),
