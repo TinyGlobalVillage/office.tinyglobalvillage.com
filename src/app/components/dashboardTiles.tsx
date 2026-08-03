@@ -83,6 +83,61 @@ export type OfficeTileDef = {
   inTiles?: boolean;
 };
 
+/**
+ * Tile search (Gio 2026-08-02) — typing a tile's name brings up that tile,
+ * and only it, while a word shared by several brings up all of them.
+ *
+ * Plain substring matching couldn't do that: "library" and "libr" behaved
+ * identically, and a whole word buried in a subtitle never surfaced. So a
+ * match is SCORED by how it matched, best tier wins, and results sort by
+ * score before alphabetically:
+ *
+ *   100  the query IS a whole word of the title      ("library" → Library)
+ *    80  a title word STARTS with the query          ("lib"     → Library)
+ *    60  the query appears anywhere in the title     ("ibrar"   → Library)
+ *    40  the query is a whole word of the subtitle   ("email"   → Inbox)
+ *    30  a subtitle word starts with the query
+ *    20  the query appears anywhere in the subtitle
+ *
+ * Multi-word queries must match EVERY word (each may match a different field),
+ * so "front desk" narrows rather than widens. Returns null for no match.
+ */
+const WORDS_RE = /[^a-z0-9]+/;
+
+function words(s: string): string[] {
+  return s.toLowerCase().split(WORDS_RE).filter(Boolean);
+}
+
+function scoreToken(token: string, titleWords: string[], title: string, subWords: string[], sub: string): number {
+  if (titleWords.includes(token)) return 100;
+  if (titleWords.some((w) => w.startsWith(token))) return 80;
+  if (title.includes(token)) return 60;
+  if (subWords.includes(token)) return 40;
+  if (subWords.some((w) => w.startsWith(token))) return 30;
+  if (sub.includes(token)) return 20;
+  return 0;
+}
+
+export function tileMatchScore(
+  tile: { title: string; subtitle: string },
+  query: string,
+): number | null {
+  const tokens = words(query);
+  if (tokens.length === 0) return 0;
+  const title = tile.title.toLowerCase();
+  const sub = tile.subtitle.toLowerCase();
+  const titleWords = words(tile.title);
+  const subWords = words(tile.subtitle);
+
+  let total = 0;
+  for (const token of tokens) {
+    const s = scoreToken(token, titleWords, title, subWords, sub);
+    if (s === 0) return null; // every word has to land somewhere
+    total += s;
+  }
+  return total / tokens.length;
+}
+
 export function dispatchTileAction(action: OfficeTileAction) {
   if ("drawer" in action) {
     window.dispatchEvent(new CustomEvent("tgv-drawer-open", { detail: action.drawer }));

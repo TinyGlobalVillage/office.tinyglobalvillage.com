@@ -235,24 +235,32 @@ const PillGroup = styled.div`
 // OUTSIDE hairline (sidebar.width + 7), keeping the vertical line continuous
 // from Header through the Body split. flex-basis: 1px + align-self: stretch
 // guarantees a 1px-wide, full-height rail. See ~/.claude/vocabulary/RSD.md.
-// PillBar auto-centers itself (margin auto) — neutralize inside the flex header.
-// All four segments must sit on ONE row (Gio 2026-08-02), and the canon pill
-// metrics (6px 13px / 12.5px) overflow the files-column width at four, so the
-// pills are tightened HERE rather than changing PillBar for every surface.
+// PillBar auto-centers itself (margin auto) and is content-sized by default.
+// Here it spans the FULL width of the files column with a 5px gutter each side
+// (Gio 2026-08-02), `fill` splitting it into four equal segments on ONE row.
+// The canon pill metrics don't fit a quarter of this column, so type + padding
+// are tightened HERE — PillBar itself is untouched for every other surface.
 const PillBarWrap = styled.div`
-  flex: none;
+  /* flex-basis carries the width, not the width property — a 100% basis would
+     win over it and push the 5px gutters into an overflow. */
+  flex: 0 0 calc(100% - 10px);
+  margin: 0 5px;
   min-width: 0;
   & > div {
+    width: 100%;
     margin-left: 0;
     margin-right: 0;
-    flex-wrap: nowrap;
-    gap: 4px;
+    gap: 3px;
     padding: 3px;
   }
   & [role="tab"] {
-    padding: 5px 8px;
-    font-size: 11px;
+    min-width: 0;
+    padding: 5px 2px;
+    font-size: 9.5px;
+    letter-spacing: 0;
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 `;
 
@@ -3305,6 +3313,7 @@ export default function SandboxModal({
                 onChange={(k) => setLabView(k as typeof labView)}
                 accent={PINK_RGB}
                 ariaLabel="Sandbox view"
+                fill
               />
             </PillBarWrap>
             {/* Atom Lab portals its atom DDM here when its menu drawer is collapsed. */}

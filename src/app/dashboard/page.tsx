@@ -11,6 +11,7 @@ import {
   OFFICE_TILES,
   TILE_GROUPS,
   TILE_GROUP_ACCENT,
+  tileMatchScore,
   dispatchTileAction,
   type OfficeTileGroup,
 } from "../components/dashboardTiles";
@@ -703,15 +704,24 @@ export default function Home() {
       onClick: "page" in t.action ? undefined : () => dispatchTileAction(t.action),
     })), []);
 
+  // Scored search (see tileMatchScore): closest match first, alphabetical
+  // within a tier. Suggest is pinned last only while browsing — once you've
+  // typed something, relevance decides, so searching "suggest" finds it.
   const filteredTiles = useMemo(() => {
+    const searching = filter.trim().length > 0;
     return tiles
-      .filter((t) => t.title.toLowerCase().includes(filter.toLowerCase()))
-      .slice()
+      .map((t) => ({ tile: t, score: tileMatchScore(t, filter) }))
+      .filter((r): r is { tile: DashTile; score: number } => r.score !== null)
       .sort((a, b) => {
-        if (a.key === "Suggest") return 1;
-        if (b.key === "Suggest") return -1;
-        return a.title.localeCompare(b.title);
-      });
+        if (!searching) {
+          if (a.tile.key === "Suggest") return 1;
+          if (b.tile.key === "Suggest") return -1;
+        } else if (a.score !== b.score) {
+          return b.score - a.score;
+        }
+        return a.tile.title.localeCompare(b.tile.title);
+      })
+      .map((r) => r.tile);
   }, [tiles, filter]);
 
   // Tiles render one sub-grid per category. A search still groups — it just
@@ -748,15 +758,20 @@ export default function Home() {
       .filter((row) => row.tiles.length > 0);
   }, [filteredTiles]);
 
+  // The picker panel uses the same matcher so it can never disagree with the
+  // grid, but keeps its own A-Z / Z-A toggle as the primary sort.
   const panelList = useMemo(() => {
     return tiles
-      .filter((t) => t.title.toLowerCase().includes(inner.toLowerCase()))
-      .slice()
+      .map((t) => ({ tile: t, score: tileMatchScore(t, inner) }))
+      .filter((r): r is { tile: DashTile; score: number } => r.score !== null)
       .sort((a, b) => {
-        if (a.key === "Suggest") return 1;
-        if (b.key === "Suggest") return -1;
-        return asc ? a.title.localeCompare(b.title) : b.title.localeCompare(a.title);
-      });
+        if (a.tile.key === "Suggest") return 1;
+        if (b.tile.key === "Suggest") return -1;
+        return asc
+          ? a.tile.title.localeCompare(b.tile.title)
+          : b.tile.title.localeCompare(a.tile.title);
+      })
+      .map((r) => r.tile);
   }, [tiles, inner, asc]);
 
   return (
