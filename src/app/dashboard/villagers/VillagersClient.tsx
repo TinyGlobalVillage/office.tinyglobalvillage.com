@@ -45,6 +45,7 @@ import PaypalControlModal from "../../components/villagers/PaypalControlModal";
 import MoneyStoresModal from "../../components/villagers/MoneyStoresModal";
 import MemberLookupModal from "../../components/villagers/MemberLookupModal";
 import DashboardConfigModal from "../../components/villagers/DashboardConfigModal";
+import ProfileEnginesModal from "../../components/villagers/ProfileEnginesModal";
 import RequestTenantAccessModal from "../../components/villagers/RequestTenantAccessModal";
 import KeycloakWireModal from "../../components/villagers/KeycloakWireModal";
 import GuestClaimsModal from "../../components/villagers/GuestClaimsModal";
@@ -107,7 +108,7 @@ const DEFAULT_LAYOUT: SectionLayout[] = [
   {
     id: "platform",
     title: "Platform & Analytics",
-    tileIds: ["dashboardConfig", "ecosystemAnalytics"],
+    tileIds: ["dashboardConfig", "profileEngines", "ecosystemAnalytics"],
   },
 ];
 
@@ -456,6 +457,7 @@ export default function VillagersClient() {
   const [openMemberWallet, setOpenMemberWallet] = useState(false);
   const [openMemberLookup, setOpenMemberLookup] = useState(false);
   const [openDashboardConfig, setOpenDashboardConfig] = useState(false);
+  const [openProfileEngines, setOpenProfileEngines] = useState(false);
   const [openAccessGrant, setOpenAccessGrant] = useState(false);
   const [openPayouts, setOpenPayouts] = useState(false);
   const [openWalletControl, setOpenWalletControl] = useState(false);
@@ -788,6 +790,20 @@ export default function VillagersClient() {
         </>
       ),
     },
+    profileEngines: {
+      id: "profileEngines",
+      title: "Profile Engines",
+      icon: <SettingsIcon size={18} />,
+      onClick: () => setOpenProfileEngines(true),
+      sub: (
+        <>
+          Who gets a bespoke Profile tab. The Cosmic Profile and Starseed engines are shared
+          packages now, so the shared renderer could show them to anyone — this is where you
+          say which member on which site actually has one. Ticking is audited; the site each
+          engine belongs to is code, not a setting.
+        </>
+      ),
+    },
     ecosystemAnalytics: {
       id: "ecosystemAnalytics",
       title: "Ecosystem Analytics",
@@ -1019,6 +1035,10 @@ export default function VillagersClient() {
 
       {openDashboardConfig && (
         <DashboardConfigModal onClose={() => setOpenDashboardConfig(false)} />
+      )}
+
+      {openProfileEngines && (
+        <ProfileEnginesModal onClose={() => setOpenProfileEngines(false)} />
       )}
 
       {openAccessGrant && <RequestTenantAccessModal onClose={() => setOpenAccessGrant(false)} />}
