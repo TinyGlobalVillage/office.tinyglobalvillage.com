@@ -28,6 +28,7 @@ import {
   GlobeIcon,
   ChartIcon,
   PaypalIcon,
+  ArchiveIcon,
 } from "../../components/icons";
 import MemberWalletModal from "../../components/villagers/MemberWalletModal";
 import PayoutsModal from "../../components/villagers/PayoutsModal";
@@ -50,6 +51,7 @@ import GuestClaimsModal from "../../components/villagers/GuestClaimsModal";
 import StudioConfigModal from "../../components/villagers/StudioConfigModal";
 import OnboardVillagerModal from "../../components/villagers/OnboardVillagerModal";
 import OnboardConfigModal from "../../components/villagers/OnboardConfigModal";
+import SiteVersionsModal from "../../components/villagers/SiteVersionsModal";
 
 /* ── Layout model ──────────────────────────────────────────────── */
 
@@ -100,7 +102,7 @@ const DEFAULT_LAYOUT: SectionLayout[] = [
   {
     id: "sites",
     title: "Sites & Content",
-    tileIds: ["demoTgv", "dns", "pageEditor"],
+    tileIds: ["demoTgv", "dns", "pageEditor", "siteVersions"],
   },
   {
     id: "platform",
@@ -471,6 +473,7 @@ export default function VillagersClient() {
   const [openGuestClaims, setOpenGuestClaims] = useState(false);
   const [openOnboardVillager, setOpenOnboardVillager] = useState(false);
   const [openOnboardConfig, setOpenOnboardConfig] = useState(false);
+  const [openSiteVersions, setOpenSiteVersions] = useState(false);
   // Open the TGV Template Studio in a NEW TAB (not an iframe). The tgv.com
   // editor is admin-gated by Keycloak, which refuses cross-origin framing
   // (the iframe died with "connection closed") and its session cookie is not
@@ -759,6 +762,19 @@ export default function VillagersClient() {
         </>
       ),
     },
+    siteVersions: {
+      id: "siteVersions",
+      title: "Client Versions",
+      icon: <ArchiveIcon size={18} />,
+      onClick: () => setOpenSiteVersions(true),
+      sub: (
+        <>
+          Every version a client&apos;s site has published — who, when, and what changed —
+          with one button to put an older one back. Nothing is ever overwritten, so a bad
+          publish is undone in a click, with no build and no deploy.
+        </>
+      ),
+    },
     dashboardConfig: {
       id: "dashboardConfig",
       title: "Dashboard Config",
@@ -1036,6 +1052,7 @@ export default function VillagersClient() {
       {openKeycloakWire && <KeycloakWireModal onClose={() => setOpenKeycloakWire(false)} />}
 
       {openGuestClaims && <GuestClaimsModal onClose={() => setOpenGuestClaims(false)} />}
+      {openSiteVersions && <SiteVersionsModal onClose={() => setOpenSiteVersions(false)} />}
 
       {openStudioConfig && (
         <StudioConfigModal onClose={() => setOpenStudioConfig(false)} />

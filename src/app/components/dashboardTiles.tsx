@@ -219,6 +219,7 @@ export const OFFICE_CHILDREN: OfficeChildDef[] = [
   { key: "VillagersPayouts", title: "Payouts", subtitle: "in Villagers · pay a villager", parent: "Villagers", detail: "payouts" },
   { key: "VillagersPerformersSuite", title: "Performers Suite", subtitle: "in Villagers · performer products", parent: "Villagers", detail: "performersSuite" },
   { key: "VillagersRequestAccess", title: "Request Tenant Access", subtitle: "in Villagers · access grants", parent: "Villagers", detail: "requestAccess" },
+  { key: "VillagersSiteVersions", title: "Client Versions", subtitle: "in Villagers · publish history + restore", parent: "Villagers", detail: "siteVersions" },
   { key: "VillagersStripeOnboarding", title: "Stripe Onboarding", subtitle: "in Villagers · connect a seller", parent: "Villagers", detail: "stripeOnboarding" },
   { key: "VillagersStudioSuite", title: "Studio Suite", subtitle: "in Villagers · studio products", parent: "Villagers", detail: "studioSuite" },
   { key: "VillagersWalletCashOut", title: "Wallet Cash-Out", subtitle: "in Villagers · withdraw to bank", parent: "Villagers", detail: "walletCashOut" },
