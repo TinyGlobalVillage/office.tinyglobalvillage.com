@@ -20,11 +20,14 @@ export type TenantAppRow = {
   createdAt: string;
   updatedAt: string;
   lastDriftCheckAt: string | null;
+  /** The village this process serves, joined on villager_sites.tenant_app_slug
+   *  (plan 21). null = no village claims it — which is worth seeing. */
+  village: { id: string; label: string } | null;
 };
 
 const Table = styled.div`
   display: grid;
-  grid-template-columns: 1fr 1.6fr 0.6fr 0.9fr 1.4fr;
+  grid-template-columns: 1fr 1.6fr 1.2fr 0.6fr 0.9fr 1.4fr;
   gap: 0.25rem 0.5rem;
   font-size: 0.75rem;
 `;
@@ -150,6 +153,7 @@ export function TenantAppsTablePanel({
       <Table>
         <HeaderCell>Slug</HeaderCell>
         <HeaderCell>Hostname</HeaderCell>
+        <HeaderCell>Village</HeaderCell>
         <HeaderCell>Port</HeaderCell>
         <HeaderCell>Status</HeaderCell>
         <HeaderCell>Actions</HeaderCell>
@@ -186,6 +190,9 @@ function RowFragment({
     <>
       <Cell><Mono>{row.slug}</Mono></Cell>
       <Cell><Mono>{row.hostname}</Mono></Cell>
+      <Cell>
+        {row.village ? row.village.label : <span style={{ color: "var(--t-textFaint)" }}>unclaimed</span>}
+      </Cell>
       <Cell><Mono>{row.port}</Mono></Cell>
       <Cell><StatusPill $tone={row.status}>{row.status}</StatusPill></Cell>
       <Cell>

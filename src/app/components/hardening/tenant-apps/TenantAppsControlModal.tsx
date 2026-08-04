@@ -72,7 +72,14 @@ export default function TenantAppsControlModal({ onClose }: TenantAppsControlMod
         "Stop = soft-delete (pm2 stop + status='deprovisioning'). Finalize " +
         "tears down fully (pm2 delete, nginx rm, clients/<slug>/ rm, DB row " +
         "delete) and is only available after the row has been soft-deleted. " +
-        "Restart cycles the pm2 process.",
+        "Restart cycles the pm2 process.\n\n" +
+        "Village names which villager_sites row this process serves, joined on " +
+        "villager_sites.tenant_app_slug. 'unclaimed' means no village points at " +
+        "it — a process nobody's site depends on, which is either a leftover or " +
+        "a link that was never recorded. Note the reverse reading matters more " +
+        "now: since the pooled model landed, a new village has NO app at all — " +
+        "one HQ renderer serves them all by hostname — so this table getting " +
+        "shorter over time is the plan working, not tenants disappearing.",
       body: <TenantAppsTablePanel rows={rows} onChange={refresh} />,
     },
     {

@@ -103,6 +103,11 @@ export async function POST(req: NextRequest) {
         subdomain: spec.subdomain,
         vertical: spec.vertical,
         tier: spec.tier,
+        // The record of what this village bought. Nothing is switched on in a
+        // dashboard here, because an operator-created village has no owner yet:
+        // dashboard_features is keyed by person, and there is no person. These
+        // modules become tabs at the moment a member is attached — the seed runs
+        // in HQ's applySelectedTemplate (plan 19), which reads this column back.
         modules: spec.modules,
         storageGb: spec.storageGB,
         customFlag: spec.customFlag,
