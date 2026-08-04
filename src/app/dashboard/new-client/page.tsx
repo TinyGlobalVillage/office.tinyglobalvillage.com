@@ -5,7 +5,7 @@
 // from static caching.
 export const dynamic = "force-dynamic";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import styled from "styled-components";
 import { colors, rgb } from "@/app/theme";
 import TopNav from "@/app/components/TopNav";
@@ -41,6 +41,17 @@ type WizardState = {
   primaryColor: string;
   accentColor: string;
   logoUrl: string;
+  /** Starting home-page design. "" = let the vertical pick one (plan 13b). */
+  templateId: string;
+};
+
+/** One home template, as /api/admin/deploy lists them. */
+type HomeTemplate = {
+  id: string;
+  label: string;
+  description: string;
+  tags: string[];
+  sectionCount: number;
 };
 
 const INITIAL: WizardState = {
@@ -59,6 +70,7 @@ const INITIAL: WizardState = {
   primaryColor: "",
   accentColor: "",
   logoUrl: "",
+  templateId: "",
 };
 
 const previewBtn: React.CSSProperties = {
@@ -174,10 +186,25 @@ export default function NewClientWizard() {
   const [preview, setPreview] = useState(false);
   const env: "live" | "test" = preview ? "test" : "live";
   const [result, setResult] = useState<
-    | { ok: true; deployId: string }
+    | { ok: true; deployId: string; note?: string }
     | { ok: false; error: string }
     | null
   >(null);
+
+  // The home templates a village can be born with (plan 13b). Loaded once; the
+  // picker degrades to "match the vertical" if the fetch fails, which is also
+  // what an empty choice means server-side.
+  const [templates, setTemplates] = useState<HomeTemplate[]>([]);
+  useEffect(() => {
+    let live = true;
+    fetch("/api/admin/deploy")
+      .then((r) => (r.ok ? r.json() : { templates: [] }))
+      .then((b) => live && setTemplates(Array.isArray(b.templates) ? b.templates : []))
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, []);
 
   const step = STEPS[stepIdx].key;
   const infoErr = infoErrors(state);
@@ -322,7 +349,9 @@ export default function NewClientWizard() {
       const res = await fetch(`/api/admin/deploy?env=${env}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(parsed.data),
+        // templateId rides alongside the spec — it is the starting home page,
+        // not part of the ClientSpec the registry validates.
+        body: JSON.stringify({ ...parsed.data, templateId: state.templateId || undefined }),
       });
       const body = await res.json();
       if (!res.ok || !body.ok) {
@@ -334,7 +363,7 @@ export default function NewClientWizard() {
           : body.error || `Save failed (HTTP ${res.status}).`;
         setResult({ ok: false, error: msg });
       } else {
-        setResult({ ok: true, deployId: body.deployId });
+        setResult({ ok: true, deployId: body.deployId, note: body.note });
       }
     } catch (e) {
       setResult({ ok: false, error: e instanceof Error ? e.message : String(e) });
@@ -407,7 +436,9 @@ export default function NewClientWizard() {
             {step === "tier" && <StepTier state={state} patch={patch} />}
             {step === "modules" && <StepModules state={state} toggleModule={toggleModule} compat={compat} />}
             {step === "storage" && <StepStorage state={state} patch={patch} />}
-            {step === "review" && <StepReview state={state} price={price} />}
+            {step === "review" && (
+              <StepReview state={state} price={price} patch={patch} templates={templates} />
+            )}
 
             <Nav>
               <button
@@ -455,7 +486,8 @@ export default function NewClientWizard() {
             )}
             {result && result.ok && (
               <Ok>
-                Submitted. deployId <code>{result.deployId}</code>. Deploy engine (Phase 2 Step 4) will pick this up once live.
+                Created. id <code>{result.deployId}</code>.{" "}
+                {result.note ?? "The village is registered."}
               </Ok>
             )}
             {result && !result.ok && <Err>{result.error}</Err>}
@@ -687,10 +719,61 @@ function StepStorage({ state, patch }: { state: WizardState; patch: (p: Partial<
   );
 }
 
-function StepReview({ state, price }: { state: WizardState; price: ReturnType<typeof getPrice> }) {
+function StepReview({
+  state,
+  price,
+  patch,
+  templates,
+}: {
+  state: WizardState;
+  price: ReturnType<typeof getPrice>;
+  patch: (p: Partial<WizardState>) => void;
+  templates: HomeTemplate[];
+}) {
+  // Suggest the template whose tags name this vertical — the same match the
+  // server makes when nothing is picked, surfaced so the operator can see it.
+  const suggested = state.vertical
+    ? templates.find((t) => t.tags.some((tag) => tag.toLowerCase() === state.vertical.toLowerCase()))
+    : undefined;
+
   return (
     <Section>
       <h2>Review + submit</h2>
+      {state.subdomain && (
+        <ReviewBlock>
+          <h4>Starting home page</h4>
+          <p style={{ margin: "0 0 0.6rem", fontSize: "0.76rem", opacity: 0.72 }}>
+            Submitting publishes this design at{" "}
+            <strong>{state.subdomain}.tinyglobalvillage.com</strong> and the village is live —
+            no build, no deploy. They can change it from the editor, and every version is
+            kept in Client Versions.
+          </p>
+          <select
+            value={state.templateId}
+            onChange={(e) => patch({ templateId: e.target.value })}
+            style={{
+              width: "100%",
+              padding: "0.5rem 0.6rem",
+              borderRadius: "0.4rem",
+              background: "var(--t-inputBg)",
+              border: "1px solid var(--t-border)",
+              color: "var(--t-text)",
+              fontSize: "0.82rem",
+            }}
+          >
+            <option value="">
+              {suggested
+                ? `Match the vertical — ${suggested.label}`
+                : "Match the vertical (first available)"}
+            </option>
+            {templates.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.label} — {t.sectionCount} sections
+              </option>
+            ))}
+          </select>
+        </ReviewBlock>
+      )}
       <ReviewBlock>
         <h4>Client</h4>
         <Row><span>Name</span><strong>{state.clientName}</strong></Row>

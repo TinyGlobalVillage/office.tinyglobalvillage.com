@@ -1,3 +1,17 @@
+/**
+ * The operator's door onto a new village (plan 13b).
+ *
+ * This route used to write a `villager_sites` row and stop, with a TODO about
+ * dispatching to the deploy engine — which read as half-built, and was. Under
+ * the pooled model it isn't: one renderer serves every village by hostname, so
+ * creating a site IS writing rows. The row registers the tenant; the home page
+ * stamp gives the subdomain something to serve. Nothing is composed, nothing is
+ * provisioned, nothing is deployed, and the site answers on the wildcard the
+ * moment both rows exist.
+ *
+ * GET  → { templates }  the home templates an operator can start a site with
+ * POST → { ok, deployId, price, home }
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/api-admin";
 import {
@@ -5,9 +19,29 @@ import {
   validateModuleCompatibility,
   getPrice,
 } from "@tgv/module-registry";
+import { listDefaultTemplates } from "@tgv/module-component-library/page-templates";
+import { stampHomePage } from "@tgv/module-page-editor/kit/server/siteBirth";
 import { db, schema } from "@/lib/db-drizzle";
+import { pgPool } from "@/lib/pg-pool";
 
 export const runtime = "nodejs";
+
+export async function GET(req: NextRequest) {
+  const gate = await requireAdmin(req);
+  if (gate instanceof NextResponse) return gate;
+
+  return NextResponse.json({
+    templates: listDefaultTemplates()
+      .filter((t) => t.category === "home")
+      .map((t) => ({
+        id: t.id,
+        label: t.label,
+        description: t.description,
+        tags: t.tags ?? [],
+        sectionCount: t.sections.length,
+      })),
+  });
+}
 
 export async function POST(req: NextRequest) {
   // Member-aware admin gate (the legacy NextAuth auth() was retired 2026-06-05
@@ -38,6 +72,10 @@ export async function POST(req: NextRequest) {
   }
 
   const spec = parsed.data;
+  // Not part of ClientSpec — the operator's starting design, carried alongside
+  // it. ClientSpecSchema is a plain z.object, so the extra key is stripped from
+  // `spec` rather than rejected; read it off the raw body.
+  const templateId = (body as { templateId?: unknown })?.templateId;
 
   const compat = validateModuleCompatibility(spec);
   if (!compat.ok) {
@@ -72,7 +110,13 @@ export async function POST(req: NextRequest) {
         contact: spec.contact,
         branding: spec.branding,
         stripeMode: "connect_v2",
-        deployStatus: "pending",
+        // LIVE, not pending. 'pending' means "waiting for Stripe" on the signup
+        // path, and nothing advances it here — an operator-created village would
+        // sit pending forever. A *.tinyglobalvillage.com subdomain is instantly
+        // routable via wildcard DNS + the renderer's host match, so there is
+        // nothing to wait for. Same reasoning as provisionSite() on HQ.
+        deployStatus: "live",
+        deployedAt: new Date(),
       })
       .returning({ id: schema.villagerSites.id });
   } catch (e: unknown) {
@@ -118,13 +162,42 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // TODO Phase 2 Step 4: dispatch to @tgv/deploy-engine with row.id
-  console.log("[admin/deploy] persisted member", {
+  // Give the subdomain something to serve. `overwrite: false` — if this name
+  // already has a published home page it belongs to a live tenant, and an
+  // operator re-submitting the create form must never repaint it. (The version
+  // ledger would make that recoverable; it should still not happen silently.)
+  //
+  // Best-effort, deliberately: the tenant is registered either way, and an
+  // operator who sees `home: "exists"` or a stamp error can pick a template from
+  // the editor. Failing the whole creation because a starting design didn't
+  // apply would be the worse trade.
+  let home: "first" | "replaced" | "exists" | "skipped" | "failed" = "skipped";
+  if (spec.subdomain) {
+    try {
+      const stamped = await stampHomePage(pgPool, {
+        site: spec.subdomain,
+        templateId: typeof templateId === "string" ? templateId : null,
+        vertical: spec.vertical,
+        actor: gate.username,
+      });
+      home = stamped.ok ? stamped.version : stamped.reason === "exists" ? "exists" : "failed";
+    } catch (e) {
+      home = "failed";
+      console.error("[admin/deploy] home page stamp failed", {
+        subdomain: spec.subdomain,
+        message: e instanceof Error ? e.message : String(e),
+      });
+    }
+  }
+
+  console.log("[admin/deploy] created villager site", {
     id: row.id,
     by: gate.username,
     clientName: spec.clientName,
+    subdomain: spec.subdomain,
     vertical: spec.vertical,
     tier: spec.tier,
+    home,
     monthlyUsd: price.monthlyUsd,
     oneTimeUsd: price.oneTimeUsd,
   });
@@ -134,6 +207,14 @@ export async function POST(req: NextRequest) {
     deployId: row.id,
     status: "pending",
     price,
-    note: "Members row persisted. Deploy engine dispatch pending — see Phase 2 Step 4.",
+    home,
+    note:
+      home === "first" || home === "replaced"
+        ? "Village registered and its home page published — it serves on the wildcard subdomain now."
+        : home === "exists"
+          ? "Village registered. Its subdomain already had a published home page, which was left alone."
+          : home === "skipped"
+            ? "Village registered. No subdomain given, so no home page was stamped."
+            : "Village registered, but the home page could not be stamped — pick a template from the editor.",
   });
 }
