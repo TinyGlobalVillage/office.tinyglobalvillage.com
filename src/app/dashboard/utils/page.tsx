@@ -30,6 +30,7 @@ const KeycloakControlModal = dynamic(() => import("../../components/hardening/ke
 const BoxUsageControlModal = dynamic(() => import("../../components/hardening/box-usage/BoxUsageControlModal"), { ssr: false });
 const DemoModeControlModal = dynamic(() => import("../../components/dev-tooling/demo-mode/DemoModeControlModal"), { ssr: false });
 const MediaReducerModal = dynamic(() => import("../../components/media-reducer/MediaReducerModal"), { ssr: false });
+const MeetCaptionsControlModal = dynamic(() => import("../../components/hardening/meet-captions/MeetCaptionsControlModal"), { ssr: false });
 import AutomationsTab from "../../components/automations/AutomationsTab";
 import type { ShortLink } from "@tgv/module-page-editor/editor/component-library/marketing/link-tools";
 // Heavy feature packages — lazy-loaded so they don't sit in the Utils page's first-load JS.
@@ -2037,6 +2038,16 @@ function UtilsAdlSurface({
                         </LinkToolsTileSub>
                       </LinkToolsTile>
                     );
+                    if (tile.type === "meet-captions") return (
+                      <LinkToolsTile key={i} type="button" onClick={() => onOpenHardening("meet-captions")}>
+                        <LinkToolsTileTop>💬 Meet Captions</LinkToolsTileTop>
+                        <LinkToolsTileSub>
+                          Live captions in meetings — platform killswitch (OFF until the box RAM
+                          upgrade), whisper.cpp engine settings, and the rooms being captioned
+                          right now.
+                        </LinkToolsTileSub>
+                      </LinkToolsTile>
+                    );
                     if (tile.type === "transcriptions") return (
                       <LinkToolsTile key={i} type="button" onClick={onOpenTranscriptions}>
                         <LinkToolsTileTop>
@@ -2097,7 +2108,7 @@ type DefaultsOverlay = Record<string, Record<string, FieldValue>>;
 
 // Runtime list, not just a union: the ?view= deep-link reader has to validate a
 // string off the URL, and a second hand-kept list would drift.
-const HARDENING_KINDS = ["telephony", "tenant-apps", "member-auth", "office-staff", "mesh-vpn", "invitations", "firewall", "build-guard", "tsserver", "keycloak", "demo-mode", "domain-dns", "box-usage"] as const;  // | "postgres" | "ssh" | "nginx" — future
+const HARDENING_KINDS = ["telephony", "tenant-apps", "member-auth", "office-staff", "mesh-vpn", "invitations", "firewall", "build-guard", "tsserver", "keycloak", "demo-mode", "domain-dns", "box-usage", "meet-captions"] as const;  // | "postgres" | "ssh" | "nginx" — future
 type HardeningKind = (typeof HARDENING_KINDS)[number];
 
 // ── Link Tools (TinyURL + QR generators) ──────────────────────────────────
@@ -2148,6 +2159,7 @@ type TileSpec =
   | { type: "transcriber" }
   | { type: "media-reducer" }
   | { type: "transcriptions" }
+  | { type: "meet-captions" }
   | { type: "queued-job"; job: import("@tgv/module-transcriber").TranscriptionJob };
 
 type SectionAccent = "pink" | "cyan" | "gold";
@@ -2200,7 +2212,7 @@ const SECTIONS: Section[] = [
     kind: "actions", actionIds: ["mail-domain-setup"] },
   { id: "media", title: "Media & Transcription", accent: "cyan",
     subtitle: "open-source audio transcription, subtitle export, voice utilities, batch media reduction",
-    kind: "tiles", tiles: [{ type: "transcriber" }, { type: "transcriptions" }, { type: "media-reducer" }] },
+    kind: "tiles", tiles: [{ type: "transcriber" }, { type: "transcriptions" }, { type: "media-reducer" }, { type: "meet-captions" }] },
   { id: "migrations", title: "Migrations", accent: "cyan",
     subtitle: "absorb a legacy site into TGV — per-surface fidelity, halt-review, dogfood",
     kind: "tiles", tiles: [{ type: "migrate" }] },
@@ -2764,6 +2776,9 @@ export default function UtilsPage() {
       )}
       {openHardening === "box-usage" && (
         <BoxUsageControlModal onClose={() => setOpenHardening(null)} />
+      )}
+      {openHardening === "meet-captions" && (
+        <MeetCaptionsControlModal onClose={() => setOpenHardening(null)} />
       )}
 
       {openBackups && (
