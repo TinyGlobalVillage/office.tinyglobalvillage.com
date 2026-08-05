@@ -5,7 +5,8 @@ Plan 41–48. **Rehearsed and green 2026-08-04. Not applied to production.**
 This is the *data* half of pooling refusionist.com onto the shared renderer:
 every row that belongs to the site moves from the `refusionist` schema into
 `public`, keyed to the tenant, with the identities reconciled. The app half —
-sessions, chrome, routes — is not here; see "What this does NOT do".
+sessions, chrome, routes — is surveyed in **`APP-SURVEY.md`** next to this file
+and not yet built; see also "What this does NOT do".
 
 ```
 rehearse.sh          rebuild a throwaway copy of tgv_db, run 00→03 against it
@@ -137,11 +138,12 @@ The data is the easy half. Before refusionist.com's DNS can move:
   that is already there.
 - **`zz_*_preunify` (52 tables)** are plan 29's archive. Dump and drop
   separately.
-- **The app.** refusionist.com is 39 page routes and 241 API routes. HQ's API
-  surface already covers every top-level bucket except `portal`, `uploads` and
-  `view-settings-visibility`, which is a good sign but not a survey. The
-  giocoelho lesson applies: what decides the cost of pooling is how much of the
-  site lives in the database, and only 4 `page_models` rows do.
+- **The app.** refusionist.com is 39 page routes and 241 API routes, against 4
+  `page_models` rows. **Now surveyed — see `APP-SURVEY.md`.** The short version:
+  208 of the 241 API routes already exist in HQ at the identical path, and 7 of
+  the page routes that 404 on a tenant host are already built in HQ byte-for-byte
+  and blocked only by a proxy allowlist. Ten more are content to author as page
+  rows; six need a ruling.
 - **The browser.** Plan 38 is mandatory and cannot live in SQL: render the
   pooled rows through the live HQ behind a `Host`-rewriting proxy, diff page by
   page against refusionist.com, and only then repoint nginx and stop the pm2
