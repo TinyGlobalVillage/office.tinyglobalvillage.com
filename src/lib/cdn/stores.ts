@@ -127,8 +127,10 @@ export async function listAll(project: string): Promise<CdnFile[]> {
   return [...disk, ...cloud].sort((a, b) => b.modifiedAt - a.modifiedAt);
 }
 
-/** Project names across both stores (disk dirs ∪ the prefixes R2 holds objects under). */
-export async function listProjects(): Promise<{ name: string; count: number }[]> {
+/** Project names across both stores (disk dirs ∪ the prefixes R2 holds objects under), each with how
+ *  many files it holds and what they weigh — the two numbers an operator actually wants before
+ *  clicking into a bucket. Both are totals across disk AND cloud. */
+export async function listProjects(): Promise<{ name: string; count: number; bytes: number }[]> {
   const names = new Set<string>();
   if (existsSync(CDN_ROOT)) {
     try {
@@ -147,9 +149,10 @@ export async function listProjects(): Promise<{ name: string; count: number }[]>
       }
     } catch { /* cloud unreachable — disk projects still list */ }
   }
-  const out: { name: string; count: number }[] = [];
+  const out: { name: string; count: number; bytes: number }[] = [];
   for (const name of [...names].sort()) {
-    out.push({ name, count: (await listAll(name)).length });
+    const files = await listAll(name);
+    out.push({ name, count: files.length, bytes: files.reduce((n, f) => n + f.size, 0) });
   }
   return out;
 }

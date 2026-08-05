@@ -46,7 +46,9 @@ function fmtBytes(b: number) {
 }
 
 const Shell = styled.section`
-  margin: 0 0 1.25rem;
+  /* No margin of its own: it sits in a ControlRow now, which owns the spacing. */
+  margin: 0;
+  width: 100%;
   border: 1px solid ${glowRgba("pink", 0.25)};
   border-radius: 14px;
   background: ${glowRgba("pink", 0.04)};
@@ -62,8 +64,11 @@ const HeadBtn = styled.button`
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
-  padding: 0.8rem 1rem;
+  /* CONTROL_H — the shared height for this row. The Config button next to it matches. */
+  min-height: 44px;
+  padding: 0 1rem;
   cursor: pointer;
+  white-space: nowrap;
   color: ${t("text")};
   font-size: 0.85rem;
   font-weight: 700;
@@ -72,12 +77,6 @@ const HeadBtn = styled.button`
   &:hover {
     background: ${glowRgba("pink", 0.07)};
   }
-`;
-
-const HeadHint = styled.span`
-  font-weight: 500;
-  font-size: 0.75rem;
-  color: ${t("textMuted")};
 `;
 
 const Body = styled.div`
@@ -185,8 +184,7 @@ export default function StorageMeteringPanel() {
   return (
     <Shell>
       <HeadBtn type="button" onClick={toggle} aria-expanded={open}>
-        <span>{open ? "▾" : "▸"}&nbsp; Metering — usage by site</span>
-        <HeadHint>media bytes + DB footprint, fleet-wide</HeadHint>
+        <span>{open ? "▾" : "▸"}&nbsp; Metering By Site</span>
       </HeadBtn>
       {open && (
         <Body>

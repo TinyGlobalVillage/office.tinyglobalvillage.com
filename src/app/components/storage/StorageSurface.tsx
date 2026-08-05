@@ -27,7 +27,7 @@ type CdnFile = {
 
 type CdnStore = "disk" | "cloud";
 
-type ProjectMeta = { name: string; count: number };
+type ProjectMeta = { name: string; count: number; bytes: number };
 
 /* ── Helpers ───────────────────────────────────────────────────── */
 
@@ -62,7 +62,7 @@ const PageMain = styled.main<{ $embedded?: boolean }>`
   display: flex;
   flex-direction: column;
   min-height: ${(p) => (p.$embedded ? "auto" : "100vh")};
-  padding: ${(p) => (p.$embedded ? "1rem 1rem 2rem" : "7rem 1rem 4rem")};
+  padding: ${(p) => (p.$embedded ? "0 1rem 2rem" : "7rem 1rem 4rem")};
   max-width: 80rem;
   margin: 0 auto;
   width: 100%;
@@ -112,12 +112,16 @@ const PageTitle = styled.h1`
 const ConfigBtn = styled.button`
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
   cursor: pointer;
   font-size: 0.8rem;
   font-weight: 700;
-  padding: 0.4rem 0.85rem;
-  border-radius: 0.6rem;
+  white-space: nowrap;
+  /* CONTROL_H — matches StorageMeteringPanel's header, so the row reads as one band. */
+  min-height: 44px;
+  padding: 0 1rem;
+  border-radius: 14px;
   color: ${colors.pink};
   background: rgba(${rgb.pink}, 0.1);
   border: 1px solid rgba(${rgb.pink}, 0.4);
@@ -137,19 +141,31 @@ const UploadWrap = styled.div`
 `;
 
 // Two control rows, each centred with its items spaced around: metering + config, then bucket + destination.
+// One row at every width, on purpose: these are two controls that belong side by side, and a phone
+// stacking them pushed the file grid off the fold. They shrink instead — nowrap plus min-width:0 all
+// the way down, so the flex children are allowed to give up space rather than overflow.
 const ControlRow = styled.div`
   display: flex;
-  align-items: center;
+  align-items: stretch;
   justify-content: space-around;
-  gap: 1rem;
-  flex-wrap: wrap;
+  gap: 0.75rem;
+  flex-wrap: nowrap;
   width: 100%;
+
+  @media (max-width: 640px) {
+    gap: 0.5rem;
+  }
 `;
 const ControlCell = styled.div`
   display: flex;
   align-items: center;
   gap: 0.6rem;
   min-width: 0;
+
+  @media (max-width: 640px) {
+    gap: 0.35rem;
+    font-size: 0.8rem;
+  }
 `;
 const DestLabel = styled.span`
   font-size: 12px;
@@ -567,9 +583,9 @@ const DDMItem = styled.button<{ $active: boolean }>`
   /* Grid, not flex: the count gets a column of its own, so the numbers stack in a straight line down
      the list and a long bucket name ellipsizing can never push its own total out of view. */
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) 5.5rem 5rem auto;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.5rem;
   padding: 0.625rem 1rem;
   text-align: left;
   transition: background 0.15s;
@@ -606,6 +622,8 @@ const DDMItemRight = styled.div`
 const DDMItemCount = styled.span`
   font-size: 10px;
   color: var(--t-textGhost);
+  text-align: right;
+  white-space: nowrap;
 `;
 
 const DDMItemCheck = styled.span`
@@ -1037,7 +1055,8 @@ function ProjectDropdown({
     setSearch("");
   };
 
-  const count = (p: string) => cdnCounts.find((m) => m.name === p)?.count;
+  const meta = (p: string) => cdnCounts.find((m) => m.name === p);
+  const count = (p: string) => meta(p)?.count;
 
   return (
     <DDMContainer ref={containerRef}>
@@ -1045,7 +1064,9 @@ function ProjectDropdown({
         <DDMTriggerLeft>
           <DDMBucketLabel>Bucket</DDMBucketLabel>
           <DDMValue>{value}</DDMValue>
-          <DDMFileCount>{count(value) ?? 0} files</DDMFileCount>
+          <DDMFileCount>
+            {count(value) ?? 0} files · {fmtBytes(meta(value)?.bytes ?? 0)}
+          </DDMFileCount>
         </DDMTriggerLeft>
         <DDMArrow $open={open}>▼</DDMArrow>
       </DDMTrigger>
@@ -1082,10 +1103,9 @@ function ProjectDropdown({
                     onClick={() => select(p)}
                   >
                     <DDMItemName>{p}</DDMItemName>
-                    <DDMItemRight>
-                      <DDMItemCount>{n ?? 0} files</DDMItemCount>
-                      {isActive && <DDMItemCheck>✓</DDMItemCheck>}
-                    </DDMItemRight>
+                    <DDMItemCount>{meta(p)?.count ?? 0} files</DDMItemCount>
+                    <DDMItemCount>{fmtBytes(meta(p)?.bytes ?? 0)}</DDMItemCount>
+                    <DDMItemRight>{isActive && <DDMItemCheck>✓</DDMItemCheck>}</DDMItemRight>
                   </DDMItem>
                 );
               })
@@ -1166,11 +1186,12 @@ function StoragePageInner({ forceEmbedded = false }: { forceEmbedded?: boolean }
   const handleUploaded = (f: CdnFile) => {
     setFiles((prev) => [f, ...prev]);
     setTotal((t) => t + 1);
+    // Keep the bucket's count AND weight honest without a refetch — the DDM shows both.
     setCdnProjects((prev) => {
       const idx = prev.findIndex((p) => p.name === f.project);
-      if (idx === -1) return [...prev, { name: f.project, count: 1 }];
+      if (idx === -1) return [...prev, { name: f.project, count: 1, bytes: f.size }];
       const next = [...prev];
-      next[idx] = { ...next[idx], count: next[idx].count + 1 };
+      next[idx] = { ...next[idx], count: next[idx].count + 1, bytes: next[idx].bytes + f.size };
       return next;
     });
   };
@@ -1210,10 +1231,10 @@ function StoragePageInner({ forceEmbedded = false }: { forceEmbedded?: boolean }
 
         {/* Row 1 — what the fleet is using, and the settings that govern it. */}
         <ControlRow>
-          <ControlCell style={{ flex: "1 1 420px" }}>
+          <ControlCell style={{ flex: "1 1 auto", minWidth: 0 }}>
             <StorageMeteringPanel />
           </ControlCell>
-          <ControlCell>
+          <ControlCell style={{ flex: "0 0 auto" }}>
             {/* Where the files actually live is reference material, not a subtitle — it was three lines
                 of URL shapes above the fold. A QMBM keeps it one click away. */}
             <InfoBubble

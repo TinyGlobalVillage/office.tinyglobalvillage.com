@@ -49,7 +49,9 @@ export default function DashboardStorageModal({ onClose }: { onClose: () => void
           </ModalHeaderLeft>
           <NeonX accent="pink" onClick={onClose} title="Close (Esc)" />
         </ModalHeader>
-        <ModalBody>
+        {/* Half the usual top padding: the surface's own first row is a control band, not prose, and
+            the default 1.5rem left it floating a long way under the header. */}
+        <ModalBody $padding="0.75rem 1rem 1.25rem">
           <StorageSurface embedded />
         </ModalBody>
       </WideContainer>
