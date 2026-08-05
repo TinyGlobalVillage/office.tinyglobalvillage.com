@@ -23,7 +23,6 @@ import SandboxIcon from "./sandbox/SandboxIcon";
 import LibraryIcon from "./LibraryIcon";
 import {
   DatabaseIcon,
-  StorageIcon,
   EditorIcon,
   UtilsIcon,
   SuggestionIcon,
