@@ -46,6 +46,22 @@ for step in 00-preflight 01-id-map 02-copy; do
   "${PSQL[@]}" -q "$REH_DB" -f "$HERE/${step}.sql"
 done
 
+# The dump is restored --no-privileges, so the app roles come back with no
+# grants and an app pointed at this database gets "permission denied for table
+# villager_sites" before it renders a thing. Hand them back, so the rehearsal is
+# something you can RUN the renderer against — which is how the cospro half of
+# plan 44 was verified, and how the browser pass of plan 38 can be done without
+# touching production. Throwaway database; the grants are as broad as that.
+say "grants (this is a throwaway database — the app must be able to read it)"
+"${PSQL[@]}" -q "$REH_DB" -c "
+do \$\$ declare r record; begin
+  for r in select rolname from pg_roles where rolname in ('tgv_app','tgv_tenant_app') loop
+    execute format('grant usage on schema public to %I', r.rolname);
+    execute format('grant select, insert, update, delete on all tables in schema public to %I', r.rolname);
+    execute format('grant usage, select on all sequences in schema public to %I', r.rolname);
+  end loop;
+end \$\$;"
+
 say "03-verify"
 "${PSQL[@]}" "$REH_DB" -f "$HERE/03-verify.sql"
 
