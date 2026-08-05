@@ -96,6 +96,59 @@ CSS custom properties on the tenant root, so a catalog component can say
 `var(--site-accent)` and never a hex. Her four colours and one serif are the first
 row; demo-fliring's neon is the second.
 
+## The conversion track — "bespoke" is a starting position, not a category
+
+Gio, 2026-08-05: *"can we fold onto the checklist to convert all of that code into
+captured canon?"* Yes, and it corrects the framing above. Saying a component
+"travels as code" reads as permanent, and it should not be. Every bespoke
+component has a **level**, and the level is expected to climb.
+
+| Level | What it means | What she can do |
+|---|---|---|
+| **L0 · Ported** | Lives in a package, mounted on her host. Renders identically. | Nothing new. |
+| **L1 · Content freed** | Its words, images and ordering are a `page_models` section config instead of a source file. | Rewrite copy, reorder stops, swap images. |
+| **L2 · Parameters declared** | The component declares its editable surface — name, type, range — the way an `AtomSpec` does. | Tune it, within bounds that cannot break a frame. |
+| **L3 · Choreography wired** | Its drivers and targets are config: scrubbable, previewable. | Rewire what drives what. |
+| **L4 · Canon** | A catalog entry any tenant can drop on a page, theme-neutral, in the Sandbox. | Not hers any more — the platform's. |
+
+A component climbs one rung at a time; nothing has to convert all at once. L3 → L4
+is a real gap and not automatic: a thing can be fully editable *for her* long
+before it is general enough for anyone else.
+
+**Starting levels from this inventory.** Bucket A lands at **L1 on arrival** —
+her content is already typed data — and targets L4. Bucket C (journey) starts at
+**L0**, reaches L1 cheaply via `chakraSections.ts`, and L2/L3 are exactly the
+Canvas Mode work in `docs/artifacts/canvas-mode-parameters-and-choreography.html`.
+Bucket D (starseed) starts **L0**; L4 is questionable for an engine UI and should
+not be assumed. Bucket B is routes plus `offers.ts`, so **L0/L1**.
+
+Record the level per component when each moves, so the queue is visible rather
+than remembered.
+
+## The ordered moves
+
+1. **Set the routing key** — `villager_sites.subdomain = 'resonantweaver'`. It is
+   NULL today, exactly as refusionist's was, and the custom-domain branch is gated
+   on it. Nothing routes until this is set, and setting it is what makes the rest
+   testable.
+2. **Phase 1 — per-site design tokens.** Generalise the one site-scoped override we
+   have (`siteBackground`) into colours, font stacks and a size scale, emitted as
+   CSS custom properties on the tenant root. Her four colours and one serif are row
+   one; demo-fliring's neon is row two.
+3. **Phase 2 — the catalog gap.** Two new entries (her offer card with its price
+   and "best for" list; the testimonials band) plus the orbs backdrop. Extend
+   `rf-hero` and `rf-accordion` where the difference is decoration. Check the Atom
+   Library first for the split wordmark, chevron, price and CTA button.
+4. **Phase 3 — author bucket A as rows**, GENERATED from `src/data/*` rather than
+   retyped. Generated is what makes the first render identical by construction.
+5. **Phase 4 — move buckets C and D** as packages plus `SITE_SURFACES` grants, the
+   pattern proven twice for refusionist.
+6. **Phase 5 — parity.** Screenshot every page standalone vs pooled at three
+   viewports and diff. Her existing `FontPreviewSwitch` is a ready-made harness.
+7. **Cutover** — nginx and pm2, same shape as refusionist's.
+8. **Then the conversion track** — each component's level onto the checklist, and
+   climb.
+
 ## Open question for Gio
 
 When a section is CLOSE to an existing catalog entry but not identical — her FAQ
