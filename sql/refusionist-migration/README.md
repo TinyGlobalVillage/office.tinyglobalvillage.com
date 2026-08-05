@@ -1,6 +1,16 @@
 # Refusionist → `public` — the data migration
 
-Plan 41–48. **Rehearsed and green 2026-08-04. Not applied to production.**
+Plan 41–48. **Rehearsed and green 2026-08-04.**
+
+**`00-preflight.sql` IS APPLIED TO PRODUCTION** (2026-08-05, plan 44). It is DDL
+only — eleven empty tables, four `site` columns, one `platform_config` column and
+the `villager_sites.subdomain` key — and it went in early because the cospro app
+half reads those tables: code written against a table that does not exist cannot
+be verified, and unverified is how the last three defects reached production.
+A `pg_dump -n public -Fc` was taken first, at
+`/srv/backups/tgv_db-public-pre-plan44-*.dump` on RCS. Re-running it is a no-op;
+it was re-run twice to prove that. **`01`, `02` and `03` are still unapplied** —
+they move ROWS, and rows wait for the cutover.
 
 This is the *data* half of pooling refusionist.com onto the shared renderer:
 every row that belongs to the site moves from the `refusionist` schema into
@@ -32,7 +42,8 @@ Drops and rebuilds `refusionist_rehearsal` from a `pg_dump` of `tgv_db`, runs
 the three steps, verifies, and prints a before/after row-count diff. `tgv_db`
 is read once and never written. Takes about a minute; the database is 47 MB.
 
-Production, when the app half is ready:
+Production, when the app half is ready (`00` is already in — re-running it is
+harmless and it stays in the list so the sequence reads whole):
 
 ```bash
 psql -v ON_ERROR_STOP=1 tgv_db -f 00-preflight.sql
