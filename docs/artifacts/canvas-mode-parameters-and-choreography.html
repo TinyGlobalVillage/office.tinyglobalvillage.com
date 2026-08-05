@@ -1,0 +1,668 @@
+<title>Canvas Mode — parameters and choreography</title>
+
+<style>
+  :root {
+    --ink:        #10141a;
+    --ink-2:      #4a5461;
+    --ink-3:      #6d7885;
+    --paper:      #f2f3f5;
+    --paper-2:    #e7e9ed;
+    --rule:       #d3d7de;
+    --accent:     #7b3fd4;
+    --accent-dim: #efe6fb;
+
+    /* Office chrome — fixed in both themes: these panels DEPICT a dark tool. */
+    --oc-bg:      #0d1014;
+    --oc-panel:   #14181e;
+    --oc-panel-2: #1a1f26;
+    --oc-rule:    #262d36;
+    --oc-text:    #d5dbe3;
+    --oc-mute:    #7d8794;
+    --oc-accent:  #b25cff;
+    --oc-live:    #48d2b9;
+    --oc-touched: #e0a458;
+
+    /* Her tokens — appear only inside the preview. */
+    --rw-copper:  #b78a77;
+    --rw-teal:    #48d2b9;
+    --rw-bone:    #e8e5da;
+
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ink:        #dde2e9;
+      --ink-2:      #98a2ae;
+      --ink-3:      #7a8593;
+      --paper:      #0f1216;
+      --paper-2:    #161a20;
+      --rule:       #262c34;
+      --accent:     #b98cf5;
+      --accent-dim: #241a35;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ink: #dde2e9; --ink-2: #98a2ae; --ink-3: #7a8593;
+    --paper: #0f1216; --paper-2: #161a20; --rule: #262c34;
+    --accent: #b98cf5; --accent-dim: #241a35;
+  }
+  :root[data-theme="light"] {
+    --ink: #10141a; --ink-2: #4a5461; --ink-3: #6d7885;
+    --paper: #f2f3f5; --paper-2: #e7e9ed; --rule: #d3d7de;
+    --accent: #7b3fd4; --accent-dim: #efe6fb;
+  }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--sans);
+    line-height: 1.6;
+    margin: 0;
+    padding: 0 20px 96px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; }
+  .prose { max-width: 68ch; }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+
+  header { padding: 72px 0 12px; }
+  h1 {
+    font-size: clamp(30px, 4.4vw, 46px);
+    line-height: 1.08;
+    letter-spacing: -0.022em;
+    font-weight: 640;
+    margin: 14px 0 0;
+    text-wrap: balance;
+  }
+  .standfirst {
+    font-size: 18px;
+    color: var(--ink-2);
+    margin: 16px 0 0;
+    max-width: 62ch;
+    text-wrap: pretty;
+  }
+
+  h2 {
+    font-size: 22px;
+    letter-spacing: -0.012em;
+    font-weight: 620;
+    margin: 0 0 6px;
+    text-wrap: balance;
+  }
+  h3 { font-size: 15px; font-weight: 620; margin: 0 0 4px; }
+  p { margin: 0 0 14px; }
+  section { margin-top: 60px; }
+
+  .layers { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(215px, 1fr)); margin-top: 26px; }
+  .layer { border: 1px solid var(--rule); border-radius: 10px; padding: 16px 16px 18px; background: var(--paper-2); }
+  .layer .tag { font-family: var(--mono); font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; }
+  .layer p { font-size: 13.5px; color: var(--ink-2); margin: 6px 0 0; }
+  .t-edit { color: var(--oc-live); }
+  .t-code { color: var(--oc-touched); }
+
+  /* ── the depicted tool ─────────────────────────────────────────── */
+  figure { margin: 26px 0 0; }
+  .office {
+    background: var(--oc-bg);
+    border: 1px solid var(--oc-rule);
+    border-radius: 12px;
+    overflow: hidden;
+    color: var(--oc-text);
+    font-size: 13px;
+  }
+  .titlebar {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 14px;
+    border-bottom: 1px solid var(--oc-rule);
+    background: var(--oc-panel);
+  }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: #303842; }
+  .titlebar .path { font-family: var(--mono); font-size: 11.5px; color: var(--oc-mute); margin-left: 6px; }
+  .pill {
+    margin-left: auto; font-family: var(--mono); font-size: 10.5px; letter-spacing: .08em;
+    text-transform: uppercase; padding: 3px 9px; border-radius: 999px;
+    border: 1px solid var(--oc-accent); color: var(--oc-accent);
+  }
+
+  .stage { display: grid; grid-template-columns: 168px 1fr 244px; min-height: 340px; }
+  @media (max-width: 900px) { .stage { grid-template-columns: 1fr; } }
+
+  .rail, .inspector { background: var(--oc-panel); }
+  .rail { border-right: 1px solid var(--oc-rule); padding: 14px 0; }
+  .inspector { border-left: 1px solid var(--oc-rule); padding: 15px 15px 20px; }
+  @media (max-width: 900px) {
+    .rail { border-right: 0; border-bottom: 1px solid var(--oc-rule); }
+    .inspector { border-left: 0; border-top: 1px solid var(--oc-rule); }
+  }
+
+  .rail-head, .insp-head {
+    font-family: var(--mono); font-size: 10px; letter-spacing: .13em;
+    text-transform: uppercase; color: var(--oc-mute);
+  }
+  .rail-head { padding: 0 14px 9px; }
+  .insp-head { margin-bottom: 13px; }
+
+  .node {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 14px; font-family: var(--mono); font-size: 11.5px; color: var(--oc-mute);
+  }
+  .node.sel { color: var(--oc-text); background: var(--oc-panel-2); box-shadow: inset 2px 0 0 var(--oc-accent); }
+  .node.kid { padding-left: 28px; }
+  .chip {
+    margin-left: auto; font-family: var(--mono); font-size: 9px; letter-spacing: .06em;
+    padding: 1px 5px; border-radius: 3px; text-transform: uppercase;
+  }
+  .chip.code { color: var(--oc-touched); border: 1px solid rgba(224,164,88,.4); }
+  .chip.data { color: var(--oc-live); border: 1px solid rgba(72,210,185,.4); }
+
+  .preview { position: relative; background: #07090c; display: flex; flex-direction: column; }
+  .preview canvas { width: 100%; flex: 1; display: block; min-height: 300px; }
+  .preview-label {
+    position: absolute; top: 11px; left: 13px; z-index: 2;
+    font-family: var(--mono); font-size: 10px; letter-spacing: .12em; text-transform: uppercase;
+    color: rgba(232,229,218,.5);
+  }
+  .preview-copy {
+    position: absolute; left: 0; right: 0; top: 46%; transform: translateY(-50%);
+    text-align: center; z-index: 2; pointer-events: none; padding: 0 24px;
+  }
+  .preview-copy .stop {
+    font-size: 10px; font-family: var(--mono); letter-spacing: .22em;
+    text-transform: uppercase; color: var(--rw-teal); opacity: .85;
+  }
+  .preview-copy .line {
+    font-size: 26px; letter-spacing: -.01em; color: var(--rw-bone);
+    margin-top: 8px; font-weight: 500;
+  }
+
+  /* knobs */
+  .knob { margin-bottom: 15px; }
+  .knob-top { display: flex; align-items: baseline; gap: 8px; margin-bottom: 6px; }
+  .knob-name { font-size: 12px; color: var(--oc-text); }
+  .knob-val {
+    margin-left: auto; font-family: var(--mono); font-size: 11px;
+    font-variant-numeric: tabular-nums; color: var(--oc-accent);
+  }
+  .knob-range { font-family: var(--mono); font-size: 9.5px; color: var(--oc-mute); }
+  input[type=range] {
+    -webkit-appearance: none; appearance: none; width: 100%; height: 3px;
+    background: var(--oc-rule); border-radius: 3px; outline-offset: 4px;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 13px; height: 13px; border-radius: 50%;
+    background: var(--oc-accent); cursor: pointer; border: 0;
+  }
+  input[type=range]::-moz-range-thumb {
+    width: 13px; height: 13px; border-radius: 50%;
+    background: var(--oc-accent); cursor: pointer; border: 0;
+  }
+  input[type=range]:focus-visible { outline: 2px solid var(--oc-accent); }
+
+  .swatchrow { display: flex; gap: 7px; margin-top: 3px; }
+  .swatch { width: 26px; height: 26px; border-radius: 5px; border: 1px solid var(--oc-rule); }
+  .swatch.on { box-shadow: 0 0 0 2px var(--oc-accent); }
+  .bound {
+    margin-top: 16px; padding: 10px 11px; border-radius: 7px;
+    background: rgba(178,92,255,.07); border: 1px solid rgba(178,92,255,.22);
+    font-size: 11.5px; line-height: 1.5; color: var(--oc-mute);
+  }
+  .bound b { color: var(--oc-text); font-weight: 600; }
+
+  /* choreography */
+  .wiring { padding: 16px 18px 6px; border-top: 1px solid var(--oc-rule); background: var(--oc-panel); }
+  .wire-grid { display: grid; grid-template-columns: 1fr auto 1fr; gap: 10px 18px; align-items: center; }
+  @media (max-width: 700px) { .wire-grid { grid-template-columns: 1fr; } }
+  .box {
+    border: 1px solid var(--oc-rule); border-radius: 7px; padding: 8px 11px;
+    font-family: var(--mono); font-size: 11.5px; background: var(--oc-bg);
+  }
+  .box .sub { display: block; font-size: 9.5px; color: var(--oc-mute); letter-spacing: .08em; text-transform: uppercase; margin-bottom: 3px; }
+  .box.driver { border-color: rgba(72,210,185,.45); color: var(--oc-live); }
+  .box.target { color: var(--oc-text); }
+  .arrow { font-family: var(--mono); color: var(--oc-mute); font-size: 15px; text-align: center; }
+  @media (max-width: 700px) { .arrow { text-align: left; } }
+  .curve { font-family: var(--mono); font-size: 9.5px; color: var(--oc-mute); }
+
+  .scrub { padding: 14px 18px 18px; background: var(--oc-panel); border-top: 1px solid var(--oc-rule); }
+  .scrub-top { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .scrub-label { font-family: var(--mono); font-size: 10px; letter-spacing: .13em; text-transform: uppercase; color: var(--oc-mute); }
+  .scrub-val { margin-left: auto; font-family: var(--mono); font-size: 11px; color: var(--oc-live); font-variant-numeric: tabular-nums; }
+  .stops { display: flex; justify-content: space-between; margin-top: 7px; font-family: var(--mono); font-size: 9.5px; color: var(--oc-mute); }
+  .stops span.hot { color: var(--rw-copper); }
+
+  figcaption {
+    font-size: 13px; color: var(--ink-2); margin-top: 12px; max-width: 72ch;
+  }
+  figcaption b { color: var(--ink); font-weight: 620; }
+
+  .note {
+    margin-top: 34px; border-left: 2px solid var(--accent);
+    padding: 2px 0 2px 16px; color: var(--ink-2); font-size: 14.5px; max-width: 66ch;
+  }
+  .note b { color: var(--ink); }
+
+  table { border-collapse: collapse; width: 100%; font-size: 13.5px; margin-top: 18px; }
+  th, td { text-align: left; padding: 9px 12px 9px 0; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  th { font-family: var(--mono); font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-3); font-weight: 400; }
+  td code { font-family: var(--mono); font-size: 12px; color: var(--accent); }
+  .scroller { overflow-x: auto; }
+
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+
+<div class="wrap">
+
+<header>
+  <div class="eyebrow">TGV Office · Sandbox · proposal</div>
+  <h1>Canvas Mode: editing something that moves</h1>
+  <p class="standfirst">
+    An animated section has three editable layers, and they need three different kinds of control.
+    Two of them are new. This is what they'd look like — the panels below are working, so
+    drag things.
+  </p>
+</header>
+
+<section>
+  <div class="prose">
+    <h2>The three layers</h2>
+    <p>
+      Marthe's journey is one experience made of parts that change at different rates. Her words
+      change often. Her tuning changes occasionally. The code that makes a particle field respond
+      to scroll doesn't change at all — and shouldn't be exposed as if it did.
+    </p>
+  </div>
+
+  <div class="layers">
+    <div class="layer">
+      <div class="tag t-edit">Content · editable today</div>
+      <h3 style="margin-top:8px">Words, images, stops</h3>
+      <p>Already data in her <code style="font-family:var(--mono);font-size:12px">chakraSections.ts</code>. Reorder, rewrite, add a stop.</p>
+    </div>
+    <div class="layer">
+      <div class="tag t-edit">Parameters · new</div>
+      <h3 style="margin-top:8px">Density, tempo, hue, scale</h3>
+      <p>Numbers the code already reads, exposed as controls that can't be set to nonsense.</p>
+    </div>
+    <div class="layer">
+      <div class="tag t-code">Choreography · new</div>
+      <h3 style="margin-top:8px">What drives what</h3>
+      <p>Scroll drives progress; progress drives the canvas. Wiring is editable, the maths is not.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="prose">
+    <h2>Parameters</h2>
+    <p>
+      The inspector is the familiar half. Each control is declared by the component itself — name,
+      type, range — so the editor renders something that physically cannot produce a broken frame.
+      The preview is the real component, running.
+    </p>
+  </div>
+
+  <figure>
+    <div class="office">
+      <div class="titlebar">
+        <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+        <span class="path">resonantweaver / journey / rf-journey</span>
+        <span class="pill">Canvas mode</span>
+      </div>
+
+      <div class="stage">
+        <div class="rail">
+          <div class="rail-head">Section</div>
+          <div class="node">Stops <span class="chip data">data</span></div>
+          <div class="node kid">01 · Root</div>
+          <div class="node kid">02 · Sacral</div>
+          <div class="node kid">03 · Solar</div>
+          <div class="node sel">Field <span class="chip code">code</span></div>
+          <div class="node kid sel" style="box-shadow:none;background:transparent">ParticleCanvas</div>
+          <div class="node kid">BreathOrb</div>
+          <div class="node kid">ToroidalField</div>
+        </div>
+
+        <div class="preview">
+          <div class="preview-label">Live preview</div>
+          <canvas id="cv-a" aria-label="Live preview of the particle field with the current parameters"></canvas>
+          <div class="preview-copy">
+            <div class="stop">02 · Sacral</div>
+            <div class="line">A return to yourself</div>
+          </div>
+        </div>
+
+        <div class="inspector">
+          <div class="insp-head">ParticleCanvas</div>
+
+          <div class="knob">
+            <div class="knob-top"><span class="knob-name">Density</span><span class="knob-val" id="v-den">240</span></div>
+            <input type="range" id="k-den" min="40" max="420" value="240" aria-label="Density">
+            <div class="knob-range">40 — 420 particles</div>
+          </div>
+
+          <div class="knob">
+            <div class="knob-top"><span class="knob-name">Drift</span><span class="knob-val" id="v-drift">0.35</span></div>
+            <input type="range" id="k-drift" min="0" max="100" value="35" aria-label="Drift">
+            <div class="knob-range">0.00 — 1.00</div>
+          </div>
+
+          <div class="knob">
+            <div class="knob-top"><span class="knob-name">Breath tempo</span><span class="knob-val" id="v-breath">6.0s</span></div>
+            <input type="range" id="k-breath" min="20" max="140" value="60" aria-label="Breath tempo">
+            <div class="knob-range">2.0s — 14.0s</div>
+          </div>
+
+          <div class="knob">
+            <div class="knob-top"><span class="knob-name">Hue</span><span class="knob-val" id="v-hue">site</span></div>
+            <div class="swatchrow">
+              <button class="swatch on" id="sw-site" style="background:linear-gradient(135deg,#b78a77,#48d2b9)" aria-label="Site tokens" title="--site-accent / --site-primary"></button>
+              <button class="swatch" id="sw-copper" style="background:#b78a77" aria-label="Copper" title="copper"></button>
+              <button class="swatch" id="sw-teal" style="background:#48d2b9" aria-label="Teal" title="teal"></button>
+            </div>
+            <div class="knob-range" style="margin-top:6px">bound to the site token, not a hex</div>
+          </div>
+
+          <div class="bound">
+            <b>Why ranges matter.</b> The component declares them. There is no field here that
+            accepts a value the renderer can't draw — the same guarantee the Atom Library already
+            gives a button.
+          </div>
+        </div>
+      </div>
+    </div>
+    <figcaption>
+      <b>The left rail is the honest part.</b> Stops are marked <span style="color:var(--oc-live)">data</span> —
+      reorder and rewrite them. The field is marked <span style="color:var(--oc-touched)">code</span> —
+      you can tune it, you can't restructure it. That distinction is the whole safety model, and it's
+      visible before you click anything.
+    </figcaption>
+  </figure>
+</section>
+
+<section>
+  <div class="prose">
+    <h2>Choreography</h2>
+    <p>
+      This is the part nothing today can do. An experience isn't a list of blocks — it's a set of
+      relationships. Scroll position becomes a progress value; progress moves the particle field,
+      the orb's scale, and which stop is showing. Editing that means editing the <em>wires</em>,
+      never the maths.
+    </p>
+    <p>
+      So the surface is two things: a list of driver&nbsp;→&nbsp;target links, and a scrubber that
+      lets you play the relationship without scrolling a real page. Drag the scrubber.
+    </p>
+  </div>
+
+  <figure>
+    <div class="office">
+      <div class="titlebar">
+        <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+        <span class="path">resonantweaver / journey / choreography</span>
+        <span class="pill">Canvas mode</span>
+      </div>
+
+      <div class="preview" style="min-height:250px">
+        <div class="preview-label">Scrubbed preview</div>
+        <canvas id="cv-b" aria-label="Preview responding to the scrubbed progress value"></canvas>
+        <div class="preview-copy">
+          <div class="stop" id="b-stop">01 · Root</div>
+          <div class="line" id="b-line">Settle where you are</div>
+        </div>
+      </div>
+
+      <div class="scrub">
+        <div class="scrub-top">
+          <span class="scrub-label">Progress</span>
+          <span class="scrub-val" id="v-prog">0.00</span>
+        </div>
+        <input type="range" id="k-prog" min="0" max="1000" value="0" aria-label="Scrub progress">
+        <div class="stops">
+          <span id="s0" class="hot">Root</span><span id="s1">Sacral</span><span id="s2">Solar</span><span id="s3">Heart</span>
+        </div>
+      </div>
+
+      <div class="wiring">
+        <div class="insp-head" style="margin-bottom:12px">Drivers → targets</div>
+        <div class="wire-grid">
+          <div class="box driver"><span class="sub">Driver</span>scroll · viewport</div>
+          <div class="arrow" id="a1">──▶</div>
+          <div class="box target"><span class="sub">Target</span>progress <span class="curve">· eased</span></div>
+
+          <div class="box driver"><span class="sub">Driver</span>progress</div>
+          <div class="arrow" id="a2">──▶</div>
+          <div class="box target"><span class="sub">Target</span>ParticleCanvas.spin <span class="curve">· linear</span></div>
+
+          <div class="box driver"><span class="sub">Driver</span>progress</div>
+          <div class="arrow" id="a3">──▶</div>
+          <div class="box target"><span class="sub">Target</span>BreathOrb.scale <span class="curve">· ease-in-out</span></div>
+
+          <div class="box driver"><span class="sub">Driver</span>progress</div>
+          <div class="arrow" id="a4">──▶</div>
+          <div class="box target"><span class="sub">Target</span>activeStop <span class="curve">· stepped</span></div>
+        </div>
+        <div class="bound" style="margin-bottom:14px">
+          <b>Four wires, one page.</b> Add a wire, change a curve, or point a driver somewhere
+          else. What you can't do is separate the scroll driver from the canvas — they live in one
+          section, so they travel together.
+        </div>
+      </div>
+    </div>
+    <figcaption>
+      <b>The scrubber replaces scrolling to test.</b> Today, checking that the orb breathes correctly
+      at 60% through the journey means scrolling a real page to roughly the right place. Here you
+      type the number.
+    </figcaption>
+  </figure>
+</section>
+
+<section>
+  <div class="prose">
+    <h2>What's genuinely new</h2>
+    <p>
+      Two of the three layers already have machinery. Naming which is which keeps the proposal
+      honest.
+    </p>
+  </div>
+  <div class="scroller">
+    <table>
+      <thead><tr><th>Piece</th><th>Exists today</th><th>To build</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>Declared editable surface</td>
+          <td><code>AtomSpec</code> — atoms already declare their controls, with a CSS emitter and draft/publish from the DB</td>
+          <td>The same idea one level up, on a section</td>
+        </tr>
+        <tr>
+          <td>Live preview + publish</td>
+          <td>The Sandbox does this now, without a deploy</td>
+          <td>Nothing</td>
+        </tr>
+        <tr>
+          <td>Composite section</td>
+          <td><code>rf-accordion</code>, <code>rf-steps</code> — one block owning an ordered internal list</td>
+          <td>The same shape, with a canvas inside</td>
+        </tr>
+        <tr>
+          <td>Per-site tokens</td>
+          <td>One site-scoped override (<code>siteBackground</code>)</td>
+          <td>Generalise to colours, fonts, scale</td>
+        </tr>
+        <tr>
+          <td>Driver → target wiring</td>
+          <td>—</td>
+          <td>All of it</td>
+        </tr>
+        <tr>
+          <td>Scrubbing</td>
+          <td>—</td>
+          <td>All of it</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p class="note">
+    <b>One decision hides in here.</b> A scrubber only works if progress is a value the section
+    owns, rather than something read live from the window. That's a small change to how her
+    journey computes its own position — and it's what makes the thing testable, previewable,
+    and reduced-motion-safe in one move.
+  </p>
+</section>
+
+</div>
+
+<script>
+(function () {
+  var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  function field(canvas, getState) {
+    var ctx = canvas.getContext("2d");
+    var parts = [], W = 0, H = 0, dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+    function seed(n) {
+      parts = [];
+      for (var i = 0; i < n; i++) {
+        parts.push({
+          a: Math.random() * Math.PI * 2,
+          r: Math.pow(Math.random(), 0.62),
+          s: 0.15 + Math.random() * 0.85,
+          z: Math.random()
+        });
+      }
+    }
+    function size() {
+      var r = canvas.getBoundingClientRect();
+      W = Math.max(1, r.width); H = Math.max(1, r.height);
+      canvas.width = W * dpr; canvas.height = H * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+    size();
+    window.addEventListener("resize", size);
+
+    var t = 0, lastN = -1;
+    function frame() {
+      var st = getState();
+      if (st.n !== lastN) { seed(st.n); lastN = st.n; }
+      t += reduce ? 0 : 0.016;
+
+      ctx.clearRect(0, 0, W, H);
+      var cx = W / 2, cy = H / 2, rad = Math.min(W, H) * 0.42;
+
+      // breathing orb
+      var breath = 0.5 + 0.5 * Math.sin((t / st.breath) * Math.PI * 2);
+      var orbR = rad * (0.30 + 0.10 * breath) * (0.85 + st.progress * 0.35);
+      var g = ctx.createRadialGradient(cx, cy, 0, cx, cy, orbR);
+      g.addColorStop(0, "rgba(72,210,185," + (0.16 + 0.10 * breath) + ")");
+      g.addColorStop(1, "rgba(72,210,185,0)");
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.arc(cx, cy, orbR, 0, Math.PI * 2); ctx.fill();
+
+      // toroidal ring, tightens with progress
+      ctx.strokeStyle = "rgba(183,138,119," + (0.10 + st.progress * 0.22) + ")";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, rad * (0.92 - st.progress * 0.16), rad * (0.30 + st.progress * 0.16), 0, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // particles
+      for (var i = 0; i < parts.length; i++) {
+        var p = parts[i];
+        var ang = p.a + t * st.drift * p.s * 0.5 + st.progress * 2.4 * p.s;
+        var rr = rad * (0.20 + p.r * 0.82);
+        var x = cx + Math.cos(ang) * rr;
+        var y = cy + Math.sin(ang) * rr * 0.44;
+        var al = (0.16 + p.z * 0.5) * (0.55 + 0.45 * breath);
+        ctx.fillStyle = st.mix === "copper"
+          ? "rgba(183,138,119," + al + ")"
+          : st.mix === "teal"
+            ? "rgba(72,210,185," + al + ")"
+            : (p.z > 0.5 ? "rgba(183,138,119," + al + ")" : "rgba(72,210,185," + al + ")");
+        var sz = 0.6 + p.z * 1.7;
+        ctx.beginPath(); ctx.arc(x, y, sz, 0, Math.PI * 2); ctx.fill();
+      }
+      requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+  }
+
+  // ── panel A ────────────────────────────────────────────────────
+  var kDen = document.getElementById("k-den"),
+      kDrift = document.getElementById("k-drift"),
+      kBreath = document.getElementById("k-breath"),
+      vDen = document.getElementById("v-den"),
+      vDrift = document.getElementById("v-drift"),
+      vBreath = document.getElementById("v-breath"),
+      vHue = document.getElementById("v-hue");
+  var mixA = "site";
+
+  function paintSwatches(which) {
+    ["sw-site", "sw-copper", "sw-teal"].forEach(function (id) {
+      document.getElementById(id).classList.toggle("on", id === which);
+    });
+  }
+  document.getElementById("sw-site").onclick = function () { mixA = "site"; vHue.textContent = "site"; paintSwatches("sw-site"); };
+  document.getElementById("sw-copper").onclick = function () { mixA = "copper"; vHue.textContent = "copper"; paintSwatches("sw-copper"); };
+  document.getElementById("sw-teal").onclick = function () { mixA = "teal"; vHue.textContent = "teal"; paintSwatches("sw-teal"); };
+
+  function syncA() {
+    vDen.textContent = kDen.value;
+    vDrift.textContent = (kDrift.value / 100).toFixed(2);
+    vBreath.textContent = (kBreath.value / 10).toFixed(1) + "s";
+  }
+  [kDen, kDrift, kBreath].forEach(function (el) { el.addEventListener("input", syncA); });
+  syncA();
+
+  field(document.getElementById("cv-a"), function () {
+    return {
+      n: parseInt(kDen.value, 10),
+      drift: kDrift.value / 100,
+      breath: Math.max(0.4, kBreath.value / 10),
+      progress: 0.34,
+      mix: mixA
+    };
+  });
+
+  // ── panel B ────────────────────────────────────────────────────
+  var kProg = document.getElementById("k-prog"),
+      vProg = document.getElementById("v-prog"),
+      bStop = document.getElementById("b-stop"),
+      bLine = document.getElementById("b-line");
+
+  var STOPS = [
+    { name: "01 · Root",   line: "Settle where you are" },
+    { name: "02 · Sacral", line: "A return to yourself" },
+    { name: "03 · Solar",  line: "What you can carry" },
+    { name: "04 · Heart",  line: "Wider than before" }
+  ];
+
+  function syncB() {
+    var p = kProg.value / 1000;
+    vProg.textContent = p.toFixed(2);
+    var i = Math.min(STOPS.length - 1, Math.floor(p * STOPS.length));
+    bStop.textContent = STOPS[i].name;
+    bLine.textContent = STOPS[i].line;
+    for (var k = 0; k < STOPS.length; k++) {
+      document.getElementById("s" + k).classList.toggle("hot", k === i);
+    }
+    ["a1", "a2", "a3", "a4"].forEach(function (id) {
+      document.getElementById(id).style.color = p > 0.01 ? "var(--oc-live)" : "var(--oc-mute)";
+    });
+  }
+  kProg.addEventListener("input", syncB);
+  syncB();
+
+  field(document.getElementById("cv-b"), function () {
+    return { n: 200, drift: 0.3, breath: 6, progress: kProg.value / 1000, mix: "site" };
+  });
+})();
+</script>
