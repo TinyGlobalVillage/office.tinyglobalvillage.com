@@ -1202,37 +1202,6 @@ function StoragePageInner({ forceEmbedded = false }: { forceEmbedded?: boolean }
           <HeaderRow>
             <TitleWrap>
               <PageTitle>Dashboard Storage</PageTitle>
-              {/* Where the files actually live is reference material, not a subtitle — it was three lines
-                  of URL shapes above the fold. A QMBM keeps it one click away. */}
-              <InfoBubble
-                title="Where these files live"
-                theme="neutral"
-                placement="popover"
-                body={
-                  <>
-                    <p>
-                      Every file here sits in one of two stores, chosen when it was uploaded. Nothing records
-                      which — this page reads both and labels each file.
-                    </p>
-                    <p>
-                      <strong>RCS disk</strong> — written to <em>/srv/refusion-core/cdn/&#123;project&#125;/</em>
-                      {" "}on the box and served by office&apos;s own alias:
-                      <br />
-                      <code>{CDN_BASE}/&#123;project&#125;/&#123;file&#125;</code>
-                    </p>
-                    <p>
-                      <strong>Cloud</strong> — written to Cloudflare R2 beneath the <em>public/</em> prefix, the
-                      one prefix the CDN domain is bound to:
-                      <br />
-                      <code>https://cdn.tinyglobalvillage.com/public/&#123;project&#125;/&#123;file&#125;</code>
-                    </p>
-                    <p>
-                      Both are publicly readable with an immutable cache, so neither is a place for anything
-                      private — member galleries and site documents use the authenticated route instead.
-                    </p>
-                  </>
-                }
-              />
             </TitleWrap>
           </HeaderRow>
         )}
@@ -1245,6 +1214,37 @@ function StoragePageInner({ forceEmbedded = false }: { forceEmbedded?: boolean }
             <StorageMeteringPanel />
           </ControlCell>
           <ControlCell>
+            {/* Where the files actually live is reference material, not a subtitle — it was three lines
+                of URL shapes above the fold. A QMBM keeps it one click away. */}
+            <InfoBubble
+              title="Where these files live"
+              theme="neutral"
+              placement="popover"
+              body={
+                <>
+                  <p>
+                    Every file here sits in one of two stores, chosen when it was uploaded. Nothing records
+                    which — this page reads both and labels each file.
+                  </p>
+                  <p>
+                    <strong>RCS disk</strong> — written to <em>/srv/refusion-core/cdn/&#123;project&#125;/</em>
+                    {" "}on the box and served by office&apos;s own alias:
+                    <br />
+                    <code>{CDN_BASE}/&#123;project&#125;/&#123;file&#125;</code>
+                  </p>
+                  <p>
+                    <strong>Cloud</strong> — written to Cloudflare R2 beneath the <em>public/</em> prefix, the
+                    one prefix the CDN domain is bound to:
+                    <br />
+                    <code>https://cdn.tinyglobalvillage.com/public/&#123;project&#125;/&#123;file&#125;</code>
+                  </p>
+                  <p>
+                    Both are publicly readable with an immutable cache, so neither is a place for anything
+                    private — member galleries and site documents use the authenticated route instead.
+                  </p>
+                </>
+              }
+            />
             <ConfigBtn
               onClick={() => setConfigOpen(true)}
               title="Fleet caps, dormant pricing, lifecycle timings and the reaper switch"
