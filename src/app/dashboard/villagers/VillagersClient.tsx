@@ -29,8 +29,10 @@ import {
   ChartIcon,
   PaypalIcon,
   ArchiveIcon,
+  StorageIcon,
 } from "../../components/icons";
 import MemberWalletModal from "../../components/villagers/MemberWalletModal";
+import MemberBillingModal from "../../components/villagers/MemberBillingModal";
 import PayoutsModal from "../../components/villagers/PayoutsModal";
 import WalletControlModal from "../../components/hardening/wallet-control/WalletControlModal";
 import ManagedOnboardingModal from "../../components/villagers/ManagedOnboardingModal";
@@ -45,6 +47,7 @@ import PaypalControlModal from "../../components/villagers/PaypalControlModal";
 import MoneyStoresModal from "../../components/villagers/MoneyStoresModal";
 import MemberLookupModal from "../../components/villagers/MemberLookupModal";
 import DashboardConfigModal from "../../components/villagers/DashboardConfigModal";
+import DashboardStorageConfigModal from "../../components/villagers/DashboardStorageConfigModal";
 import RequestTenantAccessModal from "../../components/villagers/RequestTenantAccessModal";
 import KeycloakWireModal from "../../components/villagers/KeycloakWireModal";
 import GuestClaimsModal from "../../components/villagers/GuestClaimsModal";
@@ -79,6 +82,7 @@ const DEFAULT_LAYOUT: SectionLayout[] = [
     id: "money",
     title: "Money & Wallets",
     tileIds: [
+      "memberBilling",
       "memberWallet",
       "moneyStores",
       "payouts",
@@ -107,7 +111,7 @@ const DEFAULT_LAYOUT: SectionLayout[] = [
   {
     id: "platform",
     title: "Platform & Analytics",
-    tileIds: ["dashboardConfig", "ecosystemAnalytics"],
+    tileIds: ["dashboardConfig", "dashboardStorage", "ecosystemAnalytics"],
   },
 ];
 
@@ -454,8 +458,10 @@ export default function VillagersClient() {
   };
 
   const [openMemberWallet, setOpenMemberWallet] = useState(false);
+  const [openMemberBilling, setOpenMemberBilling] = useState(false);
   const [openMemberLookup, setOpenMemberLookup] = useState(false);
   const [openDashboardConfig, setOpenDashboardConfig] = useState(false);
+  const [openDashboardStorage, setOpenDashboardStorage] = useState(false);
   const [openAccessGrant, setOpenAccessGrant] = useState(false);
   const [openPayouts, setOpenPayouts] = useState(false);
   const [openWalletControl, setOpenWalletControl] = useState(false);
@@ -546,6 +552,19 @@ export default function VillagersClient() {
           migrate their existing site, waive fees / record plan intent, send the
           passkey invite. Existing emails add a site, never a duplicate. Config
           (AI designer beta) behind the gear.
+        </>
+      ),
+    },
+    memberBilling: {
+      id: "memberBilling",
+      title: "Billing",
+      icon: <CashIcon size={18} />,
+      onClick: () => setOpenMemberBilling(true),
+      sub: (
+        <>
+          Every invoice TGV has issued a villager — dashboard handovers today — with what&apos;s
+          still outstanding and what their wallet could cover. Read-only: settling one spends their
+          tokens, which happens from their own wallet.
         </>
       ),
     },
@@ -788,6 +807,19 @@ export default function VillagersClient() {
         </>
       ),
     },
+    dashboardStorage: {
+      id: "dashboardStorage",
+      title: "Dashboard Storage",
+      icon: <StorageIcon size={18} />,
+      onClick: () => setOpenDashboardStorage(true),
+      sub: (
+        <>
+          Fleet storage config — tier caps (Free 1&nbsp;GB, paid lifts live), dormant-hosting price
+          ($5/mo + $1/GB), the lapse-to-free &amp; 1-year purge timings, and the Stripe price pointers
+          for the +GB add-on and dormant subscription. One source of truth for every dashboard; no redeploy.
+        </>
+      ),
+    },
     ecosystemAnalytics: {
       id: "ecosystemAnalytics",
       title: "Ecosystem Analytics",
@@ -1012,6 +1044,9 @@ export default function VillagersClient() {
       {openMemberWallet && (
         <MemberWalletModal onClose={() => setOpenMemberWallet(false)} />
       )}
+      {openMemberBilling && (
+        <MemberBillingModal onClose={() => setOpenMemberBilling(false)} />
+      )}
 
       {openMemberLookup && (
         <MemberLookupModal onClose={() => setOpenMemberLookup(false)} />
@@ -1019,6 +1054,9 @@ export default function VillagersClient() {
 
       {openDashboardConfig && (
         <DashboardConfigModal onClose={() => setOpenDashboardConfig(false)} />
+      )}
+      {openDashboardStorage && (
+        <DashboardStorageConfigModal onClose={() => setOpenDashboardStorage(false)} />
       )}
 
       {openAccessGrant && <RequestTenantAccessModal onClose={() => setOpenAccessGrant(false)} />}
