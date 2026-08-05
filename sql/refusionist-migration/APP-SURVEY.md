@@ -74,14 +74,48 @@ refusionist's is `@tgv/module-storefront/components/CartContainer` and HQ's
 storefront allowlist already keeps a guest cart on the tenant origin — so it is
 an allowlist decision about which path spellings count, not a port.
 
-**B — content; author as `page_models` rows, exactly the giocoelho move (10)**
+**B — the content pages — and they are NOT local (corrected)**
 
 `/about/`, `/fitness/`, `/gallery/`, `/hemp/`, `/humandesign/`, `/resume/`,
-`/legal/privacy/`, `/legal/terms/`, `/recipes/paodequeijo/` (+`/print/`).
-Every one is a thin `[lang]/<page>/page.tsx` mounting a local
-`@/lib/domains/marketing/*` component — 6 to 62 lines of mount over hand-written
-React. `/resume/` is a timeline, which is the block nevlo's history already
-uses. `/legal/*` are 137 and 150 lines of prose.
+`/legal/privacy/`, `/legal/terms/`, `/recipes/paodequeijo/` (+`/print/`),
+`/refusionmarketing/`, `/testimonials/`.
+
+Each is a thin 6-to-62-line `[lang]/<page>/page.tsx` over
+`@/lib/domains/marketing/*` — which **first reading took for a local directory
+and is not one.** `src/lib/domains/` does not exist in the repo. The alias in
+`tsconfig.json` maps it to
+`packages/@tgv/module-core/module-marketing/dist/marketing/*`: refusionist's
+entire marketing site was extracted into a shared package some time ago, and
+**HQ already declares `@tgv/module-marketing` as a workspace dependency and
+carries the identical path alias.**
+
+Two things follow, one helpful and one not.
+
+*Helpful:* the content is already out of the app, so pooling does not have to
+re-type it. The package holds ~60 components across `about`, `blog`, `contact`,
+`fitness`, `gallery`, `home`, `humandesign`, `legal`, `recipes`, `refusion`,
+`sections`, `styles`, `testimonials`.
+
+*Not:* **HQ mounts none of it, and the module has no tenant-awareness at all** —
+not one `siteId`, `subdomain` or `tenant` in the whole tree. It is Refusionist's
+content, hardcoded, in a package. Mounting it on HQ as-is would serve
+refusionist's About page on whatever host reached the route: the same white-label
+leak already logged twice against the chrome and the JSON-LD.
+
+So the category splits by shape, not by location:
+
+- **Content → `page_models` rows**, tenant-keyed by construction and editable
+  afterwards, which is the giocoelho precedent and what plan 33/34 is for:
+  `/about/` (3 files), `/gallery/` (1), `/legal/privacy/` + `/legal/terms/`
+  (137 and 150 lines of prose in the page itself), `/recipes/paodequeijo/`
+  (a data file plus styles), `/hemp/`, `/resume/` (a timeline — the block
+  nevlo's history already uses), `/fitness/` (9 components, but Hero /
+  ButiHistory / Testimonials / GalleryPlaceholders / CTA are all content),
+  `/refusionmarketing/`.
+- **Funnels → real HQ routes, gated per tenant**: `/humandesign/` is not a
+  content page at all — 17 files including `BookSessionModal` with calendar and
+  email steps; `/testimonials/` is a submit form; `/recipes/paodequeijo/print/`
+  is a print-stylesheet app over the same recipe data.
 
 **C — HQ owns the module but has no page route on any host (6)**
 
@@ -94,9 +128,10 @@ new engine.
 
 **D — genuinely refusionist-local; each needs a ruling (6)**
 
-- `/schedule/` — mounts a local `@/lib/domains/booking/BookingScheduler`. HQ's
-  equivalent is `/book/` on `@tgv/module-appointments`. Two different booking
-  UIs over data that now lands in the same tables. **Port, replace, or drop.**
+- `/schedule/` — mounts `@/lib/domains/booking/BookingScheduler`, which is the
+  same alias trick: it resolves to `@tgv/module-appointments/booking`, the very
+  package HQ's `/book/` route is built on. So this is one module with two
+  mounts, not two booking engines. **Gio's ruling 2026-08-04: converge on HQ.**
 - `/portal/birth-data/` — 259 lines, cospro, plus four refusionist-only admin
   API routes (`user/admin/cosmic-profiles*`,
   `user/admin/users/[userId]/can-add-extra-charts`). `@tgv/module-cospro` is
@@ -185,11 +220,26 @@ dashboard convergence) and the `/u/` strip. Both exist to unwind history that
 pooling makes moot, but the 308s are load-bearing for anything still linking the
 old shape.
 
+## Rulings taken
+
+Gio, 2026-08-04: **fleet-wide allowlist** (not refusionist-scoped); **cospro
+tables and portal move together, before cutover** (plan 44 folds into this
+phase); **`/refusionmarketing/` becomes a page row and its host 301s** to
+`refusionist.com/refusionmarketing/`; and, on the booking UI, *"I think it's
+fine, just migrate them all onto TGV"* — converge on HQ's `/book/`, 308 the old
+URL, keep nothing bespoke.
+
+**Done since:** HQ commit `64730005` adds `isPublicTenantAppRoute` so `/meet/*`,
+`/session/*` and `/performers` render on a tenant host, and moves `/cart` and
+`/performers/console` into the member list. `scripts/test-proxy-routes.mjs`
+pins the table by lifting the predicates out of the source. Additive — every
+one of those paths 404s today. Not deployed.
+
 ## What this survey does not answer
 
-The rulings in category D, and the sessions cutover of plan 43 — 2 real accounts
-and 6 live sessions behind a host-only `refusionist_member_session` cookie and
-refusionist's own Keycloak client, both of which change with the pooling.
+The sessions cutover of plan 43 — 2 real accounts and 6 live sessions behind a
+host-only `refusionist_member_session` cookie and refusionist's own Keycloak
+client, both of which change with the pooling.
 
 And the browser pass (38) stays mandatory. Every defect that mattered while
 pooling giocoelho — the unrendered home hero, the broken images, the missing
