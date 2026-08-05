@@ -324,7 +324,7 @@ export const OFFICE_TILES: OfficeTileDef[] = [
   { key: "Processes", group: "Infrastructure", title: "Processes", subtitle: "PM2", glow: "cyan", icon: (s) => <ProcessesIcon size={s} style={{ color: colors.cyan }} />, action: { page: "processes" } },
   { key: "Deploy", group: "Infrastructure", title: "Deploy", subtitle: "Projects", glow: "pink", icon: (s) => <DeployIcon size={s} style={{ color: colors.pink }} />, action: { page: "deploy" } },
   { key: "Database", group: "Infrastructure", title: "Database", subtitle: "PostgreSQL", glow: "gold", icon: (s) => <DatabaseIcon size={s} style={{ color: colors.gold }} />, action: { page: "database" } },
-  { key: "Storage", group: "Infrastructure", title: "Storage", subtitle: "Files", glow: "pink", icon: (s) => <StorageIcon size={s} style={{ color: colors.pink }} />, action: { page: "storage" } },
+  { key: "Storage", group: "Infrastructure", title: "Dashboard Storage", subtitle: "Files & fleet config", glow: "pink", icon: (s) => <StorageIcon size={s} style={{ color: colors.pink }} />, action: { page: "storage" } },
   { key: "Editor", group: "Build & Design", title: "Editor", subtitle: "Code", glow: "gold", icon: (s) => <EditorIcon size={s} style={{ color: colors.gold }} />, action: { page: "editor" } },
   { key: "Utils", group: "Infrastructure", title: "Utils", subtitle: "Tooling", glow: "cyan", icon: (s) => <UtilsIcon size={s} style={{ color: colors.cyan }} />, action: { page: "utils" } },
   { key: "Villagers", group: "People & Money", title: "Villagers", subtitle: "Members & wallets", glow: "gold", icon: (s) => <MembersIcon size={s} style={{ color: colors.gold }} />, action: { page: "villagers" } },

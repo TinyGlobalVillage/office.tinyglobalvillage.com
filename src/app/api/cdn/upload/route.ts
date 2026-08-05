@@ -1,8 +1,12 @@
 /**
  * POST /api/cdn/upload
- * Accepts multipart/form-data: file (File), project (string)
- * Stores to /srv/refusion-core/cdn/{project}/{slug}-{random}.{ext}
- * Returns: { url, name, size, type, project }
+ * Accepts multipart/form-data: file (File), project (string), store ("disk" | "cloud")
+ * disk  (default) → /srv/refusion-core/cdn/{project}/{slug}-{random}.{ext}, served by office /media/
+ * cloud           → R2 `public/{project}/{slug}-{random}.{ext}`, served by cdn.<domain>
+ * Returns: { url, name, size, type, project, store }
+ *
+ * `store` defaults to disk, so an older caller that doesn't send it behaves exactly as before. The
+ * choice is per upload and nothing records it — see lib/cdn/stores.ts on why the browser lists both.
  *
  * Hardening (2026-05-14):
  *   - Requires session auth (defense in depth — nginx already gates at
@@ -17,14 +21,10 @@
  *     supported in a future iteration.
  */
 import { NextRequest, NextResponse } from "next/server";
-import { writeFile, mkdir } from "fs/promises";
-import { existsSync } from "fs";
-import path from "path";
 import { randomBytes } from "crypto";
 import { requireAuth } from "@/lib/api-auth";
+import { cloudAvailable, parseStore, writeFileTo } from "@/lib/cdn/stores";
 
-const CDN_ROOT = "/srv/refusion-core/cdn";
-const CDN_BASE_URL = "https://office.tinyglobalvillage.com/media";
 const MAX_BYTES = 20 * 1024 * 1024; // 20 MB
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX = 10;
@@ -108,6 +108,12 @@ export async function POST(req: NextRequest) {
 
   const file = form.get("file");
   const projectRaw = form.get("project");
+  const store = parseStore(form.get("store"));
+  if (store === "cloud" && !cloudAvailable()) {
+    // Refuse rather than silently writing to disk: a staffer who picked Cloud and got a /media/ URL back
+    // would reasonably believe the file is in the bucket.
+    return NextResponse.json({ error: "cloud_unconfigured" }, { status: 503 });
+  }
 
   if (!file || typeof file === "string") {
     return NextResponse.json({ error: "No file provided" }, { status: 400 });
@@ -143,13 +149,6 @@ export async function POST(req: NextRequest) {
   const slug = slugify(baseName);
   const filename = `${slug}-${randomHex(8)}.${ext}`;
 
-  const projectDir = path.join(CDN_ROOT, project);
-  if (!existsSync(projectDir)) {
-    await mkdir(projectDir, { recursive: true });
-  }
-
-  const filePath = path.join(projectDir, filename);
-
   const buf = Buffer.from(await (file as File).arrayBuffer());
   // Re-check actual size after reading — File.size on the FormData entry
   // may be advisory; the buffer is the truth.
@@ -159,9 +158,15 @@ export async function POST(req: NextRequest) {
       { status: 413 },
     );
   }
-  await writeFile(filePath, buf);
-
-  const url = `${CDN_BASE_URL}/${project}/${filename}`;
+  let url: string;
+  try {
+    ({ url } = await writeFileTo(store, project, filename, buf, mime));
+  } catch (e) {
+    return NextResponse.json(
+      { error: "write_failed", store, detail: e instanceof Error ? e.message : String(e) },
+      { status: 502 },
+    );
+  }
 
   return NextResponse.json({
     url,
@@ -170,5 +175,6 @@ export async function POST(req: NextRequest) {
     size: buf.byteLength,
     type: mime,
     project,
+    store,
   });
 }

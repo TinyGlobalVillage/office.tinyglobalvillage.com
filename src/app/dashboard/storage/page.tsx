@@ -8,6 +8,7 @@ import TopNav from "../../components/TopNav";
 import { CloudIcon, AvatarIcon, EditIcon, CopyIcon, DownloadIcon, CheckIcon } from "../../components/icons";
 import { askPrompt, showNotice } from "../../components/dialogService";
 import StorageMeteringPanel from "../../components/storage/StorageMeteringPanel";
+import DashboardStorageConfigModal from "../../components/villagers/DashboardStorageConfigModal";
 
 const CDN_BASE = "https://office.tinyglobalvillage.com/media";
 
@@ -18,7 +19,11 @@ type CdnFile = {
   type: string;
   project: string;
   modifiedAt: number;
+  /** Which store this file is actually in. Chosen per upload; the listing reads both. */
+  store: CdnStore;
 };
+
+type CdnStore = "disk" | "cloud";
 
 type ProjectMeta = { name: string; count: number };
 
@@ -84,12 +89,93 @@ const CdnPath = styled.span`
   color: var(--t-textMuted);
 `;
 
+const PageTitle = styled.h1`
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: ${colors.pink};
+  text-shadow: 0 0 10px rgba(${rgb.pink}, 0.35);
+
+  [data-theme="light"] & {
+    text-shadow: none;
+  }
+`;
+
+const ConfigBtn = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 0.4rem 0.85rem;
+  border-radius: 0.6rem;
+  color: ${colors.pink};
+  background: rgba(${rgb.pink}, 0.1);
+  border: 1px solid rgba(${rgb.pink}, 0.4);
+  transition: box-shadow 0.15s;
+
+  &:hover {
+    box-shadow: 0 0 14px rgba(${rgb.pink}, 0.4);
+  }
+`;
+
 /* ── Upload zone ───────────────────────────────────────────────── */
 
 const UploadWrap = styled.div`
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+`;
+
+const DestRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+`;
+const DestLabel = styled.span`
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 0.7;
+`;
+const DestSwitch = styled.div`
+  display: inline-flex;
+  border-radius: 999px;
+  padding: 3px;
+  gap: 3px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+`;
+const DestOption = styled.button<{ $active: boolean }>`
+  border: 0;
+  cursor: pointer;
+  border-radius: 999px;
+  padding: 5px 14px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: ${({ $active }) => ($active ? "#04121a" : "inherit")};
+  background: ${({ $active }) => ($active ? "rgb(var(--tgv-accent-rgb, 0, 228, 253))" : "transparent")};
+  opacity: ${({ disabled }) => (disabled ? 0.4 : 1)};
+  &:disabled { cursor: not-allowed; }
+`;
+const DestHint = styled.span`
+  font-size: 12px;
+  opacity: 0.62;
+`;
+const StoreBadge = styled.span<{ $cloud: boolean }>`
+  display: inline-block;
+  border-radius: 999px;
+  padding: 1px 8px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: ${({ $cloud }) => ($cloud ? "#7dd3fc" : "#fcd34d")};
+  border: 1px solid ${({ $cloud }) => ($cloud ? "rgba(125,211,252,0.4)" : "rgba(252,211,77,0.4)")};
+  background: ${({ $cloud }) => ($cloud ? "rgba(125,211,252,0.10)" : "rgba(252,211,77,0.10)")};
 `;
 
 const DropZone = styled.div<{ $dragging: boolean }>`
@@ -676,9 +762,15 @@ const PaginationLabel = styled.span`
 function UploadZone({
   project,
   onUploaded,
+  store,
+  onStoreChange,
+  cloudAvailable,
 }: {
   project: string;
   onUploaded: (f: CdnFile) => void;
+  store: CdnStore;
+  onStoreChange: (s: CdnStore) => void;
+  cloudAvailable: boolean;
 }) {
   const [dragging, setDragging] = useState(false);
   const [uploading, setUploading] = useState<string[]>([]);
@@ -695,6 +787,7 @@ function UploadZone({
         const fd = new FormData();
         fd.append("file", file);
         fd.append("project", project);
+        fd.append("store", store);
         try {
           const res = await fetch("/api/cdn/upload", { method: "POST", body: fd });
           if (res.ok) {
@@ -706,7 +799,7 @@ function UploadZone({
       }
       setUploading([]);
     },
-    [project, onUploaded]
+    [project, store, onUploaded]
   );
 
   const onDrop = (e: DragEvent) => {
@@ -724,6 +817,37 @@ function UploadZone({
 
   return (
     <UploadWrap>
+      <DestRow>
+        <DestLabel>Save to</DestLabel>
+        <DestSwitch>
+          <DestOption
+            type="button"
+            $active={store === "disk"}
+            onClick={() => onStoreChange("disk")}
+            title="Write to the RCS disk, served from office.tinyglobalvillage.com/media"
+          >
+            RCS disk
+          </DestOption>
+          <DestOption
+            type="button"
+            $active={store === "cloud"}
+            disabled={!cloudAvailable}
+            onClick={() => cloudAvailable && onStoreChange("cloud")}
+            title={
+              cloudAvailable
+                ? "Write to Cloudflare R2, served from the CDN domain"
+                : "R2 is not configured on this host"
+            }
+          >
+            Cloud
+          </DestOption>
+        </DestSwitch>
+        <DestHint>
+          {store === "cloud"
+            ? "Uploads land in the bucket and come back as a cdn.… link."
+            : "Uploads land on the box and come back as a /media/… link."}
+        </DestHint>
+      </DestRow>
       <DropZone
         $dragging={dragging}
         onClick={() => inputRef.current?.click()}
@@ -824,7 +948,7 @@ function FileCard({ file, onDelete, onRename }: { file: CdnFile; onDelete: () =>
     const res = await fetch("/api/cdn/files", {
       method: "PATCH",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ project: file.project, name: file.name, newName: trimmed }),
+      body: JSON.stringify({ project: file.project, name: file.name, newName: trimmed, store: file.store }),
     });
     if (!res.ok) {
       const d = await res.json().catch(() => ({}));
@@ -836,9 +960,10 @@ function FileCard({ file, onDelete, onRename }: { file: CdnFile; onDelete: () =>
 
   const del = async () => {
     setDeleting(true);
-    await fetch(`/api/cdn/files?project=${file.project}&name=${encodeURIComponent(file.name)}`, {
-      method: "DELETE",
-    });
+    await fetch(
+      `/api/cdn/files?project=${file.project}&name=${encodeURIComponent(file.name)}&store=${file.store}`,
+      { method: "DELETE" },
+    );
     onDelete();
   };
 
@@ -856,6 +981,9 @@ function FileCard({ file, onDelete, onRename }: { file: CdnFile; onDelete: () =>
 
       <CardInfo>
         <CardName title={file.name}>{file.name}</CardName>
+        <StoreBadge $cloud={file.store === "cloud"} title={file.store === "cloud" ? "In Cloudflare R2" : "On the RCS disk"}>
+          {file.store === "cloud" ? "Cloud" : "Disk"}
+        </StoreBadge>
         <CardMeta>{fmtBytes(file.size)} · {fmtDate(file.modifiedAt)}</CardMeta>
       </CardInfo>
 
@@ -1027,11 +1155,18 @@ function StoragePageInner() {
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("");
+  // Where the NEXT upload goes. Disk is the default because it is where every existing file is.
+  const [uploadStore, setUploadStore] = useState<CdnStore>("disk");
+  const [cloudAvailable, setCloudAvailable] = useState(false);
+  const [configOpen, setConfigOpen] = useState(false);
 
   useEffect(() => {
     fetch("/api/cdn/files")
       .then((r) => r.json())
-      .then((d: { projects: ProjectMeta[] }) => setCdnProjects(d.projects ?? []))
+      .then((d: { projects: ProjectMeta[]; cloudAvailable?: boolean }) => {
+        setCdnProjects(d.projects ?? []);
+        setCloudAvailable(d.cloudAvailable === true);
+      })
       .catch(() => {});
     fetch("/api/projects")
       .then((r) => r.json())
@@ -1049,6 +1184,7 @@ function StoragePageInner() {
         setTotal(d.total ?? 0);
         setPage(d.page ?? 1);
         setTotalPages(d.totalPages ?? 1);
+        if (typeof d.cloudAvailable === "boolean") setCloudAvailable(d.cloudAvailable);
       }
     } finally {
       setLoading(false);
@@ -1071,8 +1207,10 @@ function StoragePageInner() {
     });
   };
 
-  const handleDelete = (name: string) => {
-    setFiles((prev) => prev.filter((f) => f.name !== name));
+  // Keyed on store AND name: the same filename can exist on disk and in the bucket, and deleting one
+  // must not blank the other out of the grid.
+  const handleDelete = (store: CdnStore, name: string) => {
+    setFiles((prev) => prev.filter((f) => !(f.name === name && f.store === store)));
     setTotal((t) => Math.max(0, t - 1));
   };
 
@@ -1093,14 +1231,24 @@ function StoragePageInner() {
         {!embedded && (
           <HeaderRow>
             <div>
+              <PageTitle>Dashboard Storage</PageTitle>
               <PageSubtitle>
-                Files are served at{" "}
-                <CdnPath>{CDN_BASE}/&#123;project&#125;/&#123;file&#125;</CdnPath>
-                {" "}— publicly accessible, immutable cache
+                Disk files are served at{" "}
+                <CdnPath>{CDN_BASE}/&#123;project&#125;/&#123;file&#125;</CdnPath>, cloud files at{" "}
+                <CdnPath>cdn.tinyglobalvillage.com/public/&#123;project&#125;/&#123;file&#125;</CdnPath>
+                {" "}— both publicly readable, immutable cache
               </PageSubtitle>
             </div>
+            {/* The fleet gear used to be its own Villagers tile called "Dashboard Storage", which is the
+                name this page now carries. It belongs here: the caps, prices and lifecycle timings it
+                sets are the rules for the files listed below. */}
+            <ConfigBtn onClick={() => setConfigOpen(true)} title="Fleet caps, dormant pricing, lifecycle timings and the reaper switch">
+              ⚙ Config
+            </ConfigBtn>
           </HeaderRow>
         )}
+
+        {configOpen && <DashboardStorageConfigModal onClose={() => setConfigOpen(false)} />}
 
         <StorageMeteringPanel />
 
@@ -1111,7 +1259,13 @@ function StoragePageInner() {
           onChange={(p) => { setActiveProject(p); setPage(1); }}
         />
 
-        <UploadZone project={activeProject} onUploaded={handleUploaded} />
+        <UploadZone
+          project={activeProject}
+          onUploaded={handleUploaded}
+          store={uploadStore}
+          onStoreChange={setUploadStore}
+          cloudAvailable={cloudAvailable}
+        />
 
         {total > 0 && (
           <FilterRow>
@@ -1144,7 +1298,7 @@ function StoragePageInner() {
         ) : (
           <FileGrid>
             {filteredFiles.map((f) => (
-              <FileCard key={f.name} file={f} onDelete={() => handleDelete(f.name)} onRename={() => loadFiles(activeProject, page)} />
+              <FileCard key={`${f.store}:${f.name}`} file={f} onDelete={() => handleDelete(f.store, f.name)} onRename={() => loadFiles(activeProject, page)} />
             ))}
           </FileGrid>
         )}
