@@ -149,6 +149,71 @@ than remembered.
 8. **Then the conversion track** — each component's level onto the checklist, and
    climb.
 
+## Phase 2 — built 2026-08-05, and what it corrected
+
+Three new catalog entries, one shared CTA variant, one site-level backdrop
+feature, and five additive props on `rf-accordion`. Everything is colour-neutral:
+each section derives every value from its four surface roles with `color-mix`, so
+an unthemed drop keeps the platform's tokens and her palette arrives as data.
+Type follows the same rule — `headingFont` / `bodyFont` default to
+`--tgv-fontHeading` / `--tgv-fontBody`.
+
+| Built | Where | Covers |
+|---|---|---|
+| `rf-split-hero` | `sections/banners/RfSplitHero/` | her hero |
+| `rf-offer-card` | `sections/storytelling/RfOfferCard/` | offerings **and** about |
+| `rf-testimonials` | `sections/storytelling/RfTestimonials/` | the band between rows |
+| `RfCta` variant `ritual` | `shared/refusion.tsx` | her CTA, in every card foot |
+| `siteBackground.orbs` | `overrideTypes` + `SiteBackdrop` + `readSiteBackground` | the page's ambient orbs |
+| 5 props on `rf-accordion` | `look` · `centeredHead` · `ruleUnderHead` · `animate` · `exclusive` | her FAQ |
+
+**Four corrections to the cross-reference above.**
+
+1. **Her hero does NOT map onto `rf-hero`.** `rf-hero` *is* its background image
+   — a full-bleed cover, a scrim, copy in the lower-left. Hers has no background
+   image at all: it is a two-column grid with a mark on one side and a rule-led
+   text column on the other, and every element is positioned by that grid. A
+   `layout` switch would share the prop names and none of the CSS. So it is a
+   sibling entry, not a mode. Five families mapping onto existing entries was
+   four.
+2. **About and Offerings are the same component.** `AboutSection.tsx` is
+   literally an offerings row holding one compact-media feature card. So the
+   about panel is a `rf-offer-card` item with no price, not an `rf-media-copy` —
+   one entry fewer than the table above expects, and one variant more.
+3. **The `RitualButton` was the atom in the pile.** Checked against the Atom
+   Library first, per the rule: her chevron, price and "best for" list are
+   internals of the two new sections, not free-standing atoms, but her CTA is a
+   real button variant — a quiet plate with a four-point spark either side that
+   turns once on hover. It became `RfCta`'s fourth variant so every rf-* section
+   gains it. The spark matches the Atom Library's own built-in glyph in intent;
+   it is re-declared in `shared/refusion.tsx` because that one lives in Office's
+   source, which a package cannot import.
+4. **`story-testimonials` was checked and is a different shape.** Heading-led,
+   left-aligned, fixed three-column. Hers carries no heading and sits *between*
+   sections. Reasoning is recorded in `RfTestimonials/schema.ts` so the next
+   person does not re-litigate it.
+
+**And her background colour is not missing after all.** Phase 1 deferred writing
+her theme row because `tokens.ts` has no background or surface value. It is in
+`OnePage.styles.ts` instead — `--background: hsl(165, 60%, 6%)`, i.e. `#061814`.
+Her muted text is `rgba(BONE, 0.65)` over that ground, which the theme's
+hex-only validator cannot take as-is; both get settled against real pages in
+Phase 3 rather than guessed here.
+
+**Verified by rendering, not by typechecking.**
+`packages/@tgv/module-core/module-page-editor/scripts/render-check.sh` —
+69 assertions, server-rendering every new section and the backdrop and reading
+the emitted HTML and CSS. It exists because `tsc` proves a section compiles and
+proves nothing about whether it renders; styled-components fails at runtime. It
+earned its keep immediately: a split hero with no mark put its words in the
+220px lane meant for the artwork, which no typecheck could see. It also holds
+the line on `rf-accordion` — that the default is still native
+`<details>`/`<summary>`, adds no button, and adds no wrapper around the head —
+so the pages already using it cannot drift.
+
+The browser pass against her live site is Phase 5's job and needs Phase 3's rows
+to have something to look at.
+
 ## Open question for Gio
 
 When a section is CLOSE to an existing catalog entry but not identical — her FAQ
