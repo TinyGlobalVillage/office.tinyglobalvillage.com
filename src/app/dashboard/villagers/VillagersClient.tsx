@@ -47,6 +47,7 @@ import PaypalControlModal from "../../components/villagers/PaypalControlModal";
 import MoneyStoresModal from "../../components/villagers/MoneyStoresModal";
 import MemberLookupModal from "../../components/villagers/MemberLookupModal";
 import DashboardConfigModal from "../../components/villagers/DashboardConfigModal";
+import DashboardStorageModal from "../../components/villagers/DashboardStorageModal";
 import ProfileEnginesModal from "../../components/villagers/ProfileEnginesModal";
 import RequestTenantAccessModal from "../../components/villagers/RequestTenantAccessModal";
 import KeycloakWireModal from "../../components/villagers/KeycloakWireModal";
@@ -461,6 +462,7 @@ export default function VillagersClient() {
   const [openMemberBilling, setOpenMemberBilling] = useState(false);
   const [openMemberLookup, setOpenMemberLookup] = useState(false);
   const [openDashboardConfig, setOpenDashboardConfig] = useState(false);
+  const [openDashboardStorage, setOpenDashboardStorage] = useState(false);
   const [openProfileEngines, setOpenProfileEngines] = useState(false);
   const [openAccessGrant, setOpenAccessGrant] = useState(false);
   const [openPayouts, setOpenPayouts] = useState(false);
@@ -811,9 +813,7 @@ export default function VillagersClient() {
       id: "dashboardStorage",
       title: "Dashboard Storage",
       icon: <StorageIcon size={18} />,
-      // Goes to the Storage page rather than opening a modal: the fleet gear this tile used to open is
-      // now the Config button at the top of that page, next to the files those settings govern.
-      onClick: () => { window.location.href = "/dashboard/storage"; },
+      onClick: () => setOpenDashboardStorage(true),
       sub: (
         <>
           The CDN file manager and the fleet&apos;s storage rules in one place — upload to the RCS disk or
@@ -1070,6 +1070,9 @@ export default function VillagersClient() {
 
       {openDashboardConfig && (
         <DashboardConfigModal onClose={() => setOpenDashboardConfig(false)} />
+      )}
+      {openDashboardStorage && (
+        <DashboardStorageModal onClose={() => setOpenDashboardStorage(false)} />
       )}
 
       {openProfileEngines && (

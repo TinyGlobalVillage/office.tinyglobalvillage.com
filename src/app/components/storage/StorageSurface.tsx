@@ -1,0 +1,1340 @@
+"use client";
+
+import { useState, useEffect, useCallback, useRef, DragEvent, Suspense, KeyboardEvent, ReactNode } from "react";
+import { useSearchParams } from "next/navigation";
+import styled from "styled-components";
+import { colors, rgb } from "../../theme";
+import TopNav from "../../components/TopNav";
+import { CloudIcon, AvatarIcon, EditIcon, CopyIcon, DownloadIcon, CheckIcon } from "../../components/icons";
+import { askPrompt, showNotice } from "../../components/dialogService";
+import StorageMeteringPanel from "./StorageMeteringPanel";
+import DashboardStorageConfigModal from "../../components/villagers/DashboardStorageConfigModal";
+import PillBar from "@tgv/module-component-library/components/ui/PillBar";
+import InfoBubble from "@tgv/module-component-library/components/ui/InfoBubble";
+
+const CDN_BASE = "https://office.tinyglobalvillage.com/media";
+
+type CdnFile = {
+  name: string;
+  url: string;
+  size: number;
+  type: string;
+  project: string;
+  modifiedAt: number;
+  /** Which store this file is actually in. Chosen per upload; the listing reads both. */
+  store: CdnStore;
+};
+
+type CdnStore = "disk" | "cloud";
+
+type ProjectMeta = { name: string; count: number };
+
+/* ── Helpers ───────────────────────────────────────────────────── */
+
+function fmtBytes(b: number) {
+  if (b < 1024) return `${b} B`;
+  if (b < 1024 * 1024) return `${(b / 1024).toFixed(1)} KB`;
+  return `${(b / 1024 / 1024).toFixed(1)} MB`;
+}
+
+function fmtDate(ms: number) {
+  return new Date(ms).toLocaleDateString("en-US", {
+    timeZone: "America/Los_Angeles",
+    month: "short", day: "numeric", year: "numeric",
+  });
+}
+
+function isImage(type: string) { return type.startsWith("image/"); }
+function isVideo(type: string) { return type.startsWith("video/"); }
+
+function fileIcon(type: string): ReactNode {
+  if (isImage(type)) return "🖼";
+  if (isVideo(type)) return "🎬";
+  if (type.startsWith("audio/")) return "🎵";
+  if (type === "application/pdf") return "📄";
+  if (type.startsWith("font/")) return "🔤";
+  return <AvatarIcon size={44} style={{ color: colors.pink }} />;
+}
+
+/* ── Styled Components ─────────────────────────────────────────── */
+
+const PageMain = styled.main<{ $embedded?: boolean }>`
+  display: flex;
+  flex-direction: column;
+  min-height: ${(p) => (p.$embedded ? "auto" : "100vh")};
+  padding: ${(p) => (p.$embedded ? "1rem 1rem 2rem" : "7rem 1rem 4rem")};
+  max-width: 80rem;
+  margin: 0 auto;
+  width: 100%;
+  gap: 1.5rem;
+`;
+
+const HeaderRow = styled.div`
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+`;
+
+const PageSubtitle = styled.p`
+  font-size: 0.75rem;
+  color: var(--t-textGhost);
+
+  [data-theme="light"] & {
+    color: var(--t-textFaint);
+  }
+`;
+
+const CdnPath = styled.span`
+  font-family: monospace;
+  color: var(--t-textMuted);
+`;
+
+const TitleWrap = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+`;
+
+const PageTitle = styled.h1`
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: ${colors.pink};
+  text-shadow: 0 0 10px rgba(${rgb.pink}, 0.35);
+
+  [data-theme="light"] & {
+    text-shadow: none;
+  }
+`;
+
+const ConfigBtn = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 0.4rem 0.85rem;
+  border-radius: 0.6rem;
+  color: ${colors.pink};
+  background: rgba(${rgb.pink}, 0.1);
+  border: 1px solid rgba(${rgb.pink}, 0.4);
+  transition: box-shadow 0.15s;
+
+  &:hover {
+    box-shadow: 0 0 14px rgba(${rgb.pink}, 0.4);
+  }
+`;
+
+/* ── Upload zone ───────────────────────────────────────────────── */
+
+const UploadWrap = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+`;
+
+// Two control rows, each centred with its items spaced around: metering + config, then bucket + destination.
+const ControlRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  gap: 1rem;
+  flex-wrap: wrap;
+  width: 100%;
+`;
+const ControlCell = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+`;
+const DestLabel = styled.span`
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 0.7;
+  white-space: nowrap;
+`;
+const StoreBadge = styled.span<{ $cloud: boolean }>`
+  display: inline-block;
+  border-radius: 999px;
+  padding: 1px 8px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: ${({ $cloud }) => ($cloud ? "#7dd3fc" : "#fcd34d")};
+  border: 1px solid ${({ $cloud }) => ($cloud ? "rgba(125,211,252,0.4)" : "rgba(252,211,77,0.4)")};
+  background: ${({ $cloud }) => ($cloud ? "rgba(125,211,252,0.10)" : "rgba(252,211,77,0.10)")};
+`;
+
+const DropZone = styled.div<{ $dragging: boolean }>`
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  border-radius: 1rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-height: 160px;
+  border: 2px dashed ${(p) => (p.$dragging ? colors.pink : `rgba(${rgb.pink}, 0.25)`)};
+  background: ${(p) => (p.$dragging ? `rgba(${rgb.pink}, 0.07)` : "var(--t-inputBg)")};
+
+  [data-theme="light"] & {
+    background: ${(p) => (p.$dragging ? `rgba(${rgb.pink}, 0.05)` : "var(--t-surface)")};
+  }
+`;
+
+const DropIcon = styled.span`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+`;
+
+const Spinner = styled.span`
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  border: 2px solid rgba(${rgb.pink}, 0.25);
+  border-top-color: ${colors.pink};
+  border-radius: 50%;
+  animation: storage-spin 0.85s linear infinite;
+
+  @keyframes storage-spin {
+    to { transform: rotate(360deg); }
+  }
+`;
+
+const DropLabel = styled.p`
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--t-textMuted);
+`;
+
+const DropHint = styled.p`
+  font-size: 0.75rem;
+  color: var(--t-textGhost);
+`;
+
+const UploadingName = styled.p`
+  font-size: 0.75rem;
+  color: var(--t-textGhost);
+  font-family: monospace;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 20rem;
+`;
+
+const UploadedBar = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  background: rgba(${rgb.green}, 0.08);
+  border: 1px solid rgba(${rgb.green}, 0.25);
+
+  [data-theme="light"] & {
+    background: rgba(${rgb.green}, 0.05);
+  }
+`;
+
+const UploadedLabel = styled.span`
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #00dc64;
+  flex-shrink: 0;
+`;
+
+const UploadedUrl = styled.span`
+  font-family: monospace;
+  font-size: 0.75rem;
+  color: var(--t-textMuted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+`;
+
+const CopyBtn = styled.button<{ $copied: boolean }>`
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.25rem 0.75rem;
+  border-radius: 0.5rem;
+  transition: all 0.15s;
+  cursor: pointer;
+  background: ${(p) => (p.$copied ? `rgba(${rgb.green}, 0.25)` : `rgba(${rgb.pink}, 0.1)`)};
+  border: 1px solid ${(p) => (p.$copied ? `rgba(${rgb.green}, 0.4)` : `rgba(${rgb.pink}, 0.4)`)};
+  color: ${(p) => (p.$copied ? "#00dc64" : colors.pink)};
+  box-shadow: ${(p) => (p.$copied ? `0 0 10px rgba(${rgb.green}, 0.35)` : `0 0 10px rgba(${rgb.pink}, 0.25)`)};
+
+  &:hover {
+    box-shadow: ${(p) => (p.$copied ? `0 0 14px rgba(${rgb.green}, 0.5)` : `0 0 14px rgba(${rgb.pink}, 0.45)`)};
+  }
+`;
+
+/* ── File card ─────────────────────────────────────────────────── */
+
+const CardWrap = styled.div`
+  display: flex;
+  flex-direction: column;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  transition: all 0.15s;
+  background: var(--t-inputBg);
+  border: 1px solid var(--t-border);
+
+  [data-theme="light"] & {
+    background: var(--t-surface);
+  }
+`;
+
+const CardPreview = styled.div`
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 120px;
+  background: rgba(0, 0, 0, 0.3);
+
+  [data-theme="light"] & {
+    background: var(--t-inputBg);
+  }
+`;
+
+const CardImg = styled.img`
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+`;
+
+const CardVideo = styled.video`
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+`;
+
+const CardIconBig = styled.span`
+  font-size: 2.5rem;
+`;
+
+const CardInfo = styled.div`
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+`;
+
+const CardName = styled.p`
+  font-size: 0.75rem;
+  font-family: monospace;
+  color: var(--t-textMuted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+const CardMeta = styled.p`
+  font-size: 10px;
+  color: var(--t-textGhost);
+`;
+
+const CardActions = styled.div`
+  padding: 0 0.75rem 0.75rem;
+  display: flex;
+  gap: 0.375rem;
+`;
+
+const CardActionBtn = styled.button`
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 0.3125rem 0;
+  border-radius: 0.5rem;
+  text-decoration: none;
+  transition: all 0.15s;
+  cursor: pointer;
+  background: rgba(${rgb.pink}, 0.1);
+  border: 1px solid rgba(${rgb.pink}, 0.35);
+  color: ${colors.pink};
+  box-shadow: 0 0 8px rgba(${rgb.pink}, 0.25);
+
+  &:hover {
+    box-shadow: 0 0 12px rgba(${rgb.pink}, 0.45);
+  }
+`;
+
+const CardCopyBtn = styled(CardActionBtn)<{ $copied: boolean }>`
+  ${(p) =>
+    p.$copied &&
+    `
+    background: rgba(${rgb.green}, 0.15);
+    border-color: rgba(${rgb.green}, 0.4);
+    color: #00dc64;
+    box-shadow: 0 0 8px rgba(${rgb.green}, 0.3);
+
+    &:hover {
+      box-shadow: 0 0 12px rgba(${rgb.green}, 0.45);
+    }
+  `}
+`;
+
+const CardDeleteBtn = styled(CardActionBtn)<{ $confirm?: boolean }>`
+  ${(p) =>
+    p.$confirm &&
+    `
+    background: rgba(${rgb.red}, 0.2);
+    border-color: rgba(${rgb.red}, 0.5);
+    color: ${colors.red};
+    box-shadow: 0 0 10px rgba(${rgb.red}, 0.4);
+
+    &:hover {
+      box-shadow: 0 0 14px rgba(${rgb.red}, 0.55);
+    }
+  `}
+`;
+
+/* ── Project dropdown ──────────────────────────────────────────── */
+
+const DDMContainer = styled.div`
+  position: relative;
+  width: 280px;
+`;
+
+const DDMTrigger = styled.button<{ $open: boolean }>`
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.625rem 1rem;
+  border-radius: 0.75rem;
+  transition: all 0.15s;
+  text-align: left;
+  cursor: pointer;
+  background: ${(p) => (p.$open ? `rgba(${rgb.pink}, 0.12)` : "var(--t-inputBg)")};
+  border: 1px solid ${(p) => (p.$open ? `rgba(${rgb.pink}, 0.45)` : `rgba(${rgb.pink}, 0.3)`)};
+  color: ${colors.pink};
+  box-shadow: ${(p) =>
+    p.$open
+      ? `0 0 0 3px rgba(${rgb.pink}, 0.1), 0 0 14px rgba(${rgb.pink}, 0.35)`
+      : `0 0 8px rgba(${rgb.pink}, 0.2)`};
+
+  &:hover {
+    box-shadow: ${(p) =>
+      p.$open
+        ? `0 0 0 3px rgba(${rgb.pink}, 0.12), 0 0 18px rgba(${rgb.pink}, 0.45)`
+        : `0 0 12px rgba(${rgb.pink}, 0.35)`};
+    border-color: rgba(${rgb.pink}, 0.5);
+  }
+
+  [data-theme="light"] & {
+    background: ${(p) => (p.$open ? `rgba(${rgb.pink}, 0.08)` : "var(--t-surface)")};
+  }
+`;
+
+const DDMTriggerLeft = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+`;
+
+const DDMBucketLabel = styled.span`
+  font-size: 10px;
+  color: var(--t-textGhost);
+  flex-shrink: 0;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+`;
+
+const DDMValue = styled.span`
+  font-size: 0.875rem;
+  font-weight: 700;
+  font-family: monospace;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+const DDMFileCount = styled.span`
+  font-size: 10px;
+  color: var(--t-textGhost);
+  flex-shrink: 0;
+`;
+
+const DDMArrow = styled.span<{ $open: boolean }>`
+  flex-shrink: 0;
+  font-size: 10px;
+  transition: transform 0.2s;
+  transform: ${(p) => (p.$open ? "rotate(180deg)" : "rotate(0deg)")};
+  color: rgba(${rgb.pink}, 0.75);
+`;
+
+const DDMPanel = styled.div`
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 14px;
+  max-height: 320px;
+  background: rgba(8, 10, 16, 0.99);
+  border: 1px solid rgba(${rgb.pink}, 0.3);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(${rgb.pink}, 0.08),
+    0 0 24px rgba(${rgb.pink}, 0.2);
+
+  [data-theme="light"] & {
+    background: var(--t-surface);
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.15);
+  }
+`;
+
+const DDMSearchRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 0.75rem;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--t-border);
+`;
+
+const DDMSearchIcon = styled.span`
+  font-size: 0.75rem;
+  color: var(--t-textGhost);
+`;
+
+const DDMSearchInput = styled.input`
+  flex: 1;
+  background: transparent;
+  outline: none;
+  font-size: 0.75rem;
+  font-family: monospace;
+  color: var(--t-text);
+  border: none;
+
+  &::placeholder {
+    color: var(--t-textGhost);
+  }
+`;
+
+const DDMClearBtn = styled.button`
+  font-size: 0.75rem;
+  color: var(--t-textGhost);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: color 0.15s;
+
+  &:hover {
+    color: var(--t-textMuted);
+  }
+`;
+
+const DDMList = styled.div`
+  overflow-y: auto;
+  scrollbar-width: thin;
+`;
+
+const DDMEmpty = styled.p`
+  padding: 0.75rem 1rem;
+  font-size: 0.75rem;
+  color: var(--t-textGhost);
+  text-align: center;
+`;
+
+const DDMItem = styled.button<{ $active: boolean }>`
+  width: 100%;
+  /* Grid, not flex: the count gets a column of its own, so the numbers stack in a straight line down
+     the list and a long bucket name ellipsizing can never push its own total out of view. */
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.625rem 1rem;
+  text-align: left;
+  transition: background 0.15s;
+  cursor: pointer;
+  background: ${(p) => (p.$active ? `rgba(${rgb.pink}, 0.12)` : "transparent")};
+  border: none;
+  border-left: 2px solid ${(p) => (p.$active ? colors.pink : "transparent")};
+  color: ${(p) => (p.$active ? colors.pink : "var(--t-textMuted)")};
+
+  &:hover {
+    background: ${(p) => (p.$active ? `rgba(${rgb.pink}, 0.14)` : `rgba(${rgb.pink}, 0.06)`)};
+    color: ${colors.pink};
+  }
+`;
+
+const DDMItemName = styled.span`
+  font-size: 0.875rem;
+  font-family: monospace;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+const DDMItemRight = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  flex-shrink: 0;
+  white-space: nowrap;
+`;
+
+const DDMItemCount = styled.span`
+  font-size: 10px;
+  color: var(--t-textGhost);
+`;
+
+const DDMItemCheck = styled.span`
+  font-size: 10px;
+`;
+
+/* ── Filter + grid ─────────────────────────────────────────────── */
+
+const FilterRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+`;
+
+const FilterInput = styled.input`
+  padding: 0.375rem 0.75rem;
+  border-radius: 0.75rem;
+  font-size: 0.75rem;
+  font-family: monospace;
+  outline: none;
+  transition: all 0.15s;
+  background: var(--t-inputBg);
+  border: 1px solid rgba(${rgb.pink}, 0.35);
+  color: ${colors.pink};
+  box-shadow: 0 0 8px rgba(${rgb.pink}, 0.2);
+  caret-color: ${colors.pink};
+
+  &::placeholder {
+    color: rgba(${rgb.pink}, 0.45);
+  }
+
+  &:hover {
+    border-color: rgba(${rgb.pink}, 0.5);
+    box-shadow: 0 0 12px rgba(${rgb.pink}, 0.3);
+  }
+
+  &:focus {
+    border-color: rgba(${rgb.pink}, 0.65);
+    box-shadow: 0 0 0 3px rgba(${rgb.pink}, 0.1), 0 0 14px rgba(${rgb.pink}, 0.4);
+  }
+
+  [data-theme="light"] & {
+    background: var(--t-surface);
+  }
+`;
+
+const FilterCount = styled.span`
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: ${colors.pink};
+  text-shadow: 0 0 6px rgba(${rgb.pink}, 0.5);
+`;
+
+const FileGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+
+  @media (min-width: 640px) { grid-template-columns: repeat(3, 1fr); }
+  @media (min-width: 768px) { grid-template-columns: repeat(4, 1fr); }
+  @media (min-width: 1024px) { grid-template-columns: repeat(6, 1fr); }
+`;
+
+const SkeletonCard = styled.div`
+  height: 10rem;
+  border-radius: 0.75rem;
+  background: var(--t-inputBg);
+  animation: pulse 2s ease-in-out infinite;
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+`;
+
+const EmptyState = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 5rem 0;
+  border-radius: 1rem;
+  background: var(--t-inputBg);
+  border: 1px solid var(--t-border);
+
+  [data-theme="light"] & {
+    background: var(--t-surface);
+  }
+`;
+
+const EmptyIcon = styled.span`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 0.75rem;
+  line-height: 1;
+`;
+
+const EmptyLabel = styled.p`
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--t-textGhost);
+`;
+
+const EmptyHint = styled.p`
+  font-size: 0.75rem;
+  color: var(--t-textGhost);
+  margin-top: 0.25rem;
+`;
+
+const EmptyBucket = styled.span`
+  font-family: monospace;
+`;
+
+const PaginationRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+`;
+
+const PaginationBtn = styled.button`
+  padding: 0.375rem 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border: 1px solid var(--t-borderStrong);
+  color: var(--t-textGhost);
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.15s;
+
+  &:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+
+  &:not(:disabled):hover {
+    border-color: rgba(${rgb.cyan}, 0.4);
+    color: ${colors.cyan};
+  }
+`;
+
+const PaginationLabel = styled.span`
+  font-size: 0.75rem;
+  color: var(--t-textGhost);
+`;
+
+/* ── Upload zone component ─────────────────────────────────────── */
+
+function UploadZone({
+  project,
+  onUploaded,
+  store,
+}: {
+  project: string;
+  onUploaded: (f: CdnFile) => void;
+  /** Where this upload lands. The control lives in the row above — see ControlRow. */
+  store: CdnStore;
+}) {
+  const [dragging, setDragging] = useState(false);
+  const [uploading, setUploading] = useState<string[]>([]);
+  const [lastUrl, setLastUrl] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const uploadFiles = useCallback(
+    async (files: FileList | File[]) => {
+      const list = Array.from(files);
+      setUploading(list.map((f) => f.name));
+
+      for (const file of list) {
+        const fd = new FormData();
+        fd.append("file", file);
+        fd.append("project", project);
+        fd.append("store", store);
+        try {
+          const res = await fetch("/api/cdn/upload", { method: "POST", body: fd });
+          if (res.ok) {
+            const data: CdnFile = await res.json();
+            onUploaded(data);
+            setLastUrl(data.url);
+          }
+        } catch { /* skip */ }
+      }
+      setUploading([]);
+    },
+    [project, store, onUploaded]
+  );
+
+  const onDrop = (e: DragEvent) => {
+    e.preventDefault();
+    setDragging(false);
+    if (e.dataTransfer.files.length) uploadFiles(e.dataTransfer.files);
+  };
+
+  const copy = () => {
+    if (!lastUrl) return;
+    navigator.clipboard.writeText(lastUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <UploadWrap>
+      <DropZone
+        $dragging={dragging}
+        onClick={() => inputRef.current?.click()}
+        onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={onDrop}
+      >
+        <DropIcon>
+          {uploading.length ? (
+            <Spinner />
+          ) : (
+            <CloudIcon size={36} style={{ color: colors.pink }} />
+          )}
+        </DropIcon>
+        {uploading.length ? (
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0.25rem" }}>
+            <DropLabel>Uploading…</DropLabel>
+            {uploading.map((n) => <UploadingName key={n}>{n}</UploadingName>)}
+          </div>
+        ) : (
+          <>
+            <DropLabel>Drop files here or click to browse</DropLabel>
+            <DropHint>
+              Images, videos, PDFs, fonts — up to 100 MB each ·{" "}
+              {store === "cloud" ? "saving to the cloud bucket" : "saving to the RCS disk"}
+            </DropHint>
+          </>
+        )}
+        <input
+          ref={inputRef}
+          type="file"
+          multiple
+          style={{ display: "none" }}
+          onChange={(e) => { if (e.target.files) uploadFiles(e.target.files); e.target.value = ""; }}
+        />
+      </DropZone>
+
+      {lastUrl && (
+        <UploadedBar>
+          <UploadedLabel>✓ Uploaded</UploadedLabel>
+          <UploadedUrl>{lastUrl}</UploadedUrl>
+          <CopyBtn $copied={copied} onClick={copy} title="Copy link" aria-label="Copy link">
+            {copied ? <CheckIcon size={14} /> : <CopyIcon size={14} />}
+          </CopyBtn>
+        </UploadedBar>
+      )}
+    </UploadWrap>
+  );
+}
+
+/* ── File card component ───────────────────────────────────────── */
+
+function FileCard({ file, onDelete, onRename }: { file: CdnFile; onDelete: () => void; onRename: () => void }) {
+  const [copied, setCopied] = useState(false);
+  const [confirmDel, setConfirmDel] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+
+  const copy = () => {
+    navigator.clipboard.writeText(file.url);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const download = async () => {
+    if (downloading) return;
+    setDownloading(true);
+    try {
+      // Blob round-trip so the tap always saves (a bare download attr is
+      // ignored cross-origin, e.g. on localhost against the prod CDN).
+      const res = await fetch(file.url);
+      if (!res.ok) throw new Error();
+      const blob = await res.blob();
+      const href = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = href;
+      a.download = file.name;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(href);
+    } catch {
+      await showNotice({ message: "Download failed", intent: "danger" });
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  const rename = async () => {
+    const dot = file.name.lastIndexOf(".");
+    const currentBase = dot > 0 ? file.name.slice(0, dot) : file.name;
+    const input = await askPrompt({
+      title: "Rename file",
+      message: "Rename file (the extension is kept):",
+      initialValue: currentBase,
+      confirmLabel: "Rename",
+    });
+    if (input === null) return;
+    const trimmed = input.trim();
+    if (!trimmed || trimmed === currentBase) return;
+    const res = await fetch("/api/cdn/files", {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ project: file.project, name: file.name, newName: trimmed, store: file.store }),
+    });
+    if (!res.ok) {
+      const d = await res.json().catch(() => ({}));
+      await showNotice({ message: d.error || "Rename failed", intent: "danger" });
+      return;
+    }
+    onRename();
+  };
+
+  const del = async () => {
+    setDeleting(true);
+    await fetch(
+      `/api/cdn/files?project=${file.project}&name=${encodeURIComponent(file.name)}&store=${file.store}`,
+      { method: "DELETE" },
+    );
+    onDelete();
+  };
+
+  return (
+    <CardWrap>
+      <CardPreview>
+        {isImage(file.type) ? (
+          <CardImg src={file.url} alt={file.name} loading="lazy" />
+        ) : isVideo(file.type) ? (
+          <CardVideo src={file.url} muted />
+        ) : (
+          <CardIconBig>{fileIcon(file.type)}</CardIconBig>
+        )}
+      </CardPreview>
+
+      <CardInfo>
+        <CardName title={file.name}>{file.name}</CardName>
+        <StoreBadge $cloud={file.store === "cloud"} title={file.store === "cloud" ? "In Cloudflare R2" : "On the RCS disk"}>
+          {file.store === "cloud" ? "Cloud" : "Disk"}
+        </StoreBadge>
+        <CardMeta>{fmtBytes(file.size)} · {fmtDate(file.modifiedAt)}</CardMeta>
+      </CardInfo>
+
+      <CardActions>
+        <CardCopyBtn $copied={copied} onClick={copy} title="Copy CDN link" aria-label="Copy CDN link">
+          {copied ? <CheckIcon size={12} /> : <CopyIcon size={12} />}
+        </CardCopyBtn>
+        <CardActionBtn onClick={download} disabled={downloading} title="Download" aria-label="Download">
+          {downloading ? "…" : <DownloadIcon size={12} />}
+        </CardActionBtn>
+        <CardActionBtn onClick={rename} title="Rename file" aria-label="Rename file">
+          <EditIcon size={12} />
+        </CardActionBtn>
+        <CardActionBtn as="a" href={file.url} target="_blank" rel="noopener noreferrer" title="Open in new tab">
+          ↗
+        </CardActionBtn>
+        {confirmDel ? (
+          <CardDeleteBtn $confirm onClick={del} disabled={deleting} title="Confirm delete">
+            {deleting ? "…" : "Sure?"}
+          </CardDeleteBtn>
+        ) : (
+          <CardDeleteBtn onClick={() => setConfirmDel(true)} title="Delete file">
+            ✕
+          </CardDeleteBtn>
+        )}
+      </CardActions>
+    </CardWrap>
+  );
+}
+
+/* ── Project dropdown component ────────────────────────────────── */
+
+function ProjectDropdown({
+  projects,
+  cdnCounts,
+  value,
+  onChange,
+}: {
+  projects: string[];
+  cdnCounts: ProjectMeta[];
+  value: string;
+  onChange: (p: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const activeRef = useRef<HTMLButtonElement>(null);
+
+  const filtered = projects.filter((p) =>
+    p.toLowerCase().includes(search.toLowerCase())
+  );
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (!containerRef.current?.contains(e.target as Node)) {
+        setOpen(false);
+        setSearch("");
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
+
+  useEffect(() => {
+    if (open) {
+      setTimeout(() => inputRef.current?.focus(), 30);
+      setTimeout(() => activeRef.current?.scrollIntoView({ block: "nearest" }), 60);
+    }
+  }, [open]);
+
+  const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Escape") { setOpen(false); setSearch(""); }
+    if (e.key === "Enter" && filtered.length === 1) {
+      onChange(filtered[0]);
+      setOpen(false);
+      setSearch("");
+    }
+  };
+
+  const select = (p: string) => {
+    onChange(p);
+    setOpen(false);
+    setSearch("");
+  };
+
+  const count = (p: string) => cdnCounts.find((m) => m.name === p)?.count;
+
+  return (
+    <DDMContainer ref={containerRef}>
+      <DDMTrigger $open={open} onClick={() => setOpen((x) => !x)}>
+        <DDMTriggerLeft>
+          <DDMBucketLabel>Bucket</DDMBucketLabel>
+          <DDMValue>{value}</DDMValue>
+          <DDMFileCount>{count(value) ?? 0} files</DDMFileCount>
+        </DDMTriggerLeft>
+        <DDMArrow $open={open}>▼</DDMArrow>
+      </DDMTrigger>
+
+      {open && (
+        <DDMPanel>
+          <DDMSearchRow>
+            <DDMSearchIcon>⌕</DDMSearchIcon>
+            <DDMSearchInput
+              ref={inputRef}
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              onKeyDown={onKeyDown}
+              placeholder="Search projects…"
+            />
+            {search && (
+              <DDMClearBtn onClick={() => setSearch("")}>×</DDMClearBtn>
+            )}
+          </DDMSearchRow>
+
+          <DDMList>
+            {filtered.length === 0 ? (
+              <DDMEmpty>No projects match</DDMEmpty>
+            ) : (
+              filtered.map((p) => {
+                const isActive = p === value;
+                const n = count(p);
+                return (
+                  <DDMItem
+                    key={p}
+                    ref={isActive ? activeRef : undefined}
+                    $active={isActive}
+                    onClick={() => select(p)}
+                  >
+                    <DDMItemName>{p}</DDMItemName>
+                    <DDMItemRight>
+                      <DDMItemCount>{n ?? 0} files</DDMItemCount>
+                      {isActive && <DDMItemCheck>✓</DDMItemCheck>}
+                    </DDMItemRight>
+                  </DDMItem>
+                );
+              })
+            )}
+          </DDMList>
+        </DDMPanel>
+      )}
+    </DDMContainer>
+  );
+}
+
+/* ── The surface ───────────────────────────────────────────────── */
+
+/** The whole surface, mountable somewhere other than its own route. `embedded` drops the app chrome:
+ *  no TopNav and no page header, because whatever is hosting it already has both. */
+export function StorageSurface({ embedded = true }: { embedded?: boolean }) {
+  return (
+    <Suspense fallback={null}>
+      <StoragePageInner forceEmbedded={embedded} />
+    </Suspense>
+  );
+}
+
+function StoragePageInner({ forceEmbedded = false }: { forceEmbedded?: boolean }) {
+  const searchParams = useSearchParams();
+  // Two ways in: the DashboardPageModal iframes this route with ?embedded=1, and StorageSurface mounts
+  // the component directly inside a modal. Either way the host owns the chrome.
+  const embedded = forceEmbedded || searchParams.get("embedded") === "1";
+  const [cdnProjects, setCdnProjects] = useState<ProjectMeta[]>([]);
+  const [deployedProjectNames, setDeployedProjectNames] = useState<string[]>([]);
+  const [activeProject, setActiveProject] = useState(searchParams.get("project") ?? "office");
+  const [files, setFiles] = useState<CdnFile[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState("");
+  // Where the NEXT upload goes. Disk is the default because it is where every existing file is.
+  const [uploadStore, setUploadStore] = useState<CdnStore>("disk");
+  const [cloudAvailable, setCloudAvailable] = useState(false);
+  const [configOpen, setConfigOpen] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/cdn/files")
+      .then((r) => r.json())
+      .then((d: { projects: ProjectMeta[]; cloudAvailable?: boolean }) => {
+        setCdnProjects(d.projects ?? []);
+        setCloudAvailable(d.cloudAvailable === true);
+      })
+      .catch(() => {});
+    fetch("/api/projects")
+      .then((r) => r.json())
+      .then((d: { name: string }[]) => setDeployedProjectNames(d.map((p) => p.name)))
+      .catch(() => {});
+  }, []);
+
+  const loadFiles = useCallback(async (proj: string, p: number) => {
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/cdn/files?project=${proj}&page=${p}`);
+      if (res.ok) {
+        const d = await res.json();
+        setFiles(d.files ?? []);
+        setTotal(d.total ?? 0);
+        setPage(d.page ?? 1);
+        setTotalPages(d.totalPages ?? 1);
+        if (typeof d.cloudAvailable === "boolean") setCloudAvailable(d.cloudAvailable);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadFiles(activeProject, 1);
+  }, [activeProject, loadFiles]);
+
+  const handleUploaded = (f: CdnFile) => {
+    setFiles((prev) => [f, ...prev]);
+    setTotal((t) => t + 1);
+    setCdnProjects((prev) => {
+      const idx = prev.findIndex((p) => p.name === f.project);
+      if (idx === -1) return [...prev, { name: f.project, count: 1 }];
+      const next = [...prev];
+      next[idx] = { ...next[idx], count: next[idx].count + 1 };
+      return next;
+    });
+  };
+
+  // Keyed on store AND name: the same filename can exist on disk and in the bucket, and deleting one
+  // must not blank the other out of the grid.
+  const handleDelete = (store: CdnStore, name: string) => {
+    setFiles((prev) => prev.filter((f) => !(f.name === name && f.store === store)));
+    setTotal((t) => Math.max(0, t - 1));
+  };
+
+  const filteredFiles = filter
+    ? files.filter((f) => f.name.toLowerCase().includes(filter.toLowerCase()))
+    : files;
+
+  const allProjects = Array.from(
+    new Set(["office", ...deployedProjectNames, ...cdnProjects.map((p) => p.name)])
+  );
+
+  const projects = cdnProjects;
+
+  return (
+    <>
+      {/* Embedded, the host already has a nav — rendering ours produced a second Office navbar inside
+          the modal, which is what this guard is for. */}
+      {!embedded && <TopNav />}
+      <PageMain $embedded={embedded}>
+        {!embedded && (
+          <HeaderRow>
+            <TitleWrap>
+              <PageTitle>Dashboard Storage</PageTitle>
+              {/* Where the files actually live is reference material, not a subtitle — it was three lines
+                  of URL shapes above the fold. A QMBM keeps it one click away. */}
+              <InfoBubble
+                title="Where these files live"
+                theme="neutral"
+                placement="popover"
+                body={
+                  <>
+                    <p>
+                      Every file here sits in one of two stores, chosen when it was uploaded. Nothing records
+                      which — this page reads both and labels each file.
+                    </p>
+                    <p>
+                      <strong>RCS disk</strong> — written to <em>/srv/refusion-core/cdn/&#123;project&#125;/</em>
+                      {" "}on the box and served by office&apos;s own alias:
+                      <br />
+                      <code>{CDN_BASE}/&#123;project&#125;/&#123;file&#125;</code>
+                    </p>
+                    <p>
+                      <strong>Cloud</strong> — written to Cloudflare R2 beneath the <em>public/</em> prefix, the
+                      one prefix the CDN domain is bound to:
+                      <br />
+                      <code>https://cdn.tinyglobalvillage.com/public/&#123;project&#125;/&#123;file&#125;</code>
+                    </p>
+                    <p>
+                      Both are publicly readable with an immutable cache, so neither is a place for anything
+                      private — member galleries and site documents use the authenticated route instead.
+                    </p>
+                  </>
+                }
+              />
+            </TitleWrap>
+          </HeaderRow>
+        )}
+
+        {configOpen && <DashboardStorageConfigModal onClose={() => setConfigOpen(false)} />}
+
+        {/* Row 1 — what the fleet is using, and the settings that govern it. */}
+        <ControlRow>
+          <ControlCell style={{ flex: "1 1 420px" }}>
+            <StorageMeteringPanel />
+          </ControlCell>
+          <ControlCell>
+            <ConfigBtn
+              onClick={() => setConfigOpen(true)}
+              title="Fleet caps, dormant pricing, lifecycle timings and the reaper switch"
+            >
+              ⚙ Config
+            </ConfigBtn>
+          </ControlCell>
+        </ControlRow>
+
+        {/* Row 2 — which bucket you are looking at, and where the next upload goes. */}
+        <ControlRow>
+          <ControlCell>
+            <ProjectDropdown
+              projects={allProjects}
+              cdnCounts={projects}
+              value={activeProject}
+              onChange={(p) => { setActiveProject(p); setPage(1); }}
+            />
+          </ControlCell>
+          <ControlCell>
+            <DestLabel>Save to</DestLabel>
+            <PillBar
+              ariaLabel="Upload destination"
+              accent={rgb.pink}
+              segments={[
+                { key: "disk", label: "RCS disk" },
+                ...(cloudAvailable ? [{ key: "cloud", label: "Cloud" }] : []),
+              ]}
+              active={uploadStore}
+              onChange={(k) => setUploadStore(k as CdnStore)}
+            />
+          </ControlCell>
+        </ControlRow>
+
+        <UploadZone project={activeProject} onUploaded={handleUploaded} store={uploadStore} />
+
+        {total > 0 && (
+          <FilterRow>
+            <FilterInput
+              type="text"
+              placeholder="Filter files…"
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+            />
+            <FilterCount>
+              {filteredFiles.length} of {total} file{total !== 1 ? "s" : ""}
+            </FilterCount>
+          </FilterRow>
+        )}
+
+        {loading ? (
+          <FileGrid>
+            {Array.from({ length: 12 }).map((_, i) => <SkeletonCard key={i} />)}
+          </FileGrid>
+        ) : filteredFiles.length === 0 ? (
+          <EmptyState>
+            <EmptyIcon>
+              <CloudIcon size={44} style={{ color: colors.pink }} />
+            </EmptyIcon>
+            <EmptyLabel>No files yet</EmptyLabel>
+            <EmptyHint>
+              Drop files above to upload to the <EmptyBucket>{activeProject}</EmptyBucket> bucket
+            </EmptyHint>
+          </EmptyState>
+        ) : (
+          <FileGrid>
+            {filteredFiles.map((f) => (
+              <FileCard key={`${f.store}:${f.name}`} file={f} onDelete={() => handleDelete(f.store, f.name)} onRename={() => loadFiles(activeProject, page)} />
+            ))}
+          </FileGrid>
+        )}
+
+        {totalPages > 1 && (
+          <PaginationRow>
+            <PaginationBtn
+              onClick={() => loadFiles(activeProject, page - 1)}
+              disabled={page <= 1}
+            >
+              ← Prev
+            </PaginationBtn>
+            <PaginationLabel>{page} / {totalPages}</PaginationLabel>
+            <PaginationBtn
+              onClick={() => loadFiles(activeProject, page + 1)}
+              disabled={page >= totalPages}
+            >
+              Next →
+            </PaginationBtn>
+          </PaginationRow>
+        )}
+      </PageMain>
+    </>
+  );
+}
