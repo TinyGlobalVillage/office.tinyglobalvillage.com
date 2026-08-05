@@ -29,7 +29,6 @@ import {
   ChartIcon,
   PaypalIcon,
   ArchiveIcon,
-  StorageIcon,
 } from "../../components/icons";
 import MemberWalletModal from "../../components/villagers/MemberWalletModal";
 import MemberBillingModal from "../../components/villagers/MemberBillingModal";
@@ -47,7 +46,6 @@ import PaypalControlModal from "../../components/villagers/PaypalControlModal";
 import MoneyStoresModal from "../../components/villagers/MoneyStoresModal";
 import MemberLookupModal from "../../components/villagers/MemberLookupModal";
 import DashboardConfigModal from "../../components/villagers/DashboardConfigModal";
-import DashboardStorageConfigModal from "../../components/villagers/DashboardStorageConfigModal";
 import ProfileEnginesModal from "../../components/villagers/ProfileEnginesModal";
 import RequestTenantAccessModal from "../../components/villagers/RequestTenantAccessModal";
 import KeycloakWireModal from "../../components/villagers/KeycloakWireModal";
@@ -112,7 +110,7 @@ const DEFAULT_LAYOUT: SectionLayout[] = [
   {
     id: "platform",
     title: "Platform & Analytics",
-    tileIds: ["dashboardConfig", "dashboardStorage", "profileEngines", "ecosystemAnalytics"],
+    tileIds: ["dashboardConfig", "profileEngines", "ecosystemAnalytics"],
   },
 ];
 
@@ -462,7 +460,6 @@ export default function VillagersClient() {
   const [openMemberBilling, setOpenMemberBilling] = useState(false);
   const [openMemberLookup, setOpenMemberLookup] = useState(false);
   const [openDashboardConfig, setOpenDashboardConfig] = useState(false);
-  const [openDashboardStorage, setOpenDashboardStorage] = useState(false);
   const [openProfileEngines, setOpenProfileEngines] = useState(false);
   const [openAccessGrant, setOpenAccessGrant] = useState(false);
   const [openPayouts, setOpenPayouts] = useState(false);
@@ -809,19 +806,6 @@ export default function VillagersClient() {
         </>
       ),
     },
-    dashboardStorage: {
-      id: "dashboardStorage",
-      title: "Dashboard Storage",
-      icon: <StorageIcon size={18} />,
-      onClick: () => setOpenDashboardStorage(true),
-      sub: (
-        <>
-          Fleet storage config — tier caps (Free 1&nbsp;GB, paid lifts live), dormant-hosting price
-          ($5/mo + $1/GB), the lapse-to-free &amp; 1-year purge timings, and the Stripe price pointers
-          for the +GB add-on and dormant subscription. One source of truth for every dashboard; no redeploy.
-        </>
-      ),
-    },
     profileEngines: {
       id: "profileEngines",
       title: "Profile Engines",
@@ -1071,10 +1055,6 @@ export default function VillagersClient() {
       {openDashboardConfig && (
         <DashboardConfigModal onClose={() => setOpenDashboardConfig(false)} />
       )}
-      {openDashboardStorage && (
-        <DashboardStorageConfigModal onClose={() => setOpenDashboardStorage(false)} />
-      )}
-
       {openProfileEngines && (
         <ProfileEnginesModal onClose={() => setOpenProfileEngines(false)} />
       )}
