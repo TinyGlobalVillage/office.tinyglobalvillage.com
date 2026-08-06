@@ -8,6 +8,7 @@
 // navbar rendered a second time inside the modal. A component mount has no chrome of its own, so the
 // modal frame is the only frame.
 
+import { useEffect } from "react";
 import styled from "styled-components";
 import { useEscapeToClose } from "@tgv/module-component-library/components/hooks/useEscapeToClose";
 import { StorageSurface } from "@/app/components/storage/StorageSurface";
@@ -24,9 +25,20 @@ import NeonX from "../NeonX";
 
 // Wider than the default modal: this one holds a file grid, and squeezing it to a settings-card width
 // would put two cards per row on a 15" screen.
+//
+// The inset is the BACKDROP's padding, on all four sides, and the card is capped at 100% of what that
+// leaves. ModalContainer's own 85vh cap would have made the top and bottom margins 7.5vh each against a
+// 1rem side margin — visibly different gaps on a screen that isn't square.
+const INSET = "1.5rem";
+
+const EvenBackdrop = styled(ModalBackdrop)`
+  padding: ${INSET};
+`;
+
 const WideContainer = styled(ModalContainer)`
-  max-width: min(96vw, 1180px);
-  width: min(96vw, 1180px);
+  width: 100%;
+  max-width: min(100%, 1180px);
+  max-height: 100%;
 `;
 
 const Sub = styled.span`
@@ -39,8 +51,19 @@ const Sub = styled.span`
 export default function DashboardStorageModal({ onClose }: { onClose: () => void }) {
   useEscapeToClose({ open: true, onClose });
 
+  // The page behind keeps its own scrollbar otherwise, so the operator sees two — and a wheel over the
+  // backdrop scrolls the Villagers grid underneath instead of the file list they are looking at.
+  useEffect(() => {
+    const el = document.body;
+    const previous = el.style.overflow;
+    el.style.overflow = "hidden";
+    return () => {
+      el.style.overflow = previous;
+    };
+  }, []);
+
   return (
-    <ModalBackdrop onClick={onClose}>
+    <EvenBackdrop onClick={onClose}>
       <WideContainer onClick={(e) => e.stopPropagation()}>
         <ModalHeader>
           <ModalHeaderLeft>
@@ -55,6 +78,6 @@ export default function DashboardStorageModal({ onClose }: { onClose: () => void
           <StorageSurface embedded />
         </ModalBody>
       </WideContainer>
-    </ModalBackdrop>
+    </EvenBackdrop>
   );
 }
