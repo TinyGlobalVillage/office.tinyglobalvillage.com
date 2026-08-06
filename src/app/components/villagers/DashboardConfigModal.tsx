@@ -53,12 +53,32 @@ const SEG: { key: FlagState; label: string; color: string }[] = [
   { key: "on", label: "On", color: colors.cyan },
 ];
 
+// ── Layout policy (Gio 2026-08-05) ──────────────────────────────────────────
+// The feature flags above decide WHICH features exist. This decides WHOSE ARRANGEMENT of them
+// everyone sees. Two different questions, one modal, because an operator asking "why does that
+// tenant's dashboard look like that?" is looking for whichever of the two it turns out to be.
+type LayoutMode = "overwritten" | "custom";
+type LayoutState = {
+  mode: LayoutMode;
+  hasLayout: boolean;
+  updatedBy: string | null;
+  updatedAt: string | null;
+  personalLayouts: number;
+};
+
+const LAYOUT_SEG: { key: LayoutMode; label: string; color: string }[] = [
+  { key: "overwritten", label: "Overwritten", color: colors.cyan },
+  { key: "custom", label: "Custom", color: colors.gold },
+];
+
 export default function DashboardConfigModal({ onClose }: { onClose: () => void }) {
   useEscapeToClose({ open: true, onClose });
 
   const [flags, setFlags] = useState<Flag[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busyKey, setBusyKey] = useState<string | null>(null);
+  const [layout, setLayout] = useState<LayoutState | null>(null);
+  const [layoutBusy, setLayoutBusy] = useState(false);
 
   const load = useCallback(async () => {
     setError(null);
@@ -72,9 +92,60 @@ export default function DashboardConfigModal({ onClose }: { onClose: () => void 
     }
   }, []);
 
+  const loadLayout = useCallback(async () => {
+    try {
+      const r = await fetch("/api/admin/dashboard-layout", { cache: "no-store" });
+      const d = await r.json().catch(() => ({}));
+      if (r.ok && d.ok) {
+        setLayout({
+          mode: d.mode === "custom" ? "custom" : "overwritten",
+          hasLayout: Boolean(d.hasLayout),
+          updatedBy: d.updatedBy ?? null,
+          updatedAt: d.updatedAt ?? null,
+          personalLayouts: Number(d.personalLayouts ?? 0),
+        });
+      }
+    } catch {
+      /* the flags board still works without it; the section just stays quiet */
+    }
+  }, []);
+
   useEffect(() => {
     void load();
-  }, [load]);
+    void loadLayout();
+  }, [load, loadLayout]);
+
+  const setLayoutMode = async (mode: LayoutMode) => {
+    setLayoutBusy(true);
+    try {
+      const r = await fetch("/api/admin/dashboard-layout", {
+        method: "PUT",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ mode }),
+      });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok || d.ok === false) setError(d.error ?? `Set failed (HTTP ${r.status}).`);
+      else await loadLayout();
+    } catch {
+      setError("Set failed — couldn't reach the server.");
+    } finally {
+      setLayoutBusy(false);
+    }
+  };
+
+  const clearPublishedLayout = async () => {
+    setLayoutBusy(true);
+    try {
+      const r = await fetch("/api/admin/dashboard-layout", { method: "DELETE" });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok || d.ok === false) setError(d.error ?? `Reset failed (HTTP ${r.status}).`);
+      else await loadLayout();
+    } catch {
+      setError("Reset failed — couldn't reach the server.");
+    } finally {
+      setLayoutBusy(false);
+    }
+  };
 
   const setState = async (featureKey: string, state: FlagState) => {
     setBusyKey(featureKey);
@@ -120,6 +191,60 @@ export default function DashboardConfigModal({ onClose }: { onClose: () => void 
           <NeonX onClick={onClose} />
         </ModalHeader>
         <ModalBody>
+          {/* The layout switch leads, above the feature board. It answers the question an operator
+              usually arrives with — "why does that dashboard look like that?" — and the answer is
+              this one before it's ever the twenty flags below. */}
+          {layout && (
+            <LayoutBox>
+              <LayoutHead>
+                <div>
+                  <FName>Dashboard layout</FName>
+                  <FMeta>
+                    {layout.hasLayout
+                      ? `published from HQ${layout.updatedBy ? ` by ${layout.updatedBy}` : ""}`
+                      : "built from the feature registry"}
+                  </FMeta>
+                </div>
+                <Seg>
+                  {LAYOUT_SEG.map((s) => (
+                    <SegBtn
+                      key={s.key}
+                      type="button"
+                      $active={layout.mode === s.key}
+                      $color={s.color}
+                      disabled={layoutBusy}
+                      onClick={() => layout.mode !== s.key && void setLayoutMode(s.key)}
+                    >
+                      {s.label}
+                    </SegBtn>
+                  ))}
+                </Seg>
+              </LayoutHead>
+              <LayoutNote>
+                {layout.mode === "overwritten" ? (
+                  <>
+                    <strong>Overwritten</strong> — every dashboard in the fleet renders the same
+                    layout. Arrange it once on HQ&apos;s own dashboard and save; the next load carries
+                    it everywhere. The {layout.personalLayouts} personal{" "}
+                    {layout.personalLayouts === 1 ? "layout" : "layouts"} on file{" "}
+                    {layout.personalLayouts === 1 ? "is" : "are"} ignored, not deleted.
+                  </>
+                ) : (
+                  <>
+                    <strong>Custom</strong> — a member who has arranged their own dashboard gets that
+                    arrangement back ({layout.personalLayouts} on file). Everyone else still opens
+                    onto the shared layout.
+                  </>
+                )}
+              </LayoutNote>
+              {layout.hasLayout && (
+                <LayoutReset type="button" disabled={layoutBusy} onClick={() => void clearPublishedLayout()}>
+                  Reset to the built-in layout
+                </LayoutReset>
+              )}
+            </LayoutBox>
+          )}
+
           <Legend>
             <LegendItem>
               <Dot style={{ background: colors.pink }} /> <strong>Off</strong> — hidden for
@@ -185,6 +310,52 @@ export default function DashboardConfigModal({ onClose }: { onClose: () => void 
 }
 
 /* ── styles ─────────────────────────────────────────────────────────────── */
+const LayoutBox = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  padding: 0.75rem 0.85rem;
+  margin-bottom: 1rem;
+  border: 1px solid rgba(${rgb.cyan}, 0.22);
+  border-radius: 0.5rem;
+  background: rgba(${rgb.cyan}, 0.05);
+`;
+const LayoutHead = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+`;
+const LayoutNote = styled.div`
+  font-size: 0.72rem;
+  line-height: 1.5;
+  color: var(--t-textFaint);
+  strong {
+    color: var(--t-text);
+  }
+`;
+const LayoutReset = styled.button`
+  align-self: flex-start;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  cursor: pointer;
+  background: transparent;
+  color: var(--t-textFaint);
+  border: 1px solid var(--t-border);
+  &:hover:not(:disabled) {
+    border-color: ${colors.pink};
+    color: ${colors.pink};
+  }
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+`;
 const Sub = styled.div`
   font-size: 0.75rem;
   color: var(--t-textFaint);
