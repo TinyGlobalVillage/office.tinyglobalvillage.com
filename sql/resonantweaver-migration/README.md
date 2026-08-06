@@ -2,7 +2,8 @@
 
 Phase 0's inventory is `PHASE-0-INVENTORY.md`; the plan of record is
 `~/.claude/plans/generic-popping-sunset.md`. This file is the runbook for what
-Phase 3 built.
+Phase 3 built. **What is still LEFT — bucket B, the signups, the ten API routes,
+parity and the cutover — is `CUTOVER-PLAN.md`**, in the order it has to happen.
 
 ## What is here
 
