@@ -1054,9 +1054,17 @@ BEGIN
   -- Every section names a type the shared catalog renders. A typo is invisible
   -- in SQL and shows up as a blank band — how the homeHero gap presented on
   -- giocoelho.
+  --
+  -- SCOPED TO THE SLUGS THIS FILE AUTHORS. It used to sweep every published row
+  -- of hers while listing only the types THIS file emits, which was true right
+  -- up until a sibling migration in this directory authored one more: the
+  -- \`journey\` row (04-journey-row.sql) is \`rf-journey\`, and this assertion
+  -- failed the whole transaction over a row it had not written and had no
+  -- opinion about. A file asserts about its own output.
   SELECT count(*) INTO n
     FROM public.page_models p, LATERAL jsonb_array_elements(p.model_json->'sections') s
    WHERE p.site = ${lit(SITE)} AND p.mode = 'published'
+     AND p.slug = ANY(expected)
      AND s->>'type' NOT IN (${types.map(lit).join(", ")});
   IF n <> 0 THEN
     RAISE EXCEPTION 'assert: % section(s) name an unexpected type', n;
