@@ -1056,6 +1056,9 @@ function buildGatewayPage(data, id) {
     slug,
     title,
     inNav: false,
+    // Hidden on her app ⇒ a draft here: built, finished, not currently served,
+    // and now openable in the studio rather than buried in a content module.
+    mode: HIDDEN_GATEWAYS.has(id) ? "draft" : "published",
     model: {
       id: `pm-rw-gateway-${id}`,
       slug,
@@ -1072,18 +1075,23 @@ function buildGatewayPage(data, id) {
   };
 }
 
-/** THE GATEWAYS THAT ARE ACTUALLY SERVED.
+/** THE THREE GATEWAYS, AND WHICH OF THEM SHE CURRENTLY SERVES.
  *
  *  `[gateway]/page.tsx` holds `HIDDEN_GATEWAYS = new Set(["meet", "develop"])`
- *  and REDIRECTS both to `/starseed/`; only `receive` renders. Their content is
- *  still in `GatewayPage.content.ts` — kept, not deleted, exactly like
- *  `retiredDoors` and `home-classic` — so reading the content module and
- *  authoring all three would publish two pages she deliberately took down.
+ *  and REDIRECTS both to `/starseed/`; only `receive` renders.
  *
- *  The redirects themselves are not page rows. They belong in HQ's site-scoped
- *  `siteRedirects.ts`, the same catalog refusionist's `/schedule` → `/book` uses. */
+ *  All three are authored. The hidden two land as **drafts** (Gio's call,
+ *  2026-08-06): she built those pages, they are finished copy, and the whole
+ *  point of moving her onto the platform is that a page she is not serving
+ *  becomes something she can open in the studio, look at, and publish — instead
+ *  of content only reachable by reading a file in a repo she does not open.
+ *
+ *  A draft is publicly inert: the tenant route calls
+ *  `readPublishedPageWithFlags`, which filters `mode = 'published'`. So the URL
+ *  behaves exactly as it does on her app today (the redirect in HQ's
+ *  `siteRedirects.ts`), and nothing about the cutover changes for a visitor. */
 const HIDDEN_GATEWAYS = new Set(["meet", "develop"]);
-const SERVED_GATEWAYS = ["meet", "develop", "receive"].filter((id) => !HIDDEN_GATEWAYS.has(id));
+const ALL_GATEWAYS = ["meet", "develop", "receive"];
 
 /** Every offer her `offer/[slug]` route actually SERVES a detail page for.
  *
@@ -1414,13 +1422,13 @@ SELECT ${lit(form.id)}::uuid, v.id, o.member_id, ${lit(form.slug)}, ${lit(form.t
  WHERE v.subdomain = ${lit(SITE)}
    AND NOT EXISTS (SELECT 1 FROM public.forms WHERE id = ${lit(form.id)}::uuid);
 
-CREATE TEMP TABLE _rw_pages (slug text, title text, in_nav boolean, model jsonb)
+CREATE TEMP TABLE _rw_pages (slug text, title text, in_nav boolean, mode text, model jsonb)
   ON COMMIT DROP;
 
 ` +
     pages
       .map(
-        (p) => `INSERT INTO _rw_pages VALUES (${lit(p.slug)}, ${lit(p.title)}, ${p.inNav}, ${json(p.model)});
+        (p) => `INSERT INTO _rw_pages VALUES (${lit(p.slug)}, ${lit(p.title)}, ${p.inNav}, ${lit(p.mode ?? "published")}, ${json(p.model)});
 `,
       )
       .join("\n") +
@@ -1429,15 +1437,21 @@ CREATE TEMP TABLE _rw_pages (slug text, title text, in_nav boolean, model jsonb)
 -- Null-safe NOT EXISTS on the same tuple the unique index names — the index
 -- cannot do this job because a published row carries user_id NULL and NULL is
 -- distinct from NULL.
+--
+-- MODE IS PER ROW. Most are 'published'; a page she BUILT but does not currently
+-- serve arrives as 'draft' — publicly inert (readPublishedPageWithFlags filters
+-- on mode) and visible in the studio, which is where she decides whether it goes
+-- live. That is the platform's own idiom for "kept, not deleted", and it beats
+-- leaving the content as unreachable code in her repo.
 WITH ins AS (
   INSERT INTO public.page_models
     (slug, lang, mode, user_id, deleted_at, title, is_public, in_nav, model_json, updated_at, site)
-  SELECT r.slug, 'en', 'published', NULL, NULL, r.title, true, r.in_nav, r.model, now(), ${lit(SITE)}
+  SELECT r.slug, 'en', r.mode, NULL, NULL, r.title, true, r.in_nav, r.model, now(), ${lit(SITE)}
     FROM _rw_pages r
    WHERE NOT EXISTS (
      SELECT 1 FROM public.page_models p
       WHERE p.site = ${lit(SITE)} AND p.slug = r.slug AND p.lang = 'en'
-        AND p.mode = 'published' AND p.user_id IS NOT DISTINCT FROM NULL
+        AND p.mode = r.mode AND p.user_id IS NOT DISTINCT FROM NULL
    )
   RETURNING 1
 )
@@ -1447,7 +1461,8 @@ SELECT 'pages authored: ' || count(*) FROM ins;
 DO $$
 DECLARE
   n int;
-  expected constant text[] := ARRAY[${pages.map((p) => lit(p.slug)).join(", ")}];
+  expected constant text[] := ARRAY[${pages.filter((p) => (p.mode ?? "published") === "published").map((p) => lit(p.slug)).join(", ")}];
+  expected_drafts constant text[] := ARRAY[${pages.filter((p) => p.mode === "draft").map((p) => lit(p.slug)).join(", ")}]::text[];
 BEGIN
   SELECT count(*) INTO n FROM public.page_models
    WHERE site = ${lit(SITE)} AND lang = 'en' AND mode = 'published'
@@ -1455,6 +1470,25 @@ BEGIN
      AND slug = ANY(expected);
   IF n <> array_length(expected, 1) THEN
     RAISE EXCEPTION 'assert: expected % pages readable, found %', array_length(expected, 1), n;
+  END IF;
+
+  -- The drafts are present AND still drafts. A draft that quietly became a
+  -- published row is a page she never chose to serve, live on her domain.
+  IF array_length(expected_drafts, 1) IS NOT NULL THEN
+    SELECT count(*) INTO n FROM public.page_models
+     WHERE site = ${lit(SITE)} AND lang = 'en' AND mode = 'draft'
+       AND user_id IS NULL AND deleted_at IS NULL
+       AND slug = ANY(expected_drafts);
+    IF n <> array_length(expected_drafts, 1) THEN
+      RAISE EXCEPTION 'assert: expected % draft page(s), found %', array_length(expected_drafts, 1), n;
+    END IF;
+
+    SELECT count(*) INTO n FROM public.page_models
+     WHERE site = ${lit(SITE)} AND mode = 'published' AND deleted_at IS NULL
+       AND slug = ANY(expected_drafts);
+    IF n <> 0 THEN
+      RAISE EXCEPTION 'assert: % draft page(s) also exist published', n;
+    END IF;
   END IF;
 
   -- Every section names a type the shared catalog renders. A typo is invisible
@@ -1467,10 +1501,13 @@ BEGIN
   -- \`journey\` row (04-journey-row.sql) is \`rf-journey\`, and this assertion
   -- failed the whole transaction over a row it had not written and had no
   -- opinion about. A file asserts about its own output.
+  -- Drafts are checked too: a draft is a page she is expected to OPEN, and a
+  -- section type the catalog cannot render is a blank band whether or not the
+  -- row is live.
   SELECT count(*) INTO n
     FROM public.page_models p, LATERAL jsonb_array_elements(p.model_json->'sections') s
-   WHERE p.site = ${lit(SITE)} AND p.mode = 'published'
-     AND p.slug = ANY(expected)
+   WHERE p.site = ${lit(SITE)}
+     AND p.slug = ANY(expected || expected_drafts)
      AND s->>'type' NOT IN (${types.map(lit).join(", ")});
   IF n <> 0 THEN
     RAISE EXCEPTION 'assert: % section(s) name an unexpected type', n;
@@ -1512,11 +1549,11 @@ ${rewrites
   RAISE NOTICE 'assertions passed';
 END $$;
 
-SELECT slug, title, is_public, in_nav,
+SELECT slug, mode, title, is_public, in_nav,
        jsonb_array_length(model_json->'sections') AS sections
   FROM public.page_models
- WHERE site = ${lit(SITE)} AND mode = 'published' AND user_id IS NULL
- ORDER BY slug;
+ WHERE site = ${lit(SITE)} AND user_id IS NULL AND deleted_at IS NULL
+ ORDER BY mode DESC, slug;
 
 COMMIT;
 `
@@ -1533,7 +1570,7 @@ const pages = [
   buildStarLanding(data, form.id),
   buildHomeClassic(data, form.id),
   buildWriting(data),
-  ...SERVED_GATEWAYS.map((id) => buildGatewayPage(data, id)),
+  ...ALL_GATEWAYS.map((id) => buildGatewayPage(data, id)),
   ...offersWithDetailPages(data).map((e) => buildOfferPage(data, e)),
 ];
 

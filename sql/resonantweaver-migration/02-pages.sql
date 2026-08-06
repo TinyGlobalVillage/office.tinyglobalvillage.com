@@ -115,10 +115,10 @@ SELECT '904a1f4d-26bb-42df-b3a2-a16a655fc99d'::uuid, v.id, o.member_id, 'contact
  WHERE v.subdomain = 'resonantweaver'
    AND NOT EXISTS (SELECT 1 FROM public.forms WHERE id = '904a1f4d-26bb-42df-b3a2-a16a655fc99d'::uuid);
 
-CREATE TEMP TABLE _rw_pages (slug text, title text, in_nav boolean, model jsonb)
+CREATE TEMP TABLE _rw_pages (slug text, title text, in_nav boolean, mode text, model jsonb)
   ON COMMIT DROP;
 
-INSERT INTO _rw_pages VALUES ('home', 'Resonant Weaver', true, $rwjson${
+INSERT INTO _rw_pages VALUES ('home', 'Resonant Weaver', true, 'published', $rwjson${
   "id": "pm-rw-home",
   "slug": "home",
   "title": "Resonant Weaver",
@@ -532,7 +532,7 @@ INSERT INTO _rw_pages VALUES ('home', 'Resonant Weaver', true, $rwjson${
   ]
 }$rwjson$::jsonb);
 
-INSERT INTO _rw_pages VALUES ('home-classic', 'Resonant Weaver — classic landing (archived)', false, $rwjson${
+INSERT INTO _rw_pages VALUES ('home-classic', 'Resonant Weaver — classic landing (archived)', false, 'published', $rwjson${
   "id": "pm-rw-home-classic",
   "slug": "home-classic",
   "title": "Resonant Weaver — classic landing (archived)",
@@ -966,7 +966,7 @@ INSERT INTO _rw_pages VALUES ('home-classic', 'Resonant Weaver — classic landi
   ]
 }$rwjson$::jsonb);
 
-INSERT INTO _rw_pages VALUES ('writing', 'Writing', true, $rwjson${
+INSERT INTO _rw_pages VALUES ('writing', 'Writing', true, 'published', $rwjson${
   "id": "pm-rw-writing",
   "slug": "writing",
   "title": "Writing",
@@ -1067,7 +1067,453 @@ INSERT INTO _rw_pages VALUES ('writing', 'Writing', true, $rwjson${
   ]
 }$rwjson$::jsonb);
 
-INSERT INTO _rw_pages VALUES ('landing-star-preview/receive', 'Receive Personal Guidance', false, $rwjson${
+INSERT INTO _rw_pages VALUES ('landing-star-preview/meet', 'Meet Your Galactic Self', false, 'draft', $rwjson${
+  "id": "pm-rw-gateway-meet",
+  "slug": "landing-star-preview/meet",
+  "title": "Meet Your Galactic Self",
+  "chrome": {
+    "navEnabled": true,
+    "footerEnabled": true,
+    "meta": {
+      "description": "Some people arrive here curious. Others already sense there is more to their story than the ordinary account of a life. This is a place to meet that part of yourself directly, without needing to prove where it comes from.",
+      "keywords": [],
+      "ogImage": "/images/tenants/resonantweaver/GalacticSelf.jpg",
+      "noindex": true
+    }
+  },
+  "sections": [
+    {
+      "id": "sec-gw-back-meet",
+      "type": "rf-linkbar",
+      "label": "Back",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "links": [
+            {
+              "label": "← Choose another way in",
+              "href": "/"
+            }
+          ],
+          "align": "left"
+        }
+      }
+    },
+    {
+      "id": "sec-gw-hero-meet",
+      "type": "rf-offer-card",
+      "label": "Hero",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "columns": 1,
+          "heading": "",
+          "bulletGlyph": "✦",
+          "padTop": 0,
+          "padBottom": 25,
+          "items": [
+            {
+              "eyebrow": "Door One · Meet Your Galactic Self",
+              "title": "Meet your galactic self",
+              "sub": "",
+              "body": "Some people arrive here curious. Others already sense there is more to their story than the ordinary account of a life. This is a place to meet that part of yourself directly, without needing to prove where it comes from.",
+              "listLabel": "",
+              "bullets": [],
+              "note": "",
+              "price": "",
+              "ctaLabel": "See every way in",
+              "ctaHref": "/landing-star-preview/experience/all-products/",
+              "variant": "media",
+              "mediaUrl": "/images/tenants/resonantweaver/GalacticSelf.jpg",
+              "mediaAlt": "A restrained constellation and astronomical observatory diagram emerging from darkness",
+              "mediaRight": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "sec-gw-intro-meet",
+      "type": "rf-media-copy",
+      "label": "Section intro",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "imageUrl": "",
+          "imageAlt": "",
+          "imagePosition": "left",
+          "eyebrow": "Ways to begin",
+          "eyebrowColor": "accent",
+          "heading": "Start where it feels easiest",
+          "headingLevel": 2,
+          "headingAccent": "",
+          "paragraphs": [
+            "None of these ask you to already know what you are. Each one is simply a different depth of first contact."
+          ],
+          "chips": [],
+          "ctas": []
+        }
+      }
+    },
+    {
+      "id": "sec-gw-cards-meet",
+      "type": "rf-offer-card",
+      "label": "Cards",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "columns": 3,
+          "heading": "",
+          "bulletGlyph": "✦",
+          "padTop": 0,
+          "padBottom": 25,
+          "items": [
+            {
+              "eyebrow": "01",
+              "title": "Starwoven Journey",
+              "sub": "",
+              "body": "Your celestial pattern, read in full",
+              "listLabel": "",
+              "bullets": [],
+              "note": "Coming soon",
+              "price": "$33",
+              "ctaLabel": "Explore",
+              "ctaHref": "/starseed/",
+              "variant": "standard",
+              "mediaUrl": "",
+              "mediaAlt": ""
+            },
+            {
+              "eyebrow": "02",
+              "title": "Galactic Field Guide",
+              "sub": "",
+              "body": "A growing archive of the star systems",
+              "listLabel": "",
+              "bullets": [],
+              "note": "Waitlist",
+              "price": "Preview access",
+              "ctaLabel": "Explore",
+              "ctaHref": "/galactic-field-guide/",
+              "variant": "standard",
+              "mediaUrl": "",
+              "mediaAlt": ""
+            },
+            {
+              "eyebrow": "03",
+              "title": "Sun Walk",
+              "sub": "",
+              "body": "A free perpetual calendar of the fixed-star currents — which star gateway the Sun is walking through this week.",
+              "listLabel": "",
+              "bullets": [],
+              "note": "",
+              "price": "",
+              "ctaLabel": "Walk with this week",
+              "ctaHref": "/sun-walk/",
+              "variant": "standard",
+              "mediaUrl": "",
+              "mediaAlt": ""
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "sec-gw-close-meet",
+      "type": "rf-media-copy",
+      "label": "Closing",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "imageUrl": "",
+          "imageAlt": "",
+          "imagePosition": "left",
+          "eyebrow": "At the threshold",
+          "eyebrowColor": "accent",
+          "heading": "You do not need the whole picture to begin",
+          "headingLevel": 2,
+          "headingAccent": "",
+          "paragraphs": [
+            "Start with the part of the sky that is moving with you now. Everything else can wait."
+          ],
+          "chips": [],
+          "ctas": [
+            {
+              "label": "See every way in",
+              "href": "/landing-star-preview/experience/all-products/",
+              "variant": "ritual"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}$rwjson$::jsonb);
+
+INSERT INTO _rw_pages VALUES ('landing-star-preview/develop', 'Develop Your Perception', false, 'draft', $rwjson${
+  "id": "pm-rw-gateway-develop",
+  "slug": "landing-star-preview/develop",
+  "title": "Develop Your Perception",
+  "chrome": {
+    "navEnabled": true,
+    "footerEnabled": true,
+    "meta": {
+      "description": "Learn to recognise subtle sensation, distinguish signal from projection and meet energy and your directly without leaving the intelligence of the body behind.",
+      "keywords": [],
+      "ogImage": "/images/tenants/resonantweaver/learn.jpg",
+      "noindex": true
+    }
+  },
+  "sections": [
+    {
+      "id": "sec-gw-back-develop",
+      "type": "rf-linkbar",
+      "label": "Back",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "links": [
+            {
+              "label": "← Choose another way in",
+              "href": "/"
+            }
+          ],
+          "align": "left"
+        }
+      }
+    },
+    {
+      "id": "sec-gw-hero-develop",
+      "type": "rf-offer-card",
+      "label": "Hero",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "columns": 1,
+          "heading": "",
+          "bulletGlyph": "✦",
+          "padTop": 0,
+          "padBottom": 25,
+          "items": [
+            {
+              "eyebrow": "Door Two · Develop Your Perception",
+              "title": "Perception becomes trustworthy through practice",
+              "sub": "",
+              "body": "Learn to recognise subtle sensation, distinguish signal from projection and meet energy and your directly without leaving the intelligence of the body behind.",
+              "listLabel": "",
+              "bullets": [],
+              "note": "",
+              "price": "",
+              "ctaLabel": "Begin at the threshold",
+              "ctaHref": "/journey/",
+              "variant": "media",
+              "mediaUrl": "/images/tenants/resonantweaver/learn.jpg",
+              "mediaAlt": "A grounded figure sensing space while crossing a subtle threshold",
+              "mediaRight": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "sec-gw-intro-develop",
+      "type": "rf-media-copy",
+      "label": "Section intro",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "imageUrl": "",
+          "imageAlt": "",
+          "imagePosition": "left",
+          "eyebrow": "The training arc",
+          "eyebrowColor": "accent",
+          "heading": "From sensation to relationship",
+          "headingLevel": 2,
+          "headingAccent": "",
+          "paragraphs": [
+            "The work develops in sequence. First you notice. Then you discern. Only then do you learn to move in conscious relationship with what you perceive."
+          ],
+          "chips": [],
+          "ctas": []
+        }
+      }
+    },
+    {
+      "id": "sec-gw-cards-develop",
+      "type": "rf-offer-card",
+      "label": "Cards",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "columns": 3,
+          "heading": "",
+          "bulletGlyph": "✦",
+          "padTop": 0,
+          "padBottom": 25,
+          "items": [
+            {
+              "eyebrow": "01",
+              "title": "Sensation",
+              "sub": "",
+              "body": "Build a stable felt reference for your own body, attention and energetic baseline.",
+              "listLabel": "",
+              "bullets": [],
+              "note": "",
+              "price": "",
+              "ctaLabel": "",
+              "ctaHref": "",
+              "variant": "standard",
+              "mediaUrl": "",
+              "mediaAlt": ""
+            },
+            {
+              "eyebrow": "02",
+              "title": "Discernment",
+              "sub": "",
+              "body": "Learn the difference between sensation, story, projection and a clean signal from the field.",
+              "listLabel": "",
+              "bullets": [],
+              "note": "",
+              "price": "",
+              "ctaLabel": "",
+              "ctaHref": "",
+              "variant": "standard",
+              "mediaUrl": "",
+              "mediaAlt": ""
+            },
+            {
+              "eyebrow": "03",
+              "title": "Relationship",
+              "sub": "",
+              "body": "Practise meeting energy consciously: with boundaries, responsiveness and grounded choice.",
+              "listLabel": "",
+              "bullets": [],
+              "note": "",
+              "price": "",
+              "ctaLabel": "",
+              "ctaHref": "",
+              "variant": "standard",
+              "mediaUrl": "",
+              "mediaAlt": ""
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "sec-gw-courses-intro-develop",
+      "type": "rf-media-copy",
+      "label": "Courses — intro",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "imageUrl": "",
+          "imageAlt": "",
+          "imagePosition": "left",
+          "eyebrow": "Ready when you are",
+          "eyebrowColor": "accent",
+          "heading": "The courses",
+          "headingLevel": 2,
+          "headingAccent": "",
+          "paragraphs": [
+            "Structured containers for the same work, for whenever you're ready to go deeper than a single practice."
+          ],
+          "chips": [],
+          "ctas": []
+        }
+      }
+    },
+    {
+      "id": "sec-gw-courses-develop",
+      "type": "rf-offer-card",
+      "label": "Courses",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "columns": 2,
+          "heading": "",
+          "bulletGlyph": "✦",
+          "padTop": 0,
+          "padBottom": 25,
+          "items": [
+            {
+              "eyebrow": "01",
+              "title": "Galactic Initiation",
+              "sub": "",
+              "body": "A three-day experiential course in galactic perception, contact and Earth translation",
+              "listLabel": "",
+              "bullets": [],
+              "note": "Coming soon",
+              "price": "$222",
+              "ctaLabel": "Learn more",
+              "ctaHref": "/landing-star-preview/offer/galactic-initiation/",
+              "variant": "standard",
+              "mediaUrl": "",
+              "mediaAlt": ""
+            },
+            {
+              "eyebrow": "02",
+              "title": "Awareness and Perception Training",
+              "sub": "",
+              "body": "Founding-cohort training",
+              "listLabel": "",
+              "bullets": [],
+              "note": "In development",
+              "price": "$333 (founding)",
+              "ctaLabel": "Get notified when it opens",
+              "ctaHref": "/#/",
+              "variant": "standard",
+              "mediaUrl": "",
+              "mediaAlt": ""
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "sec-gw-close-develop",
+      "type": "rf-media-copy",
+      "label": "Closing",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "imageUrl": "",
+          "imageAlt": "",
+          "imagePosition": "left",
+          "eyebrow": "At the threshold",
+          "eyebrowColor": "accent",
+          "heading": "The body is the first instrument",
+          "headingLevel": 2,
+          "headingAccent": "",
+          "paragraphs": [
+            "Training starts by becoming precise about what you already feel, not by reaching for something more dramatic."
+          ],
+          "chips": [],
+          "ctas": [
+            {
+              "label": "Take the first practice",
+              "href": "/journey/",
+              "variant": "ritual"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}$rwjson$::jsonb);
+
+INSERT INTO _rw_pages VALUES ('landing-star-preview/receive', 'Receive Personal Guidance', false, 'published', $rwjson${
   "id": "pm-rw-gateway-receive",
   "slug": "landing-star-preview/receive",
   "title": "Receive Personal Guidance",
@@ -1239,7 +1685,7 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/receive', 'Receive Personal 
   ]
 }$rwjson$::jsonb);
 
-INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/meeting-your-galactic-self-meditation', 'Meeting Your Galactic Self — Meditation — Offer Preview', false, $rwjson${
+INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/meeting-your-galactic-self-meditation', 'Meeting Your Galactic Self — Meditation — Offer Preview', false, 'published', $rwjson${
   "id": "pm-rw-offer-meeting-your-galactic-self-meditation",
   "slug": "landing-star-preview/offer/meeting-your-galactic-self-meditation",
   "title": "Meeting Your Galactic Self — Meditation — Offer Preview",
@@ -1399,7 +1845,7 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/meeting-your-galactic-
   ]
 }$rwjson$::jsonb);
 
-INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/galactic-initiation', 'Galactic Initiation — Offer Preview', false, $rwjson${
+INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/galactic-initiation', 'Galactic Initiation — Offer Preview', false, 'published', $rwjson${
   "id": "pm-rw-offer-galactic-initiation",
   "slug": "landing-star-preview/offer/galactic-initiation",
   "title": "Galactic Initiation — Offer Preview",
@@ -1563,7 +2009,7 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/galactic-initiation', 
   ]
 }$rwjson$::jsonb);
 
-INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/resonance-mirror', 'Resonance Mirror — Offer Preview', false, $rwjson${
+INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/resonance-mirror', 'Resonance Mirror — Offer Preview', false, 'published', $rwjson${
   "id": "pm-rw-offer-resonance-mirror",
   "slug": "landing-star-preview/offer/resonance-mirror",
   "title": "Resonance Mirror — Offer Preview",
@@ -1781,7 +2227,7 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/resonance-mirror', 'Re
   ]
 }$rwjson$::jsonb);
 
-INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/pearl-chamber', 'The Pearl Chamber — Offer Preview', false, $rwjson${
+INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/pearl-chamber', 'The Pearl Chamber — Offer Preview', false, 'published', $rwjson${
   "id": "pm-rw-offer-pearl-chamber",
   "slug": "landing-star-preview/offer/pearl-chamber",
   "title": "The Pearl Chamber — Offer Preview",
@@ -1999,7 +2445,7 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/pearl-chamber', 'The P
   ]
 }$rwjson$::jsonb);
 
-INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/galactic-pendulum', 'Galactic Pendulum — Offer Preview', false, $rwjson${
+INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/galactic-pendulum', 'Galactic Pendulum — Offer Preview', false, 'published', $rwjson${
   "id": "pm-rw-offer-galactic-pendulum",
   "slug": "landing-star-preview/offer/galactic-pendulum",
   "title": "Galactic Pendulum — Offer Preview",
@@ -2217,7 +2663,7 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/galactic-pendulum', 'G
   ]
 }$rwjson$::jsonb);
 
-INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/galactic-integration-session', 'Galactic Integration Session — Offer Preview', false, $rwjson${
+INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/galactic-integration-session', 'Galactic Integration Session — Offer Preview', false, 'published', $rwjson${
   "id": "pm-rw-offer-galactic-integration-session",
   "slug": "landing-star-preview/offer/galactic-integration-session",
   "title": "Galactic Integration Session — Offer Preview",
@@ -2381,15 +2827,21 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/galactic-integration-s
 -- Null-safe NOT EXISTS on the same tuple the unique index names — the index
 -- cannot do this job because a published row carries user_id NULL and NULL is
 -- distinct from NULL.
+--
+-- MODE IS PER ROW. Most are 'published'; a page she BUILT but does not currently
+-- serve arrives as 'draft' — publicly inert (readPublishedPageWithFlags filters
+-- on mode) and visible in the studio, which is where she decides whether it goes
+-- live. That is the platform's own idiom for "kept, not deleted", and it beats
+-- leaving the content as unreachable code in her repo.
 WITH ins AS (
   INSERT INTO public.page_models
     (slug, lang, mode, user_id, deleted_at, title, is_public, in_nav, model_json, updated_at, site)
-  SELECT r.slug, 'en', 'published', NULL, NULL, r.title, true, r.in_nav, r.model, now(), 'resonantweaver'
+  SELECT r.slug, 'en', r.mode, NULL, NULL, r.title, true, r.in_nav, r.model, now(), 'resonantweaver'
     FROM _rw_pages r
    WHERE NOT EXISTS (
      SELECT 1 FROM public.page_models p
       WHERE p.site = 'resonantweaver' AND p.slug = r.slug AND p.lang = 'en'
-        AND p.mode = 'published' AND p.user_id IS NOT DISTINCT FROM NULL
+        AND p.mode = r.mode AND p.user_id IS NOT DISTINCT FROM NULL
    )
   RETURNING 1
 )
@@ -2400,6 +2852,7 @@ DO $$
 DECLARE
   n int;
   expected constant text[] := ARRAY['home', 'home-classic', 'writing', 'landing-star-preview/receive', 'landing-star-preview/offer/meeting-your-galactic-self-meditation', 'landing-star-preview/offer/galactic-initiation', 'landing-star-preview/offer/resonance-mirror', 'landing-star-preview/offer/pearl-chamber', 'landing-star-preview/offer/galactic-pendulum', 'landing-star-preview/offer/galactic-integration-session'];
+  expected_drafts constant text[] := ARRAY['landing-star-preview/meet', 'landing-star-preview/develop']::text[];
 BEGIN
   SELECT count(*) INTO n FROM public.page_models
    WHERE site = 'resonantweaver' AND lang = 'en' AND mode = 'published'
@@ -2407,6 +2860,25 @@ BEGIN
      AND slug = ANY(expected);
   IF n <> array_length(expected, 1) THEN
     RAISE EXCEPTION 'assert: expected % pages readable, found %', array_length(expected, 1), n;
+  END IF;
+
+  -- The drafts are present AND still drafts. A draft that quietly became a
+  -- published row is a page she never chose to serve, live on her domain.
+  IF array_length(expected_drafts, 1) IS NOT NULL THEN
+    SELECT count(*) INTO n FROM public.page_models
+     WHERE site = 'resonantweaver' AND lang = 'en' AND mode = 'draft'
+       AND user_id IS NULL AND deleted_at IS NULL
+       AND slug = ANY(expected_drafts);
+    IF n <> array_length(expected_drafts, 1) THEN
+      RAISE EXCEPTION 'assert: expected % draft page(s), found %', array_length(expected_drafts, 1), n;
+    END IF;
+
+    SELECT count(*) INTO n FROM public.page_models
+     WHERE site = 'resonantweaver' AND mode = 'published' AND deleted_at IS NULL
+       AND slug = ANY(expected_drafts);
+    IF n <> 0 THEN
+      RAISE EXCEPTION 'assert: % draft page(s) also exist published', n;
+    END IF;
   END IF;
 
   -- Every section names a type the shared catalog renders. A typo is invisible
@@ -2419,10 +2891,13 @@ BEGIN
   -- `journey` row (04-journey-row.sql) is `rf-journey`, and this assertion
   -- failed the whole transaction over a row it had not written and had no
   -- opinion about. A file asserts about its own output.
+  -- Drafts are checked too: a draft is a page she is expected to OPEN, and a
+  -- section type the catalog cannot render is a blank band whether or not the
+  -- row is live.
   SELECT count(*) INTO n
     FROM public.page_models p, LATERAL jsonb_array_elements(p.model_json->'sections') s
-   WHERE p.site = 'resonantweaver' AND p.mode = 'published'
-     AND p.slug = ANY(expected)
+   WHERE p.site = 'resonantweaver'
+     AND p.slug = ANY(expected || expected_drafts)
      AND s->>'type' NOT IN ('rf-split-hero', 'rf-media-copy', 'rf-door-card', 'rf-offer-card', 'rf-accordion', 'form-live', 'rf-testimonials', 'rf-linkbar');
   IF n <> 0 THEN
     RAISE EXCEPTION 'assert: % section(s) name an unexpected type', n;
@@ -2466,10 +2941,10 @@ BEGIN
   RAISE NOTICE 'assertions passed';
 END $$;
 
-SELECT slug, title, is_public, in_nav,
+SELECT slug, mode, title, is_public, in_nav,
        jsonb_array_length(model_json->'sections') AS sections
   FROM public.page_models
- WHERE site = 'resonantweaver' AND mode = 'published' AND user_id IS NULL
- ORDER BY slug;
+ WHERE site = 'resonantweaver' AND user_id IS NULL AND deleted_at IS NULL
+ ORDER BY mode DESC, slug;
 
 COMMIT;
