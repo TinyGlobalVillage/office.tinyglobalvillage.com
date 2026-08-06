@@ -1225,7 +1225,10 @@ function StoragePageInner({ forceEmbedded = false }: { forceEmbedded?: boolean }
       {/* Embedded, the host already has a nav — rendering ours produced a second Office navbar inside
           the modal, which is what this guard is for. */}
       {!embedded && <TopNav />}
-      <PageMain $embedded={embedded}>
+      {/* A DIV when embedded, not a MAIN. globals.css gives every `main` the fixed-nav top padding —
+          136px of it — which is right for a route and absurd inside a modal that has its own header;
+          and the host page already owns the one `main` landmark this document should have. */}
+      <PageMain as={embedded ? "div" : "main"} $embedded={embedded}>
         {!embedded && (
           <HeaderRow>
             <TitleWrap>
