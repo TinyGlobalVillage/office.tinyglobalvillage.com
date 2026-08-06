@@ -15,13 +15,19 @@ import "server-only";
 import { createMemberAuth } from "@tgv/module-auth/auth/member-auth";
 import { db } from "@/lib/db-drizzle";
 
+// Local dev: a Domain=.tinyglobalvillage.com cookie can never be set by a
+// response from localhost (browsers reject a Domain that isn't a suffix of
+// the request host), so WEBAUTHN_ORIGIN=http://localhost:* drops to a
+// host-only cookie — same pattern as tinyglobalvillage.com's DEMO_MODE branch.
+const LOCAL_DEV = (process.env.WEBAUTHN_ORIGIN ?? "").startsWith("http://localhost");
+
 export const officeMemberAuth = createMemberAuth({
   db,
   // Shared session cookie with tinyglobalvillage.com for single-sign-on: same
   // name + a parent-domain Domain= so the browser sends it to BOTH office.<host>
   // and <host>. Both apps validate it against the same member_sessions row.
   cookieName: "tgv_member_session",
-  cookieDomain: ".tinyglobalvillage.com",
+  ...(LOCAL_DEV ? {} : { cookieDomain: ".tinyglobalvillage.com" }),
   // RP-ID migration: the auth-options OFFER was flipped to the parent
   // tinyglobalvillage.com (2026-06-05) once both admins enrolled a parent-scoped
   // passkey, so login now surfaces passkeys that work on BOTH apps. LOGIN verify
