@@ -152,22 +152,63 @@ timing gate, per-IP rate limit — now keyed by site as well, so one tenant cann
 budget — and one generic error, because a form that explains which defence it tripped teaches a
 bot how to get past it.
 
-## 3 — The ten API routes that are hers alone
+## 3 — The ten API routes that are hers alone — **DONE 2026-08-06**
 
-Of 116, ten have no HQ twin. Only three are work.
+Commit `c7a9772e` (HQ). One route ported. The other two turned out not to be ports, and
+finding that out was worth more than either would have been.
 
 **Vanish on pooling** — `connect/managed/[[...path]]`, `storefront/[[...path]]`,
 `villagers/[[...path]]`, `wallet/[[...path]]`. Every one is a proxy that forwards to HQ with
-`INTERNAL_API_SECRET`. When she IS HQ there is nothing to forward to; delete, don't port.
+`INTERNAL_API_SECRET`. When she IS HQ there is nothing to forward to; they go with the app.
 
 **Dead or dev-only** — `auth/csrf` is a NextAuth `signOut()` preflight shim; `starseed-preview`
 is unset in production and answers its own 404.
 
-**Real ports** — `meeting/scheduled` (a host's upcoming calls), `user/calendar-sync` (returns
-the host's private iCal subscription URL) and `paypal/enabled` (her PayPal faucet's killswitch).
-`user/calendar-sync` only MINTS the URL — the feed path itself already exists in HQ — so unlike
-refusionist's iCal feed this one is not held by anyone's calendar app. Port it anyway; it is
-twenty-seven lines.
+**`user/calendar-sync` — PORTED, and it was a fleet-wide hole rather than a port.**
+`@tgv/module-dashboard`'s `CalendarSetupModal` has fetched that exact path since it was
+written, and HQ mounts that modal through the shared `SessionsTab` under the `meeting-room`
+feature. The route existed only on HER app — so on every other host the one dialog that hands
+a villager their calendar link has been opening with two empty URL fields and no error, its
+sibling `/api/user/calendar/settings` answering normally beside them. Gated identically to that
+sibling on purpose; the origin now comes from the request, because her literal
+`resonantweaver.com` fallback would hand a villager on their own domain a subscription URL
+pointing at somebody else's site, and a calendar URL once pasted is never corrected. Her own
+use of it was nil — `resonantweaver.calendar_integrations` has **0 rows** — so this port is
+entirely for everyone else.
+
+**`meeting/scheduled` — NOT PORTED, and it should not be.** It lists a host's upcoming LiveKit
+scheduled meetings. Three facts, each independently sufficient:
+- HQ passes `scheduleMeetingOpensBooking` to the shared `SessionsTab`, so "Schedule Meeting"
+  opens the **appointments** booking flow, not the LiveKit link-ahead modal — the same
+  convergence that sent refusionist's `/schedule` to `/book`. HQ therefore never creates a
+  LiveKit scheduled meeting, and the list would answer `{meetings: []}` for ever.
+- The shared tab has no list UI for them either. Its "Upcoming Appointments" reads the
+  appointments engine.
+- `resonantweaver.meetings` holds 2 rows and **0 scheduled ones, ever**. Her own list has
+  always been empty, so nothing is lost at cutover.
+A route that can only answer with an empty array is not a port, it is a decoration. It was
+written into `@tgv/module-video-calls` as `meetingScheduled` — the missing sibling of
+`meetingCreate`, which has accepted a `scheduledAt` since it was written — and then reverted
+on those three facts. If the LiveKit link-ahead flow is ever turned back on, the handler is
+fifty lines and this paragraph says where it went.
+
+**`paypal/enabled` — NOT PORTED, and the reason needs Gio's ruling.** The route reports whether
+her PayPal faucet is live, per the operator killswitch Office writes to
+`/srv/refusion-core/data/paypal/paypal-config.json`. Its only callers are her three PayPal
+button COMPONENTS, which hide themselves when it answers false. **None of those components
+exists on the pooled renderer** — her funnel is `page_models` rows now, and every payment CTA
+in them is a plain `<a href="https://www.paypal.com/...">`: nine of them across the offer
+pages, the Pearl Chamber thank-you and the starseed closing card.
+
+So the route has no caller — but the killswitch it served has no reach either. **Office →
+Villagers → PayPal can still be switched off for `resonantweaver.com` after cutover, and
+nothing will happen.** That is a control that lies, which is worse than a control that is
+absent. Two ways out, and it is Gio's call:
+1. **Accept it** and mark her rows as not killswitchable, in Office, so the operator sees the
+   truth. Cheapest, and honest.
+2. **Give the catalog a payment CTA that honours the faucet** — one section type whose link
+   renders only when the site's faucet is live. That is the reusable answer, and it would
+   cover every tenant who ever pastes a payment link into a page row, which is all of them.
 
 ## 4 — Rewire her own app onto the packages
 
