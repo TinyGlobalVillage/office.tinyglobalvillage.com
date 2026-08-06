@@ -210,13 +210,25 @@ absent. Two ways out, and it is Gio's call:
    renders only when the site's faucet is live. That is the reusable answer, and it would
    cover every tenant who ever pastes a payment link into a page row, which is all of them.
 
-## 4 — Rewire her own app onto the packages
+## 4 — Rewire her own app onto the packages — **ALREADY DONE, and this entry was stale**
 
-`@tgv/module-journey` and `@tgv/module-starseed` were extracted FROM her app and her app still
-runs its own copies. Pointing it at the packages is what proves the extraction from the other
-side, and it keeps the rollback path building — a stopped app you cannot rebuild is not a
-rollback. Use the tsconfig-alias trick already in place for `@/lib/starseed/*`, so her public
-pages do not have to change.
+Commit `1a06ea5` on her `origin/main`: `src/lib/starseed/` is deleted and `@/lib/starseed/*` is
+a tsconfig alias onto `@tgv/module-orakle/module-starseed/dist/starseed/engine/*`, so her
+twenty-odd public pages, the sun-walk and the field guide are untouched and build against the
+package. It shipped with the profile-engines deploy on 2026-08-04.
+
+**There is nothing to do for the journey half.** `@tgv/module-journey` was created and then
+deleted (`e65d5143`) — the journey is an `rf-journey` page row, not a package. What remains in
+her app is `src/lib/journey/{signups,sendAccessEmail}.ts`, and that is correct: it is the copy
+her app reads until it stops, and HQ has its own (§2). No third home, no shared reader with one
+consumer.
+
+**One hazard, and it is not ours to fix from this lane.** The Mac's shared
+`clients/resonantweaver.com` checkout is on `main` at `ee8569d` — **diverged from `origin/main`
+and missing `1a06ea5`** — with another session's uncommitted files in the tree. Her app still
+has to BUILD for the rollback path to exist (*"a stopped app you cannot rebuild is not a
+rollback"*), so before the flip somebody must reconcile that checkout. Do not do it from a
+worktree lane.
 
 ## 4b — The convergence ledger — **BUILT 2026-08-06**
 
