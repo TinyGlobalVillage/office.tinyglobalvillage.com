@@ -2125,6 +2125,631 @@ INSERT INTO _rw_pages VALUES ('pearl-chamber', 'The Pearl Chamber', false, 'publ
   ]
 }$rwjson$::jsonb);
 
+INSERT INTO _rw_pages VALUES ('starseed', 'The Starwoven Journey | Discover your Starseed pattern', false, 'published', $rwjson${
+  "id": "pm-rw-starseed",
+  "slug": "starseed",
+  "title": "The Starwoven Journey | Discover your Starseed pattern",
+  "chrome": {
+    "navEnabled": true,
+    "footerEnabled": true,
+    "meta": {
+      "description": "A personal Starseed Oracle journey through the fixed stars active at your exact birth time and place. Discover your Hybrid Starseed Lineages, gifts, shadow gates and missions.",
+      "keywords": [],
+      "ogImage": "/images/tenants/resonantweaver/StarBot.png"
+    }
+  },
+  "sections": [
+    {
+      "id": "sec-ss-hero",
+      "type": "rf-media-copy",
+      "label": "Hero",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "imageUrl": "/images/tenants/resonantweaver/StarBot.png",
+          "imageAlt": "A cosmic starseed figure",
+          "imagePosition": "right",
+          "eyebrow": "A personal Starseed Oracle journey",
+          "eyebrowColor": "accent",
+          "heading": "The Starwoven Journey",
+          "headingLevel": 1,
+          "headingAccent": "Discover your unique Starseed pattern",
+          "paragraphs": [
+            "Most people meet their birth sky through the zodiac signs, planets and houses. Far fewer have been read through the individual fixed stars that were active at the moment they were born.",
+            "This stellar layer can help explain why no single Starseed description has ever quite held all of you, why your strongest gifts can also become sources of pressure, and why certain parts of the sky have always felt familiar.",
+            "The Starwoven Journey calculates your sky pattern from your exact birth time and place, then guides you through the stellar inheritance it reveals.",
+            "You will meet the primary star at your incarnation gateway, your wider Hybrid Starseed Lineages, and the Stellar Braid they form together.",
+            "The journey gives language to the gifts, shadow gates and deeper direction you may have carried long before you knew how to name them."
+          ],
+          "chips": [
+            "64 fixed stars",
+            "Your exact birth sky",
+            "A guided personal reading"
+          ],
+          "ctas": [
+            {
+              "label": "Begin the journey",
+              "href": "#begin",
+              "variant": "ritual"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "sec-ss-lineage",
+      "type": "rf-media-copy",
+      "label": "The Stellar Braid",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "imageUrl": "",
+          "imageAlt": "",
+          "imagePosition": "left",
+          "eyebrow": "Your Hybrid Starseed Lineages",
+          "eyebrowColor": "accent",
+          "heading": "The Stellar Braid",
+          "headingLevel": 2,
+          "headingAccent": "",
+          "paragraphs": [
+            "You are not only one star. You may feel connected to the Pleiades, Sirius, Arcturus, Orion or another part of the night sky. Perhaps none of the familiar Starseed descriptions have ever quite held all of you.",
+            "Human ancestry rarely comes from only one place. Trace it back far enough and many different places, people and histories meet in one person. Your stellar inheritance can be understood in much the same way.",
+            "Most of us carry more than one strong stellar thread. The Starwoven Journey returns to the sky as it stood at the moment you were born, following the star at your incarnation gateway alongside the others woven through your planets, horizon, emotional world, deeper roots and direction of life.",
+            "One star carries the primary current through which you entered this life. The others add their own gifts, pressures and ways of seeing. Together, they form your Stellar Braid: the particular pattern of Hybrid Starseed Lineages woven through you.",
+            "The journey helps you recognise what you may have brought with you to Earth, and how it is asking to become grounded, lived and useful through your human life.",
+            "*You were woven to arrive in this world.*"
+          ],
+          "chips": [],
+          "ctas": []
+        }
+      }
+    },
+    {
+      "id": "sec-ss-responsive",
+      "type": "rf-media-copy",
+      "label": "A responsive sky",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "imageUrl": "",
+          "imageAlt": "",
+          "imagePosition": "left",
+          "eyebrow": "Space to explore",
+          "eyebrowColor": "accent",
+          "heading": "A Gradual Unfolding",
+          "headingLevel": 2,
+          "headingAccent": "",
+          "paragraphs": [
+            "The Starwoven Journey guides you through your reading one chapter at a time. Each section pauses before the next begins, giving you space to take in what you have read, notice what resonates and continue when you are ready.",
+            "The journey may invite you to notice how a pattern appears in your body or everyday life, and offer simple practices to help bring a stellar gift into a more grounded expression.",
+            "You are not expected to agree with every interpretation. The stars provide the framework, while your own recognition remains central."
+          ],
+          "chips": [],
+          "ctas": []
+        }
+      }
+    },
+    {
+      "id": "sec-ss-recognition",
+      "type": "rf-media-copy",
+      "label": "Recognition",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "imageUrl": "",
+          "imageAlt": "",
+          "imagePosition": "left",
+          "eyebrow": "What begins to make sense",
+          "eyebrowColor": "accent",
+          "heading": "A Pattern to Recognise",
+          "headingLevel": 2,
+          "headingAccent": "",
+          "paragraphs": [
+            "The purpose of the Starwoven Journey is not to give you another identity to wear.",
+            "It helps you see how your lineages, sensitivity, gifts, struggles and sense of purpose belong to one larger pattern.",
+            "You may recognise why you feel connected to more than one star system, why certain qualities have followed you throughout your life, and why your strongest gifts can also become your greatest sources of pressure.",
+            "The purpose is not simply to learn which stars were active when you were born. It is to understand how their pattern may already be living through you."
+          ],
+          "chips": [],
+          "ctas": []
+        }
+      }
+    },
+    {
+      "id": "sec-ss-journey-head",
+      "type": "rf-media-copy",
+      "label": "The journey — intro",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "imageUrl": "",
+          "imageAlt": "",
+          "imagePosition": "left",
+          "eyebrow": "Inside your journey",
+          "eyebrowColor": "accent",
+          "heading": "From Gateway to Mirror",
+          "headingLevel": 2,
+          "headingAccent": "",
+          "paragraphs": [],
+          "chips": [],
+          "ctas": []
+        }
+      }
+    },
+    {
+      "id": "sec-ss-journey",
+      "type": "rf-offer-card",
+      "label": "The journey",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "columns": 2,
+          "heading": "",
+          "bulletGlyph": "✦",
+          "padTop": 0,
+          "padBottom": 25,
+          "items": [
+            {
+              "eyebrow": "01",
+              "title": "The Gate You Entered Through",
+              "sub": "",
+              "body": "Your journey begins with the star standing at the threshold of your birth.\n\nThis star reveals your primary Starseed lineage and the current through which your stellar inheritance first entered human life.\n\nIt introduces the perception, gift and central tension carried through your incarnation gateway.",
+              "listLabel": "",
+              "bullets": [],
+              "note": "",
+              "price": "",
+              "ctaLabel": "",
+              "ctaHref": "",
+              "variant": "standard"
+            },
+            {
+              "eyebrow": "02",
+              "title": "Your Hybrid Starseed Lineages",
+              "sub": "",
+              "body": "You are rarely shaped by only one star.\n\nThe journey introduces your major lineages, supporting stars and stellar allies, then shows how their different qualities combine.\n\nWhat first appears to be a collection of separate stars gradually becomes one living pattern: the Star Braid only you carry.",
+              "listLabel": "",
+              "bullets": [],
+              "note": "",
+              "price": "",
+              "ctaLabel": "",
+              "ctaHref": "",
+              "variant": "standard"
+            },
+            {
+              "eyebrow": "03",
+              "title": "Your Inner World",
+              "sub": "",
+              "body": "Some stars speak through your emotional life, your body and the way you experience safety, closeness and connection.\n\nThis part of the journey explores what you may feel before you can explain it, what your inner world needs, and how emotion moves through your particular stellar pattern.",
+              "listLabel": "",
+              "bullets": [],
+              "note": "",
+              "price": "",
+              "ctaLabel": "",
+              "ctaHref": "",
+              "variant": "standard"
+            },
+            {
+              "eyebrow": "04",
+              "title": "Your Deeper Roots",
+              "sub": "",
+              "body": "Beneath your immediate feelings are older patterns around belonging, loyalty, stability, trust and the places where you have learned to hold yourself together.\n\nThe journey reveals what your deeper nature seeks, what can make belonging feel uncertain, and the kind of ground that allows you to remain connected without leaving yourself behind.",
+              "listLabel": "",
+              "bullets": [],
+              "note": "",
+              "price": "",
+              "ctaLabel": "",
+              "ctaHref": "",
+              "variant": "standard"
+            },
+            {
+              "eyebrow": "05",
+              "title": "Gifts and Shadow Gates",
+              "sub": "",
+              "body": "Every stellar gift has a point where it can turn under pressure.\n\nSensitivity can become overwhelm. Courage can become constant battle. Dignity can become armour. Service can become self-erasure. Responsibility can become carrying what belongs to everyone.\n\nOften, the thing that drains you and the thing you are best at come from the same underlying gift.\n\nThe journey names the gift, the moment it begins to distort, and the way back into its clearer expression.",
+              "listLabel": "",
+              "bullets": [],
+              "note": "",
+              "price": "",
+              "ctaLabel": "",
+              "ctaHref": "",
+              "variant": "standard"
+            },
+            {
+              "eyebrow": "06",
+              "title": "Soul and Earth Mission",
+              "sub": "",
+              "body": "Your mission is not treated as a job title or a grand assignment you must somehow prove.\n\nYour Soul Mission reveals the deeper quality your life is asking you to embody. The Mission Anchor is the star that holds this enduring direction.\n\nYour Earth Mission shows how that inner movement can become visible through your choices, relationships, work, creativity and presence in the world.",
+              "listLabel": "",
+              "bullets": [],
+              "note": "",
+              "price": "",
+              "ctaLabel": "",
+              "ctaHref": "",
+              "variant": "standard"
+            },
+            {
+              "eyebrow": "07",
+              "title": "The Mirror",
+              "sub": "",
+              "body": "The journey closes with a guided encounter that gathers your separate stellar threads into one living image.\n\nYou meet a symbolic reflection of your stellar self, not as something outside you, but as an aspect of your own inheritance becoming recognisable.\n\nYou leave with a personal reflection, a sentence and an embodied image you can return to after the journey is complete.",
+              "listLabel": "",
+              "bullets": [],
+              "note": "",
+              "price": "",
+              "ctaLabel": "",
+              "ctaHref": "",
+              "variant": "standard"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "sec-ss-stars-head",
+      "type": "rf-media-copy",
+      "label": "The eight currents — intro",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "imageUrl": "",
+          "imageAlt": "",
+          "imagePosition": "left",
+          "eyebrow": "A wider astrology",
+          "eyebrowColor": "accent",
+          "heading": "Beyond the zodiac",
+          "headingLevel": 2,
+          "headingAccent": "",
+          "paragraphs": [
+            "In the West, we mostly meet astrology through the twelve zodiac signs, planets and houses. Older sky traditions also paid close attention to the individual stars and star groups beyond the zodiac: Sirius, the Pleiades, Arcturus, Antares and many others.",
+            "These were not treated as interchangeable points of light. Each carried its own stories, qualities, gifts and pressures.",
+            "The Starwoven Journey works with (currently) 64 fixed stars, organised through eight larger movements of the sky. It calculates which stars are strongest in your birth pattern and shows how their different currents combine.",
+            "The zodiac remains part of the ground beneath the reading, but it is not the edge of the sky."
+          ],
+          "chips": [],
+          "ctas": []
+        }
+      }
+    },
+    {
+      "id": "sec-ss-currents",
+      "type": "rf-list",
+      "label": "The eight currents",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "heading": "",
+          "intro": "",
+          "items": [
+            {
+              "lead": "Royal Mission",
+              "text": "",
+              "sub": "Power, visibility, leadership under consequence. Sovereignty, with the integrity tests built in.",
+              "color": "#C9A227"
+            },
+            {
+              "lead": "Directive / Catalytic",
+              "text": "",
+              "sub": "Clean force. Initiation, protection, the movement of something out of idea and into form.",
+              "color": "#EF6B30"
+            },
+            {
+              "lead": "Receptive / Generative",
+              "text": "",
+              "sub": "Field intelligence. Fertility, beauty, the subtle perception that senses before it knows.",
+              "color": "#6FA368"
+            },
+            {
+              "lead": "Coherence / Bridge",
+              "text": "",
+              "sub": "Translation and weaving. Making a whole from pieces, and bringing the far into the near.",
+              "color": "#2E9C9C"
+            },
+            {
+              "lead": "Threshold / Crucible",
+              "text": "",
+              "sub": "Instinct, wound, taboo. Where what once wounded you becomes power, once it's owned.",
+              "color": "#E66B7C"
+            },
+            {
+              "lead": "Messenger / Pathfinding",
+              "text": "",
+              "sub": "The go-first current. Announcement, travel, navigation — setting out before the path is proven.",
+              "color": "#3A8FD4"
+            },
+            {
+              "lead": "Mystic Intelligence",
+              "text": "",
+              "sub": "The star-mind. Prophecy, sacred science, the knowing that arrives in symbol and image.",
+              "color": "#9C86E0"
+            },
+            {
+              "lead": "Ancestral / Deep Memory",
+              "text": "",
+              "sub": "The roots current. Lineage, deep memory, the patterning that arrived before you did.",
+              "color": "#B59A8E"
+            }
+          ],
+          "notesHeading": "",
+          "notes": []
+        }
+      }
+    },
+    {
+      "id": "sec-ss-method",
+      "type": "rf-media-copy",
+      "label": "The method",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "imageUrl": "",
+          "imageAlt": "",
+          "imagePosition": "left",
+          "eyebrow": "Your birth sky",
+          "eyebrowColor": "accent",
+          "heading": "Precisely calculated",
+          "headingLevel": 2,
+          "headingAccent": "",
+          "paragraphs": [
+            "Your reading begins with your exact birth date, birth time and birthplace. The engine calculates which fixed stars were rising, setting or forming significant relationships with your planets, horizon and other important parts of the chart.",
+            "At far northern or southern locations, some stars do not rise and set in the usual way. When this happens, the journey uses the star's actual available relationship to your birth sky rather than pretending otherwise. The journey also uses whole sign houses, which remain reliable at higher latitudes and avoid the extreme house distortions that can occur far north or south.",
+            "The calculation creates the structure. The journey brings that structure to life."
+          ],
+          "chips": [],
+          "ctas": []
+        }
+      }
+    },
+    {
+      "id": "sec-ss-method-cards",
+      "type": "rf-offer-card",
+      "label": "The method — cards",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "columns": 3,
+          "heading": "",
+          "bulletGlyph": "✦",
+          "padTop": 0,
+          "padBottom": 25,
+          "items": [
+            {
+              "title": "Your real birth sky",
+              "sub": "",
+              "body": "The reading begins with astronomical calculation. Your active stars are drawn from the sky at your specific moment and place of birth.",
+              "listLabel": "",
+              "bullets": [],
+              "note": "",
+              "price": "",
+              "ctaLabel": "",
+              "ctaHref": "",
+              "variant": "standard"
+            },
+            {
+              "title": "Your Starseed pattern",
+              "sub": "",
+              "body": "You are not reduced to one cosmic label. The journey explores your primary lineage, your wider Hybrid Starseed Lineages and the unique pattern they form together.",
+              "listLabel": "",
+              "bullets": [],
+              "note": "",
+              "price": "",
+              "ctaLabel": "",
+              "ctaHref": "",
+              "variant": "standard"
+            },
+            {
+              "title": "Made to return to Earth",
+              "sub": "",
+              "body": "The stars are never used to remove you from your body or human life. The journey continually returns to embodiment, belonging and the practical expression of what you carry.",
+              "listLabel": "",
+              "bullets": [],
+              "note": "",
+              "price": "",
+              "ctaLabel": "",
+              "ctaHref": "",
+              "variant": "standard"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "sec-ss-how-head",
+      "type": "rf-media-copy",
+      "label": "How it works — intro",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "imageUrl": "",
+          "imageAlt": "",
+          "imagePosition": "left",
+          "eyebrow": "How it works",
+          "eyebrowColor": "accent",
+          "heading": "",
+          "headingLevel": 2,
+          "headingAccent": "",
+          "paragraphs": [],
+          "chips": [],
+          "ctas": []
+        }
+      }
+    },
+    {
+      "id": "sec-ss-how",
+      "type": "rf-offer-card",
+      "label": "How it works",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "columns": 3,
+          "heading": "",
+          "bulletGlyph": "✦",
+          "padTop": 0,
+          "padBottom": 25,
+          "items": [
+            {
+              "eyebrow": "01",
+              "title": "Open the Oracle",
+              "sub": "",
+              "body": "After purchase, you will receive a link to the AI-guided Starwoven Oracle. Open it when you are ready to begin.",
+              "listLabel": "",
+              "bullets": [],
+              "note": "",
+              "price": "",
+              "ctaLabel": "",
+              "ctaHref": "",
+              "variant": "standard"
+            },
+            {
+              "eyebrow": "02",
+              "title": "Enter your birth details",
+              "sub": "",
+              "body": "Provide your birth date, exact birth time and birthplace. The engine uses them to reconstruct your birth sky and identify your active fixed stars, lineages and major currents.",
+              "listLabel": "",
+              "bullets": [],
+              "note": "",
+              "price": "",
+              "ctaLabel": "",
+              "ctaHref": "",
+              "variant": "standard"
+            },
+            {
+              "eyebrow": "03",
+              "title": "Follow your journey",
+              "sub": "",
+              "body": "Your reading unfolds one chapter at a time. You can pause, ask questions, explore what catches your attention and continue in your own time.",
+              "listLabel": "",
+              "bullets": [],
+              "note": "",
+              "price": "",
+              "ctaLabel": "",
+              "ctaHref": "",
+              "variant": "standard"
+            },
+            {
+              "eyebrow": "04",
+              "title": "Meet the Mirror",
+              "sub": "",
+              "body": "The final chapter gathers your stars, gifts, shadow gates and missions into one personal reflection you can carry back into everyday life.",
+              "listLabel": "",
+              "bullets": [],
+              "note": "",
+              "price": "",
+              "ctaLabel": "",
+              "ctaHref": "",
+              "variant": "standard"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "sec-ss-audience",
+      "type": "rf-media-copy",
+      "label": "Who it is for",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "imageUrl": "",
+          "imageAlt": "",
+          "imagePosition": "left",
+          "eyebrow": "Who this is for",
+          "eyebrowColor": "accent",
+          "heading": "A Pull Toward the Stars",
+          "headingLevel": 2,
+          "headingAccent": "",
+          "paragraphs": [
+            "The Starwoven Journey was created for intuitives, energy workers, healers, seekers and cosmic travellers who feel a relationship with the stars, perhaps as longing, remembrance or a persistent sense of not quite belonging on Earth.",
+            "The journey does not leave you in that feeling. It explores what it may be pointing toward, what kind of belonging your deeper nature seeks, and how your stellar inheritance can belong here through you.",
+            "It may speak especially strongly to you if you are highly perceptive, sensitive to atmospheres, drawn to subtle energy, exploring your purpose, or trying to understand why your strongest gifts can also become sources of pressure.",
+            "You do not need to understand astrology.",
+            "You do not need to identify as a Starseed or arrive with fixed beliefs about where you come from.",
+            "You only need accurate birth details, curiosity and a willingness to notice what resonates."
+          ],
+          "chips": [],
+          "ctas": []
+        }
+      }
+    },
+    {
+      "id": "sec-ss-begin",
+      "type": "rf-offer-card",
+      "label": "Begin",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "columns": 1,
+          "heading": "",
+          "bulletGlyph": "✦",
+          "padTop": 0,
+          "padBottom": 25,
+          "anchorId": "begin",
+          "items": [
+            {
+              "anchorId": "begin",
+              "eyebrow": "Your journey begins here",
+              "title": "Enter through your own birth sky",
+              "sub": "",
+              "body": "Your stars already form a pattern.\n\nThe Starwoven Journey gives you language for the lineages, gifts, pressures and deeper direction you may have sensed throughout your life.\n\nThe stars are not calling you away from your human life. They may be helping you understand how what you carry belongs here.",
+              "listLabel": "",
+              "bullets": [],
+              "note": "",
+              "price": "$33",
+              "ctaLabel": "Begin the journey",
+              "ctaHref": "https://www.paypal.com/ncp/payment/BFWAM3BB5NHBW",
+              "ctaTarget": "_blank",
+              "variant": "standard"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "sec-ss-fineprint",
+      "type": "rf-media-copy",
+      "label": "Direct line + disclaimer",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "imageUrl": "",
+          "imageAlt": "",
+          "imagePosition": "left",
+          "eyebrow": "",
+          "eyebrowColor": "accent",
+          "heading": "",
+          "headingLevel": 2,
+          "headingAccent": "",
+          "paragraphs": [
+            "The Starwoven Journey is a spiritual and archetypal experience created for reflection and self-exploration. It does not claim to prove extraterrestrial origin or provide medical, psychological or professional guidance. The stars offer the framework, while your own recognition remains central. Keep what resonates and leave what does not."
+          ],
+          "chips": [],
+          "ctas": [
+            {
+              "label": "Questions before you begin? Write directly to Resonant Weaver.",
+              "href": "mailto:marthe@tinyglobalvillage.com?subject=Starwoven%20Journey",
+              "variant": "ghost"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}$rwjson$::jsonb);
+
 INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/meeting-your-galactic-self-meditation', 'Meeting Your Galactic Self — Meditation — Offer Preview', false, 'published', $rwjson${
   "id": "pm-rw-offer-meeting-your-galactic-self-meditation",
   "slug": "landing-star-preview/offer/meeting-your-galactic-self-meditation",
@@ -3291,7 +3916,7 @@ SELECT 'pages authored: ' || count(*) FROM ins;
 DO $$
 DECLARE
   n int;
-  expected constant text[] := ARRAY['home', 'home-classic', 'writing', 'landing-star-preview/receive', 'landing-star-preview/experience/all-products', 'pearl-chamber', 'landing-star-preview/offer/meeting-your-galactic-self-meditation', 'landing-star-preview/offer/galactic-initiation', 'landing-star-preview/offer/resonance-mirror', 'landing-star-preview/offer/pearl-chamber', 'landing-star-preview/offer/galactic-pendulum', 'landing-star-preview/offer/galactic-integration-session'];
+  expected constant text[] := ARRAY['home', 'home-classic', 'writing', 'landing-star-preview/receive', 'landing-star-preview/experience/all-products', 'pearl-chamber', 'starseed', 'landing-star-preview/offer/meeting-your-galactic-self-meditation', 'landing-star-preview/offer/galactic-initiation', 'landing-star-preview/offer/resonance-mirror', 'landing-star-preview/offer/pearl-chamber', 'landing-star-preview/offer/galactic-pendulum', 'landing-star-preview/offer/galactic-integration-session'];
   expected_drafts constant text[] := ARRAY['landing-star-preview/meet', 'landing-star-preview/develop']::text[];
 BEGIN
   SELECT count(*) INTO n FROM public.page_models
@@ -3338,7 +3963,7 @@ BEGIN
     FROM public.page_models p, LATERAL jsonb_array_elements(p.model_json->'sections') s
    WHERE p.site = 'resonantweaver'
      AND p.slug = ANY(expected || expected_drafts)
-     AND s->>'type' NOT IN ('rf-split-hero', 'rf-media-copy', 'rf-door-card', 'rf-offer-card', 'rf-accordion', 'form-live', 'rf-testimonials', 'rf-linkbar');
+     AND s->>'type' NOT IN ('rf-split-hero', 'rf-media-copy', 'rf-door-card', 'rf-offer-card', 'rf-accordion', 'form-live', 'rf-testimonials', 'rf-linkbar', 'rf-list');
   IF n <> 0 THEN
     RAISE EXCEPTION 'assert: % section(s) name an unexpected type', n;
   END IF;

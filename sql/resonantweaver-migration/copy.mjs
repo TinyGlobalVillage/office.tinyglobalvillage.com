@@ -252,6 +252,32 @@ export const inlineCopy = {
     },
   },
 
+  /** `/starseed` — the Starwoven Journey sales page. Nearly all of it lives in
+   *  `starseed/content.ts` and is imported; these are the handful of strings
+   *  written into `StarseedOraclePage.tsx` itself.
+   *
+   *  BEGIN_URL is guarded for the same reason the Pearl Chamber's two are: it
+   *  is the checkout, and a stale one looks exactly like a working one. */
+  starseed: {
+    heroImageAlt: {
+      file: `${HOME}/starseed/StarseedOraclePage.tsx`,
+      text: "A cosmic starseed figure",
+    },
+    beginUrl: {
+      file: `${HOME}/starseed/StarseedOraclePage.tsx`,
+      text: "https://www.paypal.com/ncp/payment/BFWAM3BB5NHBW",
+    },
+    contactEmail: {
+      file: `${HOME}/starseed/StarseedOraclePage.tsx`,
+      text: "marthe@tinyglobalvillage.com",
+    },
+    contactTopic: {
+      file: `${HOME}/starseed/StarseedOraclePage.tsx`,
+      text: "Starwoven Journey",
+      find: 'topic: "Starwoven Journey"',
+    },
+  },
+
   writing: {
     eyebrow: { file: `${HOME}/writing/WritingPage.tsx`, text: "Writing" },
     // The title is one heading broken by a <br /> with the second half in <em>.
@@ -394,6 +420,11 @@ export const assetMap = {
   //
   // Both re-encoded PNG → JPEG (2.2MB → 383KB, 2.1MB → 324KB) at the same
   // 1024×1536. They are photographs; PNG was costing 6× for nothing.
+  // The Starwoven Journey's hero wheel. It STAYS A PNG: the artwork is a disc
+  // with a mirrored reflection under it on a transparent ground, and a JPEG
+  // flattens that onto white — a white box and a white ghost, on her void
+  // backdrop. Resized 1152 → 1024, which is still 2× the ~496px it renders at.
+  "/images/StarBot.png": `${ASSET_BASE}/StarBot.png`,
   "/images/landing-star-preview/GalacticSelf.jpg": `${ASSET_BASE}/GalacticSelf.jpg`,
   "/images/landing-star-preview/galactic-pendulum.svg": `${ASSET_BASE}/galactic-pendulum.svg`,
   "/images/landing-star-preview/learn.png": `${ASSET_BASE}/learn.jpg`,

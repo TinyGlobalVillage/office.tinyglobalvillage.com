@@ -150,6 +150,12 @@ const ROUTES = [
     renders: "PearlChamberSubscriptionPage",
     note: "the weekly intention holding — her one live subscription",
   },
+  {
+    slug: "starseed",
+    file: `${HOME_DIR}/starseed/page.tsx`,
+    renders: "StarseedOraclePage",
+    note: "the Starwoven Journey sales page (the route keeps the old product name)",
+  },
 ];
 
 function guardRoutes() {
@@ -196,6 +202,12 @@ function loadData() {
       // `offersByDoor`, which is HER filter (it drops `hidden`) and is imported
       // rather than reimplemented for the same reason `resolveOffer` is.
       `export * as star_all from ${p("src/app/[lang]/(public)/(home)/landing-star-preview/experience/all-products/AllProducts.content")};`,
+      // The Starwoven Journey sales page. Its whole narrative is one typed
+      // object — twelve sections of eyebrow/title/body plus the eight star
+      // currents, whose COLOURS it reads live from the starseed package's own
+      // WCAG-checked palette rather than restating them. So the page generates
+      // the way the listing does: imported, not transcribed.
+      `export { oracleContent } from ${p("src/app/[lang]/(public)/(home)/starseed/content")};`,
       `export { catalog, getOfferBySlug, resolveOffer, offersByDoor } from ${p("src/data/offers/offers")};`,
     ].join("\n"),
   );
@@ -1327,6 +1339,277 @@ function buildPearlChamber(data, formId) {
   };
 }
 
+/** `/starseed` — the Starwoven Journey sales page, and the last of bucket B.
+ *
+ *  THE ROUTE KEEPS THE OLD NAME ON PURPOSE. Her STATUS.md: "the stable internal
+ *  route and component filenames still use starseed / StarseedOraclePage for
+ *  now… avoids a premature routing rename while the product name is still
+ *  settling." The page sells the Starwoven Journey; the URL says starseed. Both
+ *  are carried as they are, because the URL is the one somebody has.
+ *
+ *  IT UNBLOCKS THREE LINKS. The two hidden gateways redirect here on her app
+ *  and were held out of `siteRedirects.ts` because the target did not exist;
+ *  the `starwoven-journey` tile on the offering listing points here too. All
+ *  three are live the moment this row is.
+ *
+ *  WHAT DOES NOT COME ACROSS, named rather than quietly dropped:
+ *    • the three method cards' inline SVG icons (a sky-glyph, a book, a globe).
+ *      The copy travels; the icons are drawn in the page file and there is no
+ *      per-item icon on `rf-offer-card`.
+ *    • `Reveal`'s scroll-in animation, which is presentation, not content.
+ *    • the hero's second CTA ("See what is inside") — her component declares it
+ *      in `content.hero.secondary` and never renders it. Carrying a button she
+ *      took out would add a link to her page, not preserve one. */
+function buildStarseed(data) {
+  const c = data.oracleContent;
+  const s = inlineCopy.starseed;
+  const sections = [];
+
+  // A section that is eyebrow + title + paragraphs and nothing else. Six of the
+  // twelve are exactly this.
+  const band = (id, label, block, extra = []) =>
+    section(id, "rf-media-copy", label, {
+      imageUrl: "",
+      imageAlt: "",
+      imagePosition: "left",
+      eyebrow: block.eyebrow,
+      eyebrowColor: "accent",
+      heading: block.title,
+      headingLevel: 2,
+      headingAccent: "",
+      paragraphs: [...block.body, ...extra],
+      chips: [],
+      ctas: [],
+    });
+
+  sections.push(
+    section("sec-ss-hero", "rf-media-copy", "Hero", {
+      imageUrl: asset("/images/StarBot.png"),
+      imageAlt: verbatim(s.heroImageAlt),
+      imagePosition: "right",
+      eyebrow: c.hero.eyebrow,
+      eyebrowColor: "accent",
+      heading: c.hero.titleBefore,
+      headingLevel: 1,
+      // Her H1 and the teal italic line under it are two elements on purpose —
+      // "separated the hero heading from its teal italic accent line", per her
+      // own change log. `headingAccent` is that second line.
+      headingAccent: c.hero.titleEmphasis,
+      paragraphs: c.hero.lead,
+      // "64 fixed stars · Your exact birth sky · A guided personal reading" is a
+      // row of small caps under the button, which is what a chip row is.
+      chips: c.hero.finePrint.split("·").map((t) => t.trim()).filter(Boolean),
+      ctas: [{ label: c.hero.primary, href: "#begin", variant: "ritual" }],
+    }),
+  );
+
+  // The pull quote is one line of her own words set large and italic. It rides
+  // with the section it belongs to as an emphasised final paragraph rather than
+  // becoming a testimonial — nobody said it about her.
+  sections.push(
+    band("sec-ss-lineage", "The Stellar Braid", c.lineage, c.lineage.quote.map((l) => `*${l}*`)),
+  );
+  sections.push(band("sec-ss-responsive", "A responsive sky", c.responsive));
+  sections.push(band("sec-ss-recognition", "Recognition", c.recognition));
+
+  sections.push(
+    section("sec-ss-journey-head", "rf-media-copy", "The journey — intro", {
+      imageUrl: "",
+      imageAlt: "",
+      imagePosition: "left",
+      eyebrow: c.journey.eyebrow,
+      eyebrowColor: "accent",
+      heading: c.journey.title,
+      headingLevel: 2,
+      headingAccent: "",
+      paragraphs: [],
+      chips: [],
+      ctas: [],
+    }),
+  );
+  sections.push(
+    section("sec-ss-journey", "rf-offer-card", "The journey", {
+      columns: 2,
+      heading: "",
+      bulletGlyph: "✦",
+      padTop: 0,
+      padBottom: 25,
+      items: c.journey.items.map((item, i) => ({
+        // BraidStageNumber — a zero-padded stage index, same as her process
+        // cards and the offer pages' steps.
+        eyebrow: `0${i + 1}`,
+        title: item.title,
+        sub: "",
+        body: item.body.join("\n\n"),
+        listLabel: "",
+        bullets: [],
+        note: "",
+        price: "",
+        ctaLabel: "",
+        ctaHref: "",
+        variant: "standard",
+      })),
+    }),
+  );
+
+  sections.push(band("sec-ss-stars-head", "The eight currents — intro", c.stars));
+  sections.push(
+    // Each current is a coloured dot, a family name in that colour and an
+    // essence line. The colour is the section's whole point — it is the same
+    // WCAG-checked accent the product itself paints that family in — so it
+    // travels as the row's own colour rather than being flattened away.
+    section("sec-ss-currents", "rf-list", "The eight currents", {
+      heading: "",
+      intro: "",
+      items: c.stars.currents.map((cur) => ({
+        lead: cur.family,
+        text: "",
+        sub: cur.essence,
+        color: cur.color,
+      })),
+      notesHeading: "",
+      notes: [],
+    }),
+  );
+
+  sections.push(band("sec-ss-method", "The method", c.method));
+  sections.push(
+    section("sec-ss-method-cards", "rf-offer-card", "The method — cards", {
+      columns: 3,
+      heading: "",
+      bulletGlyph: "✦",
+      padTop: 0,
+      padBottom: 25,
+      items: c.cards.map((card) => ({
+        title: card.title,
+        sub: "",
+        body: card.body,
+        listLabel: "",
+        bullets: [],
+        note: "",
+        price: "",
+        ctaLabel: "",
+        ctaHref: "",
+        variant: "standard",
+      })),
+    }),
+  );
+
+  sections.push(
+    section("sec-ss-how-head", "rf-media-copy", "How it works — intro", {
+      imageUrl: "",
+      imageAlt: "",
+      imagePosition: "left",
+      eyebrow: c.how.eyebrow,
+      eyebrowColor: "accent",
+      heading: "",
+      headingLevel: 2,
+      headingAccent: "",
+      paragraphs: [],
+      chips: [],
+      ctas: [],
+    }),
+  );
+  sections.push(
+    section("sec-ss-how", "rf-offer-card", "How it works", {
+      columns: 3,
+      heading: "",
+      bulletGlyph: "✦",
+      padTop: 0,
+      padBottom: 25,
+      items: c.how.steps.map((step, i) => ({
+        eyebrow: `0${i + 1}`,
+        title: step.title,
+        sub: "",
+        body: step.body,
+        listLabel: "",
+        bullets: [],
+        note: "",
+        price: "",
+        ctaLabel: "",
+        ctaHref: "",
+        variant: "standard",
+      })),
+    }),
+  );
+
+  sections.push(band("sec-ss-audience", "Who it is for", c.audience));
+
+  // The closing callout, which the hero's button jumps to — so the anchor is
+  // load-bearing, not decoration.
+  sections.push(
+    section("sec-ss-begin", "rf-offer-card", "Begin", {
+      columns: 1,
+      heading: "",
+      bulletGlyph: "✦",
+      padTop: 0,
+      padBottom: 25,
+      anchorId: "begin",
+      items: [
+        {
+          anchorId: "begin",
+          eyebrow: c.begin.eyebrow,
+          title: c.begin.title,
+          sub: "",
+          body: c.begin.lead.join("\n\n"),
+          listLabel: "",
+          bullets: [],
+          note: "",
+          price: c.begin.price,
+          ctaLabel: c.begin.cta,
+          ctaHref: verbatim(s.beginUrl),
+          ctaTarget: "_blank",
+          variant: "standard",
+        },
+      ],
+    }),
+  );
+  sections.push(
+    section("sec-ss-fineprint", "rf-media-copy", "Direct line + disclaimer", {
+      imageUrl: "",
+      imageAlt: "",
+      imagePosition: "left",
+      eyebrow: "",
+      eyebrowColor: "accent",
+      heading: "",
+      headingLevel: 2,
+      headingAccent: "",
+      paragraphs: [c.begin.disclaimer],
+      chips: [],
+      ctas: [
+        {
+          label: c.begin.direct,
+          href: `mailto:${verbatim(s.contactEmail)}?subject=${encodeURIComponent(
+            verbatim(s.contactTopic),
+          )}`,
+          variant: "ghost",
+        },
+      ],
+    }),
+  );
+
+  return {
+    slug: "starseed",
+    title: c.meta.title,
+    inNav: false,
+    model: {
+      id: "pm-rw-starseed",
+      slug: "starseed",
+      title: c.meta.title,
+      chrome: {
+        navEnabled: true,
+        footerEnabled: true,
+        meta: {
+          description: c.meta.description,
+          keywords: [],
+          ogImage: asset("/images/StarBot.png"),
+        },
+      },
+      sections,
+    },
+  };
+}
+
 function buildWriting(data) {
   const w = inlineCopy.writing;
   const sections = [
@@ -1854,6 +2137,7 @@ const pages = [
   ...ALL_GATEWAYS.map((id) => buildGatewayPage(data, id)),
   buildAllProducts(data),
   buildPearlChamber(data, pearlForm.id),
+  buildStarseed(data),
   ...offersWithDetailPages(data).map((e) => buildOfferPage(data, e)),
 ];
 
