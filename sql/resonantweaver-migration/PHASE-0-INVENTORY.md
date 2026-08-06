@@ -284,6 +284,79 @@ gap at cutover), and the writing card's cover is cropped by the media column
 where her own page ran it full-bleed behind a scrim. Both are studio-editable and
 belong to Phase 5's parity pass.
 
+## Phase 4 — the packages, built and mounted 2026-08-05
+
+Bucket C became `@tgv/module-journey`; bucket D's public surfaces joined
+`@tgv/module-starseed`; three thin HQ routes mount them behind
+`SITE_SURFACES`. Commits `726fae63` + `119f591e` + `8a1f161b` (mono),
+`ce0e6248` + `fccdbf56` (HQ). Deployed and driven in a browser.
+
+| Surface | Package | Route |
+|---|---|---|
+| The Starwoven Journey | `@tgv/module-journey/experience` | `/journey` |
+| The Sun Walk perpetual calendar | `@tgv/module-starseed/sunwalk` | `/sun-walk` |
+| The Galactic Field Guide | `@tgv/module-starseed/fieldguide` | `/galactic-field-guide` |
+
+Both packages land at **L0** and every file that had to bake something in says
+so — `journey/tokens.ts` and `starseed/ui/tokens.ts` are byte copies of her
+palette rather than `var(--site-*)`, because the components interpolate them
+into `rgba()` a few hundred times and `rgba()` takes three numbers. Turning that
+into `color-mix` is the L1→L2 work, and it has to be done against screenshots
+rather than in the same commit as a file move.
+
+**Three seams the move had to cut, each because a package cannot own what an app
+owns.**
+
+1. **The fonts.** The field guide's four families came across as a `next/font`
+   module, and `next/font` is a build-time transform Next applies to the code IT
+   compiles — a prebuilt `dist/` calling `Space_Grotesk({...})` throws. The font
+   module stays in the host (`src/lib/fonts/galactic-field-guide/`) and the class
+   string arrives as one prop. The components already read `--gfg-font-*` rather
+   than family names, so that string is the whole seam.
+2. **The price.** The oracle content read the Starwoven Journey's price live out
+   of her offer catalogue, which is bucket B. `withPrice()` takes it from the
+   host instead.
+3. **The signups.** Raw `sql` on an injected executor with a BARE table name,
+   the shape `@tgv/module-cospro` proved: it resolves through the caller's
+   `search_path`, so one reader serves `resonantweaver.journey_signups` on her
+   standalone app and `public.journey_signups` on the platform.
+
+**A correction to the bucket table above.** `/starseed` — the Starseed Oracle
+page — is listed under bucket D and is not: `StarseedOraclePage.styles.ts` is
+built on `landing-star-preview/LandingStarPreview.styles`, which is built on
+`OnePage.styles`. Moving it now would drag ~1,600 lines of bucket B and of the
+marketing stylesheet Phase 3 replaced into a package to serve one page. **It
+moves with bucket B.**
+
+**Verified in a browser** behind the Host proxy against the live deploy: the
+journey renders The Seven Gates with its particle field and the seven chakra
+dots; the sun walk renders the perpetual calendar on the correct current week;
+the field guide renders the stellar registry and the constellation chart, and
+selecting Lyra folds the chart to Vega and opens the dossier with both plates.
+Zero console messages. The gate holds on the live domains — all three 404 on the
+apex, giocoelho, guardianstuffies and refusionist. Full fleet green.
+
+**The plates were a browser-only find**, like every asset defect in this
+migration: the field guide rendered perfectly and threw two 404s, because the six
+dossier photographs live in her app's `public/` and a package does not carry
+them. They sit at the fleet-wide `/images/galacticfieldguide/` rather than under
+`/images/tenants/` — they are the codex's own illustrations, identical for anyone
+ever granted the surface, not a customer's photographs — and were re-encoded from
+20 MB of PNG to 2.9 MB of JPEG at 1400px.
+
+**Still ahead in Phase 4.** `/open-your-journey` and the `journey_signups` table
+(2 rows, in her own schema, needing a `site` key in `public`); rewiring HER app
+onto the two packages, which is what proves the extraction from the other side;
+and `/starseed` with bucket B.
+
+**Worth recording: the fleet went down mid-phase and it was not this work.**
+Every app restarted at once, load hit 66, and the public sites 502'd for about a
+minute while ~15 Next processes booted together. Nothing had been deployed for
+twenty minutes at that point. Two things made it hard to see: the Mac's mesh
+route to RCS dropped at the same moment, and the Secretive SSH agent refused to
+sign — so `ssh rcs` failed while `ssh rcs-direct` (the public IP, plain key)
+worked. `mac-deploy` takes `RCS_HOST=rcs-direct`, which is the way through.
+
 ## Open question for Gio
 
 When a section is CLOSE to an existing catalog entry but not identical — her FAQ
