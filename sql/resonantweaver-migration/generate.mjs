@@ -57,6 +57,14 @@ const ESBUILD = path.join(MONOREPO, "node_modules/.bin/esbuild");
 const SITE = "resonantweaver";
 const CHECK = process.argv.includes("--check");
 
+/** Her `(public)/(home)` group, which every route this generator reads sits in. */
+const HOME_DIR = "src/app/[lang]/(public)/(home)";
+
+/** The archived landing's own title, from `home-classic/page.tsx`'s metadata —
+ *  not `dict.home.meta.title`, which is the LIVE page's and would put the same
+ *  words on both. */
+const HOME_CLASSIC_TITLE = "Resonant Weaver — classic landing (archived)";
+
 function die(msg) {
   console.error(`generate: ${msg}`);
   process.exit(1);
@@ -99,6 +107,54 @@ function guardOnly(entry) {
   }
 }
 
+/** WHICH COMPONENT A ROUTE ACTUALLY RENDERS.
+ *
+ *  Every guard above asks whether a STRING still says what we transcribed.
+ *  None of them asked the prior question — whether the page we are reading is
+ *  still the page that route serves. It was not: `(home)/page.tsx` swapped to
+ *  the star landing on 2026-07-30 and the generator kept reading `onePage.tsx`
+ *  through Phase 3, emitting her ARCHIVED landing as `home` with every
+ *  transcription check passing, because each string was still true of the file
+ *  it named. The guard was thorough one level below the mistake.
+ *
+ *  So: for each slug, assert the route file still renders the component this
+ *  builder was written against. A swap fails the run and names both. */
+const ROUTES = [
+  {
+    slug: "home",
+    file: `${HOME_DIR}/page.tsx`,
+    renders: "LandingStarPreview",
+    note: "the star landing — her front door since bb7a892 (2026-07-30)",
+  },
+  {
+    slug: "home-classic",
+    file: `${HOME_DIR}/home-classic/page.tsx`,
+    renders: "OnePage",
+    note: "the archived landing, noindex, kept not deleted",
+  },
+  {
+    slug: "writing",
+    file: `${HOME_DIR}/writing/page.tsx`,
+    renders: "WritingPage",
+    note: "the writing index",
+  },
+];
+
+function guardRoutes() {
+  for (const r of ROUTES) {
+    const src = normalizedSource(r.file);
+    // `export default … <Component` is the render, not merely an import: a
+    // route that still IMPORTS the old component but returns a new one is
+    // exactly the swap this is here to catch.
+    if (!new RegExp(`return <${r.renders}[\\s/>]`).test(src)) {
+      drift.push(
+        `${r.file}: does NOT render <${r.renders}> — the '${r.slug}' builder reads ` +
+          `${r.renders} (${r.note}). If the route was repointed, repoint the builder.`,
+      );
+    }
+  }
+}
+
 /* ---------------------------------------------------------------- her data --- */
 
 function loadData() {
@@ -115,6 +171,14 @@ function loadData() {
       `export { writingEntries } from ${p("src/data/writing/articles")};`,
       `export { dictionary as en } from ${p("src/data/i18n/en")};`,
       `export * as tokens from ${p("src/styles/tokens")};`,
+      // Bucket B. The star landing is `(home)/page.tsx` — her actual front door
+      // since bb7a892 — and it reads BOTH of these: its own content module for
+      // the prose, and the offer catalog for the three featured tiles. The
+      // catalog's resolveOffer() is imported rather than reimplemented, the same
+      // call as `visibleRows` for bucket A: the display href, the action label
+      // and the per-door accent are computed by HER function or they drift.
+      `export * as star from ${p("src/app/[lang]/(public)/(home)/landing-star-preview/LandingStarPreview.content")};`,
+      `export { catalog, getOfferBySlug, resolveOffer } from ${p("src/data/offers/offers")};`,
     ].join("\n"),
   );
   if (!fs.existsSync(ESBUILD)) die(`esbuild not found at ${ESBUILD}`);
@@ -218,7 +282,45 @@ function offeringToItem(o) {
   };
 }
 
-function buildHome(data, formId) {
+/** Her hero, which BOTH landings render — `HeroSection.tsx` is imported
+ *  unchanged by `onePage.tsx` and by `LandingStarPreview.tsx`. Built once here
+ *  so the two pages cannot drift apart in the one place they are identical. */
+function heroSection() {
+  return section("sec-hero", "rf-split-hero", "Hero", {
+    markUrl: asset(verbatim(inlineCopy.hero.markUrl)),
+    markAlt: "",
+    markGlow: true,
+    markBreathe: true,
+    markRight: true,
+    eyebrow: verbatim(inlineCopy.hero.eyebrow),
+    words: inlineCopy.hero.words,
+    dropInitials: true,
+    ariaLabel: verbatim(inlineCopy.hero.ariaLabel),
+    tagline: verbatim(inlineCopy.hero.tagline),
+    rule: true,
+  });
+}
+
+/** An eyebrow / title / paragraph block. Her star landing opens four of its
+ *  sections with exactly this, as `<Intro>` — one helper rather than four
+ *  near-identical literals. */
+function introBlock(id, label, copy) {
+  return section(id, "rf-media-copy", label, {
+    imageUrl: "",
+    imageAlt: "",
+    imagePosition: "left",
+    eyebrow: copy.eyebrow,
+    eyebrowColor: "accent",
+    heading: copy.title,
+    headingLevel: 2,
+    headingAccent: "",
+    paragraphs: [copy.copy],
+    chips: [],
+    ctas: [],
+  });
+}
+
+function buildHomeClassic(data, formId) {
   const sections = [];
 
   sections.push(
@@ -360,6 +462,213 @@ function buildHome(data, formId) {
     }),
   );
 
+  // `home-classic`, not `home`. `(home)/page.tsx` has rendered the STAR LANDING
+  // since bb7a892; this page moved to `(home)/home-classic/`, where its own
+  // `metadata` sets `robots: { index: false, follow: false }`. Carrying the
+  // noindex across is the whole point of keeping it: an archived landing that
+  // competes with the live one for the same words is worse than no archive.
+  const meta = data.en.home.meta;
+  return {
+    slug: "home-classic",
+    title: HOME_CLASSIC_TITLE,
+    inNav: false,
+    model: {
+      id: "pm-rw-home-classic",
+      slug: "home-classic",
+      title: HOME_CLASSIC_TITLE,
+      chrome: {
+        navEnabled: true,
+        footerEnabled: true,
+        meta: {
+          description: meta.description,
+          keywords: meta.keywords,
+          ogImage: asset(data.en.home.twitter.images[0].url),
+          noindex: true,
+        },
+      },
+      sections,
+    },
+  };
+}
+
+/** THE STAR LANDING — `(home)/page.tsx`, her actual front door.
+ *
+ *  Eight sections: hero, orientation, the doors, the featured pathway, the
+ *  Field Guide preview, the FAQ, contact, about. It reads two sources and both
+ *  are imported rather than transcribed — `LandingStarPreview.content.ts` for
+ *  the prose and `offers.ts` for the three featured tiles, resolved through HER
+ *  `resolveOffer()` so the display href, the label and the price are computed
+ *  by the same function the live page computes them with. */
+function buildStarLanding(data, formId) {
+  const star = data.star;
+  const sections = [heroSection()];
+
+  sections.push(introBlock("sec-star-intro", "Intro", star.intro));
+
+  // The doors. `retiredDoors` is deliberately NOT read: she took those two off
+  // the hub and kept them in the file the same way `home-classic` is kept, so
+  // reading them here would put them back on her front page.
+  sections.push(
+    section("sec-star-doors", "rf-door-card", "Doors", {
+      columns: 3,
+      heading: "",
+      ratio: "2 / 3",
+      ratioStacked: "1 / 1",
+      idleReveal: 0.62,
+      items: star.doors.map((door) => ({
+        index: `${door.index} · Door`,
+        title: door.title,
+        copy: door.copy,
+        cta: door.cta,
+        // `linkTo` is an absolute site path; otherwise the gateway page under
+        // the hub. Her renderer prefixes the language segment, which the pooled
+        // renderer supplies itself — so the stored href is the unprefixed one.
+        href: door.linkTo ?? `/landing-star-preview/${door.href}/`,
+        imageUrl: asset(door.image),
+        imageAlt: door.alt,
+        disabled: Boolean(door.disabled),
+        disabledLabel: door.disabled ? "Coming soon" : "",
+      })),
+    }),
+  );
+
+  sections.push(introBlock("sec-star-featured-intro", "Featured — intro", star.featured));
+  sections.push(
+    section("sec-star-featured", "rf-offer-card", "Featured", {
+      columns: 3,
+      heading: "",
+      bulletGlyph: "✦",
+      padTop: 0,
+      padBottom: 25,
+      items: star.featuredSlugs.map((slug, i) => {
+        const offer = data.resolveOffer(data.getOfferBySlug(slug));
+        return {
+          anchorId: offer.slug,
+          // OfferingTile renders "01 · <sub>" as one line above the title.
+          eyebrow: `0${i + 1} · ${offer.sub}`,
+          title: offer.title,
+          sub: "",
+          // The tile shows the FIRST paragraph only, falling back to the sub.
+          body: offer.paragraphs[0] ?? offer.sub,
+          listLabel: "",
+          bullets: [],
+          note: "",
+          price: offer.price,
+          ctaLabel: offer.hasDetailPage
+            ? "Learn more"
+            : offer.external
+              ? "View offering"
+              : "Explore",
+          ctaHref: offer.href,
+          ctaTarget: offer.external ? "_blank" : "",
+          variant: "standard",
+        };
+      }),
+    }),
+  );
+
+  sections.push(introBlock("sec-star-fieldguide-intro", "Field Guide — intro", star.fieldGuide));
+  sections.push(
+    section("sec-star-fieldguide", "rf-offer-card", "Field Guide — tiles", {
+      columns: 3,
+      heading: "",
+      bulletGlyph: "✦",
+      padTop: 0,
+      padBottom: 25,
+      items: star.fieldGuide.tiles.map((tile) => ({
+        eyebrow: tile.eyebrow,
+        title: tile.title,
+        sub: "",
+        body: "",
+        listLabel: "",
+        bullets: [],
+        note: "",
+        price: "",
+        ctaLabel: "",
+        ctaHref: "",
+        variant: "standard",
+      })),
+    }),
+  );
+  sections.push(
+    section("sec-star-fieldguide-notify", "rf-media-copy", "Field Guide — notify", {
+      imageUrl: "",
+      imageAlt: "",
+      imagePosition: "left",
+      eyebrow: "",
+      eyebrowColor: "accent",
+      heading: "",
+      headingLevel: 2,
+      headingAccent: "",
+      paragraphs: [star.fieldGuide.notify.prompt],
+      chips: [],
+      ctas: [
+        {
+          label: star.fieldGuide.notify.buttonLabel,
+          href: star.fieldGuide.notify.href,
+          variant: "ritual",
+        },
+      ],
+    }),
+  );
+
+  // Her own site-wide FAQ, NOT `src/data/home/faq.ts` — the star landing has a
+  // second, longer list written for the whole practice rather than for the
+  // offerings stack. Nine entries against the classic landing's own set.
+  sections.push(
+    section("sec-star-faq", "rf-accordion", "FAQ", {
+      heading: verbatim(inlineCopy.faq.heading),
+      lede: verbatim(inlineCopy.faq.lede),
+      defaultOpen: -1,
+      look: "panel",
+      centeredHead: true,
+      ruleUnderHead: true,
+      animate: true,
+      exclusive: true,
+      items: star.faq.map((f) => ({ name: f.q, body: f.a })),
+    }),
+  );
+
+  sections.push(
+    section("sec-star-contact", "form-live", "Contact", {
+      formId,
+      accent: "",
+      hideHeader: false,
+      maxWidth: 640,
+    }),
+  );
+
+  sections.push(
+    section("sec-star-about", "rf-offer-card", "About", {
+      columns: 1,
+      heading: "",
+      bulletGlyph: "✦",
+      padTop: 0,
+      padBottom: 25,
+      items: [
+        {
+          anchorId: "about",
+          eyebrow: star.about.eyebrow,
+          title: star.about.title,
+          sub: "",
+          body: star.about.body.join("\n\n"),
+          listLabel: "",
+          bullets: [],
+          note: "",
+          price: "",
+          ctaLabel: "",
+          ctaHref: "",
+          variant: "compact-media",
+          mediaUrl: asset(star.about.portrait.src),
+          mediaAlt: star.about.portrait.alt,
+          mediaPortrait: true,
+        },
+      ],
+    }),
+  );
+
+  // Both landings run `buildPageMetadata({ dictPage: dict.home })`, so the head
+  // is the same on either — the swap changed the body, not the metadata.
   const meta = data.en.home.meta;
   return {
     slug: "home",
@@ -805,7 +1114,12 @@ COMMIT;
 const data = await loadData();
 
 const form = buildForm(data);
-const pages = [buildHome(data, form.id), buildWriting(data)];
+guardRoutes();
+const pages = [
+  buildStarLanding(data, form.id),
+  buildHomeClassic(data, form.id),
+  buildWriting(data),
+];
 
 /** Applied to every string leaf of every model, so a rewrite cannot be missed
  *  by having been declared in the wrong builder. */

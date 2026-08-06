@@ -256,6 +256,11 @@ export const assetMap = {
   "/images/ReikiBox.png": `${ASSET_BASE}/ReikiBox.png`,
   "/images/About-Portrait.png": `${ASSET_BASE}/About-Portrait.png`,
   "/images/RW-OG-logo.jpg": `${ASSET_BASE}/RW-OG-logo.jpg`,
+  // The one door still on the hub. Her other two door images (learn.png,
+  // experience.png) belong to `retiredDoors` and are deliberately NOT mapped —
+  // an unmapped path is an error, which is what should happen if a retired door
+  // ever comes back through here without someone looking at it.
+  "/images/landing-star-preview/GalacticSelf.jpg": `${ASSET_BASE}/GalacticSelf.jpg`,
   // `/images/LeafOscilator-Logo4.png` is deliberately ABSENT. It is referenced
   // by the second writing entry and THERE IS NO SUCH FILE in her repo — that
   // card's cover is broken on the live site today. Leaving it unmapped makes

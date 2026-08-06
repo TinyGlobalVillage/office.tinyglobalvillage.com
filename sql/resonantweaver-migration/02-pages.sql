@@ -172,6 +172,421 @@ INSERT INTO _rw_pages VALUES ('home', 'Resonant Weaver', true, $rwjson${
       }
     },
     {
+      "id": "sec-star-intro",
+      "type": "rf-media-copy",
+      "label": "Intro",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "imageUrl": "",
+          "imageAlt": "",
+          "imagePosition": "left",
+          "eyebrow": "Where people begin",
+          "eyebrowColor": "accent",
+          "heading": "Knowing is a constant unfolding",
+          "headingLevel": 2,
+          "headingAccent": "",
+          "paragraphs": [
+            "Some people come here curious. Some are already sensing energy or receiving information they don't yet have language for. Some want to understand their own star pattern. Some want to develop the perception itself. Wherever you're starting from, there's a door in: begin with the stars, enter your own field, or train the perception that lets you meet the unseen directly."
+          ],
+          "chips": [],
+          "ctas": []
+        }
+      }
+    },
+    {
+      "id": "sec-star-doors",
+      "type": "rf-door-card",
+      "label": "Doors",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "columns": 3,
+          "heading": "",
+          "ratio": "2 / 3",
+          "ratioStacked": "1 / 1",
+          "idleReveal": 0.62,
+          "items": [
+            {
+              "index": "I · Door",
+              "title": "Meet your galactic self",
+              "copy": "Curious about your star currents or celestial pattern? Begin with the easiest possible first contact.",
+              "cta": "Meet yourself",
+              "href": "/starseed",
+              "imageUrl": "/images/tenants/resonantweaver/GalacticSelf.jpg",
+              "imageAlt": "A restrained constellation and astronomical observatory diagram emerging from darkness",
+              "disabled": false,
+              "disabledLabel": ""
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "sec-star-featured-intro",
+      "type": "rf-media-copy",
+      "label": "Featured — intro",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "imageUrl": "",
+          "imageAlt": "",
+          "imagePosition": "left",
+          "eyebrow": "Where to begin",
+          "eyebrowColor": "accent",
+          "heading": "Start here",
+          "headingLevel": 2,
+          "headingAccent": "",
+          "paragraphs": [
+            "The Starwoven Journey is the heart of this work right now. Around it sit a handful of readings and practices you can step into whenever you're ready."
+          ],
+          "chips": [],
+          "ctas": []
+        }
+      }
+    },
+    {
+      "id": "sec-star-featured",
+      "type": "rf-offer-card",
+      "label": "Featured",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "columns": 3,
+          "heading": "",
+          "bulletGlyph": "✦",
+          "padTop": 0,
+          "padBottom": 25,
+          "items": [
+            {
+              "anchorId": "starwoven-journey",
+              "eyebrow": "01 · Your celestial pattern, read in full",
+              "title": "Starwoven Journey",
+              "sub": "",
+              "body": "The full Starwoven Journey — a personalised, interactive exploration of your galactic themes, patterns and resonances.",
+              "listLabel": "",
+              "bullets": [],
+              "note": "",
+              "price": "$33",
+              "ctaLabel": "Explore",
+              "ctaHref": "/starseed/",
+              "ctaTarget": "",
+              "variant": "standard"
+            },
+            {
+              "anchorId": "resonance-mirror",
+              "eyebrow": "02 · The deep, full-spectrum reading",
+              "title": "Resonance Mirror",
+              "sub": "",
+              "body": "Your energy field holds more information than most people ever get access to. This reading gives you that access.",
+              "listLabel": "",
+              "bullets": [],
+              "note": "",
+              "price": "$155",
+              "ctaLabel": "Learn more",
+              "ctaHref": "/landing-star-preview/offer/resonance-mirror/",
+              "ctaTarget": "",
+              "variant": "standard"
+            },
+            {
+              "anchorId": "pearl-chamber",
+              "eyebrow": "03 · A weekly holding for one intention",
+              "title": "The Pearl Chamber",
+              "sub": "",
+              "body": "Your intention is placed inside the chamber and held there within 24 hours of purchase, where it is tended daily through meditation, energy work, and spoken enchantment.",
+              "listLabel": "",
+              "bullets": [],
+              "note": "",
+              "price": "$11",
+              "ctaLabel": "Learn more",
+              "ctaHref": "/landing-star-preview/offer/pearl-chamber/",
+              "ctaTarget": "",
+              "variant": "standard"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "sec-star-fieldguide-intro",
+      "type": "rf-media-copy",
+      "label": "Field Guide — intro",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "imageUrl": "",
+          "imageAlt": "",
+          "imagePosition": "left",
+          "eyebrow": "An evolving archive",
+          "eyebrowColor": "accent",
+          "heading": "The Galactic Field Guide",
+          "headingLevel": 2,
+          "headingAccent": "",
+          "paragraphs": [
+            "A growing atlas of the fixed-star currents and the civilisations woven through them — 42 systems and counting. Some entries are complete with full plates; many are still being written or illustrated. Preview and founding access open before the full guide does."
+          ],
+          "chips": [],
+          "ctas": []
+        }
+      }
+    },
+    {
+      "id": "sec-star-fieldguide",
+      "type": "rf-offer-card",
+      "label": "Field Guide — tiles",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "columns": 3,
+          "heading": "",
+          "bulletGlyph": "✦",
+          "padTop": 0,
+          "padBottom": 25,
+          "items": [
+            {
+              "eyebrow": "01 · Civilisation",
+              "title": "Lyra · Vega",
+              "sub": "",
+              "body": "",
+              "listLabel": "",
+              "bullets": [],
+              "note": "",
+              "price": "",
+              "ctaLabel": "",
+              "ctaHref": "",
+              "variant": "standard"
+            },
+            {
+              "eyebrow": "02 · Civilisation",
+              "title": "Pleiades · Alcyone",
+              "sub": "",
+              "body": "",
+              "listLabel": "",
+              "bullets": [],
+              "note": "",
+              "price": "",
+              "ctaLabel": "",
+              "ctaHref": "",
+              "variant": "standard"
+            },
+            {
+              "eyebrow": "03 · Civilisation",
+              "title": "Sirius · Canis Major",
+              "sub": "",
+              "body": "",
+              "listLabel": "",
+              "bullets": [],
+              "note": "",
+              "price": "",
+              "ctaLabel": "",
+              "ctaHref": "",
+              "variant": "standard"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "sec-star-fieldguide-notify",
+      "type": "rf-media-copy",
+      "label": "Field Guide — notify",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "imageUrl": "",
+          "imageAlt": "",
+          "imagePosition": "left",
+          "eyebrow": "",
+          "eyebrowColor": "accent",
+          "heading": "",
+          "headingLevel": 2,
+          "headingAccent": "",
+          "paragraphs": [
+            "The full guide isn't open yet. Get in touch to be notified once access is ready."
+          ],
+          "chips": [],
+          "ctas": [
+            {
+              "label": "Ask about access",
+              "href": "#contact",
+              "variant": "ritual"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "sec-star-faq",
+      "type": "rf-accordion",
+      "label": "FAQ",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "heading": "Frequently Asked Questions",
+          "lede": "Common queries about the nature of this work.",
+          "defaultOpen": -1,
+          "look": "panel",
+          "centeredHead": true,
+          "ruleUnderHead": true,
+          "animate": true,
+          "exclusive": true,
+          "items": [
+            {
+              "name": "What is Resonant Weaver?",
+              "body": "Resonant Weaver is my practice as an energy reader and guide. I work with the subtle field, the fixed stars of your birth sky, and the body. That takes shape as personal readings, one-to-one sessions, the interactive Starwoven Journey, and a growing Galactic Field Guide, so you can choose the doorway that fits where you are."
+            },
+            {
+              "name": "What kind of guidance is this?",
+              "body": "The offerings are reflective and interpretive in nature. They include perspectives, awareness, and optional suggestions related to personal experience, embodiment, or environment. Any adjustments or practices suggested, whether somatic or environmental, are invitations, not prescriptions. Resonant Weaver does not provide medical, psychological, or legal advice."
+            },
+            {
+              "name": "What's your background?",
+              "body": "I am certified in mediumship, Usui Reiki as a Master and Teacher, Quantum Astrology, and soul guide work, and I have spent years developing a way of reading energetic and stellar fields. I receive through clairsentience and claircognizance, then translate what I find into something grounded and usable."
+            },
+            {
+              "name": "Is this mediumship or channeling?",
+              "body": "This work draws on clairsentience and claircognizance as sensing tools. I translate what I receive into grounded reflections and practical suggestions, always aimed at coherence, capacity, and what your system can comfortably integrate now."
+            },
+            {
+              "name": "Are readings remote?",
+              "body": "Yes. Readings are completed remotely and shared as a written reflection by email. This allows the work to be done without scheduling or live interaction, and gives you space to receive it in your own time."
+            },
+            {
+              "name": "What is the Starwoven Journey?",
+              "body": "It is a personal reading of the fixed stars active in your birth sky, delivered as an interactive journey you move through at your own pace. It reveals your starseed lineages, your gifts and shadow gates, and the direction your life is asking to take. You only need your exact birth date, time and place to begin."
+            },
+            {
+              "name": "Do I need to know astrology or Human Design?",
+              "body": "No. You can come in with zero background. Anything drawn from Human Design or the stars is translated into plain language and grounded takeaways."
+            },
+            {
+              "name": "Who is this for?",
+              "body": "This work suits people who are curious about their subtle energy body, open to sensing and reflecting on subtle experience, and willing to take an active role in their own process. If you are looking for prediction, diagnosis, or an outside authority to decide for you, this may not be the right fit."
+            },
+            {
+              "name": "How do I get started?",
+              "body": "Choose the offering that calls to you and follow it, or write to me through the contact form below if you are not sure where to begin. For remote readings you do not need to prepare anything, and you will usually receive your written reflection by email within one to two business days."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "sec-star-contact",
+      "type": "form-live",
+      "label": "Contact",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "formId": "904a1f4d-26bb-42df-b3a2-a16a655fc99d",
+          "accent": "",
+          "hideHeader": false,
+          "maxWidth": 640
+        }
+      }
+    },
+    {
+      "id": "sec-star-about",
+      "type": "rf-offer-card",
+      "label": "About",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "columns": 1,
+          "heading": "",
+          "bulletGlyph": "✦",
+          "padTop": 0,
+          "padBottom": 25,
+          "items": [
+            {
+              "anchorId": "about",
+              "eyebrow": "About Resonant Weaver",
+              "title": "Between Earth and sky",
+              "sub": "",
+              "body": "I live in a small forest in Sweden, on a homestead we are slowly learning to run. Most things here have been figured out the hard way, from carrying water to making firewood to growing food from scratch. It has taught me to pay attention to what is actually there rather than what I expect to find.\n\nI have been drawn to what moves beneath the surface since I was a child. That curiosity became a practice, and the practice became this work. I am certified in mediumship, Usui Reiki as a Master and Teacher, Quantum Astrology, and soul guide work, and I have spent years developing a way of reading energetic and stellar fields that is closer to mapping than interpretation.\n\nI receive through clairsentience and claircognizance, feeling what is happening in a field directly, in my own system, then translating it into something grounded and usable. I also work with light language, spoken and through movement, when a field asks for direct tending rather than reflection.\n\nThe Starwoven Journey grew from all of this: reading the fixed stars of your birth sky as the lineages you carry, and helping them find a home in your human life.",
+              "listLabel": "",
+              "bullets": [],
+              "note": "",
+              "price": "",
+              "ctaLabel": "",
+              "ctaHref": "",
+              "variant": "compact-media",
+              "mediaUrl": "/images/tenants/resonantweaver/About-Portrait.png",
+              "mediaAlt": "Portrait of Marthe",
+              "mediaPortrait": true
+            }
+          ]
+        }
+      }
+    }
+  ]
+}$rwjson$::jsonb);
+
+INSERT INTO _rw_pages VALUES ('home-classic', 'Resonant Weaver — classic landing (archived)', false, $rwjson${
+  "id": "pm-rw-home-classic",
+  "slug": "home-classic",
+  "title": "Resonant Weaver — classic landing (archived)",
+  "chrome": {
+    "navEnabled": true,
+    "footerEnabled": true,
+    "meta": {
+      "description": "Remote energy readings and frequency anchoring delivered as a clear written PDF.",
+      "keywords": [
+        "Resonant Weaver",
+        "remote energy reading",
+        "energetic readings",
+        "frequency anchor",
+        "Resonance Mirror",
+        "Pulse Mirror",
+        "Somatic Signature",
+        "Harmonic Sweep",
+        "Pearl Chamber",
+        "somatic guidance",
+        "embodiment",
+        "subtle energy",
+        "Human Design"
+      ],
+      "ogImage": "/images/tenants/resonantweaver/RW-OG-logo.jpg",
+      "noindex": true
+    }
+  },
+  "sections": [
+    {
+      "id": "sec-hero",
+      "type": "rf-split-hero",
+      "label": "Hero",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "markUrl": "/images/tenants/resonantweaver/Logo-RW-2026.svg",
+          "markAlt": "",
+          "markGlow": true,
+          "markBreathe": true,
+          "markRight": true,
+          "eyebrow": "Galactic Bridge ✦ Energy Guide",
+          "words": [
+            "RESONANT",
+            "WEAVER"
+          ],
+          "dropInitials": true,
+          "ariaLabel": "Resonant Weaver",
+          "tagline": "A return to yourself",
+          "rule": true
+        }
+      }
+    },
+    {
       "id": "sec-intro",
       "type": "rf-media-copy",
       "label": "Intro",
@@ -674,7 +1089,7 @@ SELECT 'pages authored: ' || count(*) FROM ins;
 DO $$
 DECLARE
   n int;
-  expected constant text[] := ARRAY['home', 'writing'];
+  expected constant text[] := ARRAY['home', 'home-classic', 'writing'];
 BEGIN
   SELECT count(*) INTO n FROM public.page_models
    WHERE site = 'resonantweaver' AND lang = 'en' AND mode = 'published'
@@ -690,7 +1105,7 @@ BEGIN
   SELECT count(*) INTO n
     FROM public.page_models p, LATERAL jsonb_array_elements(p.model_json->'sections') s
    WHERE p.site = 'resonantweaver' AND p.mode = 'published'
-     AND s->>'type' NOT IN ('rf-split-hero', 'rf-media-copy', 'rf-offer-card', 'rf-testimonials', 'rf-accordion', 'form-live');
+     AND s->>'type' NOT IN ('rf-split-hero', 'rf-media-copy', 'rf-door-card', 'rf-offer-card', 'rf-accordion', 'form-live', 'rf-testimonials');
   IF n <> 0 THEN
     RAISE EXCEPTION 'assert: % section(s) name an unexpected type', n;
   END IF;

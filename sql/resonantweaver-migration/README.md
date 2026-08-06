@@ -12,7 +12,7 @@ parity and the cutover — is `CUTOVER-PLAN.md`**, in the order it has to happen
 | `copy.mjs` | The prose, the orbs, the radii and the asset map that are NOT in her `src/data/*` — transcribed once, and checked back against her source on every run. |
 | `generate.mjs` | Reads her data modules and emits the two SQL files. `--check` fails if they are stale. |
 | `01-theme.sql` | **GENERATED.** Her palette, type, radii, the two ambient orbs, and the Cormorant Garamond faces. Three `content_overrides` rows. |
-| `02-pages.sql` | **GENERATED.** Her contact form plus `home` and `writing` as `page_models` rows. |
+| `02-pages.sql` | **GENERATED.** Her contact form plus `home`, `home-classic` and `writing` as `page_models` rows. |
 
 Do not hand-edit the SQL. Change her source or `copy.mjs`, then re-run.
 
@@ -57,6 +57,14 @@ Three things the generator does that a transcription cannot:
   against *her* app; each one is routed through an explicit map to
   `/images/tenants/resonantweaver/`, and a path with no entry is an error rather
   than a 404 found in a browser later.
+- **It checks which component each route renders** (`ROUTES` + `guardRoutes`).
+  The three guards above all ask whether a STRING still says what we
+  transcribed. None of them asked the prior question — whether the page being
+  read is still the page that route serves — and that is the one that was
+  wrong: `(home)/page.tsx` swapped to the star landing on 2026-07-30 and this
+  generator kept reading `onePage.tsx`, emitting her ARCHIVED landing as `home`
+  with every check passing, because each string was still true of the file it
+  named. A guard can be thorough one level below the mistake.
 
 ## What it found
 
@@ -94,10 +102,16 @@ and Google serves the same woff2 for 300 and 400.
 - **The journey** (`/journey` and its canvas blocks) and the **starseed
   surfaces** move as packages in Phase 4. The gateway's words and its link are
   authored now; its seven chakra dots come with the package.
-- **The commerce funnel** — `/pearl-chamber` and the landing-star tree — is
-  bucket B: app routes plus `SITE_SURFACES` grants. Until that lands, the Pearl
-  Chamber CTA points at a path this renderer does not serve, the same knowingly
-  broken link giocoelho's `/playlists` was.
+- **The rest of the commerce funnel** — `/pearl-chamber`, `/starseed`,
+  `/open-your-journey` and the landing-star tree BELOW its hub (the gateway
+  pages, the offer detail pages, all-products, the course). Bucket B, per
+  `CUTOVER-PLAN.md` §1. Until it lands, the two featured CTAs on the hub point
+  at `/landing-star-preview/offer/…`, which this renderer does not serve — the
+  same knowingly broken link giocoelho's `/playlists` was.
+
+  The hub ITSELF is here, as `home`: `(home)/page.tsx` renders
+  `LandingStarPreview`, so her front door is bucket A's page whichever bucket
+  the tree under it belongs to.
 - **`ContactForm.tsx`** is not ported. The contact section is a `form-live`
   pointing at a `public.forms` row this migration creates from her own
   dictionary, so submissions land in her Forms inbox behind the anti-abuse
@@ -125,7 +139,7 @@ is to drop the row and re-run:
 ```sql
 DELETE FROM public.page_models
  WHERE site = 'resonantweaver' AND mode = 'published' AND user_id IS NULL
-   AND slug IN ('home', 'writing');
+   AND slug IN ('home', 'home-classic', 'writing');
 ```
 
 `site_releases` keeps every version the capture trigger saw, so the previous
