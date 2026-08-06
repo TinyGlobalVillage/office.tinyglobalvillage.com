@@ -173,6 +173,11 @@ const DestLabel = styled.span`
   text-transform: uppercase;
   opacity: 0.7;
   white-space: nowrap;
+
+  /* The pills say "RCS disk" and "Cloud" — on a phone that is label enough. */
+  @media (max-width: 640px) {
+    display: none;
+  }
 `;
 const StoreBadge = styled.span<{ $cloud: boolean }>`
   display: inline-block;
@@ -428,6 +433,8 @@ const CardDeleteBtn = styled(CardActionBtn)<{ $confirm?: boolean }>`
 /* ── Project dropdown ──────────────────────────────────────────── */
 
 const DDMContainer = styled.div`
+  min-width: 0;
+  flex: 1 1 auto;
   position: relative;
   width: 280px;
 `;
@@ -1277,7 +1284,7 @@ function StoragePageInner({ forceEmbedded = false }: { forceEmbedded?: boolean }
 
         {/* Row 2 — which bucket you are looking at, and where the next upload goes. */}
         <ControlRow>
-          <ControlCell>
+          <ControlCell style={{ flex: "1 1 auto", minWidth: 0 }}>
             <ProjectDropdown
               projects={allProjects}
               cdnCounts={projects}
@@ -1285,7 +1292,7 @@ function StoragePageInner({ forceEmbedded = false }: { forceEmbedded?: boolean }
               onChange={(p) => { setActiveProject(p); setPage(1); }}
             />
           </ControlCell>
-          <ControlCell>
+          <ControlCell style={{ flex: "0 0 auto" }}>
             <DestLabel>Save to</DestLabel>
             <PillBar
               ariaLabel="Upload destination"
