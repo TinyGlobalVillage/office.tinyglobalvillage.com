@@ -1,0 +1,889 @@
+#!/usr/bin/env node
+// generate.mjs — author resonantweaver.com's bucket-A pages BY READING THEM.
+//
+//   node sql/resonantweaver-migration/generate.mjs         # writes 01/02 .sql
+//   node sql/resonantweaver-migration/generate.mjs --check  # fails if stale
+//
+// WHY A GENERATOR AND NOT A HAND-WRITTEN MIGRATION. The two files it emits are
+// ~700 lines of JSON; every one of giocoelho's and refusionist's pages was typed
+// by hand, and both needed a browser pass to find what the typing lost. Marthe's
+// site is the one where that is avoidable: she separated content from
+// presentation years ago, so `src/data/*` already holds the offerings, the
+// testimonials, the FAQ, the writing entries and the whole i18n dictionary as
+// typed objects. Those are IMPORTED here — not transcribed — which makes the
+// first render identical by construction rather than by proofreading.
+//
+// The prose she wrote inline in JSX has no object to import; it lives in
+// copy.mjs and is checked back against her source on every run (see the drift
+// guard below). If she edits a tagline in her repo, this refuses to emit.
+//
+// THE RUNTIME FILTER IS PART OF THE CONTENT. `onePage.tsx` hides any offering
+// flagged `hidden`, then COLLAPSES a two-up row that lost an item to a single
+// column, then drops a row that lost both. Two of her five rows are affected
+// today. Reimplementing that here (`visibleRows`) is why the generated stack
+// matches what a visitor sees rather than what the data file contains.
+//
+// esbuild bundles her TS to one ESM file so it can be imported without a
+// TypeScript toolchain; her data modules import nothing but their own types, so
+// the bundle has no externals and can be written to a temp dir.
+
+import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
+
+import {
+  inlineCopy,
+  rewrites,
+  orbs,
+  radii,
+  ground,
+  panel,
+  assetMap,
+  webfonts,
+  ASSET_BASE,
+} from "./copy.mjs";
+
+const HERE = path.dirname(fileURLToPath(import.meta.url));
+const OFFICE = path.resolve(HERE, "../..");
+const CLIENTS = path.resolve(OFFICE, "..");
+const RW = process.env.RW_ROOT || path.join(CLIENTS, "resonantweaver.com");
+const HQ = process.env.HQ_ROOT || path.join(CLIENTS, "tinyglobalvillage.com");
+const MONOREPO = path.resolve(CLIENTS, "..");
+const ESBUILD = path.join(MONOREPO, "node_modules/.bin/esbuild");
+
+const SITE = "resonantweaver";
+const CHECK = process.argv.includes("--check");
+
+function die(msg) {
+  console.error(`generate: ${msg}`);
+  process.exit(1);
+}
+
+/* ------------------------------------------------------------ drift guard --- */
+
+const sourceCache = new Map();
+/** Read a file from her checkout the way a BROWSER sees the JSX in it: entities
+ *  unescaped, runs of whitespace collapsed. That is what makes a three-line
+ *  paragraph in the source match the one-line string it renders as. */
+function normalizedSource(rel) {
+  if (!sourceCache.has(rel)) {
+    const abs = path.join(RW, rel);
+    if (!fs.existsSync(abs)) die(`source file is gone: ${rel}`);
+    const raw = fs
+      .readFileSync(abs, "utf8")
+      .replace(/&apos;|&#39;/g, "'")
+      .replace(/&quot;/g, '"')
+      .replace(/&amp;/g, "&")
+      .replace(/\s+/g, " ");
+    sourceCache.set(rel, raw);
+  }
+  return sourceCache.get(rel);
+}
+
+const drift = [];
+/** Assert a transcribed string is still in her source, and return it. */
+function verbatim(entry) {
+  const needle = (entry.find ?? entry.text).replace(/\s+/g, " ").trim();
+  if (!normalizedSource(entry.file).includes(needle)) {
+    drift.push(`${entry.file}: not found — ${JSON.stringify(needle.slice(0, 72))}`);
+  }
+  return entry.text;
+}
+function guardOnly(entry) {
+  const needle = entry.find.replace(/\s+/g, " ").trim();
+  if (!normalizedSource(entry.file).includes(needle)) {
+    drift.push(`${entry.file}: not found — ${JSON.stringify(needle.slice(0, 72))}`);
+  }
+}
+
+/* ---------------------------------------------------------------- her data --- */
+
+function loadData() {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "rw-gen-"));
+  const entry = path.join(tmp, "entry.ts");
+  const out = path.join(tmp, "data.mjs");
+  const p = (rel) => JSON.stringify(path.join(RW, rel));
+  fs.writeFileSync(
+    entry,
+    [
+      `export { offeringRows } from ${p("src/data/home/offerings")};`,
+      `export { testimonialsByOffering } from ${p("src/data/home/testimonials")};`,
+      `export { faqItems } from ${p("src/data/home/faq")};`,
+      `export { writingEntries } from ${p("src/data/writing/articles")};`,
+      `export { dictionary as en } from ${p("src/data/i18n/en")};`,
+      `export * as tokens from ${p("src/styles/tokens")};`,
+    ].join("\n"),
+  );
+  if (!fs.existsSync(ESBUILD)) die(`esbuild not found at ${ESBUILD}`);
+  execFileSync(ESBUILD, [entry, "--bundle", "--format=esm", "--platform=node", `--outfile=${out}`, "--log-level=error"]);
+  return import(pathToFileURL(out).href).finally(() => fs.rmSync(tmp, { recursive: true, force: true }));
+}
+
+/* ------------------------------------------------------------------ colour --- */
+
+const hex = (n) => Math.round(Math.min(255, Math.max(0, n))).toString(16).padStart(2, "0");
+const toHex = ([r, g, b]) => `#${hex(r)}${hex(g)}${hex(b)}`;
+/** "183, 138, 119" — the shape every token in her `tokens.ts` is written in. */
+const parseTriplet = (s) => s.split(",").map((x) => Number(x.trim()));
+
+function hslToRgb(h, s, l) {
+  s /= 100;
+  l /= 100;
+  const c = (1 - Math.abs(2 * l - 1)) * s;
+  const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+  const m = l - c / 2;
+  const seg = Math.floor(h / 60) % 6;
+  const [r, g, b] = [
+    [c, x, 0],
+    [x, c, 0],
+    [0, c, x],
+    [0, x, c],
+    [x, 0, c],
+    [c, 0, x],
+  ][seg];
+  return [(r + m) * 255, (g + m) * 255, (b + m) * 255];
+}
+
+/** Flatten `rgba(fg, alpha)` painted over an opaque `bg`. The theme's colour
+ *  roles are hex-only by design (a validator, not an oversight), and half her
+ *  palette is bone at an alpha over the ground — so the honest hex is the one
+ *  a browser already computes for those pixels. */
+const over = (fg, bg, alpha) => fg.map((c, i) => c * alpha + bg[i] * (1 - alpha));
+
+/* -------------------------------------------------------------- page model --- */
+
+const toSlug = (s) => s.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+
+/** Every asset path she wrote resolves against HER app. Route it through the
+ *  map or refuse: an unmapped path is the broken-image trap that cost giocoelho
+ *  a browser pass, and an empty string is a card with no picture — visibly
+ *  wrong, which is the point. */
+function asset(src, { optional = false } = {}) {
+  if (!src) return "";
+  const mapped = assetMap[src];
+  if (mapped) return mapped;
+  if (optional) {
+    console.warn(`  ! no asset mapping for ${src} — dropped`);
+    return "";
+  }
+  die(`no asset mapping for ${src} (add it to copy.mjs)`);
+}
+
+const section = (id, type, label, props) => ({
+  id,
+  type,
+  label,
+  blocks: [],
+  enabled: true,
+  config: { props },
+});
+
+/** onePage.tsx's own filter, reimplemented: hide, collapse, drop. */
+function visibleRows(offeringRows) {
+  return offeringRows
+    .map((row) => {
+      const items = row.items.filter((o) => !o.hidden);
+      return { ...row, items, columns: Math.min(row.columns, items.length) };
+    })
+    .filter((row) => row.items.length > 0);
+}
+
+function offeringToItem(o) {
+  // OfferingCard.tsx: a subscription goes to its own page, everything else to
+  // the href on the offering; the labels are its two defaults.
+  const href = o.subscriptionPath ? `/${o.subscriptionPath}` : o.href;
+  const external = /^https?:\/\//.test(href);
+  return {
+    anchorId: toSlug(o.title),
+    title: o.title,
+    sub: o.sub,
+    body: o.paragraphs.join("\n\n"),
+    listLabel: o.listLabel ?? "Best suited for",
+    bullets: o.bestFor,
+    note: "🛈 see FAQ",
+    price: o.price,
+    ctaLabel: o.ctaLabel ?? (o.subscriptionPath ? "Subscribe" : "Book a Reading"),
+    ctaHref: href,
+    ctaTarget: external ? "_blank" : "",
+    variant: o.mediaSrc ? "media" : o.variant === "feature" ? "feature" : "standard",
+    leadImageUrl: asset(o.leadImageSrc),
+    leadImageAlt: o.leadImageAlt ?? "",
+    leadImageGlow: Boolean(o.leadImageGlow),
+    mediaUrl: asset(o.mediaSrc),
+    mediaAlt: o.mediaAlt ?? "",
+    mediaRight: Boolean(o.mediaRight),
+  };
+}
+
+function buildHome(data, formId) {
+  const sections = [];
+
+  sections.push(
+    section("sec-hero", "rf-split-hero", "Hero", {
+      markUrl: asset(verbatim(inlineCopy.hero.markUrl)),
+      markAlt: "",
+      markGlow: true,
+      markBreathe: true,
+      markRight: true,
+      eyebrow: verbatim(inlineCopy.hero.eyebrow),
+      words: inlineCopy.hero.words,
+      dropInitials: true,
+      ariaLabel: verbatim(inlineCopy.hero.ariaLabel),
+      tagline: verbatim(inlineCopy.hero.tagline),
+      rule: true,
+    }),
+  );
+
+  sections.push(
+    section("sec-intro", "rf-media-copy", "Intro", {
+      imageUrl: "",
+      imageAlt: "",
+      imagePosition: "left",
+      eyebrow: "",
+      eyebrowColor: "accent",
+      heading: "",
+      headingLevel: 2,
+      headingAccent: "",
+      paragraphs: inlineCopy.intro.map(verbatim),
+      chips: [],
+      ctas: [],
+    }),
+  );
+
+  sections.push(
+    section("sec-journey-gateway", "rf-media-copy", "Journey gateway", {
+      imageUrl: "",
+      imageAlt: "",
+      imagePosition: "left",
+      eyebrow: verbatim(inlineCopy.gateway.eyebrow),
+      eyebrowColor: "amber",
+      heading: verbatim(inlineCopy.gateway.question),
+      headingLevel: 2,
+      headingAccent: "",
+      paragraphs: [verbatim(inlineCopy.gateway.note)],
+      chips: [],
+      ctas: [
+        {
+          label: verbatim(inlineCopy.gateway.ctaLabel),
+          href: verbatim(inlineCopy.gateway.ctaHref),
+          variant: "ritual",
+        },
+      ],
+    }),
+  );
+
+  // The offerings stack: a row, then that row's testimonials, repeating. The
+  // heading rides on the first row so it cannot drift away from the stack.
+  const rows = visibleRows(data.offeringRows);
+  rows.forEach((row, i) => {
+    sections.push(
+      section(`sec-offer-${i + 1}`, "rf-offer-card", `Offerings ${i + 1}`, {
+        columns: row.columns,
+        heading: i === 0 ? verbatim(inlineCopy.offeringsHeading) : "",
+        bulletGlyph: "✦",
+        padTop: 0,
+        padBottom: 25,
+        items: row.items.map(offeringToItem),
+      }),
+    );
+    const quotes = row.items.flatMap((o) => data.testimonialsByOffering[o.title] ?? []);
+    if (quotes.length) {
+      sections.push(
+        section(`sec-quotes-${i + 1}`, "rf-testimonials", `Testimonials — ${row.items[0].title}`, {
+          kicker: "Testimonials",
+          quoteMark: '"',
+          ruleBelow: true,
+          items: quotes.map((t) => ({ quote: t.quote, attribution: t.attribution ?? "" })),
+        }),
+      );
+    }
+  });
+
+  sections.push(
+    section("sec-faq", "rf-accordion", "FAQ", {
+      heading: verbatim(inlineCopy.faq.heading),
+      lede: verbatim(inlineCopy.faq.lede),
+      defaultOpen: -1,
+      look: "panel",
+      centeredHead: true,
+      ruleUnderHead: true,
+      animate: true,
+      exclusive: true,
+      items: data.faqItems.map((f) => ({ name: f.q, body: f.a })),
+    }),
+  );
+
+  sections.push(
+    section("sec-contact", "form-live", "Contact", {
+      formId,
+      accent: "",
+      hideHeader: false,
+      maxWidth: 640,
+    }),
+  );
+
+  // AboutSection.tsx is literally an offerings row holding one compact-media
+  // card — no price, no CTA, a portrait beside the copy. Same component.
+  sections.push(
+    section("sec-about", "rf-offer-card", "About", {
+      columns: 1,
+      heading: "",
+      bulletGlyph: "✦",
+      padTop: 0,
+      padBottom: 25,
+      items: [
+        {
+          anchorId: "about",
+          title: verbatim(inlineCopy.about.title),
+          sub: verbatim(inlineCopy.about.sub),
+          body: inlineCopy.about.paragraphs.map(verbatim).join("\n\n"),
+          listLabel: "",
+          bullets: [],
+          note: "",
+          price: "",
+          ctaLabel: "",
+          ctaHref: "",
+          variant: "compact-media",
+          mediaUrl: asset(verbatim(inlineCopy.about.mediaUrl)),
+          mediaAlt: verbatim(inlineCopy.about.mediaAlt),
+          mediaPortrait: true,
+        },
+      ],
+    }),
+  );
+
+  const meta = data.en.home.meta;
+  return {
+    slug: "home",
+    title: meta.title,
+    inNav: true,
+    model: {
+      id: "pm-rw-home",
+      slug: "home",
+      title: meta.title,
+      chrome: {
+        navEnabled: true,
+        footerEnabled: true,
+        meta: {
+          description: meta.description,
+          keywords: meta.keywords,
+          ogImage: asset(data.en.home.twitter.images[0].url),
+        },
+      },
+      sections,
+    },
+  };
+}
+
+function buildWriting(data) {
+  const w = inlineCopy.writing;
+  const sections = [
+    section("sec-writing-head", "rf-media-copy", "Writing", {
+      imageUrl: "",
+      imageAlt: "",
+      imagePosition: "left",
+      eyebrow: verbatim(w.eyebrow),
+      eyebrowColor: "accent",
+      heading: verbatim(w.titleLine1),
+      headingLevel: 1,
+      headingAccent: verbatim(w.titleLine2),
+      paragraphs: [verbatim(w.intro)],
+      chips: [],
+      ctas: [],
+    }),
+    // Her cards are cover art + eyebrow + title + excerpt + meta + an outward
+    // link, which is an offer card in every part except the price — so the
+    // entries land as `media` items and the meta line becomes the two bullets.
+    section("sec-writing-entries", "rf-offer-card", "Entries", {
+      columns: data.writingEntries.length >= 2 ? 2 : 1,
+      heading: "",
+      bulletGlyph: "✦",
+      padTop: 0,
+      padBottom: 25,
+      items: data.writingEntries.map((e) => ({
+        anchorId: e.slug,
+        title: e.title,
+        sub: e.eyebrow,
+        body: e.excerpt,
+        listLabel: "",
+        bullets: [e.publishedAt, e.readingTime].filter(Boolean),
+        price: "",
+        ctaLabel: e.href ? "Read on Substack" : "",
+        ctaHref: e.href ?? "",
+        ctaTarget: e.href ? "_blank" : "",
+        variant: "media",
+        mediaUrl: asset(e.imageSrc, { optional: true }),
+        mediaAlt: e.imageAlt ?? "",
+      })),
+    }),
+  ];
+
+  const meta = data.en.writing.meta;
+  return {
+    slug: "writing",
+    title: "Writing",
+    inNav: true,
+    model: {
+      id: "pm-rw-writing",
+      slug: "writing",
+      title: "Writing",
+      chrome: {
+        navEnabled: true,
+        footerEnabled: true,
+        meta: {
+          description: meta.description,
+          keywords: meta.keywords,
+          ogImage: asset(data.en.writing.twitter.images[0].url),
+        },
+      },
+      sections,
+    },
+  };
+}
+
+/* -------------------------------------------------------------------- form --- */
+
+/** A stable id so the page row can name the form the same file creates, and a
+ *  re-run points at the same row instead of orphaning the last one. Derived
+ *  from the site + slug, not random. */
+function stableUuid(seed) {
+  const h = createHash("sha256").update(seed).digest("hex");
+  const v = h.slice(0, 32).split("");
+  v[12] = "4"; // version nibble — a valid v4 shape, deterministically produced
+  v[16] = ((parseInt(v[16], 16) & 0x3) | 0x8).toString(16);
+  const s = v.join("");
+  return `${s.slice(0, 8)}-${s.slice(8, 12)}-${s.slice(12, 16)}-${s.slice(16, 20)}-${s.slice(20)}`;
+}
+
+function buildForm(data) {
+  const f = data.en.contact.contentAboveFold.form;
+  const d = f.fields.dropdown;
+  const options = ["option1", "option2", "option3", "option4", "option5"]
+    .map((k) => d[k])
+    .filter(Boolean)
+    .map((label) => ({ ref: toSlug(label), label }));
+  return {
+    id: stableUuid(`${SITE}:contact`),
+    slug: "contact",
+    title: f.title,
+    definition: {
+      title: f.title,
+      version: 1,
+      fields: [
+        { ref: "name", type: "short_text", title: f.fields.name, required: true },
+        { ref: "email", type: "email", title: f.fields.email, required: true },
+        {
+          ref: "topic",
+          type: "dropdown",
+          title: f.fields.topic,
+          required: true,
+          properties: { options, allowOther: true, otherPrompt: d.variableOption },
+        },
+        { ref: "message", type: "long_text", title: f.fields.message, required: true },
+      ],
+      settings: { submitLabel: f.button },
+      thankyou: { title: f.statusMessage.success, description: "" },
+    },
+  };
+}
+
+/* --------------------------------------------------------------------- sql --- */
+
+const TAG = "$rwjson$";
+function json(value) {
+  const s = JSON.stringify(value, null, 2);
+  if (s.includes("$rwjson$")) die("generated JSON collides with the dollar-quote tag");
+  return `${TAG}${s}${TAG}::jsonb`;
+}
+const lit = (s) => `'${String(s).replace(/'/g, "''")}'`;
+
+const BANNER = (name, why) => `-- ${name} — GENERATED by sql/resonantweaver-migration/generate.mjs.
+-- DO NOT HAND-EDIT: the next run overwrites it. Change her source, or copy.mjs,
+-- and re-run. \`--check\` fails if this file is stale, so a drifting edit is
+-- caught rather than merged.
+--
+${why}
+--
+--   psql -v ON_ERROR_STOP=1 -d tgv_db -f sql/resonantweaver-migration/${name}
+
+\\set ON_ERROR_STOP on
+
+BEGIN;
+
+SELECT set_config('app.actor', 'migration:resonantweaver-${name.replace(/\.sql$/, "")}', true);
+`;
+
+function themeSql(data) {
+  const t = data.tokens;
+  const copper = parseTriplet(t.COPPER);
+  const teal = parseTriplet(t.TEAL);
+  const bone = parseTriplet(t.BONE);
+
+  guardOnly(ground);
+  const m = /hsl\((\d+),\s*(\d+)%,\s*(\d+)%\)/.exec(ground.hsl);
+  const bg = hslToRgb(Number(m[1]), Number(m[2]), Number(m[3]));
+
+  guardOnly(panel);
+  const [pr, pg, pb, pa] = panel.rgba;
+  const surface = over([pr, pg, pb], bg, pa);
+
+  // `--text-muted: rgba(BONE, 0.65)` over the ground. Phase 1 deferred this
+  // because the theme's colour roles are hex-only; the flattened value is what
+  // a browser paints for those pixels anyway.
+  const textMuted = over(bone, bg, 0.65);
+
+  for (const r of Object.values(radii)) guardOnly(r);
+  for (const o of orbs) for (const g of o.guards) guardOnly(g);
+
+  const theme = {
+    colors: {
+      background: toHex(bg),
+      surface: toHex(surface),
+      text: toHex(bone),
+      textMuted: toHex(textMuted),
+      accent1: toHex(teal), // the teal her links, rules and kickers run on
+      accent2: toHex(copper), // copper, her primary
+      // accent3 is the gold family every rf-* section's `amber` role resolves
+      // through. She has no third colour, so it is copper again — anything else
+      // would put TGV's amber on her page.
+      accent3: toHex(copper),
+    },
+    fonts: { heading: t.SERIF.replace(/'/g, ""), body: t.SERIF.replace(/'/g, "") },
+    radius: { card: radii.card.value, button: radii.button.value, small: radii.small.value },
+  };
+
+  const background = {
+    orbs: orbs.map(({ guards, ...o }) => o),
+    color: toHex(bg),
+  };
+
+  const fonts = { faces: webfonts };
+
+  const rows = [
+    ["theme", theme],
+    ["siteBackground", background],
+    ["siteFonts", fonts],
+  ];
+
+  return (
+    BANNER(
+      "01-theme.sql",
+      `-- Her identity as three site-scoped rows: the palette and type (\`theme\`),
+-- the two ambient orbs and the ground they drift over (\`siteBackground\`), and
+-- the Cormorant Garamond faces that make the type real (\`siteFonts\`).
+--
+-- WHY THE FONT ROW EXISTS AT ALL. A theme has always been able to NAME a family;
+-- nothing loaded one. On her own app the face arrived through a stylesheet
+-- \`@import\` that does not travel with her pages — so without this row her site
+-- would come up in Georgia with every colour, size and word correct.
+--
+-- The muted text and the surface are FLATTENED alphas: \`rgba(BONE, .65)\` and
+-- \`rgba(4, 20, 19, .9)\` over her ground. The colour roles are hex-only by
+-- design, and the flattened value is what a browser paints for those pixels.`,
+    ) +
+    rows
+      .map(
+        ([key, value]) => `
+-- ── ${key} ────────────────────────────────────────────────────────────────
+INSERT INTO public.content_overrides (key, lang, mode, user_id, data, updated_at, site)
+SELECT ${lit(key)}, 'en', 'published', NULL, ${json(value)}, now(), ${lit(SITE)}
+ WHERE NOT EXISTS (
+   SELECT 1 FROM public.content_overrides
+    WHERE site = ${lit(SITE)} AND key = ${lit(key)}
+      AND lang = 'en' AND mode = 'published'
+      AND user_id IS NOT DISTINCT FROM NULL
+ );
+`,
+      )
+      .join("") +
+    `
+-- ── assertions ─────────────────────────────────────────────────────────────
+DO $$
+DECLARE n int;
+BEGIN
+  SELECT count(*) INTO n FROM public.content_overrides
+   WHERE site = ${lit(SITE)} AND mode = 'published' AND user_id IS NULL
+     AND key IN ('theme', 'siteBackground', 'siteFonts');
+  IF n <> 3 THEN
+    RAISE EXCEPTION 'assert: expected 3 identity rows, found %', n;
+  END IF;
+
+  -- A face that points at a path HQ does not serve loads nothing and falls back
+  -- in silence — the exact failure this row exists to prevent.
+  SELECT count(*) INTO n FROM public.content_overrides c,
+       LATERAL jsonb_array_elements(c.data->'faces') f
+   WHERE c.site = ${lit(SITE)} AND c.key = 'siteFonts'
+     AND f->>'src' NOT LIKE '/fonts/tenants/${SITE}/%';
+  IF n <> 0 THEN
+    RAISE EXCEPTION 'assert: % font face(s) point outside the tenant font dir', n;
+  END IF;
+
+  -- The theme names a family; siteFonts must actually carry it.
+  SELECT count(*) INTO n FROM public.content_overrides t
+   WHERE t.site = ${lit(SITE)} AND t.key = 'theme'
+     AND NOT EXISTS (
+       SELECT 1 FROM public.content_overrides c,
+            LATERAL jsonb_array_elements(c.data->'faces') f
+        WHERE c.site = t.site AND c.key = 'siteFonts'
+          AND t.data->'fonts'->>'body' LIKE '%' || (f->>'family') || '%'
+     );
+  IF n <> 0 THEN
+    RAISE EXCEPTION 'assert: the theme names a font no face loads';
+  END IF;
+
+  RAISE NOTICE 'assertions passed';
+END $$;
+
+SELECT key, jsonb_pretty(data) FROM public.content_overrides
+ WHERE site = ${lit(SITE)} AND mode = 'published' AND user_id IS NULL
+ ORDER BY key;
+
+COMMIT;
+`
+  );
+}
+
+function pagesSql(pages, form, ownerNote) {
+  const types = [...new Set(pages.flatMap((p) => p.model.sections.map((s) => s.type)))];
+  return (
+    BANNER(
+      "02-pages.sql",
+      `-- Bucket A — her marketing content as \`page_models\` rows: the one-pager
+-- (hero, intro, journey gateway, the offerings stack with its testimonial
+-- bands, the FAQ, the contact form and the about panel) and /writing.
+--
+-- ${ownerNote}
+--
+-- NOT AUTHORED HERE, and each for a stated reason:
+--   • the journey (\`/journey\` and its blocks) and the starseed surfaces move
+--     as PACKAGES in Phase 4 — canvas and scroll-driven motion is not catalog
+--     material and re-authoring it would lose it. The gateway's words and its
+--     link travel now; its seven chakra dots come with the package.
+--   • the commerce funnel (\`/pearl-chamber\`, the landing-star tree) is bucket
+--     B: app routes plus \`SITE_SURFACES\` grants, not rows. Until that lands,
+--     the Pearl Chamber CTA below points at a path this renderer does not serve
+--     yet — the same knowingly-broken link giocoelho's \`/playlists\` was, and
+--     the same ruling: flip and port, don't hold the migration.
+--
+-- Every section leaves its colour roles EMPTY on purpose. They resolve through
+-- \`--tgv-*\`, which 01-theme.sql rewrites to her palette — which is the whole
+-- "strip the colours, backfill them as data" instruction: the same rows on an
+-- unthemed site render in the platform's colours instead of hers.`,
+    ) +
+    `
+-- ── the contact form ───────────────────────────────────────────────────────
+-- The section below is a \`form-live\`, which is reference-by-id: the definition
+-- lives in \`public.forms\` and submissions land in her Forms inbox with the
+-- anti-abuse engine in front of them. Porting ContactForm.tsx would have been a
+-- second form doing the same job — the duplicate-but-different pair that starts
+-- drift. Fields, labels, options and the thank-you line are generated from her
+-- own dictionary, so the form a visitor meets is the one she wrote.
+--
+-- The id is DERIVED from the site and the slug, not random, so this file names
+-- the same row every time it runs.
+INSERT INTO public.forms (id, site_id, owner_member_id, slug, title, purpose, status, definition, definition_version)
+SELECT ${lit(form.id)}::uuid, v.id, o.member_id, ${lit(form.slug)}, ${lit(form.title)},
+       'general', 'published', ${json(form.definition)}, 1
+  FROM public.villager_sites v
+  JOIN LATERAL (
+    SELECT member_id FROM public.villager WHERE site_id = v.id ORDER BY member_id LIMIT 1
+  ) o ON true
+ WHERE v.subdomain = ${lit(SITE)}
+   AND NOT EXISTS (SELECT 1 FROM public.forms WHERE id = ${lit(form.id)}::uuid);
+
+CREATE TEMP TABLE _rw_pages (slug text, title text, in_nav boolean, model jsonb)
+  ON COMMIT DROP;
+
+` +
+    pages
+      .map(
+        (p) => `INSERT INTO _rw_pages VALUES (${lit(p.slug)}, ${lit(p.title)}, ${p.inNav}, ${json(p.model)});
+`,
+      )
+      .join("\n") +
+    `
+-- ── insert ─────────────────────────────────────────────────────────────────
+-- Null-safe NOT EXISTS on the same tuple the unique index names — the index
+-- cannot do this job because a published row carries user_id NULL and NULL is
+-- distinct from NULL.
+WITH ins AS (
+  INSERT INTO public.page_models
+    (slug, lang, mode, user_id, deleted_at, title, is_public, in_nav, model_json, updated_at, site)
+  SELECT r.slug, 'en', 'published', NULL, NULL, r.title, true, r.in_nav, r.model, now(), ${lit(SITE)}
+    FROM _rw_pages r
+   WHERE NOT EXISTS (
+     SELECT 1 FROM public.page_models p
+      WHERE p.site = ${lit(SITE)} AND p.slug = r.slug AND p.lang = 'en'
+        AND p.mode = 'published' AND p.user_id IS NOT DISTINCT FROM NULL
+   )
+  RETURNING 1
+)
+SELECT 'pages authored: ' || count(*) FROM ins;
+
+-- ── assertions ─────────────────────────────────────────────────────────────
+DO $$
+DECLARE
+  n int;
+  expected constant text[] := ARRAY[${pages.map((p) => lit(p.slug)).join(", ")}];
+BEGIN
+  SELECT count(*) INTO n FROM public.page_models
+   WHERE site = ${lit(SITE)} AND lang = 'en' AND mode = 'published'
+     AND user_id IS NULL AND deleted_at IS NULL AND is_public
+     AND slug = ANY(expected);
+  IF n <> array_length(expected, 1) THEN
+    RAISE EXCEPTION 'assert: expected % pages readable, found %', array_length(expected, 1), n;
+  END IF;
+
+  -- Every section names a type the shared catalog renders. A typo is invisible
+  -- in SQL and shows up as a blank band — how the homeHero gap presented on
+  -- giocoelho.
+  SELECT count(*) INTO n
+    FROM public.page_models p, LATERAL jsonb_array_elements(p.model_json->'sections') s
+   WHERE p.site = ${lit(SITE)} AND p.mode = 'published'
+     AND s->>'type' NOT IN (${types.map(lit).join(", ")});
+  IF n <> 0 THEN
+    RAISE EXCEPTION 'assert: % section(s) name an unexpected type', n;
+  END IF;
+
+  -- No path that would resolve against HER app. Only ever caught by a browser
+  -- or by this line.
+  SELECT count(*) INTO n FROM public.page_models
+   WHERE site = ${lit(SITE)} AND model_json::text ~ '"/images/(?!tenants/)';
+  IF n <> 0 THEN
+    RAISE EXCEPTION 'assert: % row(s) carry an app-relative asset path', n;
+  END IF;
+
+  -- The contact section points at a form that exists and belongs to her site.
+  SELECT count(*) INTO n
+    FROM public.page_models p, LATERAL jsonb_array_elements(p.model_json->'sections') s
+   WHERE p.site = ${lit(SITE)} AND s->>'type' = 'form-live'
+     AND NOT EXISTS (
+       SELECT 1 FROM public.forms f JOIN public.villager_sites v ON v.id = f.site_id
+        WHERE f.id = (s->'config'->'props'->>'formId')::uuid
+          AND v.subdomain = ${lit(SITE)} AND f.status = 'published'
+     );
+  IF n <> 0 THEN
+    RAISE EXCEPTION 'assert: % form section(s) point at no published form of hers', n;
+  END IF;
+
+  -- Copy the migration made untrue must not come back. Each of these named a
+  -- file in her repo as the way to edit this page; the studio is that way now.
+${rewrites
+  .map(
+    (r) => `  SELECT count(*) INTO n FROM public.page_models
+   WHERE site = ${lit(SITE)} AND strpos(model_json::text, ${lit(r.find)}) > 0;
+  IF n <> 0 THEN
+    RAISE EXCEPTION ${lit(`assert: superseded copy is back — ${r.why}`)};
+  END IF;
+`,
+  )
+  .join("\n")}
+  RAISE NOTICE 'assertions passed';
+END $$;
+
+SELECT slug, title, is_public, in_nav,
+       jsonb_array_length(model_json->'sections') AS sections
+  FROM public.page_models
+ WHERE site = ${lit(SITE)} AND mode = 'published' AND user_id IS NULL
+ ORDER BY slug;
+
+COMMIT;
+`
+  );
+}
+
+/* -------------------------------------------------------------------- main --- */
+
+const data = await loadData();
+
+const form = buildForm(data);
+const pages = [buildHome(data, form.id), buildWriting(data)];
+
+/** Applied to every string leaf of every model, so a rewrite cannot be missed
+ *  by having been declared in the wrong builder. */
+function rewriteStrings(node) {
+  if (typeof node === "string") {
+    return rewrites.reduce((s, r) => s.split(r.find).join(r.replace), node);
+  }
+  if (Array.isArray(node)) return node.map(rewriteStrings);
+  if (node && typeof node === "object") {
+    return Object.fromEntries(Object.entries(node).map(([k, v]) => [k, rewriteStrings(v)]));
+  }
+  return node;
+}
+for (const p of pages) p.model = rewriteStrings(p.model);
+for (const r of rewrites) {
+  if (JSON.stringify(pages).includes(r.find)) {
+    die(`rewrite did not take: ${JSON.stringify(r.find.slice(0, 60))}`);
+  }
+}
+
+// Both bodies are BUILT before the drift gate, not after: half the guards
+// (the orbs, the radii, the ground) only run inside themeSql, and a gate that
+// fires before they have spoken is a gate with a hole in it — which is exactly
+// what the first negative test of this file found.
+const outputs = [
+  ["01-theme.sql", themeSql(data)],
+  [
+    "02-pages.sql",
+    pagesSql(
+      pages,
+      form,
+      `Contact form: ${form.id} (public.forms, owned by whoever owns her villager_sites row).`,
+    ),
+  ],
+];
+
+if (drift.length) {
+  console.error("generate: her source has moved under these transcriptions:\n");
+  for (const d of drift) console.error(`  ${d}`);
+  console.error(
+    "\nUpdate copy.mjs to match her repo (that is the point of the guard), then re-run.",
+  );
+  process.exit(1);
+}
+
+// Every asset the rows name must be a file HQ can actually serve. The SQL
+// asserts the PREFIX; this asserts the file.
+const missing = [];
+for (const p of pages) {
+  for (const m of JSON.stringify(p.model).matchAll(/"(\/(?:images|fonts)\/tenants\/[^"]+)"/g)) {
+    if (!fs.existsSync(path.join(HQ, "public", m[1]))) missing.push(m[1]);
+  }
+}
+for (const f of webfonts) {
+  if (!fs.existsSync(path.join(HQ, "public", f.src))) missing.push(f.src);
+}
+if (missing.length) {
+  console.error(`generate: ${missing.length} asset(s) named but not in HQ's public/:`);
+  for (const m of new Set(missing)) console.error(`  ${m}`);
+  process.exit(1);
+}
+
+let stale = 0;
+for (const [name, body] of outputs) {
+  const file = path.join(HERE, name);
+  const prev = fs.existsSync(file) ? fs.readFileSync(file, "utf8") : null;
+  if (prev === body) {
+    console.log(`  = ${name} (unchanged)`);
+    continue;
+  }
+  stale += 1;
+  if (CHECK) {
+    console.error(`generate --check: ${name} is stale`);
+    continue;
+  }
+  fs.writeFileSync(file, body);
+  console.log(`  → ${name} (${body.split("\n").length} lines)`);
+}
+
+if (CHECK && stale) process.exit(1);
+
+const sectionCount = pages.reduce((n, p) => n + p.model.sections.length, 0);
+console.log(
+  `generate: ${pages.length} page(s), ${sectionCount} sections, 1 form, ` +
+    `${orbs.length} orbs, ${webfonts.length} faces — assets under ${ASSET_BASE}`,
+);
