@@ -28,6 +28,7 @@ import {
 import NeonX from "../NeonX";
 import { StarIcon } from "../icons";
 import ChargeCardModal from "./ChargeCardModal";
+import MemberBillingModal from "./MemberBillingModal";
 
 type Member = { id: string; email: string; name: string | null; role: string | null };
 type MemberFull = Member & {
@@ -106,6 +107,8 @@ export default function MemberLookupModal({ onClose }: { onClose: () => void }) 
   const [layerGrant, setLayerGrant] = useState<boolean | null>(null);
   const [layerBusy, setLayerBusy] = useState(false);
   const [cards, setCards] = useState<SavedCard[] | null>(null);
+  // Invoices ALREADY issued to this villager (opens MemberBillingModal, pre-scoped).
+  const [invoicesOpen, setInvoicesOpen] = useState(false);
   // The card the operator is charging (opens ChargeCardModal); null = closed.
   const [chargeTarget, setChargeTarget] = useState<SavedCard | null>(null);
   // Support Tickets archive (read-only, per villager).
@@ -560,6 +563,10 @@ export default function MemberLookupModal({ onClose }: { onClose: () => void }) 
                   />
                 )}
 
+                {invoicesOpen && (
+                  <MemberBillingModal member={selected} onClose={() => setInvoicesOpen(false)} />
+                )}
+
                 {/* Support Tickets archive (read-only) */}
                 <Card>
                   <SectionTitle>Support Tickets</SectionTitle>
@@ -631,6 +638,18 @@ export default function MemberLookupModal({ onClose }: { onClose: () => void }) 
                     Operator onboarding decisions only — this moves no money. The membership
                     billing engine reads these to charge the member ($33/mo normal rate).
                   </HelpNote>
+                  {/* Invoices ALREADY issued are a different question from the intent set below,
+                      so they get their own surface rather than another form field. Same panel the
+                      villager reads in their own wallet — one answer, two viewers. */}
+                  <InvoicesRow>
+                    <InvoicesBtn type="button" onClick={() => setInvoicesOpen(true)}>
+                      View invoices
+                    </InvoicesBtn>
+                    <HelpNote>
+                      What TGV has actually billed them — dashboard handovers today — and what&apos;s
+                      still outstanding.
+                    </HelpNote>
+                  </InvoicesRow>
                   <FormGrid>
                     <Field>
                       <FLabel>Plan</FLabel>
@@ -980,6 +999,25 @@ const MVal = styled.div`
   font-weight: 600;
   color: var(--t-text);
 `;
+const InvoicesRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+`;
+const InvoicesBtn = styled.button`
+  font-size: 12px;
+  font-weight: 700;
+  padding: 7px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  white-space: nowrap;
+  color: #ffd79a;
+  border: 1px solid rgba(255, 196, 90, 0.5);
+  background: rgba(255, 196, 90, 0.15);
+`;
+
 const SectionTitle = styled.div`
   font-size: 0.7rem;
   font-weight: 700;
