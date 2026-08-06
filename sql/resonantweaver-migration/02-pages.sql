@@ -1067,6 +1067,178 @@ INSERT INTO _rw_pages VALUES ('writing', 'Writing', true, $rwjson${
   ]
 }$rwjson$::jsonb);
 
+INSERT INTO _rw_pages VALUES ('landing-star-preview/receive', 'Receive Personal Guidance', false, $rwjson${
+  "id": "pm-rw-gateway-receive",
+  "slug": "landing-star-preview/receive",
+  "title": "Receive Personal Guidance",
+  "chrome": {
+    "navEnabled": true,
+    "footerEnabled": true,
+    "meta": {
+      "description": "A personal session begins with what is present now: the signal beneath the noise, the movement asking for attention and the body's own route back to clarity.",
+      "keywords": [],
+      "ogImage": "/images/tenants/resonantweaver/experience.jpg",
+      "noindex": true
+    }
+  },
+  "sections": [
+    {
+      "id": "sec-gw-back-receive",
+      "type": "rf-linkbar",
+      "label": "Back",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "links": [
+            {
+              "label": "← Choose another way in",
+              "href": "/"
+            }
+          ],
+          "align": "left"
+        }
+      }
+    },
+    {
+      "id": "sec-gw-hero-receive",
+      "type": "rf-offer-card",
+      "label": "Hero",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "columns": 1,
+          "heading": "",
+          "bulletGlyph": "✦",
+          "padTop": 0,
+          "padBottom": 25,
+          "items": [
+            {
+              "eyebrow": "Door Three · Receive Personal Guidance",
+              "title": "Meet what is moving in your field",
+              "sub": "",
+              "body": "A personal session begins with what is present now: the signal beneath the noise, the movement asking for attention and the body's own route back to clarity.",
+              "listLabel": "",
+              "bullets": [],
+              "note": "",
+              "price": "",
+              "ctaLabel": "View all sessions",
+              "ctaHref": "/landing-star-preview/experience/all-products/",
+              "variant": "media",
+              "mediaUrl": "/images/tenants/resonantweaver/experience.jpg",
+              "mediaAlt": "A receptive human figure held by quiet energetic contours",
+              "mediaRight": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "sec-gw-intro-receive",
+      "type": "rf-media-copy",
+      "label": "Section intro",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "imageUrl": "",
+          "imageAlt": "",
+          "imagePosition": "left",
+          "eyebrow": "Ways to receive",
+          "eyebrowColor": "accent",
+          "heading": "Work shaped around the field",
+          "headingLevel": 2,
+          "headingAccent": "",
+          "paragraphs": [
+            "Different depths, different containers. Each begins with direct attention to what is actually here rather than a prescribed answer."
+          ],
+          "chips": [],
+          "ctas": []
+        }
+      }
+    },
+    {
+      "id": "sec-gw-cards-receive",
+      "type": "rf-offer-card",
+      "label": "Cards",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "columns": 3,
+          "heading": "",
+          "bulletGlyph": "✦",
+          "padTop": 0,
+          "padBottom": 25,
+          "items": [
+            {
+              "eyebrow": "01",
+              "title": "Galactic Integration Session",
+              "sub": "",
+              "body": "Personal integration support",
+              "listLabel": "",
+              "bullets": [],
+              "note": "Founding access",
+              "price": "$144 (founding) → $177",
+              "ctaLabel": "Learn more",
+              "ctaHref": "/landing-star-preview/offer/galactic-integration-session/",
+              "variant": "standard",
+              "mediaUrl": "",
+              "mediaAlt": ""
+            },
+            {
+              "eyebrow": "02",
+              "title": "Resonance Mirror",
+              "sub": "",
+              "body": "The deep, full-spectrum reading",
+              "listLabel": "",
+              "bullets": [],
+              "note": "Available now",
+              "price": "$155",
+              "ctaLabel": "Learn more",
+              "ctaHref": "/landing-star-preview/offer/resonance-mirror/",
+              "variant": "media",
+              "mediaUrl": "/images/tenants/resonantweaver/energybody.png",
+              "mediaAlt": "Subtle energy body artwork"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "sec-gw-close-receive",
+      "type": "rf-media-copy",
+      "label": "Closing",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "imageUrl": "",
+          "imageAlt": "",
+          "imagePosition": "left",
+          "eyebrow": "At the threshold",
+          "eyebrowColor": "accent",
+          "heading": "The field meets you where you are",
+          "headingLevel": 2,
+          "headingAccent": "",
+          "paragraphs": [
+            "You do not need to arrive with the right language. A question, a feeling or the sense that something is ready to move is enough."
+          ],
+          "chips": [],
+          "ctas": [
+            {
+              "label": "See every session",
+              "href": "/landing-star-preview/experience/all-products/",
+              "variant": "ritual"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}$rwjson$::jsonb);
+
 INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/meeting-your-galactic-self-meditation', 'Meeting Your Galactic Self — Meditation — Offer Preview', false, $rwjson${
   "id": "pm-rw-offer-meeting-your-galactic-self-meditation",
   "slug": "landing-star-preview/offer/meeting-your-galactic-self-meditation",
@@ -2227,7 +2399,7 @@ SELECT 'pages authored: ' || count(*) FROM ins;
 DO $$
 DECLARE
   n int;
-  expected constant text[] := ARRAY['home', 'home-classic', 'writing', 'landing-star-preview/offer/meeting-your-galactic-self-meditation', 'landing-star-preview/offer/galactic-initiation', 'landing-star-preview/offer/resonance-mirror', 'landing-star-preview/offer/pearl-chamber', 'landing-star-preview/offer/galactic-pendulum', 'landing-star-preview/offer/galactic-integration-session'];
+  expected constant text[] := ARRAY['home', 'home-classic', 'writing', 'landing-star-preview/receive', 'landing-star-preview/offer/meeting-your-galactic-self-meditation', 'landing-star-preview/offer/galactic-initiation', 'landing-star-preview/offer/resonance-mirror', 'landing-star-preview/offer/pearl-chamber', 'landing-star-preview/offer/galactic-pendulum', 'landing-star-preview/offer/galactic-integration-session'];
 BEGIN
   SELECT count(*) INTO n FROM public.page_models
    WHERE site = 'resonantweaver' AND lang = 'en' AND mode = 'published'

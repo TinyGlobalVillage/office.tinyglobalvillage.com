@@ -290,15 +290,20 @@ export const assetMap = {
   "/images/ReikiBox.png": `${ASSET_BASE}/ReikiBox.png`,
   "/images/About-Portrait.png": `${ASSET_BASE}/About-Portrait.png`,
   "/images/RW-OG-logo.jpg": `${ASSET_BASE}/RW-OG-logo.jpg`,
-  // The one door still on the hub. Her other two door images (learn.png,
-  // experience.png) belong to `retiredDoors` and are deliberately NOT mapped —
-  // an unmapped path is an error, which is what should happen if a retired door
-  // ever comes back through here without someone looking at it.
+  // The door images. GalacticSelf is the one door still on the hub AND the
+  // offer pages' hero fallback — `ProductHero` uses it for any offer with no
+  // `leadImageSrc`, which is four of the six.
   //
-  // GalacticSelf.jpg is ALSO the offer pages' hero fallback: `ProductHero` uses
-  // it for any offer with no `leadImageSrc`, which is four of the six.
+  // learn / experience were the two doors she RETIRED from the hub, but they are
+  // still the hero artwork of the `develop` and `receive` GATEWAY pages, which
+  // answer 200 today. Retired from one surface is not retired from the site.
+  //
+  // Both re-encoded PNG → JPEG (2.2MB → 383KB, 2.1MB → 324KB) at the same
+  // 1024×1536. They are photographs; PNG was costing 6× for nothing.
   "/images/landing-star-preview/GalacticSelf.jpg": `${ASSET_BASE}/GalacticSelf.jpg`,
   "/images/landing-star-preview/galactic-pendulum.svg": `${ASSET_BASE}/galactic-pendulum.svg`,
+  "/images/landing-star-preview/learn.png": `${ASSET_BASE}/learn.jpg`,
+  "/images/landing-star-preview/experience.png": `${ASSET_BASE}/experience.jpg`,
   // `/images/LeafOscilator-Logo4.png` is deliberately ABSENT. It is referenced
   // by the second writing entry and THERE IS NO SUCH FILE in her repo — that
   // card's cover is broken on the live site today. Leaving it unmapped makes

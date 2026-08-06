@@ -178,6 +178,7 @@ function loadData() {
       // call as `visibleRows` for bucket A: the display href, the action label
       // and the per-door accent are computed by HER function or they drift.
       `export * as star from ${p("src/app/[lang]/(public)/(home)/landing-star-preview/LandingStarPreview.content")};`,
+      `export * as star_gateways from ${p("src/app/[lang]/(public)/(home)/landing-star-preview/[gateway]/GatewayPage.content")};`,
       `export { catalog, getOfferBySlug, resolveOffer } from ${p("src/data/offers/offers")};`,
     ].join("\n"),
   );
@@ -887,6 +888,203 @@ function buildOfferPage(data, entry) {
   };
 }
 
+/** The five words her StatusBadge paints, so a card that says "Coming soon" on
+ *  her site does not arrive silently bookable on the platform. */
+const STATUS_LABEL = {
+  available: "Available now",
+  "founding-access": "Founding access",
+  "coming-soon": "Coming soon",
+  "in-development": "In development",
+  waitlist: "Waitlist",
+};
+
+/** GatewayPage.tsx's `resolveHref`, reimplemented. Her version prefixes the
+ *  language segment, which the pooled renderer supplies itself — so what is
+ *  stored is the unprefixed path. */
+function gatewayHref(target) {
+  if (target === "contact") return "/#contact";
+  if (target === "all-products") return "/landing-star-preview/experience/all-products/";
+  if (target.startsWith("http")) return target;
+  if (target.startsWith("/")) return target;
+  return `/${target}/`;
+}
+
+/** One card in a gateway's grid — `DoorCard`, which is `rf-offer-card` with the
+ *  marker as the eyebrow and the status badge folded into `note`. rf-offer-card
+ *  has no badge of its own; a card that reads "Coming soon" on her site must not
+ *  arrive here looking available, and `note` is the quiet line that says so. */
+function gatewayCardToItem(card) {
+  return {
+    eyebrow: card.marker,
+    title: card.title,
+    sub: "",
+    body: card.copy,
+    listLabel: "",
+    bullets: [],
+    note: card.status ? STATUS_LABEL[card.status] : "",
+    price: card.price ?? "",
+    ctaLabel: card.linkLabel ?? "",
+    ctaHref: card.link ? gatewayHref(card.link) : "",
+    variant: card.image ? "media" : "standard",
+    mediaUrl: card.image ? asset(card.image) : "",
+    mediaAlt: card.imageAlt ?? "",
+  };
+}
+
+/** ONE GATEWAY — `[gateway]/GatewayPage.tsx`, the page behind each door.
+ *
+ *  Back link · hero (artwork + lead + primary action) · a titled grid of cards ·
+ *  optionally a SECOND grid for the courses · closing bar. `develop` renders its
+ *  first grid as TrainingSteps rather than DoorCards — same three-up row, no
+ *  artwork and no price, which is what those cards carry. */
+function buildGatewayPage(data, id) {
+  const g = data.star_gateways.GATEWAYS[id];
+  const shared = data.star_gateways.shared;
+  const sections = [];
+
+  sections.push(
+    section(`sec-gw-back-${id}`, "rf-linkbar", "Back", {
+      // Her back link points at /landing-star-preview/, which REDIRECTS to the
+      // homepage — so it is authored as the destination, not the hop.
+      links: [{ label: shared.backLink, href: "/" }],
+      align: "left",
+    }),
+  );
+
+  sections.push(
+    section(`sec-gw-hero-${id}`, "rf-offer-card", "Hero", {
+      columns: 1,
+      heading: "",
+      bulletGlyph: "✦",
+      padTop: 0,
+      padBottom: 25,
+      items: [
+        {
+          eyebrow: g.eyebrow,
+          title: g.title,
+          sub: "",
+          body: g.lead,
+          listLabel: "",
+          bullets: [],
+          note: "",
+          price: "",
+          ctaLabel: g.primary,
+          ctaHref: gatewayHref(g.primaryHref),
+          variant: "media",
+          mediaUrl: asset(g.image),
+          mediaAlt: g.alt,
+          mediaRight: true,
+        },
+      ],
+    }),
+  );
+
+  sections.push(
+    section(`sec-gw-intro-${id}`, "rf-media-copy", "Section intro", {
+      imageUrl: "",
+      imageAlt: "",
+      imagePosition: "left",
+      eyebrow: g.sectionEyebrow,
+      eyebrowColor: "accent",
+      heading: g.sectionTitle,
+      headingLevel: 2,
+      headingAccent: "",
+      paragraphs: [g.sectionCopy],
+      chips: [],
+      ctas: [],
+    }),
+  );
+
+  sections.push(
+    section(`sec-gw-cards-${id}`, "rf-offer-card", "Cards", {
+      columns: 3,
+      heading: "",
+      bulletGlyph: "✦",
+      padTop: 0,
+      padBottom: 25,
+      items: g.cards.map(gatewayCardToItem),
+    }),
+  );
+
+  if (g.offerCards && g.offerCards.length) {
+    sections.push(
+      section(`sec-gw-courses-intro-${id}`, "rf-media-copy", "Courses — intro", {
+        imageUrl: "",
+        imageAlt: "",
+        imagePosition: "left",
+        eyebrow: shared.coursesEyebrow,
+        eyebrowColor: "accent",
+        heading: shared.coursesTitle,
+        headingLevel: 2,
+        headingAccent: "",
+        paragraphs: [shared.coursesCopy],
+        chips: [],
+        ctas: [],
+      }),
+    );
+    sections.push(
+      section(`sec-gw-courses-${id}`, "rf-offer-card", "Courses", {
+        columns: 2,
+        heading: "",
+        bulletGlyph: "✦",
+        padTop: 0,
+        padBottom: 25,
+        items: g.offerCards.map(gatewayCardToItem),
+      }),
+    );
+  }
+
+  sections.push(
+    section(`sec-gw-close-${id}`, "rf-media-copy", "Closing", {
+      imageUrl: "",
+      imageAlt: "",
+      imagePosition: "left",
+      eyebrow: shared.closeEyebrow,
+      eyebrowColor: "accent",
+      heading: g.closeTitle,
+      headingLevel: 2,
+      headingAccent: "",
+      paragraphs: [g.closeCopy],
+      chips: [],
+      ctas: [{ label: g.closeCta, href: gatewayHref(g.primaryHref), variant: "ritual" }],
+    }),
+  );
+
+  const slug = `landing-star-preview/${id}`;
+  const title = data.star_gateways.GATEWAY_TITLES[id];
+  return {
+    slug,
+    title,
+    inNav: false,
+    model: {
+      id: `pm-rw-gateway-${id}`,
+      slug,
+      title,
+      chrome: {
+        navEnabled: true,
+        footerEnabled: true,
+        // Every gateway is noindex on her site — `[gateway]/page.tsx`'s
+        // generateMetadata sets robots index:false for all of them.
+        meta: { description: g.lead, keywords: [], ogImage: asset(g.image), noindex: true },
+      },
+      sections,
+    },
+  };
+}
+
+/** THE GATEWAYS THAT ARE ACTUALLY SERVED.
+ *
+ *  `[gateway]/page.tsx` holds `HIDDEN_GATEWAYS = new Set(["meet", "develop"])`
+ *  and REDIRECTS both to `/starseed/`; only `receive` renders. Their content is
+ *  still in `GatewayPage.content.ts` — kept, not deleted, exactly like
+ *  `retiredDoors` and `home-classic` — so reading the content module and
+ *  authoring all three would publish two pages she deliberately took down.
+ *
+ *  The redirects themselves are not page rows. They belong in HQ's site-scoped
+ *  `siteRedirects.ts`, the same catalog refusionist's `/schedule` → `/book` uses. */
+const HIDDEN_GATEWAYS = new Set(["meet", "develop"]);
+const SERVED_GATEWAYS = ["meet", "develop", "receive"].filter((id) => !HIDDEN_GATEWAYS.has(id));
+
 /** Every offer her `offer/[slug]` route actually SERVES a detail page for.
  *
  *  `hidden` is not a filter here. It hides a card from the hub's auto-generated
@@ -1335,6 +1533,7 @@ const pages = [
   buildStarLanding(data, form.id),
   buildHomeClassic(data, form.id),
   buildWriting(data),
+  ...SERVED_GATEWAYS.map((id) => buildGatewayPage(data, id)),
   ...offersWithDetailPages(data).map((e) => buildOfferPage(data, e)),
 ];
 
