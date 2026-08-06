@@ -1067,6 +1067,1144 @@ INSERT INTO _rw_pages VALUES ('writing', 'Writing', true, $rwjson${
   ]
 }$rwjson$::jsonb);
 
+INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/meeting-your-galactic-self-meditation', 'Meeting Your Galactic Self — Meditation — Offer Preview', false, $rwjson${
+  "id": "pm-rw-offer-meeting-your-galactic-self-meditation",
+  "slug": "landing-star-preview/offer/meeting-your-galactic-self-meditation",
+  "title": "Meeting Your Galactic Self — Meditation — Offer Preview",
+  "chrome": {
+    "navEnabled": true,
+    "footerEnabled": true,
+    "meta": {
+      "description": "[[placeholder — awaiting final copy. A short guided meditation, 10-15 minutes, designed as a gentle first experiential entry point.]]",
+      "keywords": [],
+      "ogImage": "/images/tenants/resonantweaver/GalacticSelf.jpg",
+      "noindex": true
+    }
+  },
+  "sections": [
+    {
+      "id": "sec-offer-back-meeting-your-galactic-self-meditation",
+      "type": "rf-linkbar",
+      "label": "Back",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "links": [
+            {
+              "label": "← Back",
+              "href": "/landing-star-preview/meet/"
+            }
+          ],
+          "align": "left"
+        }
+      }
+    },
+    {
+      "id": "sec-offer-hero-meeting-your-galactic-self-meditation",
+      "type": "rf-offer-card",
+      "label": "Hero",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "columns": 1,
+          "heading": "",
+          "bulletGlyph": "✦",
+          "padTop": 0,
+          "padBottom": 25,
+          "accent": "rgb(183, 138, 119)",
+          "items": [
+            {
+              "anchorId": "meeting-your-galactic-self-meditation",
+              "eyebrow": "Guided meditation · 10-15 minutes",
+              "title": "Meeting Your Galactic Self — Meditation",
+              "sub": "A short guided first contact",
+              "body": "",
+              "listLabel": "",
+              "bullets": [],
+              "note": "",
+              "price": "$17",
+              "ctaLabel": "Ask about this offer",
+              "ctaHref": "#",
+              "ctaTarget": "",
+              "variant": "media",
+              "mediaUrl": "/images/tenants/resonantweaver/GalacticSelf.jpg",
+              "mediaAlt": ""
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "sec-offer-note-meeting-your-galactic-self-meditation",
+      "type": "rf-media-copy",
+      "label": "Placeholder note",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "imageUrl": "",
+          "imageAlt": "",
+          "imagePosition": "left",
+          "eyebrow": "",
+          "eyebrowColor": "amber",
+          "heading": "",
+          "headingLevel": 2,
+          "headingAccent": "",
+          "paragraphs": [
+            "This page uses placeholder copy — final wording is still being written and hasn't been approved yet."
+          ],
+          "chips": [],
+          "ctas": []
+        }
+      }
+    },
+    {
+      "id": "sec-offer-work-meeting-your-galactic-self-meditation",
+      "type": "rf-offer-card",
+      "label": "The work",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "columns": 1,
+          "heading": "",
+          "bulletGlyph": "✦",
+          "padTop": 0,
+          "padBottom": 25,
+          "accent": "rgb(183, 138, 119)",
+          "items": [
+            {
+              "eyebrow": "The work",
+              "title": "[[placeholder — awaiting final copy]]",
+              "sub": "",
+              "body": "[[placeholder — awaiting final copy. This should describe the meditation as the easiest, least intimidating entry point into the work.]]",
+              "listLabel": "You'll receive",
+              "bullets": [
+                "[[placeholder]]"
+              ],
+              "note": "",
+              "price": "",
+              "ctaLabel": "",
+              "ctaHref": "",
+              "variant": "standard"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "sec-offer-close-meeting-your-galactic-self-meditation",
+      "type": "rf-media-copy",
+      "label": "Closing",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "imageUrl": "",
+          "imageAlt": "",
+          "imagePosition": "left",
+          "eyebrow": "When you are ready",
+          "eyebrowColor": "accent",
+          "heading": "[[placeholder]]",
+          "headingLevel": 2,
+          "headingAccent": "",
+          "paragraphs": [
+            "[[placeholder]]"
+          ],
+          "chips": [],
+          "ctas": [
+            {
+              "label": "Ask about this offer",
+              "href": "#",
+              "variant": "ritual"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}$rwjson$::jsonb);
+
+INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/galactic-initiation', 'Galactic Initiation — Offer Preview', false, $rwjson${
+  "id": "pm-rw-offer-galactic-initiation",
+  "slug": "landing-star-preview/offer/galactic-initiation",
+  "title": "Galactic Initiation — Offer Preview",
+  "chrome": {
+    "navEnabled": true,
+    "footerEnabled": true,
+    "meta": {
+      "description": "Over three live sessions, you learn how galactic resonance registers through your own system, how to approach contact without surrendering discernment, and how to translate what you receive into something you can actually live on Earth. Not a course about proving where you came from — an initiation into perceiving it.",
+      "keywords": [],
+      "ogImage": "/images/tenants/resonantweaver/GalacticSelf.jpg",
+      "noindex": true
+    }
+  },
+  "sections": [
+    {
+      "id": "sec-offer-back-galactic-initiation",
+      "type": "rf-linkbar",
+      "label": "Back",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "links": [
+            {
+              "label": "← Back",
+              "href": "/landing-star-preview/develop/"
+            }
+          ],
+          "align": "left"
+        }
+      }
+    },
+    {
+      "id": "sec-offer-hero-galactic-initiation",
+      "type": "rf-offer-card",
+      "label": "Hero",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "columns": 1,
+          "heading": "",
+          "bulletGlyph": "✦",
+          "padTop": 0,
+          "padBottom": 25,
+          "accent": "rgb(183, 138, 119)",
+          "items": [
+            {
+              "anchorId": "galactic-initiation",
+              "eyebrow": "Live course · Three days",
+              "title": "Galactic Initiation",
+              "sub": "A three-day experiential course in galactic perception, contact and Earth translation",
+              "body": "",
+              "listLabel": "",
+              "bullets": [],
+              "note": "",
+              "price": "$222",
+              "ctaLabel": "Ask about this offer",
+              "ctaHref": "#",
+              "ctaTarget": "",
+              "variant": "media",
+              "mediaUrl": "/images/tenants/resonantweaver/GalacticSelf.jpg",
+              "mediaAlt": ""
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "sec-offer-note-galactic-initiation",
+      "type": "rf-media-copy",
+      "label": "Placeholder note",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "imageUrl": "",
+          "imageAlt": "",
+          "imagePosition": "left",
+          "eyebrow": "",
+          "eyebrowColor": "amber",
+          "heading": "",
+          "headingLevel": 2,
+          "headingAccent": "",
+          "paragraphs": [
+            "This page uses placeholder copy — final wording is still being written and hasn't been approved yet."
+          ],
+          "chips": [],
+          "ctas": []
+        }
+      }
+    },
+    {
+      "id": "sec-offer-work-galactic-initiation",
+      "type": "rf-offer-card",
+      "label": "The work",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "columns": 1,
+          "heading": "",
+          "bulletGlyph": "✦",
+          "padTop": 0,
+          "padBottom": 25,
+          "accent": "rgb(183, 138, 119)",
+          "items": [
+            {
+              "eyebrow": "The work",
+              "title": "Recognition, not spectacle",
+              "sub": "",
+              "body": "Over three live sessions, you learn how galactic resonance registers through your own system, how to approach contact without surrendering discernment, and how to translate what you receive into something you can actually live on Earth.\n\nYou leave with your own sensory language, at least one recognisable energetic signature, a repeatable contact-and-closure method, a way to separate sensation from story, and a personal Ambassador Protocol — plus one grounded assignment to complete in the following seven days. This is not a course about proving where you came from. It is an initiation into perceiving, testing and working with the field.",
+              "listLabel": "You'll receive",
+              "bullets": [
+                "The Threshold (before Day One) — a welcome transmission, an 8-minute calibration audio and a short observation practice, so you arrive already attuned",
+                "Day One — The Signal: a blind resonance experiment across three currents, then following the first recognisable thread",
+                "Day Two — The Contact Chamber: ground, boundary, consent, receive, test, close — built and practised live",
+                "Day Three — The Embassy: translating what you received into one real, seven-day action",
+                "Seven days of integration afterward — a short daily prompt and a closing audio to formally complete the initiation"
+              ],
+              "note": "",
+              "price": "",
+              "ctaLabel": "",
+              "ctaHref": "",
+              "variant": "standard"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "sec-offer-close-galactic-initiation",
+      "type": "rf-media-copy",
+      "label": "Closing",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "imageUrl": "",
+          "imageAlt": "",
+          "imagePosition": "left",
+          "eyebrow": "When you are ready",
+          "eyebrowColor": "accent",
+          "heading": "A real outcome, not a certificate",
+          "headingLevel": 2,
+          "headingAccent": "",
+          "paragraphs": [
+            "You leave with a recognised signal, a tested method of contact, a closing practice and a personal Ambassador Protocol — plus one seven-day assignment for living what you carry. Six live hours across three days, in a small group, with a week of preparation before and integration after. Leave your name to hear when the next dates are set."
+          ],
+          "chips": [],
+          "ctas": [
+            {
+              "label": "Ask about this offer",
+              "href": "#",
+              "variant": "ritual"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}$rwjson$::jsonb);
+
+INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/resonance-mirror', 'Resonance Mirror — Offer Preview', false, $rwjson${
+  "id": "pm-rw-offer-resonance-mirror",
+  "slug": "landing-star-preview/offer/resonance-mirror",
+  "title": "Resonance Mirror — Offer Preview",
+  "chrome": {
+    "navEnabled": true,
+    "footerEnabled": true,
+    "meta": {
+      "description": "Your energy field holds more information than most people ever get access to. This reading gives you that access.",
+      "keywords": [],
+      "ogImage": "/images/tenants/resonantweaver/energybody.png",
+      "noindex": true
+    }
+  },
+  "sections": [
+    {
+      "id": "sec-offer-back-resonance-mirror",
+      "type": "rf-linkbar",
+      "label": "Back",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "links": [
+            {
+              "label": "← Back",
+              "href": "/landing-star-preview/receive/"
+            }
+          ],
+          "align": "left"
+        }
+      }
+    },
+    {
+      "id": "sec-offer-hero-resonance-mirror",
+      "type": "rf-offer-card",
+      "label": "Hero",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "columns": 1,
+          "heading": "",
+          "bulletGlyph": "✦",
+          "padTop": 0,
+          "padBottom": 25,
+          "accent": "rgb(72, 210, 185)",
+          "items": [
+            {
+              "anchorId": "resonance-mirror",
+              "eyebrow": "Personal field reading · Full spectrum",
+              "title": "Resonance Mirror",
+              "sub": "The deep, full-spectrum reading",
+              "body": "",
+              "listLabel": "",
+              "bullets": [],
+              "note": "",
+              "price": "$155",
+              "ctaLabel": "Book the Resonance Mirror",
+              "ctaHref": "https://www.paypal.com/ncp/payment/BZBB2PTAPG6GQ",
+              "ctaTarget": "",
+              "variant": "media",
+              "mediaUrl": "/images/tenants/resonantweaver/energybody.png",
+              "mediaAlt": "Subtle energy body artwork"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "sec-offer-work-resonance-mirror",
+      "type": "rf-offer-card",
+      "label": "The work",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "columns": 1,
+          "heading": "",
+          "bulletGlyph": "✦",
+          "padTop": 0,
+          "padBottom": 25,
+          "accent": "rgb(72, 210, 185)",
+          "items": [
+            {
+              "eyebrow": "The work",
+              "title": "A mirror, not a verdict",
+              "sub": "",
+              "body": "Through direct energetic perception, light language and pendulum work, I read what is present in your field right now—what is genuinely yours, what has been placed there and what has been quietly distorting the signal.\n\nI work with what I find as I find it. The reading becomes a clear reflection of the whole terrain rather than a fixed interpretation of who you are.",
+              "listLabel": "You'll receive",
+              "bullets": [
+                "A personal field map",
+                "A full written field reflection",
+                "Somatic practices matched to your field"
+              ],
+              "note": "",
+              "price": "",
+              "ctaLabel": "",
+              "ctaHref": "",
+              "variant": "standard"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "sec-offer-process-resonance-mirror",
+      "type": "rf-media-copy",
+      "label": "The movement — intro",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "imageUrl": "",
+          "imageAlt": "",
+          "imagePosition": "left",
+          "eyebrow": "The movement",
+          "eyebrowColor": "accent",
+          "heading": "How it unfolds",
+          "headingLevel": 2,
+          "headingAccent": "",
+          "paragraphs": [],
+          "chips": [],
+          "ctas": []
+        }
+      }
+    },
+    {
+      "id": "sec-offer-steps-resonance-mirror",
+      "type": "rf-offer-card",
+      "label": "The movement",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "columns": 3,
+          "heading": "",
+          "bulletGlyph": "✦",
+          "padTop": 0,
+          "padBottom": 25,
+          "accent": "rgb(72, 210, 185)",
+          "items": [
+            {
+              "eyebrow": "01",
+              "title": "Arrive",
+              "sub": "",
+              "body": "Begin with the question, pressure or pattern that feels most present now.",
+              "listLabel": "",
+              "bullets": [],
+              "note": "",
+              "price": "",
+              "ctaLabel": "",
+              "ctaHref": "",
+              "variant": "standard"
+            },
+            {
+              "eyebrow": "02",
+              "title": "Read",
+              "sub": "",
+              "body": "The field is observed directly and its active layers are reflected back with care.",
+              "listLabel": "",
+              "bullets": [],
+              "note": "",
+              "price": "",
+              "ctaLabel": "",
+              "ctaHref": "",
+              "variant": "standard"
+            },
+            {
+              "eyebrow": "03",
+              "title": "Integrate",
+              "sub": "",
+              "body": "Receive grounded practices that help your body recognise and hold the shift.",
+              "listLabel": "",
+              "bullets": [],
+              "note": "",
+              "price": "",
+              "ctaLabel": "",
+              "ctaHref": "",
+              "variant": "standard"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "sec-offer-close-resonance-mirror",
+      "type": "rf-media-copy",
+      "label": "Closing",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "imageUrl": "",
+          "imageAlt": "",
+          "imagePosition": "left",
+          "eyebrow": "When you are ready",
+          "eyebrowColor": "accent",
+          "heading": "Clarity changes how you meet the field",
+          "headingLevel": 2,
+          "headingAccent": "",
+          "paragraphs": [
+            "The purpose is not to define you. It is to make the signal clear enough that your next choice can belong to you."
+          ],
+          "chips": [],
+          "ctas": [
+            {
+              "label": "Book the Resonance Mirror",
+              "href": "https://www.paypal.com/ncp/payment/BZBB2PTAPG6GQ",
+              "variant": "ritual"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}$rwjson$::jsonb);
+
+INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/pearl-chamber', 'The Pearl Chamber — Offer Preview', false, $rwjson${
+  "id": "pm-rw-offer-pearl-chamber",
+  "slug": "landing-star-preview/offer/pearl-chamber",
+  "title": "The Pearl Chamber — Offer Preview",
+  "chrome": {
+    "navEnabled": true,
+    "footerEnabled": true,
+    "meta": {
+      "description": "Your intention is placed inside the chamber and held there within 24 hours of purchase, where it is tended daily through meditation, energy work, and spoken enchantment.",
+      "keywords": [],
+      "ogImage": "/images/tenants/resonantweaver/ReikiBox.png",
+      "noindex": true
+    }
+  },
+  "sections": [
+    {
+      "id": "sec-offer-back-pearl-chamber",
+      "type": "rf-linkbar",
+      "label": "Back",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "links": [
+            {
+              "label": "← Back",
+              "href": "/landing-star-preview/receive/"
+            }
+          ],
+          "align": "left"
+        }
+      }
+    },
+    {
+      "id": "sec-offer-hero-pearl-chamber",
+      "type": "rf-offer-card",
+      "label": "Hero",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "columns": 1,
+          "heading": "",
+          "bulletGlyph": "✦",
+          "padTop": 0,
+          "padBottom": 25,
+          "accent": "rgb(183, 138, 119)",
+          "items": [
+            {
+              "anchorId": "pearl-chamber",
+              "eyebrow": "Reiki box · Weekly intention holding",
+              "title": "The Pearl Chamber",
+              "sub": "A weekly holding for one intention",
+              "body": "",
+              "listLabel": "",
+              "bullets": [],
+              "note": "",
+              "price": "$11",
+              "ctaLabel": "Leave intention",
+              "ctaHref": "/pearl-chamber",
+              "ctaTarget": "",
+              "variant": "media",
+              "mediaUrl": "/images/tenants/resonantweaver/ReikiBox.png",
+              "mediaAlt": "Pearl Chamber subscription artwork"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "sec-offer-work-pearl-chamber",
+      "type": "rf-offer-card",
+      "label": "The work",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "columns": 1,
+          "heading": "",
+          "bulletGlyph": "✦",
+          "padTop": 0,
+          "padBottom": 25,
+          "accent": "rgb(183, 138, 119)",
+          "items": [
+            {
+              "eyebrow": "The work",
+              "title": "A small chamber for steady attention",
+              "sub": "",
+              "body": "Your intention is placed inside the chamber within 24 hours of purchase, where it is tended daily through meditation, energy work and spoken enchantment.\n\nThe box carries a raw milky quartz cluster from the land and the four primary Usui Reiki symbols. It offers quiet, consistent support without asking you to force the outcome.",
+              "listLabel": "You'll receive",
+              "bullets": [
+                "A photograph of your intention in the chamber",
+                "Daily intention tending",
+                "Gentle field maintenance"
+              ],
+              "note": "",
+              "price": "",
+              "ctaLabel": "",
+              "ctaHref": "",
+              "variant": "standard"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "sec-offer-process-pearl-chamber",
+      "type": "rf-media-copy",
+      "label": "The movement — intro",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "imageUrl": "",
+          "imageAlt": "",
+          "imagePosition": "left",
+          "eyebrow": "The movement",
+          "eyebrowColor": "accent",
+          "heading": "How it unfolds",
+          "headingLevel": 2,
+          "headingAccent": "",
+          "paragraphs": [],
+          "chips": [],
+          "ctas": []
+        }
+      }
+    },
+    {
+      "id": "sec-offer-steps-pearl-chamber",
+      "type": "rf-offer-card",
+      "label": "The movement",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "columns": 3,
+          "heading": "",
+          "bulletGlyph": "✦",
+          "padTop": 0,
+          "padBottom": 25,
+          "accent": "rgb(183, 138, 119)",
+          "items": [
+            {
+              "eyebrow": "01",
+              "title": "Name",
+              "sub": "",
+              "body": "Choose one intention that you want held with steady, uncluttered attention.",
+              "listLabel": "",
+              "bullets": [],
+              "note": "",
+              "price": "",
+              "ctaLabel": "",
+              "ctaHref": "",
+              "variant": "standard"
+            },
+            {
+              "eyebrow": "02",
+              "title": "Place",
+              "sub": "",
+              "body": "Your words are placed inside the chamber and photographed for you.",
+              "listLabel": "",
+              "bullets": [],
+              "note": "",
+              "price": "",
+              "ctaLabel": "",
+              "ctaHref": "",
+              "variant": "standard"
+            },
+            {
+              "eyebrow": "03",
+              "title": "Tend",
+              "sub": "",
+              "body": "The intention is included in the chamber's daily energetic practice for the week.",
+              "listLabel": "",
+              "bullets": [],
+              "note": "",
+              "price": "",
+              "ctaLabel": "",
+              "ctaHref": "",
+              "variant": "standard"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "sec-offer-close-pearl-chamber",
+      "type": "rf-media-copy",
+      "label": "Closing",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "imageUrl": "",
+          "imageAlt": "",
+          "imagePosition": "left",
+          "eyebrow": "When you are ready",
+          "eyebrowColor": "accent",
+          "heading": "Some intentions need holding more than pushing",
+          "headingLevel": 2,
+          "headingAccent": "",
+          "paragraphs": [
+            "The chamber creates a quiet place for your intention to remain present while life continues to move around it."
+          ],
+          "chips": [],
+          "ctas": [
+            {
+              "label": "Leave intention",
+              "href": "/pearl-chamber",
+              "variant": "ritual"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}$rwjson$::jsonb);
+
+INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/galactic-pendulum', 'Galactic Pendulum — Offer Preview', false, $rwjson${
+  "id": "pm-rw-offer-galactic-pendulum",
+  "slug": "landing-star-preview/offer/galactic-pendulum",
+  "title": "Galactic Pendulum — Offer Preview",
+  "chrome": {
+    "navEnabled": true,
+    "footerEnabled": true,
+    "meta": {
+      "description": "Bring one clear question into a focused pendulum reading that traces alignment, interference, and the movement already taking shape beneath the answer.",
+      "keywords": [],
+      "ogImage": "/images/tenants/resonantweaver/galactic-pendulum.svg",
+      "noindex": true
+    }
+  },
+  "sections": [
+    {
+      "id": "sec-offer-back-galactic-pendulum",
+      "type": "rf-linkbar",
+      "label": "Back",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "links": [
+            {
+              "label": "← Back",
+              "href": "/landing-star-preview/receive/"
+            }
+          ],
+          "align": "left"
+        }
+      }
+    },
+    {
+      "id": "sec-offer-hero-galactic-pendulum",
+      "type": "rf-offer-card",
+      "label": "Hero",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "columns": 1,
+          "heading": "",
+          "bulletGlyph": "✦",
+          "padTop": 0,
+          "padBottom": 25,
+          "accent": "rgb(138, 163, 226)",
+          "items": [
+            {
+              "anchorId": "galactic-pendulum",
+              "eyebrow": "Focused divination · One clear question",
+              "title": "Galactic Pendulum",
+              "sub": "A focused reading for one clear question",
+              "body": "",
+              "listLabel": "",
+              "bullets": [],
+              "note": "",
+              "price": "$44",
+              "ctaLabel": "Ask about the Galactic Pendulum",
+              "ctaHref": "/landing-star-preview/experience/galactic-pendulum",
+              "ctaTarget": "",
+              "variant": "media",
+              "mediaUrl": "/images/tenants/resonantweaver/galactic-pendulum.svg",
+              "mediaAlt": "A luminous pendulum suspended within a celestial field"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "sec-offer-work-galactic-pendulum",
+      "type": "rf-offer-card",
+      "label": "The work",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "columns": 1,
+          "heading": "",
+          "bulletGlyph": "✦",
+          "padTop": 0,
+          "padBottom": 25,
+          "accent": "rgb(138, 163, 226)",
+          "items": [
+            {
+              "eyebrow": "The work",
+              "title": "More than yes or no",
+              "sub": "",
+              "body": "A pendulum can answer quickly. This reading slows the answer down enough to notice what is shaping it: where the signal is clean, where fear or expectation is pulling on it and what the field is actually ready to support.\n\nBring one clear question. I follow its movement through the pendulum and reflect the pattern back in language you can use, without turning a living choice into a fixed verdict.",
+              "listLabel": "You'll receive",
+              "bullets": [
+                "A focused pendulum reading",
+                "A written map of the signals observed",
+                "One grounded practice for returning to your own knowing"
+              ],
+              "note": "",
+              "price": "",
+              "ctaLabel": "",
+              "ctaHref": "",
+              "variant": "standard"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "sec-offer-process-galactic-pendulum",
+      "type": "rf-media-copy",
+      "label": "The movement — intro",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "imageUrl": "",
+          "imageAlt": "",
+          "imagePosition": "left",
+          "eyebrow": "The movement",
+          "eyebrowColor": "accent",
+          "heading": "How it unfolds",
+          "headingLevel": 2,
+          "headingAccent": "",
+          "paragraphs": [],
+          "chips": [],
+          "ctas": []
+        }
+      }
+    },
+    {
+      "id": "sec-offer-steps-galactic-pendulum",
+      "type": "rf-offer-card",
+      "label": "The movement",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "columns": 3,
+          "heading": "",
+          "bulletGlyph": "✦",
+          "padTop": 0,
+          "padBottom": 25,
+          "accent": "rgb(138, 163, 226)",
+          "items": [
+            {
+              "eyebrow": "01",
+              "title": "Ask",
+              "sub": "",
+              "body": "Name the one question that is asking for clean attention now.",
+              "listLabel": "",
+              "bullets": [],
+              "note": "",
+              "price": "",
+              "ctaLabel": "",
+              "ctaHref": "",
+              "variant": "standard"
+            },
+            {
+              "eyebrow": "02",
+              "title": "Trace",
+              "sub": "",
+              "body": "The pendulum follows alignment, resistance and interference around the question.",
+              "listLabel": "",
+              "bullets": [],
+              "note": "",
+              "price": "",
+              "ctaLabel": "",
+              "ctaHref": "",
+              "variant": "standard"
+            },
+            {
+              "eyebrow": "03",
+              "title": "Choose",
+              "sub": "",
+              "body": "Receive the pattern in clear language, then bring the choice back into your own body.",
+              "listLabel": "",
+              "bullets": [],
+              "note": "",
+              "price": "",
+              "ctaLabel": "",
+              "ctaHref": "",
+              "variant": "standard"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "sec-offer-close-galactic-pendulum",
+      "type": "rf-media-copy",
+      "label": "Closing",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "imageUrl": "",
+          "imageAlt": "",
+          "imagePosition": "left",
+          "eyebrow": "When you are ready",
+          "eyebrowColor": "accent",
+          "heading": "The clearest answer leaves your agency intact",
+          "headingLevel": 2,
+          "headingAccent": "",
+          "paragraphs": [
+            "The pendulum does not make the choice for you. It makes the movement visible enough that you can meet it without abandoning your own knowing."
+          ],
+          "chips": [],
+          "ctas": [
+            {
+              "label": "Ask about the Galactic Pendulum",
+              "href": "/landing-star-preview/experience/galactic-pendulum",
+              "variant": "ritual"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}$rwjson$::jsonb);
+
+INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/galactic-integration-session', 'Galactic Integration Session — Offer Preview', false, $rwjson${
+  "id": "pm-rw-offer-galactic-integration-session",
+  "slug": "landing-star-preview/offer/galactic-integration-session",
+  "title": "Galactic Integration Session — Offer Preview",
+  "chrome": {
+    "navEnabled": true,
+    "footerEnabled": true,
+    "meta": {
+      "description": "[[placeholder — a one-to-one session, roughly 75 minutes, helping translate what's active now (from a reading, a transition, or ongoing perception) into ordinary life, work, relationships and embodiment. Not another origin reading.]]",
+      "keywords": [],
+      "ogImage": "/images/tenants/resonantweaver/GalacticSelf.jpg",
+      "noindex": true
+    }
+  },
+  "sections": [
+    {
+      "id": "sec-offer-back-galactic-integration-session",
+      "type": "rf-linkbar",
+      "label": "Back",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "links": [
+            {
+              "label": "← Back",
+              "href": "/landing-star-preview/receive/"
+            }
+          ],
+          "align": "left"
+        }
+      }
+    },
+    {
+      "id": "sec-offer-hero-galactic-integration-session",
+      "type": "rf-offer-card",
+      "label": "Hero",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "columns": 1,
+          "heading": "",
+          "bulletGlyph": "✦",
+          "padTop": 0,
+          "padBottom": 25,
+          "accent": "rgb(72, 210, 185)",
+          "items": [
+            {
+              "anchorId": "galactic-integration-session",
+              "eyebrow": "One-to-one session · ~75 minutes",
+              "title": "Galactic Integration Session",
+              "sub": "Personal integration support",
+              "body": "",
+              "listLabel": "",
+              "bullets": [],
+              "note": "",
+              "price": "$144 (founding) → $177",
+              "ctaLabel": "Book Galactic Integration Session",
+              "ctaHref": "#",
+              "ctaTarget": "",
+              "variant": "media",
+              "mediaUrl": "/images/tenants/resonantweaver/GalacticSelf.jpg",
+              "mediaAlt": ""
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "sec-offer-note-galactic-integration-session",
+      "type": "rf-media-copy",
+      "label": "Placeholder note",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "imageUrl": "",
+          "imageAlt": "",
+          "imagePosition": "left",
+          "eyebrow": "",
+          "eyebrowColor": "amber",
+          "heading": "",
+          "headingLevel": 2,
+          "headingAccent": "",
+          "paragraphs": [
+            "This page uses placeholder copy — final wording is still being written and hasn't been approved yet."
+          ],
+          "chips": [],
+          "ctas": []
+        }
+      }
+    },
+    {
+      "id": "sec-offer-work-galactic-integration-session",
+      "type": "rf-offer-card",
+      "label": "The work",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "columns": 1,
+          "heading": "",
+          "bulletGlyph": "✦",
+          "padTop": 0,
+          "padBottom": 25,
+          "accent": "rgb(72, 210, 185)",
+          "items": [
+            {
+              "eyebrow": "The work",
+              "title": "[[placeholder — awaiting final copy]]",
+              "sub": "",
+              "body": "[[placeholder]]",
+              "listLabel": "You'll receive",
+              "bullets": [
+                "[[placeholder — may include a short one-page Integration Compass after the session]]"
+              ],
+              "note": "",
+              "price": "",
+              "ctaLabel": "",
+              "ctaHref": "",
+              "variant": "standard"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "sec-offer-close-galactic-integration-session",
+      "type": "rf-media-copy",
+      "label": "Closing",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "imageUrl": "",
+          "imageAlt": "",
+          "imagePosition": "left",
+          "eyebrow": "When you are ready",
+          "eyebrowColor": "accent",
+          "heading": "[[placeholder]]",
+          "headingLevel": 2,
+          "headingAccent": "",
+          "paragraphs": [
+            "[[placeholder]]"
+          ],
+          "chips": [],
+          "ctas": [
+            {
+              "label": "Book Galactic Integration Session",
+              "href": "#",
+              "variant": "ritual"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}$rwjson$::jsonb);
+
 -- ── insert ─────────────────────────────────────────────────────────────────
 -- Null-safe NOT EXISTS on the same tuple the unique index names — the index
 -- cannot do this job because a published row carries user_id NULL and NULL is
@@ -1089,7 +2227,7 @@ SELECT 'pages authored: ' || count(*) FROM ins;
 DO $$
 DECLARE
   n int;
-  expected constant text[] := ARRAY['home', 'home-classic', 'writing'];
+  expected constant text[] := ARRAY['home', 'home-classic', 'writing', 'landing-star-preview/offer/meeting-your-galactic-self-meditation', 'landing-star-preview/offer/galactic-initiation', 'landing-star-preview/offer/resonance-mirror', 'landing-star-preview/offer/pearl-chamber', 'landing-star-preview/offer/galactic-pendulum', 'landing-star-preview/offer/galactic-integration-session'];
 BEGIN
   SELECT count(*) INTO n FROM public.page_models
    WHERE site = 'resonantweaver' AND lang = 'en' AND mode = 'published'
@@ -1113,7 +2251,7 @@ BEGIN
     FROM public.page_models p, LATERAL jsonb_array_elements(p.model_json->'sections') s
    WHERE p.site = 'resonantweaver' AND p.mode = 'published'
      AND p.slug = ANY(expected)
-     AND s->>'type' NOT IN ('rf-split-hero', 'rf-media-copy', 'rf-door-card', 'rf-offer-card', 'rf-accordion', 'form-live', 'rf-testimonials');
+     AND s->>'type' NOT IN ('rf-split-hero', 'rf-media-copy', 'rf-door-card', 'rf-offer-card', 'rf-accordion', 'form-live', 'rf-testimonials', 'rf-linkbar');
   IF n <> 0 THEN
     RAISE EXCEPTION 'assert: % section(s) name an unexpected type', n;
   END IF;

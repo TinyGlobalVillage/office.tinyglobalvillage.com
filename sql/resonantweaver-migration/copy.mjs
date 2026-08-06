@@ -124,6 +124,40 @@ export const inlineCopy = {
     ],
   },
 
+  // The offer detail template's own furniture — the five headings and the
+  // placeholder warning are written inline in OfferDetail.tsx, not in the offer
+  // catalog, because they are the same on every offer.
+  offer: {
+    workEyebrow: {
+      file: `${HOME}/landing-star-preview/offer/[slug]/OfferDetail.tsx`,
+      text: "The work",
+      find: 'eyebrow="The work"',
+    },
+    // DetailSection's default when an offer's `detail` names no listLabel.
+    includesLabel: {
+      file: "src/components/DetailSection.tsx",
+      text: "You'll receive",
+      find: 'listLabel = "You\'ll receive"',
+    },
+    processEyebrow: {
+      file: `${HOME}/landing-star-preview/offer/[slug]/OfferDetail.tsx`,
+      text: "The movement",
+    },
+    processHeading: {
+      file: `${HOME}/landing-star-preview/offer/[slug]/OfferDetail.tsx`,
+      text: "How it unfolds",
+    },
+    closeEyebrow: {
+      file: `${HOME}/landing-star-preview/offer/[slug]/OfferDetail.tsx`,
+      text: "When you are ready",
+      find: 'eyebrow="When you are ready"',
+    },
+    placeholderNote: {
+      file: `${HOME}/landing-star-preview/offer/[slug]/OfferDetail.tsx`,
+      text: "This page uses placeholder copy — final wording is still being written and hasn't been approved yet.",
+    },
+  },
+
   writing: {
     eyebrow: { file: `${HOME}/writing/WritingPage.tsx`, text: "Writing" },
     // The title is one heading broken by a <br /> with the second half in <em>.
@@ -260,7 +294,11 @@ export const assetMap = {
   // experience.png) belong to `retiredDoors` and are deliberately NOT mapped —
   // an unmapped path is an error, which is what should happen if a retired door
   // ever comes back through here without someone looking at it.
+  //
+  // GalacticSelf.jpg is ALSO the offer pages' hero fallback: `ProductHero` uses
+  // it for any offer with no `leadImageSrc`, which is four of the six.
   "/images/landing-star-preview/GalacticSelf.jpg": `${ASSET_BASE}/GalacticSelf.jpg`,
+  "/images/landing-star-preview/galactic-pendulum.svg": `${ASSET_BASE}/galactic-pendulum.svg`,
   // `/images/LeafOscilator-Logo4.png` is deliberately ABSENT. It is referenced
   // by the second writing entry and THERE IS NO SUCH FILE in her repo — that
   // card's cover is broken on the live site today. Leaving it unmapped makes

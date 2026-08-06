@@ -692,6 +692,214 @@ function buildStarLanding(data, formId) {
   };
 }
 
+/** ONE OFFER DETAIL PAGE — `offer/[slug]/OfferDetail.tsx`, five parts.
+ *
+ *  Back link · ProductHero · (placeholder note) · DetailSection · (Process) ·
+ *  CalloutBar. Every one maps onto an entry that already exists; the hero is an
+ *  `rf-offer-card` in its `media` layout, which is the same shape — artwork in
+ *  its own column, price and CTA in the foot.
+ *
+ *  NOINDEX, ALWAYS. `page.tsx`'s generateMetadata sets
+ *  `robots: { index: false, follow: false }` for every offer without exception,
+ *  so these pages are unlisted on her live site today. Carrying the copy across
+ *  without the directive would publish nine pages she has deliberately kept out
+ *  of the index. */
+function buildOfferPage(data, entry) {
+  const offer = data.resolveOffer(entry);
+  const detail = offer.detail;
+  const sections = [];
+
+  // Back to the door this offer sits behind. Her own link is
+  // `/{lang}/landing-star-preview/{door}/`; the pooled renderer supplies the
+  // language segment itself, so the stored href is the unprefixed one.
+  sections.push(
+    section(`sec-offer-back-${offer.slug}`, "rf-linkbar", "Back", {
+      links: [{ label: "← Back", href: `/landing-star-preview/${offer.door}/` }],
+      align: "left",
+    }),
+  );
+
+  sections.push(
+    section(`sec-offer-hero-${offer.slug}`, "rf-offer-card", "Hero", {
+      columns: 1,
+      heading: "",
+      bulletGlyph: "✦",
+      padTop: 0,
+      padBottom: 25,
+      accent: offer.accent,
+      items: [
+        {
+          anchorId: offer.slug,
+          eyebrow: detail.eyebrow,
+          title: offer.title,
+          sub: offer.sub,
+          body: "",
+          listLabel: "",
+          bullets: [],
+          note: "",
+          price: offer.price,
+          ctaLabel: offer.actionLabel,
+          ctaHref: offer.actionHref,
+          ctaTarget: offer.external ? "_blank" : "",
+          variant: "media",
+          // ProductHero's own fallback when an offer carries no artwork.
+          mediaUrl: asset(offer.image ?? "/images/landing-star-preview/GalacticSelf.jpg"),
+          mediaAlt: offer.imageAlt ?? "",
+        },
+      ],
+    }),
+  );
+
+  // The dashed-border warning she shows on unapproved copy. It travels because
+  // it is TRUE of the page — four of the six are still `[[placeholder]]` in her
+  // data, and hiding the notice would present draft wording as finished.
+  if (offer.placeholder) {
+    sections.push(
+      section(`sec-offer-note-${offer.slug}`, "rf-media-copy", "Placeholder note", {
+        imageUrl: "",
+        imageAlt: "",
+        imagePosition: "left",
+        eyebrow: "",
+        eyebrowColor: "amber",
+        heading: "",
+        headingLevel: 2,
+        headingAccent: "",
+        paragraphs: [verbatim(inlineCopy.offer.placeholderNote)],
+        chips: [],
+        ctas: [],
+      }),
+    );
+  }
+
+  sections.push(
+    section(`sec-offer-work-${offer.slug}`, "rf-offer-card", "The work", {
+      columns: 1,
+      heading: "",
+      bulletGlyph: "✦",
+      padTop: 0,
+      padBottom: 25,
+      accent: offer.accent,
+      items: [
+        {
+          eyebrow: verbatim(inlineCopy.offer.workEyebrow),
+          title: detail.detailTitle,
+          sub: "",
+          body: detail.paragraphs.join("\n\n"),
+          listLabel: detail.listLabel ?? verbatim(inlineCopy.offer.includesLabel),
+          bullets: detail.includes,
+          note: "",
+          price: "",
+          ctaLabel: "",
+          ctaHref: "",
+          variant: "standard",
+        },
+      ],
+    }),
+  );
+
+  if (detail.process && detail.process.length) {
+    sections.push(
+      section(`sec-offer-process-${offer.slug}`, "rf-media-copy", "The movement — intro", {
+        imageUrl: "",
+        imageAlt: "",
+        imagePosition: "left",
+        eyebrow: verbatim(inlineCopy.offer.processEyebrow),
+        eyebrowColor: "accent",
+        heading: verbatim(inlineCopy.offer.processHeading),
+        headingLevel: 2,
+        headingAccent: "",
+        paragraphs: [],
+        chips: [],
+        ctas: [],
+      }),
+    );
+    sections.push(
+      section(`sec-offer-steps-${offer.slug}`, "rf-offer-card", "The movement", {
+        columns: 3,
+        heading: "",
+        bulletGlyph: "✦",
+        padTop: 0,
+        padBottom: 25,
+        accent: offer.accent,
+        items: detail.process.map((step, i) => ({
+          // ProcessCard's marker is a zero-padded index, same as the tiles.
+          eyebrow: `0${i + 1}`,
+          title: step.title,
+          sub: "",
+          body: step.copy,
+          listLabel: "",
+          bullets: [],
+          note: "",
+          price: "",
+          ctaLabel: "",
+          ctaHref: "",
+          variant: "standard",
+        })),
+      }),
+    );
+  }
+
+  sections.push(
+    section(`sec-offer-close-${offer.slug}`, "rf-media-copy", "Closing", {
+      imageUrl: "",
+      imageAlt: "",
+      imagePosition: "left",
+      eyebrow: verbatim(inlineCopy.offer.closeEyebrow),
+      eyebrowColor: "accent",
+      heading: detail.closeTitle,
+      headingLevel: 2,
+      headingAccent: "",
+      paragraphs: [detail.closeCopy],
+      chips: [],
+      ctas: [
+        {
+          label: offer.actionLabel,
+          href: offer.actionHref,
+          variant: "ritual",
+          ...(offer.external ? { target: "_blank" } : {}),
+        },
+      ],
+    }),
+  );
+
+  const slug = `landing-star-preview/offer/${offer.slug}`;
+  const title = `${offer.title} — Offer Preview`;
+  return {
+    slug,
+    title,
+    inNav: false,
+    model: {
+      id: `pm-rw-offer-${offer.slug}`,
+      slug,
+      title,
+      chrome: {
+        navEnabled: true,
+        footerEnabled: true,
+        meta: {
+          description: offer.paragraphs[0] ?? offer.sub,
+          keywords: [],
+          ogImage: asset(offer.image ?? "/images/landing-star-preview/GalacticSelf.jpg"),
+          noindex: true,
+        },
+      },
+      sections,
+    },
+  };
+}
+
+/** Every offer her `offer/[slug]` route actually SERVES a detail page for.
+ *
+ *  `hidden` is not a filter here. It hides a card from the hub's auto-generated
+ *  lists; the route itself reads the catalog by slug and does not consult it, so
+ *  a hidden offer's page is live on her site today and its URL may be in
+ *  somebody's inbox. Dropping it would 404 a page that answers 200 now.
+ *
+ *  The two waitlist-only offers are NOT here — they render `WaitlistForm`,
+ *  which needs a `public.forms` row of its own before it can be authored. */
+function offersWithDetailPages(data) {
+  return data.catalog.filter((e) => e.detail);
+}
+
 function buildWriting(data) {
   const w = inlineCopy.writing;
   const sections = [
@@ -1127,6 +1335,7 @@ const pages = [
   buildStarLanding(data, form.id),
   buildHomeClassic(data, form.id),
   buildWriting(data),
+  ...offersWithDetailPages(data).map((e) => buildOfferPage(data, e)),
 ];
 
 /** Applied to every string leaf of every model, so a rewrite cannot be missed
