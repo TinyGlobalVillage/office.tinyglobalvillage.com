@@ -94,22 +94,63 @@ the Atom Library before drawing a chevron, a price or a CTA button.
 a path the pooled renderer does not serve — the same knowingly-broken link `/playlists` was on
 giocoelho. *(Fixed 2026-08-06 — `/pearl-chamber` is a page row.)*
 
-## 2 — The journey signups
+## 2 — The journey signups — **DONE 2026-08-06**
+
+Commits `50bd11fb` (HQ) + the SQL below. Not deployed, so not render-proven.
 
 `open-your-journey` is not only a page. Its server action validates an email, writes a signup,
-sends an access email and redirects to a private GPT whose URL never reaches the client.
+sends an access email and redirects to a private GPT whose URL never reaches the client — which
+is exactly why it is the ONE page of hers that could not become a `page_models` row. A
+`form-live` section can collect the address; its thank-you link is in the page source for
+anyone who never typed a word. So it is an app route behind a `SITE_SURFACES` grant, the third
+after `/sun-walk` and `/galactic-field-guide` and the first of hers that is a funnel rather
+than a star surface.
 
-- `journey_signups` needs a `site` key in `public` and its 2 rows copied. Drive the copy off
-  the TARGET's column list plus the forced keys — the trap that put refusionist's home page in
-  as demo content was a forced key falling out of the column intersection, and it passed a
-  row-count check.
-- The reader is already the right shape: raw `sql` on an injected executor with a bare table
-  name, so it resolves through the caller's `search_path` and serves both sites unchanged.
-- `STARSEED_GPT_URL` must reach HQ's `.env.local`, along with `STARSEED_ENGINE_URL` and
-  `STARSEED_API_TOKEN`. A missing GPT URL is a redirect to nowhere, after the email has sent.
-- `/api/admin/journey-signups` is her CSV export, gated by "only Marthe can hold a session
-  here" — an assumption that is false the moment she is pooled. It needs an ownership gate,
-  not a session gate, or it hands one operator every tenant's list.
+**The words are still data.** `@tgv/module-journey` was deleted for compiling her copy into the
+renderer, and "it must be code" is not a licence to do it again one file over.
+`src/lib/journey/config.ts` keys the whole surface by site — every string a visitor reads,
+every string the mail carries, the card's palette, the From header, and the NAME of the
+environment variable holding the private link. Adding a second site is one entry and no edit
+to a component. Only the mechanism is compiled in.
+
+**Naming the env var rather than reading one is load-bearing.** A single `STARSEED_GPT_URL`
+read directly is the same shape as `TGV_SITE_OWNER_MEMBER_ID` — one variable, one process, and
+the moment tenants pooled every booker offered the same person's time. This fails more quietly:
+a second site would hand its visitors somebody else's private link.
+
+**`public.journey_signups`** — `sql/resonantweaver-migration/05-journey-signups.sql`, applied to
+production and re-run to a no-op, 2 rows reconciled by primary key. Its `site` is `NOT NULL`
+**with no default**, which is the structural version of the trap that put refusionist's home
+page in as demo content: there, a forced key fell out of a column intersection and a DEFAULT
+answered for it, and it passed a row-count check. With no default a writer that forgets the key
+gets an error. **Re-run it at cutover** — her app keeps taking signups on :3003 until nginx
+moves, and those land in her schema; the copy is `ON CONFLICT (id) DO NOTHING` over preserved
+ids precisely so the second run picks up the window.
+
+**The reader is raw `sql` on HQ's own db**, not the injected-executor shape this plan predicted.
+That shape existed to serve `resonantweaver.journey_signups` and `public.journey_signups` from
+one file through `search_path`; it went with `@tgv/module-journey`, and there is no second
+caller to justify bringing it back — her app keeps its own drizzle copy until it stops.
+`scripts/test-journey-reader.mjs` runs all three statements against a real database inside a
+rolled-back transaction (29 checks), and it **lifts them out of the module by text** rather than
+restating them, so it cannot pass while the module is broken.
+
+**Env.** `STARSEED_GPT_URL`, `STARSEED_ENGINE_URL` and `STARSEED_API_TOKEN` are in HQ's
+`.env.local` on RCS (backup beside it, `.bak-pre-journey-20260806`). They take effect at the
+next reload. The last two also un-stub `/api/user/starseed/profile`, which has been answering
+503 on HQ for want of a token.
+
+**The CSV export changed gate on the way across.** Hers asked "do you have a member session",
+which is sound where one person can hold one; pooled, the identical check hands any signed-in
+member the export and hands whoever asks the first tenant's list. It now resolves the site from
+the host and requires the caller to be in `villager` for it — ownership, not staff, and **no
+admin bypass**: an administrator with a real reason has database access, and a route that
+quietly answers for every tenant is the shape this gate exists to remove.
+
+Her defences came across unchanged because they were written against real traffic: honeypot,
+timing gate, per-IP rate limit — now keyed by site as well, so one tenant cannot spend another's
+budget — and one generic error, because a form that explains which defence it tripped teaches a
+bot how to get past it.
 
 ## 3 — The ten API routes that are hers alone
 
@@ -216,8 +257,11 @@ iCal feed survive.
 1. **Check Stripe** for endpoints registered against `resonantweaver.com`. Refusionist's survey
    had this wrong in both directions — one endpoint listed that did not exist, one live that the
    survey never mentioned. Disable rather than delete, so the signing secrets survive.
-2. **Env.** `STARSEED_GPT_URL`, `STARSEED_ENGINE_URL`, `STARSEED_API_TOKEN` and her `SMTP_*` /
-   `FROM_EMAIL` onto HQ, or the access email sends from the wrong place or not at all.
+2. **Env — DONE 2026-08-06.** `STARSEED_GPT_URL`, `STARSEED_ENGINE_URL` and `STARSEED_API_TOKEN`
+   are in HQ's `.env.local` (backup `.bak-pre-journey-20260806`); they take effect at the next
+   reload. Her `SMTP_*` needed no move: HQ and her app authenticate to the SAME account, verified
+   by hash, so the mail can still go out as `connect@resonantweaver.com` — which is what
+   `src/lib/journey/config.ts` sets it to send as.
 3. **nginx.** Hers is a real symlink into `sites-available` — check anyway, because
    refusionist's was a regular file and the first flip silently did nothing. Split the block
    three ways rather than editing one line:

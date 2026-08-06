@@ -13,6 +13,9 @@ parity and the cutover — is `CUTOVER-PLAN.md`**, in the order it has to happen
 | `generate.mjs` | Reads her data modules and emits the two SQL files. `--check` fails if they are stale. |
 | `01-theme.sql` | **GENERATED.** Her palette, type, radii, the two ambient orbs, and the Cormorant Garamond faces. Three `content_overrides` rows. |
 | `02-pages.sql` | **GENERATED.** Her contact form plus `home`, `home-classic` and `writing` as `page_models` rows. |
+| `03-journey-preview.sql` | **GENERATED.** The journey as an `rf-journey` section at slug `journey-preview`, so it could be driven beside the package still serving `/journey`. |
+| `04-journey-row.sql` | The journey takes its real URL, once the preview matched. |
+| `05-journey-signups.sql` | **HAND-WRITTEN.** `public.journey_signups` + her 2 rows, forced onto her site key. The one part of her funnel that is an application, not content — see CUTOVER-PLAN §2. |
 
 Do not hand-edit the SQL. Change her source or `copy.mjs`, then re-run.
 
@@ -25,6 +28,13 @@ node sql/resonantweaver-migration/generate.mjs --check  # fail if stale
 
 psql -v ON_ERROR_STOP=1 -d tgv_db -f sql/resonantweaver-migration/01-theme.sql
 psql -v ON_ERROR_STOP=1 -d tgv_db -f sql/resonantweaver-migration/02-pages.sql
+psql -v ON_ERROR_STOP=1 -d tgv_db -f sql/resonantweaver-migration/03-journey-preview.sql
+psql -v ON_ERROR_STOP=1 -d tgv_db -f sql/resonantweaver-migration/04-journey-row.sql
+
+# 05 reads the `resonantweaver` schema, which tgv_app cannot. Run it as the
+# superuser, and RUN IT AGAIN AT CUTOVER to pick up any signup taken while her
+# app was still answering on :3003.
+sudo -u postgres psql -v ON_ERROR_STOP=1 -d tgv_db -f sql/resonantweaver-migration/05-journey-signups.sql
 ```
 
 Both files are re-runnable: every insert is guarded by a null-safe
