@@ -93,6 +93,63 @@ side, and it keeps the rollback path building — a stopped app you cannot rebui
 rollback. Use the tsconfig-alias trick already in place for `@/lib/starseed/*`, so her public
 pages do not have to change.
 
+## 4b — The convergence ledger, because nothing measures the gap (Gio, 2026-08-06)
+
+Prompted by a real sighting: her Settings tab still offers **Support** and **Cart**, features
+dropped from the shared registry weeks ago. Traced, and the trace matters more than the
+symptom — *we had no way to see it, and still have none for anything like it.*
+
+**Where those two come from.** Her app declares them itself.
+`clients/resonantweaver.com/src/app/[lang]/dashboard/DashboardWithFeatures.tsx` lists fifteen
+`DashboardFeatureDef`s, `support` and `cart` among them, both `defaultVisible: true`.
+`mergeFeatureCatalog(hostFeatures)` passes a host's own keys through **unchanged and by
+design** — that is the same seam her bespoke `profile` engine rides in on, so it cannot just
+be closed. Neither key is in `FEATURE_REGISTRY` (40 keys) any more. Her dashboard is still
+served by her own app on :3003, so what she is looking at is her app's list, not the
+platform's, and it will keep saying that until the flip.
+
+**Three sources of truth, measured today, and nothing reconciles them:**
+
+| Source | Where | Count |
+|---|---|---|
+| The canon | `@tgv/module-dashboard/helpers/featureRegistry.ts` | **40** keys |
+| Her app's wiring | `DashboardWithFeatures.tsx` | **15** defs |
+| Her data | `public.dashboard_features` for her `site_id` | **34** keys |
+
+The three disagree in both directions, and the disagreement is **fleet-wide, not hers**:
+
+- **34 orphan rows** name keys the registry no longer has — `cart` (19), `support` (10),
+  `subscriptions` (5) — spread across giocoelho, guardians, nevlo, refusionist AND
+  resonantweaver. Pooled tenants are protected by `validRegistryKeys`, which will not place
+  an unknown key, so they are inert *there* and would surface anywhere the host declares
+  them. **21 more rows carry no `site_id` at all.**
+- **Seven registry keys have never been seeded anywhere**: `account`, `seo`, `village-blog`,
+  `village-forums`, `village-listing`, `village-reviews`, `village-testimonials`.
+
+**Why we could not see it.** Every guard in this migration family is per-artefact and
+one-directional — a string against its source file, a row count against a copy, an asset path
+against `public/`. Each answers "did what we ported arrive?" None answers "what does she have
+that the platform does not, and what does the platform have that she has not been given?"
+The phases track work done, not distance remaining, so a gap that nobody ported *into* is
+invisible by construction. Same shape as the miss that put her archived landing in as `home`:
+thorough one level below the question.
+
+**So build the ledger, and build it before parity.** One script that reads all three sources
+and prints, per site: keys in canon and not in her data (never seeded), keys in her data and
+not in canon (orphans to sweep), keys her app declares that canon does not (what the cutover
+will silently drop — `support` and `cart` are exactly this), and keys canon has that her app
+never wired (what the cutover will silently ADD, which is most of the 34 HQ panels). It is a
+read-only report; it belongs beside `generate.mjs --check` and it wants to run for every
+tenant, not only for her.
+
+Two things fall out of it immediately and neither should be guessed at:
+
+1. **`support` and `cart` disappear at her cutover** unless HQ carries them. Support is a real
+   configured surface for her (the Get Support button); Cart is presence-only with no panel,
+   which is a stub she will not miss. Decide each with the ledger in hand, not on the day.
+2. **The orphan rows want a sweep**, and it is not RW work — it is plan 29's cleanup with a
+   name. A row whose key no longer exists is a toggle that can never do anything.
+
 ## 5 — Parity (plan 38, the step that has caught something every single time)
 
 Screenshot every page standalone vs pooled at three viewports and diff. Her own
