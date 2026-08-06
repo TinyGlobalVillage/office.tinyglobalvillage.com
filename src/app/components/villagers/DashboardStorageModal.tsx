@@ -23,12 +23,12 @@ import {
 } from "@/app/styled";
 import NeonX from "../NeonX";
 
-// Wider than the default modal: this one holds a file grid, and squeezing it to a settings-card width
-// would put two cards per row on a 15" screen.
+// The inset is the BACKDROP's padding and it is the ONLY thing setting the margin — the card fills
+// whatever that leaves, in both axes, so all four gaps are the same number of pixels on any screen.
 //
-// The inset is the BACKDROP's padding, on all four sides, and the card is capped at 100% of what that
-// leaves. ModalContainer's own 85vh cap would have made the top and bottom margins 7.5vh each against a
-// 1rem side margin — visibly different gaps on a screen that isn't square.
+// That means no width cap. A cap is what made them unequal: 1180px against a 1232px box left 26px of
+// slack per side on top of the padding, so the sides read 50 and the top and bottom 24. A file grid is
+// happy to be wide — it just gets more columns — so the cap was buying nothing and costing symmetry.
 const INSET = "1.5rem";
 
 const EvenBackdrop = styled(ModalBackdrop)`
@@ -37,7 +37,7 @@ const EvenBackdrop = styled(ModalBackdrop)`
 
 const WideContainer = styled(ModalContainer)`
   width: 100%;
-  max-width: min(100%, 1180px);
+  max-width: 100%;
   max-height: 100%;
 `;
 
@@ -54,11 +54,13 @@ export default function DashboardStorageModal({ onClose }: { onClose: () => void
   // The page behind keeps its own scrollbar otherwise, so the operator sees two — and a wheel over the
   // backdrop scrolls the Villagers grid underneath instead of the file list they are looking at.
   useEffect(() => {
-    const el = document.body;
-    const previous = el.style.overflow;
-    el.style.overflow = "hidden";
+    // BOTH elements: the scrollbar this was showing belongs to the root, not the body, so locking only
+    // one of them left it in place.
+    const targets = [document.documentElement, document.body];
+    const previous = targets.map((el) => el.style.overflow);
+    targets.forEach((el) => { el.style.overflow = "hidden"; });
     return () => {
-      el.style.overflow = previous;
+      targets.forEach((el, i) => { el.style.overflow = previous[i]; });
     };
   }, []);
 
