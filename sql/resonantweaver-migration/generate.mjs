@@ -260,10 +260,15 @@ function buildHome(data, formId) {
       imagePosition: "left",
       eyebrow: verbatim(inlineCopy.gateway.eyebrow),
       eyebrowColor: "amber",
-      heading: verbatim(inlineCopy.gateway.question),
+      // No heading, deliberately. Her gateway has none: `Question` is a
+      // centred italic <p> in muted text, not an <h2>, and authoring it as a
+      // heading put an 800-weight line on a page that has no bold on it.
+      // Rendering it as the paragraph it is, is both closer and simpler — and
+      // is only possible now that an empty heading emits no element.
+      heading: "",
       headingLevel: 2,
       headingAccent: "",
-      paragraphs: [verbatim(inlineCopy.gateway.note)],
+      paragraphs: [verbatim(inlineCopy.gateway.question), verbatim(inlineCopy.gateway.note)],
       chips: [],
       ctas: [
         {

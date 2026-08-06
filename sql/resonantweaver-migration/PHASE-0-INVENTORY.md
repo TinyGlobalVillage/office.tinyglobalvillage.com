@@ -214,6 +214,76 @@ so the pages already using it cannot drift.
 The browser pass against her live site is Phase 5's job and needs Phase 3's rows
 to have something to look at.
 
+## Phase 3 — built, applied and rendered 2026-08-05
+
+Bucket A is rows. `home` (12 sections) and `writing` (2), her palette, type,
+radii and orbs as three `content_overrides` rows, and her contact form as a
+real `public.forms` row — all **generated** by `generate.mjs`, which imports her
+`src/data/*` instead of retyping it. Runbook and the full rationale live in this
+directory's `README.md`.
+
+**The generator is the deliverable, not the SQL.** Three things it does that a
+transcription cannot: it reproduces `onePage.tsx`'s runtime filter (hidden
+offerings, a two-up row collapsing to one, a row dropping out — two of her five
+rows are affected, so the stack is what a visitor sees rather than what the data
+file contains); it checks every string transcribed out of her JSX back against
+the file it came from and refuses to emit on a mismatch; and it refuses an asset
+path with no mapping, which is how it found that
+`/images/LeafOscilator-Logo4.png` **does not exist in her repo** — that writing
+card's cover is broken on her live site today.
+
+**Testing the guard found a hole in the guard.** Half the checks (the orbs, the
+radii, the ground colour) run inside the theme builder, which ran *after* the
+drift gate. A tampered orb duration sailed through. Both bodies are built before
+the gate now.
+
+**Four defects the browser found, three of them fleet-wide and live.**
+
+1. **Naming a font never loaded one.** `SiteTheme.fonts` could always say
+   `'Cormorant Garamond', Georgia, serif`; nothing on the shared renderer had
+   ever loaded a tenant's face. Her site would have come up in Georgia with
+   every colour, size and word correct. New `siteFonts` override + reader +
+   emitter, sibling to `siteBackground` including the no-platform-rung rule;
+   faces self-hosted under `public/fonts/tenants/<site>/` (SIL OFL).
+2. **And declaring the family is not applying it.** `--tgv-fontHeading` /
+   `--tgv-fontBody` were emitted and only the blocks that explicitly read them
+   obeyed — so her wordmark came up in Cormorant and every heading under it in
+   Inter. `themeToFontCss(theme, scope)` applies them, scoped, and only when a
+   theme names a family. One site names one today.
+3. **`amber` was the one surface role a theme could not reach.** Its fallback
+   was a bare `#ffb454` where its three siblings are tokens. It resolves through
+   `--tgv-gold` now.
+4. **A customer's submit button was TGV's brand cyan.** The form renderer's
+   accent fallback was a literal too, and a form has three ways to be coloured,
+   none of which consulted the site theme. It reads `--tgv-cyan` first now.
+
+Plus one that is only ever visible as a gap: **rf-media-copy rendered an empty
+`<h2>` for an empty heading** — a heading-sized box with 16px of margin. Three
+published rows carry a blank heading today and each had been showing it. Fixing
+it is what let her journey gateway be authored as what it actually is: an
+eyebrow and two paragraphs, not a heading, because her `Question` is a centred
+italic `<p>` and rendering it as an 800-weight `<h2>` put the only bold text on
+the page there.
+
+**Verified by rendering, twice.** `render-check.sh` is 95 assertions (was 69);
+the pages were then driven in a real browser behind a Host-rewriting proxy
+against the deployed HQ, with resonantweaver.com untouched on its own app. Both
+Cormorant faces report `loaded`, the ground is `#061814`, both orbs drift, all
+four images resolve, every CTA is her teal on a quiet plate, zero console
+messages. giocoelho, guardians, nevlo, refusionist and the apex re-shot green on
+the same pass and carry **no** font rule and **no** `@font-face`, which is the
+whole point of the no-platform-rung rule.
+
+**Deployed** — `cca86f92` → `81cfc8b3` (mono) and `71a1fe67` (HQ), RCS did zero
+app builds. **Not cut over**: nginx still sends resonantweaver.com to her own
+app, so rollback is nothing at all.
+
+**Two things seen while verifying, neither caused by this phase.** Her tenant nav
+carries only `HOME` (the nav dict is a separate row, and giocoelho had the same
+gap at cutover), and the writing card's cover is cropped by the media column
+where her own page ran it full-bleed behind a scrim. Both are studio-editable and
+belong to Phase 5's parity pass.
+
 ## Open question for Gio
 
 When a section is CLOSE to an existing catalog entry but not identical — her FAQ

@@ -209,10 +209,11 @@ INSERT INTO _rw_pages VALUES ('home', 'Resonant Weaver', true, $rwjson${
           "imagePosition": "left",
           "eyebrow": "Before you choose a service",
           "eyebrowColor": "amber",
-          "heading": "Where are you in your energetic field right now?",
+          "heading": "",
           "headingLevel": 2,
           "headingAccent": "",
           "paragraphs": [
+            "Where are you in your energetic field right now?",
             "A short self-guided journey through the seven energy centers"
           ],
           "chips": [],

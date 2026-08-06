@@ -113,3 +113,19 @@ The routing key (`villager_sites.subdomain = 'resonantweaver'`) is already set �
 it is what makes the custom-domain branch resolve at all, and setting it is what
 made any of this testable. nginx still sends resonantweaver.com to her own app,
 so nothing that serves traffic has moved.
+
+## Re-authoring a page
+
+`02-pages.sql` INSERTs and never UPDATEs, on purpose: after cutover the studio
+owns those rows and a migration that overwrote them would delete Marthe's work.
+While the migration is still being tuned — Phase 5 parity, mostly — the recipe
+is to drop the row and re-run:
+
+```sql
+DELETE FROM public.page_models
+ WHERE site = 'resonantweaver' AND mode = 'published' AND user_id IS NULL
+   AND slug IN ('home', 'writing');
+```
+
+`site_releases` keeps every version the capture trigger saw, so the previous
+state is recoverable from Client Versions either way.
