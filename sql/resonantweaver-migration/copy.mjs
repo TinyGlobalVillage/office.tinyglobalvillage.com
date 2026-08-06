@@ -158,6 +158,100 @@ export const inlineCopy = {
     },
   },
 
+  /** `/pearl-chamber` — the subscription page. Every string on it is inline JSX
+   *  or a module constant; there is no content module to import, so the whole
+   *  page is transcribed and guarded.
+   *
+   *  The two PayPal URLs are guarded too. They are the only strings here that
+   *  are not words, and they are the two that MUST NOT drift: a stale payment
+   *  link takes money to the wrong plan, or to none, and looks exactly like a
+   *  working one. */
+  pearl: {
+    file: `${HOME}/pearl-chamber/PearlChamberSubscriptionPage.tsx`,
+    title: {
+      file: `${HOME}/pearl-chamber/PearlChamberSubscriptionPage.tsx`,
+      text: "The Pearl Chamber",
+      find: "<H3>The Pearl Chamber</H3>",
+    },
+    sub: {
+      file: `${HOME}/pearl-chamber/PearlChamberSubscriptionPage.tsx`,
+      text: "Set your intention",
+      find: "<Sub>Set your intention</Sub>",
+    },
+    lead: {
+      file: `${HOME}/pearl-chamber/PearlChamberSubscriptionPage.tsx`,
+      text: "Share your name, email, and the intention you want held in the Pearl Chamber. Once it is received, you can complete your payment.",
+    },
+    price: {
+      file: `${HOME}/pearl-chamber/PearlChamberSubscriptionPage.tsx`,
+      text: "$11 / week",
+      find: "<Price>$11 / week</Price>",
+    },
+    imageAlt: {
+      file: `${HOME}/pearl-chamber/PearlChamberSubscriptionPage.tsx`,
+      text: "Pearl Chamber subscription artwork",
+    },
+    fieldName: {
+      file: `${HOME}/pearl-chamber/PearlChamberSubscriptionPage.tsx`,
+      text: "Name",
+      find: "<Field> Name <input",
+    },
+    fieldEmail: {
+      file: `${HOME}/pearl-chamber/PearlChamberSubscriptionPage.tsx`,
+      text: "Email",
+      find: "<Field> Email <input",
+    },
+    fieldIntention: {
+      file: `${HOME}/pearl-chamber/PearlChamberSubscriptionPage.tsx`,
+      text: "Intention",
+      find: "<Field> Intention <textarea",
+    },
+    submitLabel: {
+      file: `${HOME}/pearl-chamber/PearlChamberSubscriptionPage.tsx`,
+      text: "Continue to Payment",
+      find: '? "Sending..." : "Continue to Payment"',
+    },
+    // The three lines her `ReadyContent` shows once the intention is in — which
+    // is exactly what a thank-you screen is, so they become one.
+    thanksTitle: {
+      file: `${HOME}/pearl-chamber/PearlChamberSubscriptionPage.tsx`,
+      text: "Intention received.",
+      find: "<ConfirmationText>Intention received.</ConfirmationText>",
+    },
+    thanksLine1: {
+      file: `${HOME}/pearl-chamber/PearlChamberSubscriptionPage.tsx`,
+      text: "$11 for one week of daily tending, or as a weekly subscription for continued support.",
+    },
+    thanksLine2: {
+      file: `${HOME}/pearl-chamber/PearlChamberSubscriptionPage.tsx`,
+      text: "You can cancel any time.",
+    },
+    onceLabel: {
+      file: `${HOME}/pearl-chamber/PearlChamberSubscriptionPage.tsx`,
+      text: "One Week · $11",
+    },
+    onceUrl: {
+      file: `${HOME}/pearl-chamber/PearlChamberSubscriptionPage.tsx`,
+      text: "https://www.paypal.com/ncp/payment/DJPQ2RD3V8QAC",
+    },
+    subscribeLabel: {
+      file: `${HOME}/pearl-chamber/PearlChamberSubscriptionPage.tsx`,
+      text: "Subscribe · $11 / week",
+    },
+    subscribeUrl: {
+      file: `${HOME}/pearl-chamber/PearlChamberSubscriptionPage.tsx`,
+      text: "https://www.paypal.com/webapps/billing/plans/subscribe?plan_id=P-92Y41769K2021445TNIKJDZA",
+    },
+    metaTitle: {
+      file: `${HOME}/pearl-chamber/page.tsx`,
+      text: "The Pearl Chamber | Resonant Weaver",
+    },
+    metaDescription: {
+      file: `${HOME}/pearl-chamber/page.tsx`,
+      text: "Set your intention and subscribe to the weekly Pearl Chamber container.",
+    },
+  },
+
   writing: {
     eyebrow: { file: `${HOME}/writing/WritingPage.tsx`, text: "Writing" },
     // The title is one heading broken by a <br /> with the second half in <em>.

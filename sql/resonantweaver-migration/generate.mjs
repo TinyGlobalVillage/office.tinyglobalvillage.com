@@ -144,6 +144,12 @@ const ROUTES = [
     renders: "AllProducts",
     note: "the offering listing — every door's 'see all' CTA lands here",
   },
+  {
+    slug: "pearl-chamber",
+    file: `${HOME_DIR}/pearl-chamber/page.tsx`,
+    renders: "PearlChamberSubscriptionPage",
+    note: "the weekly intention holding — her one live subscription",
+  },
 ];
 
 function guardRoutes() {
@@ -1245,6 +1251,82 @@ function buildAllProducts(data) {
   };
 }
 
+/** `/pearl-chamber` — the weekly intention holding, and her one live
+ *  subscription. The offer catalog links here (`href: "/pearl-chamber"`) and so
+ *  does the homepage offerings row, so this URL has been the funnel's one dead
+ *  end on the pooled renderer: two published surfaces pointing at a 404.
+ *
+ *  ONE NESTED THING BECOMES TWO STACKED ONES. On her page the form lives INSIDE
+ *  the offer card's detail panel — card head and artwork on the left, copy plus
+ *  the form plus the price on the right. `rf-offer-card` cannot host a form in
+ *  its panel, so the card and the form become siblings: the card carries the
+ *  title, the artwork, the lead paragraph and the price, and the form follows
+ *  it. Everything a visitor reads survives and in the same order; what changes
+ *  is that the two sit one above the other rather than side by side.
+ *
+ *  INDEXED, unlike everything under `landing-star-preview/`. Her `page.tsx`
+ *  sets a canonical and no robots directive — this is a page she sells from. */
+function buildPearlChamber(data, formId) {
+  const c = inlineCopy.pearl;
+  const sections = [
+    section("sec-pearl-card", "rf-offer-card", "The Pearl Chamber", {
+      columns: 1,
+      heading: "",
+      bulletGlyph: "✦",
+      padTop: 0,
+      padBottom: 25,
+      items: [
+        {
+          anchorId: "pearl-chamber",
+          title: verbatim(c.title),
+          sub: verbatim(c.sub),
+          body: verbatim(c.lead),
+          listLabel: "",
+          bullets: [],
+          note: "",
+          price: verbatim(c.price),
+          // No CTA on the card. Her price sits alone in the foot while the
+          // button that takes the money is behind the form — putting one here
+          // would be the shortcut past the intention.
+          ctaLabel: "",
+          ctaHref: "",
+          variant: "feature",
+          leadImageUrl: asset("/images/ReikiBox.png"),
+          leadImageAlt: verbatim(c.imageAlt),
+          leadImageGlow: false,
+        },
+      ],
+    }),
+    section("sec-pearl-form", "form-live", "Set your intention", {
+      formId,
+      accent: "",
+      hideHeader: true,
+      maxWidth: 640,
+    }),
+  ];
+
+  return {
+    slug: "pearl-chamber",
+    title: verbatim(c.title),
+    inNav: false,
+    model: {
+      id: "pm-rw-pearl-chamber",
+      slug: "pearl-chamber",
+      title: verbatim(c.title),
+      chrome: {
+        navEnabled: true,
+        footerEnabled: true,
+        meta: {
+          description: verbatim(c.metaDescription),
+          keywords: [],
+          ogImage: asset("/images/ReikiBox.png"),
+        },
+      },
+      sections,
+    },
+  };
+}
+
 function buildWriting(data) {
   const w = inlineCopy.writing;
   const sections = [
@@ -1353,6 +1435,45 @@ function buildForm(data) {
       ],
       settings: { submitLabel: f.button },
       thankyou: { title: f.statusMessage.success, description: "" },
+    },
+  };
+}
+
+/** THE PEARL CHAMBER'S OWN FORM, and the reason the page needed one.
+ *
+ *  Her page collects a name, an email and an intention, posts them to
+ *  `/api/contact/` under the topic "Pearl Chamber", and only THEN reveals the
+ *  two PayPal links. The order is the whole design: the intention has to be in
+ *  hand before the money is, because the intention is what goes in the box.
+ *
+ *  So it is a form whose thank-you screen hands the person on — which is what
+ *  `thankyou.ctas` was added to the forms module for. Putting the two payment
+ *  buttons on the page beside the form instead would have made them reachable
+ *  without answering, and she would be taking $11 a week to hold nothing. */
+function buildPearlForm() {
+  const c = inlineCopy.pearl;
+  const title = verbatim(c.title);
+  return {
+    id: stableUuid(`${SITE}:pearl-chamber`),
+    slug: "pearl-chamber",
+    title,
+    definition: {
+      title,
+      version: 1,
+      fields: [
+        { ref: "name", type: "short_text", title: verbatim(c.fieldName), required: true },
+        { ref: "email", type: "email", title: verbatim(c.fieldEmail), required: true },
+        { ref: "intention", type: "long_text", title: verbatim(c.fieldIntention), required: true },
+      ],
+      settings: { submitLabel: verbatim(c.submitLabel) },
+      thankyou: {
+        title: verbatim(c.thanksTitle),
+        description: `${verbatim(c.thanksLine1)} ${verbatim(c.thanksLine2)}`,
+        ctas: [
+          { label: verbatim(c.onceLabel), href: verbatim(c.onceUrl), target: "_blank" },
+          { label: verbatim(c.subscribeLabel), href: verbatim(c.subscribeUrl), target: "_blank" },
+        ],
+      },
     },
   };
 }
@@ -1513,14 +1634,16 @@ COMMIT;
   );
 }
 
-function pagesSql(pages, form, ownerNote) {
+function pagesSql(pages, forms, ownerNote) {
   const types = [...new Set(pages.flatMap((p) => p.model.sections.map((s) => s.type)))];
   return (
     BANNER(
       "02-pages.sql",
-      `-- Bucket A — her marketing content as \`page_models\` rows: the one-pager
--- (hero, intro, journey gateway, the offerings stack with its testimonial
--- bands, the FAQ, the contact form and the about panel) and /writing.
+      `-- Her pages as \`page_models\` rows — bucket A's marketing content (the
+-- one-pager, its hero, intro, journey gateway, offerings stack with the
+-- testimonial bands, FAQ, contact form and about panel; /writing) and, since
+-- 2026-08-06, bucket B's commerce funnel: the three doors, the offer detail
+-- pages, the offering listing and /pearl-chamber.
 --
 -- ${ownerNote}
 --
@@ -1529,11 +1652,17 @@ function pagesSql(pages, form, ownerNote) {
 --     as PACKAGES in Phase 4 — canvas and scroll-driven motion is not catalog
 --     material and re-authoring it would lose it. The gateway's words and its
 --     link travel now; its seven chakra dots come with the package.
---   • the commerce funnel (\`/pearl-chamber\`, the landing-star tree) is bucket
---     B: app routes plus \`SITE_SURFACES\` grants, not rows. Until that lands,
---     the Pearl Chamber CTA below points at a path this renderer does not serve
---     yet — the same knowingly-broken link giocoelho's \`/playlists\` was, and
---     the same ruling: flip and port, don't hold the migration.
+--   • \`experience/[product]\` — three pages her own STATUS.md calls the "old
+--     safety-net route", superseded by \`offer/[slug]\`. Their copy is the
+--     catalog's \`detail\` blocks nearly verbatim, so authoring them would be
+--     two editable copies of the same three offers to keep in step forever.
+--     The URLs are preserved as redirects instead.
+--   • \`landing-star-preview/course\` — an interactive mockup, not content: four
+--     tabs of text inputs and selects whose own copy says "nothing on this page
+--     saves". Same class as giocoelho's \`/playlists\` and \`/fitnesstools/timer\`
+--     and it needs the same ruling.
+--   • the two waitlist-only offers — they render \`WaitlistForm\`, which needs a
+--     \`public.forms\` row of its own first.
 --
 -- Every section leaves its colour roles EMPTY on purpose. They resolve through
 -- \`--tgv-*\`, which 01-theme.sql rewrites to her palette — which is the whole
@@ -1541,17 +1670,27 @@ function pagesSql(pages, form, ownerNote) {
 -- unthemed site render in the platform's colours instead of hers.`,
     ) +
     `
--- ── the contact form ───────────────────────────────────────────────────────
--- The section below is a \`form-live\`, which is reference-by-id: the definition
--- lives in \`public.forms\` and submissions land in her Forms inbox with the
--- anti-abuse engine in front of them. Porting ContactForm.tsx would have been a
--- second form doing the same job — the duplicate-but-different pair that starts
--- drift. Fields, labels, options and the thank-you line are generated from her
--- own dictionary, so the form a visitor meets is the one she wrote.
+-- ── her forms ──────────────────────────────────────────────────────────────
+-- Every form section below is a \`form-live\`, which is reference-by-id: the
+-- definition lives in \`public.forms\` and submissions land in her Forms inbox
+-- with the anti-abuse engine in front of them. Porting ContactForm.tsx would
+-- have been a second form doing the same job — the duplicate-but-different pair
+-- that starts drift. Fields, labels, options and the thank-you line are
+-- generated from her own source, so the form a visitor meets is the one she
+-- wrote.
 --
--- The id is DERIVED from the site and the slug, not random, so this file names
--- the same row every time it runs.
-INSERT INTO public.forms (id, site_id, owner_member_id, slug, title, purpose, status, definition, definition_version)
+-- Each id is DERIVED from the site and the slug, not random, so this file names
+-- the same rows every time it runs.
+--
+--   contact       — the one on both landings, from her i18n dictionary.
+--   pearl-chamber — name, email, intention, and a thank-you screen carrying the
+--                   two PayPal links. Her page reveals them only after the
+--                   intention is in hand, because the intention is what goes in
+--                   the box; the links live on the thank-you rather than on the
+--                   page so that order survives the move.
+${forms
+  .map(
+    (form) => `INSERT INTO public.forms (id, site_id, owner_member_id, slug, title, purpose, status, definition, definition_version)
 SELECT ${lit(form.id)}::uuid, v.id, o.member_id, ${lit(form.slug)}, ${lit(form.title)},
        'general', 'published', ${json(form.definition)}, 1
   FROM public.villager_sites v
@@ -1560,7 +1699,9 @@ SELECT ${lit(form.id)}::uuid, v.id, o.member_id, ${lit(form.slug)}, ${lit(form.t
   ) o ON true
  WHERE v.subdomain = ${lit(SITE)}
    AND NOT EXISTS (SELECT 1 FROM public.forms WHERE id = ${lit(form.id)}::uuid);
-
+`,
+  )
+  .join("\n")}
 CREATE TEMP TABLE _rw_pages (slug text, title text, in_nav boolean, mode text, model jsonb)
   ON COMMIT DROP;
 
@@ -1703,14 +1844,16 @@ COMMIT;
 
 const data = await loadData();
 
-const form = buildForm(data);
+const forms = [buildForm(data), buildPearlForm()];
+const [contactForm, pearlForm] = forms;
 guardRoutes();
 const pages = [
-  buildStarLanding(data, form.id),
-  buildHomeClassic(data, form.id),
+  buildStarLanding(data, contactForm.id),
+  buildHomeClassic(data, contactForm.id),
   buildWriting(data),
   ...ALL_GATEWAYS.map((id) => buildGatewayPage(data, id)),
   buildAllProducts(data),
+  buildPearlChamber(data, pearlForm.id),
   ...offersWithDetailPages(data).map((e) => buildOfferPage(data, e)),
 ];
 
@@ -1743,8 +1886,9 @@ const outputs = [
     "02-pages.sql",
     pagesSql(
       pages,
-      form,
-      `Contact form: ${form.id} (public.forms, owned by whoever owns her villager_sites row).`,
+      forms,
+      `Forms (public.forms, owned by whoever owns her villager_sites row): ` +
+        forms.map((f) => `${f.slug} ${f.id}`).join(", ") + `.`,
     ),
   ],
 ];
@@ -1796,6 +1940,6 @@ if (CHECK && stale) process.exit(1);
 
 const sectionCount = pages.reduce((n, p) => n + p.model.sections.length, 0);
 console.log(
-  `generate: ${pages.length} page(s), ${sectionCount} sections, 1 form, ` +
+  `generate: ${pages.length} page(s), ${sectionCount} sections, ${forms.length} forms, ` +
     `${orbs.length} orbs, ${webfonts.length} faces — assets under ${ASSET_BASE}`,
 );

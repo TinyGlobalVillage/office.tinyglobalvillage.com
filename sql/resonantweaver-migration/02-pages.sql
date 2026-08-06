@@ -3,22 +3,30 @@
 -- and re-run. `--check` fails if this file is stale, so a drifting edit is
 -- caught rather than merged.
 --
--- Bucket A — her marketing content as `page_models` rows: the one-pager
--- (hero, intro, journey gateway, the offerings stack with its testimonial
--- bands, the FAQ, the contact form and the about panel) and /writing.
+-- Her pages as `page_models` rows — bucket A's marketing content (the
+-- one-pager, its hero, intro, journey gateway, offerings stack with the
+-- testimonial bands, FAQ, contact form and about panel; /writing) and, since
+-- 2026-08-06, bucket B's commerce funnel: the three doors, the offer detail
+-- pages, the offering listing and /pearl-chamber.
 --
--- Contact form: 904a1f4d-26bb-42df-b3a2-a16a655fc99d (public.forms, owned by whoever owns her villager_sites row).
+-- Forms (public.forms, owned by whoever owns her villager_sites row): contact 904a1f4d-26bb-42df-b3a2-a16a655fc99d, pearl-chamber d05bbb9f-28f1-4f61-b866-78d02a264dd5.
 --
 -- NOT AUTHORED HERE, and each for a stated reason:
 --   • the journey (`/journey` and its blocks) and the starseed surfaces move
 --     as PACKAGES in Phase 4 — canvas and scroll-driven motion is not catalog
 --     material and re-authoring it would lose it. The gateway's words and its
 --     link travel now; its seven chakra dots come with the package.
---   • the commerce funnel (`/pearl-chamber`, the landing-star tree) is bucket
---     B: app routes plus `SITE_SURFACES` grants, not rows. Until that lands,
---     the Pearl Chamber CTA below points at a path this renderer does not serve
---     yet — the same knowingly-broken link giocoelho's `/playlists` was, and
---     the same ruling: flip and port, don't hold the migration.
+--   • `experience/[product]` — three pages her own STATUS.md calls the "old
+--     safety-net route", superseded by `offer/[slug]`. Their copy is the
+--     catalog's `detail` blocks nearly verbatim, so authoring them would be
+--     two editable copies of the same three offers to keep in step forever.
+--     The URLs are preserved as redirects instead.
+--   • `landing-star-preview/course` — an interactive mockup, not content: four
+--     tabs of text inputs and selects whose own copy says "nothing on this page
+--     saves". Same class as giocoelho's `/playlists` and `/fitnesstools/timer`
+--     and it needs the same ruling.
+--   • the two waitlist-only offers — they render `WaitlistForm`, which needs a
+--     `public.forms` row of its own first.
 --
 -- Every section leaves its colour roles EMPTY on purpose. They resolve through
 -- `--tgv-*`, which 01-theme.sql rewrites to her palette — which is the whole
@@ -33,16 +41,24 @@ BEGIN;
 
 SELECT set_config('app.actor', 'migration:resonantweaver-02-pages', true);
 
--- ── the contact form ───────────────────────────────────────────────────────
--- The section below is a `form-live`, which is reference-by-id: the definition
--- lives in `public.forms` and submissions land in her Forms inbox with the
--- anti-abuse engine in front of them. Porting ContactForm.tsx would have been a
--- second form doing the same job — the duplicate-but-different pair that starts
--- drift. Fields, labels, options and the thank-you line are generated from her
--- own dictionary, so the form a visitor meets is the one she wrote.
+-- ── her forms ──────────────────────────────────────────────────────────────
+-- Every form section below is a `form-live`, which is reference-by-id: the
+-- definition lives in `public.forms` and submissions land in her Forms inbox
+-- with the anti-abuse engine in front of them. Porting ContactForm.tsx would
+-- have been a second form doing the same job — the duplicate-but-different pair
+-- that starts drift. Fields, labels, options and the thank-you line are
+-- generated from her own source, so the form a visitor meets is the one she
+-- wrote.
 --
--- The id is DERIVED from the site and the slug, not random, so this file names
--- the same row every time it runs.
+-- Each id is DERIVED from the site and the slug, not random, so this file names
+-- the same rows every time it runs.
+--
+--   contact       — the one on both landings, from her i18n dictionary.
+--   pearl-chamber — name, email, intention, and a thank-you screen carrying the
+--                   two PayPal links. Her page reveals them only after the
+--                   intention is in hand, because the intention is what goes in
+--                   the box; the links live on the thank-you rather than on the
+--                   page so that order survives the move.
 INSERT INTO public.forms (id, site_id, owner_member_id, slug, title, purpose, status, definition, definition_version)
 SELECT '904a1f4d-26bb-42df-b3a2-a16a655fc99d'::uuid, v.id, o.member_id, 'contact', 'Get in touch',
        'general', 'published', $rwjson${
@@ -114,6 +130,58 @@ SELECT '904a1f4d-26bb-42df-b3a2-a16a655fc99d'::uuid, v.id, o.member_id, 'contact
   ) o ON true
  WHERE v.subdomain = 'resonantweaver'
    AND NOT EXISTS (SELECT 1 FROM public.forms WHERE id = '904a1f4d-26bb-42df-b3a2-a16a655fc99d'::uuid);
+
+INSERT INTO public.forms (id, site_id, owner_member_id, slug, title, purpose, status, definition, definition_version)
+SELECT 'd05bbb9f-28f1-4f61-b866-78d02a264dd5'::uuid, v.id, o.member_id, 'pearl-chamber', 'The Pearl Chamber',
+       'general', 'published', $rwjson${
+  "title": "The Pearl Chamber",
+  "version": 1,
+  "fields": [
+    {
+      "ref": "name",
+      "type": "short_text",
+      "title": "Name",
+      "required": true
+    },
+    {
+      "ref": "email",
+      "type": "email",
+      "title": "Email",
+      "required": true
+    },
+    {
+      "ref": "intention",
+      "type": "long_text",
+      "title": "Intention",
+      "required": true
+    }
+  ],
+  "settings": {
+    "submitLabel": "Continue to Payment"
+  },
+  "thankyou": {
+    "title": "Intention received.",
+    "description": "$11 for one week of daily tending, or as a weekly subscription for continued support. You can cancel any time.",
+    "ctas": [
+      {
+        "label": "One Week · $11",
+        "href": "https://www.paypal.com/ncp/payment/DJPQ2RD3V8QAC",
+        "target": "_blank"
+      },
+      {
+        "label": "Subscribe · $11 / week",
+        "href": "https://www.paypal.com/webapps/billing/plans/subscribe?plan_id=P-92Y41769K2021445TNIKJDZA",
+        "target": "_blank"
+      }
+    ]
+  }
+}$rwjson$::jsonb, 1
+  FROM public.villager_sites v
+  JOIN LATERAL (
+    SELECT member_id FROM public.villager WHERE site_id = v.id ORDER BY member_id LIMIT 1
+  ) o ON true
+ WHERE v.subdomain = 'resonantweaver'
+   AND NOT EXISTS (SELECT 1 FROM public.forms WHERE id = 'd05bbb9f-28f1-4f61-b866-78d02a264dd5'::uuid);
 
 CREATE TEMP TABLE _rw_pages (slug text, title text, in_nav boolean, mode text, model jsonb)
   ON COMMIT DROP;
@@ -1991,6 +2059,72 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/experience/all-products', 'A
   ]
 }$rwjson$::jsonb);
 
+INSERT INTO _rw_pages VALUES ('pearl-chamber', 'The Pearl Chamber', false, 'published', $rwjson${
+  "id": "pm-rw-pearl-chamber",
+  "slug": "pearl-chamber",
+  "title": "The Pearl Chamber",
+  "chrome": {
+    "navEnabled": true,
+    "footerEnabled": true,
+    "meta": {
+      "description": "Set your intention and subscribe to the weekly Pearl Chamber container.",
+      "keywords": [],
+      "ogImage": "/images/tenants/resonantweaver/ReikiBox.png"
+    }
+  },
+  "sections": [
+    {
+      "id": "sec-pearl-card",
+      "type": "rf-offer-card",
+      "label": "The Pearl Chamber",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "columns": 1,
+          "heading": "",
+          "bulletGlyph": "✦",
+          "padTop": 0,
+          "padBottom": 25,
+          "items": [
+            {
+              "anchorId": "pearl-chamber",
+              "title": "The Pearl Chamber",
+              "sub": "Set your intention",
+              "body": "Share your name, email, and the intention you want held in the Pearl Chamber. Once it is received, you can complete your payment.",
+              "listLabel": "",
+              "bullets": [],
+              "note": "",
+              "price": "$11 / week",
+              "ctaLabel": "",
+              "ctaHref": "",
+              "variant": "feature",
+              "leadImageUrl": "/images/tenants/resonantweaver/ReikiBox.png",
+              "leadImageAlt": "Pearl Chamber subscription artwork",
+              "leadImageGlow": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "sec-pearl-form",
+      "type": "form-live",
+      "label": "Set your intention",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "formId": "d05bbb9f-28f1-4f61-b866-78d02a264dd5",
+          "accent": "",
+          "hideHeader": true,
+          "maxWidth": 640
+        }
+      }
+    }
+  ]
+}$rwjson$::jsonb);
+
 INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/meeting-your-galactic-self-meditation', 'Meeting Your Galactic Self — Meditation — Offer Preview', false, 'published', $rwjson${
   "id": "pm-rw-offer-meeting-your-galactic-self-meditation",
   "slug": "landing-star-preview/offer/meeting-your-galactic-self-meditation",
@@ -3157,7 +3291,7 @@ SELECT 'pages authored: ' || count(*) FROM ins;
 DO $$
 DECLARE
   n int;
-  expected constant text[] := ARRAY['home', 'home-classic', 'writing', 'landing-star-preview/receive', 'landing-star-preview/experience/all-products', 'landing-star-preview/offer/meeting-your-galactic-self-meditation', 'landing-star-preview/offer/galactic-initiation', 'landing-star-preview/offer/resonance-mirror', 'landing-star-preview/offer/pearl-chamber', 'landing-star-preview/offer/galactic-pendulum', 'landing-star-preview/offer/galactic-integration-session'];
+  expected constant text[] := ARRAY['home', 'home-classic', 'writing', 'landing-star-preview/receive', 'landing-star-preview/experience/all-products', 'pearl-chamber', 'landing-star-preview/offer/meeting-your-galactic-self-meditation', 'landing-star-preview/offer/galactic-initiation', 'landing-star-preview/offer/resonance-mirror', 'landing-star-preview/offer/pearl-chamber', 'landing-star-preview/offer/galactic-pendulum', 'landing-star-preview/offer/galactic-integration-session'];
   expected_drafts constant text[] := ARRAY['landing-star-preview/meet', 'landing-star-preview/develop']::text[];
 BEGIN
   SELECT count(*) INTO n FROM public.page_models
