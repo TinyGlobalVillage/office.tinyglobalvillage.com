@@ -116,11 +116,28 @@ UPDATE public.dashboard_features df
 -- those sites are not entitled to and renders nothing. A dead tab on a
 -- customer's dashboard is worse than no tab. Uniform WITHIN the product rule,
 -- not uniform through it.
+--
+-- SCOPED TO THE PERSON, NOT THE SITE, and the first re-run is what taught me
+-- that. `dashboard_features` is keyed by (user_id, feature_key) — it is the
+-- PERSON'S dashboard, as the birth seeder's own comment says — so a member who
+-- owns a proprietary site AND an ordinary one appears twice in `_owners`. A
+-- per-site predicate then inserted `profile` on one pass and deleted it on the
+-- other, forever: the file reported INSERT 1 / DELETE 1 on every run instead of
+-- settling. Gio owns both giocoelho and refusionist, so this was live.
+--
+-- The rule a per-person table can actually express is: keep `profile` for anyone
+-- who owns AT LEAST ONE site it is proprietary to. That is a real limitation
+-- worth knowing — per-SITE feature grants are not representable here at all —
+-- and it is why the two dashboards this cleans up belonged to owners with no
+-- proprietary site of their own.
 DELETE FROM public.dashboard_features df
- USING _owners o
- WHERE df.user_id = o.member_id
-   AND df.feature_key = 'profile'
-   AND o.subdomain NOT IN ('refusionist', 'resonantweaver');
+ WHERE df.feature_key = 'profile'
+   AND EXISTS (SELECT 1 FROM _owners o WHERE o.member_id = df.user_id)
+   AND NOT EXISTS (
+     SELECT 1 FROM _owners o2
+      WHERE o2.member_id = df.user_id
+        AND o2.subdomain IN ('refusionist', 'resonantweaver')
+   );
 
 -- ── assertions ─────────────────────────────────────────────────────────────
 DO $$
@@ -159,7 +176,11 @@ BEGIN
     FROM public.dashboard_features df
     JOIN _owners o ON o.member_id = df.user_id
    WHERE df.feature_key = 'profile'
-     AND o.subdomain NOT IN ('refusionist', 'resonantweaver');
+     AND NOT EXISTS (
+       SELECT 1 FROM _owners o2
+        WHERE o2.member_id = df.user_id
+          AND o2.subdomain IN ('refusionist', 'resonantweaver')
+     );
   IF n <> 0 THEN
     RAISE EXCEPTION 'assert: profile leaked onto % site(s) it is not proprietary to', n;
   END IF;
