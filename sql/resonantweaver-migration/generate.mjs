@@ -138,6 +138,12 @@ const ROUTES = [
     renders: "WritingPage",
     note: "the writing index",
   },
+  {
+    slug: "landing-star-preview/experience/all-products",
+    file: `${HOME_DIR}/landing-star-preview/experience/all-products/page.tsx`,
+    renders: "AllProducts",
+    note: "the offering listing — every door's 'see all' CTA lands here",
+  },
 ];
 
 function guardRoutes() {
@@ -179,7 +185,12 @@ function loadData() {
       // and the per-door accent are computed by HER function or they drift.
       `export * as star from ${p("src/app/[lang]/(public)/(home)/landing-star-preview/LandingStarPreview.content")};`,
       `export * as star_gateways from ${p("src/app/[lang]/(public)/(home)/landing-star-preview/[gateway]/GatewayPage.content")};`,
-      `export { catalog, getOfferBySlug, resolveOffer } from ${p("src/data/offers/offers")};`,
+      // The offering listing behind every door's "See all" CTA. Its own copy is
+      // three headings and a closing callout; the nine tiles on it come from
+      // `offersByDoor`, which is HER filter (it drops `hidden`) and is imported
+      // rather than reimplemented for the same reason `resolveOffer` is.
+      `export * as star_all from ${p("src/app/[lang]/(public)/(home)/landing-star-preview/experience/all-products/AllProducts.content")};`,
+      `export { catalog, getOfferBySlug, resolveOffer, offersByDoor } from ${p("src/data/offers/offers")};`,
     ].join("\n"),
   );
   if (!fs.existsSync(ESBUILD)) die(`esbuild not found at ${ESBUILD}`);
@@ -1106,6 +1117,134 @@ function offersWithDetailPages(data) {
   return data.catalog.filter((e) => e.detail);
 }
 
+/** THE OFFERING LISTING — `experience/all-products`.
+ *
+ *  Every door on the hub ends in a "see all" CTA and this is where it lands, so
+ *  until it exists three published pages point at a 404. It is also the only
+ *  page on the site that shows the WHOLE catalog at once: nine tiles in three
+ *  door-grouped grids, two across.
+ *
+ *  IT IS A LIST, WHICH IS WHY NOTHING HERE IS TRANSCRIBED. The page's own words
+ *  are four lines — a back link, a header, three door labels, a closing callout
+ *  — and they are imported from `AllProducts.content.ts` like the rest of her
+ *  data. The tiles come from `offersByDoor`, HER filter, which drops the three
+ *  `hidden` offers. That is a different rule from the offer PAGES, which ignore
+ *  `hidden` because the route reads the catalog by slug: an offer can be off
+ *  the list and still have a live page, and both facts travel.
+ *
+ *  NOINDEX, like every other page under `landing-star-preview/`. Her
+ *  `metadata` sets `robots: { index: false, follow: false }` on this route
+ *  today. It is her live commerce listing and she may well want it indexed
+ *  after the move — but that is a switch in the studio, not a decision this
+ *  generator gets to make on her behalf. */
+function buildAllProducts(data) {
+  const { header, doorSections, closing } = data.star_all;
+  const sections = [
+    // "← Back to the three doors" — her href is `/{lang}/landing-star-preview/`,
+    // which on both apps is a redirect to the site root. The doors ARE the home
+    // page now, so the stored link goes straight there rather than through the
+    // hop.
+    section("sec-all-back", "rf-linkbar", "Back", {
+      links: [{ label: data.star_all.backLink, href: "/" }],
+      align: "left",
+    }),
+    section("sec-all-head", "rf-media-copy", "Header", {
+      imageUrl: "",
+      imageAlt: "",
+      imagePosition: "left",
+      eyebrow: header.eyebrow,
+      eyebrowColor: "accent",
+      heading: header.title,
+      headingLevel: 1,
+      headingAccent: "",
+      paragraphs: [header.copy],
+      chips: [],
+      ctas: [],
+    }),
+  ];
+
+  for (const door of doorSections) {
+    const offers = data.offersByDoor(door.id);
+    if (!offers.length) continue;
+    sections.push(
+      section(`sec-all-${door.id}`, "rf-offer-card", door.label, {
+        columns: 2,
+        heading: door.label,
+        bulletGlyph: "✦",
+        padTop: 0,
+        padBottom: 25,
+        items: offers.map((offer, i) => ({
+          anchorId: offer.slug,
+          // OfferingTile prints "01 · <sub>" as one line above the title, so the
+          // index and the qualifier arrive joined the way she wrote them.
+          eyebrow: `0${i + 1} · ${offer.sub}`,
+          title: offer.title,
+          sub: "",
+          body: offer.paragraphs[0] ?? offer.sub,
+          listLabel: "",
+          bullets: [],
+          // The StatusBadge beside the price. A tile that says "Coming soon" on
+          // her site must not arrive silently bookable here.
+          note: STATUS_LABEL[offer.status] ?? "",
+          price: offer.price,
+          ctaLabel: offer.hasDetailPage ? "Learn more" : "View offering",
+          // resolveOffer already decided where the tile points; her component
+          // only adds the language segment, which the pooled renderer supplies.
+          ctaHref: offer.href,
+          ctaTarget: offer.external ? "_blank" : "",
+          // Two of the nine carry artwork. It sits ABOVE the copy on her tiles,
+          // and it is artwork on a transparent ground, so it is fitted whole
+          // rather than cropped to fill.
+          variant: offer.image ? "media-top" : "standard",
+          mediaUrl: asset(offer.image),
+          mediaAlt: offer.imageAlt ?? "",
+          mediaFit: "contain",
+        })),
+      }),
+    );
+  }
+
+  sections.push(
+    section("sec-all-close", "rf-media-copy", "Closing", {
+      imageUrl: "",
+      imageAlt: "",
+      imagePosition: "left",
+      eyebrow: closing.eyebrow,
+      eyebrowColor: "accent",
+      heading: closing.title,
+      headingLevel: 2,
+      headingAccent: "",
+      paragraphs: [closing.copy],
+      chips: [],
+      ctas: [{ label: closing.actionLabel, href: "/#contact", variant: "ritual" }],
+    }),
+  );
+
+  const slug = "landing-star-preview/experience/all-products";
+  const title = "All Experiences — Landing Preview";
+  return {
+    slug,
+    title,
+    inNav: false,
+    model: {
+      id: "pm-rw-all-products",
+      slug,
+      title,
+      chrome: {
+        navEnabled: true,
+        footerEnabled: true,
+        meta: {
+          description: header.copy,
+          keywords: [],
+          ogImage: asset("/images/landing-star-preview/GalacticSelf.jpg"),
+          noindex: true,
+        },
+      },
+      sections,
+    },
+  };
+}
+
 function buildWriting(data) {
   const w = inlineCopy.writing;
   const sections = [
@@ -1571,6 +1710,7 @@ const pages = [
   buildHomeClassic(data, form.id),
   buildWriting(data),
   ...ALL_GATEWAYS.map((id) => buildGatewayPage(data, id)),
+  buildAllProducts(data),
   ...offersWithDetailPages(data).map((e) => buildOfferPage(data, e)),
 ];
 

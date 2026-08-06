@@ -1685,6 +1685,312 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/receive', 'Receive Personal 
   ]
 }$rwjson$::jsonb);
 
+INSERT INTO _rw_pages VALUES ('landing-star-preview/experience/all-products', 'All Experiences — Landing Preview', false, 'published', $rwjson${
+  "id": "pm-rw-all-products",
+  "slug": "landing-star-preview/experience/all-products",
+  "title": "All Experiences — Landing Preview",
+  "chrome": {
+    "navEnabled": true,
+    "footerEnabled": true,
+    "meta": {
+      "description": "From a focused reading to a full course or steady intention holding — begin with the container that matches what is moving now, grouped by the door it belongs to.",
+      "keywords": [],
+      "ogImage": "/images/tenants/resonantweaver/GalacticSelf.jpg",
+      "noindex": true
+    }
+  },
+  "sections": [
+    {
+      "id": "sec-all-back",
+      "type": "rf-linkbar",
+      "label": "Back",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "links": [
+            {
+              "label": "← Back to the three doors",
+              "href": "/"
+            }
+          ],
+          "align": "left"
+        }
+      }
+    },
+    {
+      "id": "sec-all-head",
+      "type": "rf-media-copy",
+      "label": "Header",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "imageUrl": "",
+          "imageAlt": "",
+          "imagePosition": "left",
+          "eyebrow": "The complete offering map",
+          "eyebrowColor": "accent",
+          "heading": "Choose the depth of support you need",
+          "headingLevel": 1,
+          "headingAccent": "",
+          "paragraphs": [
+            "From a focused reading to a full course or steady intention holding — begin with the container that matches what is moving now, grouped by the door it belongs to."
+          ],
+          "chips": [],
+          "ctas": []
+        }
+      }
+    },
+    {
+      "id": "sec-all-meet",
+      "type": "rf-offer-card",
+      "label": "Meet Your Galactic Self",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "columns": 2,
+          "heading": "Meet Your Galactic Self",
+          "bulletGlyph": "✦",
+          "padTop": 0,
+          "padBottom": 25,
+          "items": [
+            {
+              "anchorId": "starwoven-journey",
+              "eyebrow": "01 · Your celestial pattern, read in full",
+              "title": "Starwoven Journey",
+              "sub": "",
+              "body": "The full Starwoven Journey — a personalised, interactive exploration of your galactic themes, patterns and resonances.",
+              "listLabel": "",
+              "bullets": [],
+              "note": "Coming soon",
+              "price": "$33",
+              "ctaLabel": "View offering",
+              "ctaHref": "/starseed/",
+              "ctaTarget": "",
+              "variant": "standard",
+              "mediaUrl": "",
+              "mediaAlt": "",
+              "mediaFit": "contain"
+            },
+            {
+              "anchorId": "galactic-field-guide",
+              "eyebrow": "02 · A growing archive of the star systems",
+              "title": "Galactic Field Guide",
+              "sub": "",
+              "body": "42 systems and counting — constellation records, star currents and field dossiers gathered into one navigable celestial chart. Still in development; some entries are complete, others are still being written or illustrated.",
+              "listLabel": "",
+              "bullets": [],
+              "note": "Waitlist",
+              "price": "Preview access",
+              "ctaLabel": "View offering",
+              "ctaHref": "/galactic-field-guide/",
+              "ctaTarget": "",
+              "variant": "standard",
+              "mediaUrl": "",
+              "mediaAlt": "",
+              "mediaFit": "contain"
+            },
+            {
+              "anchorId": "extended-starseed-profile",
+              "eyebrow": "03 · The full personal reading",
+              "title": "Extended Starseed Profile",
+              "sub": "",
+              "body": "[[placeholder — a deeper personalised profile based on the fixed-star framework: gateway, star lineages, gifts and distortions, soul mission, integration path. Not ready to sell until the profile system and delivery format are stable.]]",
+              "listLabel": "",
+              "bullets": [],
+              "note": "Coming soon",
+              "price": "$177 – $222",
+              "ctaLabel": "View offering",
+              "ctaHref": "#",
+              "ctaTarget": "",
+              "variant": "standard",
+              "mediaUrl": "",
+              "mediaAlt": "",
+              "mediaFit": "contain"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "sec-all-develop",
+      "type": "rf-offer-card",
+      "label": "Develop Your Perception",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "columns": 2,
+          "heading": "Develop Your Perception",
+          "bulletGlyph": "✦",
+          "padTop": 0,
+          "padBottom": 25,
+          "items": [
+            {
+              "anchorId": "galactic-initiation",
+              "eyebrow": "01 · A three-day experiential course in galactic perception, contact and Earth translation",
+              "title": "Galactic Initiation",
+              "sub": "",
+              "body": "Over three live sessions, you learn how galactic resonance registers through your own system, how to approach contact without surrendering discernment, and how to translate what you receive into something you can actually live on Earth. Not a course about proving where you came from — an initiation into perceiving it.",
+              "listLabel": "",
+              "bullets": [],
+              "note": "Coming soon",
+              "price": "$222",
+              "ctaLabel": "Learn more",
+              "ctaHref": "/landing-star-preview/offer/galactic-initiation/",
+              "ctaTarget": "",
+              "variant": "standard",
+              "mediaUrl": "",
+              "mediaAlt": "",
+              "mediaFit": "contain"
+            },
+            {
+              "anchorId": "awareness-and-perception-training",
+              "eyebrow": "02 · Founding-cohort training",
+              "title": "Awareness and Perception Training",
+              "sub": "",
+              "body": "[[placeholder — the deeper foundational course: consciously noticing, recognising and working with subtle perception. Broader than starseed work — supports mediumship, healing, intuition and energy practices.]]",
+              "listLabel": "",
+              "bullets": [],
+              "note": "In development",
+              "price": "$333 (founding)",
+              "ctaLabel": "View offering",
+              "ctaHref": "#",
+              "ctaTarget": "",
+              "variant": "standard",
+              "mediaUrl": "",
+              "mediaAlt": "",
+              "mediaFit": "contain"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "sec-all-receive",
+      "type": "rf-offer-card",
+      "label": "Receive Personal Guidance",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "columns": 2,
+          "heading": "Receive Personal Guidance",
+          "bulletGlyph": "✦",
+          "padTop": 0,
+          "padBottom": 25,
+          "items": [
+            {
+              "anchorId": "resonance-mirror",
+              "eyebrow": "01 · The deep, full-spectrum reading",
+              "title": "Resonance Mirror",
+              "sub": "",
+              "body": "Your energy field holds more information than most people ever get access to. This reading gives you that access.",
+              "listLabel": "",
+              "bullets": [],
+              "note": "Available now",
+              "price": "$155",
+              "ctaLabel": "Learn more",
+              "ctaHref": "/landing-star-preview/offer/resonance-mirror/",
+              "ctaTarget": "",
+              "variant": "media-top",
+              "mediaUrl": "/images/tenants/resonantweaver/energybody.png",
+              "mediaAlt": "Subtle energy body artwork",
+              "mediaFit": "contain"
+            },
+            {
+              "anchorId": "pearl-chamber",
+              "eyebrow": "02 · A weekly holding for one intention",
+              "title": "The Pearl Chamber",
+              "sub": "",
+              "body": "Your intention is placed inside the chamber and held there within 24 hours of purchase, where it is tended daily through meditation, energy work, and spoken enchantment.",
+              "listLabel": "",
+              "bullets": [],
+              "note": "Available now",
+              "price": "$11",
+              "ctaLabel": "Learn more",
+              "ctaHref": "/landing-star-preview/offer/pearl-chamber/",
+              "ctaTarget": "",
+              "variant": "media-top",
+              "mediaUrl": "/images/tenants/resonantweaver/ReikiBox.png",
+              "mediaAlt": "Pearl Chamber subscription artwork",
+              "mediaFit": "contain"
+            },
+            {
+              "anchorId": "house-reading",
+              "eyebrow": "03 · Energetic attunement for spaces",
+              "title": "House Reading",
+              "sub": "",
+              "body": "Every space carries its own history. Some of it settles naturally. Some of it doesn't.",
+              "listLabel": "",
+              "bullets": [],
+              "note": "Available now",
+              "price": "$77",
+              "ctaLabel": "View offering",
+              "ctaHref": "https://www.paypal.com/ncp/payment/FLFV8FX5RZP92",
+              "ctaTarget": "_blank",
+              "variant": "standard",
+              "mediaUrl": "",
+              "mediaAlt": "",
+              "mediaFit": "contain"
+            },
+            {
+              "anchorId": "galactic-integration-session",
+              "eyebrow": "04 · Personal integration support",
+              "title": "Galactic Integration Session",
+              "sub": "",
+              "body": "[[placeholder — a one-to-one session, roughly 75 minutes, helping translate what's active now (from a reading, a transition, or ongoing perception) into ordinary life, work, relationships and embodiment. Not another origin reading.]]",
+              "listLabel": "",
+              "bullets": [],
+              "note": "Founding access",
+              "price": "$144 (founding) → $177",
+              "ctaLabel": "Learn more",
+              "ctaHref": "/landing-star-preview/offer/galactic-integration-session/",
+              "ctaTarget": "",
+              "variant": "standard",
+              "mediaUrl": "",
+              "mediaAlt": "",
+              "mediaFit": "contain"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "sec-all-close",
+      "type": "rf-media-copy",
+      "label": "Closing",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "imageUrl": "",
+          "imageAlt": "",
+          "imagePosition": "left",
+          "eyebrow": "Not sure where to begin",
+          "eyebrowColor": "accent",
+          "heading": "Start with what feels most present",
+          "headingLevel": 2,
+          "headingAccent": "",
+          "paragraphs": [
+            "You do not need to diagnose the field before reaching out. Describe what is moving, and we can find the right depth together."
+          ],
+          "chips": [],
+          "ctas": [
+            {
+              "label": "Start a conversation",
+              "href": "/#contact",
+              "variant": "ritual"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}$rwjson$::jsonb);
+
 INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/meeting-your-galactic-self-meditation', 'Meeting Your Galactic Self — Meditation — Offer Preview', false, 'published', $rwjson${
   "id": "pm-rw-offer-meeting-your-galactic-self-meditation",
   "slug": "landing-star-preview/offer/meeting-your-galactic-self-meditation",
@@ -2851,7 +3157,7 @@ SELECT 'pages authored: ' || count(*) FROM ins;
 DO $$
 DECLARE
   n int;
-  expected constant text[] := ARRAY['home', 'home-classic', 'writing', 'landing-star-preview/receive', 'landing-star-preview/offer/meeting-your-galactic-self-meditation', 'landing-star-preview/offer/galactic-initiation', 'landing-star-preview/offer/resonance-mirror', 'landing-star-preview/offer/pearl-chamber', 'landing-star-preview/offer/galactic-pendulum', 'landing-star-preview/offer/galactic-integration-session'];
+  expected constant text[] := ARRAY['home', 'home-classic', 'writing', 'landing-star-preview/receive', 'landing-star-preview/experience/all-products', 'landing-star-preview/offer/meeting-your-galactic-self-meditation', 'landing-star-preview/offer/galactic-initiation', 'landing-star-preview/offer/resonance-mirror', 'landing-star-preview/offer/pearl-chamber', 'landing-star-preview/offer/galactic-pendulum', 'landing-star-preview/offer/galactic-integration-session'];
   expected_drafts constant text[] := ARRAY['landing-star-preview/meet', 'landing-star-preview/develop']::text[];
 BEGIN
   SELECT count(*) INTO n FROM public.page_models
