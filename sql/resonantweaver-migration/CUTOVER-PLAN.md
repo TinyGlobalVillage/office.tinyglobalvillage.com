@@ -18,7 +18,50 @@ Her schema holds exactly one populated table: `journey_signups`, 2 rows.
 **And the API half is nearly free.** 106 of her 116 API routes exist in HQ at the identical
 path. That is the number that decides how big this is, and it was measured, not assumed.
 
-## 1 — Bucket B, her commerce funnel
+## 1 — Bucket B, her commerce funnel — **DONE 2026-08-06, except the two named non-ports**
+
+Fifteen published page rows and two drafts now, all generated. What landed today, on top of
+the star landing, the three doors and the six offer detail pages that were already in:
+
+- **`experience/all-products`** — the offering listing every door's "see all" CTA points at,
+  which until now was three published pages linking into a 404. Its own words are four lines
+  imported from `AllProducts.content.ts`; the nine tiles come from `offersByDoor`, HER filter,
+  which drops the three `hidden` offers. That is deliberately a different rule from the offer
+  PAGES, which ignore `hidden` because the route reads the catalog by slug — an offer can be
+  off the list and still have a live page.
+- **`/pearl-chamber`** — the dead CTA below is dead no longer. It lands as a card plus a form
+  whose thank-you screen carries the two PayPal links, because her page reveals them only
+  after the intention is in hand. That needed `thankyou.ctas` in `@tgv/module-forms`; putting
+  the buttons on the page beside the form would have made them reachable without answering.
+- **`/starseed`** — fifteen sections from her one typed `content.ts`. It unblocked the two
+  held gateway redirects and the `starwoven-journey` tile.
+
+Two catalog gaps were filled by extending existing entries rather than adding new ones, which
+is what Phase 0's open question asked for: `rf-offer-card` gained a `media-top` layout (the
+photo above the copy, for a card that is one of two or three across and has no room for a
+second column) and a `mediaFit`; `rf-list` gained an optional per-item colour, so the eight
+star currents keep the WCAG-checked accent the product itself paints them in.
+
+**NOT AUTHORED, and each for a stated reason:**
+
+- **`experience/[product]`** — three pages her own STATUS.md calls the "old safety-net route
+  (untouched)", superseded by `offer/[slug]`, with deleting them left as an open question.
+  These are not pages she built and never published; they are content she published TWICE —
+  the copy is the catalog's `detail` blocks nearly verbatim. Authoring them would put two
+  editable copies of the same three offers in the studio to be kept in step by hand forever.
+  The three URLs are preserved as `SITE_REDIRECTS` entries to their live twins instead.
+- **`landing-star-preview/course`** — an interactive mockup, not content: four tabs of text
+  inputs and selects whose own copy says "nothing on this page saves, and no login actually
+  gates it yet". Same class as giocoelho's `/playlists` and `/fitnesstools/timer` and it needs
+  the same ruling from Gio — port it to HQ, or lose it at cutover.
+- **the two waitlist-only offers** (`extended-starseed-profile`,
+  `awareness-and-perception-training`) — they render `WaitlistForm`, which needs a
+  `public.forms` row of its own. Cheap now that `pagesSql` takes a list of forms.
+
+The rest of this section is the reasoning that got there, kept because it is still the rule
+for `open-your-journey` below.
+
+---
 
 The last body of content still living as code, and by far the largest thing left: about
 5,500 lines across four route trees.
@@ -49,7 +92,7 @@ the Atom Library before drawing a chevron, a price or a CTA button.
 
 **One CTA is already dead and stays dead until this lands.** The Pearl Chamber link points at
 a path the pooled renderer does not serve — the same knowingly-broken link `/playlists` was on
-giocoelho.
+giocoelho. *(Fixed 2026-08-06 — `/pearl-chamber` is a page row.)*
 
 ## 2 — The journey signups
 
