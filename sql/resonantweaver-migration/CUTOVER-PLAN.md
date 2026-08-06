@@ -18,42 +18,6 @@ Her schema holds exactly one populated table: `journey_signups`, 2 rows.
 **And the API half is nearly free.** 106 of her 116 API routes exist in HQ at the identical
 path. That is the number that decides how big this is, and it was measured, not assumed.
 
-## 0 — THE POOLED HOME PAGE IS THE WRONG PAGE (found 2026-08-06, blocks the cutover)
-
-**`site='resonantweaver'`, `slug='home'` holds `/home-classic` — the landing she retired.**
-Not a stale row, not drift: Phase 3 read the wrong file from the start.
-
-`generate.mjs`'s `buildHome()` reads `src/data/home/{offerings,testimonials,faq}.ts`, which is
-`onePage.tsx`'s data. But `(home)/page.tsx` has rendered **`LandingStarPreview`** since
-`bb7a892` on **2026-07-30** — five days before Phase 3 was applied — and `onePage` moved to
-`(home)/home-classic/`, where its own metadata says `robots: { index: false, follow: false }`.
-
-Measured, not inferred. The pooled row's twelve sections are `Hero · Intro · Journey gateway ·
-Offerings 1–4 · Testimonials ×2 · FAQ · Contact · About` — onePage's structure. Live
-`resonantweaver.com/en/` carries the star landing's markers ("Knowing is a constant unfolding",
-"Where people begin") and **zero** onePage markers ("Best suited for", "🛈 see FAQ"), and
-`/en/home-classic/` answers 200 separately.
-
-So on cutover day her front door would silently become a page she took down — for every
-visitor and every indexed link to `/`, including the two funnel CTAs her live home carries
-(`/landing-star-preview/offer/{resonance-mirror,pearl-chamber}/`).
-
-**Which moves her homepage out of bucket A and into bucket B**, because the star landing IS
-the funnel's front door and reads `offers.ts` like the rest of it. Two consequences:
-
-- `buildHome()` re-points at `LandingStarPreview.content.ts` + `offers.ts`. The eight sections
-  it renders all have catalog entries already — `rf-split-hero`, `text-rich-text`,
-  `rf-offer-card`, `text-highlights`, `rf-accordion`, `form-live`, `rf-media-copy` — so this is
-  a re-point, not a new component.
-- `home-classic` becomes its own row if it is kept at all. The note at the foot of this file
-  ("hers to bring back, not ours to port") was written believing it was NOT ported; the truth
-  is the opposite — it is the only home page that IS ported. Reverse that call deliberately,
-  and keep the `noindex` with it so it cannot compete with `/`.
-
-**The lesson is the one Phase 3 already wrote down and this missed anyway:** the generator
-guards every string it transcribes back against her source, but nothing guarded *which source
-file the page comes from*. `--check` passed the whole time. Add the route→component assertion.
-
 ## 1 — Bucket B, her commerce funnel
 
 The last body of content still living as code, and by far the largest thing left: about
@@ -192,11 +156,5 @@ file move.
 
 ## What is deliberately NOT in this plan
 
-~~`home-classic` — her kept-aside old landing, the same way `retiredDoors` keeps the two doors
-she took off the hub. It is hers to bring back, not ours to port.~~
-
-**Struck 2026-08-06 — this was written on a false premise. See §0:** `home-classic` is not
-merely ported, it is currently sitting in the database AS her home page. The open question is
-the reverse of the one asked here — whether to keep it at all, and under which slug. What is
-genuinely not in this plan is `retiredDoors`, the two doors she took off the hub, which live in
-her source and stay there.
+`home-classic` — her kept-aside old landing, the same way `retiredDoors` keeps the two doors
+she took off the hub. It is hers to bring back, not ours to port.
