@@ -63,21 +63,144 @@ green" was never evidence of appearance and must stop being used as if it were.*
 
 ---
 
-## 3 — The rule this plan runs on
+## 3 — The ruling, and the rule it produces
 
-> **Parameters where the difference is decoration. Her component where the
-> difference is structure.**
+**Gio, 2026-08-07:** *"I want her to have a pixel perfect site from the original,
+and I want generic components made from any new atoms that are needed that are
+derived from her code. It's okay to have multiple types of atoms, we can always
+redact them later when we do a review, but I'd rather more atoms and more
+components than less. If it doesn't exist on the component library add it."*
 
-Gio set this rule in PHASE-0 as an open question about extending versus adding
-catalog entries, and the cutover answered it: extending a generic entry until it
-can express a bespoke layout is how a catalog rots, and it still will not match.
-The journey is the proof of the other path — `rf-journey` renders her code, and
-it renders identically because it *is* her code.
+So the target is not "port her components as hers" and it is not "stretch the
+generic ones until they fit". It is: **decompose her code into atoms and
+components, make those generic, and put them in the library.** Her site is
+pixel-perfect because it is drawn by the real thing; the platform is richer
+because the real thing is now everyone's.
 
-So the target is not "make `rf-media-copy` able to look like her". It is: keep
-the generic entry where her section genuinely is that generic thing, and port
-hers where it is not. Pixel parity then holds **by construction** for the ported
-ones instead of being chased.
+> **The rule: her design is the SOURCE, never the DEFAULT.**
+>
+> A component derived from her code ships with platform-neutral defaults and
+> theme-token colours. Her values live in her `page_models` row, explicitly.
+> That is exactly what §7 rung 1 did with `rf-journey`'s `headingFont`: the
+> family she authored in is the fallback, her row carries the choice, and any
+> other tenant gets their own.
+
+**Bias to MORE.** Two atoms that turn out to be one is a review finding; one
+atom bent to cover two cases is a bug nobody can see. Where it is not obvious
+whether something is a new atom or a variant of an existing one, **add it** and
+move on. To make that safe to be generous about, every new entry records where
+it came from — `derivedFrom: "resonantweaver/OfferingCard"` — so the later
+review can cluster by provenance instead of by guesswork. Redaction is cheap
+when the lineage is written down and expensive when it is not.
+
+**What stops "generic" from being generic in name only.** A component derived
+from one tenant and only ever seen against that tenant is that tenant's
+component wearing a general name. Two checks make it checkable rather than
+hopeful, and both already exist:
+
+1. Every new catalog entry ships a **Sandbox demo using platform defaults**, not
+   hers. If it only looks right in her colours, it is not done.
+2. The **drift guard** added to `render-rf-sections.tsx` on 2026-08-07: strip
+   every `var()` fallback from the emitted CSS and fail if a tenant literal
+   survives outside one. It is what caught her palette hiding inside a shared
+   `RitualButton`, and it generalises to every entry this plan adds.
+
+---
+
+## 3b — Architecture
+
+### What her code actually contains (verified 2026-08-07)
+
+Her repo already has the two layers this plan needs, which is why deriving from
+it is realistic rather than aspirational.
+
+**The atom layer she already wrote** — `src/styles/`:
+`surfaces.ts` (surface treatments; `hudCardSurface` was already lifted out of it
+into `@tgv/module-component-library`), `dividers.ts` (divider shapes),
+`animations.ts`, `tokens.ts` (palette + serif — already handled by §7 rung 1),
+`breakpoints.ts`, `GlobalStyles.ts`.
+
+**The component layer** — 14 section components, and they map onto the 95 rows
+almost exactly:
+
+| hers | rows it should be drawing | today |
+|---|---|---|
+| `(home)/components/OfferingCard.tsx` | the 36 `rf-offer-card` | generic approximation |
+| `components/DetailSection.tsx` | much of the 35 `rf-media-copy` | generic approximation |
+| `(home)/components/HeroSection.tsx`, `components/ProductHero.tsx` | the 2 `rf-split-hero` | mirrored, wrong accent |
+| `(home)/components/Testimonials.tsx` | the 2 `rf-testimonials` | generic |
+| `(home)/components/FAQAccordion.tsx` | the 2 `rf-accordion` | generic |
+| `(home)/components/{Intro,About,Contact}Section.tsx`, `JourneyGateway.tsx`, `CalloutBar.tsx`, `Cards.tsx` | the 10 `rf-linkbar`, the `rf-list`, the `rf-door-card` | generic |
+| `components/WaitlistForm.tsx` | the 5 `form-live` | generic |
+| `components/SunWalkCard.tsx` | already moved with `@tgv/module-starseed` | ported |
+| `(home)/journey/**` | `rf-journey` | **ported — the one that matches** |
+
+`OnePage.styles.ts` is the shared stylesheet underneath all of them and is where
+most of the vertical rhythm lives — the 690px of missing page height is
+overwhelmingly here, not in any one component.
+
+So the real scope is roughly **14 components and 8–15 atoms**, not 95 ports.
+
+### Where things go
+
+Nothing new is invented; every destination already exists and has a law.
+
+- **Atoms** → `packages/@tgv/module-core/module-component-library/atoms/`
+  (`shipped.ts` + one `AtomSpec` each), surfaced in the Sandbox's **Atom
+  Library** (`src/app/components/sandbox/atom-lab/`) with
+  `SandboxEntry.tier: "atom"`.
+- **Components** → `packages/@tgv/module-core/module-page-editor/editor/
+  component-library/components/sections/<group>/<RfName>/` with the five-file
+  shape every entry has (`schema.ts`, `Render.tsx`, `EditorPanel.tsx`,
+  `Demo.tsx`, `README.md`), registered with `tier: "component"`.
+- **The composition law holds** (project CLAUDE.md, Gio 2026-08-02): an Atom is
+  solitary, a Component is a group of atoms. A thing that is one shape is an
+  atom even if her code called it a section.
+- **Check before creating** (`~/.claude/procedures/component-icon-check.md`) —
+  the standing rule stays. It is not in tension with "bias to more": the check
+  is one grep, and its answer is now "add it, record the provenance" rather than
+  "bend the existing one".
+
+### Four model gaps that block this, all verified in the code today
+
+These are prerequisites, not discoveries to make later.
+
+1. **`AtomSpec` has no state.** `spec.ts` carries `canvas`, `size`, `colors`,
+   `effects`, `text`, `icon` — and nothing for hover, focus, selected or
+   disabled. Every interactive thing she owns has a hover treatment. Needs a
+   sparse `states?: { hover?, focus?, active?, selected?, disabled? }` of
+   `AtomSpecPatch`, plus the matching levers in the Atomic Editor.
+   **Independently confirmed today** from the other side: the atom migration
+   lane stalled on exactly this for `TileButton` and `Lightswitch`, and reported
+   that forcing them without it produces "a fake four-state migration in place
+   of a real single-state one". So this is the model's next version, not a
+   Resonant Weaver special case.
+2. **`AtomSpec` has one `text` block.** Her offer card alone carries a title, a
+   price, a "best for" list and a CTA — four type scales. Needs named text slots
+   rather than one.
+3. **`AtomSpec` has one fill and one gradient stop.** `hudCardSurface` is a
+   layered gradient over an inset highlight; the two-stop linear fill cannot say
+   it. Needs either layered fills or a declared escape hatch that the drift
+   guard knows to skip.
+4. **`SiteTheme.fonts` has two roles for her six typefaces.** Phase 1 below.
+   This is also §7 rung 2, so it is owed anyway.
+
+### How pixel-perfect is guaranteed rather than hoped
+
+Per component, a fixed loop — and the order matters, because the last step is
+the one that has been skipped every time:
+
+1. Read her component. Extract its atoms first, spec them, land them in the Atom
+   Library with a platform-default demo.
+2. Build the catalog component from those atoms, generic, with neutral defaults.
+3. Author her row with her explicit values.
+4. **Render both, diff, iterate until under threshold.** Her component on :3003
+   against the catalog one behind the Host proxy, at 1440 / 768 / 390, section
+   crop not whole page.
+5. Only then move to the next one.
+
+The baseline this diffs against is already frozen in `baseline/`, so step 4 does
+not depend on her app still running.
 
 ---
 
@@ -141,24 +264,43 @@ Her nav and footer have **no row at all**, so this is authoring, not repair.
 4. Diff the chrome band alone at all three viewports before moving on — it is on
    every page, so it is 16 pages' worth of error for one fix.
 
-## Phase 3 — the sections, worst-diff first
+## Phase 1b — the four model gaps
 
-For each section the differ ranks, take one of three actions and record which:
+Before any component can be derived, the model has to be able to hold it. All
+four are verified against the code, not assumed — see §3b. In dependency order:
 
-- **Parameter fix** — the entry can express it and the row is wrong. The two
-  already known: `rf-split-hero`'s `markRight` is inverted, and her wordmark is
-  **copper** (`accent2`) where the entry paints `accent1`. Also the stray
-  `Explore` / `Learn more` CTAs that her page does not have, and the `→` glyph
-  dropped from "Ask about access".
-- **Extend the entry** — the difference is decoration and every tenant gains.
-- **Port her component** — the difference is structural. It arrives as its own
-  `rf-*` entry rendering her markup, the journey pattern, with her content as
-  props. Expect this for a meaningful share of the 36 `rf-offer-card` and 35
-  `rf-media-copy` instances, because that concentration is itself the evidence
-  that generic blocks were stretched.
+1. **`AtomSpec.states`** — sparse `AtomSpecPatch` per state, plus the Atomic
+   Editor levers and a drift-guard rule that reads them. Unblocks `TileButton`
+   and `Lightswitch` too, which the atom migration stalled on today, so P3
+   resumes on the back of this.
+2. **Named text slots** on `AtomSpec`, replacing the single `text` block.
+3. **Layered fills**, or a declared escape hatch the drift guard skips by name
+   rather than by silence.
+4. **Font roles** — Phase 1 above.
 
-Work in diff order, not in page order, and re-run the differ after each. One
-commit per section or per group, so a regression is bisectable.
+Each lands with its own spec-version bump and a migration for the two atoms
+already on the spec, so nothing published goes stale.
+
+## Phase 3 — the components, worst-diff first
+
+Work the fourteen in diff order, not page order, each through the five-step loop
+in §3b — atoms first, then the component, then her row, then diff, then next.
+One commit per component so a regression is bisectable.
+
+Two differences are already known and are plain parameter bugs in her authored
+rows rather than component work: `rf-split-hero`'s `markRight` is inverted, and
+her wordmark is **copper** (`accent2`) where the entry paints `accent1`. Also
+the stray `Explore` / `Learn more` CTAs her page does not have, and the `→`
+glyph dropped from "Ask about access". Fix those first — they are minutes, and
+they clear noise out of the differ before the real work starts.
+
+Where a section of hers turns out to be genuinely the generic thing, keep the
+generic entry and say so in the ledger. The ruling is bias-to-more, not
+port-everything; a row that already matches is a row that already matches.
+
+`OnePage.styles.ts` deserves its own pass rather than being absorbed piecemeal —
+it carries the shared vertical rhythm behind all fourteen, and it is where most
+of the 690px lives. Treat its spacing scale as its own atom set.
 
 ## Phase 4 — images
 
@@ -205,25 +347,28 @@ Set the expectation honestly and in writing:
 - **The threshold is 0.5%, not 0.** A differ that demands zero gets muted, and a
   muted differ is worse than none.
 
-## The two cheaper answers, stated plainly
+## The alternatives, closed
 
-The plan above is real work — I would estimate **days, not hours**, with Phase 3
-carrying most of it — and every future catalog change re-opens the question.
-Both alternatives deserve a decision rather than a drift:
+Two other answers were on the table and are now decided against by the ruling in
+§3, recorded so nobody re-opens them by accident:
 
-1. **Port her components wholesale** instead of section-by-section — the journey
-   model applied to the whole site. Appearance becomes identical by construction
-   rather than by chasing diffs, and she still gets editable content rows.
-   Slower to start, far cheaper to hold, and it is the same ladder §7 already
-   climbs.
-2. **Leave her standalone.** Resonant Weaver is the most hand-built site in the
-   fleet, and demo-fliring was already exempted on exactly this reasoning —
-   pooling costs its visual identity, which is what the asset is for. Nothing
-   about the platform requires her to be pooled today.
+- **Chase the diffs** — keep the generic blocks and patch them until they match.
+  Rejected: 71 of 95 sections sit in two entries, so this means bending two
+  generic components until they can express a bespoke site, which is how a
+  catalog rots, and it re-breaks every time either is improved for someone else.
+- **Leave her standalone**, as demo-fliring is. Rejected: the point is not only
+  her site. Her code is the richest source of atoms in the fleet, and pooling
+  her is what converts it into library everyone draws from.
 
-**Recommendation: 1**, with this plan's Phases 0, 1, 2 and 4 done regardless —
-the measuring stick, the type roles, the chrome and the image pipeline are all
-platform gaps that outlive her, and every one of them was found by her site.
+**Cost, honestly.** This is the largest of the three — days, with the component
+work dominating — and it front-loads four model changes before the first
+component can land. What it buys is that the result does not decay: a component
+derived from her code and checked by the drift guard stays correct when the next
+tenant arrives, and the atoms outlive the migration that produced them.
+
+**Phases 0, 1, 2 and 4 are owed regardless** — the measuring stick, the type
+roles, the chrome rows and the image pipeline are platform gaps that outlive
+her, and every one of them was found by her site rather than by us.
 
 ---
 
