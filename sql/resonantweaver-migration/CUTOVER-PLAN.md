@@ -515,7 +515,38 @@ left.**
    deliberately untouched: those are plan 29's, not hers. The two deleted rows are kept as a
    CSV beside the run, so the undo is an INSERT rather than a restore.
 
-## 6 — The cutover — **DONE 2026-08-07. resonantweaver.com is served by the pooled renderer.**
+## 6 — The cutover — **ROLLED BACK 2026-08-07, hours after it went in.**
+
+> **Marthe: "Menu is different… images are different… buttons are different. Boxes are
+> different."** She was right about all four, and every check that cleared this cutover
+> passed. resonantweaver.com is served by **her own app** again (pm2 id 5, :3003; nginx
+> restored from `resonantweaver.com.pre-pool-2026-08-07`, verified from a cold browser —
+> her logo, her four-item menu and all six of her typefaces are back). The pooled config
+> is kept beside it as `resonantweaver.com.pooled-2026-08-07`, so re-cutting is one `cp`.
+>
+> **What the checks missed, and why.** `tenant-parity.mjs` compares structure — pages
+> present, sections present, strings present, banned platform words absent. All green.
+> None of that can see a mirrored hero, two lost typefaces, a missing logo or 690px of
+> missing page height. *Structurally green was never evidence of appearance.* Measured
+> after the fact: her app renders **six** typefaces, the pooled version two (Space Mono
+> and Ubuntu Mono were never shipped in her `siteFonts` row, and `SiteTheme.fonts` has
+> only `heading` and `body`, so they have no role to be named by); her `nav` and `footer`
+> have **no override row at all**, which is the whole menu-and-logo story; `rf-split-hero`
+> renders her mark on the wrong side in the wrong accent; and `body` computes to Arial.
+>
+> **Two things about the rollback itself.** `pm2 start resonantweaver.com` **fails** on
+> this box — pm2 read the name as a file path, answered *"Script not found"*, and created
+> a second errored app called `resonantweaver` pointing at `/home/admin/`. `pm2 start 5`
+> worked at once; the stray entry is deleted and `pm2 save` run. **The rollback comment
+> in every pooled nginx config says the command that does not work** — giocoelho's and
+> refusionist's too. And her app is now the only copy of what her site is supposed to
+> look like, so the baseline was frozen to `baseline/` before anything else.
+>
+> **The way back is `PIXEL-PARITY-PLAN.md`**, beside this file: the measuring stick
+> first, then the type roles, the chrome, the sections worst-diff first, and Marthe
+> looking at a preview *before* DNS moves rather than after.
+
+### The cutover as it was performed, 2026-08-07 (kept for the re-cut)
 
 Port anything outward-facing FIRST, deploy it, then flip. That order is what made refusionist's
 iCal feed survive.
