@@ -366,18 +366,61 @@ deploy. The cutover is not blocked on appearance.
 
 ## 5b — Gio's four rulings, taken 2026-08-06
 
-Answered in the same batch as the typography. None is started; each is its own piece of work.
+Answered in the same batch as the typography. **Three of four are done; ruling 3 is the one
+left.**
 
-1. **PayPal — give the catalog a payment CTA that honours the faucet.** Her payment buttons are
-   plain anchors in page rows now, so the Office killswitch still switches and nothing happens.
-   The fix is a real CTA kind that reads the site's payment faucet, not a per-site exemption.
-2. **The two waitlist-only offers get `public.forms` rows** — `extended-starseed-profile` and
-   `awareness-and-perception-training`. Their doors exist and land nowhere until they do.
+1. **PayPal — a payment CTA that honours the faucet — DONE 2026-08-07.** Mono `49dcd0df`
+   (`@tgv/module-page-editor/editor/helpers/paymentLinks.ts`) + HQ `bf78af58`
+   (`src/lib/tenants/paymentFaucet.ts`). Built one layer BELOW a CTA kind, and that is the
+   whole design: her nine payment links live in three different shapes across two tables
+   (`rf-offer-card` `items[].ctaHref` ×6, `rf-media-copy` `ctas[].href` ×1, and the Pearl
+   Chamber form's `thankyou.ctas` ×2), so a new section type would have covered none of them
+   without re-cutting her pages. The gate runs on the MODEL, server-side, before the renderer —
+   which is what makes it cover every tenant who ever pastes a payment link into a page row.
+   - **Shape-aware, because "remove the link" has two right answers.** A bare CTA object leaves
+     its array (RfMediaCopy maps `ctas` through with no href guard, so deleting the href alone
+     draws a labelled anchor pointing at the current page); a CTA that is FIELDS on a richer
+     object loses those fields and keeps the item, because the offering still reads without a
+     buy button.
+   - **Fail-OPEN, explicit-kill-only** — the inverse of `@tgv/module-paypal`'s own fail-CLOSED
+     primitive, and copying that would have been a quiet catastrophe. Fail-closed is right for a
+     NEW faucet; it is exactly wrong for a link a tenant already published on a live page.
+     Carried across from her app's `lib/paypal-enablement.ts`, which has enforced it on this
+     exact config since it was written.
+   - **`publicFormView` became async** so the form thank-you gates too. In the projection, not
+     in each of its six call sites, so a seventh surface cannot serve a killed link.
+   - Verified against production, read-only: all 7 links in her 14 published pages and both 2 in
+     the Pearl Chamber form reached, 0 survive, every offering's title/body/price and the
+     thank-you copy survive, no other pooled tenant has a payment link in a page row. Faucet open
+     ⇒ every model returned by identity. 11 unit + 13 render-harness assertions (117/117).
+     **Her faucet is ON today, so the cutover changes nothing a visitor sees — only that the
+     switch now switches.**
+2. **The two waitlist-only offers — DONE 2026-08-07.** Office `e780f0b`. Two `public.forms`
+   rows and two page rows, generated like everything else; 17 pages / 4 forms now. One form per
+   offer, because her `waitlistTopic` is what told them apart on a single `/api/contact/`
+   endpoint and the FORM is what carries that distinction once pooled.
+   **What deliberately did not travel is the important half:** both entries hold a
+   `[[placeholder — …]]` paragraph and notes she wrote to herself, and `OfferWaitlist` never
+   renders `offer.paragraphs` — so they are not on her live site and must not arrive on it via
+   the migration. Applied to production, re-run to zero, `--check` clean. Rendered in a browser
+   against the live HQ behind the Host proxy and the door was proven to LAND, not merely to
+   draw: submitted, thank-you shown, answers in `form_responses` keyed to the right form,
+   fixture deleted. `STATUS_LABEL` stopped being an unguarded literal on the way past.
 3. **`landing-star-preview/course` — port it.** The interactive mockup comes to HQ rather than
-   404ing at cutover the way giocoelho's `/playlists` did.
-4. **`support` and `cart` — drop them.** The shared registry retired both weeks ago; her
-   Settings tab keeps offering them because `mergeFeatureCatalog` passes a host's own keys
-   through. They go at her cutover, and the ledger (§4b) is what will show it.
+   404ing at cutover the way giocoelho's `/playlists` did. **NOT STARTED — this is what is
+   left of §5b.**
+4. **`support` and `cart` — WRITTEN, to run AT the cutover.** `06-cutover-features.sql`.
+   Not applied yet on purpose: her standalone app still declares both keys and still renders
+   their tabs, so deleting the rows while :3003 serves her would take two working tabs off a
+   live dashboard for nothing. Pooled, HQ supplies the definitions and neither key exists, so
+   the TABS go by themselves — the two rows are what would be left behind.
+   Rehearsed against production inside a rolled-back transaction: `DELETE 2`, 35 → 33 rows,
+   assertions green, and the other tenants' orphans (giocoelho, guardians, nevlo, refusionist)
+   deliberately untouched because those are plan 29's, not hers. `cart` is presence-only with no
+   panel; `support` was real for her, and HQ serves Get Support through
+   `/api/forms/get-support` rather than a dashboard key — the capability moves, the toggle goes.
+   Verify after with `node scripts/feature-ledger.mjs --site resonantweaver`: `orphan rows`
+   should be empty where it read `cart, support`.
 
 ## 6 — The cutover
 
@@ -407,6 +450,9 @@ iCal feed survive.
    wearing her own name, `/sun-walk` and `/galactic-field-guide` still gated to her host and
    still 404 on the apex, giocoelho, guardians and refusionist.
 6. **`pm2 stop resonantweaver.com` + `pm2 save`.**
+7. **`06-cutover-features.sql`** — §5b ruling 4's two retired keys, held back until exactly
+   here. Then re-run the ledger and confirm `orphan rows` is empty for her.
+8. **Re-run `05-journey-signups.sql`** (carried from §2).
 
 **Sessions cost nothing.** She has her own host-only `rw_member_session`, her own
 `WEBAUTHN_RP_ID` and her own Keycloak client — the same shape refusionist had, where the
