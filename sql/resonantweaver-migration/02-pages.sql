@@ -9,7 +9,7 @@
 -- 2026-08-06, bucket B's commerce funnel: the three doors, the offer detail
 -- pages, the offering listing and /pearl-chamber.
 --
--- Forms (public.forms, owned by whoever owns her villager_sites row): contact 904a1f4d-26bb-42df-b3a2-a16a655fc99d, pearl-chamber d05bbb9f-28f1-4f61-b866-78d02a264dd5.
+-- Forms (public.forms, owned by whoever owns her villager_sites row): contact 904a1f4d-26bb-42df-b3a2-a16a655fc99d, pearl-chamber d05bbb9f-28f1-4f61-b866-78d02a264dd5, waitlist-extended-starseed-profile c57bb534-fce0-4e32-aa70-ecf0c6feead6, waitlist-awareness-and-perception-training f36f08e2-053d-4c0e-9ffc-dad4332527e3.
 --
 -- NOT AUTHORED HERE, and each for a stated reason:
 --   • the journey (`/journey` and its blocks) and the starseed surfaces move
@@ -25,8 +25,6 @@
 --     tabs of text inputs and selects whose own copy says "nothing on this page
 --     saves". Same class as giocoelho's `/playlists` and `/fitnesstools/timer`
 --     and it needs the same ruling.
---   • the two waitlist-only offers — they render `WaitlistForm`, which needs a
---     `public.forms` row of its own first.
 --
 -- Every section leaves its colour roles EMPTY on purpose. They resolve through
 -- `--tgv-*`, which 01-theme.sql rewrites to her palette — which is the whole
@@ -182,6 +180,86 @@ SELECT 'd05bbb9f-28f1-4f61-b866-78d02a264dd5'::uuid, v.id, o.member_id, 'pearl-c
   ) o ON true
  WHERE v.subdomain = 'resonantweaver'
    AND NOT EXISTS (SELECT 1 FROM public.forms WHERE id = 'd05bbb9f-28f1-4f61-b866-78d02a264dd5'::uuid);
+
+INSERT INTO public.forms (id, site_id, owner_member_id, slug, title, purpose, status, definition, definition_version)
+SELECT 'c57bb534-fce0-4e32-aa70-ecf0c6feead6'::uuid, v.id, o.member_id, 'waitlist-extended-starseed-profile', 'Extended Starseed Profile — waitlist',
+       'general', 'published', $rwjson${
+  "title": "Extended Starseed Profile — waitlist",
+  "version": 1,
+  "fields": [
+    {
+      "ref": "name",
+      "type": "short_text",
+      "title": "Your name",
+      "required": true
+    },
+    {
+      "ref": "email",
+      "type": "email",
+      "title": "Email",
+      "required": true
+    },
+    {
+      "ref": "note",
+      "type": "long_text",
+      "title": "Anything you'd like to add (optional)",
+      "required": false
+    }
+  ],
+  "settings": {
+    "submitLabel": "Join the waitlist"
+  },
+  "thankyou": {
+    "title": "You're on the list — thank you.",
+    "description": ""
+  }
+}$rwjson$::jsonb, 1
+  FROM public.villager_sites v
+  JOIN LATERAL (
+    SELECT member_id FROM public.villager WHERE site_id = v.id ORDER BY member_id LIMIT 1
+  ) o ON true
+ WHERE v.subdomain = 'resonantweaver'
+   AND NOT EXISTS (SELECT 1 FROM public.forms WHERE id = 'c57bb534-fce0-4e32-aa70-ecf0c6feead6'::uuid);
+
+INSERT INTO public.forms (id, site_id, owner_member_id, slug, title, purpose, status, definition, definition_version)
+SELECT 'f36f08e2-053d-4c0e-9ffc-dad4332527e3'::uuid, v.id, o.member_id, 'waitlist-awareness-and-perception-training', 'Awareness and Perception Training — waitlist',
+       'general', 'published', $rwjson${
+  "title": "Awareness and Perception Training — waitlist",
+  "version": 1,
+  "fields": [
+    {
+      "ref": "name",
+      "type": "short_text",
+      "title": "Your name",
+      "required": true
+    },
+    {
+      "ref": "email",
+      "type": "email",
+      "title": "Email",
+      "required": true
+    },
+    {
+      "ref": "note",
+      "type": "long_text",
+      "title": "Anything you'd like to add (optional)",
+      "required": false
+    }
+  ],
+  "settings": {
+    "submitLabel": "Join the waitlist"
+  },
+  "thankyou": {
+    "title": "You're on the list — thank you.",
+    "description": ""
+  }
+}$rwjson$::jsonb, 1
+  FROM public.villager_sites v
+  JOIN LATERAL (
+    SELECT member_id FROM public.villager WHERE site_id = v.id ORDER BY member_id LIMIT 1
+  ) o ON true
+ WHERE v.subdomain = 'resonantweaver'
+   AND NOT EXISTS (SELECT 1 FROM public.forms WHERE id = 'f36f08e2-053d-4c0e-9ffc-dad4332527e3'::uuid);
 
 CREATE TEMP TABLE _rw_pages (slug text, title text, in_nav boolean, mode text, model jsonb)
   ON COMMIT DROP;
@@ -3888,6 +3966,222 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/galactic-integration-s
   ]
 }$rwjson$::jsonb);
 
+INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/extended-starseed-profile', 'Extended Starseed Profile — Offer Preview', false, 'published', $rwjson${
+  "id": "pm-rw-offer-extended-starseed-profile",
+  "slug": "landing-star-preview/offer/extended-starseed-profile",
+  "title": "Extended Starseed Profile — Offer Preview",
+  "chrome": {
+    "navEnabled": true,
+    "footerEnabled": true,
+    "meta": {
+      "description": "The full personal reading",
+      "keywords": [],
+      "ogImage": "/images/tenants/resonantweaver/GalacticSelf.jpg",
+      "noindex": true
+    }
+  },
+  "sections": [
+    {
+      "id": "sec-wait-back-extended-starseed-profile",
+      "type": "rf-linkbar",
+      "label": "Back",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "links": [
+            {
+              "label": "← Back",
+              "href": "/landing-star-preview/meet/"
+            }
+          ],
+          "align": "left"
+        }
+      }
+    },
+    {
+      "id": "sec-wait-hero-extended-starseed-profile",
+      "type": "rf-offer-card",
+      "label": "Hero",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "columns": 1,
+          "heading": "",
+          "bulletGlyph": "✦",
+          "padTop": 0,
+          "padBottom": 25,
+          "accent": "rgb(183, 138, 119)",
+          "items": [
+            {
+              "anchorId": "extended-starseed-profile",
+              "eyebrow": "In development",
+              "title": "Extended Starseed Profile",
+              "sub": "The full personal reading",
+              "body": "",
+              "listLabel": "",
+              "bullets": [],
+              "price": "$177 – $222 · Coming soon",
+              "note": "",
+              "ctaLabel": "",
+              "ctaHref": "",
+              "variant": "media",
+              "mediaUrl": "/images/tenants/resonantweaver/GalacticSelf.jpg",
+              "mediaAlt": ""
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "sec-wait-head-extended-starseed-profile",
+      "type": "rf-media-copy",
+      "label": "Stay in the loop",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "imageUrl": "",
+          "imageAlt": "",
+          "imagePosition": "left",
+          "eyebrow": "Stay in the loop",
+          "eyebrowColor": "accent",
+          "heading": "Be first to know when this opens",
+          "headingLevel": 2,
+          "headingAccent": "",
+          "paragraphs": [],
+          "chips": [],
+          "ctas": []
+        }
+      }
+    },
+    {
+      "id": "sec-wait-form-extended-starseed-profile",
+      "type": "form-live",
+      "label": "Waitlist",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "formId": "c57bb534-fce0-4e32-aa70-ecf0c6feead6",
+          "accent": "",
+          "hideHeader": true,
+          "maxWidth": 640
+        }
+      }
+    }
+  ]
+}$rwjson$::jsonb);
+
+INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/awareness-and-perception-training', 'Awareness and Perception Training — Offer Preview', false, 'published', $rwjson${
+  "id": "pm-rw-offer-awareness-and-perception-training",
+  "slug": "landing-star-preview/offer/awareness-and-perception-training",
+  "title": "Awareness and Perception Training — Offer Preview",
+  "chrome": {
+    "navEnabled": true,
+    "footerEnabled": true,
+    "meta": {
+      "description": "Founding-cohort training",
+      "keywords": [],
+      "ogImage": "/images/tenants/resonantweaver/GalacticSelf.jpg",
+      "noindex": true
+    }
+  },
+  "sections": [
+    {
+      "id": "sec-wait-back-awareness-and-perception-training",
+      "type": "rf-linkbar",
+      "label": "Back",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "links": [
+            {
+              "label": "← Back",
+              "href": "/landing-star-preview/develop/"
+            }
+          ],
+          "align": "left"
+        }
+      }
+    },
+    {
+      "id": "sec-wait-hero-awareness-and-perception-training",
+      "type": "rf-offer-card",
+      "label": "Hero",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "columns": 1,
+          "heading": "",
+          "bulletGlyph": "✦",
+          "padTop": 0,
+          "padBottom": 25,
+          "accent": "rgb(183, 138, 119)",
+          "items": [
+            {
+              "anchorId": "awareness-and-perception-training",
+              "eyebrow": "In development",
+              "title": "Awareness and Perception Training",
+              "sub": "Founding-cohort training",
+              "body": "",
+              "listLabel": "",
+              "bullets": [],
+              "price": "$333 (founding) · In development",
+              "note": "",
+              "ctaLabel": "",
+              "ctaHref": "",
+              "variant": "media",
+              "mediaUrl": "/images/tenants/resonantweaver/GalacticSelf.jpg",
+              "mediaAlt": ""
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "sec-wait-head-awareness-and-perception-training",
+      "type": "rf-media-copy",
+      "label": "Stay in the loop",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "imageUrl": "",
+          "imageAlt": "",
+          "imagePosition": "left",
+          "eyebrow": "Stay in the loop",
+          "eyebrowColor": "accent",
+          "heading": "Be first to know when this opens",
+          "headingLevel": 2,
+          "headingAccent": "",
+          "paragraphs": [],
+          "chips": [],
+          "ctas": []
+        }
+      }
+    },
+    {
+      "id": "sec-wait-form-awareness-and-perception-training",
+      "type": "form-live",
+      "label": "Waitlist",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "formId": "f36f08e2-053d-4c0e-9ffc-dad4332527e3",
+          "accent": "",
+          "hideHeader": true,
+          "maxWidth": 640
+        }
+      }
+    }
+  ]
+}$rwjson$::jsonb);
+
 -- ── insert ─────────────────────────────────────────────────────────────────
 -- Null-safe NOT EXISTS on the same tuple the unique index names — the index
 -- cannot do this job because a published row carries user_id NULL and NULL is
@@ -3916,7 +4210,7 @@ SELECT 'pages authored: ' || count(*) FROM ins;
 DO $$
 DECLARE
   n int;
-  expected constant text[] := ARRAY['home', 'home-classic', 'writing', 'landing-star-preview/receive', 'landing-star-preview/experience/all-products', 'pearl-chamber', 'starseed', 'landing-star-preview/offer/meeting-your-galactic-self-meditation', 'landing-star-preview/offer/galactic-initiation', 'landing-star-preview/offer/resonance-mirror', 'landing-star-preview/offer/pearl-chamber', 'landing-star-preview/offer/galactic-pendulum', 'landing-star-preview/offer/galactic-integration-session'];
+  expected constant text[] := ARRAY['home', 'home-classic', 'writing', 'landing-star-preview/receive', 'landing-star-preview/experience/all-products', 'pearl-chamber', 'starseed', 'landing-star-preview/offer/meeting-your-galactic-self-meditation', 'landing-star-preview/offer/galactic-initiation', 'landing-star-preview/offer/resonance-mirror', 'landing-star-preview/offer/pearl-chamber', 'landing-star-preview/offer/galactic-pendulum', 'landing-star-preview/offer/galactic-integration-session', 'landing-star-preview/offer/extended-starseed-profile', 'landing-star-preview/offer/awareness-and-perception-training'];
   expected_drafts constant text[] := ARRAY['landing-star-preview/meet', 'landing-star-preview/develop']::text[];
 BEGIN
   SELECT count(*) INTO n FROM public.page_models

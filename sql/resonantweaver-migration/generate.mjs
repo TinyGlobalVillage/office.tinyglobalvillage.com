@@ -927,14 +927,14 @@ function buildOfferPage(data, entry) {
 }
 
 /** The five words her StatusBadge paints, so a card that says "Coming soon" on
- *  her site does not arrive silently bookable on the platform. */
-const STATUS_LABEL = {
-  available: "Available now",
-  "founding-access": "Founding access",
-  "coming-soon": "Coming soon",
-  "in-development": "In development",
-  waitlist: "Waitlist",
-};
+ *  her site does not arrive silently bookable on the platform.
+ *
+ *  Derived from `inlineCopy.offerStatus` rather than written out again — the map
+ *  used to be an unguarded literal here, which meant these five strings were the
+ *  only transcriptions in the generator that could go stale in silence. */
+const STATUS_LABEL = Object.fromEntries(
+  Object.entries(inlineCopy.offerStatus).map(([status, entry]) => [status, verbatim(entry)]),
+);
 
 /** GatewayPage.tsx's `resolveHref`, reimplemented. Her version prefixes the
  *  language segment, which the pooled renderer supplies itself — so what is
@@ -1138,10 +1138,162 @@ const ALL_GATEWAYS = ["meet", "develop", "receive"];
  *  a hidden offer's page is live on her site today and its URL may be in
  *  somebody's inbox. Dropping it would 404 a page that answers 200 now.
  *
- *  The two waitlist-only offers are NOT here — they render `WaitlistForm`,
- *  which needs a `public.forms` row of its own before it can be authored. */
+ *  The two waitlist-only offers are NOT here — they render `WaitlistForm` and
+ *  are built by `buildWaitlistPage` below. */
 function offersWithDetailPages(data) {
   return data.catalog.filter((e) => e.detail);
+}
+
+/** The other branch of her `offer/[slug]` route: an entry with a
+ *  `waitlistTopic` and no `detail` renders `OfferWaitlist` instead. Her route
+ *  reads it exactly this way — `hasDetailPage` first, `waitlistTopic` second,
+ *  `notFound()` for anything with neither — so the two filters together are the
+ *  whole of what that URL serves, and neither is a guess. */
+function offersWithWaitlist(data) {
+  return data.catalog.filter((e) => !e.detail && e.waitlistTopic);
+}
+
+/** ONE WAITLIST FORM PER OFFER, which is what her own topic string implies.
+ *
+ *  Her component posts to `/api/contact/` with `topic: offer.waitlistTopic`, so
+ *  one endpoint and one inbox served both offers and the topic told them apart.
+ *  Pooled, the FORM is the thing that gets its own row and its own submissions
+ *  view — so the distinction her topic carried is carried by having two forms.
+ *  Anything else would put "Extended Starseed Profile — waitlist" and
+ *  "Awareness and Perception Training — waitlist" in one undifferentiated list
+ *  and make her read the topic back out by eye. */
+function buildWaitlistForm(offer) {
+  const c = inlineCopy.waitlist;
+  const title = `${offer.title} — waitlist`;
+  // Her own topic string, asserted rather than reconstructed: if she renames an
+  // offer, `waitlistTopic` and this title must still agree.
+  if (offer.waitlistTopic && offer.waitlistTopic !== title) {
+    die(
+      `waitlist topic drift for ${offer.slug}: her data says ${JSON.stringify(offer.waitlistTopic)}, ` +
+        `this generator would title the form ${JSON.stringify(title)}`,
+    );
+  }
+  return {
+    id: stableUuid(`${SITE}:waitlist:${offer.slug}`),
+    slug: `waitlist-${offer.slug}`,
+    title,
+    definition: {
+      title,
+      version: 1,
+      fields: [
+        { ref: "name", type: "short_text", title: verbatim(c.fieldName), required: true },
+        { ref: "email", type: "email", title: verbatim(c.fieldEmail), required: true },
+        // Optional on her form and optional here — the one field a person can
+        // skip, which is why it is the one that must not become required.
+        { ref: "note", type: "long_text", title: verbatim(c.fieldNote), required: false },
+      ],
+      settings: { submitLabel: verbatim(c.submitLabel) },
+      thankyou: { title: verbatim(c.successMessage), description: "" },
+    },
+  };
+}
+
+/** ONE WAITLIST PAGE — `OfferWaitlist.tsx`, three parts: back link, hero, form.
+ *
+ *  NOINDEX like every other offer page: `page.tsx`'s generateMetadata sets
+ *  `robots: { index: false, follow: false }` for the whole route without
+ *  distinguishing the two branches.
+ *
+ *  NO PLACEHOLDER NOTE AND NO PARAGRAPHS. The detail builder emits both because
+ *  the detail page renders both; this one renders neither, so carrying them
+ *  would publish notes she wrote to herself onto her live site. See copy.mjs's
+ *  `waitlist` block. */
+function buildWaitlistPage(data, entry, formId) {
+  const offer = data.resolveOffer(entry);
+  const c = inlineCopy.waitlist;
+  const statusLabel = offer.status ? STATUS_LABEL[offer.status] : "";
+  if (offer.status && !statusLabel) {
+    die(`no transcribed badge label for offer status ${JSON.stringify(offer.status)} (${offer.slug})`);
+  }
+
+  const sections = [
+    section(`sec-wait-back-${offer.slug}`, "rf-linkbar", "Back", {
+      links: [{ label: verbatim(c.backLabel), href: `/landing-star-preview/${offer.door}/` }],
+      align: "left",
+    }),
+    section(`sec-wait-hero-${offer.slug}`, "rf-offer-card", "Hero", {
+      columns: 1,
+      heading: "",
+      bulletGlyph: "✦",
+      padTop: 0,
+      padBottom: 25,
+      accent: offer.accent,
+      items: [
+        {
+          anchorId: offer.slug,
+          eyebrow: verbatim(c.heroEyebrow),
+          title: offer.title,
+          sub: offer.sub,
+          body: "",
+          listLabel: "",
+          bullets: [],
+          // ProductHero puts the availability badge BESIDE the price; the offer
+          // card has one foot slot for a price and no badge, so the two share
+          // the line. Dropping the status would lose the only thing on the page
+          // that says when.
+          price: statusLabel ? `${offer.price} · ${statusLabel}` : offer.price,
+          note: "",
+          // Her hero's button is an in-page jump to the form below, which the
+          // pooled page does not need: the form IS the next section, and an
+          // anchor to a section one scroll away is a button that looks like a
+          // checkout and only moves the page.
+          ctaLabel: "",
+          ctaHref: "",
+          variant: "media",
+          mediaUrl: asset(offer.image ?? "/images/landing-star-preview/GalacticSelf.jpg"),
+          mediaAlt: offer.imageAlt ?? "",
+        },
+      ],
+    }),
+    section(`sec-wait-head-${offer.slug}`, "rf-media-copy", "Stay in the loop", {
+      imageUrl: "",
+      imageAlt: "",
+      imagePosition: "left",
+      eyebrow: verbatim(c.sectionEyebrow),
+      eyebrowColor: "accent",
+      heading: verbatim(c.sectionHeading),
+      headingLevel: 2,
+      headingAccent: "",
+      paragraphs: [],
+      chips: [],
+      ctas: [],
+    }),
+    section(`sec-wait-form-${offer.slug}`, "form-live", "Waitlist", {
+      formId,
+      accent: "",
+      hideHeader: true,
+      maxWidth: 640,
+    }),
+  ];
+
+  const slug = `landing-star-preview/offer/${offer.slug}`;
+  const title = `${offer.title} — Offer Preview`;
+  return {
+    slug,
+    title,
+    inNav: false,
+    model: {
+      id: `pm-rw-offer-${offer.slug}`,
+      slug,
+      title,
+      chrome: {
+        navEnabled: true,
+        footerEnabled: true,
+        meta: {
+          description: offer.sub,
+          keywords: [],
+          ogImage: asset(offer.image ?? "/images/landing-star-preview/GalacticSelf.jpg"),
+          noindex: true,
+        },
+      },
+      sections,
+    },
+  };
 }
 
 /** THE OFFERING LISTING — `experience/all-products`.
@@ -1998,8 +2150,6 @@ function pagesSql(pages, forms, ownerNote) {
 --     tabs of text inputs and selects whose own copy says "nothing on this page
 --     saves". Same class as giocoelho's \`/playlists\` and \`/fitnesstools/timer\`
 --     and it needs the same ruling.
---   • the two waitlist-only offers — they render \`WaitlistForm\`, which needs a
---     \`public.forms\` row of its own first.
 --
 -- Every section leaves its colour roles EMPTY on purpose. They resolve through
 -- \`--tgv-*\`, which 01-theme.sql rewrites to her palette — which is the whole
@@ -2181,7 +2331,13 @@ COMMIT;
 
 const data = await loadData();
 
-const forms = [buildForm(data), buildPearlForm()];
+// One waitlist form per waitlist offer, built first so each page can name the
+// row the same file creates. Zipped rather than looked up by index: an offer
+// added to her catalog must not be able to hand its page somebody else's form.
+const waitlistOffers = offersWithWaitlist(data);
+const waitlistForms = waitlistOffers.map((e) => buildWaitlistForm(data.resolveOffer(e)));
+
+const forms = [buildForm(data), buildPearlForm(), ...waitlistForms];
 const [contactForm, pearlForm] = forms;
 guardRoutes();
 const pages = [
@@ -2193,6 +2349,7 @@ const pages = [
   buildPearlChamber(data, pearlForm.id),
   buildStarseed(data),
   ...offersWithDetailPages(data).map((e) => buildOfferPage(data, e)),
+  ...waitlistOffers.map((e, i) => buildWaitlistPage(data, e, waitlistForms[i].id)),
 ];
 
 /** Applied to every string leaf of every model, so a rewrite cannot be missed

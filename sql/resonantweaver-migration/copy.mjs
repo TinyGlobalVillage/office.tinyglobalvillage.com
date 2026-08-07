@@ -158,6 +158,105 @@ export const inlineCopy = {
     },
   },
 
+  /** THE TWO WAITLIST-ONLY OFFERS — `offer/[slug]` renders `OfferWaitlist` for
+   *  an entry with a `waitlistTopic` and no `detail`. A much smaller page than
+   *  its detail sibling: a back link, a hero, one heading and a form.
+   *
+   *  WHAT DOES NOT TRAVEL, and it is the important half. Both entries carry a
+   *  `[[placeholder — …]]` paragraph, and both hold notes she wrote to herself
+   *  ("Not ready to sell until the profile system and delivery format are
+   *  stable"). `OfferWaitlist` never renders `offer.paragraphs` — only the
+   *  detail page does — so those words are not on her live site today and must
+   *  not arrive on it via the migration. Dropping them is exact parity, not a
+   *  judgment call.
+   *
+   *  The eyebrow is a LITERAL on this route, not the offer's status: every
+   *  waitlist hero says "In development" regardless of whether the entry says
+   *  `coming-soon`. The status reaches the page separately, through
+   *  ProductHero's badge beside the price. */
+  waitlist: {
+    heroEyebrow: {
+      file: `${HOME}/landing-star-preview/offer/[slug]/OfferWaitlist.tsx`,
+      text: "In development",
+      find: 'eyebrow="In development"',
+    },
+    heroAction: {
+      file: `${HOME}/landing-star-preview/offer/[slug]/OfferWaitlist.tsx`,
+      text: "Join the waitlist",
+      find: 'actionLabel="Join the waitlist"',
+    },
+    sectionEyebrow: {
+      file: `${HOME}/landing-star-preview/offer/[slug]/OfferWaitlist.tsx`,
+      text: "Stay in the loop",
+    },
+    sectionHeading: {
+      file: `${HOME}/landing-star-preview/offer/[slug]/OfferWaitlist.tsx`,
+      text: "Be first to know when this opens",
+    },
+    // The form itself. Her three labels, her submit and her success line — the
+    // component's own defaults, which `OfferWaitlist` never overrides.
+    fieldName: { file: "src/components/WaitlistForm.tsx", text: "Your name" },
+    fieldEmail: { file: "src/components/WaitlistForm.tsx", text: "Email" },
+    fieldNote: {
+      file: "src/components/WaitlistForm.tsx",
+      text: "Anything you'd like to add (optional)",
+      // Split across a <span> in her markup so the "(optional)" can be dimmed.
+      find: "Anything you'd like to add <span>(optional)</span>",
+    },
+    submitLabel: {
+      file: "src/components/WaitlistForm.tsx",
+      text: "Join the waitlist",
+      find: 'submitLabel = "Join the waitlist"',
+    },
+    successMessage: {
+      file: "src/components/WaitlistForm.tsx",
+      text: "You're on the list — thank you.",
+      find: 'successMessage = "You\'re on the list — thank you."',
+    },
+    backLabel: {
+      file: `${HOME}/landing-star-preview/offer/[slug]/OfferWaitlist.tsx`,
+      text: "← Back",
+    },
+  },
+
+  /** Her StatusBadge's five words — the only thing on a card or a waitlist hero
+   *  that says WHEN, so a "Coming soon" offer does not arrive on the platform
+   *  silently bookable.
+   *
+   *  These lived as an unguarded literal map inside generate.mjs until the
+   *  waitlist pages needed them too. They are strings transcribed out of her
+   *  source like every other string in this file, so they belong here and get
+   *  the same guard: rename a label in `Cards.tsx` and the run fails instead of
+   *  emitting last month's word. `available` is written unquoted in her map,
+   *  hence the different `find`. */
+  offerStatus: {
+    available: {
+      file: "src/components/Cards.tsx",
+      text: "Available now",
+      find: 'available: "Available now"',
+    },
+    "founding-access": {
+      file: "src/components/Cards.tsx",
+      text: "Founding access",
+      find: '"founding-access": "Founding access"',
+    },
+    "coming-soon": {
+      file: "src/components/Cards.tsx",
+      text: "Coming soon",
+      find: '"coming-soon": "Coming soon"',
+    },
+    "in-development": {
+      file: "src/components/Cards.tsx",
+      text: "In development",
+      find: '"in-development": "In development"',
+    },
+    waitlist: {
+      file: "src/components/Cards.tsx",
+      text: "Waitlist",
+      find: 'waitlist: "Waitlist"',
+    },
+  },
+
   /** `/pearl-chamber` — the subscription page. Every string on it is inline JSX
    *  or a module constant; there is no content module to import, so the whole
    *  page is transcribed and guarded.
