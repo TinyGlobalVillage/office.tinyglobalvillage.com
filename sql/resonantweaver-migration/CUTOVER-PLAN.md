@@ -406,21 +406,65 @@ left.**
    against the live HQ behind the Host proxy and the door was proven to LAND, not merely to
    draw: submitted, thank-you shown, answers in `form_responses` keyed to the right form,
    fixture deleted. `STATUS_LABEL` stopped being an unguarded literal on the way past.
-3. **`landing-star-preview/course` — port it.** The interactive mockup comes to HQ rather than
-   404ing at cutover the way giocoelho's `/playlists` did. **NOT STARTED — this is what is
-   left of §5b.**
-4. **`support` and `cart` — WRITTEN, to run AT the cutover.** `06-cutover-features.sql`.
-   Not applied yet on purpose: her standalone app still declares both keys and still renders
-   their tabs, so deleting the rows while :3003 serves her would take two working tabs off a
-   live dashboard for nothing. Pooled, HQ supplies the definitions and neither key exists, so
-   the TABS go by themselves — the two rows are what would be left behind.
-   Rehearsed against production inside a rolled-back transaction: `DELETE 2`, 35 → 33 rows,
-   assertions green, and the other tenants' orphans (giocoelho, guardians, nevlo, refusionist)
-   deliberately untouched because those are plan 29's, not hers. `cart` is presence-only with no
-   panel; `support` was real for her, and HQ serves Get Support through
-   `/api/forms/get-support` rather than a dashboard key — the capability moves, the toggle goes.
-   Verify after with `node scripts/feature-ledger.mjs --site resonantweaver`: `orphan rows`
-   should be empty where it read `cart, support`.
+3. **`landing-star-preview/course` — port it. DONE 2026-08-07.** HQ `src/app/[lang]/
+   landing-star-preview/course/` + the `SITE_SURFACES` grant. The interactive mockup comes to
+   HQ rather than 404ing at cutover the way giocoelho's `/playlists` did.
+   **It is a route because it cannot be a row, and that is the only decision here.** Fifteen of
+   its siblings under `/landing-star-preview/` ARE rows — the doors, the offers, the archive —
+   because they are content. This one is four tabs of text inputs and selects over React state,
+   and a row holds no state. So it takes the shape the catalog reserves for exactly that: an app
+   route named beside the one site allowed to serve it, gated twice (the proxy routes, the route
+   re-checks so the apex 404s).
+   **Granted at the LEAF, deliberately.** `siteMayServe` matches a grant as a prefix, so
+   `/landing-star-preview` would have swallowed every door and every offer she has — including
+   `offer/galactic-initiation`, which this page's own Back link returns to. The harness asserts
+   that: the grant 200s, the five siblings beside it still fall through to the storefront, and
+   `/landing-star-preview/courses/` 404s.
+   **Three files copied, two import lines changed.** `content.ts` is byte-identical (sha
+   verified); `Course.styles.ts` differs only in reaching `@tgv/module-starseed/starseed/ui/
+   tokens` and `@tgv/module-component-library/styles/hudCardSurface` instead of her local
+   `@/styles/*` — both were already canon, so the port added no dependency. `CoursePage.tsx`
+   takes `fontClassName` as a prop rather than importing `next/font` itself, matching /sun-walk,
+   and drops the `lang` it never read. **L0 on the §7 ladder, and the file says so.**
+   **Verified against her LIVE site, tab by tab.** Same fingerprint on both: The Threshold
+   (1 textarea, 687 chars), Day One (3 selects, 7 inputs, 1179), Day Two (5 textareas, 849),
+   Day Three (8 textareas, 928), every field label identical. Computed styles match too — the
+   same Science Gothic / Space Grotesk / Space Mono / Ubuntu Mono chain, `--product-accent`
+   `rgb(183, 138, 119)`, the same two radial washes over `#06111c`. Zero console messages.
+   Gated correctly: 200 on her host, 404 on giocoelho, refusionist and the apex.
+   **ONE PARITY DELTA, and it is not new.** The port has no nav bar and no footer, because on
+   HQ **no granted app surface carries the tenant chrome** — `/testimonials`, `/sun-walk`,
+   `/galactic-field-guide` and `/open-your-journey` are all bare today, and only page rows get
+   the bar. So this page loses her floating nav pill and her "© Resonant Weaver / Powered by
+   Tiny Global Village" footer, exactly as `/sun-walk` did when it shipped. Its own "← Back to
+   the offer" link still lands. Fixing it is a fleet-wide change to how granted surfaces are
+   wrapped, touching five live surfaces — worth doing, not worth doing inside this ruling.
+   **Proven on a real production build** (`next build` on the Mac, `next start`, Host-rewriting
+   proxy) — NOT dev mode, which does not hydrate behind the proxy at all: `/sun-walk`'s current
+   filter is equally dead there, which is what proved the first failed tab click was the harness
+   and not the port. Typecheck: the same 12 errors in the same 12 files as baseline.
+4. **`support` and `cart` — APPLIED TO PRODUCTION 2026-08-07**, ahead of the cutover, because
+   the reason for holding it back turned out to be false. `06-cutover-features.sql`: `DELETE 2`,
+   35 → 33 rows, assertions green, re-run is `DELETE 0`. The ledger now prints `orphan rows —`
+   for her where it read `cart, support`.
+   **The correction is the useful part.** This file's first header said run it at the cutover:
+   *"deleting the rows while :3003 serves her would take two working tabs off a live
+   dashboard."* That assumed her app reads `public.dashboard_features`. It does not.
+   `resonantweaver_app` carries `search_path=resonantweaver, public` as a **per-database** role
+   setting — `pg_db_role_setting`, not `pg_roles.rolconfig`, which is where the first look went
+   and found nothing — and `resonantweaver.dashboard_features` exists with 62 rows across 10
+   members. Her `readFeatureState` queries the bare relation name, so every tab her live
+   dashboard draws comes from HER schema's copy, and the rows deleted here were only ever read
+   by HQ.
+   **Which answered a question this migration had never asked:** do those 10 members lose their
+   toggles when she pools? No — all 62 rows are `visible = true` (nobody has ever hidden a tab)
+   and HQ's defs are `defaultVisible`, so the pooled dashboard shows the same thing without
+   them. The 35 rows in `public` were one member's, Marthe's, seeded platform-side.
+   `cart` is presence-only with no panel; `support` was real for her, and HQ serves Get Support
+   through `/api/forms/get-support` rather than a dashboard key — the capability moves, the
+   toggle goes. The other tenants' orphans (giocoelho, guardians, nevlo, refusionist) are
+   deliberately untouched: those are plan 29's, not hers. The two deleted rows are kept as a
+   CSV beside the run, so the undo is an INSERT rather than a restore.
 
 ## 6 — The cutover
 
@@ -450,8 +494,10 @@ iCal feed survive.
    wearing her own name, `/sun-walk` and `/galactic-field-guide` still gated to her host and
    still 404 on the apex, giocoelho, guardians and refusionist.
 6. **`pm2 stop resonantweaver.com` + `pm2 save`.**
-7. **`06-cutover-features.sql`** — §5b ruling 4's two retired keys, held back until exactly
-   here. Then re-run the ledger and confirm `orphan rows` is empty for her.
+7. ~~**`06-cutover-features.sql`**~~ — **ALREADY DONE, 2026-08-07.** It was held for this step
+   on a premise that did not survive being checked (§5b ruling 4): her live app reads
+   `resonantweaver.dashboard_features`, not `public`, so the delete could never have touched a
+   live tab. Applied, re-run to zero, ledger confirms `orphan rows —`. Nothing to do here.
 8. **Re-run `05-journey-signups.sql`** (carried from §2).
 
 **Sessions cost nothing.** She has her own host-only `rw_member_session`, her own

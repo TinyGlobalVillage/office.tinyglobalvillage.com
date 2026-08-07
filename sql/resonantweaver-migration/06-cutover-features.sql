@@ -1,9 +1,25 @@
 -- 06-cutover-features.sql — CUTOVER-PLAN §5b ruling 4: `support` and `cart` go.
 --
--- RUN THIS AT THE CUTOVER, NOT BEFORE. Her standalone app still declares both
--- keys and still renders their tabs today; deleting the rows while she is served
--- by :3003 would take two working tabs off a live dashboard for no reason. The
--- rows stop meaning anything the moment nginx points resonantweaver.com at HQ.
+-- SAFE TO RUN BEFORE THE FLIP — and the first draft of this header said the
+-- opposite, so the correction is worth keeping. It read: "RUN THIS AT THE
+-- CUTOVER, NOT BEFORE… deleting the rows while she is served by :3003 would
+-- take two working tabs off a live dashboard." That assumed her live app reads
+-- THIS table. It does not.
+--
+-- `resonantweaver_app` carries `search_path=resonantweaver, public` as a
+-- per-database role setting (`pg_db_role_setting` — NOT `pg_roles.rolconfig`,
+-- which is where the first look went and found nothing), and
+-- `resonantweaver.dashboard_features` exists: 62 rows across 10 members. Her
+-- `readFeatureState` queries the bare relation name, so every tab her live
+-- dashboard draws comes from HER schema's copy. The rows below are in `public`,
+-- which only HQ reads. Deleting them cannot change anything a visitor or a
+-- member sees today.
+--
+-- Which also answers a question this migration had not asked: does the pooled
+-- side lose those 10 members' toggles? No. All 62 rows in her schema are
+-- `visible = true` — nobody has ever hidden a tab — and HQ's defs are
+-- `defaultVisible`, so the pooled dashboard shows the same thing without them.
+-- The 35 rows in `public` are one member's (Marthe's), seeded platform-side.
 --
 -- WHY THERE IS ANYTHING TO DELETE AT ALL. `mergeFeatureCatalog` merges the
 -- shared catalog UNDER each host's own definitions and lets host-only keys pass
