@@ -204,9 +204,47 @@ not depend on her app still running.
 
 ---
 
-## Phase 0 — the measuring stick, before a single fix
+## Phase 0 — the measuring stick, before a single fix — **DONE 2026-08-07**
 
 Nothing below can be trusted without this, and it is the cheapest thing here.
+
+> **Shipped.** `clients/tinyglobalvillage.com/scripts/tenant-baseline.mjs` and
+> `tenant-pixel-parity.mjs`, over `scripts/lib/{browser,measure,pixeldiff}.mjs`.
+> The baseline is re-frozen at **23 routes × 3 viewports = 69 captures**
+> (`baseline/her-app-2026-08-07-v2.tgz`), and `tenant-parity.mjs` now opens with
+> a box saying it checks structure only and must not clear a cutover alone.
+>
+> **The measuring stick was itself measured.** Two captures of her app taken
+> minutes apart were diffed against each other: **23/23 PASS**, worst residual
+> 0.11%, every computed style identical. A differ that cannot return PASS on a
+> page against itself cannot be believed when it returns FAIL on anything else.
+>
+> **Four things that pass found, which is why it ran before any fix:**
+> 1. **The first freeze was missing five of her pages** — 18 captured, 23 served.
+>    Absent: `/open-your-journey/`, `/landing-star-preview/course/` and the three
+>    `/experience/` pages. A baseline missing a page cannot fail on it.
+> 2. **Her app hides the default locale** — `/en/starseed/` 307s to `/starseed/`.
+>    Phase 2 below lists her nav hrefs WITH the `/en/` prefix; authored that way
+>    every nav click costs a redirect hop. Corrected there.
+> 3. **Animations are frozen, not masked.** Pearl Chamber's rotating mandala and
+>    glowing title made that page differ from ITSELF by 2.11%. The reflex is a
+>    mask; a mask is a band nobody checks, so the day the mandala fails to render
+>    pooled it would still say PASS. Every keyframe animation is driven to its
+>    end state on both sides instead. `--mask` survives for JS-driven motion,
+>    which CSS cannot freeze, and every mask is recorded in the manifest.
+> 4. **Bands, not pages, and the descent has to find them.** A first cut took the
+>    children of `<main>` and got ONE band the size of the whole page, because on
+>    this fleet `main` holds a single wrapper. Whole-page diffing is the trap this
+>    phase exists to avoid — one band that grew 40px shifts everything below it
+>    and the page scores 60% for one defect. It descends to where the page
+>    branches now, and keeps the best node it saw rather than wherever it stopped,
+>    because an unguarded walk down a single-child chain ends at a leaf and
+>    reports zero bands — which is not "nothing to compare", it is going blind.
+>
+> Also fixed on the way: the Playwright resolver picked the first installation it
+> found, and this Mac has three — one of them an alpha pinned to a chromium
+> revision that is not downloaded. It ranks by whether the browser is actually on
+> disk now.
 
 1. **Freeze the baseline while her app is still up.** Full-page screenshots of
    all 16 routes × {1440, 768, 390}, plus a computed-style fingerprint per
@@ -256,8 +294,11 @@ rung 2, so none of it is throwaway.
 Her nav and footer have **no row at all**, so this is authoring, not repair.
 
 1. Author the `nav` override: her logo, and Starseed · Sun Walk · Contact ·
-   Login with her hrefs (`/en/starseed/`, `/en/sun-walk/`, `/en/#contact`,
-   `/en/login/` — note Contact is an in-page anchor, not a route).
+   Login with her hrefs — `/starseed/`, `/sun-walk/`, `/#contact`, `/login/`.
+   Contact is an in-page anchor, not a route. **No `/en/` prefix**: her app
+   hides the default locale and 307s `/en/starseed/` to `/starseed/`, so the
+   prefixed form (which this plan asked for until Phase 0 probed it) would cost
+   every visitor a redirect on every nav click.
 2. Author the `footer` override from her app's footer.
 3. Copy `Small-Logo-RW-2026.svg` into `public/images/tenants/resonantweaver/`
    and point the row at it.

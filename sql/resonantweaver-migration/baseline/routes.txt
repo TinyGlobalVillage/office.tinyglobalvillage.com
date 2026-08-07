@@ -1,0 +1,43 @@
+# Every public route resonantweaver.com's own app serves, verified by probing
+# :3003 on 2026-08-07. This is the work list for both sides of pixel parity —
+# `tenant-baseline.mjs --routes-file` reads it, and the manifest it writes is
+# what `tenant-pixel-parity.mjs` replays against the pooled render.
+#
+# THE 2026-08-07 CAPTURE MISSED FIVE OF THESE. It froze 18 routes; there are 23,
+# which is exactly the "23 hand-coded pages" the cutover plan counted. The five
+# absent were /open-your-journey/, /landing-star-preview/course/ and the three
+# /experience/ pages. A baseline that is missing a page cannot fail on it.
+#
+# NO /en/ PREFIX. Her app hides the default locale: /en/starseed/ 307s to
+# /starseed/. PIXEL-PARITY-PLAN Phase 2 lists her nav hrefs with the prefix —
+# authored that way they would each cost every visitor a redirect hop.
+#
+# The offer and experience slugs are the long ones from src/data/offers/offers.ts.
+# Of the twelve offers, eight have a live /offer/ page and three have a live
+# /experience/ page; the rest 404 on her own app today and are not parity gaps.
+
+/
+/home-classic/
+/journey/
+/open-your-journey/
+/starseed/
+/writing/
+/pearl-chamber/
+/sun-walk/
+/galactic-field-guide/
+
+/landing-star-preview/receive/
+/landing-star-preview/course/
+/landing-star-preview/experience/all-products/
+/landing-star-preview/experience/galactic-pendulum/
+/landing-star-preview/experience/pearl-chamber/
+/landing-star-preview/experience/resonance-mirror/
+
+/landing-star-preview/offer/awareness-and-perception-training/
+/landing-star-preview/offer/extended-starseed-profile/
+/landing-star-preview/offer/galactic-initiation/
+/landing-star-preview/offer/galactic-integration-session/
+/landing-star-preview/offer/galactic-pendulum/
+/landing-star-preview/offer/meeting-your-galactic-self-meditation/
+/landing-star-preview/offer/pearl-chamber/
+/landing-star-preview/offer/resonance-mirror/
