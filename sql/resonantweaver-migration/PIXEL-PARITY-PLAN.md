@@ -356,11 +356,57 @@ rung 2, so none of it is throwaway.
 > every migrated stack — so a set role read as unset and one click would have
 > replaced a site's own type with a platform default. Both fixed with the model.
 >
-> **Item 5 is not done: the differ cannot be re-run until this deploys.** The
-> four woff2 files live in HQ's `public/`, and the pooled render is served by
-> the LIVE HQ on RCS. Until `gitrefuse` carries them, naming Space Mono in the
-> theme loads nothing. Same ordering every phase of this migration has had —
-> the proof lands at deploy.
+> **DEPLOYED 2026-08-07** — mono `94b61498` → RCS turbo 50/50 → HQ `e708c966`,
+> `mac-deploy … --no-git-sync` from the shared main checkout,
+> `BUILD_ID=F_aUrxiKQ9Am1WoBQwir8`, RCS did zero app build. All four woff2 files
+> 200 on the live host. Fleet smoke green: TGV, giocoelho, guardians, nevlo,
+> refusionist and resonantweaver each 200 wearing their own title.
+>
+> **AND THE MEASUREMENT IS THE POINT OF THIS NOTE — Phase 1 moved TWO
+> elements, not 145.** Re-measured against the live pooled render:
+>
+>       her → before → AFTER   (home @1440)
+>       117 →   262  →   261   Space Grotesk
+>        59 →    23  →    22   scienceGothic
+>        31 →     0  →     2   Space Mono
+>         8 →     0  →     0   Ubuntu Mono
+>
+> Exactly the two elements this phase wired — rf-split-hero's eyebrow and its
+> tagline. So the plan's own expectation for item 5 ("expect this alone to move
+> the type portion of every one of the 95 sections") was wrong, and it was wrong
+> in a way worth writing down: **a role nothing points at changes nothing.**
+> Phase 1 built the capacity — six roles, eight faces, a shared helper, a write
+> boundary that keeps them — and Phase 3 is what spends it, one component at a
+> time. The 2/2 is the proof that the whole chain works end to end (theme role →
+> custom property → @font-face → glyphs on the page); the remaining ~145 are
+> per-component decisions the differ has to name first.
+>
+> It is also the reason this landed as its own deploy rather than riding with
+> Phase 3: the only site with `accent` set moved two elements, which is the
+> cleanest evidence available that the catalog change is inert on the four
+> pooled tenants that set no such role.
+>
+> **ONE OF THE TWO WAS WRONG, AND THAT IS THE MOST USEFUL THING HERE.** The
+> eyebrow moving to `accent` was right — Phase 0 had named it. The tagline
+> moving with it was a guess dressed as symmetry: two lines either side of a
+> wordmark, so the same role read as tidy. Her "a return to yourself" wears
+> scienceGothic, so the change turned a MATCHING string into a mismatched one,
+> and the report said so on the first pass after deploy —
+> `font: scienceGothic → Space Mono`, a line that had not existed in Phase 0's.
+> Reverted to the heading role in mono `52c06c33` (deployed,
+> `BUILD_ID=8_nQf_Jmswq0bm00Xb6xk`) and re-diffed: font deltas on her home
+> 23 → 22, the tagline silent again. The harness now asserts the absence, so
+> the symmetry cannot come back with a tidy-up.
+>
+> A fix that makes a site LESS like itself is indistinguishable from a fix that
+> works — in a screenshot, in a typecheck, and in 134 green assertions. Only the
+> diff against her own render could tell them apart. That is the argument for
+> Phase 0 in one line, and it took an hour to earn.
+>
+> **Bands are unchanged at 1440: 20 of 23 pages still have a 100% band**, same
+> as Phase 0, with `sun-walk` 25.32%, `landing-star-preview/course` 11.87% and
+> `open-your-journey` 7.00%. Type was never going to close a band; the height
+> deltas (-690px on home) and the missing sections are Phase 2 and Phase 3.
 
 1. **Grow `SiteTheme.fonts` beyond two roles** — `display`, `body`, `mono`,
    `accent`, `serif`. Type, validator, and one `--tgv-font*` pair each in
