@@ -4,17 +4,40 @@
 -- caught rather than merged.
 --
 -- Her identity as three site-scoped rows: the palette and type (`theme`),
--- the two ambient orbs and the ground they drift over (`siteBackground`), and
--- the Cormorant Garamond faces that make the type real (`siteFonts`).
+-- the sky behind every page (`siteBackground`), and the faces that make the
+-- type real (`siteFonts`).
+--
+-- WHOSE LOOK THIS IS. The star landing's, not OnePage's — Gio's ruling of
+-- 2026-08-06, after the parity pass showed a site that had changed colour and
+-- typeface. Phase 1 read the ground and the type off `OnePage.styles.ts` and
+-- `tokens.ts`; both are genuinely hers, but they belong to the one-pager she
+-- retired, and the pooled home IS the star landing. That page declares
+-- `#06111c` and Science Gothic over Space Grotesk; `SERIF` (Cormorant) appears
+-- there only under `&[data-font-preview="original"]`, the alternative she was
+-- previewing through her own FontPreviewSwitch. Her live home and /starseed/
+-- wear the gothic; only /journey/ wears the serif, and one theme row cannot
+-- name both.
 --
 -- WHY THE FONT ROW EXISTS AT ALL. A theme has always been able to NAME a family;
--- nothing loaded one. On her own app the face arrived through a stylesheet
--- `@import` that does not travel with her pages — so without this row her site
--- would come up in Georgia with every colour, size and word correct.
+-- nothing loaded one. On her own app the faces arrive through `next/font` and a
+-- stylesheet `@import`, neither of which travels with her pages — so without
+-- this row her site would come up in a system sans with every colour, size and
+-- word correct. Cormorant stays LOADED but unnamed: a @font-face nothing
+-- references is never fetched, so it costs nothing and it is there the day
+-- per-page typography exists.
 --
 -- The muted text and the surface are FLATTENED alphas: `rgba(BONE, .65)` and
 -- `rgba(4, 20, 19, .9)` over her ground. The colour roles are hex-only by
 -- design, and the flattened value is what a browser paints for those pixels.
+--
+-- RE-RUNNABLE, AND IT UPDATES. The first version only inserted where nothing
+-- existed, which made a correction impossible to apply — the rows were already
+-- there, so a re-run was a silent no-op and the wrong identity stayed live.
+-- It now writes the migrated identity whether or not a row exists. That means
+-- re-running it DISCARDS studio edits to these three keys; the plan-17 capture
+-- trigger records every change to `content_overrides`, so a clobber is visible
+-- in Client Versions and revertible, but do not re-run this after Marthe starts
+-- editing her theme.
 --
 --   psql -v ON_ERROR_STOP=1 -d tgv_db -f sql/resonantweaver-migration/01-theme.sql
 
@@ -28,17 +51,17 @@ SELECT set_config('app.actor', 'migration:resonantweaver-01-theme', true);
 INSERT INTO public.content_overrides (key, lang, mode, user_id, data, updated_at, site)
 SELECT 'theme', 'en', 'published', NULL, $rwjson${
   "colors": {
-    "background": "#061814",
-    "surface": "#041413",
+    "background": "#06111c",
+    "surface": "#041414",
     "text": "#e8e5da",
-    "textMuted": "#999d95",
+    "textMuted": "#999b98",
     "accent1": "#48d2b9",
     "accent2": "#b78a77",
     "accent3": "#b78a77"
   },
   "fonts": {
-    "heading": "Cormorant Garamond, Georgia, serif",
-    "body": "Cormorant Garamond, Georgia, serif"
+    "heading": "Science Gothic, Space Grotesk, sans-serif",
+    "body": "Space Grotesk, ui-sans-serif, system-ui, sans-serif"
   },
   "radius": {
     "card": "14px",
@@ -53,38 +76,83 @@ SELECT 'theme', 'en', 'published', NULL, $rwjson${
       AND user_id IS NOT DISTINCT FROM NULL
  );
 
+UPDATE public.content_overrides
+   SET data = $rwjson${
+  "colors": {
+    "background": "#06111c",
+    "surface": "#041414",
+    "text": "#e8e5da",
+    "textMuted": "#999b98",
+    "accent1": "#48d2b9",
+    "accent2": "#b78a77",
+    "accent3": "#b78a77"
+  },
+  "fonts": {
+    "heading": "Science Gothic, Space Grotesk, sans-serif",
+    "body": "Space Grotesk, ui-sans-serif, system-ui, sans-serif"
+  },
+  "radius": {
+    "card": "14px",
+    "button": "8px",
+    "small": "4px"
+  }
+}$rwjson$::jsonb, updated_at = now()
+ WHERE site = 'resonantweaver' AND key = 'theme'
+   AND lang = 'en' AND mode = 'published'
+   AND user_id IS NOT DISTINCT FROM NULL
+   AND data IS DISTINCT FROM $rwjson${
+  "colors": {
+    "background": "#06111c",
+    "surface": "#041414",
+    "text": "#e8e5da",
+    "textMuted": "#999b98",
+    "accent1": "#48d2b9",
+    "accent2": "#b78a77",
+    "accent3": "#b78a77"
+  },
+  "fonts": {
+    "heading": "Science Gothic, Space Grotesk, sans-serif",
+    "body": "Space Grotesk, ui-sans-serif, system-ui, sans-serif"
+  },
+  "radius": {
+    "card": "14px",
+    "button": "8px",
+    "small": "4px"
+  }
+}$rwjson$::jsonb;
+
 -- ── siteBackground ────────────────────────────────────────────────────────────────
 INSERT INTO public.content_overrides (key, lang, mode, user_id, data, updated_at, site)
 SELECT 'siteBackground', 'en', 'published', NULL, $rwjson${
   "orbs": [
     {
-      "color": "#b78a77",
-      "top": -20,
-      "left": -20,
-      "size": 80,
-      "blur": 90,
-      "alpha": 0.07,
-      "from": 0.5,
-      "to": 0.85,
-      "driftX": 10,
-      "driftY": 10,
-      "duration": 22
+      "color": "#235279",
+      "top": -6,
+      "left": 17,
+      "width": 66,
+      "height": 36,
+      "size": 66,
+      "blur": 0,
+      "alpha": 0.2,
+      "from": 1,
+      "to": 1,
+      "duration": 0
     },
     {
       "color": "#48d2b9",
-      "bottom": -20,
-      "right": -20,
-      "size": 80,
-      "blur": 90,
-      "alpha": 0.06,
-      "from": 0.35,
-      "to": 0.65,
-      "driftX": -10,
-      "driftY": -6,
-      "duration": 28
+      "bottom": 3,
+      "right": -7,
+      "width": 50,
+      "height": 34,
+      "size": 50,
+      "blur": 0,
+      "alpha": 0.035,
+      "from": 1,
+      "to": 1,
+      "duration": 0
     }
   ],
-  "color": "#061814"
+  "color": "#06111c"
 }$rwjson$::jsonb, now(), 'resonantweaver'
  WHERE NOT EXISTS (
    SELECT 1 FROM public.content_overrides
@@ -93,10 +161,91 @@ SELECT 'siteBackground', 'en', 'published', NULL, $rwjson${
       AND user_id IS NOT DISTINCT FROM NULL
  );
 
+UPDATE public.content_overrides
+   SET data = $rwjson${
+  "orbs": [
+    {
+      "color": "#235279",
+      "top": -6,
+      "left": 17,
+      "width": 66,
+      "height": 36,
+      "size": 66,
+      "blur": 0,
+      "alpha": 0.2,
+      "from": 1,
+      "to": 1,
+      "duration": 0
+    },
+    {
+      "color": "#48d2b9",
+      "bottom": 3,
+      "right": -7,
+      "width": 50,
+      "height": 34,
+      "size": 50,
+      "blur": 0,
+      "alpha": 0.035,
+      "from": 1,
+      "to": 1,
+      "duration": 0
+    }
+  ],
+  "color": "#06111c"
+}$rwjson$::jsonb, updated_at = now()
+ WHERE site = 'resonantweaver' AND key = 'siteBackground'
+   AND lang = 'en' AND mode = 'published'
+   AND user_id IS NOT DISTINCT FROM NULL
+   AND data IS DISTINCT FROM $rwjson${
+  "orbs": [
+    {
+      "color": "#235279",
+      "top": -6,
+      "left": 17,
+      "width": 66,
+      "height": 36,
+      "size": 66,
+      "blur": 0,
+      "alpha": 0.2,
+      "from": 1,
+      "to": 1,
+      "duration": 0
+    },
+    {
+      "color": "#48d2b9",
+      "bottom": 3,
+      "right": -7,
+      "width": 50,
+      "height": 34,
+      "size": 50,
+      "blur": 0,
+      "alpha": 0.035,
+      "from": 1,
+      "to": 1,
+      "duration": 0
+    }
+  ],
+  "color": "#06111c"
+}$rwjson$::jsonb;
+
 -- ── siteFonts ────────────────────────────────────────────────────────────────
 INSERT INTO public.content_overrides (key, lang, mode, user_id, data, updated_at, site)
 SELECT 'siteFonts', 'en', 'published', NULL, $rwjson${
   "faces": [
+    {
+      "family": "Science Gothic",
+      "src": "/fonts/tenants/resonantweaver/science-gothic-variable.woff2",
+      "weight": "400 800",
+      "style": "normal",
+      "display": "swap"
+    },
+    {
+      "family": "Space Grotesk",
+      "src": "/fonts/tenants/resonantweaver/space-grotesk-latin.woff2",
+      "weight": "300 700",
+      "style": "normal",
+      "display": "swap"
+    },
     {
       "family": "Cormorant Garamond",
       "src": "/fonts/tenants/resonantweaver/cormorant-garamond-latin.woff2",
@@ -120,9 +269,78 @@ SELECT 'siteFonts', 'en', 'published', NULL, $rwjson${
       AND user_id IS NOT DISTINCT FROM NULL
  );
 
+UPDATE public.content_overrides
+   SET data = $rwjson${
+  "faces": [
+    {
+      "family": "Science Gothic",
+      "src": "/fonts/tenants/resonantweaver/science-gothic-variable.woff2",
+      "weight": "400 800",
+      "style": "normal",
+      "display": "swap"
+    },
+    {
+      "family": "Space Grotesk",
+      "src": "/fonts/tenants/resonantweaver/space-grotesk-latin.woff2",
+      "weight": "300 700",
+      "style": "normal",
+      "display": "swap"
+    },
+    {
+      "family": "Cormorant Garamond",
+      "src": "/fonts/tenants/resonantweaver/cormorant-garamond-latin.woff2",
+      "weight": "300 700",
+      "style": "normal",
+      "display": "swap"
+    },
+    {
+      "family": "Cormorant Garamond",
+      "src": "/fonts/tenants/resonantweaver/cormorant-garamond-latin-italic.woff2",
+      "weight": "300 700",
+      "style": "italic",
+      "display": "swap"
+    }
+  ]
+}$rwjson$::jsonb, updated_at = now()
+ WHERE site = 'resonantweaver' AND key = 'siteFonts'
+   AND lang = 'en' AND mode = 'published'
+   AND user_id IS NOT DISTINCT FROM NULL
+   AND data IS DISTINCT FROM $rwjson${
+  "faces": [
+    {
+      "family": "Science Gothic",
+      "src": "/fonts/tenants/resonantweaver/science-gothic-variable.woff2",
+      "weight": "400 800",
+      "style": "normal",
+      "display": "swap"
+    },
+    {
+      "family": "Space Grotesk",
+      "src": "/fonts/tenants/resonantweaver/space-grotesk-latin.woff2",
+      "weight": "300 700",
+      "style": "normal",
+      "display": "swap"
+    },
+    {
+      "family": "Cormorant Garamond",
+      "src": "/fonts/tenants/resonantweaver/cormorant-garamond-latin.woff2",
+      "weight": "300 700",
+      "style": "normal",
+      "display": "swap"
+    },
+    {
+      "family": "Cormorant Garamond",
+      "src": "/fonts/tenants/resonantweaver/cormorant-garamond-latin-italic.woff2",
+      "weight": "300 700",
+      "style": "italic",
+      "display": "swap"
+    }
+  ]
+}$rwjson$::jsonb;
+
 -- ── assertions ─────────────────────────────────────────────────────────────
 DO $$
-DECLARE n int;
+DECLARE n int; role text;
 BEGIN
   SELECT count(*) INTO n FROM public.content_overrides
    WHERE site = 'resonantweaver' AND mode = 'published' AND user_id IS NULL
@@ -141,17 +359,32 @@ BEGIN
     RAISE EXCEPTION 'assert: % font face(s) point outside the tenant font dir', n;
   END IF;
 
-  -- The theme names a family; siteFonts must actually carry it.
-  SELECT count(*) INTO n FROM public.content_overrides t
-   WHERE t.site = 'resonantweaver' AND t.key = 'theme'
-     AND NOT EXISTS (
-       SELECT 1 FROM public.content_overrides c,
-            LATERAL jsonb_array_elements(c.data->'faces') f
-        WHERE c.site = t.site AND c.key = 'siteFonts'
-          AND t.data->'fonts'->>'body' LIKE '%' || (f->>'family') || '%'
-     );
-  IF n <> 0 THEN
-    RAISE EXCEPTION 'assert: the theme names a font no face loads';
+  -- The theme names families; siteFonts must actually carry them. BOTH roles,
+  -- because the heading face is a different family from the body face here and
+  -- checking only one is how a heading falls back to a system sans in silence —
+  -- correct colours, correct words, wrong site.
+  FOR role IN SELECT unnest(ARRAY['heading', 'body']) LOOP
+    SELECT count(*) INTO n FROM public.content_overrides t
+     WHERE t.site = 'resonantweaver' AND t.key = 'theme'
+       AND NOT EXISTS (
+         SELECT 1 FROM public.content_overrides c,
+              LATERAL jsonb_array_elements(c.data->'faces') f
+          WHERE c.site = t.site AND c.key = 'siteFonts'
+            AND split_part(t.data->'fonts'->>role, ',', 1) = (f->>'family')
+       );
+    IF n <> 0 THEN
+      RAISE EXCEPTION 'assert: the theme''s % font is a family no face loads', role;
+    END IF;
+  END LOOP;
+
+  -- The sky is the star landing's, not the retired one-pager's. A wrong ground
+  -- here is the difference between a blue night and a green one, and it is the
+  -- defect the 2026-08-06 parity pass found.
+  SELECT count(*) INTO n FROM public.content_overrides
+   WHERE site = 'resonantweaver' AND key = 'siteBackground'
+     AND data->>'color' = '#06111c';
+  IF n <> 1 THEN
+    RAISE EXCEPTION 'assert: siteBackground.color is not %', '#06111c';
   END IF;
 
   RAISE NOTICE 'assertions passed';

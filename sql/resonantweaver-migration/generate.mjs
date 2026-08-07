@@ -43,6 +43,7 @@ import {
   panel,
   assetMap,
   webfonts,
+  themeFonts,
   ASSET_BASE,
 } from "./copy.mjs";
 
@@ -222,6 +223,14 @@ const hex = (n) => Math.round(Math.min(255, Math.max(0, n))).toString(16).padSta
 const toHex = ([r, g, b]) => `#${hex(r)}${hex(g)}${hex(b)}`;
 /** "183, 138, 119" — the shape every token in her `tokens.ts` is written in. */
 const parseTriplet = (s) => s.split(",").map((x) => Number(x.trim()));
+
+/** "#06111c" → [6, 17, 28]. She writes her grounds as hex; `over()` needs numbers. */
+function hexToRgb(s) {
+  const m = /^#?([0-9a-f]{6})$/i.exec(String(s).trim());
+  if (!m) die(`hexToRgb: not a 6-digit hex colour: ${s}`);
+  const n = parseInt(m[1], 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
 
 function hslToRgb(h, s, l) {
   s /= 100;
@@ -1794,8 +1803,7 @@ function themeSql(data) {
   const bone = parseTriplet(t.BONE);
 
   guardOnly(ground);
-  const m = /hsl\((\d+),\s*(\d+)%,\s*(\d+)%\)/.exec(ground.hsl);
-  const bg = hslToRgb(Number(m[1]), Number(m[2]), Number(m[3]));
+  const bg = hexToRgb(ground.hex);
 
   guardOnly(panel);
   const [pr, pg, pb, pa] = panel.rgba;
@@ -1808,6 +1816,7 @@ function themeSql(data) {
 
   for (const r of Object.values(radii)) guardOnly(r);
   for (const o of orbs) for (const g of o.guards) guardOnly(g);
+  for (const g of themeFonts.guards) guardOnly(g);
 
   const theme = {
     colors: {
@@ -1822,7 +1831,7 @@ function themeSql(data) {
       // would put TGV's amber on her page.
       accent3: toHex(copper),
     },
-    fonts: { heading: t.SERIF.replace(/'/g, ""), body: t.SERIF.replace(/'/g, "") },
+    fonts: { heading: themeFonts.heading, body: themeFonts.body },
     radius: { card: radii.card.value, button: radii.button.value, small: radii.small.value },
   };
 
@@ -1843,17 +1852,40 @@ function themeSql(data) {
     BANNER(
       "01-theme.sql",
       `-- Her identity as three site-scoped rows: the palette and type (\`theme\`),
--- the two ambient orbs and the ground they drift over (\`siteBackground\`), and
--- the Cormorant Garamond faces that make the type real (\`siteFonts\`).
+-- the sky behind every page (\`siteBackground\`), and the faces that make the
+-- type real (\`siteFonts\`).
+--
+-- WHOSE LOOK THIS IS. The star landing's, not OnePage's — Gio's ruling of
+-- 2026-08-06, after the parity pass showed a site that had changed colour and
+-- typeface. Phase 1 read the ground and the type off \`OnePage.styles.ts\` and
+-- \`tokens.ts\`; both are genuinely hers, but they belong to the one-pager she
+-- retired, and the pooled home IS the star landing. That page declares
+-- \`#06111c\` and Science Gothic over Space Grotesk; \`SERIF\` (Cormorant) appears
+-- there only under \`&[data-font-preview="original"]\`, the alternative she was
+-- previewing through her own FontPreviewSwitch. Her live home and /starseed/
+-- wear the gothic; only /journey/ wears the serif, and one theme row cannot
+-- name both.
 --
 -- WHY THE FONT ROW EXISTS AT ALL. A theme has always been able to NAME a family;
--- nothing loaded one. On her own app the face arrived through a stylesheet
--- \`@import\` that does not travel with her pages — so without this row her site
--- would come up in Georgia with every colour, size and word correct.
+-- nothing loaded one. On her own app the faces arrive through \`next/font\` and a
+-- stylesheet \`@import\`, neither of which travels with her pages — so without
+-- this row her site would come up in a system sans with every colour, size and
+-- word correct. Cormorant stays LOADED but unnamed: a @font-face nothing
+-- references is never fetched, so it costs nothing and it is there the day
+-- per-page typography exists.
 --
 -- The muted text and the surface are FLATTENED alphas: \`rgba(BONE, .65)\` and
 -- \`rgba(4, 20, 19, .9)\` over her ground. The colour roles are hex-only by
--- design, and the flattened value is what a browser paints for those pixels.`,
+-- design, and the flattened value is what a browser paints for those pixels.
+--
+-- RE-RUNNABLE, AND IT UPDATES. The first version only inserted where nothing
+-- existed, which made a correction impossible to apply — the rows were already
+-- there, so a re-run was a silent no-op and the wrong identity stayed live.
+-- It now writes the migrated identity whether or not a row exists. That means
+-- re-running it DISCARDS studio edits to these three keys; the plan-17 capture
+-- trigger records every change to \`content_overrides\`, so a clobber is visible
+-- in Client Versions and revertible, but do not re-run this after Marthe starts
+-- editing her theme.`,
     ) +
     rows
       .map(
@@ -1867,13 +1899,20 @@ SELECT ${lit(key)}, 'en', 'published', NULL, ${json(value)}, now(), ${lit(SITE)}
       AND lang = 'en' AND mode = 'published'
       AND user_id IS NOT DISTINCT FROM NULL
  );
+
+UPDATE public.content_overrides
+   SET data = ${json(value)}, updated_at = now()
+ WHERE site = ${lit(SITE)} AND key = ${lit(key)}
+   AND lang = 'en' AND mode = 'published'
+   AND user_id IS NOT DISTINCT FROM NULL
+   AND data IS DISTINCT FROM ${json(value)};
 `,
       )
       .join("") +
     `
 -- ── assertions ─────────────────────────────────────────────────────────────
 DO $$
-DECLARE n int;
+DECLARE n int; role text;
 BEGIN
   SELECT count(*) INTO n FROM public.content_overrides
    WHERE site = ${lit(SITE)} AND mode = 'published' AND user_id IS NULL
@@ -1892,17 +1931,32 @@ BEGIN
     RAISE EXCEPTION 'assert: % font face(s) point outside the tenant font dir', n;
   END IF;
 
-  -- The theme names a family; siteFonts must actually carry it.
-  SELECT count(*) INTO n FROM public.content_overrides t
-   WHERE t.site = ${lit(SITE)} AND t.key = 'theme'
-     AND NOT EXISTS (
-       SELECT 1 FROM public.content_overrides c,
-            LATERAL jsonb_array_elements(c.data->'faces') f
-        WHERE c.site = t.site AND c.key = 'siteFonts'
-          AND t.data->'fonts'->>'body' LIKE '%' || (f->>'family') || '%'
-     );
-  IF n <> 0 THEN
-    RAISE EXCEPTION 'assert: the theme names a font no face loads';
+  -- The theme names families; siteFonts must actually carry them. BOTH roles,
+  -- because the heading face is a different family from the body face here and
+  -- checking only one is how a heading falls back to a system sans in silence —
+  -- correct colours, correct words, wrong site.
+  FOR role IN SELECT unnest(ARRAY['heading', 'body']) LOOP
+    SELECT count(*) INTO n FROM public.content_overrides t
+     WHERE t.site = ${lit(SITE)} AND t.key = 'theme'
+       AND NOT EXISTS (
+         SELECT 1 FROM public.content_overrides c,
+              LATERAL jsonb_array_elements(c.data->'faces') f
+          WHERE c.site = t.site AND c.key = 'siteFonts'
+            AND split_part(t.data->'fonts'->>role, ',', 1) = (f->>'family')
+       );
+    IF n <> 0 THEN
+      RAISE EXCEPTION 'assert: the theme''s % font is a family no face loads', role;
+    END IF;
+  END LOOP;
+
+  -- The sky is the star landing's, not the retired one-pager's. A wrong ground
+  -- here is the difference between a blue night and a green one, and it is the
+  -- defect the 2026-08-06 parity pass found.
+  SELECT count(*) INTO n FROM public.content_overrides
+   WHERE site = ${lit(SITE)} AND key = 'siteBackground'
+     AND data->>'color' = ${lit(ground.hex)};
+  IF n <> 1 THEN
+    RAISE EXCEPTION 'assert: siteBackground.color is not %', ${lit(ground.hex)};
   END IF;
 
   RAISE NOTICE 'assertions passed';

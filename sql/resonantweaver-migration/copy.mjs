@@ -334,43 +334,52 @@ export const rewrites = [
  *  is also what her `position: fixed; width: 80%` rules mean. */
 export const orbs = [
   {
-    // OrbA — copper, top-left, the warmer of the two.
-    color: "#b78a77",
-    top: -20,
-    left: -20,
-    size: 80,
-    blur: 90,
-    alpha: 0.07,
-    from: 0.5,
-    to: 0.85,
-    driftX: 10,
-    driftY: 10,
-    duration: 22,
+    // The blue wash across the top — `ellipse 66% 36% at 50% 12%`. Wide and
+    // shallow, which is why SiteBackdropOrb learned width/height: rounding it to
+    // a circle is a visibly different sky.
+    //
+    // `at 50% 12%` is the CENTRE, and an orb is positioned by its EDGE, so the
+    // offsets are centre minus half the size: left 50 − 33 = 17, top 12 − 18 = −6.
+    color: "#235279",
+    top: -6,
+    left: 17,
+    width: 66,
+    height: 36,
+    size: 66,
+    // Hers is a gradient stop, not a filter — the softness is already in the
+    // `transparent 72%` falloff, so a blur on top would double it.
+    blur: 0,
+    alpha: 0.2,
+    from: 1,
+    to: 1,
+    // Static. The star landing's sky does not drift; OnePage's did.
+    duration: 0,
     guards: [
-      { file: `${HOME}/OnePage.styles.ts`, find: "rgba(${COPPER}, 0.07) 0%, transparent 60%" },
-      { file: `${HOME}/OnePage.styles.ts`, find: "animation: ${floatA} 22s infinite alternate ease-in-out" },
-      { file: `${HOME}/OnePage.styles.ts`, find: "0% { transform: translate(0, 0); opacity: 0.5; }" },
-      { file: `${HOME}/OnePage.styles.ts`, find: "100% { transform: translate(10%, 10%); opacity: 0.85; }" },
+      {
+        file: `${HOME}/landing-star-preview/LandingStarPreview.styles.ts`,
+        find: "radial-gradient(ellipse 66% 36% at 50% 12%, rgba(35, 82, 121, 0.2), transparent 72%)",
+      },
     ],
   },
   {
-    // OrbB — teal, bottom-right, cooler and slower.
+    // The teal glow low and right — `ellipse 50% 34% at 82% 80%`.
+    // right 100 − 82 − 25 = −7; bottom 100 − 80 − 17 = 3.
     color: "#48d2b9",
-    bottom: -20,
-    right: -20,
-    size: 80,
-    blur: 90,
-    alpha: 0.06,
-    from: 0.35,
-    to: 0.65,
-    driftX: -10,
-    driftY: -6,
-    duration: 28,
+    bottom: 3,
+    right: -7,
+    width: 50,
+    height: 34,
+    size: 50,
+    blur: 0,
+    alpha: 0.035,
+    from: 1,
+    to: 1,
+    duration: 0,
     guards: [
-      { file: `${HOME}/OnePage.styles.ts`, find: "rgba(${TEAL}, 0.06) 0%, transparent 60%" },
-      { file: `${HOME}/OnePage.styles.ts`, find: "animation: ${floatB} 28s infinite alternate ease-in-out" },
-      { file: `${HOME}/OnePage.styles.ts`, find: "0% { transform: translate(0, 0); opacity: 0.35; }" },
-      { file: `${HOME}/OnePage.styles.ts`, find: "100% { transform: translate(-10%, -6%); opacity: 0.65; }" },
+      {
+        file: `${HOME}/landing-star-preview/LandingStarPreview.styles.ts`,
+        find: "radial-gradient(ellipse 50% 34% at 82% 80%, rgba(${TEAL}, 0.035), transparent 70%)",
+      },
     ],
   },
 ];
@@ -382,12 +391,20 @@ export const radii = {
   small: { value: "4px", file: `${HOME}/OnePage.styles.ts`, find: "border-radius: 4px" },
 };
 
-/** The ground her palette sits on. `tokens.ts` has no background — it is the
- *  first declaration in `Body`, which is why Phase 1 could not find it. */
+/** The ground her palette sits on — the STAR LANDING's, not OnePage's.
+ *
+ *  Phase 1 read `--background: hsl(165, 60%, 6%)` out of `OnePage.styles.ts`,
+ *  which is real and is the ground her retired one-pager sits on. But the pooled
+ *  home IS the star landing (Gio's choice), and that page declares its own:
+ *  `#06111c`, a blue night rather than a green one. The parity pass caught the
+ *  mismatch as a site that had changed colour, and Gio ruled for the star
+ *  landing's look on 2026-08-06.
+ *
+ *  Kept as hex rather than hsl because that is how she writes it. */
 export const ground = {
-  hsl: "hsl(165, 60%, 6%)",
-  file: `${HOME}/OnePage.styles.ts`,
-  find: "--background:    hsl(165, 60%, 6%)",
+  hex: "#06111c",
+  file: `${HOME}/landing-star-preview/LandingStarPreview.styles.ts`,
+  find: "#06111c",
 };
 
 /** The one flat panel colour in the file — the fixed font-preview pill. Every
@@ -447,6 +464,28 @@ export const assetMap = {
  *  actually covers. */
 export const FONT_BASE = "/fonts/tenants/resonantweaver";
 export const webfonts = [
+  // The star landing's own two, self-hosted under her tenant directory. Science
+  // Gothic is the same variable WOFF2 HQ already serves the field guide from;
+  // Space Grotesk is the latin subset Google serves for `wght@300..700`.
+  {
+    family: "Science Gothic",
+    src: `${FONT_BASE}/science-gothic-variable.woff2`,
+    weight: "400 800",
+    style: "normal",
+    display: "swap",
+  },
+  {
+    family: "Space Grotesk",
+    src: `${FONT_BASE}/space-grotesk-latin.woff2`,
+    weight: "300 700",
+    style: "normal",
+    display: "swap",
+  },
+  // Cormorant stays LOADED but is no longer named by the theme. It is what
+  // `/journey/` wears on her own app, and a face nothing references costs
+  // nothing — the browser fetches a @font-face only when a rule uses the family.
+  // So the day per-page typography exists, her journey pages have their serif
+  // waiting rather than needing this migration re-run.
   {
     family: "Cormorant Garamond",
     src: `${FONT_BASE}/cormorant-garamond-latin.woff2`,
@@ -462,3 +501,36 @@ export const webfonts = [
     display: "swap",
   },
 ];
+
+/** The two families the theme NAMES, read off the star landing's own custom
+ *  properties rather than off `tokens.ts`.
+ *
+ *  This is the distinction the first pass missed. `tokens.ts` exports
+ *  `SERIF = 'Cormorant Garamond'`, and the generator made it the whole site's
+ *  type — but on the star landing that face appears only under
+ *  `&[data-font-preview="original"]`, i.e. the ALTERNATIVE Marthe was previewing
+ *  through her FontPreviewSwitch. The page's default, and what her live home and
+ *  /starseed/ actually wear, is Science Gothic over Space Grotesk.
+ *
+ *  A theme has one heading and one body; her site has two typographic families
+ *  across different pages. Gio ruled for the star landing's on 2026-08-06. */
+export const themeFonts = {
+  heading: "Science Gothic, Space Grotesk, sans-serif",
+  body: "Space Grotesk, ui-sans-serif, system-ui, sans-serif",
+  guards: [
+    {
+      file: `${HOME}/landing-star-preview/LandingStarPreview.styles.ts`,
+      find: "--preview-display-font: var(--gfg-font-display), var(--gfg-font-tech), sans-serif",
+    },
+    {
+      file: `${HOME}/landing-star-preview/LandingStarPreview.styles.ts`,
+      find: "--preview-body-font: var(--gfg-font-tech), ui-sans-serif, system-ui, sans-serif",
+    },
+    // The switch that makes the serif an alternative rather than the default.
+    // If this line ever goes away, the reasoning above needs re-checking.
+    {
+      file: `${HOME}/landing-star-preview/LandingStarPreview.styles.ts`,
+      find: '&[data-font-preview="original"]',
+    },
+  ],
+};
