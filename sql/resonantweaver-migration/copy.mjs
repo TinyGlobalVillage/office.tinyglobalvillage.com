@@ -562,6 +562,17 @@ export const assetMap = {
  *  the identical woff2 for 300 and 400. `300 700` is the range that file
  *  actually covers. */
 export const FONT_BASE = "/fonts/tenants/resonantweaver";
+
+/** The unicode-ranges Google serves these subsets under, copied verbatim from
+ *  the `@font-face` block her own build emits. They are here rather than
+ *  omitted because a face with no range claims EVERY glyph: the Greek Ubuntu
+ *  Mono would then answer for latin text before Space Mono got the chance,
+ *  which is the exact bug her `fonts.ts` documents fighting in the other
+ *  direction (`adjustFontFallback: false`). */
+const SUBSET_LATIN =
+  "U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD";
+const SUBSET_GREEK =
+  "U+0370-0377,U+037A-037F,U+0384-038A,U+038C,U+038E-03A1,U+03A3-03FF";
 export const webfonts = [
   // The star landing's own two, self-hosted under her tenant directory. Science
   // Gothic is the same variable WOFF2 HQ already serves the field guide from;
@@ -580,11 +591,12 @@ export const webfonts = [
     style: "normal",
     display: "swap",
   },
-  // Cormorant stays LOADED but is no longer named by the theme. It is what
-  // `/journey/` wears on her own app, and a face nothing references costs
-  // nothing — the browser fetches a @font-face only when a rule uses the family.
-  // So the day per-page typography exists, her journey pages have their serif
-  // waiting rather than needing this migration re-run.
+  // Cormorant is what `/journey/` wears on her own app. It rode along here
+  // unnamed for two days — loaded but unreachable, because the theme had no
+  // role that could hold a serif. It has one now (`themeFonts.serif`), so the
+  // face and the name arrived at the same place; naming it still puts it on no
+  // page by itself, which is what makes per-page typography a row rather than
+  // a re-run of this migration.
   {
     family: "Cormorant Garamond",
     src: `${FONT_BASE}/cormorant-garamond-latin.woff2`,
@@ -598,6 +610,52 @@ export const webfonts = [
     weight: "300 700",
     style: "italic",
     display: "swap",
+  },
+  // ── The two mono faces, added 2026-08-07 with the type-role work ──────────
+  // Measured, not guessed: at 1440 her home wears Space Mono on 31 elements and
+  // Ubuntu Mono on 8, and the pooled render had ZERO of either because the
+  // theme could name two families and she uses five. Space Mono is a
+  // two-weight family (Google ships 400 and 700 only, so her DOM's w500/w600
+  // are the browser rounding down to 400) — hence one file per weight rather
+  // than the variable range the other three use.
+  {
+    family: "Space Mono",
+    src: `${FONT_BASE}/space-mono-latin.woff2`,
+    weight: "400",
+    style: "normal",
+    display: "swap",
+    unicodeRange: SUBSET_LATIN,
+  },
+  {
+    family: "Space Mono",
+    src: `${FONT_BASE}/space-mono-latin-bold.woff2`,
+    weight: "700",
+    style: "normal",
+    display: "swap",
+    unicodeRange: SUBSET_LATIN,
+  },
+  // Ubuntu Mono ships BOTH subsets on purpose. Latin is the nav and the footer
+  // — "starseed", "sun walk", "contact", "login" and her copyright line all
+  // compute to it, which is four of the strings Phase 0 reported missing. Greek
+  // is load-bearing separately: it is what draws the Bayer designations
+  // (α Lyrae, β Geminorum) on the field guide, where Space Mono has no Greek
+  // subset at all. Each face declares its own range so neither claims the
+  // other's glyphs — the failure her own fonts.ts documents having hit.
+  {
+    family: "Ubuntu Mono",
+    src: `${FONT_BASE}/ubuntu-mono-latin.woff2`,
+    weight: "400",
+    style: "normal",
+    display: "swap",
+    unicodeRange: SUBSET_LATIN,
+  },
+  {
+    family: "Ubuntu Mono",
+    src: `${FONT_BASE}/ubuntu-mono-greek.woff2`,
+    weight: "400",
+    style: "normal",
+    display: "swap",
+    unicodeRange: SUBSET_GREEK,
   },
 ];
 
@@ -614,9 +672,39 @@ export const webfonts = [
  *  A theme has one heading and one body; her site has two typographic families
  *  across different pages. Gio ruled for the star landing's on 2026-08-06. */
 export const themeFonts = {
+  // `display` and `heading` are the same family TODAY and are separate roles
+  // anyway: her wordmark and her h2 both wear Science Gothic, but they are
+  // different levers, and collapsing them is what made the wordmark
+  // unfixable-without-moving-the-headings during the parity pass.
+  display: "Science Gothic, Space Grotesk, sans-serif",
   heading: "Science Gothic, Space Grotesk, sans-serif",
   body: "Space Grotesk, ui-sans-serif, system-ui, sans-serif",
+  // `SERIF` from her own tokens.ts. It is what `/journey/` wears; naming it
+  // here does not put it on any page, it makes it NAMEABLE by one — which is
+  // the whole difference between a loaded face and a usable one.
+  serif: "Cormorant Garamond, Georgia, serif",
+  // Her site-wide `--font-mono` (GlobalStyles.ts), which is Ubuntu Mono — the
+  // nav and the footer. NOT the landing's `--gfg-font-mono`; that one is the
+  // meta/kicker face and lands on `accent` below. Reading the two the other way
+  // round would have put Space Mono in her nav and Ubuntu Mono on her kickers,
+  // and both would have looked deliberate.
+  mono: "Ubuntu Mono, ui-monospace, SFMono-Regular, Menlo, monospace",
+  // The star landing's `--preview-meta-font`, 762 elements across her site —
+  // the single largest family the two-role model could not express.
+  accent: "Space Mono, Ubuntu Mono, ui-monospace, monospace",
   guards: [
+    {
+      file: "src/styles/GlobalStyles.ts",
+      find: "--font-mono: var(--gfg-font-read), ui-monospace, SFMono-Regular, Menlo, monospace;",
+    },
+    {
+      file: `${HOME}/landing-star-preview/LandingStarPreview.styles.ts`,
+      find: "--preview-meta-font: var(--gfg-font-mono), var(--gfg-font-read), ui-monospace, monospace;",
+    },
+    {
+      file: "src/styles/tokens.ts",
+      find: `export const SERIF = "'Cormorant Garamond', Georgia, serif";`,
+    },
     {
       file: `${HOME}/landing-star-preview/LandingStarPreview.styles.ts`,
       find: "--preview-display-font: var(--gfg-font-display), var(--gfg-font-tech), sans-serif",

@@ -1983,7 +1983,11 @@ function themeSql(data) {
       // would put TGV's amber on her page.
       accent3: toHex(copper),
     },
-    fonts: { heading: themeFonts.heading, body: themeFonts.body },
+    // Every role themeFonts declares, `guards` excepted — so adding a role
+    // there is the whole edit, and the SQL assertion below reads the same list.
+    fonts: Object.fromEntries(
+      Object.entries(themeFonts).filter(([k]) => k !== "guards"),
+    ),
     radius: { card: radii.card.value, button: radii.button.value, small: radii.small.value },
   };
 
@@ -2022,9 +2026,16 @@ function themeSql(data) {
 -- nothing loaded one. On her own app the faces arrive through \`next/font\` and a
 -- stylesheet \`@import\`, neither of which travels with her pages — so without
 -- this row her site would come up in a system sans with every colour, size and
--- word correct. Cormorant stays LOADED but unnamed: a @font-face nothing
--- references is never fetched, so it costs nothing and it is there the day
--- per-page typography exists.
+-- word correct.
+--
+-- SIX ROLES SINCE 2026-08-07, and Cormorant is no longer among the unnamed.
+-- The theme could hold \`heading\` and \`body\`; her DOM carries five families,
+-- so the pooled render collapsed four of them into one and 145 elements on the
+-- home page alone wore the wrong face — invisible to a colour check, invisible
+-- to a word check, and the largest single delta the parity harness measured.
+-- \`display\`, \`serif\`, \`mono\` and \`accent\` are the other four levers; every
+-- one of them is asserted below against a face that actually loads, because a
+-- role naming a family nothing serves is a role that silently means Arial.
 --
 -- The muted text and the surface are FLATTENED alphas: \`rgba(BONE, .65)\` and
 -- \`rgba(4, 20, 19, .9)\` over her ground. The colour roles are hex-only by
@@ -2083,11 +2094,16 @@ BEGIN
     RAISE EXCEPTION 'assert: % font face(s) point outside the tenant font dir', n;
   END IF;
 
-  -- The theme names families; siteFonts must actually carry them. BOTH roles,
-  -- because the heading face is a different family from the body face here and
-  -- checking only one is how a heading falls back to a system sans in silence —
-  -- correct colours, correct words, wrong site.
-  FOR role IN SELECT unnest(ARRAY['heading', 'body']) LOOP
+  -- The theme names families; siteFonts must actually carry them. EVERY role
+  -- she declares, not a sample: each one here is a different family, and
+  -- checking a subset is how the unchecked one falls back to a system sans in
+  -- silence — correct colours, correct words, wrong site. The list is generated
+  -- from the same \`themeFonts\` the row above is built from, so a role added
+  -- there cannot arrive unasserted.
+  FOR role IN SELECT unnest(ARRAY[${Object.keys(themeFonts)
+    .filter((k) => k !== "guards")
+    .map((k) => lit(k))
+    .join(", ")}]) LOOP
     SELECT count(*) INTO n FROM public.content_overrides t
      WHERE t.site = ${lit(SITE)} AND t.key = 'theme'
        AND NOT EXISTS (

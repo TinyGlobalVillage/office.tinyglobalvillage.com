@@ -22,9 +22,16 @@
 -- nothing loaded one. On her own app the faces arrive through `next/font` and a
 -- stylesheet `@import`, neither of which travels with her pages — so without
 -- this row her site would come up in a system sans with every colour, size and
--- word correct. Cormorant stays LOADED but unnamed: a @font-face nothing
--- references is never fetched, so it costs nothing and it is there the day
--- per-page typography exists.
+-- word correct.
+--
+-- SIX ROLES SINCE 2026-08-07, and Cormorant is no longer among the unnamed.
+-- The theme could hold `heading` and `body`; her DOM carries five families,
+-- so the pooled render collapsed four of them into one and 145 elements on the
+-- home page alone wore the wrong face — invisible to a colour check, invisible
+-- to a word check, and the largest single delta the parity harness measured.
+-- `display`, `serif`, `mono` and `accent` are the other four levers; every
+-- one of them is asserted below against a face that actually loads, because a
+-- role naming a family nothing serves is a role that silently means Arial.
 --
 -- The muted text and the surface are FLATTENED alphas: `rgba(BONE, .65)` and
 -- `rgba(4, 20, 19, .9)` over her ground. The colour roles are hex-only by
@@ -60,8 +67,12 @@ SELECT 'theme', 'en', 'published', NULL, $rwjson${
     "accent3": "#b78a77"
   },
   "fonts": {
+    "display": "Science Gothic, Space Grotesk, sans-serif",
     "heading": "Science Gothic, Space Grotesk, sans-serif",
-    "body": "Space Grotesk, ui-sans-serif, system-ui, sans-serif"
+    "body": "Space Grotesk, ui-sans-serif, system-ui, sans-serif",
+    "serif": "Cormorant Garamond, Georgia, serif",
+    "mono": "Ubuntu Mono, ui-monospace, SFMono-Regular, Menlo, monospace",
+    "accent": "Space Mono, Ubuntu Mono, ui-monospace, monospace"
   },
   "radius": {
     "card": "14px",
@@ -88,8 +99,12 @@ UPDATE public.content_overrides
     "accent3": "#b78a77"
   },
   "fonts": {
+    "display": "Science Gothic, Space Grotesk, sans-serif",
     "heading": "Science Gothic, Space Grotesk, sans-serif",
-    "body": "Space Grotesk, ui-sans-serif, system-ui, sans-serif"
+    "body": "Space Grotesk, ui-sans-serif, system-ui, sans-serif",
+    "serif": "Cormorant Garamond, Georgia, serif",
+    "mono": "Ubuntu Mono, ui-monospace, SFMono-Regular, Menlo, monospace",
+    "accent": "Space Mono, Ubuntu Mono, ui-monospace, monospace"
   },
   "radius": {
     "card": "14px",
@@ -111,8 +126,12 @@ UPDATE public.content_overrides
     "accent3": "#b78a77"
   },
   "fonts": {
+    "display": "Science Gothic, Space Grotesk, sans-serif",
     "heading": "Science Gothic, Space Grotesk, sans-serif",
-    "body": "Space Grotesk, ui-sans-serif, system-ui, sans-serif"
+    "body": "Space Grotesk, ui-sans-serif, system-ui, sans-serif",
+    "serif": "Cormorant Garamond, Georgia, serif",
+    "mono": "Ubuntu Mono, ui-monospace, SFMono-Regular, Menlo, monospace",
+    "accent": "Space Mono, Ubuntu Mono, ui-monospace, monospace"
   },
   "radius": {
     "card": "14px",
@@ -259,6 +278,38 @@ SELECT 'siteFonts', 'en', 'published', NULL, $rwjson${
       "weight": "300 700",
       "style": "italic",
       "display": "swap"
+    },
+    {
+      "family": "Space Mono",
+      "src": "/fonts/tenants/resonantweaver/space-mono-latin.woff2",
+      "weight": "400",
+      "style": "normal",
+      "display": "swap",
+      "unicodeRange": "U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD"
+    },
+    {
+      "family": "Space Mono",
+      "src": "/fonts/tenants/resonantweaver/space-mono-latin-bold.woff2",
+      "weight": "700",
+      "style": "normal",
+      "display": "swap",
+      "unicodeRange": "U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD"
+    },
+    {
+      "family": "Ubuntu Mono",
+      "src": "/fonts/tenants/resonantweaver/ubuntu-mono-latin.woff2",
+      "weight": "400",
+      "style": "normal",
+      "display": "swap",
+      "unicodeRange": "U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD"
+    },
+    {
+      "family": "Ubuntu Mono",
+      "src": "/fonts/tenants/resonantweaver/ubuntu-mono-greek.woff2",
+      "weight": "400",
+      "style": "normal",
+      "display": "swap",
+      "unicodeRange": "U+0370-0377,U+037A-037F,U+0384-038A,U+038C,U+038E-03A1,U+03A3-03FF"
     }
   ]
 }$rwjson$::jsonb, now(), 'resonantweaver'
@@ -299,6 +350,38 @@ UPDATE public.content_overrides
       "weight": "300 700",
       "style": "italic",
       "display": "swap"
+    },
+    {
+      "family": "Space Mono",
+      "src": "/fonts/tenants/resonantweaver/space-mono-latin.woff2",
+      "weight": "400",
+      "style": "normal",
+      "display": "swap",
+      "unicodeRange": "U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD"
+    },
+    {
+      "family": "Space Mono",
+      "src": "/fonts/tenants/resonantweaver/space-mono-latin-bold.woff2",
+      "weight": "700",
+      "style": "normal",
+      "display": "swap",
+      "unicodeRange": "U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD"
+    },
+    {
+      "family": "Ubuntu Mono",
+      "src": "/fonts/tenants/resonantweaver/ubuntu-mono-latin.woff2",
+      "weight": "400",
+      "style": "normal",
+      "display": "swap",
+      "unicodeRange": "U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD"
+    },
+    {
+      "family": "Ubuntu Mono",
+      "src": "/fonts/tenants/resonantweaver/ubuntu-mono-greek.woff2",
+      "weight": "400",
+      "style": "normal",
+      "display": "swap",
+      "unicodeRange": "U+0370-0377,U+037A-037F,U+0384-038A,U+038C,U+038E-03A1,U+03A3-03FF"
     }
   ]
 }$rwjson$::jsonb, updated_at = now()
@@ -334,6 +417,38 @@ UPDATE public.content_overrides
       "weight": "300 700",
       "style": "italic",
       "display": "swap"
+    },
+    {
+      "family": "Space Mono",
+      "src": "/fonts/tenants/resonantweaver/space-mono-latin.woff2",
+      "weight": "400",
+      "style": "normal",
+      "display": "swap",
+      "unicodeRange": "U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD"
+    },
+    {
+      "family": "Space Mono",
+      "src": "/fonts/tenants/resonantweaver/space-mono-latin-bold.woff2",
+      "weight": "700",
+      "style": "normal",
+      "display": "swap",
+      "unicodeRange": "U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD"
+    },
+    {
+      "family": "Ubuntu Mono",
+      "src": "/fonts/tenants/resonantweaver/ubuntu-mono-latin.woff2",
+      "weight": "400",
+      "style": "normal",
+      "display": "swap",
+      "unicodeRange": "U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD"
+    },
+    {
+      "family": "Ubuntu Mono",
+      "src": "/fonts/tenants/resonantweaver/ubuntu-mono-greek.woff2",
+      "weight": "400",
+      "style": "normal",
+      "display": "swap",
+      "unicodeRange": "U+0370-0377,U+037A-037F,U+0384-038A,U+038C,U+038E-03A1,U+03A3-03FF"
     }
   ]
 }$rwjson$::jsonb;
@@ -359,11 +474,13 @@ BEGIN
     RAISE EXCEPTION 'assert: % font face(s) point outside the tenant font dir', n;
   END IF;
 
-  -- The theme names families; siteFonts must actually carry them. BOTH roles,
-  -- because the heading face is a different family from the body face here and
-  -- checking only one is how a heading falls back to a system sans in silence —
-  -- correct colours, correct words, wrong site.
-  FOR role IN SELECT unnest(ARRAY['heading', 'body']) LOOP
+  -- The theme names families; siteFonts must actually carry them. EVERY role
+  -- she declares, not a sample: each one here is a different family, and
+  -- checking a subset is how the unchecked one falls back to a system sans in
+  -- silence — correct colours, correct words, wrong site. The list is generated
+  -- from the same `themeFonts` the row above is built from, so a role added
+  -- there cannot arrive unasserted.
+  FOR role IN SELECT unnest(ARRAY['display', 'heading', 'body', 'serif', 'mono', 'accent']) LOOP
     SELECT count(*) INTO n FROM public.content_overrides t
      WHERE t.site = 'resonantweaver' AND t.key = 'theme'
        AND NOT EXISTS (
