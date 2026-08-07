@@ -327,68 +327,59 @@ function LightswitchAtom({ spec, box }: AtomRenderProps) {
   );
 }
 
+/**
+ * Tooltip — read off the shipped <Tooltip>, not drawn to look like it. Surface
+ * and type come through the same emitter Tooltip.tsx uses, so the bubble here is
+ * the bubble that ships.
+ *
+ * Two things about the silhouette changed with the migration. The gradient is
+ * now the spec's own two-stop fill rather than a hardcoded fade into
+ * `rgba(13, 11, 22, 0.96)`, and the bubble sits BELOW its trigger with a rotated
+ * square pointing up at it — which is how the real tooltip has always rendered.
+ * The old silhouette had it above with a downward triangle, which is where the
+ * atom's blurb got "above its target" from.
+ */
 function TooltipAtom({ spec, box }: AtomRenderProps) {
-  const acc = spec.colors.accent;
-  const accRgb = hexToRgbTriple(acc);
-  const f = fontPx(spec, box);
-  const bubbleH = Math.round(box.h * 0.42);
+  const accRgb = hexToRgbTriple(spec.colors.accent);
+  const borderRgb = hexToRgbTriple(spec.colors.border);
+  const edge = `${spec.effects.borderWidth}px solid rgba(${borderRgb}, ${spec.colors.borderAlpha})`;
+  const arrow = Math.max(6, Math.round(box.h * 0.3));
   return (
-    <div
-      style={{
-        width: box.w,
-        height: box.h,
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "flex-end",
-        gap: Math.round(box.h * 0.14),
-        opacity: spec.effects.opacity,
-      }}
-    >
-      <div style={{ position: "relative" }}>
-        <div
-          style={{
-            padding: `${Math.round(bubbleH * 0.22)}px ${Math.round(bubbleH * 0.5)}px`,
-            background: `linear-gradient(160deg, rgba(${hexToRgbTriple(spec.colors.fill)}, ${spec.colors.fillAlpha}), rgba(13, 11, 22, 0.96))`,
-            border: `${spec.effects.borderWidth}px solid rgba(${accRgb}, ${spec.colors.borderAlpha})`,
-            borderRadius: spec.effects.radius,
-            boxShadow: shadowStack(spec),
-            fontSize: Math.max(8, Math.round(f * 0.8)),
-            fontWeight: spec.text.weight,
-            letterSpacing: `${Math.max(spec.text.tracking, 0.06)}em`,
-            textTransform: "uppercase",
-            color: spec.colors.text,
-            whiteSpace: "nowrap",
-          }}
-        >
-          {spec.text.enabled ? spec.text.content : "Tooltip"}
-        </div>
-        <span
-          aria-hidden="true"
-          style={{
-            position: "absolute",
-            left: "50%",
-            bottom: -6,
-            transform: "translateX(-50%)",
-            width: 0,
-            height: 0,
-            borderLeft: "6px solid transparent",
-            borderRight: "6px solid transparent",
-            borderTop: `6px solid rgba(${accRgb}, ${spec.colors.borderAlpha})`,
-          }}
-        />
-      </div>
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
       <div
         style={{
           padding: "4px 12px",
           borderRadius: 8,
           border: `1px dashed rgba(${accRgb}, 0.4)`,
           color: `rgba(${accRgb}, 0.75)`,
-          fontSize: Math.max(8, Math.round(f * 0.7)),
+          fontSize: Math.max(8, Math.round(fontPx(spec, box) * 0.8)),
           fontWeight: 600,
         }}
       >
         hover target
+      </div>
+      <div style={{ position: "relative" }}>
+        <Center as="div" style={{ ...surfaceStyle(spec, box), ...textStyle(spec, box) }}>
+          {spec.text.enabled ? spec.text.content : "Tooltip"}
+        </Center>
+        {/* The arrow is the bubble's own top-left corner, rotated 45° — the same
+            trick the shipped component uses, so it picks up the fill and the
+            border together instead of being a second triangle to keep in sync. */}
+        <span
+          aria-hidden="true"
+          style={{
+            position: "absolute",
+            top: -arrow / 2,
+            left: "50%",
+            marginLeft: -arrow / 2,
+            width: arrow,
+            height: arrow,
+            transform: "rotate(45deg)",
+            background: spec.colors.fill,
+            borderLeft: edge,
+            borderTop: edge,
+          }}
+        />
       </div>
     </div>
   );
@@ -1004,12 +995,10 @@ export const ATOMS: AtomDef[] = [
     effects: { radius: 200, glow: 20 },
     text: { content: "NEW", ratio: 46, weight: 800, tracking: 0.14, uppercase: true },
   }, RrtAtom),
-  def("tooltip", "Tooltip", "Text & Icons", "Themed bubble + arrow above its target.", {
-    size: { widthPct: 28, heightPct: 22 },
-    colors: { fill: "#171325", accent: "#22d3ee", border: "#22d3ee", borderAlpha: 0.5 },
-    effects: { radius: 10, glow: 22 },
-    text: { content: "Copied!", ratio: 26, weight: 700, tracking: 0.08 },
-  }, TooltipAtom),
+  // Read off the shipped <Tooltip>, not drawn to look like it — see
+  // @tgv/module-component-library/atoms/shipped.ts.
+  def("tooltip", "Tooltip", "Text & Icons", "Themed bubble + arrow, below its target.",
+    SHIPPED_ATOMS.tooltip.patch, TooltipAtom),
 ];
 
 export const ATOM_BY_KEY: Record<string, AtomDef> = Object.fromEntries(

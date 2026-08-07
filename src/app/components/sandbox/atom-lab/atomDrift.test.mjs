@@ -29,7 +29,10 @@ const PKG = `${HERE}../../../../../../../packages/@tgv/module-core/module-compon
 const read = (p) => readFileSync(p, "utf8");
 
 /** Where each migrated atom's shipped component lives. */
-const COMPONENTS = { tile: `${PKG}/components/ui/Tile.tsx` };
+const COMPONENTS = {
+  tile: `${PKG}/components/ui/Tile.tsx`,
+  tooltip: `${PKG}/components/ui/Tooltip.tsx`,
+};
 
 /**
  * Literals that mean an atom stopped reading its spec. Deliberately narrow:
@@ -150,4 +153,37 @@ test("Tile emits exactly the CSS it shipped with before the migration", () => {
   assert.equal(title.letterSpacing, "0.14em", "1.4px of tracking at a 10px title");
   assert.equal(title.textTransform, "uppercase");
   assert.equal(title.color, "rgba(var(--atom-text-rgb, 0, 228, 253), 0.85)");
+});
+
+test("Tooltip emits exactly the CSS it shipped with before the migration", () => {
+  // Same purpose as the Tile assertion above: the literals this replaced, kept
+  // so the claim "no pixels moved" is readable rather than asserted.
+  const spec = shippedSpec("tooltip");
+  const css = specSkinToCss(spec, SHIPPED_ATOMS.tooltip.ungoverned.surface, "", "tooltip");
+  const decl = (p) =>
+    new RegExp(`^${p}: var\\(--atom-[a-z-]+, var\\(--atom-tooltip-[a-z-]+, (.*)\\)\\);$`, "m").exec(
+      css,
+    )?.[1];
+  // The cyan theme's `linear-gradient(160deg, #0b2030, #060f1a)`, now with the
+  // stops behind channels so the other two themes are a retint rather than a
+  // second gradient.
+  assert.equal(
+    decl("background"),
+    "linear-gradient(160deg, rgba(var(--atom-fill-rgb, 11, 32, 48), 1), rgba(var(--atom-fill-to-rgb, 6, 15, 26), 1))",
+  );
+  assert.equal(decl("border-radius"), "10px");
+  assert.equal(decl("border"), undefined, "three themes, three border alphas — it stays with the component");
+  assert.equal(decl("box-shadow"), undefined, "the two-layer shadow stays with the component");
+
+  const label = textDecls(spec, specToBox(spec));
+  assert.equal(label.fontSize, 11.5);
+  assert.equal(label.fontWeight, 600);
+  // 0.6px at 11.5px is 0.0522em, which comes back out as 0.6003px. Written down
+  // because it is the one value in this migration that is not exact: three
+  // ten-thousandths of a pixel per character, and the alternative was to leave
+  // tracking ungoverned over it.
+  assert.equal(label.letterSpacing, "0.0522em");
+  assert.equal(Number((0.0522 * 11.5).toFixed(4)), 0.6003);
+  assert.equal(label.textTransform, "uppercase");
+  assert.equal(label.whiteSpace, "nowrap");
 });
