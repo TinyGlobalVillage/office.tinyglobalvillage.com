@@ -582,8 +582,28 @@ build, no Mac checkout, no dependency on anybody's dirty tree.
 
 So the accurate statement of the risk is narrower: **an immediate revert works today; a revert
 followed by a code FIX would need the Mac's shared checkout reconciled first**, because RCS must
-never build. That is a real cost but a second-order one, and it is Gio's call whether to clear it
-before the flip or accept it.
+never build.
+
+**GIO'S RULING: clear it first. DONE 2026-08-07 — and there was nothing to lose.** The nine dirty
+files looked like another session's in-flight work; **eight of them were byte-identical to
+`origin/main`**. That session had already committed and pushed from somewhere else; this checkout
+simply never advanced, so unchanged content read as "modified" against a stale `ee8569d`. The
+ninth was `next-env.d.ts`, differing by the one line Next itself writes on a local build, in a
+file whose own header says it should not be edited.
+
+Verified before touching anything (`git diff origin/main -- <file>` per file, all empty), copied
+the whole dirty set to the session scratchpad anyway, then `git checkout --` and
+`git merge --ff-only origin/main`. **No `git stash`** — forbidden on the shared tree, and the
+overlap made a plain ff impossible without first discarding, which the identity check is what
+made safe. The untracked `src/app/api/auth/dev-login/` is somebody's and was left alone.
+
+**The rebuild path is now proven, not assumed:** shared checkout at `ad3c91b` (= RCS = origin),
+`pnpm install --frozen-lockfile` green from the FULL workspace with the lockfile untouched, `@tgv`
+dists FULL TURBO at `a6888e13`, and `next build` **compiled successfully** —
+`BUILD_ID=2h-sLzOKhmF5NLP1xza1f`. The root install was re-run unfiltered afterwards so the
+`--filter` prune did not leave the workspace short for another session.
+
+Her site never moved: still 200 on :3003 throughout.
 
 **Rollback** is the nginx backup beside the config plus `pm2 start`, exactly as it has been
 for the two before her.
