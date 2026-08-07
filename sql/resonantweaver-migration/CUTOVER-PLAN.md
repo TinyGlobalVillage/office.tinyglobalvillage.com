@@ -520,9 +520,12 @@ left.**
 Port anything outward-facing FIRST, deploy it, then flip. That order is what made refusionist's
 iCal feed survive.
 
-1. **Check Stripe** for endpoints registered against `resonantweaver.com`. Refusionist's survey
-   had this wrong in both directions — one endpoint listed that did not exist, one live that the
-   survey never mentioned. Disable rather than delete, so the signing secrets survive.
+1. ~~**Check Stripe** for endpoints registered against `resonantweaver.com`.~~ **DONE 2026-08-07 —
+   there are none, and there is no account of hers to check.** Her `.env.local` holds **zero**
+   `STRIPE_*` keys, so unlike refusionist she never had a legacy account of her own. The platform
+   account carries four endpoints and all four name `tinyglobalvillage.com`, except refusionist's
+   `user/connect/webhook`, already disabled at its own cutover. Nothing to disable, nothing to
+   repoint. (Checked read-only against the live Stripe API from RCS, so the key never moved.)
 2. **Env — DONE 2026-08-06.** `STARSEED_GPT_URL`, `STARSEED_ENGINE_URL` and `STARSEED_API_TOKEN`
    are in HQ's `.env.local` (backup `.bak-pre-journey-20260806`); they take effect at the next
    reload. Her `SMTP_*` needed no move: HQ and her app authenticate to the SAME account, verified
@@ -554,8 +557,33 @@ iCal feed survive.
 custom-domain handoff built for giocoelho already covered it. Everyone is signed out once.
 That is Marthe.
 
-**URL shape:** confirm `trailingSlash` matches on both sides BEFORE the flip, with a `Host:`
-header, not after. It is the check that saved giocoelho's indexed links.
+**URL shape — CONFIRMED 2026-08-07, before the flip.** Five paths (`/starseed`, `/journey`,
+`/writing`, `/pearl-chamber`, `/landing-star-preview/receive`) asked without a trailing slash on
+her live app and on HQ behind a `Host:` header: **308 to the same slashed target on both sides,
+every time.** Every indexed link keeps its shape. This is the check that saved giocoelho's.
+
+**nginx is a real symlink** (`sites-enabled/resonantweaver.com` → `../sites-available/…`), so the
+trap that made refusionist's first flip silently do nothing does not apply — but re-verify at the
+moment of the edit rather than trusting this line.
+
+### Pre-flight state, 2026-08-07 — everything is ready except one judgment call
+
+Steps 1, 2, 4, 7 are done; 3 (nginx), 5 (verify), 6 (`pm2 stop`) and 8 are the flip itself.
+
+**The rollback is in better shape than §4's hazard note implies, and the note needs correcting.**
+It says her app "still has to BUILD for the rollback path to exist" and points at the Mac's
+shared `clients/resonantweaver.com`, which is on `main` at `ee8569d`, **5 behind** `origin/main`,
+with **nine** modified tracked files of another session's work — including the very
+`LandingStarPreview.{tsx,styles.ts,content.ts}` this migration reads from. That is all true.
+But it is not what rollback runs on. **RCS's checkout is clean, at `origin/main` (`ad3c91b`, 0
+behind, 0 dirty), and carries a completed `.next` (`BUILD_ID=KxgUKv9FIrl1E3sWZiaUC`) — the build
+serving her site right now.** Rollback is `pm2 start` against that plus the nginx backup: no
+build, no Mac checkout, no dependency on anybody's dirty tree.
+
+So the accurate statement of the risk is narrower: **an immediate revert works today; a revert
+followed by a code FIX would need the Mac's shared checkout reconciled first**, because RCS must
+never build. That is a real cost but a second-order one, and it is Gio's call whether to clear it
+before the flip or accept it.
 
 **Rollback** is the nginx backup beside the config plus `pm2 start`, exactly as it has been
 for the two before her.
