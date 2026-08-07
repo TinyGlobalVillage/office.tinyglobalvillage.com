@@ -286,20 +286,60 @@ worse than no tool.
 2. **The orphan sweep is not RW work.** It is plan 29's cleanup, and it has a size: three dead
    keys across five sites, plus the 195 unkeyed rows.
 
-## 5 — Parity (plan 38, the step that has caught something every single time)
+## 5 — Parity — **RUN 2026-08-06. Structurally green; ONE ruling open.**
 
-Screenshot every page standalone vs pooled at three viewports and diff. Her own
-`FontPreviewSwitch` is a ready-made harness. Render through the LIVE HQ behind a
-Host-rewriting proxy, so resonantweaver.com never moves to be tested.
+It caught something again, and the check is now a committed tool rather than whoever happens to
+look: `clients/tinyglobalvillage.com/scripts/tenant-parity.mjs` (HQ `212885d3`). It derives its
+own work list — pages from `page_models`, granted surfaces lifted BY TEXT out of
+`siteSurfaces.ts` — then reads all seventeen URLs through a Host-rewriting proxy against the
+LIVE renderer and reports status, the publisher a crawler is told, the OG card, the canonical,
+every image path, and any asset outside the tenant's own directory. Against her: **0 findings,
+1 note.** It is not RW-specific; run it before every future cutover.
 
-Do not treat "the rows copied" as done. Every defect in this migration family was invisible in
-SQL and obvious in a browser: a slug with a slash had no reachable URL, a tenant wore TGV's
-nav, a site lost its sky, a home page rendered nothing because one section type was not in the
-catalog, six dossier plates 404'd because a package cannot carry an app's `public/`.
+**Three defects found and fixed, all deployed** (mono `3fd2310b`, HQ `212885d3`,
+`BUILD_ID=DoJ12hs-dmJIOJfjsZAOd`):
 
-Check specifically: every `/images/*` path resolves under `/images/tenants/resonantweaver/`;
-her backdrop is present; no banned platform string appears on her domain; `<head>` and the OG
-card both say Resonant Weaver, not Tiny Global Village.
+1. **`/starseed/`'s StarBot plate 404'd.** Not a code bug — `mac-deploy` ships only `.next`, so a
+   NEW file under `public/` stays missing until the RCS source is pulled and pm2 reloaded. The
+   deploy is not finished when the smoke test passes if the commit added a public asset.
+2. **Every shared app route told a crawler its publisher was Tiny Global Village** — and not only
+   hers. `refusionist.com/book/`, `/testimonials/` and `/portal/birth-data/` were doing it live,
+   as were giocoelho's and guardians' `/book/`. `organizationJsonLd.ts` had moved the platform
+   block into `app/[lang]/layout.tsx` on the premise that everything in that segment is TGV
+   serving itself; the surface-grant work falsified it, because `/book`, `/session`, `/meet`,
+   `/performers`, `/studio` and every SITE_SURFACES entry live there AND are allowlisted onto
+   customer domains. Resolved per request now. Verified on the live domains: each tenant's
+   `/book/` names the tenant, the apex still names TGV.
+3. **Her six field-guide plates lived in the platform's `public/images/galacticfieldguide/`.**
+   Nothing was broken — the surface is hers alone — which is exactly the shape a leak has before
+   it has a second tenant. Moved under `/images/tenants/resonantweaver/fieldguide/`; the package
+   gained an optional `plates` prop (her app keeps the old default and typechecks clean), and HQ
+   always passes an explicit map, handing `{}` to a site it has no plates for.
+
+**THE OPEN RULING — her site is two typefaces and the theme row can only name one.**
+Measured on her live app: `/` and `/starseed/` wear **scienceGothic + Space Grotesk** over
+`#050a0c`; `/journey/` wears **Cormorant Garamond** at 110px/19px. `generate.mjs` read
+`SERIF` out of her `tokens.ts` and made Cormorant the whole site's theme, with
+`hsl(165,60%,6%)` → `#061814` (green) from `OnePage.styles.ts` as the ground.
+
+Every one of those values is genuinely hers — but they are **OnePage's** identity, and the
+pooled home is the **star landing**, whose own default is the tech face over `#06111c` (blue).
+Cormorant appears there only under `&[data-font-preview="original"]`, i.e. the alternative
+Marthe was previewing. So `/journey/` ports pixel-faithfully and the home and `/starseed/`
+come up serif and green where she is gothic and blue.
+
+Not a bug — a brand decision, and not ours: (a) leave one coherent serif identity across the
+pooled site, (b) re-theme to the star landing's tech face + blue ground, which matches her live
+home and `/starseed/` and leaves `/journey/` the odd one out, or (c) per-page typography. The
+fix belongs in `generate.mjs`, never in `01-theme.sql`, which is generated.
+
+**Also verified:** mobile 390 / tablet 768 / desktop 1440 with no horizontal overflow and no
+console errors; her backdrop renders (ground + both drifting orbs); `/journey/` matches her live
+page exactly; the field-guide plates decode at 1400px from her own directory.
+
+**One note, for a person not a patch:** `/starseed/` invites contact at
+`marthe@tinyglobalvillage.com`. That is her real mailbox and it is her copy, editable in the
+studio — whether a customer on her domain should be sent to a platform address is Marthe's call.
 
 ## 6 — The cutover
 
