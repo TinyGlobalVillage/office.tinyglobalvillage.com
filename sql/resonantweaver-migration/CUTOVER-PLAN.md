@@ -364,6 +364,33 @@ studio — whether a customer on her domain should be sent to a platform address
 **§5 verdict: parity is green.** Seventeen surfaces, 0 findings, 1 note, re-run against the live
 deploy. The cutover is not blocked on appearance.
 
+### 5c — Two findings the parity pass missed, both at tablet — FIXED 2026-08-07
+
+Mono `912ebeb2`. Gio reported the hub's door image looking cropped on a tablet. It was, and the
+line above — *"tablet 768 … with no horizontal overflow"* — was wrong on the same viewport. A
+per-width sweep (390 → 1920, `scratchpad/hero-sweep.mjs`, run against her live site as the
+baseline) is what turned a glance into a number.
+
+- **A one-column door card cropped 33% off its own artwork.** `rf-door-card`'s `ratioStacked` is
+  documented as *"the proportion once the row is a single column"* and was implemented as
+  `@media (max-width: 600px)`. Those coincide only for a multi-up row, which collapses at the
+  breakpoint; her row holds ONE door, and the render clamps `columns` to the item count, so it is
+  a single column at every width and the stacked ratio could never fire. The card stayed 2:3 and
+  `object-fit: cover` ate the sides of a 1:1 photograph. **Not a tablet bug** — the sweep shows a
+  cliff at 601px and a flat 33% loss from there to 1920, on her live site today. Tablet is only
+  where it is impossible to miss, because the card fills two-thirds of the screen.
+  Fixed by honouring the documented contract; her data already carried the right value (`1 / 1`
+  for a square image), so no page row changed. 0% cropped at every width now.
+- **The hero halo scrolled the page sideways at 768.** `rf-split-hero`'s `Halo` is `inset: -30%`
+  on purpose and nothing clipped the bleed; in the two-column layout, which holds down to 768px,
+  the mark sits at the grid's right edge and its halo ran 61px past the viewport. `overflow-x:
+  clip` on the section (not `hidden`, which would make it a scroll container). **This one IS a
+  pooling regression** — her own site does not scroll sideways at any width, and the pooled
+  render did.
+
+Blast radius fleet-wide: one `rf-door-card` section, on her `home` row, which is not cut over —
+so nothing live changed. Render harness 117/117.
+
 ## 5b — Gio's four rulings, taken 2026-08-06
 
 Answered in the same batch as the typography. **Three of four are done; ruling 3 is the one
