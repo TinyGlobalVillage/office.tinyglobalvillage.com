@@ -316,7 +316,27 @@ every image path, and any asset outside the tenant's own directory. Against her:
    gained an optional `plates` prop (her app keeps the old default and typechecks clean), and HQ
    always passes an explicit map, handing `{}` to a site it has no plates for.
 
-**THE OPEN RULING — her site is two typefaces and the theme row can only name one.**
+**THE RULING CAME BACK — the star landing's look wins. DONE AND DEPLOYED 2026-08-06**
+(mono `6d2a4f2c`, HQ `61707476`, office `0c2352c`, `BUILD_ID=PFuIpqR4h7p56iuzJnTl0`).
+Her three identity rows now carry Science Gothic over Space Grotesk on `#06111c`, both faces
+self-hosted under her own font directory and both verified *loaded* in a browser on the live
+deploy, with the star landing's two static ellipses in place of OnePage's drifting circles.
+`/journey/` loses its serif, which the ruling accepted. Cormorant stays loaded but unnamed, so
+per-page typography is one row away rather than a re-run.
+
+Three things the fix needed that the SQL alone would not have given:
+`SiteBackdropOrb` learned `width`/`height` (a `66% 36%` wash has no circular equivalent);
+`readSiteBackground.cleanOrbs` had to learn them too, because it names every field it keeps —
+the row said ellipse, the reader dropped it, and the page drew a circle, which no typechecker
+can see; and the generated SQL had to start UPDATING, because insert-only meant the correction
+was a silent no-op against rows that already existed.
+
+**One more trap, worth more than this migration.** HQ's first build after the package change
+silently bundled the OLD dist — webpack's cache in `.next/cache` did not invalidate on a
+changed `@tgv/*` dist, and the browser showed new DATA through old CODE. `rm -rf .next/cache`
+before any build that must carry a package change; a green build is not proof it took.
+
+*The finding, for the record:*
 Measured on her live app: `/` and `/starseed/` wear **scienceGothic + Space Grotesk** over
 `#050a0c`; `/journey/` wears **Cormorant Garamond** at 110px/19px. `generate.mjs` read
 `SERIF` out of her `tokens.ts` and made Cormorant the whole site's theme, with
@@ -340,6 +360,24 @@ page exactly; the field-guide plates decode at 1400px from her own directory.
 **One note, for a person not a patch:** `/starseed/` invites contact at
 `marthe@tinyglobalvillage.com`. That is her real mailbox and it is her copy, editable in the
 studio — whether a customer on her domain should be sent to a platform address is Marthe's call.
+
+**§5 verdict: parity is green.** Seventeen surfaces, 0 findings, 1 note, re-run against the live
+deploy. The cutover is not blocked on appearance.
+
+## 5b — Gio's four rulings, taken 2026-08-06
+
+Answered in the same batch as the typography. None is started; each is its own piece of work.
+
+1. **PayPal — give the catalog a payment CTA that honours the faucet.** Her payment buttons are
+   plain anchors in page rows now, so the Office killswitch still switches and nothing happens.
+   The fix is a real CTA kind that reads the site's payment faucet, not a per-site exemption.
+2. **The two waitlist-only offers get `public.forms` rows** — `extended-starseed-profile` and
+   `awareness-and-perception-training`. Their doors exist and land nowhere until they do.
+3. **`landing-star-preview/course` — port it.** The interactive mockup comes to HQ rather than
+   404ing at cutover the way giocoelho's `/playlists` did.
+4. **`support` and `cart` — drop them.** The shared registry retired both weeks ago; her
+   Settings tab keeps offering them because `mergeFeatureCatalog` passes a host's own keys
+   through. They go at her cutover, and the ledger (§4b) is what will show it.
 
 ## 6 — The cutover
 
