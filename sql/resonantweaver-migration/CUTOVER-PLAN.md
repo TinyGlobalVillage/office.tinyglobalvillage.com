@@ -515,10 +515,50 @@ left.**
    deliberately untouched: those are plan 29's, not hers. The two deleted rows are kept as a
    CSV beside the run, so the undo is an INSERT rather than a restore.
 
-## 6 — The cutover
+## 6 — The cutover — **DONE 2026-08-07. resonantweaver.com is served by the pooled renderer.**
 
 Port anything outward-facing FIRST, deploy it, then flip. That order is what made refusionist's
 iCal feed survive.
+
+**What ran, in order.** nginx split three ways (backup at
+`sites-available/resonantweaver.com.pre-pool-2026-08-07`; `nginx -t`; reload) → verified live
+through Cloudflare with her app STILL RUNNING, so a rollback was one command the whole time →
+`pm2 stop resonantweaver.com` + `pm2 save` → re-ran `05-journey-signups.sql`.
+
+**The flip was proven to have actually happened, not assumed.** Refusionist's first flip silently
+did nothing because `sites-enabled` held a regular file; hers is a real symlink, and the check
+that settles it either way is the RESPONSE, not the config: `/landing-star-preview/course/` now
+returns the title **"Galactic Initiation — Course Preview — Resonant Weaver"** — the site-name
+suffix only HQ's `tenantAppMetadata` appends, which her own app never emitted — and every
+response carries `x-tgv-subdomain: resonantweaver`, the header HQ's proxy stamps. After
+`pm2 stop`, **nothing listens on :3003** and all eleven surfaces still answer 200. That is the
+proof: the old app cannot be the one serving.
+
+**www is its own block now.** `www.resonantweaver.com` 301s to the apex preserving the path
+(`/starseed/` → `resonantweaver.com/starseed/`). Without it HQ — which matches
+`villager_sites.domain` exactly — would have found no site for `www.` and served Tiny Global
+Village on her domain. The cert already covered both names (SAN checked before editing).
+
+**URL shape survived:** `/starseed` still 308s to `/starseed/`, as it did on her app.
+
+**Sessions (plan 43) needed no work, exactly as predicted.** `/dashboard/`, `/login/`,
+`/editor/home/` and `/studio/` all 302 to `resonantweaver.tinyglobalvillage.com/api/auth/handoff`,
+and the chain completes into the Keycloak login carrying its `returnTo` — the custom-domain
+handoff built for giocoelho already covers her. Everyone is signed out once.
+
+**Step 8 found an empty window.** `05-journey-signups.sql` re-run: **0 new rows** — nobody signed
+up between the first run and the flip — 2 rows total, assertions green. The `ON CONFLICT (id) DO
+NOTHING` over preserved ids is what made a second run safe to do rather than reason about.
+
+**Fleet green on the same pass:** TGV, Office, giocoelho, guardianstuffies, neverendinglogic,
+refusionist (+ `/book/`), demo, stepcenter — and her gated surfaces still 404 everywhere else
+(`/sun-walk/` on the apex, `/galactic-field-guide/` on giocoelho, the course on guardianstuffies,
+`/open-your-journey/` on refusionist). `starseed.resonantweaver.com` untouched on :3009, still
+404-at-root by its own nginx `return 404`. RAM did not move measurably — her app was idle.
+
+**Rollback remains one file and one command:** restore the backup beside the config, reload
+nginx, `pm2 start resonantweaver.com`. And now — unlike this morning — a rollback followed by a
+code fix also works, because the Mac's shared checkout was reconciled and proven to build first.
 
 1. ~~**Check Stripe** for endpoints registered against `resonantweaver.com`.~~ **DONE 2026-08-07 —
    there are none, and there is no account of hers to check.** Her `.env.local` holds **zero**
