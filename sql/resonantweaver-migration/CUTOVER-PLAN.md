@@ -391,6 +391,28 @@ baseline) is what turned a glance into a number.
 Blast radius fleet-wide: one `rf-door-card` section, on her `home` row, which is not cut over —
 so nothing live changed. Render harness 117/117.
 
+### 5d — DEPLOYED 2026-08-07
+
+`gitrefuse` in the mandated order: mono lane rebased onto `origin/main` (5 commits of another
+session's work) and pushed → RCS `git pull --ff-only` + `turbo run build --filter=@tgv/*`
+(50/50) → HQ pushed → office pushed → `mac-deploy tinyglobalvillage.com --no-git-sync` from THIS
+lane, so the build ran on the Mac and **RCS did zero app build**. `BUILD_ID=DjVYXhoMD9wHByOJWAZNM`
+at mono `a6888e13`. RCS source pulled clean on both clients.
+
+**Re-proven on the live deploy** behind the Host proxy, since her domain still points at :3003:
+`/landing-star-preview/course/` renders all four tabs with the same field counts as her live site,
+wearing `og:site_name` **Resonant Weaver** and her own canonical, `noindex` intact, zero console
+messages; the five siblings beside it still serve their page rows and `/landing-star-preview/
+courses/` 404s. The gate holds on the real domains — the course 404s on the apex, giocoelho,
+guardianstuffies and refusionist. The door-card sweep re-run against the deploy: **0% cropped at
+all ten widths, no width scrolls sideways.**
+
+Fleet smoke green: TGV, Office, giocoelho, guardians, nevlo, refusionist (+ `/book/` and the
+birth-data portal), demo, stepcenter. `resonantweaver.com` is still served by her own pm2 app on
+:3003 — nothing about this deploy moved her. `starseed.resonantweaver.com` answers 404 at the
+root **by its own nginx config** (`return 404`; only the FastAPI paths on :3009 are proxied),
+which is what it did before.
+
 ## 5b — Gio's four rulings, taken 2026-08-06
 
 Answered in the same batch as the typography. **Three of four are done; ruling 3 is the one
