@@ -648,7 +648,7 @@ Her site never moved: still 200 on :3003 throughout.
 **Rollback** is the nginx backup beside the config plus `pm2 start`, exactly as it has been
 for the two before her.
 
-## 7 — Then the conversion track
+## 7 — Then the conversion track — **LEDGER WRITTEN, RUNG 1 DONE 2026-08-07**
 
 Only after the flip. Record each component's level (L0 Ported → L1 Content freed → L2
 Parameters declared → L3 Choreography wired → L4 Canon) and climb one rung at a time.
@@ -656,6 +656,45 @@ Parameters declared → L3 Choreography wired → L4 Canon) and climb one rung a
 components interpolate it into `rgba()` a few hundred times; turning that into `color-mix` is
 the first rung, and it has to be done against screenshots rather than in the same commit as a
 file move.
+
+**The ledger is `CONVERSION-TRACK.md`, beside this file** — every ported component, its level
+today, and what the next rung costs. It discharges PHASE-0's *"record the level per component
+when each moves, so the queue is visible rather than remembered."* Seven components; bucket A
+is already at **L4**, the field guide and the profile panel are still at **L0**.
+
+**Rung 1 is done** (mono `13019880`) and the prescription in the paragraph above was wrong in a
+way worth keeping. Both token files argued that `rgba()` takes three numbers, so theming meant
+rewriting all seventy-five call sites into `color-mix()` first. The platform refutes it in its
+own source: `themeToPairs` emits an RGB triplet beside every colour precisely so
+`rgba(var(--x-rgb), a)` works, and `--tgv-cyanLo` **is** `rgba(var(--tgv-cyan-rgb), 0.08)`. A
+`var()` fallback may contain commas. **So the rung was three token files and not one of the
+seventy-five call sites.**
+
+The roles map exactly rather than approximately — her published theme sets the same three
+values that were hard-coded — so themed resolves to what the literal was, and unthemed IS the
+literal. **Four of nine tokens turned out to be dead** and were deleted rather than themed.
+The face was the real one: thirty `fontFamily: SERIF` sites, now
+`var(--rf-journey-serif, …)` set from a new `headingFont` prop. Not `--tgv-fontHeading` — that
+role is Science Gothic on her site, a sans, and binding to it would have re-typeset the whole
+experience in the wrong face while looking like a tidy-up.
+
+**Verified both directions:** 10/10 surfaces byte-identical against the live deploy (every
+computed colour, shadow, stroke, fill and font-family, at 1440 and 390), and 9/9 assertions
+that setting the vars moves the render while the eight star currents stay put. Render harness
+123/123 with five new guards. **Two findings only a browser could produce** — the journey's CTA
+is a SHARED library component that carried its own copy of her whole palette and typeface, and
+three assertions "failed" because these controls transition `color` over 180ms, so a read two
+frames after the change catches it 1.5% of the way and it looks exactly like a `var()` that did
+not resolve.
+
+**Rung 1 is correct and inert until a theme reaches those routes**, which is a defect in its own
+right and not hers: measured across four tenant hosts, EVERY app route allowlisted onto a
+customer domain carries no theme scope and none of the site's webfonts, while the same site's
+page rows carry both. `/book/`, `/session/`, `/meet/`, `/performers/` and `/studio/` are
+fleet-wide, so this is live on refusionist, giocoelho, guardians and nevlo too. Sixth in the
+white-label family, same mechanism as the five before it, logged as 🔴 S3
+`~/.claude/bugs/tenant-app-surfaces-have-no-theme.md` with the fix plan. **It is the enabling
+rung for everything below L2 on the two star surfaces** — see the ledger's ordered queue.
 
 ## What is deliberately NOT in this plan
 
