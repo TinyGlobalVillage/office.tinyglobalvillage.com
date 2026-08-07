@@ -55,9 +55,59 @@ const TILES_COLLAPSED_KEY = "tgv_dash_tiles_collapsed";
 // Per-category collapse for the tile grid (Gio 2026-08-02) — one JSON map so a
 // new category doesn't need a new storage key.
 const TILE_GROUPS_COLLAPSED_KEY = "tgv_dash_tile_groups_collapsed";
+// Per-category sort order. Same shape and the same reason as the collapse map
+// above: one JSON blob keyed by category name, so adding a category to
+// TILE_GROUPS never means adding a storage key here.
+const TILE_GROUPS_SORT_KEY = "tgv_dash_tile_groups_sort";
 const TEAM_COLLAPSED_KEY = "tgv_dash_team_collapsed";
 const ACTIVITY_COLLAPSED_KEY = "tgv_dash_activity_collapsed";
 const MASTER_COLLAPSED_KEY = "tgv_dash_master_collapsed";
+
+/**
+ * How one tile category is ordered. "default" is the registry's own order,
+ * which is curated rather than incidental (see the comment on TILE_GROUPS in
+ * dashboardTiles.tsx — the things you reach for daily come first), so it has to
+ * stay reachable. That is the whole reason this is a three-state cycle and not
+ * the two-state A-Z/Z-A toggle used elsewhere on this page: with only two
+ * states, one click would throw away the curated order for good.
+ */
+type TileSortMode = "default" | "az" | "za";
+
+const SORT_NEXT: Record<TileSortMode, TileSortMode> = {
+  default: "az",
+  az: "za",
+  za: "default",
+};
+
+/** The button's face. It names the mode a click MOVES you to — see TileCategorySort. */
+const SORT_ACTION: Record<TileSortMode, string> = {
+  default: "DEFAULT",
+  az: "A-Z",
+  za: "Z-A",
+};
+
+/** Prose for the tooltip, which is where the mode you are currently IN is spelled out. */
+const SORT_IS: Record<TileSortMode, string> = {
+  default: "in the dashboard's own order",
+  az: "A-Z",
+  za: "Z-A",
+};
+
+/**
+ * Order one category's tiles. Suggest stays pinned last in every mode, exactly
+ * as the picker panel pins it: it is an action rather than a room, and letting
+ * the alphabet drop it into the middle of the grid makes the grid read as if a
+ * tile went missing.
+ */
+function sortTiles(list: DashTile[], mode: TileSortMode): DashTile[] {
+  if (mode === "default") return list;
+  const dir = mode === "az" ? 1 : -1;
+  return [...list].sort((a, b) => {
+    if (a.key === "Suggest") return 1;
+    if (b.key === "Suggest") return -1;
+    return dir * a.title.localeCompare(b.title);
+  });
+}
 
 /* ── Styled ────────────────────────────────────────────────────── */
 
@@ -350,7 +400,12 @@ const TileCategory = styled.div`
   }
 `;
 
-const TileCategoryHeader = styled.button`
+/* The header row was itself the collapse <button> until the sort control moved
+   in (2026-08-06). It can't stay one: a button inside a button is invalid HTML
+   and one of the two silently stops working — the same trap the tile's
+   copy-link control documents further down. So the row is a plain flex
+   container now, and the collapse click lives on TileCategoryToggle. */
+const TileCategoryHeader = styled.div`
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -358,10 +413,66 @@ const TileCategoryHeader = styled.button`
   /* No right padding: the AddmToggle must line up with the section COLLAPSE
      controls above it (measured 2026-08-02 — 0.25rem here put it 4px inside). */
   padding: 0 0 0.5rem 0.25rem;
+`;
+
+/* The row's real, focusable collapse control. It carries the title, the count
+   and the hairline rule, so it still eats every pixel the sort button and the
+   +/− do not — the row keeps reading as one hit target the way ADDM canon
+   wants, rather than shrinking to the width of the words. */
+const TileCategoryToggle = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 0;
+  padding: 0;
   background: none;
   border: none;
   cursor: pointer;
   text-align: left;
+`;
+
+/* The +/− keeps a click of its own even though the accessible control is the
+   button to its left: ADDM canon is that the indicator is part of the hit
+   target, and someone who aims at it expects it to fire. It is a span rather
+   than a button, aria-hidden and unfocusable, precisely so assistive tech and
+   the tab order see one collapse control here instead of two competing ones. */
+const TileCategoryAddm = styled.span`
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  cursor: pointer;
+`;
+
+/* The per-category sort control. Its label names the ACTION, not the current
+   state, because the SBDM panel's sort button a few rows above this one does
+   the same and two sort controls on one page that read in opposite directions
+   is worse than either convention on its own. The first draft did label it
+   with the current mode — more literal, and wrong here: it would have had this
+   button read "A-Z" to mean "you are sorted A-Z" while the button above it
+   reads "A-Z" to mean "click for A-Z".
+   What an action label cannot carry across three modes is which mode you are
+   IN, so the button is tinted and glowing while the category is sorted and
+   stays quiet while it is in the registry's own order. */
+const TileCategorySort = styled.button<{ $accent: GlowColor; $on: boolean }>`
+  flex-shrink: 0;
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.25rem;
+  font-size: 0.5rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  line-height: 1.5;
+  cursor: pointer;
+  transition: background 0.15s, box-shadow 0.15s, color 0.15s, border-color 0.15s;
+  background: rgba(${(p) => rgb[p.$accent]}, ${(p) => (p.$on ? 0.16 : 0.05)});
+  border: 1px solid rgba(${(p) => rgb[p.$accent]}, ${(p) => (p.$on ? 0.5 : 0.2)});
+  color: rgba(${(p) => rgb[p.$accent]}, ${(p) => (p.$on ? 0.95 : 0.55)});
+  box-shadow: ${(p) => (p.$on ? `0 0 8px rgba(${rgb[p.$accent]}, 0.28)` : "none")};
+
+  &:hover {
+    background: rgba(${(p) => rgb[p.$accent]}, 0.22);
+    box-shadow: 0 0 8px rgba(${(p) => rgb[p.$accent]}, 0.35);
+  }
 `;
 
 const TileCategoryTitle = styled.span<{ $accent: GlowColor }>`
@@ -796,12 +907,21 @@ export default function Home() {
   // Tiles render one sub-grid per category. A search still groups — it just
   // drops the categories that have no match, so the shape stays familiar.
   const [groupCollapsed, setGroupCollapsed] = useState<Record<string, boolean>>({});
+  const [groupSort, setGroupSort] = useState<Record<string, TileSortMode>>({});
   useEffect(() => {
+    // Two reads, two catches: a collapse map that got corrupted must not also
+    // cost the operator their sort preferences, and vice versa.
     try {
       const raw = localStorage.getItem(TILE_GROUPS_COLLAPSED_KEY);
       if (raw) setGroupCollapsed(JSON.parse(raw) as Record<string, boolean>);
     } catch {
       /* unreadable prefs — every group starts open */
+    }
+    try {
+      const raw = localStorage.getItem(TILE_GROUPS_SORT_KEY);
+      if (raw) setGroupSort(JSON.parse(raw) as Record<string, TileSortMode>);
+    } catch {
+      /* unreadable prefs — every group starts in the registry's own order */
     }
   }, []);
   /** Collapse or expand every tile category at once. */
@@ -827,16 +947,37 @@ export default function Home() {
     });
   }, []);
 
+  /** Advance one category through default → A-Z → Z-A → default. */
+  const cycleGroupSort = useCallback((g: string) => {
+    setGroupSort((prev) => {
+      const next = { ...prev, [g]: SORT_NEXT[prev[g] ?? "default"] };
+      try {
+        localStorage.setItem(TILE_GROUPS_SORT_KEY, JSON.stringify(next));
+      } catch {
+        /* private mode — the sort still holds for this session */
+      }
+      return next;
+    });
+  }, []);
+
+  // A category's sort applies while searching too, so relevance only decides
+  // the order inside categories the operator hasn't sorted. That's deliberate:
+  // an explicit sort is a stated preference and outranks the implicit ordering
+  // the score produces, and "default" is precisely the mode that defers to it.
   const groupedTiles = useMemo(() => {
     const order: Array<OfficeTileGroup | "Other"> = [...TILE_GROUPS, "Other"];
     return order
-      .map((g) => ({
-        group: g,
-        accent: g === "Other" ? ("pink" as GlowColor) : TILE_GROUP_ACCENT[g],
-        tiles: filteredTiles.filter((t) => (t.group ?? "Other") === g),
-      }))
+      .map((g) => {
+        const sort = groupSort[g] ?? "default";
+        return {
+          group: g,
+          accent: g === "Other" ? ("pink" as GlowColor) : TILE_GROUP_ACCENT[g],
+          sort,
+          tiles: sortTiles(filteredTiles.filter((t) => (t.group ?? "Other") === g), sort),
+        };
+      })
       .filter((row) => row.tiles.length > 0);
-  }, [filteredTiles]);
+  }, [filteredTiles, groupSort]);
 
   // The picker panel uses the same matcher so it can never disagree with the
   // grid, but keeps its own A-Z / Z-A toggle as the primary sort.
@@ -1004,15 +1145,40 @@ export default function Home() {
             <EmptyTiles>No tiles match &ldquo;{filter}&rdquo;</EmptyTiles>
           </TileGrid>
         ) : (
-          groupedTiles.map(({ group, accent, tiles: groupTiles }) => {
+          groupedTiles.map(({ group, accent, sort, tiles: groupTiles }) => {
             const collapsed = groupCollapsed[group] ?? false;
+            const sortHint =
+              `${group} — sorted ${SORT_IS[sort]}. Click to sort ${SORT_IS[SORT_NEXT[sort]]}.`;
             return (
               <TileCategory key={group}>
-                <TileCategoryHeader onClick={() => toggleGroup(group)} aria-expanded={!collapsed}>
-                  <TileCategoryTitle $accent={accent}>{group}</TileCategoryTitle>
-                  <TileCategoryCount $accent={accent}>{groupTiles.length}</TileCategoryCount>
-                  <TileCategoryRule $accent={accent} />
-                  <AddmToggle open={!collapsed} />
+                <TileCategoryHeader>
+                  <TileCategoryToggle
+                    type="button"
+                    onClick={() => toggleGroup(group)}
+                    aria-expanded={!collapsed}
+                    aria-label={`${collapsed ? "Expand" : "Collapse"} ${group}`}
+                  >
+                    <TileCategoryTitle $accent={accent}>{group}</TileCategoryTitle>
+                    <TileCategoryCount $accent={accent}>{groupTiles.length}</TileCategoryCount>
+                    <TileCategoryRule $accent={accent} />
+                  </TileCategoryToggle>
+                  {/* A single tile has no order to change, so the control would
+                      only be one more thing to read past. */}
+                  {groupTiles.length > 1 && (
+                    <TileCategorySort
+                      type="button"
+                      $accent={accent}
+                      $on={sort !== "default"}
+                      onClick={() => cycleGroupSort(group)}
+                      title={sortHint}
+                      aria-label={sortHint}
+                    >
+                      {SORT_ACTION[SORT_NEXT[sort]]}
+                    </TileCategorySort>
+                  )}
+                  <TileCategoryAddm onClick={() => toggleGroup(group)} aria-hidden="true">
+                    <AddmToggle open={!collapsed} />
+                  </TileCategoryAddm>
                 </TileCategoryHeader>
                 {!collapsed && (
                   <TileGrid>
