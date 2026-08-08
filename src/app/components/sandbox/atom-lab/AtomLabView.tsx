@@ -22,7 +22,7 @@ import DdmSelect from "@tgv/module-component-library/components/ui/DdmSelect";
 import { colors, rgb } from "../../../theme";
 import { PanelSidebarItem } from "../../../styled";
 import Tooltip from "../../ui/Tooltip";
-import { type AtomSpec, clampSpec } from "./atomSpec";
+import { type AtomSpec, type StateName, clampSpec, pruneStates, specWithState } from "./atomSpec";
 import { ATOMS, ATOM_BY_KEY, ATOM_GROUPS, type AtomDef } from "./atomRegistry";
 import { AtomicEditorPanel, Editor, HeaderDdmWrap, type SaveState } from "./AtomicEditorPanel";
 
@@ -266,9 +266,14 @@ export default function AtomLabView({
     size: true,
     colors: true,
     effects: true,
+    states: true,
     text: true,
     icon: true,
   });
+  // Which state the States section is editing — and the canvas previewing.
+  // You cannot hover a canvas while dragging a hover slider, so the preview is
+  // forced through specWithState instead of waiting for a real pointer.
+  const [forcedState, setForcedState] = useState<StateName | null>(null);
   // Per-atom undo/redo. past/future hold whole specs — the spec is small and
   // whole-object history keeps every control (including the Reset squares and
   // the icon picker) undoable without per-field bookkeeping.
@@ -368,6 +373,51 @@ export default function AtomLabView({
     [def, commit],
   );
 
+  // One state's field, three levels deep — then pruned, so an override that
+  // merely restates the rest value never lands in the draft. That keeps "no
+  // override" and "override equal to rest" one and the same file, and it is
+  // what makes every state Reset square mean "fall back to rest".
+  const setStateField = useCallback(
+    (state: StateName, section: "colors" | "effects", field: string, value: unknown) => {
+      commit(
+        def.key,
+        (cur) =>
+          pruneStates({
+            ...cur,
+            states: {
+              ...cur.states,
+              [state]: {
+                ...cur.states?.[state],
+                [section]: {
+                  ...(cur.states?.[state]?.[section] as Record<string, unknown> | undefined),
+                  [field]: value,
+                },
+              },
+            },
+          } as AtomSpec),
+        def.defaults,
+      );
+    },
+    [def, commit],
+  );
+
+  const clearState = useCallback(
+    (state: StateName) => {
+      commit(
+        def.key,
+        (cur) => {
+          if (!cur.states?.[state]) return cur;
+          const states = { ...cur.states };
+          delete states[state];
+          const { states: _drop, ...rest } = cur;
+          return Object.keys(states).length ? { ...rest, states } : (rest as AtomSpec);
+        },
+        def.defaults,
+      );
+    },
+    [def, commit],
+  );
+
   const undo = useCallback(() => {
     const stack = past[def.key] ?? [];
     if (!stack.length) return;
@@ -446,6 +496,14 @@ export default function AtomLabView({
   };
 
   const Render = def.Render;
+
+  // A change of atom drops the forced state — previewing "hover" on an atom
+  // that was never opened on it would be a lever pointing at nothing.
+  useEffect(() => setForcedState(null), [active]);
+
+  // The canvas draws the state-resolved spec — the SAME resolver the CSS
+  // emitter diffs through, so what the lab previews is what prod paints.
+  const shownSpec = forcedState ? specWithState(spec, forcedState) : spec;
 
   // Every sandbox drawer sorts its groups AND their rows A-Z (Gio 2026-08-02).
   const sortedGroups = useMemo(
@@ -558,8 +616,11 @@ export default function AtomLabView({
               : spec.canvas.bg,
           }}
         >
-          <AtomName>{def.name}</AtomName>
-          <Render spec={spec} box={box} />
+          <AtomName>
+            {def.name}
+            {forcedState ? ` · ${forcedState}` : ""}
+          </AtomName>
+          <Render spec={shownSpec} box={box} />
           <CanvasDims>
             {spec.canvas.width} × {spec.canvas.height} · atom {box.w} × {box.h}
           </CanvasDims>
@@ -571,6 +632,10 @@ export default function AtomLabView({
           def={def}
           spec={spec}
           setField={setField}
+          setStateField={setStateField}
+          clearState={clearState}
+          forcedState={forcedState}
+          setForcedState={setForcedState}
           resetAtom={resetAtom}
           undo={undo}
           redo={redo}

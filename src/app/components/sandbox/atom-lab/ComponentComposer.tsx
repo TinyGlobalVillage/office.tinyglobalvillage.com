@@ -19,7 +19,7 @@ import { colors, rgb } from "../../../theme";
 import { PanelSidebarItem } from "../../../styled";
 import Tooltip from "../../ui/Tooltip";
 import { ATOMS, ATOM_BY_KEY, ATOM_GROUPS } from "./atomRegistry";
-import { type AtomSpec } from "./atomSpec";
+import { type AtomSpec, type StateName, pruneStates, specWithState } from "./atomSpec";
 import {
   type ComponentDoc,
   type ComponentNode,
@@ -255,9 +255,13 @@ export default function ComponentComposer({
     size: true,
     colors: true,
     effects: true,
+    states: true,
     text: true,
     icon: true,
   });
+  // Same forced-state affordance as the Atom Library: the selected node
+  // previews the state being edited, resolved through specWithState.
+  const [forcedState, setForcedState] = useState<StateName | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLDivElement | null>(null);
   const nodeSeq = useRef(0);
@@ -368,6 +372,10 @@ export default function ComponentComposer({
     [commit],
   );
 
+  // Selecting a different node drops the forced state, same as the Atom
+  // Library does when the atom changes.
+  useEffect(() => setForcedState(null), [selected]);
+
   const setNodeField = useCallback(
     (section: keyof AtomSpec, field: string, value: unknown) => {
       if (!selected) return;
@@ -384,6 +392,55 @@ export default function ComponentComposer({
               }
             : n,
         ),
+      }));
+    },
+    [commit, selected],
+  );
+
+  // Same shape and pruning as the Atom Library's setStateField — an override
+  // equal to rest never lands in the doc.
+  const setNodeStateField = useCallback(
+    (state: StateName, section: "colors" | "effects", field: string, value: unknown) => {
+      if (!selected) return;
+      commit((cur) => ({
+        ...cur,
+        nodes: cur.nodes.map((n) =>
+          n.id === selected
+            ? {
+                ...n,
+                spec: pruneStates({
+                  ...n.spec,
+                  states: {
+                    ...n.spec.states,
+                    [state]: {
+                      ...n.spec.states?.[state],
+                      [section]: {
+                        ...(n.spec.states?.[state]?.[section] as Record<string, unknown> | undefined),
+                        [field]: value,
+                      },
+                    },
+                  },
+                } as AtomSpec),
+              }
+            : n,
+        ),
+      }));
+    },
+    [commit, selected],
+  );
+
+  const clearNodeState = useCallback(
+    (state: StateName) => {
+      if (!selected) return;
+      commit((cur) => ({
+        ...cur,
+        nodes: cur.nodes.map((n) => {
+          if (n.id !== selected || !n.spec.states?.[state]) return n;
+          const states = { ...n.spec.states };
+          delete states[state];
+          const { states: _drop, ...rest } = n.spec;
+          return { ...n, spec: Object.keys(states).length ? { ...rest, states } : (rest as AtomSpec) };
+        }),
       }));
     },
     [commit, selected],
@@ -585,6 +642,11 @@ export default function ComponentComposer({
                 const def = ATOM_BY_KEY[n.atomKey];
                 if (!def) return null;
                 const Render = def.Render;
+                // Only the SELECTED node previews the forced state — the rest
+                // of the composition stays at rest, which is what a real
+                // pointer would do.
+                const shown =
+                  forcedState && selected === n.id ? specWithState(n.spec, forcedState) : n.spec;
                 return (
                   <NodeBox
                     key={n.id}
@@ -592,7 +654,7 @@ export default function ComponentComposer({
                     style={{ left: `${n.x}%`, top: `${n.y}%`, zIndex: n.z + 1 }}
                     onPointerDown={(e) => onNodePointerDown(e, n)}
                   >
-                    <Render spec={n.spec} box={nodeBox(n)} />
+                    <Render spec={shown} box={nodeBox(n)} />
                   </NodeBox>
                 );
               })}
@@ -609,6 +671,10 @@ export default function ComponentComposer({
             def={selectedDef}
             spec={selectedNode.spec}
             setField={setNodeField}
+            setStateField={setNodeStateField}
+            clearState={clearNodeState}
+            forcedState={forcedState}
+            setForcedState={setForcedState}
             resetAtom={resetNode}
             undo={undo}
             redo={redo}

@@ -14,15 +14,23 @@
 
 import test from "node:test";
 import assert from "node:assert/strict";
-import { DEFAULT_SPEC, mergeSpec } from "@tgv/module-component-library/atoms/spec";
+import {
+  clampSpec,
+  DEFAULT_SPEC,
+  mergeSpec,
+  pruneStates,
+  specWithState,
+} from "@tgv/module-component-library/atoms/spec";
 import {
   fontPx,
   iconPaint,
   shadowStack,
+  specStatesToCss,
   specTextToCss,
   specToBox,
   specToCss,
   specToVars,
+  stateSurfaceDiff,
   surfaceDecls,
   textDecls,
 } from "@tgv/module-component-library/atoms/specToCss";
@@ -131,6 +139,79 @@ test("icon paint resolves accent modes and skips empty filters", () => {
   assert.match(iconPaint(lit).filter, /^drop-shadow\(0 0 9px rgba\(255, 78, 203, 0\.85\)\) blur\(0\.80px\)$/);
   const flipped = mergeSpec(DEFAULT_SPEC, { icon: { flipX: true, scale: 2 } });
   assert.match(iconPaint(flipped).transform, /scale\(-2, 2\)$/);
+});
+
+test("a state emits only what it changes, and a stateless spec emits nothing", () => {
+  // The back-compat pin: a spec written before states existed emits exactly
+  // what it always did — which is nothing extra.
+  assert.equal(specStatesToCss(DEFAULT_SPEC), "");
+
+  const spec = mergeSpec(DEFAULT_SPEC, {
+    states: { hover: { colors: { fillAlpha: 0.5 } }, disabled: { effects: { opacity: 0.4 } } },
+  });
+  // Hover moved one alpha, so ONE declaration differs from rest — and the hue
+  // stays behind the shared channel var, which is how a retint reaches every
+  // state at once while each state keeps its own alpha.
+  assert.deepEqual(stateSurfaceDiff(spec, "hover"), {
+    background: "rgba(var(--atom-fill-rgb, 20, 24, 36), 0.5)",
+  });
+  assert.equal(
+    specStatesToCss(spec),
+    `&:hover {\n  background: var(--atom-hover-background, rgba(var(--atom-fill-rgb, 20, 24, 36), 0.5));\n}\n` +
+      `&:disabled, &[data-disabled="true"], &[aria-disabled="true"] {\n  opacity: var(--atom-disabled-opacity, 0.4);\n}`,
+  );
+  // Scoped, the publish channel appears as the middle rung, state-namespaced.
+  assert.ok(
+    specStatesToCss(spec, undefined, "", "tile").includes(
+      "var(--atom-hover-background, var(--atom-tile-hover-background, rgba(var(--atom-fill-rgb, 20, 24, 36), 0.5)))",
+    ),
+  );
+  // An override that restates rest is not a state — the diff empties and the
+  // block is not emitted at all.
+  assert.equal(
+    specStatesToCss(mergeSpec(DEFAULT_SPEC, { states: { hover: { colors: { fillAlpha: DEFAULT_SPEC.colors.fillAlpha } } } })),
+    "",
+  );
+  // The resolver the lab's forced-state preview uses is the same one the diff
+  // used above; an absent state resolves to the spec itself, identically.
+  assert.equal(specWithState(spec, "hover").colors.fillAlpha, 0.5);
+  assert.equal(specWithState(spec, "focus"), spec);
+  assert.ok(!specStatesToCss(spec).includes("@"), "no at-rule can be injected through a state");
+});
+
+test("clampSpec keeps states sparse: valid clamps, garbage drops, absent stays absent", () => {
+  assert.ok(!("states" in clampSpec(DEFAULT_SPEC)), "a spec from before states existed stays stateless");
+  const c = clampSpec({
+    states: {
+      hover: { colors: { fillAlpha: 7, fill: "nope" }, effects: { glow: 12 } },
+      focus: "garbage",
+      selected: { colors: { accent: "#123456" } },
+      weird: { colors: { fill: "#000000" } },
+    },
+  });
+  // fillAlpha clamps into range; "nope" and "garbage" and the unknown state
+  // name are DROPPED, not repaired — an invalid override falls back to rest
+  // rather than becoming an opinion the author never wrote.
+  assert.deepEqual(c.states, {
+    hover: { colors: { fillAlpha: 1 }, effects: { glow: 12 } },
+    selected: { colors: { accent: "#123456" } },
+  });
+  assert.deepEqual(clampSpec(c), c, "idempotent, which the drift guard's in-range check relies on");
+
+  // pruneStates is the editor's half of sparseness: an override equal to rest
+  // is dropped, and a states map that empties disappears entirely.
+  const pruned = pruneStates(
+    mergeSpec(DEFAULT_SPEC, {
+      states: {
+        hover: { colors: { fillAlpha: DEFAULT_SPEC.colors.fillAlpha }, effects: { glow: 99 } },
+        active: { colors: { fill: DEFAULT_SPEC.colors.fill } },
+      },
+    }),
+  );
+  assert.deepEqual(pruned.states, { hover: { effects: { glow: 99 } } });
+  assert.ok(
+    !("states" in pruneStates(mergeSpec(DEFAULT_SPEC, { states: { active: { colors: { fill: DEFAULT_SPEC.colors.fill } } } }))),
+  );
 });
 
 test("a spec off the wire cannot smuggle a value past the emitter", () => {

@@ -22,6 +22,7 @@ import assert from "node:assert/strict";
 import { DEFAULT_SPEC, mergeSpec } from "@tgv/module-component-library/atoms/spec";
 import {
   specSkinToCss,
+  specStatesToCss,
   specTextToCss,
   specToBox,
   textScope,
@@ -53,7 +54,9 @@ test("what a publish writes is exactly what the shipped atom reads", () => {
     const read = varsRead(
       specSkinToCss(spec, ungoverned.surface, "", key) +
         "\n" +
-        specTextToCss(spec, specToBox(spec), ungoverned.text, "", textScope(key)),
+        specTextToCss(spec, specToBox(spec), ungoverned.text, "", textScope(key)) +
+        "\n" +
+        specStatesToCss(spec, ungoverned.states, "", key),
     );
     const written = Object.keys(atomVars(key, spec, ungoverned));
 
@@ -81,6 +84,33 @@ test("an ungoverned declaration is not published", () => {
   // Its label's color IS governed, under the text scope — the two `color`
   // declarations must not share a name.
   assert.ok("--atom-tile-text-color" in vars);
+});
+
+test("a published state writes only its diff, under state-scoped names", () => {
+  const key = "tile";
+  const spec = mergeSpec(shippedSpec(key), {
+    states: { hover: { colors: { fillAlpha: 0.12 } }, disabled: { effects: { opacity: 0.4 } } },
+  });
+  const vars = atomVars(key, spec, SHIPPED_ATOMS[key].ungoverned);
+  // Hover moved one alpha: one hover declaration is published, nothing else
+  // about hover rides along.
+  assert.ok("--atom-tile-hover-background" in vars);
+  assert.ok(!("--atom-tile-hover-border" in vars));
+  assert.ok(!("--atom-tile-hover-opacity" in vars));
+  assert.ok("--atom-tile-disabled-opacity" in vars);
+  // And the shipped block reads exactly the name the publish writes — the
+  // same two-directional contract the first test pins for rest and text.
+  const css = specStatesToCss(spec, SHIPPED_ATOMS[key].ungoverned.states, "", key);
+  assert.match(css, /&:hover \{/);
+  assert.ok(varsRead(css).has("--atom-tile-hover-background"));
+  assert.ok(varsRead(css).has("--atom-tile-disabled-opacity"));
+});
+
+test("an atom key that is a state name cannot publish", () => {
+  // `hover` as an ATOM key would publish `--atom-hover-background` — the exact
+  // name every atom's hover block reads as its per-instance override.
+  assert.equal(publishedCss({ hover: DEFAULT_SPEC }), "");
+  assert.equal(publishedCss({ disabled: DEFAULT_SPEC }), "");
 });
 
 test("each atom's rule targets the atom, never :root", () => {

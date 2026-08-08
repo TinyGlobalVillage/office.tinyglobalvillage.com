@@ -17,7 +17,7 @@ import DdmSelect from "@tgv/module-component-library/components/ui/DdmSelect";
 import SBDM from "@tgv/module-component-library/components/ui/SBDM";
 import { colors, rgb } from "../../../theme";
 import Tooltip from "../../ui/Tooltip";
-import { type AtomSpec, SPEC_LIMITS } from "./atomSpec";
+import { type AtomSpec, type StateName, SPEC_LIMITS, STATE_NAMES } from "./atomSpec";
 import { type AtomDef } from "./atomRegistry";
 import PublishControls from "./PublishControls";
 import { SVG_MANIFEST, SVG_SOURCE_GROUPS } from "../../svg-lab/manifest.generated";
@@ -200,6 +200,46 @@ const IconHint = styled.div`
   line-height: 1.4;
   color: rgba(${PINK_RGB}, 0.45);
   padding: 0 2px;
+`;
+
+/* State pills — which state the levers edit, and the canvas previews. */
+const StateRow = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  padding-bottom: 2px;
+`;
+
+const StatePill = styled.button<{ $on: boolean; $set: boolean }>`
+  padding: 3px 9px;
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border-radius: 999px;
+  cursor: pointer;
+  border: 1px solid rgba(${PINK_RGB}, ${(p) => (p.$on ? 0.85 : p.$set ? 0.5 : 0.2)});
+  background: rgba(${PINK_RGB}, ${(p) => (p.$on ? 0.16 : p.$set ? 0.07 : 0.03)});
+  color: rgba(${PINK_RGB}, ${(p) => (p.$on ? 1 : p.$set ? 0.8 : 0.55)});
+  &:hover {
+    border-color: rgba(${PINK_RGB}, 0.7);
+  }
+`;
+
+const ClearStateBtn = styled.button`
+  align-self: flex-start;
+  margin-top: 2px;
+  padding: 3px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  border-radius: 6px;
+  border: 1px solid rgba(${PINK_RGB}, 0.3);
+  background: transparent;
+  color: rgba(${PINK_RGB}, 0.7);
+  cursor: pointer;
+  &:hover {
+    background: rgba(${PINK_RGB}, 0.08);
+  }
 `;
 
 // ── Control rows ────────────────────────────────────────────────────────
@@ -472,12 +512,56 @@ export function ToggleRow({
   );
 }
 
+/**
+ * The levers for ONE state's sparse patch. Values fall back to rest, and every
+ * Reset square's "default" IS the rest value — the host prunes an override
+ * equal to rest, so ↺ genuinely clears the override rather than pinning a
+ * copy. Colors and effects only, matching what `AtomStatePatch` can say (and
+ * what a shipped atom's state block can honestly render).
+ */
+function StateLevers({
+  spec,
+  state,
+  setStateField,
+  clearState,
+}: {
+  spec: AtomSpec;
+  state: StateName;
+  setStateField: (state: StateName, section: "colors" | "effects", field: string, value: unknown) => void;
+  clearState: (state: StateName) => void;
+}) {
+  const sp = spec.states?.[state];
+  const colors = { ...spec.colors, ...sp?.colors };
+  const effects = { ...spec.effects, ...sp?.effects };
+  const set = (section: "colors" | "effects", field: string) => (v: unknown) =>
+    setStateField(state, section, field, v);
+  return (
+    <>
+      <ColorRow label="Fill" value={colors.fill} defaultValue={spec.colors.fill} onChange={set("colors", "fill")} />
+      <SliderRow label="Fill alpha" value={colors.fillAlpha} min={0} max={1} step={0.01} defaultValue={spec.colors.fillAlpha} onChange={set("colors", "fillAlpha")} />
+      <ColorRow label="Border" value={colors.border} defaultValue={spec.colors.border} onChange={set("colors", "border")} />
+      <SliderRow label="Border alpha" value={colors.borderAlpha} min={0} max={1} step={0.01} defaultValue={spec.colors.borderAlpha} onChange={set("colors", "borderAlpha")} />
+      <ColorRow label="Text" value={colors.text} defaultValue={spec.colors.text} onChange={set("colors", "text")} />
+      <SliderRow label="Radius" value={effects.radius} min={0} max={200} defaultValue={spec.effects.radius} onChange={set("effects", "radius")} />
+      <SliderRow label="Border width" value={effects.borderWidth} min={0} max={12} step={0.5} defaultValue={spec.effects.borderWidth} onChange={set("effects", "borderWidth")} />
+      <SliderRow label="Glow" value={effects.glow} min={0} max={100} defaultValue={spec.effects.glow} onChange={set("effects", "glow")} />
+      <SliderRow label="Shadow" value={effects.shadow} min={0} max={100} defaultValue={spec.effects.shadow} onChange={set("effects", "shadow")} />
+      <SliderRow label="Opacity" value={effects.opacity} min={0.1} max={1} step={0.01} defaultValue={spec.effects.opacity} onChange={set("effects", "opacity")} />
+      {sp && <ClearStateBtn onClick={() => clearState(state)}>Clear {state} overrides</ClearStateBtn>}
+    </>
+  );
+}
+
 // ── The panel ───────────────────────────────────────────────────────────
 
 export function AtomicEditorPanel({
   def,
   spec,
   setField,
+  setStateField,
+  clearState,
+  forcedState,
+  setForcedState,
   resetAtom,
   undo,
   redo,
@@ -493,6 +577,16 @@ export function AtomicEditorPanel({
   def: AtomDef;
   spec: AtomSpec;
   setField: (section: keyof AtomSpec, field: string, value: unknown) => void;
+  /** One state's field. The host prunes overrides equal to rest, keeping drafts sparse. */
+  setStateField: (state: StateName, section: "colors" | "effects", field: string, value: unknown) => void;
+  clearState: (state: StateName) => void;
+  /**
+   * The state the States section is editing — held by the host because the
+   * canvas has to preview it: you cannot hover a preview while dragging a
+   * hover slider, so the host renders `specWithState(spec, forcedState)`.
+   */
+  forcedState: StateName | null;
+  setForcedState: (s: StateName | null) => void;
   resetAtom: () => void;
   undo: () => void;
   redo: () => void;
@@ -610,6 +704,39 @@ export function AtomicEditorPanel({
               <SliderRow label="Opacity" value={spec.effects.opacity} min={0.1} max={1} step={0.01} defaultValue={d.effects.opacity} onChange={(v) => setField("effects", "opacity", v)} />
               {spec.colors.gradient && (
                 <SliderRow label="Gradient angle" value={spec.effects.gradientAngle} min={0} max={360} defaultValue={d.effects.gradientAngle} onChange={(v) => setField("effects", "gradientAngle", v)} />
+              )}
+            </SectionBody>
+          )}
+        </Section>
+
+        <Section>
+          <SectionHead onClick={() => toggleSection("states")} aria-expanded={sectionOpen.states}>
+            <SectionTitle>States</SectionTitle>
+            <AddmToggle open={sectionOpen.states} />
+          </SectionHead>
+          {sectionOpen.states && (
+            <SectionBody>
+              <StateRow>
+                {STATE_NAMES.map((s) => (
+                  <StatePill
+                    key={s}
+                    $on={forcedState === s}
+                    $set={!!spec.states?.[s]}
+                    onClick={() => setForcedState(forcedState === s ? null : s)}
+                    aria-pressed={forcedState === s}
+                  >
+                    {s}
+                  </StatePill>
+                ))}
+              </StateRow>
+              {forcedState ? (
+                <StateLevers spec={spec} state={forcedState} setStateField={setStateField} clearState={clearState} />
+              ) : (
+                <IconHint>
+                  Pick a state — the canvas previews it while it is selected, and
+                  the levers edit only that state, sparsely: an untouched lever
+                  keeps following rest. A brighter pill already carries overrides.
+                </IconHint>
               )}
             </SectionBody>
           )}

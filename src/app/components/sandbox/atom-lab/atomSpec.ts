@@ -14,13 +14,19 @@
 export {
   DEFAULT_SPEC,
   SPEC_LIMITS,
+  STATE_NAMES,
   clampSpec,
   hexToRgbTriple,
   mergeSpec,
+  pruneStates,
+  specWithState,
 } from "@tgv/module-component-library/atoms/spec";
 
 export type {
   AtomSpec,
   AtomSpecPatch,
+  AtomStatePatch,
+  AtomStates,
   IconSpec,
+  StateName,
 } from "@tgv/module-component-library/atoms/spec";

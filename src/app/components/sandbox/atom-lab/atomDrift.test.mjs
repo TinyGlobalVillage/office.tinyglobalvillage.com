@@ -22,7 +22,14 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { clampSpec } from "@tgv/module-component-library/atoms/spec";
 import { SHIPPED_ATOMS, shippedSpec } from "@tgv/module-component-library/atoms/shipped";
-import { skinDecls, specSkinToCss, textDecls, specToBox } from "@tgv/module-component-library/atoms/specToCss";
+import {
+  skinDecls,
+  specSkinToCss,
+  specStatesToCss,
+  stateSurfaceDiff,
+  textDecls,
+  specToBox,
+} from "@tgv/module-component-library/atoms/specToCss";
 
 const HERE = fileURLToPath(new URL(".", import.meta.url));
 const PKG = `${HERE}../../../../../../../packages/@tgv/module-core/module-component-library`;
@@ -70,6 +77,15 @@ test("a migrated component opens the publish channel", () => {
       /data-atom=\{KEY\}/,
       `${key}: without data-atom there is nothing for the published rule to select`,
     );
+    // An atom whose spec carries states must emit them scoped, or the states
+    // exist in the lab and nowhere else — hover in the preview, nothing in prod.
+    if (Object.keys(SHIPPED_ATOMS[key].patch.states ?? {}).length) {
+      assert.match(
+        src,
+        /specStatesToCss\([^;]*,\s*KEY\s*\)/,
+        `${key}: its spec has states but the component never emits them`,
+      );
+    }
   }
 });
 
@@ -97,24 +113,100 @@ test("ungoverned lists name real declarations, with reasons", () => {
       assert.ok(text.includes(prop), `${key}: ungoverned text "${prop}" is not a declaration the spec emits`);
       assert.ok(why.length > 20, `${key}: "${prop}" needs a reason, not a label`);
     }
+    // Per state, the same contract: an entry must name a declaration that
+    // state's diff would emit — anything else is a stale skip, and a stale
+    // skip is a hole in the literal scan below.
+    for (const [state, list] of Object.entries(atom.ungoverned.states ?? {})) {
+      const emitted = Object.keys(stateSurfaceDiff(spec, state));
+      for (const [prop, why] of Object.entries(list)) {
+        assert.ok(emitted.includes(prop), `${key}: ungoverned ${state} "${prop}" is not a declaration that state emits`);
+        assert.ok(why.length > 20, `${key}: ${state} "${prop}" needs a reason, not a label`);
+      }
+    }
   }
 });
+
+/** The selector tokens that make an `&`-block a STATE block, per state. */
+const STATE_TOKENS = {
+  hover: /&:hover\b/,
+  focus: /&:focus/,
+  active: /&:active\b/,
+  selected: /&\[(?:data|aria)-selected/,
+  disabled: /&(?::disabled\b|\[(?:data|aria)-disabled)/,
+};
+
+/**
+ * Split a component's source into its state blocks and everything else, so the
+ * literal scan can be SCOPED: a property can be governed at rest and kept by
+ * the component in one state. The pre-states guard could only skip a property
+ * file-wide, which is exactly how "a fake four-state migration in place of a
+ * real single-state one" happens — one state comes off the spec and the skip
+ * hides the literals of the other three. Pseudo-elements (`&::before`) and
+ * anything un-state-like stay in the rest scan, same as before.
+ */
+function splitStateBlocks(src) {
+  const blocks = {};
+  let rest = "";
+  let last = 0;
+  const re = /&(?::[a-z-]+|\[[^\]]+\])(?:[^{}]*)\{/g;
+  let m;
+  while ((m = re.exec(src))) {
+    const selector = src.slice(m.index, re.lastIndex - 1);
+    const state = Object.keys(STATE_TOKENS).find((s) => STATE_TOKENS[s].test(selector));
+    if (!state) continue;
+    let depth = 1;
+    let j = re.lastIndex;
+    while (j < src.length && depth > 0) {
+      if (src[j] === "{") depth++;
+      else if (src[j] === "}") depth--;
+      j++;
+    }
+    blocks[state] = (blocks[state] ?? "") + "\n" + src.slice(re.lastIndex, j - 1);
+    rest += src.slice(last, m.index);
+    last = j;
+    re.lastIndex = j;
+  }
+  return { rest: rest + src.slice(last), blocks };
+}
 
 test("a shipped atom keeps no literal for a property its spec governs", () => {
   for (const [key, atom] of Object.entries(SHIPPED_ATOMS)) {
     const src = read(COMPONENTS[key]);
     // Everything after the emitted CSS is where a literal would hide. The
     // emitted block itself is a string constant, so it never matches these.
+    const { rest, blocks } = splitStateBlocks(src);
     const ungoverned = { ...(atom.ungoverned.surface ?? {}), ...(atom.ungoverned.text ?? {}) };
     for (const [prop, re] of Object.entries(LITERALS)) {
       if (prop in ungoverned) continue; // the component is allowed to own this
       assert.ok(
-        !re.test(src),
+        !re.test(rest),
         `${key}: ${COMPONENTS[key].split("/").pop()} hardcodes ${prop} — the spec governs it, so the lab and prod would drift`,
       );
     }
+    for (const [state, body] of Object.entries(blocks)) {
+      const keeps = atom.ungoverned.states?.[state] ?? {};
+      for (const [prop, re] of Object.entries(LITERALS)) {
+        if (prop in ungoverned || prop in keeps) continue;
+        assert.ok(
+          !re.test(body),
+          `${key}: its ${state} block hardcodes ${prop} — govern it with a state patch or write it down as kept`,
+        );
+      }
+    }
     // And it does render from the spec at all.
     assert.match(src, /shippedSpec\(/, `${key}: does not read its spec`);
+  }
+});
+
+test("a stateless shipped atom emits no state CSS — the no-pixels-moved claim stays true", () => {
+  // The states feature landed AFTER tile and tooltip migrated. Their specs say
+  // nothing about states, so the emitter must add nothing — the exact CSS the
+  // two per-atom pins below check remains the whole story.
+  for (const key of Object.keys(SHIPPED_ATOMS)) {
+    const spec = shippedSpec(key);
+    if (!spec.states) {
+      assert.equal(specStatesToCss(spec, SHIPPED_ATOMS[key].ungoverned.states, "", key), "");
+    }
   }
 });
 
