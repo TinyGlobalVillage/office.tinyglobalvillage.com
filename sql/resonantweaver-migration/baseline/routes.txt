@@ -27,6 +27,7 @@
 /galactic-field-guide/
 
 /landing-star-preview/receive/
+/landing-star-preview/develop/
 /landing-star-preview/course/
 /landing-star-preview/experience/all-products/
 /landing-star-preview/experience/galactic-pendulum/
@@ -41,3 +42,4 @@
 /landing-star-preview/offer/meeting-your-galactic-self-meditation/
 /landing-star-preview/offer/pearl-chamber/
 /landing-star-preview/offer/resonance-mirror/
+/landing-star-preview/offer/somatic-signature/

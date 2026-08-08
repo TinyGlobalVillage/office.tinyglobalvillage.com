@@ -128,10 +128,15 @@ export const inlineCopy = {
   // placeholder warning are written inline in OfferDetail.tsx, not in the offer
   // catalog, because they are the same on every offer.
   offer: {
+    // 2026-08-08 (e01bb4c): the two eyebrows became per-offer fields with the
+    // old literals as FALLBACKS — `detail.workEyebrow ?? "The work"`. The
+    // defaults below stay the template's furniture; an offer that sets its own
+    // (Somatic Signature does) carries it in offers.ts, which the generator
+    // already reads.
     workEyebrow: {
       file: `${HOME}/landing-star-preview/offer/[slug]/OfferDetail.tsx`,
       text: "The work",
-      find: 'eyebrow="The work"',
+      find: 'detail.workEyebrow ?? "The work"',
     },
     // DetailSection's default when an offer's `detail` names no listLabel.
     includesLabel: {
@@ -150,7 +155,7 @@ export const inlineCopy = {
     closeEyebrow: {
       file: `${HOME}/landing-star-preview/offer/[slug]/OfferDetail.tsx`,
       text: "When you are ready",
-      find: 'eyebrow="When you are ready"',
+      find: 'detail.closeEyebrow ?? "When you are ready"',
     },
     placeholderNote: {
       file: `${HOME}/landing-star-preview/offer/[slug]/OfferDetail.tsx`,
@@ -230,11 +235,9 @@ export const inlineCopy = {
    *  emitting last month's word. `available` is written unquoted in her map,
    *  hence the different `find`. */
   offerStatus: {
-    available: {
-      file: "src/components/Cards.tsx",
-      text: "Available now",
-      find: 'available: "Available now"',
-    },
+    // `available` was REMOVED in her 2026-08-08 launch (e01bb4c): "an offer
+    // that is simply open says so by being open" — Cards.tsx's own comment.
+    // An available offer now renders NO badge, here as there.
     "founding-access": {
       file: "src/components/Cards.tsx",
       text: "Founding access",
@@ -272,19 +275,33 @@ export const inlineCopy = {
       text: "The Pearl Chamber",
       find: "<H3>The Pearl Chamber</H3>",
     },
+    // 2026-08-08 (e01bb4c): her Lion's Gate launch rewrote this page's copy —
+    // one lead paragraph became three, the sub-line changed, the thank-you grew
+    // a plan chooser, and the subscribe button was relabelled. The PayPal URLs
+    // did NOT move (verified — the two strings that must never drift).
     sub: {
       file: `${HOME}/pearl-chamber/PearlChamberSubscriptionPage.tsx`,
-      text: "Set your intention",
-      find: "<Sub>Set your intention</Sub>",
+      text: "Leave your intention.",
+      find: "<Sub>Leave your intention.</Sub>",
     },
-    lead: {
+    // Three paragraphs now; rf-offer-card splits body on \n\n, so they travel
+    // as real paragraphs. Guarded one by one, joined by the emitter.
+    lead1: {
       file: `${HOME}/pearl-chamber/PearlChamberSubscriptionPage.tsx`,
-      text: "Share your name, email, and the intention you want held in the Pearl Chamber. Once it is received, you can complete your payment.",
+      text: "The Pearl Chamber holds one intention for seven days through daily meditation, Reiki, and spoken enchantment.",
+    },
+    lead2: {
+      file: `${HOME}/pearl-chamber/PearlChamberSubscriptionPage.tsx`,
+      text: "Share your name, email, and the intention you would like placed inside. A sentence or a few clear words is enough.",
+    },
+    lead3: {
+      file: `${HOME}/pearl-chamber/PearlChamberSubscriptionPage.tsx`,
+      text: "Once your intention is received, you can choose either one week of tending or continued weekly support.",
     },
     price: {
       file: `${HOME}/pearl-chamber/PearlChamberSubscriptionPage.tsx`,
-      text: "$11 / week",
-      find: "<Price>$11 / week</Price>",
+      text: "$11 for one week",
+      find: "<Price>$11 for one week</Price>",
     },
     imageAlt: {
       file: `${HOME}/pearl-chamber/PearlChamberSubscriptionPage.tsx`,
@@ -314,16 +331,25 @@ export const inlineCopy = {
     // is exactly what a thank-you screen is, so they become one.
     thanksTitle: {
       file: `${HOME}/pearl-chamber/PearlChamberSubscriptionPage.tsx`,
-      text: "Intention received.",
-      find: "<ConfirmationText>Intention received.</ConfirmationText>",
+      text: "Your intention has been received.",
+      find: "<ConfirmationText>Your intention has been received.</ConfirmationText>",
     },
     thanksLine1: {
       file: `${HOME}/pearl-chamber/PearlChamberSubscriptionPage.tsx`,
-      text: "$11 for one week of daily tending, or as a weekly subscription for continued support.",
+      text: "Choose how long you would like it held in the Pearl Chamber.",
     },
+    // Her ready screen renders these as two paragraphs with <strong> lead-ins;
+    // the forms thank-you description is one text field, so they flatten to
+    // plain sentences — a known loss the differ prices, not a silent one.
     thanksLine2: {
       file: `${HOME}/pearl-chamber/PearlChamberSubscriptionPage.tsx`,
-      text: "You can cancel any time.",
+      text: "One week · $11 — Seven days of daily tending. No recurring payment.",
+      find: "<strong>One week · $11</strong> — Seven days of daily tending. No recurring payment.",
+    },
+    thanksLine3: {
+      file: `${HOME}/pearl-chamber/PearlChamberSubscriptionPage.tsx`,
+      text: "Continue weekly · $11/week — Your intention remains in the chamber and continues to be tended each week until you cancel.",
+      find: "<strong>Continue weekly · $11/week</strong> — Your intention remains in the chamber and continues to be tended each week until you cancel.",
     },
     onceLabel: {
       file: `${HOME}/pearl-chamber/PearlChamberSubscriptionPage.tsx`,
@@ -335,7 +361,7 @@ export const inlineCopy = {
     },
     subscribeLabel: {
       file: `${HOME}/pearl-chamber/PearlChamberSubscriptionPage.tsx`,
-      text: "Subscribe · $11 / week",
+      text: "Continue weekly · $11 / week",
     },
     subscribeUrl: {
       file: `${HOME}/pearl-chamber/PearlChamberSubscriptionPage.tsx`,
@@ -541,6 +567,9 @@ export const assetMap = {
   // flattens that onto white — a white box and a white ghost, on her void
   // backdrop. Resized 1152 → 1024, which is still 2× the ~496px it renders at.
   "/images/StarBot.png": `${ASSET_BASE}/StarBot.png`,
+  // Somatic Signature artwork, added by her 2026-08-08 Lion's Gate launch
+  // (e01bb4c). 1080×1080 PNG, copied as-is; sizing is Phase 4's pipeline call.
+  "/images/7chakra-yogi.png": `${ASSET_BASE}/7chakra-yogi.png`,
   "/images/landing-star-preview/GalacticSelf.jpg": `${ASSET_BASE}/GalacticSelf.jpg`,
   "/images/landing-star-preview/galactic-pendulum.svg": `${ASSET_BASE}/galactic-pendulum.svg`,
   "/images/landing-star-preview/learn.png": `${ASSET_BASE}/learn.jpg`,

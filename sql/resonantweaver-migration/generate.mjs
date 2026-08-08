@@ -959,7 +959,7 @@ function gatewayCardToItem(card) {
     body: card.copy,
     listLabel: "",
     bullets: [],
-    note: card.status ? STATUS_LABEL[card.status] : "",
+    note: (card.status ? STATUS_LABEL[card.status] : "") ?? "",
     price: card.price ?? "",
     ctaLabel: card.linkLabel ?? "",
     ctaHref: card.link ? gatewayHref(card.link) : "",
@@ -1127,8 +1127,23 @@ function buildGatewayPage(data, id) {
  *  A draft is publicly inert: the tenant route calls
  *  `readPublishedPageWithFlags`, which filters `mode = 'published'`. So the URL
  *  behaves exactly as it does on her app today (the redirect in HQ's
- *  `siteRedirects.ts`), and nothing about the cutover changes for a visitor. */
-const HIDDEN_GATEWAYS = new Set(["meet", "develop"]);
+ *  `siteRedirects.ts`), and nothing about the cutover changes for a visitor.
+ *
+ *  READ FROM HER SOURCE, not transcribed (2026-08-08): this used to be a
+ *  hardcoded copy of her set, and it was the one transcription in this file
+ *  with no drift guard — her Lion's Gate launch (e01bb4c) un-hid `develop` and
+ *  the generator kept emitting it as a draft with every check green. The set
+ *  is hers now; if the declaration ever changes shape, this dies loudly
+ *  instead of guessing. HQ's `siteRedirects.ts` must list exactly these. */
+const HIDDEN_GATEWAYS = (() => {
+  const src = fs.readFileSync(
+    path.join(RW, "src/app/[lang]/(public)/(home)/landing-star-preview/[gateway]/page.tsx"),
+    "utf8",
+  );
+  const m = src.match(/HIDDEN_GATEWAYS\s*=\s*new Set\(\[([^\]]*)\]\)/);
+  if (!m) die("cannot find HIDDEN_GATEWAYS in her [gateway]/page.tsx — the declaration moved");
+  return new Set([...m[1].matchAll(/"([a-z-]+)"/g)].map((x) => x[1]));
+})();
 const ALL_GATEWAYS = ["meet", "develop", "receive"];
 
 /** Every offer her `offer/[slug]` route actually SERVES a detail page for.
@@ -1206,7 +1221,7 @@ function buildWaitlistForm(offer) {
 function buildWaitlistPage(data, entry, formId) {
   const offer = data.resolveOffer(entry);
   const c = inlineCopy.waitlist;
-  const statusLabel = offer.status ? STATUS_LABEL[offer.status] : "";
+  const statusLabel = (offer.status ? STATUS_LABEL[offer.status] : "") ?? "";
   if (offer.status && !statusLabel) {
     die(`no transcribed badge label for offer status ${JSON.stringify(offer.status)} (${offer.slug})`);
   }
@@ -1453,7 +1468,8 @@ function buildPearlChamber(data, formId) {
           anchorId: "pearl-chamber",
           title: verbatim(c.title),
           sub: verbatim(c.sub),
-          body: verbatim(c.lead),
+          // Three paragraphs since e01bb4c; rf-offer-card splits body on \n\n.
+          body: [c.lead1, c.lead2, c.lead3].map(verbatim).join("\n\n"),
           listLabel: "",
           bullets: [],
           note: "",
@@ -1912,7 +1928,7 @@ function buildPearlForm() {
       settings: { submitLabel: verbatim(c.submitLabel) },
       thankyou: {
         title: verbatim(c.thanksTitle),
-        description: `${verbatim(c.thanksLine1)} ${verbatim(c.thanksLine2)}`,
+        description: `${verbatim(c.thanksLine1)} ${verbatim(c.thanksLine2)} ${verbatim(c.thanksLine3)}`,
         ctas: [
           { label: verbatim(c.onceLabel), href: verbatim(c.onceUrl), target: "_blank" },
           { label: verbatim(c.subscribeLabel), href: verbatim(c.subscribeUrl), target: "_blank" },

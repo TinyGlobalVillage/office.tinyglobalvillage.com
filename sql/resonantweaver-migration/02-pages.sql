@@ -158,8 +158,8 @@ SELECT 'd05bbb9f-28f1-4f61-b866-78d02a264dd5'::uuid, v.id, o.member_id, 'pearl-c
     "submitLabel": "Continue to Payment"
   },
   "thankyou": {
-    "title": "Intention received.",
-    "description": "$11 for one week of daily tending, or as a weekly subscription for continued support. You can cancel any time.",
+    "title": "Your intention has been received.",
+    "description": "Choose how long you would like it held in the Pearl Chamber. One week · $11 — Seven days of daily tending. No recurring payment. Continue weekly · $11/week — Your intention remains in the chamber and continues to be tended each week until you cancel.",
     "ctas": [
       {
         "label": "One Week · $11",
@@ -167,7 +167,7 @@ SELECT 'd05bbb9f-28f1-4f61-b866-78d02a264dd5'::uuid, v.id, o.member_id, 'pearl-c
         "target": "_blank"
       },
       {
-        "label": "Subscribe · $11 / week",
+        "label": "Continue weekly · $11 / week",
         "href": "https://www.paypal.com/webapps/billing/plans/subscribe?plan_id=P-92Y41769K2021445TNIKJDZA",
         "target": "_blank"
       }
@@ -328,13 +328,13 @@ INSERT INTO _rw_pages VALUES ('home', 'Resonant Weaver', true, 'published', $rwj
           "imageUrl": "",
           "imageAlt": "",
           "imagePosition": "left",
-          "eyebrow": "Where people begin",
+          "eyebrow": "Three ways into the work",
           "eyebrowColor": "accent",
-          "heading": "Knowing is a constant unfolding",
+          "heading": "The stars, the field, and your own perception",
           "headingLevel": 2,
           "headingAccent": "",
           "paragraphs": [
-            "Some people come here curious. Some are already sensing energy or receiving information they don't yet have language for. Some want to understand their own star pattern. Some want to develop the perception itself. Wherever you're starting from, there's a door in: begin with the stars, enter your own field, or train the perception that lets you meet the unseen directly."
+            "You can meet yourself through the stars, through the living energy of your own field, or by developing the perception that lets you sense more directly yourself. Each path returns you to the same place: a clearer relationship with who you are, what you carry, and how you are here to live."
           ],
           "chips": [],
           "ctas": []
@@ -358,11 +358,33 @@ INSERT INTO _rw_pages VALUES ('home', 'Resonant Weaver', true, 'published', $rwj
             {
               "index": "I · Door",
               "title": "Meet your galactic self",
-              "copy": "Curious about your star currents or celestial pattern? Begin with the easiest possible first contact.",
-              "cta": "Meet yourself",
+              "copy": "Begin with the sky you arrived under. Explore the fixed stars that were active at your birth, the star currents they carry, and the deeper patterns they weave into your human life.",
+              "cta": "The Starwoven Journey",
               "href": "/starseed",
               "imageUrl": "/images/tenants/resonantweaver/GalacticSelf.jpg",
               "imageAlt": "A restrained constellation and astronomical observatory diagram emerging from darkness",
+              "disabled": false,
+              "disabledLabel": ""
+            },
+            {
+              "index": "II · Door",
+              "title": "Enter your own energy field",
+              "copy": "Meet what is moving within and around you now. Through energetic readings and intentional tending, this path helps you recognise the patterns asking for attention, support, release, or a new way forward.",
+              "cta": "Explore",
+              "href": "/landing-star-preview/receive/",
+              "imageUrl": "/images/tenants/resonantweaver/experience.jpg",
+              "imageAlt": "A quiet human silhouette surrounded by subtle energetic contours",
+              "disabled": false,
+              "disabledLabel": ""
+            },
+            {
+              "index": "III · Door",
+              "title": "Develop your perception",
+              "copy": "Learn to recognise the signals already moving through your body and senses. This path helps you notice your natural baseline, understand the pressures and patterns that pull you away from it, and find your own way back.",
+              "cta": "Explore",
+              "href": "/landing-star-preview/develop/",
+              "imageUrl": "/images/tenants/resonantweaver/learn.jpg",
+              "imageAlt": "A grounded figure sensing space while stepping across a subtle threshold",
               "disabled": false,
               "disabledLabel": ""
             }
@@ -381,13 +403,12 @@ INSERT INTO _rw_pages VALUES ('home', 'Resonant Weaver', true, 'published', $rwj
           "imageUrl": "",
           "imageAlt": "",
           "imagePosition": "left",
-          "eyebrow": "Where to begin",
           "eyebrowColor": "accent",
-          "heading": "Start here",
+          "heading": "Begin where you feel the pull",
           "headingLevel": 2,
           "headingAccent": "",
           "paragraphs": [
-            "The Starwoven Journey is the heart of this work right now. Around it sit a handful of readings and practices you can step into whenever you're ready."
+            "Each path has a doorway open. The Starwoven Journey is your Starseed heritage. The Resonance Mirror and Pearl Chamber work with the energy moving through your field. The Somatic Signature helps you learn the language of your own body. Begin with the one that feels closest to what you need now."
           ],
           "chips": [],
           "ctas": []
@@ -410,10 +431,10 @@ INSERT INTO _rw_pages VALUES ('home', 'Resonant Weaver', true, 'published', $rwj
           "items": [
             {
               "anchorId": "starwoven-journey",
-              "eyebrow": "01 · Your celestial pattern, read in full",
+              "eyebrow": "01 · Your birth sky, woven into a personal journey",
               "title": "Starwoven Journey",
               "sub": "",
-              "body": "The full Starwoven Journey — a personalised, interactive exploration of your galactic themes, patterns and resonances.",
+              "body": "A personalised, interactive reading of the fixed stars active when you were born. Discover your Starseed lineages, the gifts, the Soul and Earth mission, and how these currents may be moving through your human life.",
               "listLabel": "",
               "bullets": [],
               "note": "",
@@ -425,10 +446,10 @@ INSERT INTO _rw_pages VALUES ('home', 'Resonant Weaver', true, 'published', $rwj
             },
             {
               "anchorId": "resonance-mirror",
-              "eyebrow": "02 · The deep, full-spectrum reading",
+              "eyebrow": "02 · See what is moving through your energy field",
               "title": "Resonance Mirror",
               "sub": "",
-              "body": "Your energy field holds more information than most people ever get access to. This reading gives you that access.",
+              "body": "A deep personal reading of the patterns, pressures, strengths, and subtle movements active in your field now.",
               "listLabel": "",
               "bullets": [],
               "note": "",
@@ -439,17 +460,17 @@ INSERT INTO _rw_pages VALUES ('home', 'Resonant Weaver', true, 'published', $rwj
               "variant": "standard"
             },
             {
-              "anchorId": "pearl-chamber",
-              "eyebrow": "03 · A weekly holding for one intention",
-              "title": "The Pearl Chamber",
+              "anchorId": "somatic-signature",
+              "eyebrow": "03 · Learn the feeling of your own alignment",
+              "title": "Somatic Signature",
               "sub": "",
-              "body": "Your intention is placed inside the chamber and held there within 24 hours of purchase, where it is tended daily through meditation, energy work, and spoken enchantment.",
+              "body": "A personalised, body-led practice based on your Human Design. Learn where pressure and conditioning are most likely to show up in your system, what your own baseline feels like, and simple ways to return through movement, breath, and somatic awareness.",
               "listLabel": "",
               "bullets": [],
               "note": "",
-              "price": "$11",
+              "price": "$22",
               "ctaLabel": "Learn more",
-              "ctaHref": "/landing-star-preview/offer/pearl-chamber/",
+              "ctaHref": "/landing-star-preview/offer/somatic-signature/",
               "ctaTarget": "",
               "variant": "standard"
             }
@@ -474,7 +495,7 @@ INSERT INTO _rw_pages VALUES ('home', 'Resonant Weaver', true, 'published', $rwj
           "headingLevel": 2,
           "headingAccent": "",
           "paragraphs": [
-            "A growing atlas of the fixed-star currents and the civilisations woven through them — 42 systems and counting. Some entries are complete with full plates; many are still being written or illustrated. Preview and founding access open before the full guide does."
+            "A growing atlas of the fixed stars, star lineages, and civilisations that shape this work. Each entry explores the character of a star current, the gifts and shadows it carries, and how its presence may be recognised in human life. The archive currently spans 42 systems, with new writing and illustrations added as the guide continues to unfold."
           ],
           "chips": [],
           "ctas": []
@@ -496,7 +517,7 @@ INSERT INTO _rw_pages VALUES ('home', 'Resonant Weaver', true, 'published', $rwj
           "padBottom": 25,
           "items": [
             {
-              "eyebrow": "01 · Civilisation",
+              "eyebrow": "01 · Star lineage",
               "title": "Lyra · Vega",
               "sub": "",
               "body": "",
@@ -509,7 +530,7 @@ INSERT INTO _rw_pages VALUES ('home', 'Resonant Weaver', true, 'published', $rwj
               "variant": "standard"
             },
             {
-              "eyebrow": "02 · Civilisation",
+              "eyebrow": "02 · Star lineage",
               "title": "Pleiades · Alcyone",
               "sub": "",
               "body": "",
@@ -522,7 +543,7 @@ INSERT INTO _rw_pages VALUES ('home', 'Resonant Weaver', true, 'published', $rwj
               "variant": "standard"
             },
             {
-              "eyebrow": "03 · Civilisation",
+              "eyebrow": "03 · Star lineage",
               "title": "Sirius · Canis Major",
               "sub": "",
               "body": "",
@@ -555,7 +576,7 @@ INSERT INTO _rw_pages VALUES ('home', 'Resonant Weaver', true, 'published', $rwj
           "headingLevel": 2,
           "headingAccent": "",
           "paragraphs": [
-            "The full guide isn't open yet. Get in touch to be notified once access is ready."
+            "The guide is not open yet, but early access will become available before the full archive is complete. Send a message below if you would like to hear when the first doors open."
           ],
           "chips": [],
           "ctas": [
@@ -587,39 +608,35 @@ INSERT INTO _rw_pages VALUES ('home', 'Resonant Weaver', true, 'published', $rwj
           "items": [
             {
               "name": "What is Resonant Weaver?",
-              "body": "Resonant Weaver is my practice as an energy reader and guide. I work with the subtle field, the fixed stars of your birth sky, and the body. That takes shape as personal readings, one-to-one sessions, the interactive Starwoven Journey, and a growing Galactic Field Guide, so you can choose the doorway that fits where you are."
+              "body": "Resonant Weaver is my practice at the meeting point of the stars, the energy field, and the body. The work takes shape through personal readings, guided practices, and tools that help you recognise your own patterns and signals more clearly."
             },
             {
               "name": "What kind of guidance is this?",
-              "body": "The offerings are reflective and interpretive in nature. They include perspectives, awareness, and optional suggestions related to personal experience, embodiment, or environment. Any adjustments or practices suggested, whether somatic or environmental, are invitations, not prescriptions. Resonant Weaver does not provide medical, psychological, or legal advice."
-            },
-            {
-              "name": "What's your background?",
-              "body": "I am certified in mediumship, Usui Reiki as a Master and Teacher, Quantum Astrology, and soul guide work, and I have spent years developing a way of reading energetic and stellar fields. I receive through clairsentience and claircognizance, then translate what I find into something grounded and usable."
+              "body": "This work is reflective, intuitive, and educational. It may help you notice patterns, understand what is active, or explore a different way of supporting yourself. Everything offered is an invitation, not a prescription. Resonant Weaver does not provide medical, psychological, or legal advice."
             },
             {
               "name": "Is this mediumship or channeling?",
-              "body": "This work draws on clairsentience and claircognizance as sensing tools. I translate what I receive into grounded reflections and practical suggestions, always aimed at coherence, capacity, and what your system can comfortably integrate now."
+              "body": "Sometimes, but not always. Some offerings draw on intuitive sensing, clairsentience, claircognizance, or light language. Others begin with a clear structure, such as the fixed stars of your birth sky or your Human Design. The method depends on the offering, but you remain the authority on what feels true and useful to you."
             },
             {
               "name": "Are readings remote?",
-              "body": "Yes. Readings are completed remotely and shared as a written reflection by email. This allows the work to be done without scheduling or live interaction, and gives you space to receive it in your own time."
+              "body": "Yes. Everything currently offered can be received remotely. The Starwoven Journey unfolds interactively online, while written readings and personalised practices are delivered digitally. The Pearl Chamber is tended from a distance. Each offer page explains exactly what you receive and how it is delivered."
             },
             {
               "name": "What is the Starwoven Journey?",
-              "body": "It is a personal reading of the fixed stars active in your birth sky, delivered as an interactive journey you move through at your own pace. It reveals your starseed lineages, your gifts and shadow gates, and the direction your life is asking to take. You only need your exact birth date, time and place to begin."
+              "body": "The Starwoven Journey is a personalised, interactive reading of the fixed stars active in your birth sky. It reveals your starseed lineages, the gifts and shadow gates they carry, and how those currents may be moving through your human life. You move through the journey at your own pace and only need your exact birth date, time, and place to begin."
             },
             {
               "name": "Do I need to know astrology or Human Design?",
-              "body": "No. You can come in with zero background. Anything drawn from Human Design or the stars is translated into plain language and grounded takeaways."
+              "body": "No. You do not need any previous knowledge. These systems may shape the work behind the scenes, but what you receive is translated into clear, everyday language and connected to lived experience."
             },
             {
               "name": "Who is this for?",
-              "body": "This work suits people who are curious about their subtle energy body, open to sensing and reflecting on subtle experience, and willing to take an active role in their own process. If you are looking for prediction, diagnosis, or an outside authority to decide for you, this may not be the right fit."
+              "body": "This work is for those who are curious about energy, the stars, the body, or the ways subtle information can be felt and understood. You do not need to call yourself a starseed or already know how to sense energy. Curiosity is enough. It may not be the right fit if you are looking for prediction, diagnosis, or someone else to make decisions for you."
             },
             {
               "name": "How do I get started?",
-              "body": "Choose the offering that calls to you and follow it, or write to me through the contact form below if you are not sure where to begin. For remote readings you do not need to prepare anything, and you will usually receive your written reflection by email within one to two business days."
+              "body": "Begin with the path that feels closest to you: meet yourself through the stars, enter your own energy field, or learn the language of your body and senses. You can also write to me through the contact form below if you are unsure which offering fits."
             }
           ]
         }
@@ -659,7 +676,7 @@ INSERT INTO _rw_pages VALUES ('home', 'Resonant Weaver', true, 'published', $rwj
               "eyebrow": "About Resonant Weaver",
               "title": "Between Earth and sky",
               "sub": "",
-              "body": "I live in a small forest in Sweden, on a homestead we are slowly learning to run. Most things here have been figured out the hard way, from carrying water to making firewood to growing food from scratch. It has taught me to pay attention to what is actually there rather than what I expect to find.\n\nI have been drawn to what moves beneath the surface since I was a child. That curiosity became a practice, and the practice became this work. I am certified in mediumship, Usui Reiki as a Master and Teacher, Quantum Astrology, and soul guide work, and I have spent years developing a way of reading energetic and stellar fields that is closer to mapping than interpretation.\n\nI receive through clairsentience and claircognizance, feeling what is happening in a field directly, in my own system, then translating it into something grounded and usable. I also work with light language, spoken and through movement, when a field asks for direct tending rather than reflection.\n\nThe Starwoven Journey grew from all of this: reading the fixed stars of your birth sky as the lineages you carry, and helping them find a home in your human life.",
+              "body": "I live in the forest in Sweden, on a homestead we are slowly learning to tend. Much of life here has been worked out by doing: carrying water, making firewood, growing food, and paying attention to the land through changing seasons. It has taught me to notice what is actually present, rather than what I expect to find.\n\nI have been drawn to what moves beneath the surface since I was a child. Over time, that curiosity became a practice, and the practice became this work. I am certified in mediumship, Usui Reiki Master/Teacher, Quantum Astrology, and soul guide work. I have also spent years exploring how energetic, bodily, and stellar patterns can be sensed, understood, and brought into everyday life.\n\nI work primarily through clairsentience and claircognizance. I feel what is happening in a field through my own system, then translate what I receive into something clear, grounded, and useful. I also work with light language, through voice and movement, when direct energetic tending is more helpful than words alone.\n\nResonant Weaver grew from the meeting of these worlds: the stars above us, the living field around us, and the body that lets us experience it all. The work is here to help you recognise what is already moving within you, and find a way to live from it more fully.",
               "listLabel": "",
               "bullets": [],
               "note": "",
@@ -1322,7 +1339,7 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/meet', 'Meet Your Galactic S
               "eyebrow": "01",
               "title": "Starwoven Journey",
               "sub": "",
-              "body": "Your celestial pattern, read in full",
+              "body": "Your birth sky, woven into a personal journey",
               "listLabel": "",
               "bullets": [],
               "note": "Coming soon",
@@ -1400,7 +1417,7 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/meet', 'Meet Your Galactic S
   ]
 }$rwjson$::jsonb);
 
-INSERT INTO _rw_pages VALUES ('landing-star-preview/develop', 'Develop Your Perception', false, 'draft', $rwjson${
+INSERT INTO _rw_pages VALUES ('landing-star-preview/develop', 'Develop Your Perception', false, 'published', $rwjson${
   "id": "pm-rw-gateway-develop",
   "slug": "landing-star-preview/develop",
   "title": "Develop Your Perception",
@@ -1408,7 +1425,7 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/develop', 'Develop Your Perc
     "navEnabled": true,
     "footerEnabled": true,
     "meta": {
-      "description": "Learn to recognise subtle sensation, distinguish signal from projection and meet energy and your directly without leaving the intelligence of the body behind.",
+      "description": "Your body is already giving you information. This path helps you recognise what feels like you, notice the pressures and patterns that pull you away from yourself, and build trust in what you perceive without reaching for something more dramatic.",
       "keywords": [],
       "ogImage": "/images/tenants/resonantweaver/learn.jpg",
       "noindex": true
@@ -1448,16 +1465,16 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/develop', 'Develop Your Perc
           "padBottom": 25,
           "items": [
             {
-              "eyebrow": "Door Two · Develop Your Perception",
-              "title": "Perception becomes trustworthy through practice",
+              "eyebrow": "Door Three · Develop Your Perception",
+              "title": "Perception begins with knowing your own signals",
               "sub": "",
-              "body": "Learn to recognise subtle sensation, distinguish signal from projection and meet energy and your directly without leaving the intelligence of the body behind.",
+              "body": "Your body is already giving you information. This path helps you recognise what feels like you, notice the pressures and patterns that pull you away from yourself, and build trust in what you perceive without reaching for something more dramatic.",
               "listLabel": "",
               "bullets": [],
               "note": "",
               "price": "",
-              "ctaLabel": "Begin at the threshold",
-              "ctaHref": "/journey/",
+              "ctaLabel": "Begin with the Somatic Signature",
+              "ctaHref": "/landing-star-preview/offer/somatic-signature/",
               "variant": "media",
               "mediaUrl": "/images/tenants/resonantweaver/learn.jpg",
               "mediaAlt": "A grounded figure sensing space while crossing a subtle threshold",
@@ -1478,13 +1495,13 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/develop', 'Develop Your Perc
           "imageUrl": "",
           "imageAlt": "",
           "imagePosition": "left",
-          "eyebrow": "The training arc",
+          "eyebrow": "The path of perception",
           "eyebrowColor": "accent",
           "heading": "From sensation to relationship",
           "headingLevel": 2,
           "headingAccent": "",
           "paragraphs": [
-            "The work develops in sequence. First you notice. Then you discern. Only then do you learn to move in conscious relationship with what you perceive."
+            "Perception develops in layers. First, you learn the feeling of your own system. Then you begin to recognise what belongs to you, what has been absorbed, and what may be coming through the field. From there, perception becomes a conscious relationship: grounded in the body, clear boundaries, and your own choice."
           ],
           "chips": [],
           "ctas": []
@@ -1509,7 +1526,7 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/develop', 'Develop Your Perc
               "eyebrow": "01",
               "title": "Sensation",
               "sub": "",
-              "body": "Build a stable felt reference for your own body, attention and energetic baseline.",
+              "body": "Build a felt reference for your own body, attention, rhythm, and energetic baseline. Learn how your system signals pressure, openness, alignment, and the need to return.",
               "listLabel": "",
               "bullets": [],
               "note": "",
@@ -1524,7 +1541,7 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/develop', 'Develop Your Perc
               "eyebrow": "02",
               "title": "Discernment",
               "sub": "",
-              "body": "Learn the difference between sensation, story, projection and a clean signal from the field.",
+              "body": "Learn to tell the difference between direct sensation, personal interpretation, absorbed emotion, projection, and a clearer signal from beyond your own field.",
               "listLabel": "",
               "bullets": [],
               "note": "",
@@ -1539,7 +1556,7 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/develop', 'Develop Your Perc
               "eyebrow": "03",
               "title": "Relationship",
               "sub": "",
-              "body": "Practise meeting energy consciously: with boundaries, responsiveness and grounded choice.",
+              "body": "Practise meeting subtle information consciously, with curiosity, boundaries, responsiveness, and enough grounding to remain fully yourself.",
               "listLabel": "",
               "bullets": [],
               "note": "",
@@ -1594,30 +1611,30 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/develop', 'Develop Your Perc
           "items": [
             {
               "eyebrow": "01",
-              "title": "Galactic Initiation",
+              "title": "Somatic Signature",
               "sub": "",
-              "body": "A three-day experiential course in galactic perception, contact and Earth translation",
+              "body": "A personalised, body-led practice based on your Human Design. Learn where pressure and conditioning are most likely to show up in your system, what your own baseline feels like, and simple ways to return through movement, breath, and somatic awareness.",
               "listLabel": "",
               "bullets": [],
-              "note": "Coming soon",
-              "price": "$222",
-              "ctaLabel": "Learn more",
-              "ctaHref": "/landing-star-preview/offer/galactic-initiation/",
-              "variant": "standard",
-              "mediaUrl": "",
-              "mediaAlt": ""
+              "note": "",
+              "price": "$22",
+              "ctaLabel": "Explore",
+              "ctaHref": "/landing-star-preview/offer/somatic-signature/",
+              "variant": "media",
+              "mediaUrl": "/images/tenants/resonantweaver/7chakra-yogi.png",
+              "mediaAlt": "A seated figure with the seven chakra centres marked along the spine"
             },
             {
               "eyebrow": "02",
               "title": "Awareness and Perception Training",
               "sub": "",
-              "body": "Founding-cohort training",
+              "body": "A deeper training in subtle perception. Learn to notice what you are sensing, recognise how information reaches you, and distinguish direct perception from emotion, expectation, projection, and mental interpretation. The training begins with the body and develops into grounded discernment, clear energetic boundaries, and a more conscious relationship with what you perceive.",
               "listLabel": "",
               "bullets": [],
               "note": "In development",
-              "price": "$333 (founding)",
+              "price": "",
               "ctaLabel": "Get notified when it opens",
-              "ctaHref": "/#/",
+              "ctaHref": "/landing-star-preview/#contact",
               "variant": "standard",
               "mediaUrl": "",
               "mediaAlt": ""
@@ -1643,13 +1660,13 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/develop', 'Develop Your Perc
           "headingLevel": 2,
           "headingAccent": "",
           "paragraphs": [
-            "Training starts by becoming precise about what you already feel, not by reaching for something more dramatic."
+            "You do not need to become more sensitive before you begin. Start with what your body already tells you: where pressure gathers, what changes your breath, what feels steady, and what helps you return. Trust grows from learning these signals well."
           ],
           "chips": [],
           "ctas": [
             {
-              "label": "Take the first practice",
-              "href": "/journey/",
+              "label": "Begin with the Somatic Signature",
+              "href": "/landing-star-preview/offer/somatic-signature/",
               "variant": "ritual"
             }
           ]
@@ -1659,15 +1676,18 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/develop', 'Develop Your Perc
   ]
 }$rwjson$::jsonb);
 
-INSERT INTO _rw_pages VALUES ('landing-star-preview/receive', 'Receive Personal Guidance', false, 'published', $rwjson${
+INSERT INTO _rw_pages VALUES ('landing-star-preview/receive', 'Enter Your Own Energy Field', false, 'published', $rwjson${
   "id": "pm-rw-gateway-receive",
   "slug": "landing-star-preview/receive",
-  "title": "Receive Personal Guidance",
+  "title": "Enter Your Own Energy Field",
   "chrome": {
     "navEnabled": true,
     "footerEnabled": true,
     "meta": {
-      "description": "A personal session begins with what is present now: the signal beneath the noise, the movement asking for attention and the body's own route back to clarity.",
+      "description": [
+        "Beneath what you think and say, there are quieter patterns moving through the body, emotions, attention, and the space around you.",
+        "Your energy field carries patterns, pressures, strengths, and intentions that may be difficult to name from the outside. This path offers a way to meet what is present, understand what is asking for attention, and support it with care."
+      ],
       "keywords": [],
       "ogImage": "/images/tenants/resonantweaver/experience.jpg",
       "noindex": true
@@ -1707,15 +1727,18 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/receive', 'Receive Personal 
           "padBottom": 25,
           "items": [
             {
-              "eyebrow": "Door Three · Receive Personal Guidance",
-              "title": "Meet what is moving in your field",
+              "eyebrow": "Door Two · Enter Your Own Energy Field",
+              "title": "Meet what is moving beneath the surface",
               "sub": "",
-              "body": "A personal session begins with what is present now: the signal beneath the noise, the movement asking for attention and the body's own route back to clarity.",
+              "body": [
+                "Beneath what you think and say, there are quieter patterns moving through the body, emotions, attention, and the space around you.",
+                "Your energy field carries patterns, pressures, strengths, and intentions that may be difficult to name from the outside. This path offers a way to meet what is present, understand what is asking for attention, and support it with care."
+              ],
               "listLabel": "",
               "bullets": [],
               "note": "",
               "price": "",
-              "ctaLabel": "View all sessions",
+              "ctaLabel": "See what is moving",
               "ctaHref": "/landing-star-preview/experience/all-products/",
               "variant": "media",
               "mediaUrl": "/images/tenants/resonantweaver/experience.jpg",
@@ -1737,13 +1760,13 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/receive', 'Receive Personal 
           "imageUrl": "",
           "imageAlt": "",
           "imagePosition": "left",
-          "eyebrow": "Ways to receive",
+          "eyebrow": "Working with the field",
           "eyebrowColor": "accent",
-          "heading": "Work shaped around the field",
+          "heading": "Notice, understand, support",
           "headingLevel": 2,
           "headingAccent": "",
           "paragraphs": [
-            "Different depths, different containers. Each begins with direct attention to what is actually here rather than a prescribed answer."
+            "Energy often becomes visible through what keeps returning: a pressure you cannot quite place, a pattern that will not shift, or an intention that needs more than thought alone. This work helps you meet what is present, understand what it may be asking for, and offer the kind of support that fits."
           ],
           "chips": [],
           "ctas": []
@@ -1766,33 +1789,120 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/receive', 'Receive Personal 
           "items": [
             {
               "eyebrow": "01",
-              "title": "Galactic Integration Session",
+              "title": "Notice",
               "sub": "",
-              "body": "Personal integration support",
+              "body": "Bring attention to the patterns, pressures, and subtle movements that are active now.",
               "listLabel": "",
               "bullets": [],
-              "note": "Founding access",
-              "price": "$144 (founding) → $177",
-              "ctaLabel": "Learn more",
-              "ctaHref": "/landing-star-preview/offer/galactic-integration-session/",
+              "note": "",
+              "price": "",
+              "ctaLabel": "",
+              "ctaHref": "",
               "variant": "standard",
               "mediaUrl": "",
               "mediaAlt": ""
             },
             {
               "eyebrow": "02",
-              "title": "Resonance Mirror",
+              "title": "Understand",
               "sub": "",
-              "body": "The deep, full-spectrum reading",
+              "body": "Receive a clearer reflection of what is happening beneath the surface and how it may be affecting your life.",
               "listLabel": "",
               "bullets": [],
-              "note": "Available now",
+              "note": "",
+              "price": "",
+              "ctaLabel": "",
+              "ctaHref": "",
+              "variant": "standard",
+              "mediaUrl": "",
+              "mediaAlt": ""
+            },
+            {
+              "eyebrow": "03",
+              "title": "Support",
+              "sub": "",
+              "body": "Work with what is present through grounded guidance or ongoing energetic tending.",
+              "listLabel": "",
+              "bullets": [],
+              "note": "",
+              "price": "",
+              "ctaLabel": "",
+              "ctaHref": "",
+              "variant": "standard",
+              "mediaUrl": "",
+              "mediaAlt": ""
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "sec-gw-courses-intro-receive",
+      "type": "rf-media-copy",
+      "label": "Courses — intro",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "imageUrl": "",
+          "imageAlt": "",
+          "imagePosition": "left",
+          "eyebrow": "Ready when you are",
+          "eyebrowColor": "accent",
+          "heading": "The courses",
+          "headingLevel": 2,
+          "headingAccent": "",
+          "paragraphs": [
+            "Structured containers for the same work, for whenever you're ready to go deeper than a single practice."
+          ],
+          "chips": [],
+          "ctas": []
+        }
+      }
+    },
+    {
+      "id": "sec-gw-courses-receive",
+      "type": "rf-offer-card",
+      "label": "Courses",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "columns": 2,
+          "heading": "",
+          "bulletGlyph": "✦",
+          "padTop": 0,
+          "padBottom": 25,
+          "items": [
+            {
+              "eyebrow": "01",
+              "title": "Resonance Mirror",
+              "sub": "",
+              "body": "See what is moving through your field. A deep personal reading of the patterns, pressures, strengths, and subtle movements active within and around you now. What I perceive is translated into grounded reflection and practical ways to support what is unfolding. Choose this when you want insight, perspective, or a fuller understanding of what is happening.",
+              "listLabel": "",
+              "bullets": [],
+              "note": "",
               "price": "$155",
               "ctaLabel": "Learn more",
               "ctaHref": "/landing-star-preview/offer/resonance-mirror/",
               "variant": "media",
               "mediaUrl": "/images/tenants/resonantweaver/energybody.png",
               "mediaAlt": "Subtle energy body artwork"
+            },
+            {
+              "eyebrow": "02",
+              "title": "The Pearl Chamber",
+              "sub": "",
+              "body": "Let one intention be held. A week of energetic tending for one intention. Your intention is placed within the Pearl Chamber and held through daily meditation, Reiki, and spoken enchantment. Choose this when you already know what needs support and do not need a full reading around it.",
+              "listLabel": "",
+              "bullets": [],
+              "note": "",
+              "price": "$11",
+              "ctaLabel": "Enter the Pearl Chamber",
+              "ctaHref": "/landing-star-preview/offer/pearl-chamber/",
+              "variant": "media",
+              "mediaUrl": "/images/tenants/resonantweaver/ReikiBox.png",
+              "mediaAlt": "Pearl Chamber subscription artwork"
             }
           ]
         }
@@ -1811,16 +1921,16 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/receive', 'Receive Personal 
           "imagePosition": "left",
           "eyebrow": "At the threshold",
           "eyebrowColor": "accent",
-          "heading": "The field meets you where you are",
+          "heading": "You do not need the perfect words",
           "headingLevel": 2,
           "headingAccent": "",
           "paragraphs": [
-            "You do not need to arrive with the right language. A question, a feeling or the sense that something is ready to move is enough."
+            "You can arrive with a clear question, a repeating pattern, or simply the feeling that something is asking for attention. The work begins with what is present."
           ],
           "chips": [],
           "ctas": [
             {
-              "label": "See every session",
+              "label": "Choose an offering",
               "href": "/landing-star-preview/experience/all-products/",
               "variant": "ritual"
             }
@@ -1904,10 +2014,10 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/experience/all-products', 'A
           "items": [
             {
               "anchorId": "starwoven-journey",
-              "eyebrow": "01 · Your celestial pattern, read in full",
+              "eyebrow": "01 · Your birth sky, woven into a personal journey",
               "title": "Starwoven Journey",
               "sub": "",
-              "body": "The full Starwoven Journey — a personalised, interactive exploration of your galactic themes, patterns and resonances.",
+              "body": "A personalised, interactive reading of the fixed stars active when you were born. Discover your Starseed lineages, the gifts, the Soul and Earth mission, and how these currents may be moving through your human life.",
               "listLabel": "",
               "bullets": [],
               "note": "Coming soon",
@@ -1994,16 +2104,16 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/experience/all-products', 'A
             },
             {
               "anchorId": "awareness-and-perception-training",
-              "eyebrow": "02 · Founding-cohort training",
+              "eyebrow": "02 · Training in subtle perception",
               "title": "Awareness and Perception Training",
               "sub": "",
               "body": "[[placeholder — the deeper foundational course: consciously noticing, recognising and working with subtle perception. Broader than starseed work — supports mediumship, healing, intuition and energy practices.]]",
               "listLabel": "",
               "bullets": [],
               "note": "In development",
-              "price": "$333 (founding)",
+              "price": "",
               "ctaLabel": "View offering",
-              "ctaHref": "#",
+              "ctaHref": "/landing-star-preview/#contact",
               "ctaTarget": "",
               "variant": "standard",
               "mediaUrl": "",
@@ -2030,13 +2140,13 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/experience/all-products', 'A
           "items": [
             {
               "anchorId": "resonance-mirror",
-              "eyebrow": "01 · The deep, full-spectrum reading",
+              "eyebrow": "01 · See what is moving through your energy field",
               "title": "Resonance Mirror",
               "sub": "",
-              "body": "Your energy field holds more information than most people ever get access to. This reading gives you that access.",
+              "body": "A deep personal reading of the patterns, pressures, strengths, and subtle movements active in your field now.",
               "listLabel": "",
               "bullets": [],
-              "note": "Available now",
+              "note": "",
               "price": "$155",
               "ctaLabel": "Learn more",
               "ctaHref": "/landing-star-preview/offer/resonance-mirror/",
@@ -2048,13 +2158,13 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/experience/all-products', 'A
             },
             {
               "anchorId": "pearl-chamber",
-              "eyebrow": "02 · A weekly holding for one intention",
+              "eyebrow": "02 · A week of tending for one intention",
               "title": "The Pearl Chamber",
               "sub": "",
               "body": "Your intention is placed inside the chamber and held there within 24 hours of purchase, where it is tended daily through meditation, energy work, and spoken enchantment.",
               "listLabel": "",
               "bullets": [],
-              "note": "Available now",
+              "note": "",
               "price": "$11",
               "ctaLabel": "Learn more",
               "ctaHref": "/landing-star-preview/offer/pearl-chamber/",
@@ -2065,14 +2175,32 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/experience/all-products', 'A
               "mediaFit": "contain"
             },
             {
+              "anchorId": "somatic-signature",
+              "eyebrow": "03 · Learn the feeling of your own alignment",
+              "title": "Somatic Signature",
+              "sub": "",
+              "body": "A personalised, body-led practice based on your Human Design. Learn where pressure and conditioning are most likely to show up in your system, what your own baseline feels like, and simple ways to return through movement, breath, and somatic awareness.",
+              "listLabel": "",
+              "bullets": [],
+              "note": "",
+              "price": "$22",
+              "ctaLabel": "Learn more",
+              "ctaHref": "/landing-star-preview/offer/somatic-signature/",
+              "ctaTarget": "",
+              "variant": "media-top",
+              "mediaUrl": "/images/tenants/resonantweaver/7chakra-yogi.png",
+              "mediaAlt": "A seated figure with the seven chakra centres marked along the spine",
+              "mediaFit": "contain"
+            },
+            {
               "anchorId": "house-reading",
-              "eyebrow": "03 · Energetic attunement for spaces",
+              "eyebrow": "04 · Energetic attunement for spaces",
               "title": "House Reading",
               "sub": "",
               "body": "Every space carries its own history. Some of it settles naturally. Some of it doesn't.",
               "listLabel": "",
               "bullets": [],
-              "note": "Available now",
+              "note": "",
               "price": "$77",
               "ctaLabel": "View offering",
               "ctaHref": "https://www.paypal.com/ncp/payment/FLFV8FX5RZP92",
@@ -2084,7 +2212,7 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/experience/all-products', 'A
             },
             {
               "anchorId": "galactic-integration-session",
-              "eyebrow": "04 · Personal integration support",
+              "eyebrow": "05 · Personal integration support",
               "title": "Galactic Integration Session",
               "sub": "",
               "body": "[[placeholder — a one-to-one session, roughly 75 minutes, helping translate what's active now (from a reading, a transition, or ongoing perception) into ordinary life, work, relationships and embodiment. Not another origin reading.]]",
@@ -2168,12 +2296,12 @@ INSERT INTO _rw_pages VALUES ('pearl-chamber', 'The Pearl Chamber', false, 'publ
             {
               "anchorId": "pearl-chamber",
               "title": "The Pearl Chamber",
-              "sub": "Set your intention",
-              "body": "Share your name, email, and the intention you want held in the Pearl Chamber. Once it is received, you can complete your payment.",
+              "sub": "Leave your intention.",
+              "body": "The Pearl Chamber holds one intention for seven days through daily meditation, Reiki, and spoken enchantment.\n\nShare your name, email, and the intention you would like placed inside. A sentence or a few clear words is enough.\n\nOnce your intention is received, you can choose either one week of tending or continued weekly support.",
               "listLabel": "",
               "bullets": [],
               "note": "",
-              "price": "$11 / week",
+              "price": "$11 for one week",
               "ctaLabel": "",
               "ctaHref": "",
               "variant": "feature",
@@ -3160,7 +3288,7 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/resonance-mirror', 'Re
     "navEnabled": true,
     "footerEnabled": true,
     "meta": {
-      "description": "Your energy field holds more information than most people ever get access to. This reading gives you that access.",
+      "description": "A deep personal reading of the patterns, pressures, strengths, and subtle movements active in your field now.",
       "keywords": [],
       "ogImage": "/images/tenants/resonantweaver/energybody.png",
       "noindex": true
@@ -3202,9 +3330,9 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/resonance-mirror', 'Re
           "items": [
             {
               "anchorId": "resonance-mirror",
-              "eyebrow": "Personal field reading · Full spectrum",
+              "eyebrow": "Personal energy-field reading",
               "title": "Resonance Mirror",
-              "sub": "The deep, full-spectrum reading",
+              "sub": "See what is moving through your energy field",
               "body": "",
               "listLabel": "",
               "bullets": [],
@@ -3238,14 +3366,14 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/resonance-mirror', 'Re
           "items": [
             {
               "eyebrow": "The work",
-              "title": "A mirror, not a verdict",
+              "title": "Reading the living field",
               "sub": "",
-              "body": "Through direct energetic perception, light language and pendulum work, I read what is present in your field right now—what is genuinely yours, what has been placed there and what has been quietly distorting the signal.\n\nI work with what I find as I find it. The reading becomes a clear reflection of the whole terrain rather than a fixed interpretation of who you are.",
+              "body": "Through direct energetic perception, light language, and pendulum work, I read the patterns, pressures, strengths, and influences active in your field now. Some may feel unmistakably your own. Others may have been absorbed through relationships, environments, past experiences, or old ways of protecting yourself.\n\nEach reading follows what is actually present rather than forcing your field into a fixed template. I trace how the different parts connect, reflect what I perceive in clear language, and offer grounded ways to support greater clarity in your body and everyday life.",
               "listLabel": "You'll receive",
               "bullets": [
-                "A personal field map",
-                "A full written field reflection",
-                "Somatic practices matched to your field"
+                "A personal graphic representation of your field",
+                "A detailed written reflection",
+                "Somatic practices chosen for what the reading reveals"
               ],
               "note": "",
               "price": "",
@@ -3296,9 +3424,9 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/resonance-mirror', 'Re
           "items": [
             {
               "eyebrow": "01",
-              "title": "Arrive",
+              "title": "I enter the field",
               "sub": "",
-              "body": "Begin with the question, pressure or pattern that feels most present now.",
+              "body": "You do not need to prepare a question or explain what is going on. I begin with the field itself and see what is most active.",
               "listLabel": "",
               "bullets": [],
               "note": "",
@@ -3309,9 +3437,9 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/resonance-mirror', 'Re
             },
             {
               "eyebrow": "02",
-              "title": "Read",
+              "title": "I follow what opens",
               "sub": "",
-              "body": "The field is observed directly and its active layers are reflected back with care.",
+              "body": "Using direct energetic perception, light language, and pendulum work, I follow the patterns, pressures, and connections that show themselves and look at how they relate to one another.",
               "listLabel": "",
               "bullets": [],
               "note": "",
@@ -3322,9 +3450,9 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/resonance-mirror', 'Re
             },
             {
               "eyebrow": "03",
-              "title": "Integrate",
+              "title": "You receive the reading",
               "sub": "",
-              "body": "Receive grounded practices that help your body recognise and hold the shift.",
+              "body": "You receive a written reflection of what I found, a personal field map, and somatic practices chosen to support what is present.",
               "listLabel": "",
               "bullets": [],
               "note": "",
@@ -3350,11 +3478,11 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/resonance-mirror', 'Re
           "imagePosition": "left",
           "eyebrow": "When you are ready",
           "eyebrowColor": "accent",
-          "heading": "Clarity changes how you meet the field",
+          "heading": "See what is actually there",
           "headingLevel": 2,
           "headingAccent": "",
           "paragraphs": [
-            "The purpose is not to define you. It is to make the signal clear enough that your next choice can belong to you."
+            "You do not need to arrive knowing what needs attention. The reading begins with the field itself and follows what is most active, so you can understand what is moving and what may help support it."
           ],
           "chips": [],
           "ctas": [
@@ -3420,9 +3548,9 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/pearl-chamber', 'The P
           "items": [
             {
               "anchorId": "pearl-chamber",
-              "eyebrow": "Reiki box · Weekly intention holding",
+              "eyebrow": "Reiki · Intention holding",
               "title": "The Pearl Chamber",
-              "sub": "A weekly holding for one intention",
+              "sub": "A week of tending for one intention",
               "body": "",
               "listLabel": "",
               "bullets": [],
@@ -3456,14 +3584,14 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/pearl-chamber', 'The P
           "items": [
             {
               "eyebrow": "The work",
-              "title": "A small chamber for steady attention",
+              "title": "A quiet place for one intention",
               "sub": "",
-              "body": "Your intention is placed inside the chamber within 24 hours of purchase, where it is tended daily through meditation, energy work and spoken enchantment.\n\nThe box carries a raw milky quartz cluster from the land and the four primary Usui Reiki symbols. It offers quiet, consistent support without asking you to force the outcome.",
+              "body": "The Pearl Chamber holds one intention for seven days. Within 24 hours of purchase, your written intention is placed inside the chamber and included in a daily practice of meditation, Reiki, and spoken enchantment.\n\nThe chamber itself carries a raw milky quartz cluster from the land and the four primary Usui Reiki symbols. It is not there to force an outcome, but to give your intention steady attention while you continue living your life.\n\nThe box found me at a secondhand market in Bulgaria. Inside the lid, a previous owner had written Martha — a version of my own name. Naturally, I had to get the box.",
               "listLabel": "You'll receive",
               "bullets": [
-                "A photograph of your intention in the chamber",
-                "Daily intention tending",
-                "Gentle field maintenance"
+                "A photograph of your intention inside the chamber",
+                "Seven days of daily energetic tending",
+                "A quiet place for your intention to be held"
               ],
               "note": "",
               "price": "",
@@ -3516,7 +3644,7 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/pearl-chamber', 'The P
               "eyebrow": "01",
               "title": "Name",
               "sub": "",
-              "body": "Choose one intention that you want held with steady, uncluttered attention.",
+              "body": "Choose one intention you want to give steady attention to for the coming week.",
               "listLabel": "",
               "bullets": [],
               "note": "",
@@ -3529,7 +3657,7 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/pearl-chamber', 'The P
               "eyebrow": "02",
               "title": "Place",
               "sub": "",
-              "body": "Your words are placed inside the chamber and photographed for you.",
+              "body": "I write or place your words inside the Pearl Chamber within 24 hours and send you a photograph once they are there.",
               "listLabel": "",
               "bullets": [],
               "note": "",
@@ -3542,7 +3670,7 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/pearl-chamber', 'The P
               "eyebrow": "03",
               "title": "Tend",
               "sub": "",
-              "body": "The intention is included in the chamber's daily energetic practice for the week.",
+              "body": "For seven days, your intention is included in the chamber's daily practice of meditation, Reiki, and spoken enchantment.",
               "listLabel": "",
               "bullets": [],
               "note": "",
@@ -3572,13 +3700,151 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/pearl-chamber', 'The P
           "headingLevel": 2,
           "headingAccent": "",
           "paragraphs": [
-            "The chamber creates a quiet place for your intention to remain present while life continues to move around it."
+            "You do not need to keep working at the intention every day. Once it is in the chamber, you can let it have its place there while you return to your own life."
           ],
           "chips": [],
           "ctas": [
             {
               "label": "Leave intention",
               "href": "/pearl-chamber",
+              "variant": "ritual"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}$rwjson$::jsonb);
+
+INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/somatic-signature', 'Somatic Signature — Offer Preview', false, 'published', $rwjson${
+  "id": "pm-rw-offer-somatic-signature",
+  "slug": "landing-star-preview/offer/somatic-signature",
+  "title": "Somatic Signature — Offer Preview",
+  "chrome": {
+    "navEnabled": true,
+    "footerEnabled": true,
+    "meta": {
+      "description": "A personalised, body-led practice based on your Human Design. Learn where pressure and conditioning are most likely to show up in your system, what your own baseline feels like, and simple ways to return through movement, breath, and somatic awareness.",
+      "keywords": [],
+      "ogImage": "/images/tenants/resonantweaver/7chakra-yogi.png",
+      "noindex": true
+    }
+  },
+  "sections": [
+    {
+      "id": "sec-offer-back-somatic-signature",
+      "type": "rf-linkbar",
+      "label": "Back",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "links": [
+            {
+              "label": "← Back",
+              "href": "/landing-star-preview/receive/"
+            }
+          ],
+          "align": "left"
+        }
+      }
+    },
+    {
+      "id": "sec-offer-hero-somatic-signature",
+      "type": "rf-offer-card",
+      "label": "Hero",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "columns": 1,
+          "heading": "",
+          "bulletGlyph": "✦",
+          "padTop": 0,
+          "padBottom": 25,
+          "accent": "rgb(72, 210, 185)",
+          "items": [
+            {
+              "anchorId": "somatic-signature",
+              "eyebrow": "Human Design · Personal body practice",
+              "title": "Somatic Signature",
+              "sub": "Learn the feeling of your own alignment",
+              "body": "",
+              "listLabel": "",
+              "bullets": [],
+              "note": "",
+              "price": "$22",
+              "ctaLabel": "Get your Somatic Signature",
+              "ctaHref": "https://www.paypal.com/ncp/payment/P5DX9G44NHL3C",
+              "ctaTarget": "",
+              "variant": "media",
+              "mediaUrl": "/images/tenants/resonantweaver/7chakra-yogi.png",
+              "mediaAlt": "A seated figure with the seven chakra centres marked along the spine"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "sec-offer-work-somatic-signature",
+      "type": "rf-offer-card",
+      "label": "The work",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "columns": 1,
+          "heading": "",
+          "bulletGlyph": "✦",
+          "padTop": 0,
+          "padBottom": 25,
+          "accent": "rgb(72, 210, 185)",
+          "items": [
+            {
+              "eyebrow": "The work",
+              "title": "Your design, translated into something you can feel",
+              "sub": "",
+              "body": "Human Design can describe how your system is built. The Somatic Signature takes that information out of the chart and brings it into the body.\n\nYour personal practice looks at the parts of your design that are most useful to recognise in everyday life: where pressure tends to build, what you may absorb from around you, how your own energy wants to move, and what returning to your natural baseline can feel like.\n\nRather than giving you more information to remember, it gives you something to practise and notice for yourself.",
+              "listLabel": "You'll receive",
+              "bullets": [
+                "Your personal Human Design blueprint",
+                "A body-led practice built around your design",
+                "Somatic cues and micro-adjustments to help you recognise your baseline"
+              ],
+              "note": "",
+              "price": "",
+              "ctaLabel": "",
+              "ctaHref": "",
+              "variant": "standard"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "sec-offer-close-somatic-signature",
+      "type": "rf-media-copy",
+      "label": "Closing",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "imageUrl": "",
+          "imageAlt": "",
+          "imagePosition": "left",
+          "eyebrow": "When you are ready",
+          "eyebrowColor": "accent",
+          "heading": "Your body gives you somewhere to return to",
+          "headingLevel": 2,
+          "headingAccent": "",
+          "paragraphs": [
+            "There's no need to become more sensitive. Begin by becoming aware of what your own system feels like when there is less noise layered over it. The more familiar that becomes, the easier it is to notice when something changes."
+          ],
+          "chips": [],
+          "ctas": [
+            {
+              "label": "Get your Somatic Signature",
+              "href": "https://www.paypal.com/ncp/payment/P5DX9G44NHL3C",
               "variant": "ritual"
             }
           ]
@@ -4082,7 +4348,7 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/awareness-and-percepti
     "navEnabled": true,
     "footerEnabled": true,
     "meta": {
-      "description": "Founding-cohort training",
+      "description": "Training in subtle perception",
       "keywords": [],
       "ogImage": "/images/tenants/resonantweaver/GalacticSelf.jpg",
       "noindex": true
@@ -4126,11 +4392,11 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/awareness-and-percepti
               "anchorId": "awareness-and-perception-training",
               "eyebrow": "In development",
               "title": "Awareness and Perception Training",
-              "sub": "Founding-cohort training",
+              "sub": "Training in subtle perception",
               "body": "",
               "listLabel": "",
               "bullets": [],
-              "price": "$333 (founding) · In development",
+              "price": " · In development",
               "note": "",
               "ctaLabel": "",
               "ctaHref": "",
@@ -4210,8 +4476,8 @@ SELECT 'pages authored: ' || count(*) FROM ins;
 DO $$
 DECLARE
   n int;
-  expected constant text[] := ARRAY['home', 'home-classic', 'writing', 'landing-star-preview/receive', 'landing-star-preview/experience/all-products', 'pearl-chamber', 'starseed', 'landing-star-preview/offer/meeting-your-galactic-self-meditation', 'landing-star-preview/offer/galactic-initiation', 'landing-star-preview/offer/resonance-mirror', 'landing-star-preview/offer/pearl-chamber', 'landing-star-preview/offer/galactic-pendulum', 'landing-star-preview/offer/galactic-integration-session', 'landing-star-preview/offer/extended-starseed-profile', 'landing-star-preview/offer/awareness-and-perception-training'];
-  expected_drafts constant text[] := ARRAY['landing-star-preview/meet', 'landing-star-preview/develop']::text[];
+  expected constant text[] := ARRAY['home', 'home-classic', 'writing', 'landing-star-preview/develop', 'landing-star-preview/receive', 'landing-star-preview/experience/all-products', 'pearl-chamber', 'starseed', 'landing-star-preview/offer/meeting-your-galactic-self-meditation', 'landing-star-preview/offer/galactic-initiation', 'landing-star-preview/offer/resonance-mirror', 'landing-star-preview/offer/pearl-chamber', 'landing-star-preview/offer/somatic-signature', 'landing-star-preview/offer/galactic-pendulum', 'landing-star-preview/offer/galactic-integration-session', 'landing-star-preview/offer/extended-starseed-profile', 'landing-star-preview/offer/awareness-and-perception-training'];
+  expected_drafts constant text[] := ARRAY['landing-star-preview/meet']::text[];
 BEGIN
   SELECT count(*) INTO n FROM public.page_models
    WHERE site = 'resonantweaver' AND lang = 'en' AND mode = 'published'
