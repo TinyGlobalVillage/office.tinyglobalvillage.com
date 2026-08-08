@@ -481,6 +481,52 @@ Her nav and footer have **no row at all**, so this is authoring, not repair.
 > LLC™" and the pooled renderer appends its own attribution below the chrome, so
 > the credit will appear TWICE. `creditLabel: ""` drops hers; that is Marthe's
 > call, not a silent edit.
+>
+> **DEPLOYED AND DRIVEN IN A BROWSER 2026-08-07.** mono `30e87c0c` → RCS turbo
+> 50/50 → HQ `db393a8e` (`BUILD_ID=9_eDkestEUlsgZMDHdmSW`, RCS did zero app
+> build) → office `de075ee`; `07-chrome.sql` applied to production tgv_db and
+> re-run to a no-op with every assertion green. Measured through the Host proxy
+> at 1280: the bar is `position:fixed; top:5px; z-index:40`, its pill is
+> `border-radius:999px` with `backdrop-filter: blur(12px) saturate(1.25)`, the
+> links render **Ubuntu Mono** in `rgba(183,138,119,0.84)` — her mono role and
+> her copper, resolved through the theme rather than hardcoded — her four hrefs
+> carry no locale prefix, and the logo loads (512px natural, drawn at 42×42).
+> The footer is a `contentinfo` landmark in the same face over a transparent
+> band with her hairline. **The chrome frame measures `height: 0`,** which is the
+> whole design: nothing below it moved.
+>
+> **The SQL's own fleet guard was wrong, and production is where it said so.**
+> Assertion (f) asked for chrome rows changed inside a one-minute wall-clock
+> window; it fired on the first real run, not because the file wrote outside its
+> site but because the four PLATFORM chrome rows carry timestamps **four and a
+> half hours in the future** (a UTC-vs-local write, days older than this work).
+> The transaction rolled back, which is why a wrong assertion was safe to find
+> there. It now diffs against a before-picture taken ahead of the first write.
+>
+> **The studio had the same hole as the public page,** and it would have been
+> worse: `getEditorRegistry`'s two chrome LayerRenderers passed `ctx` and not
+> `registry`, so a nav that served correctly on the site would have VANISHED the
+> moment Marthe opened the editor to change it. Fixed in the same pass
+> (`30e87c0c`).
+>
+> **Two findings the browser pass produced, neither ours:**
+>
+> 1. 🔴 S3 `~/.claude/bugs/pooled-pages-reserve-84px-for-a-nav-that-is-not-there.md`
+>    — HQ's `GlobalStyles.ts` sets `body { padding-top: var(--hdr) }` for its own
+>    fixed marketing bar, globally, so **every** pooled tenant page opens 84px
+>    down for a bar that is not on their site. It is the largest single vertical
+>    offset left between her app and her pooled render, and no per-section fix
+>    can recover it. Live on giocoelho, guardians, nevlo and refusionist too, so
+>    the fix moves four customer sites at once — Gio's call, with a before/after
+>    pass, not a silent edit.
+> 2. **`/sun-walk/` has no chrome at all**, and neither will `/journey` or
+>    `/galactic-field-guide`: there is no `page_models` row for them, because they
+>    are APP routes served by `@tgv/module-starseed`, not pooled pages. The differ
+>    reports `nav 1→0` and her four nav labels MISSING there while `home` and
+>    `starseed` now carry them. This is the sixth member of the white-label family
+>    already logged as `tenant-app-surfaces-have-no-theme` — the same routes, the
+>    same cause — and it is now that bug's biggest symptom rather than a new one.
+>    **Phase 3 cannot close RW's chrome on its own; that bug has to be fixed too.**
 
 1. Author the `nav` override: her logo, and Starseed · Sun Walk · Contact ·
    Login with her hrefs — `/starseed/`, `/sun-walk/`, `/#contact`, `/login/`.
