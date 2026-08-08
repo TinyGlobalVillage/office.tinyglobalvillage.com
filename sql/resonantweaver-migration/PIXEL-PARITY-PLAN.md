@@ -531,14 +531,34 @@ Her nav and footer have **no row at all**, so this is authoring, not repair.
 >    sites that were wrong. resonantweaver, re-measured through the proxy:
 >    `bodyPadTop: 0`, bar floating at `top: 5`, chrome frame `height: 0` at
 >    `top: 0`, first section at `0` — her own app's geometry.
-> 2. **`/sun-walk/` has no chrome at all**, and neither will `/journey` or
->    `/galactic-field-guide`: there is no `page_models` row for them, because they
->    are APP routes served by `@tgv/module-starseed`, not pooled pages. The differ
->    reports `nav 1→0` and her four nav labels MISSING there while `home` and
->    `starseed` now carry them. This is the sixth member of the white-label family
->    already logged as `tenant-app-surfaces-have-no-theme` — the same routes, the
->    same cause — and it is now that bug's biggest symptom rather than a new one.
->    **Phase 3 cannot close RW's chrome on its own; that bug has to be fixed too.**
+> 2. **`/sun-walk/` had no chrome at all — FIXED THE SAME DAY** (HQ `9c927ea8` +
+>    `b859ad39`). There is no `page_models` row for it, nor for
+>    `/galactic-field-guide/` or `/open-your-journey/`: they are APP routes over
+>    `@tgv/module-starseed`, living in `app/[lang]/**` rather than in the
+>    `app/u/[username]/**` segment where `PublicTenantLanding` dresses a tenant's
+>    pages. The differ said `nav 1→0` and her four nav labels MISSING there while
+>    `home` and `starseed` carried them.
+>    The open bug called it a missing THEME. Measured, it was worse: no nav, no
+>    footer, no backdrop and no webfaces either.
+>    `SiteSurfaceChrome` now paints all of it from the layout — the same file
+>    that already resolved the tenant per request for JSON-LD — and **which**
+>    routes is decided in the proxy and carried on `x-tgv-site-chrome`. Grants
+>    qualify by definition; `/book` and `/performers` join them. Excluded on
+>    purpose: `/dashboard`, `/editor`, `/studio`, `/blog-editor`, `/meet`,
+>    `/session` and `/login`, each of which brings its own full-height chrome or
+>    strips chrome deliberately — wrapping one would be a regression dressed as a
+>    fix. The layout costs one header read before any query, so the apex pays
+>    nothing.
+>    Verified: `/sun-walk/` renders her bar at `top: 5` in Ubuntu Mono, her
+>    footer, "The Sun Walk" in Science Gothic, her backdrop, `bodyPadTop: 0`,
+>    content at `0`. `refusionist.com/testimonials/` and `/book/` and
+>    `guardianstuffies.com/book/` carry their own theme scope; the apex's
+>    `/book/` does not; `refusionist.com/studio/` and
+>    `guardianstuffies.com/dashboard/` still 302 to the handoff unwrapped.
+>    Harness: 71 classifications + 23 retired URLs + **25 chrome decisions**.
+>
+> **So her chrome is now complete across both segments**, and Phase 3 is free to
+> be about the components rather than about the frame around them.
 
 1. Author the `nav` override: her logo, and Starseed · Sun Walk · Contact ·
    Login with her hrefs — `/starseed/`, `/sun-walk/`, `/#contact`, `/login/`.
