@@ -25,6 +25,9 @@ import {
   fontPx,
   iconPaint,
   shadowStack,
+  slotScope,
+  slotTextDecls,
+  specSlotToCss,
   specStatesToCss,
   specTextToCss,
   specToBox,
@@ -212,6 +215,89 @@ test("clampSpec keeps states sparse: valid clamps, garbage drops, absent stays a
   assert.ok(
     !("states" in pruneStates(mergeSpec(DEFAULT_SPEC, { states: { active: { colors: { fill: DEFAULT_SPEC.colors.fill } } } }))),
   );
+});
+
+test("a named slot emits its own scoped type, and an absent slot emits nothing", () => {
+  // The back-compat pin, same as states: a spec written before slots existed
+  // emits exactly what it always did — nothing extra.
+  assert.equal(specSlotToCss(DEFAULT_SPEC, "sub"), "");
+
+  const spec = mergeSpec(DEFAULT_SPEC, {
+    textSlots: {
+      sub: { content: "sub-line", mode: "px", px: 10, weight: 500, tracking: 0.02, colorMode: "accent", colorAlpha: 0.6 },
+    },
+  });
+  const box = specToBox(spec);
+  assert.equal(slotScope("tile", "sub"), "tile-sub");
+  const css = specSlotToCss(spec, "sub", box, undefined, "", slotScope("tile", "sub"));
+  // The publish channel is the middle rung, slot-namespaced — exactly the
+  // var-chain shape the surface and the legacy label already use.
+  assert.ok(css.includes("font-size: var(--atom-font-size, var(--atom-tile-sub-font-size, 10px));"));
+  assert.ok(css.includes("font-weight: var(--atom-font-weight, var(--atom-tile-sub-font-weight, 500));"));
+  assert.ok(css.includes("letter-spacing: var(--atom-letter-spacing, var(--atom-tile-sub-letter-spacing, 0.02em));"));
+  // "accent" reads the accent channel with the slot's OWN alpha baked — the
+  // states lesson applied to type: hue shared, alpha per run.
+  assert.ok(
+    css.includes("color: var(--atom-color, var(--atom-tile-sub-color, rgba(var(--atom-accent-rgb, 255, 78, 203), 0.6)));"),
+  );
+
+  // "text" is no opinion: the slot follows the atom's text color exactly.
+  const follow = mergeSpec(DEFAULT_SPEC, { textSlots: { price: { colorMode: "text" } } });
+  assert.equal(slotTextDecls(follow, "price", box).color, DEFAULT_SPEC.colors.text);
+  // "solid" follows textColorValue's rule: full alpha stays a literal, a faded
+  // color becomes the slot's own channel — which is why a slot cannot be named
+  // after an existing channel.
+  const solid = mergeSpec(DEFAULT_SPEC, { textSlots: { price: { colorMode: "solid", color: "#112233" } } });
+  assert.equal(slotTextDecls(solid, "price", box).color, "#112233");
+  const faded = mergeSpec(DEFAULT_SPEC, {
+    textSlots: { price: { colorMode: "solid", color: "#112233", colorAlpha: 0.5 } },
+  });
+  assert.equal(slotTextDecls(faded, "price", box).color, "rgba(var(--atom-price-rgb, 17, 34, 51), 0.5)");
+
+  // Ratio sizing works off the atom box, same rule as the legacy label.
+  const ratio = mergeSpec(DEFAULT_SPEC, { textSlots: { sub: { mode: "ratio", ratio: 8 } } });
+  assert.equal(slotTextDecls(ratio, "sub", box).fontSize, Math.max(6, Math.round(box.h * 0.08)));
+
+  assert.ok(!css.includes("}"), "no slot declaration can close its own block");
+  assert.ok(!css.includes("@"), "no at-rule can be injected through a slot");
+});
+
+test("clampSpec keeps slots whole: names validated, fields clamped, absent stays absent", () => {
+  assert.ok(!("textSlots" in clampSpec(DEFAULT_SPEC)), "a spec from before slots existed stays slotless");
+  const c = clampSpec({
+    textSlots: {
+      sub: { content: "s", mode: "px", px: 9999, weight: 512, colorMode: "accent", colorAlpha: 3 },
+      hover: { content: "a state name" },
+      text: { content: "the legacy label's scope" },
+      fill: { content: "a channel name" },
+      "Bad-Name": { content: "nope" },
+      price: "garbage",
+    },
+  });
+  // Reserved and malformed NAMES are dropped whole — each would mint a var the
+  // emitter already owns. A valid name with garbage CONTENT keeps the slot the
+  // author named, clamped to the slot defaults, because a slot is a whole
+  // object the way `text` is — not a sparse patch the way a state is.
+  assert.deepEqual(Object.keys(c.textSlots), ["sub", "price"]);
+  assert.equal(c.textSlots.sub.px, 200);
+  assert.equal(c.textSlots.sub.weight, 500);
+  assert.equal(c.textSlots.sub.colorAlpha, 1);
+  assert.equal(c.textSlots.price.content, "Slot");
+  assert.deepEqual(clampSpec(c), c, "idempotent, which the drift guard's in-range check relies on");
+
+  // The slot count is capped: name seven and the seventh is dropped.
+  const many = clampSpec({
+    textSlots: Object.fromEntries(["a", "b", "c", "d", "e", "f", "g"].map((n) => [n, { content: n }])),
+  });
+  assert.equal(Object.keys(many.textSlots).length, 6);
+
+  // The two builders serialize identically — the publish "ahead" check
+  // compares with JSON.stringify, where key order is content.
+  const both = mergeSpec(DEFAULT_SPEC, {
+    textSlots: { sub: { ratio: 8 } },
+    states: { hover: { colors: { fillAlpha: 0.5 } } },
+  });
+  assert.equal(JSON.stringify(clampSpec(both)), JSON.stringify(both));
 });
 
 test("a spec off the wire cannot smuggle a value past the emitter", () => {

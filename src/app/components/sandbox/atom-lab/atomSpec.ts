@@ -13,10 +13,12 @@
 
 export {
   DEFAULT_SPEC,
+  DEFAULT_TEXT_SLOT,
   SPEC_LIMITS,
   STATE_NAMES,
   clampSpec,
   hexToRgbTriple,
+  isSlotName,
   mergeSpec,
   pruneStates,
   specWithState,
@@ -29,4 +31,6 @@ export type {
   AtomStates,
   IconSpec,
   StateName,
+  TextSlotSpec,
+  TextSlots,
 } from "@tgv/module-component-library/atoms/spec";

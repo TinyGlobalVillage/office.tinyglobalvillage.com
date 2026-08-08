@@ -22,7 +22,15 @@ import DdmSelect from "@tgv/module-component-library/components/ui/DdmSelect";
 import { colors, rgb } from "../../../theme";
 import { PanelSidebarItem } from "../../../styled";
 import Tooltip from "../../ui/Tooltip";
-import { type AtomSpec, type StateName, clampSpec, pruneStates, specWithState } from "./atomSpec";
+import {
+  type AtomSpec,
+  type StateName,
+  type TextSlotSpec,
+  DEFAULT_TEXT_SLOT,
+  clampSpec,
+  pruneStates,
+  specWithState,
+} from "./atomSpec";
 import { ATOMS, ATOM_BY_KEY, ATOM_GROUPS, type AtomDef } from "./atomRegistry";
 import { AtomicEditorPanel, Editor, HeaderDdmWrap, type SaveState } from "./AtomicEditorPanel";
 
@@ -418,6 +426,68 @@ export default function AtomLabView({
     [def, commit],
   );
 
+  // One named slot's field. No pruning — a slot is a whole object; it exists
+  // with every field or it doesn't exist at all.
+  const setSlotField = useCallback(
+    (name: string, field: keyof TextSlotSpec, value: unknown) => {
+      commit(
+        def.key,
+        (cur) => {
+          const slot = cur.textSlots?.[name];
+          if (!slot) return cur;
+          return { ...cur, textSlots: { ...cur.textSlots, [name]: { ...slot, [field]: value } } };
+        },
+        def.defaults,
+      );
+    },
+    [def, commit],
+  );
+
+  // A re-added slot the def declares comes back as the def's version — the
+  // same "registry default" every Reset square falls back to. Sections are
+  // re-laid in the builders' order (textSlots before states) because the
+  // dirty/ahead checks compare with JSON.stringify, where order is content.
+  const addSlot = useCallback(
+    (name: string) => {
+      commit(
+        def.key,
+        (cur) => {
+          if (cur.textSlots?.[name]) return cur;
+          const slot = def.defaults.textSlots?.[name] ?? { ...DEFAULT_TEXT_SLOT, content: name };
+          const { states, ...core } = cur;
+          return {
+            ...core,
+            textSlots: { ...cur.textSlots, [name]: slot },
+            ...(states ? { states } : {}),
+          } as AtomSpec;
+        },
+        def.defaults,
+      );
+    },
+    [def, commit],
+  );
+
+  const removeSlot = useCallback(
+    (name: string) => {
+      commit(
+        def.key,
+        (cur) => {
+          if (!cur.textSlots?.[name]) return cur;
+          const textSlots = { ...cur.textSlots };
+          delete textSlots[name];
+          const { textSlots: _drop, states, ...core } = cur;
+          return {
+            ...core,
+            ...(Object.keys(textSlots).length ? { textSlots } : {}),
+            ...(states ? { states } : {}),
+          } as AtomSpec;
+        },
+        def.defaults,
+      );
+    },
+    [def, commit],
+  );
+
   const undo = useCallback(() => {
     const stack = past[def.key] ?? [];
     if (!stack.length) return;
@@ -634,6 +704,9 @@ export default function AtomLabView({
           setField={setField}
           setStateField={setStateField}
           clearState={clearState}
+          setSlotField={setSlotField}
+          addSlot={addSlot}
+          removeSlot={removeSlot}
           forcedState={forcedState}
           setForcedState={setForcedState}
           resetAtom={resetAtom}

@@ -19,7 +19,14 @@ import { colors, rgb } from "../../../theme";
 import { PanelSidebarItem } from "../../../styled";
 import Tooltip from "../../ui/Tooltip";
 import { ATOMS, ATOM_BY_KEY, ATOM_GROUPS } from "./atomRegistry";
-import { type AtomSpec, type StateName, pruneStates, specWithState } from "./atomSpec";
+import {
+  type AtomSpec,
+  type StateName,
+  type TextSlotSpec,
+  DEFAULT_TEXT_SLOT,
+  pruneStates,
+  specWithState,
+} from "./atomSpec";
 import {
   type ComponentDoc,
   type ComponentNode,
@@ -446,6 +453,75 @@ export default function ComponentComposer({
     [commit, selected],
   );
 
+  // Named-slot handlers, same contract as the Atom Library's: a slot is a
+  // whole object, and the section order is re-laid canonically (textSlots
+  // before states) because doc equality runs through JSON.stringify.
+  const setNodeSlotField = useCallback(
+    (name: string, field: keyof TextSlotSpec, value: unknown) => {
+      if (!selected) return;
+      commit((cur) => ({
+        ...cur,
+        nodes: cur.nodes.map((n) => {
+          const slot = n.spec.textSlots?.[name];
+          if (n.id !== selected || !slot) return n;
+          return {
+            ...n,
+            spec: { ...n.spec, textSlots: { ...n.spec.textSlots, [name]: { ...slot, [field]: value } } },
+          };
+        }),
+      }));
+    },
+    [commit, selected],
+  );
+
+  const addNodeSlot = useCallback(
+    (name: string) => {
+      if (!selected) return;
+      commit((cur) => ({
+        ...cur,
+        nodes: cur.nodes.map((n) => {
+          if (n.id !== selected || n.spec.textSlots?.[name]) return n;
+          const defSlot =
+            ATOM_BY_KEY[n.atomKey]?.defaults.textSlots?.[name] ?? { ...DEFAULT_TEXT_SLOT, content: name };
+          const { states, ...core } = n.spec;
+          return {
+            ...n,
+            spec: {
+              ...core,
+              textSlots: { ...n.spec.textSlots, [name]: defSlot },
+              ...(states ? { states } : {}),
+            } as AtomSpec,
+          };
+        }),
+      }));
+    },
+    [commit, selected],
+  );
+
+  const removeNodeSlot = useCallback(
+    (name: string) => {
+      if (!selected) return;
+      commit((cur) => ({
+        ...cur,
+        nodes: cur.nodes.map((n) => {
+          if (n.id !== selected || !n.spec.textSlots?.[name]) return n;
+          const textSlots = { ...n.spec.textSlots };
+          delete textSlots[name];
+          const { textSlots: _drop, states, ...core } = n.spec;
+          return {
+            ...n,
+            spec: {
+              ...core,
+              ...(Object.keys(textSlots).length ? { textSlots } : {}),
+              ...(states ? { states } : {}),
+            } as AtomSpec,
+          };
+        }),
+      }));
+    },
+    [commit, selected],
+  );
+
   const resetNode = useCallback(() => {
     if (!selected) return;
     commit((cur) => ({
@@ -673,6 +749,9 @@ export default function ComponentComposer({
             setField={setNodeField}
             setStateField={setNodeStateField}
             clearState={clearNodeState}
+            setSlotField={setNodeSlotField}
+            addSlot={addNodeSlot}
+            removeSlot={removeNodeSlot}
             forcedState={forcedState}
             setForcedState={setForcedState}
             resetAtom={resetNode}

@@ -24,7 +24,10 @@ import { clampSpec } from "@tgv/module-component-library/atoms/spec";
 import { SHIPPED_ATOMS, shippedSpec } from "@tgv/module-component-library/atoms/shipped";
 import {
   skinDecls,
+  slotScope,
+  slotTextDecls,
   specSkinToCss,
+  specSlotToCss,
   specStatesToCss,
   stateSurfaceDiff,
   textDecls,
@@ -86,6 +89,15 @@ test("a migrated component opens the publish channel", () => {
         `${key}: its spec has states but the component never emits them`,
       );
     }
+    // Same for named slots: each one the spec declares must reach prod as its
+    // own scoped child CSS, or the slot is a lab-only fiction.
+    for (const name of Object.keys(SHIPPED_ATOMS[key].patch.textSlots ?? {})) {
+      assert.match(
+        src,
+        new RegExp(`specSlotToCss\\([^;]*"${name}"[^;]*slotScope\\(KEY,\\s*"${name}"\\)\\s*\\)`),
+        `${key}: its spec names slot "${name}" but the component never emits it scoped`,
+      );
+    }
   }
 });
 
@@ -112,6 +124,15 @@ test("ungoverned lists name real declarations, with reasons", () => {
     for (const [prop, why] of Object.entries(atom.ungoverned.text ?? {})) {
       assert.ok(text.includes(prop), `${key}: ungoverned text "${prop}" is not a declaration the spec emits`);
       assert.ok(why.length > 20, `${key}: "${prop}" needs a reason, not a label`);
+    }
+    // Per named slot, the same contract as text: the declaration must be one
+    // the slot's emitter produces, and the reason must be a reason.
+    for (const [name, list] of Object.entries(atom.ungoverned.slots ?? {})) {
+      const emitted = Object.keys(slotTextDecls(spec, name, specToBox(spec)));
+      for (const [prop, why] of Object.entries(list)) {
+        assert.ok(emitted.includes(prop), `${key}: ungoverned slot ${name} "${prop}" is not a declaration that slot emits`);
+        assert.ok(why.length > 20, `${key}: slot ${name} "${prop}" needs a reason, not a label`);
+      }
     }
     // Per state, the same contract: an entry must name a declaration that
     // state's diff would emit — anything else is a stale skip, and a stale
@@ -206,6 +227,17 @@ test("a stateless shipped atom emits no state CSS — the no-pixels-moved claim 
     const spec = shippedSpec(key);
     if (!spec.states) {
       assert.equal(specStatesToCss(spec, SHIPPED_ATOMS[key].ungoverned.states, "", key), "");
+    }
+  }
+});
+
+test("a slotless shipped atom emits no slot CSS — same claim, second feature", () => {
+  // Named slots landed after the same two migrations. A spec that says nothing
+  // about slots must emit nothing for any slot name asked of it.
+  for (const key of Object.keys(SHIPPED_ATOMS)) {
+    const spec = shippedSpec(key);
+    if (!spec.textSlots) {
+      assert.equal(specSlotToCss(spec, "sub", specToBox(spec), undefined, "", slotScope(key, "sub")), "");
     }
   }
 });

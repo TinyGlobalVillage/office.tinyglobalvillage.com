@@ -33,6 +33,7 @@ import {
   fontPx as specFontPx,
   iconPaint,
   shadowStack,
+  slotTextDecls,
   surfaceDecls,
   textDecls,
 } from "@tgv/module-component-library/atoms/specToCss";
@@ -79,6 +80,31 @@ export function textStyle(spec: AtomSpec, box: AtomBox): React.CSSProperties {
   return textDecls(spec, box) as React.CSSProperties;
 }
 
+export function slotStyle(spec: AtomSpec, name: string, box: AtomBox): React.CSSProperties {
+  return slotTextDecls(spec, name, box) as React.CSSProperties;
+}
+
+/**
+ * Every enabled named slot, each as its own run — the bench's generic stacking.
+ * A shipped atom lays its runs out itself; here they just follow the main
+ * label in authoring order, which is enough to see every scale at once.
+ */
+export function SlotSpans({ spec, box }: AtomRenderProps) {
+  const slots = spec.textSlots;
+  if (!slots) return null;
+  return (
+    <>
+      {Object.entries(slots).map(([name, slot]) =>
+        slot.enabled ? (
+          <span key={name} style={slotStyle(spec, name, box)}>
+            {slot.content}
+          </span>
+        ) : null,
+      )}
+    </>
+  );
+}
+
 const Center = styled.div`
   display: flex;
   align-items: center;
@@ -104,9 +130,18 @@ const HoverLift = styled.button`
 // ── Basic atoms ─────────────────────────────────────────────────────────
 
 function BoxAtom({ spec, box }: AtomRenderProps) {
+  // With named slots the box becomes a type stack — the offer-card shape.
+  const stacked = !!spec.textSlots;
   return (
-    <Center as="div" style={surfaceStyle(spec, box)}>
+    <Center
+      as="div"
+      style={{
+        ...surfaceStyle(spec, box),
+        ...(stacked ? { flexDirection: "column", gap: Math.round(box.h * 0.05) } : {}),
+      }}
+    >
       {spec.text.enabled && <span style={textStyle(spec, box)}>{spec.text.content}</span>}
+      <SlotSpans spec={spec} box={box} />
     </Center>
   );
 }
@@ -125,16 +160,24 @@ function ButtonAtom({ spec, box }: AtomRenderProps) {
     >
       <LeadIcon spec={spec} box={box} />
       {spec.text.enabled && <span style={textStyle(spec, box)}>{spec.text.content}</span>}
+      <SlotSpans spec={spec} box={box} />
     </HoverLift>
   );
 }
 
 function TextAtom({ spec, box }: AtomRenderProps) {
   return (
-    <Center style={{ ...surfaceStyle(spec, box), overflow: "visible" }}>
+    <Center
+      style={{
+        ...surfaceStyle(spec, box),
+        overflow: "visible",
+        ...(spec.textSlots ? { flexDirection: "column", gap: Math.round(box.h * 0.08) } : {}),
+      }}
+    >
       <span style={{ ...textStyle(spec, box), whiteSpace: "normal", textAlign: "center" }}>
         {spec.text.content || "Text"}
       </span>
+      <SlotSpans spec={spec} box={box} />
     </Center>
   );
 }
@@ -552,15 +595,13 @@ function TileButtonAtom({ spec, box }: AtomRenderProps) {
     >
       {spec.icon.enabled && <SpecIcon spec={spec} size={Math.max(10, box.h * (spec.icon.sizePct / 100) * 0.42)} />}
       {spec.text.enabled && (
-        <>
-          <span style={{ ...textStyle(spec, box), fontSize: Math.max(8, Math.round(f * 0.55)), color: acc, textTransform: "uppercase" }}>
-            {spec.text.content}
-          </span>
-          <span style={{ ...textStyle(spec, box), fontSize: Math.max(7, Math.round(f * 0.4)), fontWeight: 500, color: `rgba(${hexToRgbTriple(acc)}, 0.6)` }}>
-            sub-line
-          </span>
-        </>
+        <span style={{ ...textStyle(spec, box), fontSize: Math.max(8, Math.round(f * 0.55)), color: acc, textTransform: "uppercase" }}>
+          {spec.text.content}
+        </span>
       )}
+      {/* The sub-line is a real `sub` slot now, not a hardcoded second style —
+          the exact shape TileButton's migration needs (11px label, 10px sub). */}
+      <SlotSpans spec={spec} box={box} />
     </HoverLift>
   );
 }
@@ -902,6 +943,11 @@ export const ATOMS: AtomDef[] = [
     colors: { fill: "#12111f", borderAlpha: 0.3 },
     effects: { radius: 12, glow: 16, shadow: 12 },
     text: { content: "Sandbox", ratio: 20, weight: 800, tracking: 0.1 },
+    // The sub-line as a named slot — the values the hardcoded second style
+    // carried before slots existed (0.4 of a ratio-20 label = ratio 8).
+    textSlots: {
+      sub: { content: "sub-line", ratio: 8, weight: 500, tracking: 0.1, colorMode: "accent", colorAlpha: 0.6 },
+    },
     icon: { enabled: true, sizePct: 70 },
   }, TileButtonAtom, true),
   def("drawermenubutton", "DrawerMenuButton", "Controls", "Accent-FILLED square with a bold glyph and glow.", {

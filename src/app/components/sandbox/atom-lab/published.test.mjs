@@ -21,7 +21,9 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { DEFAULT_SPEC, mergeSpec } from "@tgv/module-component-library/atoms/spec";
 import {
+  slotScope,
   specSkinToCss,
+  specSlotToCss,
   specStatesToCss,
   specTextToCss,
   specToBox,
@@ -104,6 +106,32 @@ test("a published state writes only its diff, under state-scoped names", () => {
   assert.match(css, /&:hover \{/);
   assert.ok(varsRead(css).has("--atom-tile-hover-background"));
   assert.ok(varsRead(css).has("--atom-tile-disabled-opacity"));
+});
+
+test("a published slot writes exactly the vars its child reads", () => {
+  const key = "tile";
+  const spec = mergeSpec(shippedSpec(key), {
+    textSlots: {
+      sub: { content: "sub", mode: "px", px: 10, weight: 500, colorMode: "accent", colorAlpha: 0.6 },
+    },
+  });
+  const vars = atomVars(key, spec, SHIPPED_ATOMS[key].ungoverned);
+  assert.equal(vars["--atom-tile-sub-font-size"], "10px");
+  assert.equal(vars["--atom-tile-sub-font-weight"], "500");
+  assert.ok(vars["--atom-tile-sub-color"].includes("--atom-accent-rgb"), "an accent slot stays retintable after a publish");
+  // Two-directional, like rest/text/states: everything published under the
+  // slot's scope is a name the slot child's emitted CSS actually reads.
+  const read = varsRead(specSlotToCss(spec, "sub", specToBox(spec), undefined, "", slotScope(key, "sub")));
+  for (const name of Object.keys(vars).filter((n) => n.startsWith("--atom-tile-sub-"))) {
+    assert.ok(read.has(name), `published ${name}, which the slot child never reads`);
+  }
+  // And an ungoverned slot declaration is skipped, same contract as surface.
+  const kept = atomVars(key, spec, {
+    ...SHIPPED_ATOMS[key].ungoverned,
+    slots: { sub: { lineHeight: "the row owns it" } },
+  });
+  assert.ok(!("--atom-tile-sub-line-height" in kept));
+  assert.ok("--atom-tile-sub-font-size" in kept);
 });
 
 test("an atom key that is a state name cannot publish", () => {

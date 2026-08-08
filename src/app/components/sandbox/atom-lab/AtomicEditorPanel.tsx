@@ -17,7 +17,15 @@ import DdmSelect from "@tgv/module-component-library/components/ui/DdmSelect";
 import SBDM from "@tgv/module-component-library/components/ui/SBDM";
 import { colors, rgb } from "../../../theme";
 import Tooltip from "../../ui/Tooltip";
-import { type AtomSpec, type StateName, SPEC_LIMITS, STATE_NAMES } from "./atomSpec";
+import {
+  type AtomSpec,
+  type StateName,
+  type TextSlotSpec,
+  DEFAULT_TEXT_SLOT,
+  SPEC_LIMITS,
+  STATE_NAMES,
+  isSlotName,
+} from "./atomSpec";
 import { type AtomDef } from "./atomRegistry";
 import PublishControls from "./PublishControls";
 import { SVG_MANIFEST, SVG_SOURCE_GROUPS } from "../../svg-lab/manifest.generated";
@@ -237,10 +245,19 @@ const ClearStateBtn = styled.button`
   background: transparent;
   color: rgba(${PINK_RGB}, 0.7);
   cursor: pointer;
-  &:hover {
+  white-space: nowrap;
+  &:hover:not(:disabled) {
     background: rgba(${PINK_RGB}, 0.08);
   }
+  &:disabled {
+    opacity: 0.35;
+    cursor: default;
+  }
 `;
+
+/* Slot pills — same silhouette as the state pills: bright = selected here. */
+const SlotRow = StateRow;
+const SlotPill = StatePill;
 
 // ── Control rows ────────────────────────────────────────────────────────
 
@@ -552,6 +569,91 @@ function StateLevers({
   );
 }
 
+/**
+ * The levers for ONE named slot — the Text section's controls again, plus the
+ * slot's own paint. Reset squares fall back to the atom's registry default
+ * for that slot when the def declares one, or to the slot defaults.
+ */
+function SlotLevers({
+  spec,
+  name,
+  defSlot,
+  setSlotField,
+  removeSlot,
+}: {
+  spec: AtomSpec;
+  name: string;
+  defSlot: TextSlotSpec;
+  setSlotField: (name: string, field: keyof TextSlotSpec, value: unknown) => void;
+  removeSlot: (name: string) => void;
+}) {
+  const slot = spec.textSlots?.[name];
+  if (!slot) return null;
+  const set = (field: keyof TextSlotSpec) => (v: unknown) => setSlotField(name, field, v);
+  return (
+    <>
+      <ToggleRow label="Show text" value={slot.enabled} onChange={set("enabled")} />
+      <Row>
+        <RowLabel>Content</RowLabel>
+        <TextInput
+          value={slot.content}
+          maxLength={80}
+          onChange={(e) => setSlotField(name, "content", e.target.value)}
+          aria-label={`${name} slot content`}
+        />
+      </Row>
+      <Row>
+        <RowLabel>Size mode</RowLabel>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <DdmSelect
+            value={slot.mode}
+            onChange={(v) => setSlotField(name, "mode", v === "px" ? "px" : "ratio")}
+            options={[
+              { key: "ratio", label: "Ratio of atom height" },
+              { key: "px", label: "Fixed px" },
+            ]}
+            ariaLabel={`${name} slot size mode`}
+            accent={PINK}
+            accentRgb={PINK_RGB}
+          />
+        </div>
+      </Row>
+      {slot.mode === "ratio" ? (
+        <SliderRow label="Ratio %" value={slot.ratio} min={2} max={90} defaultValue={defSlot.ratio} onChange={set("ratio")} />
+      ) : (
+        <SliderRow label="Size px" value={slot.px} min={6} max={200} defaultValue={defSlot.px} onChange={set("px")} />
+      )}
+      <SliderRow label="Weight" value={slot.weight} min={100} max={900} step={100} defaultValue={defSlot.weight} onChange={set("weight")} />
+      <SliderRow label="Tracking" value={slot.tracking} min={0} max={0.3} step={0.01} defaultValue={defSlot.tracking} onChange={set("tracking")} />
+      <ToggleRow label="Uppercase" value={slot.uppercase} onChange={set("uppercase")} />
+      <Row>
+        <RowLabel>Color</RowLabel>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <DdmSelect
+            value={slot.colorMode}
+            onChange={(v) => setSlotField(name, "colorMode", v)}
+            options={[
+              { key: "text", label: "Follow text color" },
+              { key: "accent", label: "Follow accent" },
+              { key: "solid", label: "Custom color" },
+            ]}
+            ariaLabel={`${name} slot color mode`}
+            accent={PINK}
+            accentRgb={PINK_RGB}
+          />
+        </div>
+      </Row>
+      {slot.colorMode === "solid" && (
+        <ColorRow label="Custom" value={slot.color} defaultValue={defSlot.color} onChange={set("color")} />
+      )}
+      {slot.colorMode !== "text" && (
+        <SliderRow label="Alpha" value={slot.colorAlpha} min={0} max={1} step={0.01} defaultValue={defSlot.colorAlpha} onChange={set("colorAlpha")} />
+      )}
+      <ClearStateBtn onClick={() => removeSlot(name)}>Remove {name} slot</ClearStateBtn>
+    </>
+  );
+}
+
 // ── The panel ───────────────────────────────────────────────────────────
 
 export function AtomicEditorPanel({
@@ -560,6 +662,9 @@ export function AtomicEditorPanel({
   setField,
   setStateField,
   clearState,
+  setSlotField,
+  addSlot,
+  removeSlot,
   forcedState,
   setForcedState,
   resetAtom,
@@ -580,6 +685,10 @@ export function AtomicEditorPanel({
   /** One state's field. The host prunes overrides equal to rest, keeping drafts sparse. */
   setStateField: (state: StateName, section: "colors" | "effects", field: string, value: unknown) => void;
   clearState: (state: StateName) => void;
+  /** One named slot's field. Slots are whole objects — no pruning, a slot exists or it doesn't. */
+  setSlotField: (name: string, field: keyof TextSlotSpec, value: unknown) => void;
+  addSlot: (name: string) => void;
+  removeSlot: (name: string) => void;
   /**
    * The state the States section is editing — held by the host because the
    * canvas has to preview it: you cannot hover a preview while dragging a
@@ -607,6 +716,23 @@ export function AtomicEditorPanel({
   publishKey?: string;
 }) {
   const d = def.defaults;
+  // Which named slot the Text section is editing, and the name being typed
+  // into the add row. Panel-local on purpose: unlike a forced state, nothing
+  // has to preview a slot selection — every slot renders all the time.
+  const [slotSel, setSlotSel] = React.useState<string | null>(null);
+  const [newSlot, setNewSlot] = React.useState("");
+  React.useEffect(() => setSlotSel(null), [def.key]);
+  const slots = spec.textSlots ?? {};
+  const slotNames = Object.keys(slots);
+  const openSlot = slotSel && slots[slotSel] ? slotSel : null;
+  const newName = newSlot.trim();
+  const canAddSlot = isSlotName(newName) && !(newName in slots) && slotNames.length < SPEC_LIMITS.slots;
+  const submitSlot = () => {
+    if (!canAddSlot) return;
+    addSlot(newName);
+    setSlotSel(newName);
+    setNewSlot("");
+  };
   return (
     <>
       <EditorHead>
@@ -944,6 +1070,67 @@ export function AtomicEditorPanel({
                   <SliderRow label="Tracking" value={spec.text.tracking} min={0} max={0.3} step={0.01} defaultValue={d.text.tracking} onChange={(v) => setField("text", "tracking", v)} />
                   <ToggleRow label="Uppercase" value={spec.text.uppercase} onChange={(v) => setField("text", "uppercase", v)} />
                 </>
+              )}
+
+              {/* Named slots — extra runs of type, each its own whole block.
+                  Independent of "Show text": the main label and the slots are
+                  separate runs with separate toggles. */}
+              <SubHead>Named slots</SubHead>
+              {slotNames.length > 0 && (
+                <SlotRow>
+                  {slotNames.map((n) => (
+                    <SlotPill
+                      key={n}
+                      $on={openSlot === n}
+                      $set
+                      onClick={() => setSlotSel(openSlot === n ? null : n)}
+                      aria-pressed={openSlot === n}
+                    >
+                      {n}
+                    </SlotPill>
+                  ))}
+                </SlotRow>
+              )}
+              {openSlot ? (
+                <SlotLevers
+                  spec={spec}
+                  name={openSlot}
+                  defSlot={d.textSlots?.[openSlot] ?? DEFAULT_TEXT_SLOT}
+                  setSlotField={setSlotField}
+                  removeSlot={(n) => {
+                    removeSlot(n);
+                    setSlotSel(null);
+                  }}
+                />
+              ) : (
+                <IconHint>
+                  Extra runs of type on one atom — a launcher&apos;s sub-line, an
+                  offer card&apos;s price. Each slot carries its own scale, weight
+                  and color{slotNames.length ? " — pick a pill to edit it" : ""}.
+                </IconHint>
+              )}
+              {slotNames.length < SPEC_LIMITS.slots && (
+                <Row>
+                  <TextInput
+                    value={newSlot}
+                    placeholder="new slot name (e.g. sub, price)"
+                    maxLength={24}
+                    onChange={(e) => setNewSlot(e.target.value.toLowerCase())}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") submitSlot();
+                    }}
+                    aria-label="New slot name"
+                  />
+                  <ClearStateBtn onClick={submitSlot} disabled={!canAddSlot}>
+                    ＋ Add
+                  </ClearStateBtn>
+                </Row>
+              )}
+              {newName.length > 0 && !canAddSlot && (
+                <IconHint>
+                  lowercase letters and digits, starting with a letter — and not a
+                  state name, a channel name, &quot;text&quot;, or a slot that already exists
+                </IconHint>
               )}
             </SectionBody>
           )}
