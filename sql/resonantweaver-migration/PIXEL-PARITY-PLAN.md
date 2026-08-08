@@ -427,9 +427,60 @@ rung 2, so none of it is throwaway.
 5. Re-run the differ. **Blocked on the deploy** — the faces are HQ `public/`
    assets and the pooled render is the live HQ.
 
-## Phase 2 — the chrome
+## Phase 2 — the chrome — **BUILT 2026-08-07**
 
 Her nav and footer have **no row at all**, so this is authoring, not repair.
+
+> **Shipped.** Two catalog entries, one wiring fix, one generated SQL file.
+>
+> **`rf-pill-nav` mounts the SHARED component her own app mounts.** The obvious
+> move was to rebuild her bar as absolutely-positioned atoms with measured
+> offsets, the way `TgvV5NavAtomic` rebuilt the platform's. That is the right
+> tool when the original is app code with nothing shared behind it — and it is
+> the wrong one here, because her nav IS `PillNav` in
+> `@tgv/module-component-library`, generalised out of this exact site, whose
+> defaults still reproduce it. A replica could only have been a slower copy that
+> drifts. `rf-site-footer` is the other half: her `FooterWrapper` transcribed
+> breakpoint for breakpoint and lifted into props.
+>
+> **The gap was not the components, it was that chrome could not hold one.**
+> Chrome is stored as LayerNodes; a `block` LayerNode embeds a catalog entry
+> through `blockRef`; and `LayerRenderer` resolves that through a `registry` +
+> `ctx` pair that `TgvLandingRenderer` threads into the PAGE's layers and that
+> **neither chrome renderer had ever been given**. Without them a block layer
+> renders an empty box **in silence**. So a tenant's own nav had nowhere to be,
+> and the only chrome anyone could author was the atom kind. Fixed in both
+> `PublicTenantLanding.client.tsx` and `PublicSlugClient.tsx`, so the capability
+> is the same on the apex and on a customer's domain.
+>
+> **The frame is the subtle part, and it is where a plausible choice is wrong.**
+> Her nav carries its own `position: fixed` and reserves no height. A
+> `chromeBehavior:'fixed'` band mirrors its height into `body`'s top padding —
+> correct for the platform's bar, and here it would push all twenty-three pages
+> down by the height of a bar that was never in the flow. The rows use a plain
+> flow frame with a `grow` layer instead: `height:auto; overflow:visible`, and a
+> fixed child is out of flow, so the frame measures zero and nothing moves.
+> An assertion in `07-chrome.sql` refuses the file if either row ever becomes a
+> chrome band.
+>
+> **Every value is guarded against her source.** `gen-chrome-rows.mjs` reads
+> `layout.client.tsx`, `Footer.tsx`, `FooterWrapper.tsx` and `en.ts`, and each
+> transcribed value is returned by the same call that asserts its line still
+> exists. Edit a nav label or the copper in her repo and the generator refuses to
+> emit rather than writing a row that quietly disagrees.
+>
+> **Two things found on the way.** The harness had never rendered a Next client
+> component, so it grew a `next/link` / `next/navigation` stub — and the first
+> render of the bar reported `An empty string ("") was passed to the src
+> attribute`, which makes a browser re-download the whole page as an image. Real
+> consumers always pass a logo, so it only surfaced once the nav became a catalog
+> entry whose defaults carry none. `PillNav` now renders no `<img>` at all when
+> `logoSrc` is empty. Harness 140 → 165 assertions.
+>
+> **Left for the browser pass:** her footer says "Powered by Tiny Global Village
+> LLC™" and the pooled renderer appends its own attribution below the chrome, so
+> the credit will appear TWICE. `creditLabel: ""` drops hers; that is Marthe's
+> call, not a silent edit.
 
 1. Author the `nav` override: her logo, and Starseed · Sun Walk · Contact ·
    Login with her hrefs — `/starseed/`, `/sun-walk/`, `/#contact`, `/login/`.
