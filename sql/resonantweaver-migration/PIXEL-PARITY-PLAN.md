@@ -511,14 +511,26 @@ Her nav and footer have **no row at all**, so this is authoring, not repair.
 >
 > **Two findings the browser pass produced, neither ours:**
 >
-> 1. 🔴 S3 `~/.claude/bugs/pooled-pages-reserve-84px-for-a-nav-that-is-not-there.md`
->    — HQ's `GlobalStyles.ts` sets `body { padding-top: var(--hdr) }` for its own
->    fixed marketing bar, globally, so **every** pooled tenant page opens 84px
->    down for a bar that is not on their site. It is the largest single vertical
->    offset left between her app and her pooled render, and no per-section fix
->    can recover it. Live on giocoelho, guardians, nevlo and refusionist too, so
->    the fix moves four customer sites at once — Gio's call, with a before/after
->    pass, not a silent edit.
+> 1. **The 84px — FOUND AND FIXED THE SAME DAY** (HQ `205034b3`).
+>    `GlobalStyles.ts` sets `body { padding-top: var(--hdr) }` for TGV's own
+>    fixed marketing bar, globally, so **every** pooled tenant page opened that
+>    far down for a bar that is not on their site. It was the largest single
+>    vertical offset left between her app and her pooled render, and no
+>    per-section fix could have recovered it.
+>    `TenantBodyChrome` gives it back — the third instance of a pattern this app
+>    already carried twice (`MeetChromeReset`, `AppBodyChrome`), and the tell
+>    that it is a fix rather than a redesign is that the STUDIO never had the
+>    gap: a tenant authored at the top of the canvas and their visitors saw it
+>    lower.
+>    Measured on the four live domains at 1280×900 before and after:
+>    guardianstuffies **84 → 0**, neverendinglogic **84 → 0**, giocoelho 76 → 76,
+>    refusionist 76 → 76. **The two that did not move are the answer to the
+>    risk** — their 76px was never the platform's; it is their OWN
+>    `chromeBehavior: fixed` nav band reserving its real height, emitted after
+>    the global rule and already winning. So the change moved exactly the two
+>    sites that were wrong. resonantweaver, re-measured through the proxy:
+>    `bodyPadTop: 0`, bar floating at `top: 5`, chrome frame `height: 0` at
+>    `top: 0`, first section at `0` — her own app's geometry.
 > 2. **`/sun-walk/` has no chrome at all**, and neither will `/journey` or
 >    `/galactic-field-guide`: there is no `page_models` row for them, because they
 >    are APP routes served by `@tgv/module-starseed`, not pooled pages. The differ
