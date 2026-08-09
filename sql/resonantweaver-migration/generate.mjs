@@ -2053,6 +2053,64 @@ function buildStarseed(data) {
   const c = data.oracleContent;
   const s = inlineCopy.starseed;
   const sections = [];
+  const T = data.tokens;
+
+  // ── HER SEATS, transcribed and guarded ────────────────────────────────────
+  // The row shipped in the first cut with the entry's PLATFORM defaults, and
+  // the differ said so plainly: Space Mono absent from the page entirely (26
+  // elements → 0), 66 size / 60 weight / 60 colour mismatches. The page has its
+  // own ThemeProvider (`starseed/theme.ts`) and its bands borrow the star
+  // landing's Intro type, so every value below is read off one of those two
+  // files rather than guessed.
+  const SS = `${HOME_DIR}/starseed`;
+  const LSP = `${HOME_DIR}/landing-star-preview/LandingStarPreview.styles.ts`;
+  // theme.ts — the page's own tokens.
+  guardOnly({ file: `${SS}/theme.ts`, find: 'h1Color: "#f5f9f8"' });
+  guardOnly({ file: `${SS}/theme.ts`, find: 'copper: "#c79a86"' });
+  guardOnly({ file: `${SS}/theme.ts`, find: 'textDim: "#c4ccd0"' });
+  guardOnly({ file: `${SS}/theme.ts`, find: 'muted: "#9aa4ab"' });
+  guardOnly({ file: `${SS}/theme.ts`, find: 'serif: "var(--gfg-font-display), var(--gfg-font-tech), sans-serif"' });
+  // StarseedOraclePage.styles.ts — the hero's own type.
+  guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "font-size: 11.5px;" });
+  guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "letter-spacing: 0.24em;" });
+  guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "font-size: clamp(2.65rem, 4.5vw, 4.4rem);" });
+  guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "line-height: 1.04;" });
+  guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "font-size: clamp(1.55rem, 2.6vw, 2.5rem);" });
+  guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "margin: 0.7rem 0 1.8rem;" });
+  guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "line-height: 1.72;" });
+  guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "max-width: 72ch;" });
+  // LandingStarPreview.styles.ts — IntroEyebrow / IntroTitle, which her bands
+  // import from the star landing rather than declaring again.
+  guardOnly({ file: LSP, find: "font-size: 0.68rem;" });
+  guardOnly({ file: LSP, find: "letter-spacing: 0.2em;" });
+  guardOnly({ file: LSP, find: "font-size: clamp(1.75rem, 3.2vw, 2.65rem);" });
+  guardOnly({ file: LSP, find: "font-weight: 520;" });
+  guardOnly({ file: LSP, find: "line-height: 0.98;" });
+
+  /** Her BAND type: IntroEyebrow + IntroTitle + Prose. The eyebrow is
+   *  `--preview-meta-font` (Space Mono → the ACCENT role, the family ruling)
+   *  and the title `--preview-display-font` (Science Gothic → DISPLAY). */
+  const bandType = {
+    eyebrowRole: "accent",
+    eyebrowSize: "0.68rem",
+    eyebrowWeight: 700,
+    eyebrowTracking: "0.2em",
+    eyebrowGap: "1rem",
+    eyebrowInk: `rgba(${T.TEAL}, 0.66)`,
+    headingRole: "display",
+    headingSize: "clamp(1.75rem, 3.2vw, 2.65rem)",
+    headingWeight: 520,
+    headingTracking: "-0.025em",
+    headingLh: "0.98",
+    headingGap: "0",
+    headingInk: `rgb(${T.BONE})`,
+    copyRole: "body",
+    copyLh: "1.72",
+    copyGap: "16px",
+    copyMaxWidth: "72ch",
+    copyTop: "1.25rem",
+    copyInk: "#c4ccd0",
+  };
 
   // A section that is eyebrow + title + paragraphs and nothing else. Six of the
   // twelve are exactly this.
@@ -2069,6 +2127,7 @@ function buildStarseed(data) {
       paragraphs: [...block.body, ...extra],
       chips: [],
       ctas: [],
+      ...bandType,
     });
 
   sections.push(
@@ -2082,8 +2141,39 @@ function buildStarseed(data) {
       headingLevel: 1,
       // Her H1 and the teal italic line under it are two elements on purpose —
       // "separated the hero heading from its teal italic accent line", per her
-      // own change log. `headingAccent` is that second line.
+      // own change log. `headingAccent` is that second line, and `accentAsLine`
+      // is what keeps it a SIBLING <p> rather than a phrase inside the h1.
       headingAccent: c.hero.titleEmphasis,
+      accentAsLine: true,
+      // The hero declares its own type (page-local Eyebrow / H1 / HeroAccent /
+      // Prose), not the star landing's Intro type the bands borrow.
+      eyebrowRole: "accent",
+      eyebrowSize: "11.5px",
+      eyebrowWeight: 500,
+      eyebrowTracking: "0.24em",
+      eyebrowGap: "14px",
+      eyebrowInk: "#c79a86",
+      headingRole: "display",
+      headingSize: "clamp(2.65rem, 4.5vw, 4.4rem)",
+      headingWeight: 540,
+      headingTracking: "-0.02em",
+      headingLh: "1.04",
+      headingGap: "0",
+      headingInk: "#f5f9f8",
+      accentRole: "display",
+      accentSize: "clamp(1.55rem, 2.6vw, 2.5rem)",
+      accentWeight: 440,
+      accentTracking: "-0.012em",
+      accentLh: "1.08",
+      accentItalic: true,
+      accentMargin: "0.7rem 0 1.8rem",
+      accentInk: `rgb(${T.TEAL})`,
+      copyRole: "body",
+      copyLh: "1.72",
+      copyGap: "16px",
+      copyMaxWidth: "72ch",
+      copyTop: "1.25rem",
+      copyInk: "#c4ccd0",
       paragraphs: c.hero.lead,
       // "64 fixed stars · Your exact birth sky · A guided personal reading" is a
       // row of small caps under the button, which is what a chip row is.
@@ -2114,6 +2204,7 @@ function buildStarseed(data) {
       paragraphs: [],
       chips: [],
       ctas: [],
+      ...bandType,
     }),
   );
   sections.push(
@@ -2197,6 +2288,7 @@ function buildStarseed(data) {
       paragraphs: [],
       chips: [],
       ctas: [],
+      ...bandType,
     }),
   );
   sections.push(
