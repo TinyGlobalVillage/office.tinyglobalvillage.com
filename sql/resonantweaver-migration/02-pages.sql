@@ -2521,6 +2521,7 @@ INSERT INTO _rw_pages VALUES ('starseed', 'The Starwoven Journey | Discover your
           "imageUrl": "/images/tenants/resonantweaver/StarBot.png",
           "imageAlt": "A cosmic starseed figure",
           "imagePosition": "right",
+          "maxWidth": 992,
           "eyebrow": "A personal Starseed Oracle journey",
           "eyebrowColor": "accent",
           "heading": "The Starwoven Journey",
@@ -2602,6 +2603,7 @@ INSERT INTO _rw_pages VALUES ('starseed', 'The Starwoven Journey | Discover your
           ],
           "chips": [],
           "ctas": [],
+          "maxWidth": 992,
           "eyebrowRole": "accent",
           "eyebrowSize": "0.68rem",
           "eyebrowWeight": 700,
@@ -2647,6 +2649,7 @@ INSERT INTO _rw_pages VALUES ('starseed', 'The Starwoven Journey | Discover your
           ],
           "chips": [],
           "ctas": [],
+          "maxWidth": 992,
           "eyebrowRole": "accent",
           "eyebrowSize": "0.68rem",
           "eyebrowWeight": 700,
@@ -2693,6 +2696,7 @@ INSERT INTO _rw_pages VALUES ('starseed', 'The Starwoven Journey | Discover your
           ],
           "chips": [],
           "ctas": [],
+          "maxWidth": 992,
           "eyebrowRole": "accent",
           "eyebrowSize": "0.68rem",
           "eyebrowWeight": 700,
@@ -2734,6 +2738,7 @@ INSERT INTO _rw_pages VALUES ('starseed', 'The Starwoven Journey | Discover your
           "paragraphs": [],
           "chips": [],
           "ctas": [],
+          "maxWidth": 992,
           "eyebrowRole": "accent",
           "eyebrowSize": "0.68rem",
           "eyebrowWeight": 700,
@@ -2758,108 +2763,77 @@ INSERT INTO _rw_pages VALUES ('starseed', 'The Starwoven Journey | Discover your
     },
     {
       "id": "sec-ss-journey",
-      "type": "rf-offer-card",
+      "type": "rf-hud-cards",
       "label": "The journey",
       "blocks": [],
       "enabled": true,
       "config": {
         "props": {
+          "mode": "door",
           "columns": 2,
           "heading": "",
-          "bulletGlyph": "✦",
-          "padTop": 0,
-          "padBottom": 25,
+          "marginTop": "2.25rem",
+          "marginBottom": "",
+          "maxWidth": 62,
+          "gap": "1rem",
+          "cardPad": "clamp(1.35rem, 2.5vw, 1.85rem)",
+          "cardMinHeight": "0",
+          "lastOddWidth": "calc(50% - 0.625rem)",
+          "cardWash": "rgba(18, 63, 82, 0.5)",
+          "cardWashFeatured": "",
+          "imageGlow": "",
+          "markerColor": "#c79a86",
+          "markerSize": "0.78rem",
+          "markerTracking": "0.2em",
+          "markerGap": "0.65rem",
+          "priceColor": "",
+          "linkColor": "",
+          "badgeColor": "",
+          "titleSize": "clamp(1.3rem, 2.2vw, 1.8rem)",
+          "titleWeight": 480,
+          "titleTracking": "normal",
+          "titleLh": "1.68",
+          "titleGap": "0.8rem",
+          "titleColor": "rgb(72, 210, 185)",
+          "copySize": "",
+          "copyLh": "1.72",
+          "copyColor": "#c4ccd0",
+          "copyGap": "16px",
           "items": [
             {
-              "eyebrow": "01",
+              "marker": "01",
               "title": "The Gate You Entered Through",
-              "sub": "",
-              "body": "Your journey begins with the star standing at the threshold of your birth.\n\nThis star reveals your primary Starseed lineage and the current through which your stellar inheritance first entered human life.\n\nIt introduces the perception, gift and central tension carried through your incarnation gateway.",
-              "listLabel": "",
-              "bullets": [],
-              "note": "",
-              "price": "",
-              "ctaLabel": "",
-              "ctaHref": "",
-              "variant": "standard"
+              "copy": "Your journey begins with the star standing at the threshold of your birth.\n\nThis star reveals your primary Starseed lineage and the current through which your stellar inheritance first entered human life.\n\nIt introduces the perception, gift and central tension carried through your incarnation gateway."
             },
             {
-              "eyebrow": "02",
+              "marker": "02",
               "title": "Your Hybrid Starseed Lineages",
-              "sub": "",
-              "body": "You are rarely shaped by only one star.\n\nThe journey introduces your major lineages, supporting stars and stellar allies, then shows how their different qualities combine.\n\nWhat first appears to be a collection of separate stars gradually becomes one living pattern: the Star Braid only you carry.",
-              "listLabel": "",
-              "bullets": [],
-              "note": "",
-              "price": "",
-              "ctaLabel": "",
-              "ctaHref": "",
-              "variant": "standard"
+              "copy": "You are rarely shaped by only one star.\n\nThe journey introduces your major lineages, supporting stars and stellar allies, then shows how their different qualities combine.\n\nWhat first appears to be a collection of separate stars gradually becomes one living pattern: the Star Braid only you carry."
             },
             {
-              "eyebrow": "03",
+              "marker": "03",
               "title": "Your Inner World",
-              "sub": "",
-              "body": "Some stars speak through your emotional life, your body and the way you experience safety, closeness and connection.\n\nThis part of the journey explores what you may feel before you can explain it, what your inner world needs, and how emotion moves through your particular stellar pattern.",
-              "listLabel": "",
-              "bullets": [],
-              "note": "",
-              "price": "",
-              "ctaLabel": "",
-              "ctaHref": "",
-              "variant": "standard"
+              "copy": "Some stars speak through your emotional life, your body and the way you experience safety, closeness and connection.\n\nThis part of the journey explores what you may feel before you can explain it, what your inner world needs, and how emotion moves through your particular stellar pattern."
             },
             {
-              "eyebrow": "04",
+              "marker": "04",
               "title": "Your Deeper Roots",
-              "sub": "",
-              "body": "Beneath your immediate feelings are older patterns around belonging, loyalty, stability, trust and the places where you have learned to hold yourself together.\n\nThe journey reveals what your deeper nature seeks, what can make belonging feel uncertain, and the kind of ground that allows you to remain connected without leaving yourself behind.",
-              "listLabel": "",
-              "bullets": [],
-              "note": "",
-              "price": "",
-              "ctaLabel": "",
-              "ctaHref": "",
-              "variant": "standard"
+              "copy": "Beneath your immediate feelings are older patterns around belonging, loyalty, stability, trust and the places where you have learned to hold yourself together.\n\nThe journey reveals what your deeper nature seeks, what can make belonging feel uncertain, and the kind of ground that allows you to remain connected without leaving yourself behind."
             },
             {
-              "eyebrow": "05",
+              "marker": "05",
               "title": "Gifts and Shadow Gates",
-              "sub": "",
-              "body": "Every stellar gift has a point where it can turn under pressure.\n\nSensitivity can become overwhelm. Courage can become constant battle. Dignity can become armour. Service can become self-erasure. Responsibility can become carrying what belongs to everyone.\n\nOften, the thing that drains you and the thing you are best at come from the same underlying gift.\n\nThe journey names the gift, the moment it begins to distort, and the way back into its clearer expression.",
-              "listLabel": "",
-              "bullets": [],
-              "note": "",
-              "price": "",
-              "ctaLabel": "",
-              "ctaHref": "",
-              "variant": "standard"
+              "copy": "Every stellar gift has a point where it can turn under pressure.\n\nSensitivity can become overwhelm. Courage can become constant battle. Dignity can become armour. Service can become self-erasure. Responsibility can become carrying what belongs to everyone.\n\nOften, the thing that drains you and the thing you are best at come from the same underlying gift.\n\nThe journey names the gift, the moment it begins to distort, and the way back into its clearer expression."
             },
             {
-              "eyebrow": "06",
+              "marker": "06",
               "title": "Soul and Earth Mission",
-              "sub": "",
-              "body": "Your mission is not treated as a job title or a grand assignment you must somehow prove.\n\nYour Soul Mission reveals the deeper quality your life is asking you to embody. The Mission Anchor is the star that holds this enduring direction.\n\nYour Earth Mission shows how that inner movement can become visible through your choices, relationships, work, creativity and presence in the world.",
-              "listLabel": "",
-              "bullets": [],
-              "note": "",
-              "price": "",
-              "ctaLabel": "",
-              "ctaHref": "",
-              "variant": "standard"
+              "copy": "Your mission is not treated as a job title or a grand assignment you must somehow prove.\n\nYour Soul Mission reveals the deeper quality your life is asking you to embody. The Mission Anchor is the star that holds this enduring direction.\n\nYour Earth Mission shows how that inner movement can become visible through your choices, relationships, work, creativity and presence in the world."
             },
             {
-              "eyebrow": "07",
+              "marker": "07",
               "title": "The Mirror",
-              "sub": "",
-              "body": "The journey closes with a guided encounter that gathers your separate stellar threads into one living image.\n\nYou meet a symbolic reflection of your stellar self, not as something outside you, but as an aspect of your own inheritance becoming recognisable.\n\nYou leave with a personal reflection, a sentence and an embodied image you can return to after the journey is complete.",
-              "listLabel": "",
-              "bullets": [],
-              "note": "",
-              "price": "",
-              "ctaLabel": "",
-              "ctaHref": "",
-              "variant": "standard"
+              "copy": "The journey closes with a guided encounter that gathers your separate stellar threads into one living image.\n\nYou meet a symbolic reflection of your stellar self, not as something outside you, but as an aspect of your own inheritance becoming recognisable.\n\nYou leave with a personal reflection, a sentence and an embodied image you can return to after the journey is complete."
             }
           ]
         }
@@ -2889,6 +2863,7 @@ INSERT INTO _rw_pages VALUES ('starseed', 'The Starwoven Journey | Discover your
           ],
           "chips": [],
           "ctas": [],
+          "maxWidth": 992,
           "eyebrowRole": "accent",
           "eyebrowSize": "0.68rem",
           "eyebrowWeight": 700,
@@ -2999,6 +2974,7 @@ INSERT INTO _rw_pages VALUES ('starseed', 'The Starwoven Journey | Discover your
           ],
           "chips": [],
           "ctas": [],
+          "maxWidth": 992,
           "eyebrowRole": "accent",
           "eyebrowSize": "0.68rem",
           "eyebrowWeight": 700,
@@ -3023,53 +2999,54 @@ INSERT INTO _rw_pages VALUES ('starseed', 'The Starwoven Journey | Discover your
     },
     {
       "id": "sec-ss-method-cards",
-      "type": "rf-offer-card",
+      "type": "rf-hud-cards",
       "label": "The method — cards",
       "blocks": [],
       "enabled": true,
       "config": {
         "props": {
+          "mode": "door",
           "columns": 3,
           "heading": "",
-          "bulletGlyph": "✦",
-          "padTop": 0,
-          "padBottom": 25,
+          "marginTop": "34px",
+          "marginBottom": "",
+          "maxWidth": 62,
+          "gap": "16px",
+          "cardPad": "22px 22px 24px",
+          "cardMinHeight": "0",
+          "lastOddWidth": "",
+          "cardWash": "rgba(18, 63, 82, 0.5)",
+          "cardWashFeatured": "",
+          "imageGlow": "",
+          "markerColor": "",
+          "markerSize": "",
+          "markerTracking": "",
+          "markerGap": "",
+          "priceColor": "",
+          "linkColor": "",
+          "badgeColor": "",
+          "titleSize": "clamp(1.08rem, 1.8vw, 1.28rem)",
+          "titleWeight": 520,
+          "titleTracking": "-0.01em",
+          "titleLh": "1.25",
+          "titleGap": "9px",
+          "titleColor": "#eef4f3",
+          "copySize": "15px",
+          "copyLh": "1.68",
+          "copyColor": "#9aa4ab",
+          "copyGap": "0",
           "items": [
             {
               "title": "Your real birth sky",
-              "sub": "",
-              "body": "The reading begins with astronomical calculation. Your active stars are drawn from the sky at your specific moment and place of birth.",
-              "listLabel": "",
-              "bullets": [],
-              "note": "",
-              "price": "",
-              "ctaLabel": "",
-              "ctaHref": "",
-              "variant": "standard"
+              "copy": "The reading begins with astronomical calculation. Your active stars are drawn from the sky at your specific moment and place of birth."
             },
             {
               "title": "Your Starseed pattern",
-              "sub": "",
-              "body": "You are not reduced to one cosmic label. The journey explores your primary lineage, your wider Hybrid Starseed Lineages and the unique pattern they form together.",
-              "listLabel": "",
-              "bullets": [],
-              "note": "",
-              "price": "",
-              "ctaLabel": "",
-              "ctaHref": "",
-              "variant": "standard"
+              "copy": "You are not reduced to one cosmic label. The journey explores your primary lineage, your wider Hybrid Starseed Lineages and the unique pattern they form together."
             },
             {
               "title": "Made to return to Earth",
-              "sub": "",
-              "body": "The stars are never used to remove you from your body or human life. The journey continually returns to embodiment, belonging and the practical expression of what you carry.",
-              "listLabel": "",
-              "bullets": [],
-              "note": "",
-              "price": "",
-              "ctaLabel": "",
-              "ctaHref": "",
-              "variant": "standard"
+              "copy": "The stars are never used to remove you from your body or human life. The journey continually returns to embodiment, belonging and the practical expression of what you carry."
             }
           ]
         }
@@ -3094,6 +3071,7 @@ INSERT INTO _rw_pages VALUES ('starseed', 'The Starwoven Journey | Discover your
           "paragraphs": [],
           "chips": [],
           "ctas": [],
+          "maxWidth": 992,
           "eyebrowRole": "accent",
           "eyebrowSize": "0.68rem",
           "eyebrowWeight": 700,
@@ -3118,71 +3096,44 @@ INSERT INTO _rw_pages VALUES ('starseed', 'The Starwoven Journey | Discover your
     },
     {
       "id": "sec-ss-how",
-      "type": "rf-offer-card",
+      "type": "rf-process-steps",
       "label": "How it works",
       "blocks": [],
       "enabled": true,
       "config": {
         "props": {
-          "columns": 3,
-          "heading": "",
-          "bulletGlyph": "✦",
-          "padTop": 0,
-          "padBottom": 25,
-          "items": [
+          "eyebrow": "",
+          "title": "",
+          "mode": "rail",
+          "steps": [
             {
-              "eyebrow": "01",
+              "marker": "01",
               "title": "Open the Oracle",
-              "sub": "",
-              "body": "After purchase, you will receive a link to the AI-guided Starwoven Oracle. Open it when you are ready to begin.",
-              "listLabel": "",
-              "bullets": [],
-              "note": "",
-              "price": "",
-              "ctaLabel": "",
-              "ctaHref": "",
-              "variant": "standard"
+              "copy": "After purchase, you will receive a link to the AI-guided Starwoven Oracle. Open it when you are ready to begin."
             },
             {
-              "eyebrow": "02",
+              "marker": "02",
               "title": "Enter your birth details",
-              "sub": "",
-              "body": "Provide your birth date, exact birth time and birthplace. The engine uses them to reconstruct your birth sky and identify your active fixed stars, lineages and major currents.",
-              "listLabel": "",
-              "bullets": [],
-              "note": "",
-              "price": "",
-              "ctaLabel": "",
-              "ctaHref": "",
-              "variant": "standard"
+              "copy": "Provide your birth date, exact birth time and birthplace. The engine uses them to reconstruct your birth sky and identify your active fixed stars, lineages and major currents."
             },
             {
-              "eyebrow": "03",
+              "marker": "03",
               "title": "Follow your journey",
-              "sub": "",
-              "body": "Your reading unfolds one chapter at a time. You can pause, ask questions, explore what catches your attention and continue in your own time.",
-              "listLabel": "",
-              "bullets": [],
-              "note": "",
-              "price": "",
-              "ctaLabel": "",
-              "ctaHref": "",
-              "variant": "standard"
+              "copy": "Your reading unfolds one chapter at a time. You can pause, ask questions, explore what catches your attention and continue in your own time."
             },
             {
-              "eyebrow": "04",
+              "marker": "04",
               "title": "Meet the Mirror",
-              "sub": "",
-              "body": "The final chapter gathers your stars, gifts, shadow gates and missions into one personal reflection you can carry back into everyday life.",
-              "listLabel": "",
-              "bullets": [],
-              "note": "",
-              "price": "",
-              "ctaLabel": "",
-              "ctaHref": "",
-              "variant": "standard"
+              "copy": "The final chapter gathers your stars, gifts, shadow gates and missions into one personal reflection you can carry back into everyday life."
             }
-          ]
+          ],
+          "flowSteps": [],
+          "note": "",
+          "cardWash": "rgba(17, 40, 59, 0.2)",
+          "maxWidth": 62,
+          "spacedTop": false,
+          "stepsTop": "34px",
+          "muted": "rgba(232, 229, 218, 0.56)"
         }
       }
     },
@@ -3212,6 +3163,7 @@ INSERT INTO _rw_pages VALUES ('starseed', 'The Starwoven Journey | Discover your
           ],
           "chips": [],
           "ctas": [],
+          "maxWidth": 992,
           "eyebrowRole": "accent",
           "eyebrowSize": "0.68rem",
           "eyebrowWeight": 700,
@@ -3236,35 +3188,36 @@ INSERT INTO _rw_pages VALUES ('starseed', 'The Starwoven Journey | Discover your
     },
     {
       "id": "sec-ss-begin",
-      "type": "rf-offer-card",
+      "type": "rf-callout-bar",
       "label": "Begin",
       "blocks": [],
       "enabled": true,
       "config": {
         "props": {
-          "columns": 1,
-          "heading": "",
-          "bulletGlyph": "✦",
-          "padTop": 0,
-          "padBottom": 25,
           "anchorId": "begin",
-          "items": [
+          "eyebrow": "Your journey begins here",
+          "eyebrowTracking": 0.18,
+          "title": "Enter through your own birth sky",
+          "titleMax": "",
+          "titleTracking": -0.035,
+          "titleLineHeight": 0.98,
+          "copy": "Your stars already form a pattern. The Starwoven Journey gives you language for the lineages, gifts, pressures and deeper direction you may have sensed throughout your life. The stars are not calling you away from your human life. They may be helping you understand how what you carry belongs here.",
+          "price": "$33",
+          "glow": "rgba(72, 210, 185, 0.14)",
+          "ctas": [
             {
-              "anchorId": "begin",
-              "eyebrow": "Your journey begins here",
-              "title": "Enter through your own birth sky",
-              "sub": "",
-              "body": "Your stars already form a pattern.\n\nThe Starwoven Journey gives you language for the lineages, gifts, pressures and deeper direction you may have sensed throughout your life.\n\nThe stars are not calling you away from your human life. They may be helping you understand how what you carry belongs here.",
-              "listLabel": "",
-              "bullets": [],
-              "note": "",
-              "price": "$33",
-              "ctaLabel": "Begin the journey",
-              "ctaHref": "https://www.paypal.com/ncp/payment/BFWAM3BB5NHBW",
-              "ctaTarget": "_blank",
-              "variant": "standard"
+              "label": "Begin the journey",
+              "href": "https://www.paypal.com/ncp/payment/BFWAM3BB5NHBW",
+              "variant": "plate",
+              "target": "_blank",
+              "arrow": true,
+              "color": "rgba(183, 138, 119, 0.38)"
             }
-          ]
+          ],
+          "maxWidth": 70,
+          "spacedTop": true,
+          "padBottom": "",
+          "muted": "rgba(232, 229, 218, 0.59)"
         }
       }
     },

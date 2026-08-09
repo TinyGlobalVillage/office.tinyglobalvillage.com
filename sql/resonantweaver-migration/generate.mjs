@@ -2063,7 +2063,18 @@ function buildStarseed(data) {
   // landing's Intro type, so every value below is read off one of those two
   // files rather than guessed.
   const SS = `${HOME_DIR}/starseed`;
+  const SSPAGE = `${SS}/StarseedOraclePage.tsx`;
   const LSP = `${HOME_DIR}/landing-star-preview/LandingStarPreview.styles.ts`;
+  // The two SHARED components this page mounts. Three of its four grids were
+  // authored as `rf-offer-card` in the first cut and none of them is one: the
+  // stages and the method cards are her hudCardSurface material (rf-hud-cards),
+  // the steps are the shared <TrainingStep> rail (rf-process-steps), and the
+  // closing block is the shared <CalloutBar variant="gateway"> (rf-callout-bar).
+  // Every one of those entries was already DERIVED from these two files during
+  // the family pass — the mistake rf-hud-cards' own header records for her
+  // gateway grids, made a second time here.
+  const CARDS = "src/components/Cards.tsx";
+  const CALLOUT = "src/components/CalloutBar.tsx";
   // theme.ts — the page's own tokens.
   guardOnly({ file: `${SS}/theme.ts`, find: 'h1Color: "#f5f9f8"' });
   guardOnly({ file: `${SS}/theme.ts`, find: 'copper: "#c79a86"' });
@@ -2086,11 +2097,57 @@ function buildStarseed(data) {
   guardOnly({ file: LSP, find: "font-size: clamp(1.75rem, 3.2vw, 2.65rem);" });
   guardOnly({ file: LSP, find: "font-weight: 520;" });
   guardOnly({ file: LSP, find: "line-height: 0.98;" });
+  // Her Wrap — the column EVERY band on this page sits in. 1120 with
+  // clamp(32px, 5vw, 64px) sides is a 992px content column at 1440, where the
+  // frame's own default is 1100; the bands were 108px wider than hers before a
+  // single type value was compared.
+  guardOnly({ file: `${SS}/theme.ts`, find: 'maxw: "1120px"' });
+  guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "padding: 0 clamp(32px, 5vw, 64px);" });
+  // The card material, shared by the stage grid and the method cards. Her
+  // `hudSurface` is one parameterisation of `hudCardSurface`, and the entry
+  // emits the same two-stop over the same drop.
+  guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: 'accentRgb: "18, 63, 82"' });
+  guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "accentAlpha: 0.5," });
+  guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "washAlpha: 0.06," });
+  // BraidJourney — BraidGrid / BraidStages / BraidStage / BraidStageNumber.
+  guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "margin-top: 2.25rem;" });
+  guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "grid-template-columns: repeat(2, minmax(0, 1fr));" });
+  guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "max-width: calc(50% - 0.625rem);" });
+  guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "padding: clamp(1.35rem, 2.5vw, 1.85rem);" });
+  guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "margin: 0 0 0.8rem;" });
+  guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "font-size: clamp(1.3rem, 2.2vw, 1.8rem);" });
+  guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "font-weight: 480;" });
+  guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "margin-bottom: 0.65rem;" });
+  guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "font-size: 0.78rem;" });
+  guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "letter-spacing: 0.2em;" });
+  // Her `P` and `H3` — the stage copy and the method-card headline.
+  guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "margin: 0 0 16px;" });
+  guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "font-size: clamp(1.08rem, 1.8vw, 1.28rem);" });
+  guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "line-height: 1.25;" });
+  guardOnly({ file: `${SS}/theme.ts`, find: 'h3Color: "#eef4f3"' });
+  // The method cards — Cards / Card.
+  guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "grid-template-columns: repeat(3, 1fr);" });
+  guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "gap: 16px;" });
+  guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "padding: 22px 22px 24px;" });
+  guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "font-size: 15px;" });
+  // How it works — her `Steps` rail holding the SHARED <TrainingStep> rows.
+  guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "margin-top: 34px;" });
+  guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: `border-left: 1px solid rgba(\${BONE}, 0.1);` });
+  guardOnly({ file: CARDS, find: "linear-gradient(90deg, rgba(17, 40, 59, 0.2), transparent 62%)" });
+  guardOnly({ file: CARDS, find: `color: rgba(\${BONE}, 0.56);` });
+  // The closing block — the SHARED <CalloutBar variant="gateway">.
+  guardOnly({ file: SSPAGE, find: '<CalloutBar' });
+  guardOnly({ file: SSPAGE, find: 'variant="gateway"' });
+  guardOnly({ file: CALLOUT, find: "width: min(100% - 3rem, 70rem);" });
+  guardOnly({ file: CALLOUT, find: "letter-spacing: 0.18em;" });
+  guardOnly({ file: CALLOUT, find: `color: rgba(\${BONE}, 0.59);` });
 
   /** Her BAND type: IntroEyebrow + IntroTitle + Prose. The eyebrow is
    *  `--preview-meta-font` (Space Mono → the ACCENT role, the family ruling)
    *  and the title `--preview-display-font` (Science Gothic → DISPLAY). */
   const bandType = {
+    // Her Wrap's content column, which every band on the page shares.
+    maxWidth: 992,
     eyebrowRole: "accent",
     eyebrowSize: "0.68rem",
     eyebrowWeight: 700,
@@ -2135,6 +2192,7 @@ function buildStarseed(data) {
       imageUrl: asset("/images/StarBot.png"),
       imageAlt: verbatim(s.heroImageAlt),
       imagePosition: "right",
+      maxWidth: 992,
       eyebrow: c.hero.eyebrow,
       eyebrowColor: "accent",
       heading: c.hero.titleBefore,
@@ -2207,27 +2265,54 @@ function buildStarseed(data) {
       ...bandType,
     }),
   );
+  /** Her `hudSurface` — one parameterisation of the shared `hudCardSurface`,
+   *  and the same two-stop the entry emits. Both grids on this page wear it. */
+  const CARD_WASH = "rgba(18, 63, 82, 0.5)";
+
   sections.push(
-    section("sec-ss-journey", "rf-offer-card", "The journey", {
+    // Her BraidJourney: BraidGrid → BraidStages → BraidStage, each stage a
+    // number, an h3 and its paragraphs on the shared card material. Seven of
+    // them, so the last one is the odd child her grid centers on one track.
+    section("sec-ss-journey", "rf-hud-cards", "The journey", {
+      mode: "door",
       columns: 2,
       heading: "",
-      bulletGlyph: "✦",
-      padTop: 0,
-      padBottom: 25,
+      marginTop: "2.25rem",
+      marginBottom: "",
+      maxWidth: 62,
+      gap: "1rem",
+      cardPad: "clamp(1.35rem, 2.5vw, 1.85rem)",
+      cardMinHeight: "0",
+      lastOddWidth: "calc(50% - 0.625rem)",
+      cardWash: CARD_WASH,
+      cardWashFeatured: "",
+      imageGlow: "",
+      // BraidStageNumber: her copper, in the mono face, 0.65rem above the head
+      // rather than the gateway card's float.
+      markerColor: "#c79a86",
+      markerSize: "0.78rem",
+      markerTracking: "0.2em",
+      markerGap: "0.65rem",
+      priceColor: "",
+      linkColor: "",
+      badgeColor: "",
+      // Her h3 declares family, size, weight and colour and nothing else, so
+      // the tracking is `normal` and the line-height is the page's own 1.68 —
+      // both stated, because the entry's cardHeadline defaults are neither.
+      titleSize: "clamp(1.3rem, 2.2vw, 1.8rem)",
+      titleWeight: 480,
+      titleTracking: "normal",
+      titleLh: "1.68",
+      titleGap: "0.8rem",
+      titleColor: `rgb(${T.TEAL})`,
+      copySize: "",
+      copyLh: "1.72",
+      copyColor: "#c4ccd0",
+      copyGap: "16px",
       items: c.journey.items.map((item, i) => ({
-        // BraidStageNumber — a zero-padded stage index, same as her process
-        // cards and the offer pages' steps.
-        eyebrow: `0${i + 1}`,
+        marker: `0${i + 1}`,
         title: item.title,
-        sub: "",
-        body: item.body.join("\n\n"),
-        listLabel: "",
-        bullets: [],
-        note: "",
-        price: "",
-        ctaLabel: "",
-        ctaHref: "",
-        variant: "standard",
+        copy: item.body.join("\n\n"),
       })),
     }),
   );
@@ -2254,24 +2339,42 @@ function buildStarseed(data) {
 
   sections.push(band("sec-ss-method", "The method", c.method));
   sections.push(
-    section("sec-ss-method-cards", "rf-offer-card", "The method — cards", {
+    // Her Cards / Card — the same material, three across, no marker. The three
+    // inline SVG glyphs are drawn in the page file and stay behind, as noted
+    // at the top of this builder.
+    section("sec-ss-method-cards", "rf-hud-cards", "The method — cards", {
+      mode: "door",
       columns: 3,
       heading: "",
-      bulletGlyph: "✦",
-      padTop: 0,
-      padBottom: 25,
-      items: c.cards.map((card) => ({
-        title: card.title,
-        sub: "",
-        body: card.body,
-        listLabel: "",
-        bullets: [],
-        note: "",
-        price: "",
-        ctaLabel: "",
-        ctaHref: "",
-        variant: "standard",
-      })),
+      marginTop: "34px",
+      marginBottom: "",
+      maxWidth: 62,
+      gap: "16px",
+      cardPad: "22px 22px 24px",
+      cardMinHeight: "0",
+      lastOddWidth: "",
+      cardWash: CARD_WASH,
+      cardWashFeatured: "",
+      imageGlow: "",
+      markerColor: "",
+      markerSize: "",
+      markerTracking: "",
+      markerGap: "",
+      priceColor: "",
+      linkColor: "",
+      badgeColor: "",
+      // Her `H3`, not the shared cardHeadline — this one card types its own.
+      titleSize: "clamp(1.08rem, 1.8vw, 1.28rem)",
+      titleWeight: 520,
+      titleTracking: "-0.01em",
+      titleLh: "1.25",
+      titleGap: "9px",
+      titleColor: "#eef4f3",
+      copySize: "15px",
+      copyLh: "1.68",
+      copyColor: "#9aa4ab",
+      copyGap: "0",
+      items: c.cards.map((card) => ({ title: card.title, copy: card.body })),
     }),
   );
 
@@ -2292,25 +2395,31 @@ function buildStarseed(data) {
     }),
   );
   sections.push(
-    section("sec-ss-how", "rf-offer-card", "How it works", {
-      columns: 3,
-      heading: "",
-      bulletGlyph: "✦",
-      padTop: 0,
-      padBottom: 25,
-      items: c.how.steps.map((step, i) => ({
-        eyebrow: `0${i + 1}`,
+    // Her `Steps` rail holding the SHARED <TrainingStep> rows — a left rule
+    // with each row's own right/bottom border forming the cells. It is not a
+    // card grid, which is what the first cut authored: rf-process-steps' rail
+    // mode was derived from this exact pair.
+    section("sec-ss-how", "rf-process-steps", "How it works", {
+      eyebrow: "",
+      title: "",
+      mode: "rail",
+      steps: c.how.steps.map((step, i) => ({
+        marker: `0${i + 1}`,
         title: step.title,
-        sub: "",
-        body: step.body,
-        listLabel: "",
-        bullets: [],
-        note: "",
-        price: "",
-        ctaLabel: "",
-        ctaHref: "",
-        variant: "standard",
+        copy: step.body,
       })),
+      flowSteps: [],
+      note: "",
+      // TrainingStepRoot's own wash — a literal in her file, not accent-derived.
+      cardWash: "rgba(17, 40, 59, 0.2)",
+      maxWidth: 62,
+      spacedTop: false,
+      // The rail follows an eyebrow band of its own, so neither of the entry's
+      // two derived gaps applies.
+      stepsTop: "34px",
+      // TrainingStepBody's copy — rgba over her ground, not a flattened hex,
+      // because a section's muted role takes a complete CSS colour.
+      muted: `rgba(${T.BONE}, 0.56)`,
     }),
   );
 
@@ -2319,30 +2428,37 @@ function buildStarseed(data) {
   // The closing callout, which the hero's button jumps to — so the anchor is
   // load-bearing, not decoration.
   sections.push(
-    section("sec-ss-begin", "rf-offer-card", "Begin", {
-      columns: 1,
-      heading: "",
-      bulletGlyph: "✦",
-      padTop: 0,
-      padBottom: 25,
+    // The SHARED <CalloutBar variant="gateway"> — the entry rf-callout-bar was
+    // derived from, seat for seat. Her lead joins with a SPACE here (one
+    // sentence, not a stack of paragraphs), which is what her page passes.
+    section("sec-ss-begin", "rf-callout-bar", "Begin", {
       anchorId: "begin",
-      items: [
+      eyebrow: c.begin.eyebrow,
+      eyebrowTracking: 0.18,
+      title: c.begin.title,
+      // The gateway variant is the one that lets the title run full width.
+      titleMax: "",
+      titleTracking: -0.035,
+      titleLineHeight: 0.98,
+      copy: c.begin.lead.join(" "),
+      price: c.begin.price,
+      // `--page-glow`, declared on her Page.
+      glow: `rgba(${T.TEAL}, 0.14)`,
+      ctas: [
         {
-          anchorId: "begin",
-          eyebrow: c.begin.eyebrow,
-          title: c.begin.title,
-          sub: "",
-          body: c.begin.lead.join("\n\n"),
-          listLabel: "",
-          bullets: [],
-          note: "",
-          price: c.begin.price,
-          ctaLabel: c.begin.cta,
-          ctaHref: verbatim(s.beginUrl),
-          ctaTarget: "_blank",
-          variant: "standard",
+          label: c.begin.cta,
+          href: verbatim(s.beginUrl),
+          variant: "plate",
+          target: "_blank",
+          arrow: true,
+          // Her gateway plate borders copper even on a teal-accented page.
+          color: `rgba(${T.COPPER}, 0.38)`,
         },
       ],
+      maxWidth: 70,
+      spacedTop: true,
+      padBottom: "",
+      muted: `rgba(${T.BONE}, 0.59)`,
     }),
   );
   sections.push(
