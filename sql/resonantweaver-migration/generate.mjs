@@ -1522,11 +1522,45 @@ function buildWaitlistPage(data, entry, formId) {
       spacedTop: true,
       accent: offer.accent,
     }),
+    // WaitlistForm.tsx, carried as --mf-* vars on the shared renderer: the
+    // labels in her mono meta face (the ACCENT type role — Space Mono here),
+    // uppercase at 0.65rem over bone-0.62 with no required asterisks (her
+    // design marks nothing); square fields on rgba(0,0,0,0.28) with the teal
+    // focus; the submit as her quiet teal plate — teal ink on teal-8%,
+    // 0.68rem mono uppercase, teal-16% under the cursor — never the
+    // platform's dark-on-accent pill. Her Form is a 28rem column with a
+    // 0.9rem grid gap.
     section(`sec-wait-form-${offer.slug}`, "form-live", "Waitlist", {
       formId,
       accent: "",
       hideHeader: true,
-      maxWidth: 640,
+      maxWidth: 448,
+      vars: {
+        "--mf-ink": `rgb(${data.tokens.BONE})`,
+        "--mf-gap": "0.9rem",
+        "--mf-field-gap": "0.45rem",
+        "--mf-radius": "0",
+        "--mf-label-font": "var(--tgv-fontAccent, inherit)",
+        "--mf-label-size": "0.65rem",
+        "--mf-label-tracking": "0.08em",
+        "--mf-label-transform": "uppercase",
+        "--mf-label-color": bone(data, 0.62),
+        "--mf-req-display": "none",
+        "--mf-field-pad": "0.75rem 0.85rem",
+        "--mf-field-size": "0.95rem",
+        "--mf-field-bg": "rgba(0, 0, 0, 0.28)",
+        "--mf-field-edge": bone(data, 0.18),
+        "--mf-field-focus": `rgb(${data.tokens.TEAL})`,
+        "--mf-submit-pad": "0.85rem 1.1rem",
+        "--mf-submit-size": "0.68rem",
+        "--mf-submit-tracking": "0.08em",
+        "--mf-submit-transform": "uppercase",
+        "--mf-submit-font": "var(--tgv-fontAccent, inherit)",
+        "--mf-submit-ink": `rgb(${data.tokens.TEAL})`,
+        "--mf-submit-bg": `rgba(${data.tokens.TEAL}, 0.08)`,
+        "--mf-submit-bg-hover": `rgba(${data.tokens.TEAL}, 0.16)`,
+        "--mf-submit-edge": `rgba(${data.tokens.TEAL}, 0.4)`,
+      },
     }),
   ];
 
@@ -1583,18 +1617,37 @@ function buildAllProducts(data) {
     // page now, so the stored link goes straight there rather than through the
     // hop. Her ProductsMain runs the 86rem container.
     backLinkRow("sec-all-back", data.star_all.backLink, "/", 86, `rgb(${data.tokens.TEAL})`),
-    section("sec-all-head", "rf-media-copy", "Header", {
-      imageUrl: "",
-      imageAlt: "",
-      imagePosition: "left",
+    // Her Header, on rf-section-head at h1 scale. The first cut authored this
+    // as rf-media-copy and the differ measured the drift: h1 51.2px against
+    // her 64.8, the eyebrow in Space Grotesk against her Space Mono. Every
+    // geometry knob below is AllProducts.styles verbatim — Header's 0.62fr
+    // column from 18rem, the 6rem gap, clamp(3rem, 6vw, 5rem) over the 11%
+    // hairline — and the eyebrow rides the accent type role like the rest of
+    // the family's mono runs.
+    section("sec-all-head", "rf-section-head", "Header", {
       eyebrow: header.eyebrow,
-      eyebrowColor: "accent",
-      heading: header.title,
+      eyebrowTracking: 0.18,
+      title: header.title,
       headingLevel: 1,
-      headingAccent: "",
-      paragraphs: [header.copy],
-      chips: [],
-      ctas: [],
+      titleSize: "clamp(2.65rem, 4.5vw, 4.4rem)",
+      titleTracking: -0.03,
+      titleLh: 1.04,
+      titleMaxCh: 15,
+      copy: header.copy,
+      copyFraction: 0.62,
+      copyMinRem: 18,
+      gapRem: 6,
+      padBottom: "clamp(3rem, 6vw, 5rem)",
+      borderAlpha: 11,
+      copySize: "clamp(1rem, 1.45vw, 1.16rem)",
+      copyLh: 1.7,
+      copyMaxRem: 0,
+      stackAt: 760,
+      maxWidth: 86,
+      spacedTop: false,
+      ink: `rgb(${data.tokens.BONE})`,
+      accent: `rgb(${data.tokens.TEAL})`,
+      muted: bone(data, 0.61),
     }),
   ];
 
@@ -1651,18 +1704,36 @@ function buildAllProducts(data) {
   }
 
   sections.push(
-    section("sec-all-close", "rf-media-copy", "Closing", {
-      imageUrl: "",
-      imageAlt: "",
-      imagePosition: "left",
+    // Her closing is a CalloutBar (variant "offerings") and the family already
+    // derived that entry — the first cut authored rf-media-copy here and the
+    // differ read the drift off the eyebrow face. Offerings values verbatim:
+    // teal eyebrow and glow, 20ch title at the -0.025/1.04 metrics, and the
+    // action as the bare copper monolink, not a plate.
+    section("sec-all-close", "rf-callout-bar", "Closing", {
       eyebrow: closing.eyebrow,
-      eyebrowColor: "accent",
-      heading: closing.title,
-      headingLevel: 2,
-      headingAccent: "",
-      paragraphs: [closing.copy],
-      chips: [],
-      ctas: [{ label: closing.actionLabel, href: "/#contact", variant: "ritual" }],
+      eyebrowTracking: 0.18,
+      title: closing.title,
+      titleMax: "20ch",
+      titleTracking: -0.025,
+      titleLineHeight: 1.04,
+      copy: closing.copy,
+      price: "",
+      glow: `rgba(${data.tokens.TEAL}, 0.1)`,
+      ctas: [
+        {
+          label: closing.actionLabel,
+          href: "/#contact",
+          variant: "monolink",
+          arrow: true,
+          color: `rgb(${data.tokens.COPPER})`,
+        },
+      ],
+      maxWidth: 86,
+      spacedTop: true,
+      padBottom: "7rem",
+      ink: `rgb(${data.tokens.BONE})`,
+      accent: `rgb(${data.tokens.TEAL})`,
+      muted: bone(data, 0.59),
     }),
   );
 

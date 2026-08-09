@@ -1992,25 +1992,35 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/experience/all-products', 'A
     },
     {
       "id": "sec-all-head",
-      "type": "rf-media-copy",
+      "type": "rf-section-head",
       "label": "Header",
       "blocks": [],
       "enabled": true,
       "config": {
         "props": {
-          "imageUrl": "",
-          "imageAlt": "",
-          "imagePosition": "left",
           "eyebrow": "The complete offering map",
-          "eyebrowColor": "accent",
-          "heading": "Choose the depth of support you need",
+          "eyebrowTracking": 0.18,
+          "title": "Choose the depth of support you need",
           "headingLevel": 1,
-          "headingAccent": "",
-          "paragraphs": [
-            "From a focused reading to a full course or steady intention holding — begin with the container that matches what is moving now, grouped by the door it belongs to."
-          ],
-          "chips": [],
-          "ctas": []
+          "titleSize": "clamp(2.65rem, 4.5vw, 4.4rem)",
+          "titleTracking": -0.03,
+          "titleLh": 1.04,
+          "titleMaxCh": 15,
+          "copy": "From a focused reading to a full course or steady intention holding — begin with the container that matches what is moving now, grouped by the door it belongs to.",
+          "copyFraction": 0.62,
+          "copyMinRem": 18,
+          "gapRem": 6,
+          "padBottom": "clamp(3rem, 6vw, 5rem)",
+          "borderAlpha": 11,
+          "copySize": "clamp(1rem, 1.45vw, 1.16rem)",
+          "copyLh": 1.7,
+          "copyMaxRem": 0,
+          "stackAt": 760,
+          "maxWidth": 86,
+          "spacedTop": false,
+          "ink": "rgb(232, 229, 218)",
+          "accent": "rgb(72, 210, 185)",
+          "muted": "rgba(232, 229, 218, 0.61)"
         }
       }
     },
@@ -2234,31 +2244,36 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/experience/all-products', 'A
     },
     {
       "id": "sec-all-close",
-      "type": "rf-media-copy",
+      "type": "rf-callout-bar",
       "label": "Closing",
       "blocks": [],
       "enabled": true,
       "config": {
         "props": {
-          "imageUrl": "",
-          "imageAlt": "",
-          "imagePosition": "left",
           "eyebrow": "Not sure where to begin",
-          "eyebrowColor": "accent",
-          "heading": "Start with what feels most present",
-          "headingLevel": 2,
-          "headingAccent": "",
-          "paragraphs": [
-            "You do not need to diagnose the field before reaching out. Describe what is moving, and we can find the right depth together."
-          ],
-          "chips": [],
+          "eyebrowTracking": 0.18,
+          "title": "Start with what feels most present",
+          "titleMax": "20ch",
+          "titleTracking": -0.025,
+          "titleLineHeight": 1.04,
+          "copy": "You do not need to diagnose the field before reaching out. Describe what is moving, and we can find the right depth together.",
+          "price": "",
+          "glow": "rgba(72, 210, 185, 0.1)",
           "ctas": [
             {
               "label": "Start a conversation",
               "href": "/#contact",
-              "variant": "ritual"
+              "variant": "monolink",
+              "arrow": true,
+              "color": "rgb(183, 138, 119)"
             }
-          ]
+          ],
+          "maxWidth": 86,
+          "spacedTop": true,
+          "padBottom": "7rem",
+          "ink": "rgb(232, 229, 218)",
+          "accent": "rgb(72, 210, 185)",
+          "muted": "rgba(232, 229, 218, 0.59)"
         }
       }
     }
@@ -4374,7 +4389,33 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/extended-starseed-prof
           "formId": "c57bb534-fce0-4e32-aa70-ecf0c6feead6",
           "accent": "",
           "hideHeader": true,
-          "maxWidth": 640
+          "maxWidth": 448,
+          "vars": {
+            "--mf-ink": "rgb(232, 229, 218)",
+            "--mf-gap": "0.9rem",
+            "--mf-field-gap": "0.45rem",
+            "--mf-radius": "0",
+            "--mf-label-font": "var(--tgv-fontAccent, inherit)",
+            "--mf-label-size": "0.65rem",
+            "--mf-label-tracking": "0.08em",
+            "--mf-label-transform": "uppercase",
+            "--mf-label-color": "rgba(232, 229, 218, 0.62)",
+            "--mf-req-display": "none",
+            "--mf-field-pad": "0.75rem 0.85rem",
+            "--mf-field-size": "0.95rem",
+            "--mf-field-bg": "rgba(0, 0, 0, 0.28)",
+            "--mf-field-edge": "rgba(232, 229, 218, 0.18)",
+            "--mf-field-focus": "rgb(72, 210, 185)",
+            "--mf-submit-pad": "0.85rem 1.1rem",
+            "--mf-submit-size": "0.68rem",
+            "--mf-submit-tracking": "0.08em",
+            "--mf-submit-transform": "uppercase",
+            "--mf-submit-font": "var(--tgv-fontAccent, inherit)",
+            "--mf-submit-ink": "rgb(72, 210, 185)",
+            "--mf-submit-bg": "rgba(72, 210, 185, 0.08)",
+            "--mf-submit-bg-hover": "rgba(72, 210, 185, 0.16)",
+            "--mf-submit-edge": "rgba(72, 210, 185, 0.4)"
+          }
         }
       }
     }
@@ -4499,7 +4540,33 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/awareness-and-percepti
           "formId": "f36f08e2-053d-4c0e-9ffc-dad4332527e3",
           "accent": "",
           "hideHeader": true,
-          "maxWidth": 640
+          "maxWidth": 448,
+          "vars": {
+            "--mf-ink": "rgb(232, 229, 218)",
+            "--mf-gap": "0.9rem",
+            "--mf-field-gap": "0.45rem",
+            "--mf-radius": "0",
+            "--mf-label-font": "var(--tgv-fontAccent, inherit)",
+            "--mf-label-size": "0.65rem",
+            "--mf-label-tracking": "0.08em",
+            "--mf-label-transform": "uppercase",
+            "--mf-label-color": "rgba(232, 229, 218, 0.62)",
+            "--mf-req-display": "none",
+            "--mf-field-pad": "0.75rem 0.85rem",
+            "--mf-field-size": "0.95rem",
+            "--mf-field-bg": "rgba(0, 0, 0, 0.28)",
+            "--mf-field-edge": "rgba(232, 229, 218, 0.18)",
+            "--mf-field-focus": "rgb(72, 210, 185)",
+            "--mf-submit-pad": "0.85rem 1.1rem",
+            "--mf-submit-size": "0.68rem",
+            "--mf-submit-tracking": "0.08em",
+            "--mf-submit-transform": "uppercase",
+            "--mf-submit-font": "var(--tgv-fontAccent, inherit)",
+            "--mf-submit-ink": "rgb(72, 210, 185)",
+            "--mf-submit-bg": "rgba(72, 210, 185, 0.08)",
+            "--mf-submit-bg-hover": "rgba(72, 210, 185, 0.16)",
+            "--mf-submit-edge": "rgba(72, 210, 185, 0.4)"
+          }
         }
       }
     }
