@@ -1365,6 +1365,18 @@ published `siteFonts` row is still resonantweaver's 8 faces) and the uploaded
 file deleted from the bucket (`cdn` still serves it from a Cloudflare HIT until
 it ages out). render-check 365/365.
 
+**Per site since the same day.** Every face was landing in one shared
+`fonts/` folder, so a bucket path told you nothing about whose asset it was.
+Now `<project>/fonts/<site>/…` under the public prefix — the same `<project>/`
+fold the editor's image route uses, so an audit reads one layout rather than
+two. Not about collisions (the stamped filename already handles those): it is
+that a customer's uploads should be listable, auditable and deletable as THEIR
+set. The folder is the RESOLVED site, never a request field, and `safeSegment`
+sanitizes each part while keeping the slash, so a slug cannot climb out.
+No siteId (the house surface) lands under `fonts/house`. Verified live: a house
+upload keyed `tgv/fonts/house/…`, a tenant upload `tgv/fonts/resonantweaver/…`;
+both test objects deleted afterwards, prefix back to zero. HQ `642f40ce`.
+
 ## Phase 4 — images
 
 1. Restore every missing asset under `/images/tenants/resonantweaver/`.
