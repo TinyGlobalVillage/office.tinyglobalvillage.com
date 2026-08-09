@@ -1788,3 +1788,79 @@ Commits: mono `96c9fa22` (glyph) · `861d8c86` (baseline) · `69bf93f6` (pull
 quote) · `5f170049` (hero). Office `cf07bb1` · `4a883f7` · `7e47bbe` · `26be946`.
 HQ deployed four times, RCS built nothing each time; render-check 435/435;
 `02-pages.sql` redriven to production five times, 17 published rows each.
+
+---
+
+## THE BREAKPOINTS — 2026-08-09 (768: 24.29 → 15.88)
+
+One finding, four times over: **a breakpoint the entry hardcodes is a breakpoint
+no tenant can state**, and her starseed page has four of them.
+
+| | 1440 | 768 | 390 |
+|---|---|---|---|
+| start of window | 9.01 | 24.29 | 19.45 |
+| **now** | **8.21** | **15.88** | **17.64** |
+| page delta | +85px | −70px | +91px |
+
+| band | before | after |
+|---|---|---|
+| seg 5 braid stages @768 | 51.93 · 2603px | **20.07 · 2232** (hers 2246) |
+| seg 0 hero @1440 | 15.06 · 1184px | **8.36 · 1158** (hers 1159) |
+| seg 0 hero @768 | 18.09 | **12.74** |
+
+### Her four breakpoints, and the two knobs that carry them
+
+Her page stacks its BraidStages at **720**, its Cards and CurrentsGrid at **900**,
+and steps its Hero's top pad at **900**. The door mode hardcoded **800** and the
+shared section frame hardcodes **768** — so the entry could not reach any of them.
+
+At 768 that one number *was* the braid band: hers still two-up, ours already
+stacked, 2246px against 2603.
+
+- `rf-hud-cards.stackAt` — 0 ⇒ the mode's own (door and profile 800, tile 780,
+  row 900).
+- `RfSection.narrowAt` + `padTopNarrow` / `padBottomNarrow` — the page-frame pass
+  had already named this cost in its own comment ("a stated pad holds at every
+  width"); now a frame can step, and step at ITS OWN width. Each narrow side
+  falls back to its wide value, so one stated pad still holds at both.
+
+**Her stage card also swaps padding at 900 while its grid stacks at 720** — two
+independent widths in one component. `cardPadAt` is therefore its own knob and
+merely falls BACK to the stack point. Collapsing them would be a guess wearing a
+measurement's clothes.
+
+The method cards' 900 changes nothing at 1440, 768 or 390 — it is wrong only
+*between* 768 and 900, which the rig does not shoot. Authored anyway: **the rig
+is a sampler, not the definition of correct.**
+
+### And three hero values that were the wrong shape
+
+- **`copyTop` was pushing the whole column.** Her `Copy`'s 1.25rem is above the
+  PROSE, and it collapses into the accent line's 1.8rem bottom margin at every
+  width — so the knob was adding 20px her hero has never had. The bands still
+  state it, because there the column IS the prose.
+- **The shared `CtaRow`'s 22px/12px are a default, not her values.** Hers is
+  gap 14px and no margin: the last paragraph's own 16px bottom is already the
+  gap, and 22px collapsing over 16 is 6px more. `ctaTop` / `ctaGap`.
+- Both now measurable: hero 1184px → **1158** against her 1159.
+
+### Left, in order
+
+1. **seg 6 the currents at 768/390 — 21.62 / 16.43%** (1354 → 1330, 1553 → 1572).
+   The worst band at 768 now.
+2. **seg 4 the braid at 390 — 23.08%** (3687 → 3725) and **seg 5 at 390 19.91%**.
+3. **seg 2 at 768 — 17.34%** (469 → 441), the responsive band.
+4. **seg 10/11 the begin block — 11.76% at 1440** (783 → 850).
+5. Her `Or` line — 13.5px with a teal link inside it; `parseInline` has no
+   grammar for inline links. The differ names it at every width.
+6. Her `Band` hairlines — 1px rgba(255,255,255,0.09) top and bottom over a 3%
+   teal gradient on four of eleven bands; the wash is under tolerance, the
+   hairlines have no knob.
+7. pearl-chamber 45.99 + home-classic 43.52 — unparked by Cormorant A, NON-font
+   deltas only. doors/experiences ~20% — Gio's eye.
+8. Then: **tell Gio "come look", his eyeball pass, then the flip.**
+
+Commits: mono `30fb38a6` (stackAt + cardPadNarrow) · `0d2efc4d` (ctaTop/ctaGap) ·
+`54f1f350` (RfSection narrowAt). Office `d52de0d` · `0633bcf`. HQ deployed three
+times, RCS built nothing each time; render-check 444/444; `02-pages.sql` redriven
+three times, 17 published rows each.
