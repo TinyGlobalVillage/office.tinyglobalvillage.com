@@ -853,19 +853,16 @@ function buildOfferPage(data, entry) {
   // it is TRUE of the page — four of the six are still `[[placeholder]]` in her
   // data, and hiding the notice would present draft wording as finished.
   if (offer.placeholder) {
+    // PlaceholderNote verbatim: the note IS the paragraph — rf-media-copy's
+    // band padding made this 49px line a 243px section and the worst band on
+    // three draft pages.
     sections.push(
-      section(`sec-offer-note-${offer.slug}`, "rf-media-copy", "Placeholder note", {
-        imageUrl: "",
-        imageAlt: "",
-        imagePosition: "left",
-        eyebrow: "",
-        eyebrowColor: "amber",
-        heading: "",
-        headingLevel: 2,
-        headingAccent: "",
-        paragraphs: [verbatim(inlineCopy.offer.placeholderNote)],
-        chips: [],
-        ctas: [],
+      section(`sec-offer-note-${offer.slug}`, "rf-mono-note", "Placeholder note", {
+        text: verbatim(inlineCopy.offer.placeholderNote),
+        marginTop: "1.5rem",
+        maxWidth: 82,
+        ink: `rgb(${data.tokens.BONE})`,
+        muted: bone(data, 0.55),
       }),
     );
   }

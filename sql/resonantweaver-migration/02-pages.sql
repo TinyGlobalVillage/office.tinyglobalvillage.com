@@ -3043,25 +3043,17 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/meeting-your-galactic-
     },
     {
       "id": "sec-offer-note-meeting-your-galactic-self-meditation",
-      "type": "rf-media-copy",
+      "type": "rf-mono-note",
       "label": "Placeholder note",
       "blocks": [],
       "enabled": true,
       "config": {
         "props": {
-          "imageUrl": "",
-          "imageAlt": "",
-          "imagePosition": "left",
-          "eyebrow": "",
-          "eyebrowColor": "amber",
-          "heading": "",
-          "headingLevel": 2,
-          "headingAccent": "",
-          "paragraphs": [
-            "This page uses placeholder copy — final wording is still being written and hasn't been approved yet."
-          ],
-          "chips": [],
-          "ctas": []
+          "text": "This page uses placeholder copy — final wording is still being written and hasn't been approved yet.",
+          "marginTop": "1.5rem",
+          "maxWidth": 82,
+          "ink": "rgb(232, 229, 218)",
+          "muted": "rgba(232, 229, 218, 0.55)"
         }
       }
     },
@@ -3214,25 +3206,17 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/galactic-initiation', 
     },
     {
       "id": "sec-offer-note-galactic-initiation",
-      "type": "rf-media-copy",
+      "type": "rf-mono-note",
       "label": "Placeholder note",
       "blocks": [],
       "enabled": true,
       "config": {
         "props": {
-          "imageUrl": "",
-          "imageAlt": "",
-          "imagePosition": "left",
-          "eyebrow": "",
-          "eyebrowColor": "amber",
-          "heading": "",
-          "headingLevel": 2,
-          "headingAccent": "",
-          "paragraphs": [
-            "This page uses placeholder copy — final wording is still being written and hasn't been approved yet."
-          ],
-          "chips": [],
-          "ctas": []
+          "text": "This page uses placeholder copy — final wording is still being written and hasn't been approved yet.",
+          "marginTop": "1.5rem",
+          "maxWidth": 82,
+          "ink": "rgb(232, 229, 218)",
+          "muted": "rgba(232, 229, 218, 0.55)"
         }
       }
     },
@@ -4196,25 +4180,17 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/galactic-integration-s
     },
     {
       "id": "sec-offer-note-galactic-integration-session",
-      "type": "rf-media-copy",
+      "type": "rf-mono-note",
       "label": "Placeholder note",
       "blocks": [],
       "enabled": true,
       "config": {
         "props": {
-          "imageUrl": "",
-          "imageAlt": "",
-          "imagePosition": "left",
-          "eyebrow": "",
-          "eyebrowColor": "amber",
-          "heading": "",
-          "headingLevel": 2,
-          "headingAccent": "",
-          "paragraphs": [
-            "This page uses placeholder copy — final wording is still being written and hasn't been approved yet."
-          ],
-          "chips": [],
-          "ctas": []
+          "text": "This page uses placeholder copy — final wording is still being written and hasn't been approved yet.",
+          "marginTop": "1.5rem",
+          "maxWidth": 82,
+          "ink": "rgb(232, 229, 218)",
+          "muted": "rgba(232, 229, 218, 0.55)"
         }
       }
     },
@@ -4605,7 +4581,7 @@ BEGIN
     FROM public.page_models p, LATERAL jsonb_array_elements(p.model_json->'sections') s
    WHERE p.site = 'resonantweaver'
      AND p.slug = ANY(expected || expected_drafts)
-     AND s->>'type' NOT IN ('rf-split-hero', 'rf-centered-intro', 'rf-door-card', 'rf-offer-card', 'rf-media-copy', 'rf-accordion', 'form-live', 'rf-testimonials', 'rf-page-tone', 'rf-back-link', 'rf-product-hero', 'rf-section-head', 'rf-hud-cards', 'rf-callout-bar', 'rf-process-steps', 'rf-list', 'rf-detail-split');
+     AND s->>'type' NOT IN ('rf-split-hero', 'rf-centered-intro', 'rf-door-card', 'rf-offer-card', 'rf-media-copy', 'rf-accordion', 'form-live', 'rf-testimonials', 'rf-page-tone', 'rf-back-link', 'rf-product-hero', 'rf-section-head', 'rf-hud-cards', 'rf-callout-bar', 'rf-process-steps', 'rf-list', 'rf-mono-note', 'rf-detail-split');
   IF n <> 0 THEN
     RAISE EXCEPTION 'assert: % section(s) name an unexpected type', n;
   END IF;
