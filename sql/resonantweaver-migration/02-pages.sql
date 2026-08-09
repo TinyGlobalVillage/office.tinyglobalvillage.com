@@ -1588,10 +1588,10 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/develop', 'Develop Your Perc
       "enabled": true,
       "config": {
         "props": {
-          "eyebrow": "Ready when you are",
+          "eyebrow": "Ways into the practice",
           "eyebrowTracking": 0.19,
-          "title": "The courses",
-          "copy": "Structured containers for the same work, for whenever you're ready to go deeper than a single practice.",
+          "title": "Begin with your own signals",
+          "copy": "Start by learning the feeling of your own system. The Somatic Signature gives you a personal practice for that first foundation. The Awareness and Perception Training will carry the work further into discernment, energetic boundaries, and conscious relationship with subtle information.",
           "maxWidth": 86,
           "spacedTop": true,
           "accent": "rgb(183, 138, 119)",
@@ -1644,6 +1644,25 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/develop', 'Develop Your Perc
               "mediaAlt": ""
             }
           ]
+        }
+      }
+    },
+    {
+      "id": "sec-gw-note-develop",
+      "type": "rf-section-head",
+      "label": "Note",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "eyebrow": "Practice, not performance",
+          "eyebrowTracking": 0.19,
+          "title": "Clarity grows through returning",
+          "copy": "Subtle perception does not become clearer by reaching further or trying to feel more. It becomes clearer as you learn your own baseline, notice what changes, and return often enough for the differences to become familiar. The aim is not to remain open to everything. It is to know what you are sensing and choose how you meet it.",
+          "maxWidth": 86,
+          "spacedTop": true,
+          "accent": "rgb(183, 138, 119)",
+          "muted": "rgba(232, 229, 218, 0.58)"
         }
       }
     },
@@ -1841,10 +1860,10 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/receive', 'Enter Your Own En
       "enabled": true,
       "config": {
         "props": {
-          "eyebrow": "Ready when you are",
+          "eyebrow": "Which one fits?",
           "eyebrowTracking": 0.19,
-          "title": "The courses",
-          "copy": "Structured containers for the same work, for whenever you're ready to go deeper than a single practice.",
+          "title": "Reflection or tending",
+          "copy": "The Resonance Mirror helps you see and understand what is moving. The Pearl Chamber gives one known intention a place to be held and tended. One begins with a question; the other begins with a direction you have already chosen.",
           "maxWidth": 86,
           "spacedTop": true,
           "accent": "rgb(72, 210, 185)",

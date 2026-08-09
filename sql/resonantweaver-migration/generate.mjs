@@ -1216,12 +1216,15 @@ function buildGatewayPage(data, id) {
   }
 
   if (g.offerCards && g.offerCards.length) {
+    // GatewayPage.tsx: `content.offerEyebrow ?? shared.coursesEyebrow` — develop
+    // heads its offer grid "ways into the practice", not the shared courses
+    // strings. The first family cut dropped the override and the differ said so.
     sections.push(
       section(`sec-gw-courses-intro-${id}`, "rf-section-head", "Courses — intro", {
-        eyebrow: shared.coursesEyebrow,
+        eyebrow: g.offerEyebrow ?? shared.coursesEyebrow,
         eyebrowTracking: 0.19,
-        title: shared.coursesTitle,
-        copy: shared.coursesCopy,
+        title: g.offerTitle ?? shared.coursesTitle,
+        copy: g.offerCopy ?? shared.coursesCopy,
         maxWidth: 86,
         spacedTop: true,
         accent: pageAccent,
@@ -1236,6 +1239,24 @@ function buildGatewayPage(data, id) {
         padTop: 0,
         padBottom: 25,
         items: g.offerCards.map(gatewayCardToItem),
+      }),
+    );
+  }
+
+  // The optional note band — "which one fits?" on receive, "practice, not
+  // performance" on develop. GatewayPage.tsx renders it as one more
+  // SectionIntro; the pre-family rows never authored it at all.
+  if (g.noteTitle) {
+    sections.push(
+      section(`sec-gw-note-${id}`, "rf-section-head", "Note", {
+        eyebrow: g.noteEyebrow ?? "",
+        eyebrowTracking: 0.19,
+        title: g.noteTitle,
+        copy: g.noteCopy ?? "",
+        maxWidth: 86,
+        spacedTop: true,
+        accent: pageAccent,
+        muted: bone(data, 0.58),
       }),
     );
   }
