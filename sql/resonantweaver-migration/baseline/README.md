@@ -79,3 +79,34 @@ FAIL on anything else.
 
 Her app is `resonantweaver.com`, pm2 id **5**, port 3003, cwd
 `/srv/refusion-core/clients/resonantweaver.com`. Start it by **id**, not by name.
+
+## The 2026-08-09 re-freeze — why a PNG baseline expires
+
+`rw-her-app-2026-08-09` replaces `rw-her-app-2026-08-08` as the measuring stick.
+Her app did not change: same commit, same `pm2` process on :3003, and
+`/landing-star-preview/develop/` is 4077px tall in both freezes.
+
+What changed is the BROWSER. Her `GlobalStyles` carries
+`html { scrollbar-gutter: stable }`, so her body lays out 15px narrower than the
+viewport — 1425 at 1440. The 08-08 capture was taken with that gutter NOT
+reserved (body 1440), and captures taken on 08-09 reserve it. Every centred
+element is therefore ~7px apart between the two: her own live page, re-shot
+today, needs a −7px shift to align with her own stored baseline (7.45% changed
+at shift 0, 2.33% at −7).
+
+**It surfaced as a regression caused by a fix.** The pooled renderer learned to
+reserve the same gutter (`siteBackground.scrollbarGutter`), which made the pages
+geometrically identical to hers — `develop`'s h1 at x 24.5, w 688.2 on both —
+and the whole board moved ~1.5–4.4 points the WRONG way, because the old
+baseline was the only thing still laid out at 1440.
+
+Two guards so this cannot be silent again: `measurePage` records
+`layoutWidth` (`document.body.clientWidth`, not the ICB), both captures store
+it, and `tenant-pixel-parity.mjs` collects an `outOfPhase` list and prints it
+above the findings — *the ruler is wrong, not the pages; re-freeze before
+reading a number.*
+
+The lesson generalises past this tenant: **a PNG baseline is only valid against
+the browser that shot it.** Re-freeze whenever the harness's Chromium changes,
+and trust the fingerprints (`.fp.txt`, `.tx.txt`) across versions in a way the
+pixels cannot be.
