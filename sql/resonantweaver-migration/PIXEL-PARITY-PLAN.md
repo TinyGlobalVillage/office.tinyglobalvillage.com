@@ -741,6 +741,21 @@ form labels ("name *"); home's doors/FAQ/contact/about bands; and the
 harness's color-mix-vs-rgba false positives (canonicalise in measure.mjs)
 still pollute every text census.
 
+**Second run (rw-p3-family2, deployed `0caf5d02`, redriven rows): the offer
+detail pages are census-clean on TYPE** — resonance-mirror's 1440 diff is
+down to `box 10` + the one rgba-vs-color(srgb) false positive; every font,
+size, weight and color matches. What keeps the bands over the gate is now
+MEASUREMENT GEOMETRY, not pixels: (a) the candidate's band crops are the
+full-bleed section (1440) where hers crop the in-container band (1312) —
+the differ needs to crop both sides at the same x-extent (full viewport per
+band y-range is the honest form) before its percentages mean anything on
+these pages; (b) the callout band absorbed the 7rem page-bottom pad into its
+own box — fixed component-side (`6084bf57`, margin not padding — ON MONO
+MAIN, NOT YET DEPLOYED; deploy before the next measurement). **Next window,
+in order: the two harness fixes (color canonicalisation + band x-crop) in
+measure/pixeldiff, deploy `6084bf57`, re-rank; then the door/offer-card grid
+refinement, home's remaining bands, form labels.**
+
 ## Phase 4 — images
 
 1. Restore every missing asset under `/images/tenants/resonantweaver/`.
