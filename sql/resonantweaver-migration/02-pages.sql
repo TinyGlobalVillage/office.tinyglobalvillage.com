@@ -3231,6 +3231,14 @@ INSERT INTO _rw_pages VALUES ('starseed', 'The Starwoven Journey | Discover your
       "enabled": true,
       "config": {
         "props": {
+          "framePad": "none",
+          "marginTop": "20px",
+          "centered": true,
+          "maxWidth": 992,
+          "copySize": "12.5px",
+          "copyInk": "#6b7980",
+          "copyGap": "0",
+          "copyTop": "2rem",
           "imageUrl": "",
           "imageAlt": "",
           "imagePosition": "left",

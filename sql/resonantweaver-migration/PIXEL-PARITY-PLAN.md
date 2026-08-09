@@ -1517,3 +1517,68 @@ It nearly did not work when it was needed, which is the only time it matters.
   rollback path that is never exercised is a rollback path that does not exist —
   both of these should be rehearsed on a schedule, not discovered in an
   incident.
+
+### STARSEED'S OTHER HALF — 2026-08-09 (32.75 → 19.32 at 1440)
+
+**Three of the four grids were never offer cards, and reading her page rather
+than her prose is what said so.** `/starseed/` mounts two SHARED components and
+one local one:
+
+| band | was | is | her source |
+|---|---|---|---|
+| inside your journey (2105px) | rf-offer-card 38.26% | rf-hud-cards **23.99%** | `BraidJourney` → BraidStages / BraidStage on her `hudSurface` |
+| how it works | rf-offer-card 49.18% | rf-process-steps rail **11.10%** | `<TrainingStep>` in her `Steps`, left rule + per-row cells |
+| your journey begins here | rf-offer-card 40.81% | rf-callout-bar **11.95%** | `<CalloutBar variant="gateway">` |
+| the method cards | rf-offer-card ~35% | rf-hud-cards **35.19%** | her `Cards` / `Card`, same material |
+| hero | 32.32% | **15.23%** | HeroGrid, 1.05fr of copy |
+
+Every one of those entries had ALREADY been derived from those files during the
+family pass. rf-hud-cards' own header records the same mistake for her gateway
+grids — *"the first family cut authored these grids AS rf-offer-card and the
+differ called it"* — and starseed made it again, on a page written before that
+lesson landed. **The question that finds this class of bug is not "does the
+entry have the right knobs" but "what component does her page mount".**
+
+**What the entries had to learn** (mono `8f0532cc`, `842e3a15`, `4a04ab82`,
+`9294429d` — every field ""/0 ⇒ the pre-knob render, four pins say so):
+rf-hud-cards gained a card floor, a stated marker gap that replaces the gateway
+card's float, copy in BOTTOM margins (her `P` is `margin: 0 0 16px` and the
+trailing gap under the last line is part of it — a top margin cannot say that),
+multi-paragraph copy in door and tile (profile already split), and a lone last
+card centering on one track at her own `calc(50% - 0.625rem)`. rf-process-steps
+gained `stepsTop`, for a headless rail that still opens below a band of its own.
+
+**TWO LEVERS WERE WIRED TO NOTHING, and only the measure found them.**
+`copyColor` reached the PROFILE card and no other — her stages author `#c4ccd0`
+and rendered the muted role, so the knob read as present and did nothing. And
+`imagePosition: "right"` gave the IMAGE the wide column: `40% 60%` has always
+meant media-narrow/copy-wide, but the sides were swapped with `order`, and order
+is what grid auto-placement reads. **Five published rows were rendering that
+way** — giocoelho's `fitness` and both recipes, refusionist's recipe, and her
+own starseed hero, whose copy column measured 397px against her 491 and ran the
+band 182px tall for it. Fixed for everyone, named rather than shipped quietly.
+
+**AND THE WHOLE PAGE WAS THE WRONG WIDTH.** Her `Wrap` is 1120 with
+clamp(32px, 5vw, 64px) sides — a 992px column at 1440, where the frame's default
+is 1100. Every band had been 108px wider than hers, which rewraps every
+paragraph before a single type value is compared. rf-media-copy took a
+`maxWidth`; the page is one width now, hers.
+
+Office `14e2b79` + the hero/fineprint seats: twenty-four new source guards over
+her theme, her page styles and both shared components. Redriven ×3, 19 rows,
+assertions green each time. HQ deployed at `9294429d`.
+
+**LEFT ON THIS PAGE, in size order:** the eight currents (35.63% — her
+`CurrentsGrid` is a 2-up grid of hudSurface rows with a coloured dot, and it is
+authored as a flat `rf-list`; same shape of finding as the four above); the
+method cards (35.19% — the entry is right now, the remainder is not yet read);
+the PullQuote (18.12% — her `PullQuote` is its own blockquote, 28px display
+copper italic, ruled top and bottom, currently an emphasised paragraph); and her
+`Or` line, which is a 13.5px sentence with a teal link inside it and has no
+grammar in `parseInline`.
+
+**Board (1440):** pearl-chamber 45.99 · home-classic 43.52 (both parked on
+Cormorant A, which unparks them for their NON-font deltas) · experience-
+resonance-mirror 21.30 · experience-pearl-chamber 20.37 · **starseed 19.32** ·
+home 7.55 · writing 6.80 · all-products 6.66 · offers 1.94–4.61 ·
+open-your-journey 0.52 · sun-walk 0.05.

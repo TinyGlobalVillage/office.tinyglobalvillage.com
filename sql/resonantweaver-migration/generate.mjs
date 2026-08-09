@@ -2468,7 +2468,20 @@ function buildStarseed(data) {
     }),
   );
   sections.push(
+    // Her `Or` line and her `Footnote`, which sit INSIDE the #begin div under
+    // the callout — 20px and then 2rem, not a section frame. The two are still
+    // one band in the wrong order (her link line comes first and is a sentence
+    // with a link in it, which `parseInline` has no grammar for); what is right
+    // here is the rhythm, which was a full padded band and is now hers.
     section("sec-ss-fineprint", "rf-media-copy", "Direct line + disclaimer", {
+      framePad: "none",
+      marginTop: "20px",
+      centered: true,
+      maxWidth: 992,
+      copySize: "12.5px",
+      copyInk: "#6b7980",
+      copyGap: "0",
+      copyTop: "2rem",
       imageUrl: "",
       imageAlt: "",
       imagePosition: "left",
