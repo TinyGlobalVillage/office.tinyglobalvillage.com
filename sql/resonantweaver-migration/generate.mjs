@@ -2089,6 +2089,8 @@ function buildStarseed(data) {
   guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "font-size: clamp(1.55rem, 2.6vw, 2.5rem);" });
   guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "margin: 0.7rem 0 1.8rem;" });
   guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "line-height: 1.72;" });
+  guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "grid-template-columns: 1.05fr 0.95fr;" });
+  guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "gap: clamp(2.5rem, 5vw, 3.5rem);" });
   guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "max-width: 72ch;" });
   // LandingStarPreview.styles.ts — IntroEyebrow / IntroTitle, which her bands
   // import from the star landing rather than declaring again.
@@ -2192,6 +2194,10 @@ function buildStarseed(data) {
       imageUrl: asset("/images/StarBot.png"),
       imageAlt: verbatim(s.heroImageAlt),
       imagePosition: "right",
+      // Her HeroGrid — the wheel is the SECOND child on a desktop (WheelWrap
+      // takes order:-1 only under 900px), so the copy holds the 1.05fr.
+      mediaSplit: "0.95fr 1.05fr",
+      mediaGap: "clamp(2.5rem, 5vw, 3.5rem)",
       maxWidth: 992,
       eyebrow: c.hero.eyebrow,
       eyebrowColor: "accent",

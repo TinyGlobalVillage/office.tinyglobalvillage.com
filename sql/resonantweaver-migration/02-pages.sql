@@ -2521,6 +2521,8 @@ INSERT INTO _rw_pages VALUES ('starseed', 'The Starwoven Journey | Discover your
           "imageUrl": "/images/tenants/resonantweaver/StarBot.png",
           "imageAlt": "A cosmic starseed figure",
           "imagePosition": "right",
+          "mediaSplit": "0.95fr 1.05fr",
+          "mediaGap": "clamp(2.5rem, 5vw, 3.5rem)",
           "maxWidth": 992,
           "eyebrow": "A personal Starseed Oracle journey",
           "eyebrowColor": "accent",
