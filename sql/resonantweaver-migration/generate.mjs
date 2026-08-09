@@ -2147,6 +2147,10 @@ function buildStarseed(data) {
   guardOnly({ file: SSPAGE, find: "{cardIcons[index]}" });
   guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "svg { width: 30px; height: 30px;" });
   guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "color: ${({ theme }) => theme.teal}; margin-bottom: 16px;" });
+  // Her Card's `p` rule restates size and colour and NOT line-height — the
+  // copy keeps `P`'s own 1.72. Both halves are guarded so a change to either
+  // fails the run rather than moving three cards quietly.
+  guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "p { margin: 0; font-size: 15px; color: ${({ theme }) => theme.muted}; }" });
   // theme.ts — the page's own tokens.
   guardOnly({ file: `${SS}/theme.ts`, find: 'h1Color: "#f5f9f8"' });
   guardOnly({ file: `${SS}/theme.ts`, find: 'copper: "#c79a86"' });
@@ -2525,7 +2529,10 @@ function buildStarseed(data) {
       titleGap: "9px",
       titleColor: "#eef4f3",
       copySize: "15px",
-      copyLh: "1.68",
+      // Her Card rule restates the p's size and colour and NOT its
+      // line-height, so the copy keeps `P`'s own 1.72 — not the 1.68 the
+      // stages run.
+      copyLh: "1.72",
       copyColor: "#9aa4ab",
       copyGap: "0",
       // Her three card glyphs — `Card svg { 30px, teal, 16px under }`, drawn

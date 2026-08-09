@@ -3064,7 +3064,7 @@ INSERT INTO _rw_pages VALUES ('starseed', 'The Starwoven Journey | Discover your
           "titleGap": "9px",
           "titleColor": "#eef4f3",
           "copySize": "15px",
-          "copyLh": "1.68",
+          "copyLh": "1.72",
           "copyColor": "#9aa4ab",
           "copyGap": "0",
           "iconSize": "30px",
