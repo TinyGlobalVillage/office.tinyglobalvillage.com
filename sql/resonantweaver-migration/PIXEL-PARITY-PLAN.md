@@ -1386,6 +1386,50 @@ No siteId (the house surface) lands under `fonts/house`. Verified live: a house
 upload keyed `tgv/fonts/house/…`, a tenant upload `tgv/fonts/resonantweaver/…`;
 both test objects deleted afterwards, prefix back to zero. HQ `642f40ce`.
 
+### STARSEED, HALF-WAY — 2026-08-09 (and the half that's left is named)
+
+**rf-media-copy learned her type** (mono `0f312b6a`) — a per-run family
+(eyebrow / heading / copy) plus the accent line, every field defaulting to the
+metric the entry shipped with so no published row moves (383/383 pins it,
+including both heading scales and the 62ch column). **Roles are opt-in**: the
+entry has never declared a family, and following the site's roles by default
+would re-type every rf-media-copy row on the fleet at once. `""` emits no
+`font-family` at all — not `inherit`, which would still outrank a host rule the
+row never asked to beat — and a heading asking for a NON-heading role gets the
+doubled class, rf-serif-head's lesson.
+
+The **accent line is a shape, not a size**: `headingAccent` sits inside the
+heading by default, but her hero is the other shape — she "separated the hero
+heading from its teal italic accent line" in her own change log — so
+`accentAsLine` makes it a sibling `<p>`. Carrying it inline would collapse two
+elements she deliberately split.
+
+Then her seats, seventeen new source guards deep (office `b765d2b`): the BANDS
+take the star landing's IntroEyebrow/IntroTitle plus her Prose; the HERO takes
+its own page-local type instead. Redriven to production, 19 rows, assertions
+green.
+
+**Measured: 32.75 → 32.59 at 1440** — and the small number hides the real
+result, because the page is 9858px and the bands are a fraction of it. Read per
+band, the approach is working and the remainder is somewhere else:
+
+| band | now | what it is |
+|---|---|---|
+| space to explore · what begins to make sense · who this is for | **9.7–10.6%** | pure `rf-media-copy` — DONE |
+| your hybrid starseed lineages | 18.35% | band + the PullQuote (authored as an emphasised paragraph; hers is 28px display copper) |
+| hero | 32.32% | band + artwork + CTA + FinePrint |
+| your birth sky · a wider astrology | 34–36% | band + the method cards / the currents list |
+| inside your journey (2105px, the biggest) | 38.26% | `rf-offer-card` — the braid stages |
+| your journey begins here | 40.81% | `rf-offer-card` — the closing callout |
+| how it works | 49.18% | `rf-offer-card` — the numbered steps |
+
+**So the next unit is exactly one entry: `rf-offer-card` needs the same type
+family**, and it carries four of the six worst bands. The census names the
+seats it is missing — `BraidStageNumber` is Space Mono 12.48px copper and
+renders Space Grotesk 10.24px teal; the card titles run 28.8px where ours run
+31.2. After that: the PullQuote (her `PullQuote` is its own block, not an
+italic paragraph), `rf-list` for the eight currents, and the hero's FinePrint.
+
 ## Phase 4 — images
 
 1. Restore every missing asset under `/images/tenants/resonantweaver/`.
