@@ -1170,6 +1170,94 @@ name* head* lede* chevColor`); rf-media-copy `framePad`/`marginTop`/
 clamps, sun-walk/starseed, and the pre-cutover eyeball pass Gio asked for —
 **commit everything, then tell him BEFORE any switch; he looks first.**
 
+### THE LEVERS, THE GUTTER AND THE FONT THAT NEVER LOADED — 2026-08-09 (items 4–6)
+
+**The levers (item 4) are done, and the audit list was short by three.**
+Rather than work from the list above, each entry's defaults block was diffed
+against its own EditorPanel — 59 props across nine entries had no lever, and
+three families the list had not named turned up: the font escape hatches on
+rf-split-hero / rf-door-card / rf-offer-card, rf-site-footer's `focusColor`,
+rf-hud-cards' `profile` mode missing from its own segmented control, and
+rf-accordion items' image alt and CTA shape. Every added lever is empty/0/off
+by default and every empty/0/off already falls back to the pre-knob render, so
+no published row moved. `anchorId` stays panel-less — **no** entry in the
+library exposes it; it belongs to the section shell. Mono `05c39515`.
+
+**Writing's mobile deltas (−30 at 390, −56 at 768) were two causes, and only
+one of them is ours to fix.**
+
+**(a) The scrollbar gutter.** Her GlobalStyles carries
+`html { scrollbar-gutter: stable }`. Pooling her pages left it behind, so every
+pooled page of hers lays out **15px wider** than the same page on her app at
+every viewport — measured body box 375 / 753 / 1425 on hers against
+390 / 768 / 1440 on ours. Above a max-width that is invisible, which is why
+1440 never showed it; below one it decides where text wraps, and at 390 it gave
+her intro four lines (124px) and ours three (93px) — the whole −30. Now
+`SiteBackgroundData.scrollbarGutter`, emitted by the one component that already
+owns a site's global `html`/`body` rules, **site-scoped on purpose**: reserving
+it fleet-wide would move four live customer sites 15px on any desktop with
+classic scrollbars. Mono `27bac257` + `e9177704`, office `6f93bbc`.
+
+> **It shipped inert the first time, and the lesson is now an assertion.**
+> `asSiteBackground` NAMES every field it keeps, so a field added to the type
+> and to the component still arrives `undefined`. That file's own comment
+> describes this happening once before to the orbs' `width`/`height`. The check
+> now walks the whole path — row → reader → emitted CSS — and writing it found
+> a second inert rung: the first draft asserted against `render().html`, and a
+> `createGlobalStyle` rule lands in the **sheet**, not the markup, so it would
+> have passed on a page that reserved nothing. 354/354.
+
+**(b) Cormorant Garamond — GIO'S RULING, and it is the same one that parks
+pearl-chamber and home-classic.** Measured on her LIVE site, page by page:
+
+| her page | elements asking for the serif | what actually renders |
+|---|---|---|
+| `/journey/` | 13 | **real Cormorant** — its own Google-Fonts `@import` |
+| `/home-classic/` | **293** | the fallback |
+| `/pearl-chamber/` | 28 | the fallback |
+| `/writing/` | 24 | the fallback |
+| every other page | 0 | — |
+
+Her app declares Cormorant nowhere: `next/font` loads Inter, Playfair Display,
+Space Grotesk, Space Mono and Ubuntu Mono, and `tokens.ts`'s
+`SERIF = "'Cormorant Garamond', Georgia, serif"` resolves to the second name.
+Her own code says so out loud — `layout.client.tsx` on the nav: *"its built-in
+default ('Cormorant Garamond', Georgia) is never loaded here, so the nav had
+been silently rendering in Georgia"* — and that session fixed the nav and left
+the token. The pooled renderer ships the real face (`siteFonts`, self-hosted),
+so her serif text is ~27% narrower than her live site's: `& reflections.`
+measures 359px on ours and 457px on hers at the same size and weight.
+
+So these pages can be faithful to her CSS **or** to her pixels, not both.
+Recommendation: **keep the real Cormorant** — the source names it, `/journey/`
+proves the intent, and `siteFonts`' own doc comment was written for exactly
+this case. Consequence to accept: writing, pearl-chamber and home-classic never
+converge on the differ, and the number stops being the measure for them.
+
+**sun-walk (item 6) is closed: 13.38% was one missing declaration.** The page
+differed from hers in **no** colour, size, weight, margin, padding or gap — and
+was 358px taller, drifting month by month until July sat 321px low. Every delta
+was `line-height: normal` on her app against `25.6px` on ours: the week cards,
+date lines and star lines declare none, so they take the host body's, which is
+nothing on her app and 1.6 on the platform. The third page in this family after
+the site footer (+19px) and the writing eyebrow (+7px). Declared on SunWalk's
+`Page` and the dossier modal's `Shell` — what her app already computes, so
+nothing moves there. Verified on the deploy: **her 4496, ours 4496.** Mono
+`4224a5d7`.
+
+**starseed (32.76%) is the one real page left, and it is a re-author, not a
+tune.** Its row was authored early as generic `rf-media-copy` bands and never
+given her seats: Space Mono absent entirely (26 elements → 0), 66 size / 60
+weight / 60 colour mismatches, and 13 text runs missing. Her seats are in
+`starseed/theme.ts` + `StarseedOraclePage.styles.ts` — eyebrow mono 11.5px
+`.24em` copper `#c79a86` 500; H1 display 540 `clamp(2.65rem, 4.5vw, 4.4rem)`
+lh 1.04 `#f5f9f8`; HeroAccent teal italic 440 `clamp(1.55rem, 2.6vw, 2.5rem)`
+lh 1.08; P `#c4ccd0` lh 1.72; H3 520 lh 1.25 `#eef4f3`; FinePrint mono 11.5px
+lh 1.65 `#9aa4ab` with `b` in copper 600; Section 80px/0 (60 at ≤900); Wrap
+1120px with `clamp(32px, 5vw, 64px)`. The band eyebrow/title are the
+`IntroEyebrow`/`IntroTitle` the star landing already uses, which the pooled row
+did not point at.
+
 ## Phase 4 — images
 
 1. Restore every missing asset under `/images/tenants/resonantweaver/`.
