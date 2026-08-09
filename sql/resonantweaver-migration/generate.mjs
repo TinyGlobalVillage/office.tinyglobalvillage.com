@@ -2301,44 +2301,119 @@ function buildStarseed(data) {
 
 function buildWriting(data) {
   const w = inlineCopy.writing;
+  const WRITING_STYLES = `${HOME_DIR}/writing/WritingPage.styles.ts`;
+  const WRITING_PAGE = `${HOME_DIR}/writing/WritingPage.tsx`;
+  const { COPPER, TEAL, BONE, PHTHALO } = data.tokens;
+
+  // Her PageShell's four-layer wash — the copper crown, two phthalo blooms and
+  // the deep-blue radial ground. The whole page is set in her SERIF; the head
+  // and the cards are the rf-serif-head / rf-cover-cards entries this page was
+  // derived into, seat for seat.
+  guardOnly({ file: WRITING_STYLES, find: "radial-gradient(ellipse 80% 55% at 50% -10%, rgba(${COPPER}, 0.08) 0%, transparent 65%)" });
+  guardOnly({ file: WRITING_STYLES, find: "radial-gradient(ellipse 62% 50% at 100% 100%, rgba(${PHTHALO}, 0.18) 0%, transparent 62%)" });
+  guardOnly({ file: WRITING_STYLES, find: "radial-gradient(ellipse 46% 38% at 10% 18%, rgba(${PHTHALO}, 0.1) 0%, transparent 58%)" });
+  guardOnly({ file: WRITING_STYLES, find: "radial-gradient(circle at 50% 0%, hsl(235, 72%, 16%), hsl(228, 58%, 9%) 56%, hsl(220, 28%, 4%) 100%)" });
+  guardOnly({ file: WRITING_STYLES, find: "text-shadow: 0 0 22px rgba(${PHTHALO}, 0.16)" });
+  guardOnly({ file: WRITING_STYLES, find: "text-shadow: 0 0 28px rgba(${PHTHALO}, 0.12)" });
+  guardOnly({ file: WRITING_STYLES, find: "color: rgba(166, 203, 255, 0.16)" });
+  guardOnly({ file: WRITING_STYLES, find: "inset 0 1px 0 rgba(${COPPER}, 0.1)" });
+  guardOnly({ file: WRITING_STYLES, find: "0 18px 48px rgba(0, 0, 0, 0.16)" });
+  guardOnly({ file: WRITING_STYLES, find: "outline: 2px solid rgba(${TEAL}, 0.72)" });
+  guardOnly({ file: WRITING_STYLES, find: "color: rgba(248, 244, 238, 0.96)" });
+  guardOnly({ file: WRITING_STYLES, find: "grid-template-columns: repeat(auto-fit, minmax(260px, 320px))" });
+  guardOnly({ file: WRITING_PAGE, find: '<TitleAmpersand aria-hidden="true">&</TitleAmpersand>' });
+  guardOnly({ file: WRITING_PAGE, find: 'aria-label="Resonant Weaver"' });
+
+  const scrim = [
+    "linear-gradient(180deg, rgba(5, 8, 18, 0.2) 0%, rgba(5, 8, 18, 0.48) 44%, rgba(4, 6, 14, 0.82) 100%)",
+    "linear-gradient(90deg, rgba(4, 7, 18, 0.44) 0%, rgba(4, 7, 18, 0.08) 52%, rgba(4, 7, 18, 0.22) 100%)",
+  ];
+  scrim.forEach((layer) => guardOnly({ file: WRITING_STYLES, find: layer }));
+  const coverFallback = [
+    "radial-gradient(circle at 18% 16%, rgba(${TEAL}, 0.2) 0%, transparent 14%)",
+    "radial-gradient(circle at 72% 28%, rgba(${COPPER}, 0.16) 0%, transparent 18%)",
+    "radial-gradient(circle at 64% 78%, rgba(166, 203, 255, 0.12) 0%, transparent 22%)",
+    "linear-gradient(145deg, rgba(12, 23, 80, 0.95) 0%, rgba(8, 14, 34, 0.92) 42%, rgba(4, 8, 16, 0.96) 100%)",
+  ];
+  coverFallback.forEach((layer) => guardOnly({ file: WRITING_STYLES, find: layer }));
+  const fill = (s) =>
+    s
+      .replaceAll("${COPPER}", COPPER)
+      .replaceAll("${TEAL}", TEAL)
+      .replaceAll("${PHTHALO}", PHTHALO);
+
   const sections = [
-    section("sec-writing-head", "rf-media-copy", "Writing", {
-      imageUrl: "",
-      imageAlt: "",
-      imagePosition: "left",
-      eyebrow: verbatim(w.eyebrow),
-      eyebrowColor: "accent",
-      heading: verbatim(w.titleLine1),
-      headingLevel: 1,
-      headingAccent: verbatim(w.titleLine2),
-      paragraphs: [verbatim(w.intro)],
-      chips: [],
-      ctas: [],
+    // No flat ground: her fourth layer IS the ground, a radial that bottoms
+    // out at hsl(220, 28%, 4%).
+    section("sec-writing-tone", "rf-page-tone", "Page tone", {
+      layers: [
+        fill("radial-gradient(ellipse 80% 55% at 50% -10%, rgba(${COPPER}, 0.08) 0%, transparent 65%)"),
+        fill("radial-gradient(ellipse 62% 50% at 100% 100%, rgba(${PHTHALO}, 0.18) 0%, transparent 62%)"),
+        fill("radial-gradient(ellipse 46% 38% at 10% 18%, rgba(${PHTHALO}, 0.1) 0%, transparent 58%)"),
+        "radial-gradient(circle at 50% 0%, hsl(235, 72%, 16%), hsl(228, 58%, 9%) 56%, hsl(220, 28%, 4%) 100%)",
+      ],
+      ground: "",
     }),
-    // Her cards are cover art + eyebrow + title + excerpt + meta + an outward
-    // link, which is an offer card in every part except the price — so the
-    // entries land as `media` items and the meta line becomes the two bullets.
-    section("sec-writing-entries", "rf-offer-card", "Entries", {
-      columns: data.writingEntries.length >= 2 ? 2 : 1,
-      heading: "",
-      bulletGlyph: "✦",
-      padTop: 0,
-      padBottom: 25,
+    section("sec-writing-head", "rf-serif-head", "Writing", {
+      eyebrow: verbatim(w.eyebrow),
+      eyebrowTracking: 0.22,
+      eyebrowAlpha: 45,
+      title: verbatim(w.titleLine1),
+      titleEm: verbatim(w.titleLine2),
+      titleAlpha: 96,
+      titleShadow: fill("0 0 22px rgba(${PHTHALO}, 0.16)"),
+      titleSize: "clamp(3rem, 7vw, 5.15rem)",
+      headingLevel: 1,
+      ghost: "&",
+      ghostColor: "rgba(166, 203, 255, 0.16)",
+      ghostShadow: fill("0 0 28px rgba(${PHTHALO}, 0.12)"),
+      ghostSize: "clamp(4.8rem, 12vw, 7.5rem)",
+      intro: verbatim(w.intro),
+      introAlpha: 68,
+      introMaxWidth: 42,
+      rule: true,
+      ruleAlpha: 22,
+      maxWidth: 76,
+      headMaxWidth: 48,
+      padTop: "4.5rem",
+      gapBelow: "4rem",
+      accent: `rgb(${COPPER})`,
+      ink: `rgb(${BONE})`,
+    }),
+    // Her cards, on the entry derived from them. The second card's cover is
+    // deliberately empty: her `/images/LeafOscilator-Logo4.png` does not exist
+    // in her repo (broken on the live site today, see copy.mjs), so the pooled
+    // card wears the CoverFallback ground instead of carrying a 404 across.
+    section("sec-writing-entries", "rf-cover-cards", "Entries", {
       items: data.writingEntries.map((e) => ({
         anchorId: e.slug,
         title: e.title,
-        sub: e.eyebrow,
-        body: e.excerpt,
-        listLabel: "",
-        bullets: [e.publishedAt, e.readingTime].filter(Boolean),
-        price: "",
-        ctaLabel: e.href ? "Read on Substack" : "",
-        ctaHref: e.href ?? "",
-        ctaTarget: e.href ? "_blank" : "",
-        variant: "media",
-        mediaUrl: asset(e.imageSrc, { optional: true }),
-        mediaAlt: e.imageAlt ?? "",
+        excerpt: e.excerpt,
+        eyebrow: e.eyebrow,
+        metaA: e.publishedAt ?? "",
+        metaB: e.readingTime ?? "",
+        href: e.href ?? "",
+        imageUrl: asset(e.imageSrc, { optional: true }),
+        imageAlt: e.imageAlt ?? "",
       })),
+      byline: "Resonant Weaver",
+      bookmark: true,
+      colMin: 260,
+      colMax: 320,
+      gap: 25,
+      aspect: "4 / 5",
+      radius: 14,
+      insetAlpha: 10,
+      dropShadow: "0 18px 48px rgba(0, 0, 0, 0.16)",
+      coverFallback: coverFallback.map(fill).join(", "),
+      scrim: scrim.join(", "),
+      focusAlpha: 72,
+      titleColor: "rgba(248, 244, 238, 0.96)",
+      maxWidth: 76,
+      padBottom: "5rem",
+      accent: `rgb(${COPPER})`,
+      amber: `rgb(${TEAL})`,
+      ink: `rgb(${BONE})`,
     }),
   ];
 

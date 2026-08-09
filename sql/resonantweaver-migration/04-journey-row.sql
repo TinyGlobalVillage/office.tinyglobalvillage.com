@@ -80,16 +80,22 @@ BEGIN
     RAISE EXCEPTION 'assert: expected 7 stops on the journey section, found %', stops;
   END IF;
 
-  -- It owns the viewport, so it must be the page's only section with no chrome
-  -- around it. A journey with a nav bar over it is the defect this checks for.
+  -- It owns the viewport, so it must be the page's only section — but the
+  -- chrome stays ON. The original assertion here demanded chrome OFF ("a
+  -- journey with a nav bar over it is the defect this checks for"), and the
+  -- 2026-08-09 parity pass proved that assumption wrong against her live page:
+  -- /journey/ wears the floating nav AND the footer (1012px against a 900px
+  -- viewport — the footer is real outer scroll). 09-journey-chrome.sql flips
+  -- the applied row; this assertion now states the corrected shape so a replay
+  -- of 03 → 04 agrees with the end state.
   SELECT count(*) INTO n
     FROM public.page_models
    WHERE site = 'resonantweaver' AND slug = 'journey'
      AND (jsonb_array_length(model_json->'sections') <> 1
-          OR model_json->'chrome'->>'navEnabled' <> 'false'
-          OR model_json->'chrome'->>'footerEnabled' <> 'false');
+          OR model_json->'chrome'->>'navEnabled' IS DISTINCT FROM 'true'
+          OR model_json->'chrome'->>'footerEnabled' IS DISTINCT FROM 'true');
   IF n <> 0 THEN
-    RAISE EXCEPTION 'assert: the journey page is not a bare single-section page';
+    RAISE EXCEPTION 'assert: the journey page is not a single-section page wearing her chrome';
   END IF;
 
   SELECT count(*) INTO n

@@ -6,9 +6,10 @@
 -- out of her own `src/data/journey/chakraSections.ts`, so a difference in the
 -- browser is the mechanism and not the words.
 --
--- Nav and footer are OFF and this is the page's only section: it owns the
--- viewport and its own scroll container. That is the one thing about being a
--- section rather than a route that had to be proven rather than asserted.
+-- Nav and footer are ON (corrected 2026-08-09): her live /journey/ wears
+-- both — the nav floats over the sealed viewport without adding height, and
+-- the footer is 112px of outer scroll below it. The section still owns its
+-- own scroll container; the chrome rides around it exactly as on her app.
 --
 --   psql -v ON_ERROR_STOP=1 -d tgv_db -f sql/resonantweaver-migration/03-journey-preview.sql
 
@@ -26,8 +27,8 @@ SELECT 'journey-preview', 'en', 'published', NULL, NULL, 'The Starwoven Journey'
   "slug": "journey-preview",
   "title": "The Starwoven Journey",
   "chrome": {
-    "navEnabled": false,
-    "footerEnabled": false
+    "navEnabled": true,
+    "footerEnabled": true
   },
   "sections": [
     {

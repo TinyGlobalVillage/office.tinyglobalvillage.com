@@ -1254,80 +1254,108 @@ INSERT INTO _rw_pages VALUES ('writing', 'Writing', true, 'published', $rwjson${
   },
   "sections": [
     {
+      "id": "sec-writing-tone",
+      "type": "rf-page-tone",
+      "label": "Page tone",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "layers": [
+            "radial-gradient(ellipse 80% 55% at 50% -10%, rgba(183, 138, 119, 0.08) 0%, transparent 65%)",
+            "radial-gradient(ellipse 62% 50% at 100% 100%, rgba(0, 15, 137, 0.18) 0%, transparent 62%)",
+            "radial-gradient(ellipse 46% 38% at 10% 18%, rgba(0, 15, 137, 0.1) 0%, transparent 58%)",
+            "radial-gradient(circle at 50% 0%, hsl(235, 72%, 16%), hsl(228, 58%, 9%) 56%, hsl(220, 28%, 4%) 100%)"
+          ],
+          "ground": ""
+        }
+      }
+    },
+    {
       "id": "sec-writing-head",
-      "type": "rf-media-copy",
+      "type": "rf-serif-head",
       "label": "Writing",
       "blocks": [],
       "enabled": true,
       "config": {
         "props": {
-          "imageUrl": "",
-          "imageAlt": "",
-          "imagePosition": "left",
           "eyebrow": "Writing",
-          "eyebrowColor": "accent",
-          "heading": "Field notes, essays,",
+          "eyebrowTracking": 0.22,
+          "eyebrowAlpha": 45,
+          "title": "Field notes, essays,",
+          "titleEm": "& reflections.",
+          "titleAlpha": 96,
+          "titleShadow": "0 0 22px rgba(0, 15, 137, 0.16)",
+          "titleSize": "clamp(3rem, 7vw, 5.15rem)",
           "headingLevel": 1,
-          "headingAccent": "& reflections.",
-          "paragraphs": [
-            "A small library for longer pieces from Resonant Weaver. Each entry can hold a short introduction here and open the full article on Substack."
-          ],
-          "chips": [],
-          "ctas": []
+          "ghost": "&",
+          "ghostColor": "rgba(166, 203, 255, 0.16)",
+          "ghostShadow": "0 0 28px rgba(0, 15, 137, 0.12)",
+          "ghostSize": "clamp(4.8rem, 12vw, 7.5rem)",
+          "intro": "A small library for longer pieces from Resonant Weaver. Each entry can hold a short introduction here and open the full article on Substack.",
+          "introAlpha": 68,
+          "introMaxWidth": 42,
+          "rule": true,
+          "ruleAlpha": 22,
+          "maxWidth": 76,
+          "headMaxWidth": 48,
+          "padTop": "4.5rem",
+          "gapBelow": "4rem",
+          "accent": "rgb(183, 138, 119)",
+          "ink": "rgb(232, 229, 218)"
         }
       }
     },
     {
       "id": "sec-writing-entries",
-      "type": "rf-offer-card",
+      "type": "rf-cover-cards",
       "label": "Entries",
       "blocks": [],
       "enabled": true,
       "config": {
         "props": {
-          "columns": 2,
-          "heading": "",
-          "bulletGlyph": "✦",
-          "padTop": 0,
-          "padBottom": 25,
           "items": [
             {
               "anchorId": "placeholder-1",
               "title": "A place for longer reflections",
-              "sub": "Field notes",
-              "body": "This page is set up as your on-site writing index. Each card can hold a short introduction here and link outward to the full essay on Substack.",
-              "listLabel": "",
-              "bullets": [
-                "Coming soon",
-                "Substack link"
-              ],
-              "price": "",
-              "ctaLabel": "",
-              "ctaHref": "",
-              "ctaTarget": "",
-              "variant": "media",
-              "mediaUrl": "/images/tenants/resonantweaver/RW-OG-logo.jpg",
-              "mediaAlt": "Abstract Resonant Weaver field guide cover"
+              "excerpt": "This page is set up as your on-site writing index. Each card can hold a short introduction here and link outward to the full essay on Substack.",
+              "eyebrow": "Field notes",
+              "metaA": "Coming soon",
+              "metaB": "Substack link",
+              "href": "",
+              "imageUrl": "/images/tenants/resonantweaver/RW-OG-logo.jpg",
+              "imageAlt": "Abstract Resonant Weaver field guide cover"
             },
             {
               "anchorId": "placeholder-2",
               "title": "How to add a Substack entry",
-              "sub": "Setup",
-              "body": "Open this page in the studio, duplicate a card, and paste in the article title, excerpt, date, and the full Substack URL.",
-              "listLabel": "",
-              "bullets": [
-                "Ready when you are",
-                "Edit in the studio"
-              ],
-              "price": "",
-              "ctaLabel": "",
-              "ctaHref": "",
-              "ctaTarget": "",
-              "variant": "media",
-              "mediaUrl": "",
-              "mediaAlt": "Resonant Weaver logo cover"
+              "excerpt": "Open this page in the studio, duplicate a card, and paste in the article title, excerpt, date, and the full Substack URL.",
+              "eyebrow": "Setup",
+              "metaA": "Ready when you are",
+              "metaB": "Edit in the studio",
+              "href": "",
+              "imageUrl": "",
+              "imageAlt": "Resonant Weaver logo cover"
             }
-          ]
+          ],
+          "byline": "Resonant Weaver",
+          "bookmark": true,
+          "colMin": 260,
+          "colMax": 320,
+          "gap": 25,
+          "aspect": "4 / 5",
+          "radius": 14,
+          "insetAlpha": 10,
+          "dropShadow": "0 18px 48px rgba(0, 0, 0, 0.16)",
+          "coverFallback": "radial-gradient(circle at 18% 16%, rgba(72, 210, 185, 0.2) 0%, transparent 14%), radial-gradient(circle at 72% 28%, rgba(183, 138, 119, 0.16) 0%, transparent 18%), radial-gradient(circle at 64% 78%, rgba(166, 203, 255, 0.12) 0%, transparent 22%), linear-gradient(145deg, rgba(12, 23, 80, 0.95) 0%, rgba(8, 14, 34, 0.92) 42%, rgba(4, 8, 16, 0.96) 100%)",
+          "scrim": "linear-gradient(180deg, rgba(5, 8, 18, 0.2) 0%, rgba(5, 8, 18, 0.48) 44%, rgba(4, 6, 14, 0.82) 100%), linear-gradient(90deg, rgba(4, 7, 18, 0.44) 0%, rgba(4, 7, 18, 0.08) 52%, rgba(4, 7, 18, 0.22) 100%)",
+          "focusAlpha": 72,
+          "titleColor": "rgba(248, 244, 238, 0.96)",
+          "maxWidth": 76,
+          "padBottom": "5rem",
+          "accent": "rgb(183, 138, 119)",
+          "amber": "rgb(72, 210, 185)",
+          "ink": "rgb(232, 229, 218)"
         }
       }
     }
@@ -4770,7 +4798,7 @@ BEGIN
     FROM public.page_models p, LATERAL jsonb_array_elements(p.model_json->'sections') s
    WHERE p.site = 'resonantweaver'
      AND p.slug = ANY(expected || expected_drafts)
-     AND s->>'type' NOT IN ('rf-page-tone', 'rf-split-hero', 'rf-centered-intro', 'rf-door-card', 'rf-hud-cards', 'rf-media-copy', 'rf-accordion', 'form-live', 'rf-offer-card', 'rf-testimonials', 'rf-back-link', 'rf-product-hero', 'rf-section-head', 'rf-callout-bar', 'rf-process-steps', 'rf-list', 'rf-mono-note', 'rf-detail-split');
+     AND s->>'type' NOT IN ('rf-page-tone', 'rf-split-hero', 'rf-centered-intro', 'rf-door-card', 'rf-hud-cards', 'rf-media-copy', 'rf-accordion', 'form-live', 'rf-offer-card', 'rf-testimonials', 'rf-serif-head', 'rf-cover-cards', 'rf-back-link', 'rf-product-hero', 'rf-section-head', 'rf-callout-bar', 'rf-process-steps', 'rf-list', 'rf-mono-note', 'rf-detail-split');
   IF n <> 0 THEN
     RAISE EXCEPTION 'assert: % section(s) name an unexpected type', n;
   END IF;
