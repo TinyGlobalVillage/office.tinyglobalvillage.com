@@ -2132,6 +2132,23 @@ function buildStarseed(data) {
   guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "gap: 16px;" });
   guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "padding: 22px 22px 24px;" });
   guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "font-size: 15px;" });
+  // The eight currents — CurrentsGrid + CurrentRow/Dot/Name/Essence. The same
+  // hudSurface the cards wear, laid on its side: her file's own comment says
+  // these hold "the same values as the landing-star hub's shared card surface
+  // … so every card on this page reads as one system".
+  guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "grid-template-columns: repeat(2, 1fr);" });
+  guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "gap: 14px;" });
+  guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "margin-top: 40px;" });
+  guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "padding: 18px 20px;" });
+  guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "gap: 15px;" });
+  guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "align-items: flex-start;" });
+  guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "width: 13px;" });
+  guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "box-shadow: 0 0 16px -1px" });
+  guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "font-size: 19px;" });
+  guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "line-height: 1.15;" });
+  guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "font-size: 13.5px;" });
+  guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "margin-top: 3px;" });
+  guardOnly({ file: `${SS}/theme.ts`, find: 'currentNameColor: "#eef4f3"' });
   // How it works — her `Steps` rail holding the SHARED <TrainingStep> rows.
   guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "margin-top: 34px;" });
   guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: `border-left: 1px solid rgba(\${BONE}, 0.1);` });
@@ -2325,21 +2342,53 @@ function buildStarseed(data) {
 
   sections.push(band("sec-ss-stars-head", "The eight currents — intro", c.stars));
   sections.push(
-    // Each current is a coloured dot, a family name in that colour and an
-    // essence line. The colour is the section's whole point — it is the same
-    // WCAG-checked accent the product itself paints that family in — so it
-    // travels as the row's own colour rather than being flattened away.
-    section("sec-ss-currents", "rf-list", "The eight currents", {
+    // Her CurrentsGrid — eight hudSurface rows, two across. It was authored as
+    // a flat `rf-list` in the first cut, which is the same finding the four
+    // grids above carried: a list is not the material she wrote, and no amount
+    // of type levers on a list turns it into a card. The dot's colour is the
+    // band's whole point (the same WCAG-checked accent the starseed package
+    // paints that family in), so it rides the ITEM.
+    section("sec-ss-currents", "rf-hud-cards", "The eight currents", {
+      mode: "row",
+      columns: 2,
       heading: "",
-      intro: "",
+      marginTop: "40px",
+      marginBottom: "",
+      maxWidth: 62,
+      gap: "14px",
+      // The row's own padding IS hers — the mode is derived from CurrentRow —
+      // so a stated value here would only be a second place to keep it.
+      cardPad: "",
+      cardMinHeight: "",
+      lastOddWidth: "",
+      cardWash: CARD_WASH,
+      cardWashFeatured: "",
+      imageGlow: "",
+      markerColor: "",
+      markerSize: "",
+      markerTracking: "",
+      markerGap: "",
+      priceColor: "",
+      linkColor: "",
+      badgeColor: "",
+      // Her CurrentName is a bare div in the display face — no weight and no
+      // tracking of its own, so both are the page's, and both are stated
+      // because the shared cardHeadline's are neither.
+      titleSize: "19px",
+      titleWeight: 400,
+      titleTracking: "normal",
+      titleLh: "1.15",
+      titleGap: "0",
+      titleColor: "#eef4f3",
+      copySize: "13.5px",
+      copyLh: "1.68",
+      copyColor: "#9aa4ab",
+      copyGap: "",
       items: c.stars.currents.map((cur) => ({
-        lead: cur.family,
-        text: "",
-        sub: cur.essence,
-        color: cur.color,
+        title: cur.family,
+        copy: cur.essence,
+        dotColor: cur.color,
       })),
-      notesHeading: "",
-      notes: [],
     }),
   );
 

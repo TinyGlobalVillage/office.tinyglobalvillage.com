@@ -2890,66 +2890,84 @@ INSERT INTO _rw_pages VALUES ('starseed', 'The Starwoven Journey | Discover your
     },
     {
       "id": "sec-ss-currents",
-      "type": "rf-list",
+      "type": "rf-hud-cards",
       "label": "The eight currents",
       "blocks": [],
       "enabled": true,
       "config": {
         "props": {
+          "mode": "row",
+          "columns": 2,
           "heading": "",
-          "intro": "",
+          "marginTop": "40px",
+          "marginBottom": "",
+          "maxWidth": 62,
+          "gap": "14px",
+          "cardPad": "",
+          "cardMinHeight": "",
+          "lastOddWidth": "",
+          "cardWash": "rgba(18, 63, 82, 0.5)",
+          "cardWashFeatured": "",
+          "imageGlow": "",
+          "markerColor": "",
+          "markerSize": "",
+          "markerTracking": "",
+          "markerGap": "",
+          "priceColor": "",
+          "linkColor": "",
+          "badgeColor": "",
+          "titleSize": "19px",
+          "titleWeight": 400,
+          "titleTracking": "normal",
+          "titleLh": "1.15",
+          "titleGap": "0",
+          "titleColor": "#eef4f3",
+          "copySize": "13.5px",
+          "copyLh": "1.68",
+          "copyColor": "#9aa4ab",
+          "copyGap": "",
           "items": [
             {
-              "lead": "Royal Mission",
-              "text": "",
-              "sub": "Power, visibility, leadership under consequence. Sovereignty, with the integrity tests built in.",
-              "color": "#C9A227"
+              "title": "Royal Mission",
+              "copy": "Power, visibility, leadership under consequence. Sovereignty, with the integrity tests built in.",
+              "dotColor": "#C9A227"
             },
             {
-              "lead": "Directive / Catalytic",
-              "text": "",
-              "sub": "Clean force. Initiation, protection, the movement of something out of idea and into form.",
-              "color": "#EF6B30"
+              "title": "Directive / Catalytic",
+              "copy": "Clean force. Initiation, protection, the movement of something out of idea and into form.",
+              "dotColor": "#EF6B30"
             },
             {
-              "lead": "Receptive / Generative",
-              "text": "",
-              "sub": "Field intelligence. Fertility, beauty, the subtle perception that senses before it knows.",
-              "color": "#6FA368"
+              "title": "Receptive / Generative",
+              "copy": "Field intelligence. Fertility, beauty, the subtle perception that senses before it knows.",
+              "dotColor": "#6FA368"
             },
             {
-              "lead": "Coherence / Bridge",
-              "text": "",
-              "sub": "Translation and weaving. Making a whole from pieces, and bringing the far into the near.",
-              "color": "#2E9C9C"
+              "title": "Coherence / Bridge",
+              "copy": "Translation and weaving. Making a whole from pieces, and bringing the far into the near.",
+              "dotColor": "#2E9C9C"
             },
             {
-              "lead": "Threshold / Crucible",
-              "text": "",
-              "sub": "Instinct, wound, taboo. Where what once wounded you becomes power, once it's owned.",
-              "color": "#E66B7C"
+              "title": "Threshold / Crucible",
+              "copy": "Instinct, wound, taboo. Where what once wounded you becomes power, once it's owned.",
+              "dotColor": "#E66B7C"
             },
             {
-              "lead": "Messenger / Pathfinding",
-              "text": "",
-              "sub": "The go-first current. Announcement, travel, navigation — setting out before the path is proven.",
-              "color": "#3A8FD4"
+              "title": "Messenger / Pathfinding",
+              "copy": "The go-first current. Announcement, travel, navigation — setting out before the path is proven.",
+              "dotColor": "#3A8FD4"
             },
             {
-              "lead": "Mystic Intelligence",
-              "text": "",
-              "sub": "The star-mind. Prophecy, sacred science, the knowing that arrives in symbol and image.",
-              "color": "#9C86E0"
+              "title": "Mystic Intelligence",
+              "copy": "The star-mind. Prophecy, sacred science, the knowing that arrives in symbol and image.",
+              "dotColor": "#9C86E0"
             },
             {
-              "lead": "Ancestral / Deep Memory",
-              "text": "",
-              "sub": "The roots current. Lineage, deep memory, the patterning that arrived before you did.",
-              "color": "#B59A8E"
+              "title": "Ancestral / Deep Memory",
+              "copy": "The roots current. Lineage, deep memory, the patterning that arrived before you did.",
+              "dotColor": "#B59A8E"
             }
-          ],
-          "notesHeading": "",
-          "notes": []
+          ]
         }
       }
     },
@@ -4941,7 +4959,7 @@ BEGIN
     FROM public.page_models p, LATERAL jsonb_array_elements(p.model_json->'sections') s
    WHERE p.site = 'resonantweaver'
      AND p.slug = ANY(expected || expected_drafts)
-     AND s->>'type' NOT IN ('rf-page-tone', 'rf-split-hero', 'rf-centered-intro', 'rf-door-card', 'rf-hud-cards', 'rf-media-copy', 'rf-accordion', 'form-live', 'rf-offer-card', 'rf-testimonials', 'rf-serif-head', 'rf-cover-cards', 'rf-back-link', 'rf-product-hero', 'rf-section-head', 'rf-callout-bar', 'rf-process-steps', 'rf-list', 'rf-mono-note', 'rf-detail-split');
+     AND s->>'type' NOT IN ('rf-page-tone', 'rf-split-hero', 'rf-centered-intro', 'rf-door-card', 'rf-hud-cards', 'rf-media-copy', 'rf-accordion', 'form-live', 'rf-offer-card', 'rf-testimonials', 'rf-serif-head', 'rf-cover-cards', 'rf-back-link', 'rf-product-hero', 'rf-section-head', 'rf-callout-bar', 'rf-process-steps', 'rf-mono-note', 'rf-detail-split');
   IF n <> 0 THEN
     RAISE EXCEPTION 'assert: % section(s) name an unexpected type', n;
   END IF;
