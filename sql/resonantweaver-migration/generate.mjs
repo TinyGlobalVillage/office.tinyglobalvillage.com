@@ -2165,10 +2165,14 @@ function buildStarseed(data) {
   // And her hero figure's own ceiling, stated inline on the <Image>.
   guardOnly({ file: SSPAGE, find: 'maxWidth: "31rem"' });
   guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "padding-top: 116px; padding-bottom: 56px;" });
+  guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "@media (max-width: 900px) { padding-top: 104px; min-height: auto;" });
   // The three stack widths, and her stage's second breakpoint. All four are
   // separate numbers in her file and a change to any one moves a whole band.
   guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "@media (max-width: 720px) { grid-template-columns: 1fr;" });
   guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "@media (max-width: 900px) { min-height: auto; padding: 1.75rem 0.5rem;" });
+  // Her CtaRow, and the Copy whose 1.25rem is above the PROSE, not the column.
+  guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "export const CtaRow = styled.div` display: flex; flex-wrap: wrap; gap: 14px;" });
+  guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "export const Copy = styled.div` max-width: 72ch; margin-top: 1.25rem;" });
   guardOnly({ file: `${SS}/theme.ts`, find: 'textDim: "#c4ccd0"' });
   guardOnly({ file: `${SS}/theme.ts`, find: 'muted: "#9aa4ab"' });
   guardOnly({ file: `${SS}/theme.ts`, find: 'serif: "var(--gfg-font-display), var(--gfg-font-tech), sans-serif"' });
@@ -2341,6 +2345,10 @@ function buildStarseed(data) {
       // would need a second knob for 12px at one viewport.
       padTop: "116px",
       padBottom: "56px",
+      // …and her ≤900 step, now that a frame can carry one. Her break is 900,
+      // not the shared frame's 768, so the band reaches it at her width.
+      padTopNarrow: "104px",
+      narrowAt: 900,
       eyebrow: c.hero.eyebrow,
       eyebrowColor: "accent",
       heading: c.hero.titleBefore,
@@ -2378,8 +2386,17 @@ function buildStarseed(data) {
       copyLh: "1.72",
       copyGap: "16px",
       copyMaxWidth: "72ch",
-      copyTop: "1.25rem",
+      // NO column-level top space. Her `Copy`'s 1.25rem sits above the PROSE,
+      // not above the eyebrow, and it collapses into the accent line's own
+      // 1.8rem bottom margin at every width — so the 20px this knob was adding
+      // above the whole column is 20px her hero has never had. The bands still
+      // state it because there the column IS the prose.
+      copyTop: "",
       copyInk: "#c4ccd0",
+      // Her CtaRow — 14px between, and nothing above it: the last paragraph's
+      // own 16px bottom is the gap, and the shared row's 22px is 6px more.
+      ctaTop: "0",
+      ctaGap: "14px",
       paragraphs: c.hero.lead,
       // NOT chips. It is her `FinePrint` — ONE 11.5px mono line UNDER the
       // button, in the muted grey. The first cut split it on the interpuncts
