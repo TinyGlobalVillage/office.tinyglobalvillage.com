@@ -2105,6 +2105,11 @@ function buildStarseed(data) {
   // single type value was compared.
   guardOnly({ file: `${SS}/theme.ts`, find: 'maxw: "1120px"' });
   guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "padding: 0 clamp(32px, 5vw, 64px);" });
+  // Her page frame — Section, and Band which extends it. The clamp PAGE_PAD is
+  // the single-value form of these two, since her step is at 900 and the shared
+  // frame's media query is at 768.
+  guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "padding: 80px 0;" });
+  guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "padding: 60px 0;" });
   // The card material, shared by the stage grid and the method cards. Her
   // `hudSurface` is one parameterisation of `hudCardSurface`, and the entry
   // emits the same two-stop over the same drop.
@@ -2164,9 +2169,28 @@ function buildStarseed(data) {
   /** Her BAND type: IntroEyebrow + IntroTitle + Prose. The eyebrow is
    *  `--preview-meta-font` (Space Mono → the ACCENT role, the family ruling)
    *  and the title `--preview-display-font` (Science Gothic → DISPLAY). */
+  /** HER PAGE FRAME. Every Section and Band on this page is `padding: 80px 0`,
+   *  60px under 900 — a rhythm no rung of the shared scale carries (`md` is 64,
+   *  `lg` 88), which is why every band measured 8px tall on desktop and 8px
+   *  short on a phone before this. One value cannot carry a step at a
+   *  breakpoint the frame does not share (ours is 768, hers 900), so it is
+   *  authored as the clamp that lands on HER number at all three measured
+   *  widths: 1440 → 80, 768 → 60, 390 → 60. */
+  const PAGE_PAD = "clamp(60px, 7.8vw, 80px)";
+  /** A HEAD BAND WHOSE GRID IS A SECOND POOLED ROW closes at nothing. Her one
+   *  Section holds the prose AND the grid, so its 80px sits BELOW the grid;
+   *  split in two, the head's bottom pad lands in the middle where she has
+   *  nothing at all and the close under the grid goes missing — 128px in the
+   *  wrong place, on all four of this page's grids. The grid carries the close
+   *  as its own bottom margin, which cannot collapse with the next band's
+   *  padding, so her 80 + 80 between sections survives. */
+  const HEAD_PAD = { padTop: PAGE_PAD, padBottom: "0" };
+
   const bandType = {
     // Her Wrap's content column, which every band on the page shares.
     maxWidth: 992,
+    padTop: PAGE_PAD,
+    padBottom: PAGE_PAD,
     eyebrowRole: "accent",
     eyebrowSize: "0.68rem",
     eyebrowWeight: 700,
@@ -2190,7 +2214,7 @@ function buildStarseed(data) {
 
   // A section that is eyebrow + title + paragraphs and nothing else. Six of the
   // twelve are exactly this.
-  const band = (id, label, block, extra = []) =>
+  const band = (id, label, block, extra = [], over = {}) =>
     section(id, "rf-media-copy", label, {
       imageUrl: "",
       imageAlt: "",
@@ -2204,6 +2228,7 @@ function buildStarseed(data) {
       chips: [],
       ctas: [],
       ...bandType,
+      ...over,
     });
 
   sections.push(
@@ -2286,6 +2311,8 @@ function buildStarseed(data) {
       chips: [],
       ctas: [],
       ...bandType,
+      ...HEAD_PAD,
+
     }),
   );
   /** Her `hudSurface` — one parameterisation of the shared `hudCardSurface`,
@@ -2301,7 +2328,7 @@ function buildStarseed(data) {
       columns: 2,
       heading: "",
       marginTop: "2.25rem",
-      marginBottom: "",
+      marginBottom: PAGE_PAD,
       maxWidth: 62,
       gap: "1rem",
       cardPad: "clamp(1.35rem, 2.5vw, 1.85rem)",
@@ -2340,7 +2367,7 @@ function buildStarseed(data) {
     }),
   );
 
-  sections.push(band("sec-ss-stars-head", "The eight currents — intro", c.stars));
+  sections.push(band("sec-ss-stars-head", "The eight currents — intro", c.stars, [], HEAD_PAD));
   sections.push(
     // Her CurrentsGrid — eight hudSurface rows, two across. It was authored as
     // a flat `rf-list` in the first cut, which is the same finding the four
@@ -2353,7 +2380,7 @@ function buildStarseed(data) {
       columns: 2,
       heading: "",
       marginTop: "40px",
-      marginBottom: "",
+      marginBottom: PAGE_PAD,
       maxWidth: 62,
       gap: "14px",
       // The row's own padding IS hers — the mode is derived from CurrentRow —
@@ -2392,7 +2419,7 @@ function buildStarseed(data) {
     }),
   );
 
-  sections.push(band("sec-ss-method", "The method", c.method));
+  sections.push(band("sec-ss-method", "The method", c.method, [], HEAD_PAD));
   sections.push(
     // Her Cards / Card — the same material, three across, no marker. The three
     // inline SVG glyphs are drawn in the page file and stay behind, as noted
@@ -2402,7 +2429,7 @@ function buildStarseed(data) {
       columns: 3,
       heading: "",
       marginTop: "34px",
-      marginBottom: "",
+      marginBottom: PAGE_PAD,
       maxWidth: 62,
       gap: "16px",
       cardPad: "22px 22px 24px",
@@ -2447,6 +2474,8 @@ function buildStarseed(data) {
       chips: [],
       ctas: [],
       ...bandType,
+      ...HEAD_PAD,
+
     }),
   );
   sections.push(
@@ -2472,6 +2501,9 @@ function buildStarseed(data) {
       // The rail follows an eyebrow band of its own, so neither of the entry's
       // two derived gaps applies.
       stepsTop: "34px",
+      // Her how-it-works Section closes BELOW the rail; the eyebrow band above
+      // it closes at 0, so this carries the whole 80.
+      marginBottom: PAGE_PAD,
       // TrainingStepBody's copy — rgba over her ground, not a flattened hex,
       // because a section's muted role takes a complete CSS colour.
       muted: `rgba(${T.BONE}, 0.56)`,
