@@ -756,6 +756,85 @@ in order: the two harness fixes (color canonicalisation + band x-crop) in
 measure/pixeldiff, deploy `6084bf57`, re-rank; then the door/offer-card grid
 refinement, home's remaining bands, form labels.**
 
+### THE RULER PASS + THE CARD GRIDS — 2026-08-08 (same day, next window)
+
+**The ruler first.** HQ `fa64a678` (tenant-pixel-parity + pixeldiff, pushed to
+HQ main; scripts only, no deploy needed):
+- **Colours canonicalise at COMPARE time** — `rgba(232,229,218,0.47)` and
+  `color(srgb 0.909804 … / 0.47)` are one paint Chromium serialises by
+  authoring space; both sides now collapse to 8-bit rgba before comparing
+  (raw strings kept in the examples). Compare-time, not capture-time, so the
+  frozen baseline needs no re-shoot.
+- **Bands diff as FULL-WIDTH STRIPS of the two full-page screenshots** over
+  each band's own y-range (`diffBands`, decoded once per page). Element-box
+  crops compared her in-container 1312px against the catalog's full-bleed
+  1440 — every pair a size mismatch, every % about the crop.
+- **One-sided bands diff against the OTHER page's neighbour-aligned strip.**
+  Her offer back link is `inline-block`, content-wide, so HER census never
+  banded it — and a flat 100% for a link both pages render made every offer
+  page's "worst" a phantom. Genuinely absent content still scores high.
+- The live differ now writes `<slug>.json` per capture, so a finished run
+  re-diffs via `--candidate-dir` after a harness change without re-shooting
+  75 pages.
+
+`6084bf57` deployed (BUILD_ID `KpTdLWdbR9n2ZOJo_-c0I`). **The honest re-rank**
+(`rw-p3-rank1`, all 25×3): open-your-journey 0.22% under the gate; course
+8.41%; somatic-signature 12.15%; the offer/experience detail pages 15–34%
+(their hero bands are micro-offsets + the tone-glow geometry, which scales
+with page height); receive/develop 94% and all-products 78.5% — the card
+grids, exactly next in line. journey / galactic-field-guide / writing /
+pearl-chamber still carry structural 100s (pairing collapses — chrome/section
+granularity, not paint).
+
+**Then the grids.** Mono `80c26d2f` **rf-hud-cards** — her Cards.tsx is ONE
+material (`hudCardSurface` under `cardHeadline`, "Shared card material for
+every card in this file") worn two ways, so one entry with two layouts:
+`door` (marker with its clamp(5rem,9vw,8rem) drop when no artwork, price +
+real StatusBadge row, arrow inside the link's words) and `tile` (contained
+artwork on the teal-glow well, "01 · category" index, foot PINNED via
+margin-top:auto — price left, sliding-arrow span right, `featured` floors
+30rem under the brighter wash). `columns: 0` = her auto-fit 20rem grid.
+`heading` = her DoorHeading (small display h2 IN THE INK — the 52px teal row
+heading the differ kept naming). WHY NOT rf-offer-card / rf-door-card is in
+the entry README. Mono `df102d8c` **rf-mono-note** — her PlaceholderNote is a
+<p> in a dashed box; rf-media-copy's band padding made the 49px note a 243px
+section (the worst band on the three draft offers). Mono `f79b…/last`
+**rf-back-link pageTop = margin** — the callout ruling applied at the other
+end: padding put 152px of page ground inside a 16px band and every family
+page's worst was a 94% phantom.
+
+Office `1d30f8e` + next: six grids re-author as rf-hud-cards (receive cards +
+courses, develop courses, three all-products doors) with her Cards.tsx tones
+authored per row; the three placeholder notes as rf-mono-note; `hudStatus()`
+carries READY_STATUSES from her source. Rows redriven to prod (DELETE 18 +
+02-pages.sql, assertions green).
+
+**Measured after deploy (`rw-p3-cards1`)**: the grids land — receive's rail
+2.12%, courses grid 7.86%, develop's grid 6.24%, all-products tiles 8–10%,
+the placeholder note 80.9% → 4.14% (band 49px, exactly hers), and the
+gateway/offer text census is CLEAN on type (box rows only). What remains on
+these pages is measurement geometry again, one level up: (a) her band census
+is COARSER than the candidate's — her ContentSection is intro+grid in ONE
+band (847/1018px) while the candidate sections one-per-entry, so the pair
+compares a compound band against its own head (80–86% phantoms on bands the
+aligned strips score 2–8%). The differ needs SEGMENT-ALIGNED diffing (anchor
+on matched pairs, diff the full page between anchors) before per-band % means
+anything on compound pages. (b) all-products' HEADER is still an rf-media-copy
+approximation — her Header is the section-head shape at h1 scale (64.8px vs
+51.2 rendered, Space Mono eyebrow vs Grotesk): parameterise rf-section-head
+(headingLevel, titleSize/tracking/lh/max, column fraction, gap, padBottom)
+and re-author. Its closing band eyebrow shows the same non-accent face — check
+what authors it. (c) the waitlist pages' 100s are the FORM: form-live labels
+("Your name"/"Email"/"(optional)") don't render, the submit is dark 13px
+Grotesk vs her teal 10.88px mono plate (WaitlistForm.tsx: labels 0.65rem/0.08em
+uppercase bone-62, input on rgba(0,0,0,0.28), submit teal-8% bg/teal text) —
+plus the band finder swallows chrome on short pages. **Next window, in
+order: segment-aligned diffing, the rf-section-head h1 parameterisation +
+all-products header re-author, the form-live label/submit styling, home's
+doors/FAQ/contact/about bands** (home band 2's door markers also wear Grotesk
+— rf-door-card's index run predates the accent-role ruling; check it while
+in there).
+
 ## Phase 4 — images
 
 1. Restore every missing asset under `/images/tenants/resonantweaver/`.
