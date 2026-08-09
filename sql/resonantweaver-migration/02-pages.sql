@@ -300,6 +300,7 @@ INSERT INTO _rw_pages VALUES ('home', 'Resonant Weaver', true, 'published', $rwj
       "enabled": true,
       "config": {
         "props": {
+          "padAsMargin": true,
           "markUrl": "/images/tenants/resonantweaver/Logo-RW-2026.svg",
           "markAlt": "",
           "markGlow": true,
@@ -354,6 +355,23 @@ INSERT INTO _rw_pages VALUES ('home', 'Resonant Weaver', true, 'published', $rwj
           "ratio": "2 / 3",
           "ratioStacked": "1 / 1",
           "idleReveal": 0.62,
+          "rowGap": "clamp(0.85rem, 1.5vw, 1.35rem)",
+          "sidePad": "0",
+          "cardBg": "#071421",
+          "titleSize": "clamp(1.3rem, 2.2vw, 1.8rem)",
+          "titleWeight": 520,
+          "titleTracking": "-0.015em",
+          "titleLh": 1.05,
+          "copySize": "0.96rem",
+          "arrowColor": "rgba(183, 138, 119, 0.94)",
+          "arrowSize": "0.7rem",
+          "arrowWeight": 700,
+          "arrowTracking": "0.1em",
+          "arrowTop": "1.7rem",
+          "arrowGap": "0.5rem",
+          "arrowGlyphSize": "1rem",
+          "hoverGlow": "rgba(183, 138, 119, 0.08)",
+          "muted": "rgba(232, 229, 218, 0.64)",
           "items": [
             {
               "index": "I · Door",
@@ -407,71 +425,59 @@ INSERT INTO _rw_pages VALUES ('home', 'Resonant Weaver', true, 'published', $rwj
           "maxWidth": 55,
           "spacedBottom": true,
           "spacedTop": false,
-          "muted": "rgba(232, 229, 218, 0.63)"
+          "muted": "rgba(232, 229, 218, 0.63)",
+          "marginTop": "clamp(5rem, 9vw, 8rem)"
         }
       }
     },
     {
       "id": "sec-star-featured",
-      "type": "rf-offer-card",
+      "type": "rf-hud-cards",
       "label": "Featured",
       "blocks": [],
       "enabled": true,
       "config": {
         "props": {
+          "mode": "tile",
           "columns": 3,
           "heading": "",
-          "bulletGlyph": "✦",
-          "padTop": 0,
-          "padBottom": 25,
+          "marginTop": "clamp(2rem, 4vw, 3rem)",
+          "gap": "clamp(0.85rem, 1.5vw, 1.35rem)",
+          "cardWash": "rgba(18, 63, 82, 0.5)",
+          "cardWashFeatured": "",
+          "imageGlow": "",
+          "markerColor": "rgb(72, 210, 185)",
+          "priceColor": "rgb(183, 138, 119)",
+          "linkColor": "rgb(72, 210, 185)",
+          "badgeColor": "rgb(72, 210, 185)",
+          "maxWidth": 78,
           "items": [
             {
-              "anchorId": "starwoven-journey",
-              "eyebrow": "01 · Your birth sky, woven into a personal journey",
+              "marker": "01 · Your birth sky, woven into a personal journey",
               "title": "Starwoven Journey",
-              "sub": "",
-              "body": "A personalised, interactive reading of the fixed stars active when you were born. Discover your Starseed lineages, the gifts, the Soul and Earth mission, and how these currents may be moving through your human life.",
-              "listLabel": "",
-              "bullets": [],
-              "note": "",
+              "copy": "A personalised, interactive reading of the fixed stars active when you were born. Discover your Starseed lineages, the gifts, the Soul and Earth mission, and how these currents may be moving through your human life.",
               "price": "$33",
-              "ctaLabel": "Explore",
-              "ctaHref": "/starseed/",
-              "ctaTarget": "",
-              "ctaArrow": true,
-              "variant": "standard"
+              "linkLabel": "Explore",
+              "href": "/starseed/",
+              "target": ""
             },
             {
-              "anchorId": "resonance-mirror",
-              "eyebrow": "02 · See what is moving through your energy field",
+              "marker": "02 · See what is moving through your energy field",
               "title": "Resonance Mirror",
-              "sub": "",
-              "body": "A deep personal reading of the patterns, pressures, strengths, and subtle movements active in your field now.",
-              "listLabel": "",
-              "bullets": [],
-              "note": "",
+              "copy": "A deep personal reading of the patterns, pressures, strengths, and subtle movements active in your field now.",
               "price": "$155",
-              "ctaLabel": "Learn more",
-              "ctaHref": "/landing-star-preview/offer/resonance-mirror/",
-              "ctaTarget": "",
-              "ctaArrow": true,
-              "variant": "standard"
+              "linkLabel": "Learn more",
+              "href": "/landing-star-preview/offer/resonance-mirror/",
+              "target": ""
             },
             {
-              "anchorId": "somatic-signature",
-              "eyebrow": "03 · Learn the feeling of your own alignment",
+              "marker": "03 · Learn the feeling of your own alignment",
               "title": "Somatic Signature",
-              "sub": "",
-              "body": "A personalised, body-led practice based on your Human Design. Learn where pressure and conditioning are most likely to show up in your system, what your own baseline feels like, and simple ways to return through movement, breath, and somatic awareness.",
-              "listLabel": "",
-              "bullets": [],
-              "note": "",
+              "copy": "A personalised, body-led practice based on your Human Design. Learn where pressure and conditioning are most likely to show up in your system, what your own baseline feels like, and simple ways to return through movement, breath, and somatic awareness.",
               "price": "$22",
-              "ctaLabel": "Learn more",
-              "ctaHref": "/landing-star-preview/offer/somatic-signature/",
-              "ctaTarget": "",
-              "ctaArrow": true,
-              "variant": "standard"
+              "linkLabel": "Learn more",
+              "href": "/landing-star-preview/offer/somatic-signature/",
+              "target": ""
             }
           ]
         }
@@ -493,62 +499,51 @@ INSERT INTO _rw_pages VALUES ('home', 'Resonant Weaver', true, 'published', $rwj
           "maxWidth": 55,
           "spacedBottom": true,
           "spacedTop": false,
-          "muted": "rgba(232, 229, 218, 0.63)"
+          "muted": "rgba(232, 229, 218, 0.63)",
+          "marginTop": "clamp(5rem, 9vw, 8rem)"
         }
       }
     },
     {
       "id": "sec-star-fieldguide",
-      "type": "rf-offer-card",
+      "type": "rf-hud-cards",
       "label": "Field Guide — tiles",
       "blocks": [],
       "enabled": true,
       "config": {
         "props": {
+          "mode": "tile",
           "columns": 3,
           "heading": "",
-          "bulletGlyph": "✦",
-          "padTop": 0,
-          "padBottom": 25,
+          "marginTop": "clamp(2rem, 4vw, 3rem)",
+          "gap": "1.25rem",
+          "cardWash": "rgba(18, 63, 82, 0.5)",
+          "cardWashFeatured": "",
+          "imageGlow": "",
+          "markerColor": "rgba(72, 210, 185, 0.66)",
+          "priceColor": "",
+          "linkColor": "",
+          "badgeColor": "",
+          "maxWidth": 78,
+          "cardPad": "1.4rem 1.5rem",
+          "markerSize": "0.62rem",
+          "markerTracking": "0.16em",
+          "markerGap": "0.5rem",
+          "titleSize": "1.15rem",
+          "titleTracking": "normal",
+          "titleLh": "1.5",
           "items": [
             {
-              "eyebrow": "01 · Star lineage",
-              "title": "Lyra · Vega",
-              "sub": "",
-              "body": "",
-              "listLabel": "",
-              "bullets": [],
-              "note": "",
-              "price": "",
-              "ctaLabel": "",
-              "ctaHref": "",
-              "variant": "standard"
+              "marker": "01 · Star lineage",
+              "title": "Lyra · Vega"
             },
             {
-              "eyebrow": "02 · Star lineage",
-              "title": "Pleiades · Alcyone",
-              "sub": "",
-              "body": "",
-              "listLabel": "",
-              "bullets": [],
-              "note": "",
-              "price": "",
-              "ctaLabel": "",
-              "ctaHref": "",
-              "variant": "standard"
+              "marker": "02 · Star lineage",
+              "title": "Pleiades · Alcyone"
             },
             {
-              "eyebrow": "03 · Star lineage",
-              "title": "Sirius · Canis Major",
-              "sub": "",
-              "body": "",
-              "listLabel": "",
-              "bullets": [],
-              "note": "",
-              "price": "",
-              "ctaLabel": "",
-              "ctaHref": "",
-              "variant": "standard"
+              "marker": "03 · Star lineage",
+              "title": "Sirius · Canis Major"
             }
           ]
         }
@@ -601,6 +596,25 @@ INSERT INTO _rw_pages VALUES ('home', 'Resonant Weaver', true, 'published', $rwj
           "ruleUnderHead": true,
           "animate": true,
           "exclusive": true,
+          "cardWash": "rgba(18, 63, 82, 0.5)",
+          "cardPad": "clamp(1.6rem, 5vw, 2.6rem)",
+          "maxWidth": 48,
+          "framePad": "none",
+          "marginTop": "clamp(5rem, 9vw, 8rem)",
+          "itemEdge": "rgba(255, 255, 255, 0.08)",
+          "itemHoverWash": "rgba(255, 255, 255, 0.02)",
+          "nameFont": "var(--tgv-fontDisplay, inherit)",
+          "nameSize": "0.98rem",
+          "nameWeight": 300,
+          "nameTracking": "0.02em",
+          "headColor": "#f5f9f8",
+          "headSize": "clamp(1.6rem, 5vw, 2.15rem)",
+          "headWeight": 500,
+          "headTracking": "-0.01em",
+          "ledeUpright": true,
+          "ledeColor": "#9aa4ab",
+          "chevColor": "rgba(72, 210, 185, 0.7)",
+          "muted": "rgba(232, 229, 218, 0.65)",
           "items": [
             {
               "name": "What is Resonant Weaver?",
@@ -649,40 +663,101 @@ INSERT INTO _rw_pages VALUES ('home', 'Resonant Weaver', true, 'published', $rwj
           "formId": "904a1f4d-26bb-42df-b3a2-a16a655fc99d",
           "accent": "",
           "hideHeader": false,
-          "maxWidth": 640
+          "maxWidth": 544,
+          "padding": "none",
+          "marginTop": "clamp(5rem, 9vw, 8rem)",
+          "align": "center",
+          "cardWash": "rgba(18, 63, 82, 0.5)",
+          "cardPad": "clamp(1.6rem, 5vw, 2.6rem)",
+          "vars": {
+            "--mf-gap": "1.25rem",
+            "--mf-field-gap": "0.5rem",
+            "--mf-title-font": "var(--tgv-fontDisplay, inherit)",
+            "--mf-title-size": "clamp(1.6rem, 5vw, 2.15rem)",
+            "--mf-title-weight": "500",
+            "--mf-title-tracking": "-0.01em",
+            "--mf-title-lh": "1.12",
+            "--mf-title-align": "center",
+            "--mf-title-color": "#f5f9f8",
+            "--mf-title-gap": "0.35rem",
+            "--mf-label-font": "var(--tgv-fontAccent, inherit)",
+            "--mf-label-size": "0.75rem",
+            "--mf-label-weight": "400",
+            "--mf-label-tracking": "0.12em",
+            "--mf-label-transform": "uppercase",
+            "--mf-label-color": "rgba(232, 229, 218, 0.72)",
+            "--mf-field-pad": "0.9rem 1rem",
+            "--mf-field-size": "1rem",
+            "--mf-field-lh": "1.4",
+            "--mf-field-font": "var(--tgv-fontBody, inherit)",
+            "--mf-radius": "8px",
+            "--mf-field-bg": "rgba(0, 0, 0, 0.3)",
+            "--mf-field-edge": "rgba(255, 255, 255, 0.16)",
+            "--mf-ink": "rgb(232, 229, 218)",
+            "--mf-field-focus": "rgb(72, 210, 185)",
+            "--mf-field-focus-ring": "0 0 0 3px rgba(72, 210, 185, 0.16)",
+            "--mf-placeholder": "#b69fa1",
+            "--mf-placeholder-opacity": "1",
+            "--mf-textarea-minh": "140px",
+            "--mf-submit-width": "100%",
+            "--mf-submit-align": "stretch",
+            "--mf-submit-minh": "46px",
+            "--mf-submit-pad": "0.76rem 1rem",
+            "--mf-submit-size": "0.72rem",
+            "--mf-submit-weight": "700",
+            "--mf-submit-font": "var(--tgv-fontAccent, inherit)",
+            "--mf-submit-tracking": "0.12em",
+            "--mf-submit-lh": "1",
+            "--mf-submit-transform": "uppercase",
+            "--mf-submit-ink": "rgb(183, 138, 119)",
+            "--mf-submit-bg": "linear-gradient(180deg, rgba(183, 138, 119, 0.07) 0%, rgba(255, 255, 255, 0.018) 100%)",
+            "--mf-submit-edge": "rgba(183, 138, 119, 0.22)",
+            "--mf-submit-shadow": "inset 0 1px 0 rgba(232, 229, 218, 0.06), 0 10px 30px rgba(0, 0, 0, 0.16)"
+          }
         }
       }
     },
     {
       "id": "sec-star-about",
-      "type": "rf-offer-card",
+      "type": "rf-hud-cards",
       "label": "About",
       "blocks": [],
       "enabled": true,
       "config": {
         "props": {
+          "mode": "profile",
           "columns": 1,
           "heading": "",
-          "bulletGlyph": "✦",
-          "padTop": 0,
-          "padBottom": 25,
+          "marginTop": "clamp(5rem, 9vw, 8rem)",
+          "gap": "",
+          "cardWash": "rgba(18, 63, 82, 0.5)",
+          "cardWashFeatured": "",
+          "imageGlow": "",
+          "markerColor": "rgba(72, 210, 185, 0.8)",
+          "priceColor": "",
+          "linkColor": "",
+          "badgeColor": "",
+          "maxWidth": 46,
+          "cardPad": "clamp(1.6rem, 5vw, 2.6rem)",
+          "markerSize": "0.64rem",
+          "markerTracking": "0.22em",
+          "markerGap": "0.6rem",
+          "titleSize": "clamp(1.5rem, 4vw, 2rem)",
+          "titleWeight": 500,
+          "titleTracking": "-0.01em",
+          "titleLh": "1.15",
+          "titleColor": "#f5f9f8",
+          "copySize": "0.98rem",
+          "copyLh": "1.7",
+          "copyColor": "#c4ccd0",
+          "anchorId": "about",
           "items": [
             {
-              "anchorId": "about",
-              "eyebrow": "About Resonant Weaver",
+              "marker": "About Resonant Weaver",
               "title": "Between Earth and sky",
-              "sub": "",
-              "body": "I live in the forest in Sweden, on a homestead we are slowly learning to tend. Much of life here has been worked out by doing: carrying water, making firewood, growing food, and paying attention to the land through changing seasons. It has taught me to notice what is actually present, rather than what I expect to find.\n\nI have been drawn to what moves beneath the surface since I was a child. Over time, that curiosity became a practice, and the practice became this work. I am certified in mediumship, Usui Reiki Master/Teacher, Quantum Astrology, and soul guide work. I have also spent years exploring how energetic, bodily, and stellar patterns can be sensed, understood, and brought into everyday life.\n\nI work primarily through clairsentience and claircognizance. I feel what is happening in a field through my own system, then translate what I receive into something clear, grounded, and useful. I also work with light language, through voice and movement, when direct energetic tending is more helpful than words alone.\n\nResonant Weaver grew from the meeting of these worlds: the stars above us, the living field around us, and the body that lets us experience it all. The work is here to help you recognise what is already moving within you, and find a way to live from it more fully.",
-              "listLabel": "",
-              "bullets": [],
-              "note": "",
-              "price": "",
-              "ctaLabel": "",
-              "ctaHref": "",
-              "variant": "compact-media",
-              "mediaUrl": "/images/tenants/resonantweaver/About-Portrait.png",
-              "mediaAlt": "Portrait of Marthe",
-              "mediaPortrait": true
+              "copy": "I live in the forest in Sweden, on a homestead we are slowly learning to tend. Much of life here has been worked out by doing: carrying water, making firewood, growing food, and paying attention to the land through changing seasons. It has taught me to notice what is actually present, rather than what I expect to find.\n\nI have been drawn to what moves beneath the surface since I was a child. Over time, that curiosity became a practice, and the practice became this work. I am certified in mediumship, Usui Reiki Master/Teacher, Quantum Astrology, and soul guide work. I have also spent years exploring how energetic, bodily, and stellar patterns can be sensed, understood, and brought into everyday life.\n\nI work primarily through clairsentience and claircognizance. I feel what is happening in a field through my own system, then translate what I receive into something clear, grounded, and useful. I also work with light language, through voice and movement, when direct energetic tending is more helpful than words alone.\n\nResonant Weaver grew from the meeting of these worlds: the stars above us, the living field around us, and the body that lets us experience it all. The work is here to help you recognise what is already moving within you, and find a way to live from it more fully.",
+              "imageUrl": "/images/tenants/resonantweaver/About-Portrait.png",
+              "imageAlt": "Portrait of Marthe"
             }
           ]
         }
@@ -728,6 +803,7 @@ INSERT INTO _rw_pages VALUES ('home-classic', 'Resonant Weaver — classic landi
       "enabled": true,
       "config": {
         "props": {
+          "padAsMargin": true,
           "markUrl": "/images/tenants/resonantweaver/Logo-RW-2026.svg",
           "markAlt": "",
           "markGlow": true,
@@ -4648,7 +4724,7 @@ BEGIN
     FROM public.page_models p, LATERAL jsonb_array_elements(p.model_json->'sections') s
    WHERE p.site = 'resonantweaver'
      AND p.slug = ANY(expected || expected_drafts)
-     AND s->>'type' NOT IN ('rf-split-hero', 'rf-centered-intro', 'rf-door-card', 'rf-offer-card', 'rf-media-copy', 'rf-accordion', 'form-live', 'rf-testimonials', 'rf-page-tone', 'rf-back-link', 'rf-product-hero', 'rf-section-head', 'rf-hud-cards', 'rf-callout-bar', 'rf-process-steps', 'rf-list', 'rf-mono-note', 'rf-detail-split');
+     AND s->>'type' NOT IN ('rf-split-hero', 'rf-centered-intro', 'rf-door-card', 'rf-hud-cards', 'rf-media-copy', 'rf-accordion', 'form-live', 'rf-offer-card', 'rf-testimonials', 'rf-page-tone', 'rf-back-link', 'rf-product-hero', 'rf-section-head', 'rf-callout-bar', 'rf-process-steps', 'rf-list', 'rf-mono-note', 'rf-detail-split');
   IF n <> 0 THEN
     RAISE EXCEPTION 'assert: % section(s) name an unexpected type', n;
   END IF;

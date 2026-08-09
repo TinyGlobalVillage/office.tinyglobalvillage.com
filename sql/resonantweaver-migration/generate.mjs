@@ -342,6 +342,9 @@ function heroSection(data, { size } = {}) {
   const copper = toHex(parseTriplet(data.tokens.COPPER));
   const teal = toHex(parseTriplet(data.tokens.TEAL));
   return section("sec-hero", "rf-split-hero", "Hero", {
+    // Her Main's 8rem clearance, outside the hero's box — the section measures
+    // content-only, like her HeroSection element does.
+    padAsMargin: true,
     markUrl: asset(verbatim(inlineCopy.hero.markUrl)),
     markAlt: "",
     markGlow: true,
@@ -369,7 +372,7 @@ function heroSection(data, { size } = {}) {
  *  (LandingStarPreview.styles — 55rem centered column, 0.2em eyebrow at 66%
  *  of the teal, copy at her scale). The old rf-media-copy approximation was
  *  a left-aligned band; the census called out its eyebrow's type run. */
-function introBlock(data, id, label, copy) {
+function introBlock(data, id, label, copy, extra = {}) {
   return section(id, "rf-centered-intro", label, {
     eyebrow: copy.eyebrow,
     eyebrowTracking: 0.2,
@@ -380,6 +383,9 @@ function introBlock(data, id, label, copy) {
     spacedBottom: true,
     spacedTop: false,
     muted: `rgba(${data.tokens.BONE}, 0.63)`,
+    // Her home's Section rhythm and siblings ride here — clamp(5rem, 9vw, 8rem)
+    // as marginTop on the intros that open a Section.
+    ...extra,
   });
 }
 
@@ -569,6 +575,25 @@ function buildStarLanding(data, formId) {
       ratio: "2 / 3",
       ratioStacked: "1 / 1",
       idleReveal: 0.62,
+      // Her Cards/CardLink/CardTitle/CardCopy/Arrow values, authored — the
+      // entry's defaults are the platform's, never hers.
+      rowGap: "clamp(0.85rem, 1.5vw, 1.35rem)",
+      sidePad: "0",
+      cardBg: "#071421",
+      titleSize: "clamp(1.3rem, 2.2vw, 1.8rem)",
+      titleWeight: 520,
+      titleTracking: "-0.015em",
+      titleLh: 1.05,
+      copySize: "0.96rem",
+      arrowColor: `rgba(${data.tokens.COPPER}, 0.94)`,
+      arrowSize: "0.7rem",
+      arrowWeight: 700,
+      arrowTracking: "0.1em",
+      arrowTop: "1.7rem",
+      arrowGap: "0.5rem",
+      arrowGlyphSize: "1rem",
+      hoverGlow: `rgba(${data.tokens.COPPER}, 0.08)`,
+      muted: `rgba(${data.tokens.BONE}, 0.64)`,
       items: star.doors.map((door) => ({
         index: `${door.index} · Door`,
         title: door.title,
@@ -586,63 +611,82 @@ function buildStarLanding(data, formId) {
     }),
   );
 
-  sections.push(introBlock(data, "sec-star-featured-intro", "Featured — intro", star.featured));
   sections.push(
-    section("sec-star-featured", "rf-offer-card", "Featured", {
+    introBlock(data, "sec-star-featured-intro", "Featured — intro", star.featured, {
+      marginTop: "clamp(5rem, 9vw, 8rem)",
+    }),
+  );
+  // Her FeaturedGrid renders OfferingTile — which IS rf-hud-cards' tile mode
+  // (the entry was derived from Cards.tsx). The first family cut authored this
+  // grid as rf-offer-card, the exact mistake the entry's header warns about.
+  sections.push(
+    section("sec-star-featured", "rf-hud-cards", "Featured", {
+      mode: "tile",
       columns: 3,
       heading: "",
-      bulletGlyph: "✦",
-      padTop: 0,
-      padBottom: 25,
+      marginTop: "clamp(2rem, 4vw, 3rem)",
+      gap: "clamp(0.85rem, 1.5vw, 1.35rem)",
+      cardWash: "rgba(18, 63, 82, 0.5)",
+      cardWashFeatured: "",
+      imageGlow: "",
+      markerColor: `rgb(${data.tokens.TEAL})`,
+      priceColor: `rgb(${data.tokens.COPPER})`,
+      linkColor: `rgb(${data.tokens.TEAL})`,
+      badgeColor: `rgb(${data.tokens.TEAL})`,
+      maxWidth: 78,
       items: star.featuredSlugs.map((slug, i) => {
         const offer = data.resolveOffer(data.getOfferBySlug(slug));
         return {
-          anchorId: offer.slug,
           // OfferingTile renders "01 · <sub>" as one line above the title.
-          eyebrow: `0${i + 1} · ${offer.sub}`,
+          marker: `0${i + 1} · ${offer.sub}`,
           title: offer.title,
-          sub: "",
           // The tile shows the FIRST paragraph only, falling back to the sub.
-          body: offer.paragraphs[0] ?? offer.sub,
-          listLabel: "",
-          bullets: [],
-          note: "",
+          copy: offer.paragraphs[0] ?? offer.sub,
           price: offer.price,
-          ctaLabel: offer.hasDetailPage
+          linkLabel: offer.hasDetailPage
             ? "Learn more"
             : offer.external
               ? "View offering"
               : "Explore",
-          ctaHref: offer.href,
-          ctaTarget: offer.external ? "_blank" : "",
-          // OfferingTile ends every link `{linkLabel} <span aria-hidden>→</span>`.
-          ctaArrow: true,
-          variant: "standard",
+          href: offer.href,
+          target: offer.external ? "_blank" : "",
         };
       }),
     }),
   );
 
-  sections.push(introBlock(data, "sec-star-fieldguide-intro", "Field Guide — intro", star.fieldGuide));
   sections.push(
-    section("sec-star-fieldguide", "rf-offer-card", "Field Guide — tiles", {
+    introBlock(data, "sec-star-fieldguide-intro", "Field Guide — intro", star.fieldGuide, {
+      marginTop: "clamp(5rem, 9vw, 8rem)",
+    }),
+  );
+  // Her FieldGuideTile is the hud material in its SMALL form — 1.4rem pad,
+  // 0.62rem eyebrow at 0.16em over a 1.15rem display title, nothing else.
+  sections.push(
+    section("sec-star-fieldguide", "rf-hud-cards", "Field Guide — tiles", {
+      mode: "tile",
       columns: 3,
       heading: "",
-      bulletGlyph: "✦",
-      padTop: 0,
-      padBottom: 25,
+      marginTop: "clamp(2rem, 4vw, 3rem)",
+      gap: "1.25rem",
+      cardWash: "rgba(18, 63, 82, 0.5)",
+      cardWashFeatured: "",
+      imageGlow: "",
+      markerColor: `rgba(${data.tokens.TEAL}, 0.66)`,
+      priceColor: "",
+      linkColor: "",
+      badgeColor: "",
+      maxWidth: 78,
+      cardPad: "1.4rem 1.5rem",
+      markerSize: "0.62rem",
+      markerTracking: "0.16em",
+      markerGap: "0.5rem",
+      titleSize: "1.15rem",
+      titleTracking: "normal",
+      titleLh: "1.5",
       items: star.fieldGuide.tiles.map((tile) => ({
-        eyebrow: tile.eyebrow,
+        marker: tile.eyebrow,
         title: tile.title,
-        sub: "",
-        body: "",
-        listLabel: "",
-        bullets: [],
-        note: "",
-        price: "",
-        ctaLabel: "",
-        ctaHref: "",
-        variant: "standard",
       })),
     }),
   );
@@ -673,6 +717,8 @@ function buildStarLanding(data, formId) {
   // Her own site-wide FAQ, NOT `src/data/home/faq.ts` — the star landing has a
   // second, longer list written for the whole practice rather than for the
   // offerings stack. Nine entries against the classic landing's own set.
+  // Her FaqCard: the hud material around the quiet panel, the compact head,
+  // white hairlines, display-role item names, teal chevrons.
   sections.push(
     section("sec-star-faq", "rf-accordion", "FAQ", {
       heading: verbatim(inlineCopy.faq.heading),
@@ -683,43 +729,128 @@ function buildStarLanding(data, formId) {
       ruleUnderHead: true,
       animate: true,
       exclusive: true,
+      cardWash: "rgba(18, 63, 82, 0.5)",
+      cardPad: "clamp(1.6rem, 5vw, 2.6rem)",
+      maxWidth: 48,
+      framePad: "none",
+      marginTop: "clamp(5rem, 9vw, 8rem)",
+      itemEdge: "rgba(255, 255, 255, 0.08)",
+      itemHoverWash: "rgba(255, 255, 255, 0.02)",
+      nameFont: "var(--tgv-fontDisplay, inherit)",
+      nameSize: "0.98rem",
+      nameWeight: 300,
+      nameTracking: "0.02em",
+      headColor: "#f5f9f8",
+      headSize: "clamp(1.6rem, 5vw, 2.15rem)",
+      headWeight: 500,
+      headTracking: "-0.01em",
+      ledeUpright: true,
+      ledeColor: "#9aa4ab",
+      chevColor: `rgba(${data.tokens.TEAL}, 0.7)`,
+      muted: `rgba(${data.tokens.BONE}, 0.65)`,
       items: star.faq.map((f) => ({ name: f.q, body: f.a })),
     }),
   );
 
+  // Her ContactCard, resolved: the shared FormWrapper/RitualButton base with
+  // the star card's && overrides baked — every value below is read out of
+  // ContactFormWrapper.ts + RitualButton.tsx + LandingStarPreview.styles.
   sections.push(
     section("sec-star-contact", "form-live", "Contact", {
       formId,
       accent: "",
       hideHeader: false,
-      maxWidth: 640,
+      maxWidth: 544,
+      padding: "none",
+      marginTop: "clamp(5rem, 9vw, 8rem)",
+      align: "center",
+      cardWash: "rgba(18, 63, 82, 0.5)",
+      cardPad: "clamp(1.6rem, 5vw, 2.6rem)",
+      vars: {
+        "--mf-gap": "1.25rem",
+        "--mf-field-gap": "0.5rem",
+        "--mf-title-font": "var(--tgv-fontDisplay, inherit)",
+        "--mf-title-size": "clamp(1.6rem, 5vw, 2.15rem)",
+        "--mf-title-weight": "500",
+        "--mf-title-tracking": "-0.01em",
+        "--mf-title-lh": "1.12",
+        "--mf-title-align": "center",
+        "--mf-title-color": "#f5f9f8",
+        "--mf-title-gap": "0.35rem",
+        "--mf-label-font": "var(--tgv-fontAccent, inherit)",
+        "--mf-label-size": "0.75rem",
+        "--mf-label-weight": "400",
+        "--mf-label-tracking": "0.12em",
+        "--mf-label-transform": "uppercase",
+        "--mf-label-color": `rgba(${data.tokens.BONE}, 0.72)`,
+        "--mf-field-pad": "0.9rem 1rem",
+        "--mf-field-size": "1rem",
+        "--mf-field-lh": "1.4",
+        "--mf-field-font": "var(--tgv-fontBody, inherit)",
+        "--mf-radius": "8px",
+        "--mf-field-bg": "rgba(0, 0, 0, 0.3)",
+        "--mf-field-edge": "rgba(255, 255, 255, 0.16)",
+        "--mf-ink": `rgb(${data.tokens.BONE})`,
+        "--mf-field-focus": `rgb(${data.tokens.TEAL})`,
+        "--mf-field-focus-ring": `0 0 0 3px rgba(${data.tokens.TEAL}, 0.16)`,
+        "--mf-placeholder": "#b69fa1",
+        "--mf-placeholder-opacity": "1",
+        "--mf-textarea-minh": "140px",
+        "--mf-submit-width": "100%",
+        "--mf-submit-align": "stretch",
+        "--mf-submit-minh": "46px",
+        "--mf-submit-pad": "0.76rem 1rem",
+        "--mf-submit-size": "0.72rem",
+        "--mf-submit-weight": "700",
+        "--mf-submit-font": "var(--tgv-fontAccent, inherit)",
+        "--mf-submit-tracking": "0.12em",
+        "--mf-submit-lh": "1",
+        "--mf-submit-transform": "uppercase",
+        "--mf-submit-ink": `rgb(${data.tokens.COPPER})`,
+        "--mf-submit-bg": `linear-gradient(180deg, rgba(${data.tokens.COPPER}, 0.07) 0%, rgba(255, 255, 255, 0.018) 100%)`,
+        "--mf-submit-edge": `rgba(${data.tokens.COPPER}, 0.22)`,
+        "--mf-submit-shadow": `inset 0 1px 0 rgba(${data.tokens.BONE}, 0.06), 0 10px 30px rgba(0, 0, 0, 0.16)`,
+      },
     }),
   );
 
+  // Her AboutCard: the hud material worn as a bio — portrait beside eyebrow/
+  // title/paragraphs. rf-hud-cards' profile layout IS this card.
   sections.push(
-    section("sec-star-about", "rf-offer-card", "About", {
+    section("sec-star-about", "rf-hud-cards", "About", {
+      mode: "profile",
       columns: 1,
       heading: "",
-      bulletGlyph: "✦",
-      padTop: 0,
-      padBottom: 25,
+      marginTop: "clamp(5rem, 9vw, 8rem)",
+      gap: "",
+      cardWash: "rgba(18, 63, 82, 0.5)",
+      cardWashFeatured: "",
+      imageGlow: "",
+      markerColor: `rgba(${data.tokens.TEAL}, 0.8)`,
+      priceColor: "",
+      linkColor: "",
+      badgeColor: "",
+      maxWidth: 46,
+      cardPad: "clamp(1.6rem, 5vw, 2.6rem)",
+      markerSize: "0.64rem",
+      markerTracking: "0.22em",
+      markerGap: "0.6rem",
+      titleSize: "clamp(1.5rem, 4vw, 2rem)",
+      titleWeight: 500,
+      titleTracking: "-0.01em",
+      titleLh: "1.15",
+      titleColor: "#f5f9f8",
+      copySize: "0.98rem",
+      copyLh: "1.7",
+      copyColor: "#c4ccd0",
+      anchorId: "about",
       items: [
         {
-          anchorId: "about",
-          eyebrow: star.about.eyebrow,
+          marker: star.about.eyebrow,
           title: star.about.title,
-          sub: "",
-          body: star.about.body.join("\n\n"),
-          listLabel: "",
-          bullets: [],
-          note: "",
-          price: "",
-          ctaLabel: "",
-          ctaHref: "",
-          variant: "compact-media",
-          mediaUrl: asset(star.about.portrait.src),
-          mediaAlt: star.about.portrait.alt,
-          mediaPortrait: true,
+          copy: star.about.body.join("\n\n"),
+          imageUrl: asset(star.about.portrait.src),
+          imageAlt: star.about.portrait.alt,
         },
       ],
     }),
