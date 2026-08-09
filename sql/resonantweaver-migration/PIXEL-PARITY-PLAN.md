@@ -1229,10 +1229,19 @@ so her serif text is ~27% narrower than her live site's: `& reflections.`
 measures 359px on ours and 457px on hers at the same size and weight.
 
 So these pages can be faithful to her CSS **or** to her pixels, not both.
-Recommendation: **keep the real Cormorant** — the source names it, `/journey/`
-proves the intent, and `siteFonts`' own doc comment was written for exactly
-this case. Consequence to accept: writing, pearl-chamber and home-classic never
-converge on the differ, and the number stops being the measure for them.
+
+> **RULED — Gio, 2026-08-09: A. Keep the real Cormorant.** The source names it,
+> `/journey/` proves the intent, and `siteFonts`' own doc comment was written
+> for exactly this case. It is also already what the pooled renderer does, so
+> the ruling changes no code — what it changes is the MEASURE. On `/writing/`,
+> `/pearl-chamber/` and `/home-classic/`, the serif delta against her live app
+> is now EXPECTED, and the aligned% on those three stops being a target. They
+> are worked on their non-font deltas only, and they close when nothing but the
+> typeface differs.
+
+Marthe still gets the choice in her own words (the layperson question and the
+before/after shots), and if she prefers her live look it is now a dropdown in
+the Typefaces panel plus Publish — no deploy, no developer.
 
 **sun-walk (item 6) is closed: 13.38% was one missing declaration.** The page
 differed from hers in **no** colour, size, weight, margin, padding or gap — and
