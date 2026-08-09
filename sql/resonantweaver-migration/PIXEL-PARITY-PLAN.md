@@ -1323,6 +1323,48 @@ tests, render-check 354/354, office tsc at its 66-error baseline. Only console
 errors were the known employee-role 403s (uat@ is not an admin), which is
 correct gating.
 
+### AND THE TYPEFACE ITSELF IS SELF-SERVE — 2026-08-09 (Gio's ruling, second half)
+
+The atom ruling left one operator-only step: a FACE was a `siteFonts` row
+written by hand, so the six roles could only point at what an operator had
+already loaded. Gio: *uploading a new typeface should be self-serve.* It is now.
+
+**A Typefaces panel** sits under the theme's Fonts group — upload a file, name
+the family, set weight/style/loading, remove. It rides `postChromeDraft` like
+the theme and the nav, so faces land in the draft the Publish button promotes
+and the rows Client Versions restores; **publish promotes theme and faces
+together**, because a published role naming a family nothing loads is a role
+that silently means Arial.
+
+**The bytes are the guard, not the MIME type.** Browsers report the same woff2
+as `font/woff2`, `application/octet-stream` or `""` depending on the OS and the
+picker, so a MIME list wide enough to accept every real font accepts any binary.
+`createUploadHandler` gained a `verify` hook that runs BEFORE the write, and
+`looksLikeFont` reads the container tag (wOF2 / wOFF / OTTO / sfnt).
+`application/octet-stream` stays OUT of the allowlist so the MIME check is still
+a real first gate. 11 assertions pin it — a PNG, a zip and a script wearing font
+extensions, and a woff2 uploaded as `.woff`.
+
+**A QMBM carries what the form cannot:** that a typeface is TWO steps (load the
+family, then point a role at it, and nothing moves until the second); that
+Regular/Italic/Bold are three faces sharing ONE name, and getting that wrong is
+why bold stops being bold; that `.woff2` is the file to want; and that the
+webfont licence is the uploader's, because we host the file where any visitor
+can download it.
+
+**Proven on production** (mono `665e096b` + HQ `b98e506b`), via curl against the
+live routes and authed Playwright in the live editor: a real woff2 uploads
+**200** and serves as `font/woff2`; a PNG renamed `.woff2` is refused **415**
+("not a valid .woff2"); an anonymous POST is **401**; `application/octet-stream`
+is **415** at the MIME gate. A face written through the panel's own door reads
+back exactly, and a `Break"Out` family — the injection shape the harness caught
+once before — is dropped on the way IN while its valid sibling survives. The
+panel renders with its upload button and its `?`, and the QMBM opens with the
+two-step text. Test artefacts cleaned: the draft row set back to empty (the only
+published `siteFonts` row is still resonantweaver's 8 faces) and the uploaded
+file deleted from the bucket (`cdn` still serves it from a Cloudflare HIT until
+it ages out). render-check 365/365.
+
 ## Phase 4 — images
 
 1. Restore every missing asset under `/images/tenants/resonantweaver/`.
