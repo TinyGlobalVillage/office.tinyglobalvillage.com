@@ -835,6 +835,108 @@ doors/FAQ/contact/about bands** (home band 2's door markers also wear Grotesk
 — rf-door-card's index run predates the accent-role ruling; check it while
 in there).
 
+### SEGMENT ALIGNMENT + THE ALL-PRODUCTS HEADER — 2026-08-08 (the window after)
+
+**The differ got its page-level number (HQ `c51c0b83`).** Segment-aligned
+diffing landed exactly as the ledger asked, plus one lesson the first cut
+taught: anchors are the order-agreeing sig-matched pairs (LIS on candidate y,
+so a crossed match can't fold a segment negative), and cuts land at each
+anchor's top AND at its bottom — but the bottom only when the pair's HEIGHTS
+AGREE (±max(32px, 15%)). Top-only cuts left few-anchor pages as one huge
+segment where a 19px growth misaligned everything below (open-your-journey
+read 2.63% aligned against 0.22% worst band); bottoms from compound↔head
+matches are different visual lines and manufacture misaligned segments (a
+first draft scored develop 61% where the final scores 33%, both against the
+same pixels). Every pixel of both pages is diffed exactly once; `alignedPct`
+ranks the report and gates the pass; per-band rows stay as localisation
+detail. Bands still gate captures with no full-page shots.
+
+**The first honest full ranking (`rw-p3-rank2`, live @ 04a8ff8b, 75/75):**
+home 51.65–65.99% / home-classic 44–57% / starseed 33–41% / pearl-chamber
+49.75–80.83% are the real worst; experience pages 21–31% (+180–426px);
+all-products 16.76–22.38% with the header seg at 62.33%; the offer-detail
+cluster a uniform 7.7–15% every one +87–123px taller; develop's 94% "worst
+band" is honestly 8.23% aligned; open-your-journey 2.63% (its one real
+defect: a +19px footer-region tail segment, 9.68%). FIVE pages have NO
+anchors at all — journey, writing, galactic-field-guide (pairing collapses:
+9→2, 2→4, 5→1 sections) and the two draft offers (the form pages) — aligned
+n/a, structural work, not styling.
+
+**Then the three named re-authors, one commit each:**
+- **rf-section-head learned her Header — one seat, two scales** (mono
+  `923cfbe9`). headingLevel h1/h2 + title size/tracking/lh/maxCh + copy
+  column fraction/min/gap + padBottom + borderAlpha + copy scale + stackAt,
+  every default the gateway values so existing rows emit byte-identically
+  (asserted — the old block passes untouched; 276/276). sec-all-head authors
+  AllProducts.styles verbatim: clamp(2.65rem,4.5vw,4.4rem) at −0.03/1.04,
+  15ch, 0.62fr from 18rem, 6rem gap, clamp(3rem,6vw,5rem) over the 11%
+  hairline, copy clamp(1rem,1.45vw,1.16rem)/1.7 capped by the column alone,
+  760px stack.
+- **The all-products closing was a CalloutBar all along** — variant
+  "offerings", and the entry already existed; the row just wore rf-media-copy
+  (the "non-accent eyebrow face" the last window flagged). sec-all-close
+  re-authored on rf-callout-bar: teal glow rgba(TEAL,0.1), 20ch title at
+  −0.025/1.04, copper monolink with arrow, maxWidth 86, padBottom 7rem
+  (office `261a391`, both rows).
+- **The form renderer's last hardcoded paint became `--mf-*` vars** (mono
+  `47cde691`). The waitlist "100s" were never missing labels — the census
+  drops FTitle leaves that carry a required-`*` child span; the real drift
+  was the platform's cyan-white 12px labels, dark glass fields and
+  dark-on-accent pill on her domain. Ink, gap, label
+  font/size/tracking/transform/color, field pad/size/bg/edge/focus, radius,
+  submit pad/size/tracking/transform/font/ink/bg/bg-hover/edge — each a var
+  whose fallback is the old literal (an unthemed form is byte-identical;
+  both package tscs exit 0). `--mf-req-display: none` hides required marks
+  for designs that mark nothing. form-live grew a `vars` map (only the
+  `--mf-` namespace crosses). The waitlist rows author WaitlistForm.tsx:
+  labels 0.65rem mono uppercase bone-0.62 (accent role via
+  var(--tgv-fontAccent)), square fields on rgba(0,0,0,0.28) with teal focus,
+  submit teal-on-teal-8% 0.68rem/0.08em with teal-16% hover, 28rem column,
+  no asterisks. Home's contact form has its OWN styling (r8, bg 0.3, focus
+  ring, full-width 0.72rem submit) — its vars belong to the home pass.
+- **rf-door-card's index run and arrow joined the accent role** (mono
+  `1f9ba8f8`) — the last two meta runs in the family wearing the page face
+  ("i · door" and "→" measured Grotesk on home). typeRole('accent') in front
+  of inherit; role-less sites render exactly as before; 280/280.
+
+Rows redriven (DELETE 18 + 18 inserts, assertions green — twice, it is
+delete-and-redrive by design). Home's contact form data is FINE — "name *"/
+"email *" missing from its census is the same FTitle-leaf artifact, the form
+and its fields render.
+
+**Measured after deploy (`rw-p3-verify1`, live @ 1f9ba8f8, fleet green):**
+all-products 18.72% → **10.85%** aligned at 1440 — the header band is her
+height now (248→249px, was 312→485), the closing callout 27.8% → 2.59%, and
+the page's whole type census is down to ONE row ("→#11" 10.88 vs 10.72px).
+The waitlist forms measure her values exactly (Space Mono 10.4px/700 labels
+on bone-0.62, 448px column, fields 15.2px on rgba(0,0,0,0.28)) and their
+type-delta rows are gone; the pages stay aligned-n/a because SHORT pages
+pair nothing — structural, next window. **One find while verifying: the
+pooled footer appends its own 12px "powered by tiny global village" line
+UNDER her footer** (candidate-only last band on every page — her own footer
+already says "tiny global village llc™", so it reads twice on her domain).
+It is most of the tail segments (all-products' 224→311px) and plausibly the
+offer cluster's uniform +90px. Whether RW keeps the platform attribution is
+GIO'S ruling, not a generator fix.
+
+**Next window, in order:** (0) the footer attribution ruling + the offer
+cluster's uniform +90px (measure what's left of it if the line goes);
+(1) **home's bands** — the doors row re-author
+(her CardIndex/Arrow metrics: index teal-0.62, arrow copper-0.94 at
+0.7rem/0.1em with the 1rem sliding span and 1.7rem seat — needs arrow
+metric/color knobs on rf-door-card), "begin where you feel the pull"
+(54.34%), the archive band (24.59%), FAQ (59.35%), contact (her landing form:
+r8 fields on rgba(0,0,0,0.3), border white-16, teal focus + 3px teal-16 ring,
+full-width mono submit 0.72rem/0.12em — author as --mf-* vars incl. a
+--mf-submit width... check what her submit's colors resolve to first), about
+(72.41%), and the two 128px her-only page segments (seg 0/5 — her page-top/
+inter-band margins, likely the margin-not-padding family again). (2) the
+offer cluster's uniform +90px. (3) the five NO-ANCHOR pages (journey /
+writing / galactic-field-guide render 2, 4, 1 sections — missing content,
+not styling; the two draft offers pair nothing because the form + chrome
+dominate short pages). pearl-chamber + home-classic stay parked on the
+Cormorant-wholesale ruling (Gio).
+
 ## Phase 4 — images
 
 1. Restore every missing asset under `/images/tenants/resonantweaver/`.
