@@ -363,20 +363,23 @@ function heroSection(data, { size } = {}) {
 
 /** An eyebrow / title / paragraph block. Her star landing opens four of its
  *  sections with exactly this, as `<Intro>` — one helper rather than four
- *  near-identical literals. */
-function introBlock(id, label, copy) {
-  return section(id, "rf-media-copy", label, {
-    imageUrl: "",
-    imageAlt: "",
-    imagePosition: "left",
+ *  near-identical literals.
+ *
+ *  rf-centered-intro since the family pass: the entry IS her `<Intro>`
+ *  (LandingStarPreview.styles — 55rem centered column, 0.2em eyebrow at 66%
+ *  of the teal, copy at her scale). The old rf-media-copy approximation was
+ *  a left-aligned band; the census called out its eyebrow's type run. */
+function introBlock(data, id, label, copy) {
+  return section(id, "rf-centered-intro", label, {
     eyebrow: copy.eyebrow,
-    eyebrowColor: "accent",
-    heading: copy.title,
-    headingLevel: 2,
-    headingAccent: "",
-    paragraphs: [copy.copy],
-    chips: [],
-    ctas: [],
+    eyebrowTracking: 0.2,
+    eyebrowAlpha: 66,
+    title: copy.title,
+    copy: copy.copy,
+    maxWidth: 55,
+    spacedBottom: true,
+    spacedTop: false,
+    muted: `rgba(${data.tokens.BONE}, 0.63)`,
   });
 }
 
@@ -554,7 +557,7 @@ function buildStarLanding(data, formId) {
   const star = data.star;
   const sections = [heroSection(data, { size: true })];
 
-  sections.push(introBlock("sec-star-intro", "Intro", star.intro));
+  sections.push(introBlock(data, "sec-star-intro", "Intro", star.intro));
 
   // The doors. `retiredDoors` is deliberately NOT read: she took those two off
   // the hub and kept them in the file the same way `home-classic` is kept, so
@@ -583,7 +586,7 @@ function buildStarLanding(data, formId) {
     }),
   );
 
-  sections.push(introBlock("sec-star-featured-intro", "Featured — intro", star.featured));
+  sections.push(introBlock(data, "sec-star-featured-intro", "Featured — intro", star.featured));
   sections.push(
     section("sec-star-featured", "rf-offer-card", "Featured", {
       columns: 3,
@@ -620,7 +623,7 @@ function buildStarLanding(data, formId) {
     }),
   );
 
-  sections.push(introBlock("sec-star-fieldguide-intro", "Field Guide — intro", star.fieldGuide));
+  sections.push(introBlock(data, "sec-star-fieldguide-intro", "Field Guide — intro", star.fieldGuide));
   sections.push(
     section("sec-star-fieldguide", "rf-offer-card", "Field Guide — tiles", {
       columns: 3,
@@ -747,12 +750,33 @@ function buildStarLanding(data, formId) {
   };
 }
 
-/** ONE OFFER DETAIL PAGE — `offer/[slug]/OfferDetail.tsx`, five parts.
+/* ------------------------------------------- the gateway/offer family rows --- */
+// Shared authoring for the twelve landing-star detail pages, onto the entries
+// DERIVED from her code (PIXEL-PARITY-PLAN §Phase 3 family pass, 2026-08-08):
+// rf-page-tone ← GatewayBody/OfferBody, rf-back-link ← both BackLinks,
+// rf-product-hero ← ProductHero/GatewayHero, rf-detail-split ← DetailSection,
+// rf-process-steps ← ProcessCard/TrainingStep/ProcessFlow, rf-section-head ←
+// SectionIntro, rf-callout-bar ← CalloutBar. Every color is the ROW's, per the
+// ruling: her design is the SOURCE, never the DEFAULT.
+
+/** `rgba(BONE, a)` — the alpha'd bone her muted copy runs on. The theme's t3
+ *  is a FLATTENED hex (roles are hex-only), so per-section alphas live here. */
+const bone = (data, a) => `rgba(${data.tokens.BONE}, ${a})`;
+
+/** OfferBody/GatewayBody's toned ground, as the leading section. */
+const pageTone = (id, layers) =>
+  section(id, "rf-page-tone", "Page tone", { layers, ground: "#06111c" });
+
+/** Her BackLink: one quiet mono run on the page container, carrying the
+ *  main's 9.5rem top pad, hover to the page/product accent. */
+const backLinkRow = (id, label, href, maxWidth, accent) =>
+  section(id, "rf-back-link", "Back", { label, href, maxWidth, pageTop: true, accent });
+
+/** ONE OFFER DETAIL PAGE — `offer/[slug]/OfferDetail.tsx`, seven parts.
  *
- *  Back link · ProductHero · (placeholder note) · DetailSection · (Process) ·
- *  CalloutBar. Every one maps onto an entry that already exists; the hero is an
- *  `rf-offer-card` in its `media` layout, which is the same shape — artwork in
- *  its own column, price and CTA in the foot.
+ *  Page tone · back link · ProductHero · (placeholder note) · DetailSection ·
+ *  (inside) · (process or flow) · (note band) · CalloutBar — each on the entry
+ *  derived from the component her page composes.
  *
  *  NOINDEX, ALWAYS. `page.tsx`'s generateMetadata sets
  *  `robots: { index: false, follow: false }` for every offer without exception,
@@ -762,46 +786,66 @@ function buildStarLanding(data, formId) {
 function buildOfferPage(data, entry) {
   const offer = data.resolveOffer(entry);
   const detail = offer.detail;
+  // The plate border every offer action wears — color-mix of the OFFER's
+  // accent, exactly her `color-mix(in srgb, var(--hero-accent) 48%, transparent)`.
+  const plateEdge = `color-mix(in srgb, ${offer.accent} 48%, transparent)`;
   const sections = [];
+
+  // OfferBody's toned ground: the offer's own glow at 28% 8%, the fixed cool
+  // counter-glow at 88% 68%, over the opaque dark.
+  sections.push(
+    pageTone(`sec-offer-tone-${offer.slug}`, [
+      `radial-gradient(ellipse 62% 28% at 28% 8%, ${offer.glow}, transparent 72%)`,
+      "radial-gradient(ellipse 44% 25% at 88% 68%, rgba(39, 78, 112, 0.12), transparent 72%)",
+    ]),
+  );
 
   // Back to the door this offer sits behind. Her own link is
   // `/{lang}/landing-star-preview/{door}/`; the pooled renderer supplies the
   // language segment itself, so the stored href is the unprefixed one.
   sections.push(
-    section(`sec-offer-back-${offer.slug}`, "rf-linkbar", "Back", {
-      links: [{ label: "← Back", href: `/landing-star-preview/${offer.door}/` }],
-      align: "left",
-    }),
+    backLinkRow(
+      `sec-offer-back-${offer.slug}`,
+      "← Back",
+      `/landing-star-preview/${offer.door}/`,
+      82,
+      offer.accent,
+    ),
   );
 
+  const statusLabel = (offer.status ? STATUS_LABEL[offer.status] : "") ?? "";
   sections.push(
-    section(`sec-offer-hero-${offer.slug}`, "rf-offer-card", "Hero", {
-      columns: 1,
-      heading: "",
-      bulletGlyph: "✦",
-      padTop: 0,
-      padBottom: 25,
-      accent: offer.accent,
-      items: [
+    section(`sec-offer-hero-${offer.slug}`, "rf-product-hero", "Hero", {
+      anchorId: offer.slug,
+      // No fallback: an offer without artwork of its own shows none, rather
+      // than borrowing Door One's constellation — her component's own rule.
+      imageUrl: asset(offer.image ?? "", { optional: true }),
+      imageAlt: offer.imageAlt ?? "",
+      imagePosition: "left",
+      frameTone: "glow",
+      glow: offer.glow,
+      eyebrow: detail.eyebrow,
+      eyebrowTracking: 0.18,
+      title: offer.title,
+      titleTracking: -0.03,
+      lead: offer.sub,
+      priceLabel: offer.price,
+      statusLabel,
+      statusReady: offer.status === "available" || offer.status === "founding-access",
+      statusColor: `rgb(${data.tokens.TEAL})`,
+      ctas: [
         {
-          anchorId: offer.slug,
-          eyebrow: detail.eyebrow,
-          title: offer.title,
-          sub: offer.sub,
-          body: "",
-          listLabel: "",
-          bullets: [],
-          note: "",
-          price: offer.price,
-          ctaLabel: offer.actionLabel,
-          ctaHref: offer.actionHref,
-          ctaTarget: offer.external ? "_blank" : "",
-          variant: "media",
-          // ProductHero's own fallback when an offer carries no artwork.
-          mediaUrl: asset(offer.image ?? "/images/landing-star-preview/GalacticSelf.jpg"),
-          mediaAlt: offer.imageAlt ?? "",
+          label: offer.actionLabel,
+          href: offer.actionHref,
+          variant: "plate",
+          arrow: true,
+          color: plateEdge,
+          ...(offer.actionExternal ? { target: "_blank" } : {}),
         },
       ],
+      maxWidth: 82,
+      accent: offer.accent,
+      muted: bone(data, 0.63),
     }),
   );
 
@@ -826,94 +870,135 @@ function buildOfferPage(data, entry) {
     );
   }
 
+  // DetailSection — the ruled three-column band. Her list items run a hair
+  // lighter than her paragraphs (0.59 vs 0.61 of the bone).
   sections.push(
-    section(`sec-offer-work-${offer.slug}`, "rf-offer-card", "The work", {
-      columns: 1,
-      heading: "",
-      bulletGlyph: "✦",
-      padTop: 0,
-      padBottom: 25,
+    section(`sec-offer-work-${offer.slug}`, "rf-detail-split", "The work", {
+      eyebrow: detail.workEyebrow ?? verbatim(inlineCopy.offer.workEyebrow),
+      title: detail.detailTitle,
+      paragraphs: [...detail.paragraphs],
+      items: [...detail.includes],
+      listLabel: detail.listLabel ?? verbatim(inlineCopy.offer.includesLabel),
+      listMuted: bone(data, 0.59),
+      maxWidth: 82,
+      spacedTop: true,
       accent: offer.accent,
-      items: [
-        {
-          eyebrow: verbatim(inlineCopy.offer.workEyebrow),
-          title: detail.detailTitle,
-          sub: "",
-          body: detail.paragraphs.join("\n\n"),
-          listLabel: detail.listLabel ?? verbatim(inlineCopy.offer.includesLabel),
-          bullets: detail.includes,
-          note: "",
-          price: "",
-          ctaLabel: "",
-          ctaHref: "",
-          variant: "standard",
-        },
-      ],
+      muted: bone(data, 0.61),
     }),
   );
 
-  if (detail.process && detail.process.length) {
+  // The optional SECOND numbered band, for offers whose deliverable has parts
+  // worth naming. The old rows dropped it — part of somatic-signature's lost
+  // height.
+  if (detail.inside && detail.inside.items.length) {
     sections.push(
-      section(`sec-offer-process-${offer.slug}`, "rf-media-copy", "The movement — intro", {
-        imageUrl: "",
-        imageAlt: "",
-        imagePosition: "left",
-        eyebrow: verbatim(inlineCopy.offer.processEyebrow),
-        eyebrowColor: "accent",
-        heading: verbatim(inlineCopy.offer.processHeading),
-        headingLevel: 2,
-        headingAccent: "",
-        paragraphs: [],
-        chips: [],
-        ctas: [],
+      section(`sec-offer-inside-${offer.slug}`, "rf-process-steps", "Inside", {
+        eyebrow: detail.inside.eyebrow,
+        title: detail.inside.title,
+        mode: "cards",
+        steps: detail.inside.items.map((item, i) => ({
+          marker: `0${i + 1}`,
+          title: item.title,
+          copy: item.copy,
+        })),
+        flowSteps: [],
+        note: "",
+        cardWash: "rgba(18, 63, 82, 0.5)",
+        maxWidth: 82,
+        spacedTop: true,
+        accent: offer.accent,
+        muted: bone(data, 0.56),
       }),
     );
+  }
+
+  // The movement — her compact one-line flow when the offer declares one,
+  // otherwise the numbered cards. The flow was unauthorable before this pass.
+  if (detail.processCompact) {
     sections.push(
-      section(`sec-offer-steps-${offer.slug}`, "rf-offer-card", "The movement", {
-        columns: 3,
-        heading: "",
-        bulletGlyph: "✦",
-        padTop: 0,
-        padBottom: 25,
+      section(`sec-offer-steps-${offer.slug}`, "rf-process-steps", "The movement", {
+        eyebrow: detail.processEyebrow ?? verbatim(inlineCopy.offer.processEyebrow),
+        title: detail.processTitle ?? verbatim(inlineCopy.offer.processHeading),
+        mode: "flow",
+        steps: [],
+        flowSteps: [...detail.processCompact.steps],
+        note: detail.processCompact.copy,
+        cardWash: "",
+        maxWidth: 82,
+        spacedTop: true,
         accent: offer.accent,
-        items: detail.process.map((step, i) => ({
+        muted: bone(data, 0.61),
+      }),
+    );
+  } else if (detail.process && detail.process.length) {
+    sections.push(
+      section(`sec-offer-steps-${offer.slug}`, "rf-process-steps", "The movement", {
+        eyebrow: detail.processEyebrow ?? verbatim(inlineCopy.offer.processEyebrow),
+        title: detail.processTitle ?? verbatim(inlineCopy.offer.processHeading),
+        mode: "cards",
+        steps: detail.process.map((step, i) => ({
           // ProcessCard's marker is a zero-padded index, same as the tiles.
-          eyebrow: `0${i + 1}`,
+          marker: `0${i + 1}`,
           title: step.title,
-          sub: "",
-          body: step.copy,
-          listLabel: "",
-          bullets: [],
-          note: "",
-          price: "",
-          ctaLabel: "",
-          ctaHref: "",
-          variant: "standard",
+          copy: step.copy,
         })),
+        flowSteps: [],
+        note: "",
+        cardWash: "rgba(18, 63, 82, 0.5)",
+        maxWidth: 82,
+        spacedTop: true,
+        accent: offer.accent,
+        muted: bone(data, 0.56),
+      }),
+    );
+  }
+
+  // The optional prose band between the process and the closing callout —
+  // a heading with no eyebrow over NoteCopy paragraphs. Also dropped before.
+  if (detail.noteTitle) {
+    sections.push(
+      section(`sec-offer-noteband-${offer.slug}`, "rf-process-steps", "Note", {
+        eyebrow: "",
+        title: detail.noteTitle,
+        mode: "cards",
+        steps: [],
+        flowSteps: [],
+        note: (detail.noteParagraphs ?? []).join("\n\n"),
+        cardWash: "",
+        maxWidth: 82,
+        spacedTop: true,
+        accent: offer.accent,
+        muted: bone(data, 0.61),
       }),
     );
   }
 
   sections.push(
-    section(`sec-offer-close-${offer.slug}`, "rf-media-copy", "Closing", {
-      imageUrl: "",
-      imageAlt: "",
-      imagePosition: "left",
-      eyebrow: verbatim(inlineCopy.offer.closeEyebrow),
-      eyebrowColor: "accent",
-      heading: detail.closeTitle,
-      headingLevel: 2,
-      headingAccent: "",
-      paragraphs: [detail.closeCopy],
-      chips: [],
+    section(`sec-offer-close-${offer.slug}`, "rf-callout-bar", "Closing", {
+      eyebrow: detail.closeEyebrow ?? verbatim(inlineCopy.offer.closeEyebrow),
+      eyebrowTracking: 0.18,
+      title: detail.closeTitle,
+      titleMax: "22ch",
+      titleTracking: -0.025,
+      titleLineHeight: 1.04,
+      copy: detail.closeCopy,
+      price: "",
+      glow: offer.glow,
       ctas: [
         {
           label: offer.actionLabel,
           href: offer.actionHref,
-          variant: "ritual",
-          ...(offer.external ? { target: "_blank" } : {}),
+          variant: "plate",
+          arrow: true,
+          color: plateEdge,
+          ...(offer.actionExternal ? { target: "_blank" } : {}),
         },
       ],
+      maxWidth: 82,
+      spacedTop: true,
+      padBottom: "7rem",
+      accent: offer.accent,
+      muted: bone(data, 0.59),
     }),
   );
 
@@ -995,91 +1080,152 @@ function buildGatewayPage(data, id) {
   const g = data.star_gateways.GATEWAYS[id];
   const shared = data.star_gateways.shared;
   // `lead: string | string[]` — receive's is an array (one <p> per entry in
-  // GatewayPage.tsx). Authored unjoined it 500'd the whole page: the offer
-  // card splits `body` on blank lines and tenantPageMetadata trims
-  // `description`, and an array answers to neither. The blank-line join is the
-  // exact inverse of the split, so the render is per-paragraph either way.
+  // GatewayPage.tsx). Authored unjoined it 500'd the whole page: the hero
+  // splits `lead` on blank lines and tenantPageMetadata trims `description`,
+  // and an array answers to neither. The blank-line join is the exact inverse
+  // of the split, so the render is per-paragraph either way.
   const lead = Array.isArray(g.lead) ? g.lead.join("\n\n") : g.lead;
+  // GatewayPage.styles' tone table: the door's glow and accent, verbatim.
+  const toneGlow = {
+    meet: "rgba(46, 92, 135, 0.24)",
+    receive: `rgba(${data.tokens.TEAL}, 0.1)`,
+    develop: `rgba(${data.tokens.COPPER}, 0.11)`,
+  }[id];
+  const pageAccent = id === "receive" ? `rgb(${data.tokens.TEAL})` : `rgb(${data.tokens.COPPER})`;
+  // Her gateway plates border COPPER at 38% even on the teal door — the
+  // per-CTA color is what carries that.
+  const plateEdge = `rgba(${data.tokens.COPPER}, 0.38)`;
   const sections = [];
 
+  // GatewayBody's toned ground: the door's glow high right, the fixed cool
+  // counter-glow low left, over the opaque dark.
   sections.push(
-    section(`sec-gw-back-${id}`, "rf-linkbar", "Back", {
-      // Her back link points at /landing-star-preview/, which REDIRECTS to the
-      // homepage — so it is authored as the destination, not the hop.
-      links: [{ label: shared.backLink, href: "/" }],
-      align: "left",
+    pageTone(`sec-gw-tone-${id}`, [
+      `radial-gradient(ellipse 74% 34% at 70% 6%, ${toneGlow}, transparent 72%)`,
+      "radial-gradient(ellipse 50% 30% at 12% 75%, rgba(30, 67, 96, 0.11), transparent 72%)",
+    ]),
+  );
+
+  // Her back link points at /landing-star-preview/, which REDIRECTS to the
+  // homepage — so it is authored as the destination, not the hop.
+  sections.push(backLinkRow(`sec-gw-back-${id}`, shared.backLink, "/", 86, pageAccent));
+
+  // GatewayHero — the words-led seat: text left, scrimmed photograph right,
+  // plate primary + monolink secondary (her "↓" is part of the text when the
+  // secondary jumps in-page; the → span rides `arrow` when it navigates).
+  const heroCtas = [
+    {
+      label: g.primary,
+      href: gatewayHref(g.primaryHref),
+      variant: "plate",
+      arrow: true,
+      color: plateEdge,
+    },
+  ];
+  if (g.secondary) {
+    heroCtas.push(
+      g.secondaryHref
+        ? {
+            label: g.secondary,
+            href: gatewayHref(g.secondaryHref),
+            variant: "monolink",
+            arrow: true,
+            color: bone(data, 0.52),
+          }
+        : {
+            label: `${g.secondary} ↓`,
+            href: "#gateway-content",
+            variant: "monolink",
+            color: bone(data, 0.52),
+          },
+    );
+  }
+  sections.push(
+    section(`sec-gw-hero-${id}`, "rf-product-hero", "Hero", {
+      imageUrl: asset(g.image),
+      imageAlt: g.alt,
+      imagePosition: "right",
+      frameTone: "scrim",
+      glow: "",
+      eyebrow: g.eyebrow,
+      eyebrowTracking: 0.19,
+      title: g.title,
+      titleTracking: -0.045,
+      lead,
+      priceLabel: "",
+      statusLabel: "",
+      statusReady: false,
+      statusColor: "",
+      ctas: heroCtas,
+      maxWidth: 86,
+      accent: pageAccent,
+      muted: bone(data, 0.63),
     }),
   );
 
+  // SectionIntro — heading left, copy right, the hairline the grid sits on.
+  // Carries the #gateway-content anchor her secondary jumps to.
   sections.push(
-    section(`sec-gw-hero-${id}`, "rf-offer-card", "Hero", {
-      columns: 1,
-      heading: "",
-      bulletGlyph: "✦",
-      padTop: 0,
-      padBottom: 25,
-      items: [
-        {
-          eyebrow: g.eyebrow,
-          title: g.title,
-          sub: "",
-          body: lead,
-          listLabel: "",
-          bullets: [],
-          note: "",
-          price: "",
-          ctaLabel: g.primary,
-          ctaHref: gatewayHref(g.primaryHref),
-          variant: "media",
-          mediaUrl: asset(g.image),
-          mediaAlt: g.alt,
-          mediaRight: true,
-        },
-      ],
-    }),
-  );
-
-  sections.push(
-    section(`sec-gw-intro-${id}`, "rf-media-copy", "Section intro", {
-      imageUrl: "",
-      imageAlt: "",
-      imagePosition: "left",
+    section(`sec-gw-intro-${id}`, "rf-section-head", "Section intro", {
+      anchorId: "gateway-content",
       eyebrow: g.sectionEyebrow,
-      eyebrowColor: "accent",
-      heading: g.sectionTitle,
-      headingLevel: 2,
-      headingAccent: "",
-      paragraphs: [g.sectionCopy],
-      chips: [],
-      ctas: [],
+      eyebrowTracking: 0.19,
+      title: g.sectionTitle,
+      copy: g.sectionCopy,
+      maxWidth: 86,
+      spacedTop: true,
+      accent: pageAccent,
+      muted: bone(data, 0.58),
     }),
   );
 
-  sections.push(
-    section(`sec-gw-cards-${id}`, "rf-offer-card", "Cards", {
-      columns: 3,
-      heading: "",
-      bulletGlyph: "✦",
-      padTop: 0,
-      padBottom: 25,
-      items: g.cards.map(gatewayCardToItem),
-    }),
-  );
+  // The grid under the intro: her training rail for cardsAsSteps, the card
+  // grid otherwise (still rf-offer-card — the DoorCard refinement is its own
+  // ledger item). Both sit flush on the intro's hairline.
+  if (g.cardsAsSteps) {
+    sections.push(
+      section(`sec-gw-cards-${id}`, "rf-process-steps", "Steps", {
+        eyebrow: "",
+        title: "",
+        mode: "rail",
+        steps: g.cards.map((card) => ({
+          marker: card.marker,
+          title: card.title,
+          copy: card.copy,
+        })),
+        flowSteps: [],
+        note: "",
+        cardWash: "rgba(17, 40, 59, 0.2)",
+        maxWidth: 86,
+        spacedTop: false,
+        accent: pageAccent,
+        muted: bone(data, 0.56),
+      }),
+    );
+  } else {
+    sections.push(
+      section(`sec-gw-cards-${id}`, "rf-offer-card", "Cards", {
+        columns: 3,
+        heading: "",
+        bulletGlyph: "✦",
+        padTop: 0,
+        padBottom: 25,
+        items: g.cards.map(gatewayCardToItem),
+      }),
+    );
+  }
 
   if (g.offerCards && g.offerCards.length) {
     sections.push(
-      section(`sec-gw-courses-intro-${id}`, "rf-media-copy", "Courses — intro", {
-        imageUrl: "",
-        imageAlt: "",
-        imagePosition: "left",
+      section(`sec-gw-courses-intro-${id}`, "rf-section-head", "Courses — intro", {
         eyebrow: shared.coursesEyebrow,
-        eyebrowColor: "accent",
-        heading: shared.coursesTitle,
-        headingLevel: 2,
-        headingAccent: "",
-        paragraphs: [shared.coursesCopy],
-        chips: [],
-        ctas: [],
+        eyebrowTracking: 0.19,
+        title: shared.coursesTitle,
+        copy: shared.coursesCopy,
+        maxWidth: 86,
+        spacedTop: true,
+        accent: pageAccent,
+        muted: bone(data, 0.58),
       }),
     );
     sections.push(
@@ -1095,18 +1241,30 @@ function buildGatewayPage(data, id) {
   }
 
   sections.push(
-    section(`sec-gw-close-${id}`, "rf-media-copy", "Closing", {
-      imageUrl: "",
-      imageAlt: "",
-      imagePosition: "left",
+    section(`sec-gw-close-${id}`, "rf-callout-bar", "Closing", {
       eyebrow: shared.closeEyebrow,
-      eyebrowColor: "accent",
-      heading: g.closeTitle,
-      headingLevel: 2,
-      headingAccent: "",
-      paragraphs: [g.closeCopy],
-      chips: [],
-      ctas: [{ label: g.closeCta, href: gatewayHref(g.primaryHref), variant: "ritual" }],
+      eyebrowTracking: 0.18,
+      title: g.closeTitle,
+      titleMax: "",
+      titleTracking: -0.035,
+      titleLineHeight: 0.98,
+      copy: g.closeCopy,
+      price: "",
+      glow: toneGlow,
+      ctas: [
+        {
+          label: g.closeCta,
+          href: gatewayHref(g.primaryHref),
+          variant: "plate",
+          arrow: true,
+          color: plateEdge,
+        },
+      ],
+      maxWidth: 70,
+      spacedTop: true,
+      padBottom: "7rem",
+      accent: pageAccent,
+      muted: bone(data, 0.59),
     }),
   );
 
@@ -1257,56 +1415,66 @@ function buildWaitlistPage(data, entry, formId) {
   }
 
   const sections = [
-    section(`sec-wait-back-${offer.slug}`, "rf-linkbar", "Back", {
-      links: [{ label: verbatim(c.backLabel), href: `/landing-star-preview/${offer.door}/` }],
-      align: "left",
-    }),
-    section(`sec-wait-hero-${offer.slug}`, "rf-offer-card", "Hero", {
-      columns: 1,
-      heading: "",
-      bulletGlyph: "✦",
-      padTop: 0,
-      padBottom: 25,
-      accent: offer.accent,
-      items: [
+    // OfferBody's toned ground — the waitlist shares the detail page's shell.
+    pageTone(`sec-wait-tone-${offer.slug}`, [
+      `radial-gradient(ellipse 62% 28% at 28% 8%, ${offer.glow}, transparent 72%)`,
+      "radial-gradient(ellipse 44% 25% at 88% 68%, rgba(39, 78, 112, 0.12), transparent 72%)",
+    ]),
+    backLinkRow(
+      `sec-wait-back-${offer.slug}`,
+      verbatim(c.backLabel),
+      `/landing-star-preview/${offer.door}/`,
+      82,
+      offer.accent,
+    ),
+    section(`sec-wait-hero-${offer.slug}`, "rf-product-hero", "Hero", {
+      anchorId: offer.slug,
+      // THIS seat keeps the GalacticSelf fallback — her waitlist hero borrows
+      // it on purpose (`offer.image ?? …` in OfferWaitlist.tsx), unlike the
+      // detail hero which deliberately shows none.
+      imageUrl: asset(offer.image ?? "/images/landing-star-preview/GalacticSelf.jpg"),
+      imageAlt: offer.imageAlt ?? "",
+      imagePosition: "left",
+      frameTone: "glow",
+      glow: offer.glow,
+      // A LITERAL on this route, not the offer's status: every waitlist hero
+      // says "In development"; the status reaches the page through the badge.
+      eyebrow: verbatim(c.heroEyebrow),
+      eyebrowTracking: 0.18,
+      title: offer.title,
+      titleTracking: -0.03,
+      lead: offer.sub,
+      priceLabel: offer.price,
+      statusLabel,
+      statusReady: offer.status === "available" || offer.status === "founding-access",
+      statusColor: `rgb(${data.tokens.TEAL})`,
+      // Her plate is an in-page jump to the form below — carried now that the
+      // hero is her hero, with the form section holding the anchor.
+      ctas: [
         {
-          anchorId: offer.slug,
-          eyebrow: verbatim(c.heroEyebrow),
-          title: offer.title,
-          sub: offer.sub,
-          body: "",
-          listLabel: "",
-          bullets: [],
-          // ProductHero puts the availability badge BESIDE the price; the offer
-          // card has one foot slot for a price and no badge, so the two share
-          // the line. Dropping the status would lose the only thing on the page
-          // that says when.
-          price: statusLabel ? `${offer.price} · ${statusLabel}` : offer.price,
-          note: "",
-          // Her hero's button is an in-page jump to the form below, which the
-          // pooled page does not need: the form IS the next section, and an
-          // anchor to a section one scroll away is a button that looks like a
-          // checkout and only moves the page.
-          ctaLabel: "",
-          ctaHref: "",
-          variant: "media",
-          mediaUrl: asset(offer.image ?? "/images/landing-star-preview/GalacticSelf.jpg"),
-          mediaAlt: offer.imageAlt ?? "",
+          label: verbatim(c.heroAction),
+          href: "#waitlist",
+          variant: "plate",
+          arrow: true,
+          color: `color-mix(in srgb, ${offer.accent} 48%, transparent)`,
         },
       ],
+      maxWidth: 82,
+      accent: offer.accent,
+      muted: bone(data, 0.63),
     }),
-    section(`sec-wait-head-${offer.slug}`, "rf-media-copy", "Stay in the loop", {
-      imageUrl: "",
-      imageAlt: "",
-      imagePosition: "left",
+    section(`sec-wait-head-${offer.slug}`, "rf-process-steps", "Stay in the loop", {
+      anchorId: "waitlist",
       eyebrow: verbatim(c.sectionEyebrow),
-      eyebrowColor: "accent",
-      heading: verbatim(c.sectionHeading),
-      headingLevel: 2,
-      headingAccent: "",
-      paragraphs: [],
-      chips: [],
-      ctas: [],
+      title: verbatim(c.sectionHeading),
+      mode: "cards",
+      steps: [],
+      flowSteps: [],
+      note: "",
+      cardWash: "",
+      maxWidth: 82,
+      spacedTop: true,
+      accent: offer.accent,
     }),
     section(`sec-wait-form-${offer.slug}`, "form-live", "Waitlist", {
       formId,
@@ -1367,11 +1535,8 @@ function buildAllProducts(data) {
     // "← Back to the three doors" — her href is `/{lang}/landing-star-preview/`,
     // which on both apps is a redirect to the site root. The doors ARE the home
     // page now, so the stored link goes straight there rather than through the
-    // hop.
-    section("sec-all-back", "rf-linkbar", "Back", {
-      links: [{ label: data.star_all.backLink, href: "/" }],
-      align: "left",
-    }),
+    // hop. Her ProductsMain runs the 86rem container.
+    backLinkRow("sec-all-back", data.star_all.backLink, "/", 86, `rgb(${data.tokens.TEAL})`),
     section("sec-all-head", "rf-media-copy", "Header", {
       imageUrl: "",
       imageAlt: "",

@@ -323,25 +323,21 @@ INSERT INTO _rw_pages VALUES ('home', 'Resonant Weaver', true, 'published', $rwj
     },
     {
       "id": "sec-star-intro",
-      "type": "rf-media-copy",
+      "type": "rf-centered-intro",
       "label": "Intro",
       "blocks": [],
       "enabled": true,
       "config": {
         "props": {
-          "imageUrl": "",
-          "imageAlt": "",
-          "imagePosition": "left",
           "eyebrow": "Three ways into the work",
-          "eyebrowColor": "accent",
-          "heading": "The stars, the field, and your own perception",
-          "headingLevel": 2,
-          "headingAccent": "",
-          "paragraphs": [
-            "You can meet yourself through the stars, through the living energy of your own field, or by developing the perception that lets you sense more directly yourself. Each path returns you to the same place: a clearer relationship with who you are, what you carry, and how you are here to live."
-          ],
-          "chips": [],
-          "ctas": []
+          "eyebrowTracking": 0.2,
+          "eyebrowAlpha": 66,
+          "title": "The stars, the field, and your own perception",
+          "copy": "You can meet yourself through the stars, through the living energy of your own field, or by developing the perception that lets you sense more directly yourself. Each path returns you to the same place: a clearer relationship with who you are, what you carry, and how you are here to live.",
+          "maxWidth": 55,
+          "spacedBottom": true,
+          "spacedTop": false,
+          "muted": "rgba(232, 229, 218, 0.63)"
         }
       }
     },
@@ -398,24 +394,20 @@ INSERT INTO _rw_pages VALUES ('home', 'Resonant Weaver', true, 'published', $rwj
     },
     {
       "id": "sec-star-featured-intro",
-      "type": "rf-media-copy",
+      "type": "rf-centered-intro",
       "label": "Featured — intro",
       "blocks": [],
       "enabled": true,
       "config": {
         "props": {
-          "imageUrl": "",
-          "imageAlt": "",
-          "imagePosition": "left",
-          "eyebrowColor": "accent",
-          "heading": "Begin where you feel the pull",
-          "headingLevel": 2,
-          "headingAccent": "",
-          "paragraphs": [
-            "Each path has a doorway open. The Starwoven Journey is your Starseed heritage. The Resonance Mirror and Pearl Chamber work with the energy moving through your field. The Somatic Signature helps you learn the language of your own body. Begin with the one that feels closest to what you need now."
-          ],
-          "chips": [],
-          "ctas": []
+          "eyebrowTracking": 0.2,
+          "eyebrowAlpha": 66,
+          "title": "Begin where you feel the pull",
+          "copy": "Each path has a doorway open. The Starwoven Journey is your Starseed heritage. The Resonance Mirror and Pearl Chamber work with the energy moving through your field. The Somatic Signature helps you learn the language of your own body. Begin with the one that feels closest to what you need now.",
+          "maxWidth": 55,
+          "spacedBottom": true,
+          "spacedTop": false,
+          "muted": "rgba(232, 229, 218, 0.63)"
         }
       }
     },
@@ -487,25 +479,21 @@ INSERT INTO _rw_pages VALUES ('home', 'Resonant Weaver', true, 'published', $rwj
     },
     {
       "id": "sec-star-fieldguide-intro",
-      "type": "rf-media-copy",
+      "type": "rf-centered-intro",
       "label": "Field Guide — intro",
       "blocks": [],
       "enabled": true,
       "config": {
         "props": {
-          "imageUrl": "",
-          "imageAlt": "",
-          "imagePosition": "left",
           "eyebrow": "An evolving archive",
-          "eyebrowColor": "accent",
-          "heading": "The Galactic Field Guide",
-          "headingLevel": 2,
-          "headingAccent": "",
-          "paragraphs": [
-            "A growing atlas of the fixed stars, star lineages, and civilisations that shape this work. Each entry explores the character of a star current, the gifts and shadows it carries, and how its presence may be recognised in human life. The archive currently spans 42 systems, with new writing and illustrations added as the guide continues to unfold."
-          ],
-          "chips": [],
-          "ctas": []
+          "eyebrowTracking": 0.2,
+          "eyebrowAlpha": 66,
+          "title": "The Galactic Field Guide",
+          "copy": "A growing atlas of the fixed stars, star lineages, and civilisations that shape this work. Each entry explores the character of a star current, the gifts and shadows it carries, and how its presence may be recognised in human life. The archive currently spans 42 systems, with new writing and illustrations added as the guide continues to unfold.",
+          "maxWidth": 55,
+          "spacedBottom": true,
+          "spacedTop": false,
+          "muted": "rgba(232, 229, 218, 0.63)"
         }
       }
     },
@@ -1256,78 +1244,91 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/meet', 'Meet Your Galactic S
   },
   "sections": [
     {
+      "id": "sec-gw-tone-meet",
+      "type": "rf-page-tone",
+      "label": "Page tone",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "layers": [
+            "radial-gradient(ellipse 74% 34% at 70% 6%, rgba(46, 92, 135, 0.24), transparent 72%)",
+            "radial-gradient(ellipse 50% 30% at 12% 75%, rgba(30, 67, 96, 0.11), transparent 72%)"
+          ],
+          "ground": "#06111c"
+        }
+      }
+    },
+    {
       "id": "sec-gw-back-meet",
-      "type": "rf-linkbar",
+      "type": "rf-back-link",
       "label": "Back",
       "blocks": [],
       "enabled": true,
       "config": {
         "props": {
-          "links": [
-            {
-              "label": "← Choose another way in",
-              "href": "/"
-            }
-          ],
-          "align": "left"
+          "label": "← Choose another way in",
+          "href": "/",
+          "maxWidth": 86,
+          "pageTop": true,
+          "accent": "rgb(183, 138, 119)"
         }
       }
     },
     {
       "id": "sec-gw-hero-meet",
-      "type": "rf-offer-card",
+      "type": "rf-product-hero",
       "label": "Hero",
       "blocks": [],
       "enabled": true,
       "config": {
         "props": {
-          "columns": 1,
-          "heading": "",
-          "bulletGlyph": "✦",
-          "padTop": 0,
-          "padBottom": 25,
-          "items": [
+          "imageUrl": "/images/tenants/resonantweaver/GalacticSelf.jpg",
+          "imageAlt": "A restrained constellation and astronomical observatory diagram emerging from darkness",
+          "imagePosition": "right",
+          "frameTone": "scrim",
+          "glow": "",
+          "eyebrow": "Door One · Meet Your Galactic Self",
+          "eyebrowTracking": 0.19,
+          "title": "Meet your galactic self",
+          "titleTracking": -0.045,
+          "lead": "Some people arrive here curious. Others already sense there is more to their story than the ordinary account of a life. This is a place to meet that part of yourself directly, without needing to prove where it comes from.",
+          "priceLabel": "",
+          "statusLabel": "",
+          "statusReady": false,
+          "statusColor": "",
+          "ctas": [
             {
-              "eyebrow": "Door One · Meet Your Galactic Self",
-              "title": "Meet your galactic self",
-              "sub": "",
-              "body": "Some people arrive here curious. Others already sense there is more to their story than the ordinary account of a life. This is a place to meet that part of yourself directly, without needing to prove where it comes from.",
-              "listLabel": "",
-              "bullets": [],
-              "note": "",
-              "price": "",
-              "ctaLabel": "See every way in",
-              "ctaHref": "/landing-star-preview/experience/all-products/",
-              "variant": "media",
-              "mediaUrl": "/images/tenants/resonantweaver/GalacticSelf.jpg",
-              "mediaAlt": "A restrained constellation and astronomical observatory diagram emerging from darkness",
-              "mediaRight": true
+              "label": "See every way in",
+              "href": "/landing-star-preview/experience/all-products/",
+              "variant": "plate",
+              "arrow": true,
+              "color": "rgba(183, 138, 119, 0.38)"
             }
-          ]
+          ],
+          "maxWidth": 86,
+          "accent": "rgb(183, 138, 119)",
+          "muted": "rgba(232, 229, 218, 0.63)"
         }
       }
     },
     {
       "id": "sec-gw-intro-meet",
-      "type": "rf-media-copy",
+      "type": "rf-section-head",
       "label": "Section intro",
       "blocks": [],
       "enabled": true,
       "config": {
         "props": {
-          "imageUrl": "",
-          "imageAlt": "",
-          "imagePosition": "left",
+          "anchorId": "gateway-content",
           "eyebrow": "Ways to begin",
-          "eyebrowColor": "accent",
-          "heading": "Start where it feels easiest",
-          "headingLevel": 2,
-          "headingAccent": "",
-          "paragraphs": [
-            "None of these ask you to already know what you are. Each one is simply a different depth of first contact."
-          ],
-          "chips": [],
-          "ctas": []
+          "eyebrowTracking": 0.19,
+          "title": "Start where it feels easiest",
+          "copy": "None of these ask you to already know what you are. Each one is simply a different depth of first contact.",
+          "maxWidth": 86,
+          "spacedTop": true,
+          "accent": "rgb(183, 138, 119)",
+          "muted": "rgba(232, 229, 218, 0.58)"
         }
       }
     },
@@ -1396,31 +1397,35 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/meet', 'Meet Your Galactic S
     },
     {
       "id": "sec-gw-close-meet",
-      "type": "rf-media-copy",
+      "type": "rf-callout-bar",
       "label": "Closing",
       "blocks": [],
       "enabled": true,
       "config": {
         "props": {
-          "imageUrl": "",
-          "imageAlt": "",
-          "imagePosition": "left",
           "eyebrow": "At the threshold",
-          "eyebrowColor": "accent",
-          "heading": "You do not need the whole picture to begin",
-          "headingLevel": 2,
-          "headingAccent": "",
-          "paragraphs": [
-            "Start with the part of the sky that is moving with you now. Everything else can wait."
-          ],
-          "chips": [],
+          "eyebrowTracking": 0.18,
+          "title": "You do not need the whole picture to begin",
+          "titleMax": "",
+          "titleTracking": -0.035,
+          "titleLineHeight": 0.98,
+          "copy": "Start with the part of the sky that is moving with you now. Everything else can wait.",
+          "price": "",
+          "glow": "rgba(46, 92, 135, 0.24)",
           "ctas": [
             {
               "label": "See every way in",
               "href": "/landing-star-preview/experience/all-products/",
-              "variant": "ritual"
+              "variant": "plate",
+              "arrow": true,
+              "color": "rgba(183, 138, 119, 0.38)"
             }
-          ]
+          ],
+          "maxWidth": 70,
+          "spacedTop": true,
+          "padBottom": "7rem",
+          "accent": "rgb(183, 138, 119)",
+          "muted": "rgba(232, 229, 218, 0.59)"
         }
       }
     }
@@ -1443,165 +1448,154 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/develop', 'Develop Your Perc
   },
   "sections": [
     {
+      "id": "sec-gw-tone-develop",
+      "type": "rf-page-tone",
+      "label": "Page tone",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "layers": [
+            "radial-gradient(ellipse 74% 34% at 70% 6%, rgba(183, 138, 119, 0.11), transparent 72%)",
+            "radial-gradient(ellipse 50% 30% at 12% 75%, rgba(30, 67, 96, 0.11), transparent 72%)"
+          ],
+          "ground": "#06111c"
+        }
+      }
+    },
+    {
       "id": "sec-gw-back-develop",
-      "type": "rf-linkbar",
+      "type": "rf-back-link",
       "label": "Back",
       "blocks": [],
       "enabled": true,
       "config": {
         "props": {
-          "links": [
-            {
-              "label": "← Choose another way in",
-              "href": "/"
-            }
-          ],
-          "align": "left"
+          "label": "← Choose another way in",
+          "href": "/",
+          "maxWidth": 86,
+          "pageTop": true,
+          "accent": "rgb(183, 138, 119)"
         }
       }
     },
     {
       "id": "sec-gw-hero-develop",
-      "type": "rf-offer-card",
+      "type": "rf-product-hero",
       "label": "Hero",
       "blocks": [],
       "enabled": true,
       "config": {
         "props": {
-          "columns": 1,
-          "heading": "",
-          "bulletGlyph": "✦",
-          "padTop": 0,
-          "padBottom": 25,
-          "items": [
+          "imageUrl": "/images/tenants/resonantweaver/learn.jpg",
+          "imageAlt": "A grounded figure sensing space while crossing a subtle threshold",
+          "imagePosition": "right",
+          "frameTone": "scrim",
+          "glow": "",
+          "eyebrow": "Door Three · Develop Your Perception",
+          "eyebrowTracking": 0.19,
+          "title": "Perception begins with knowing your own signals",
+          "titleTracking": -0.045,
+          "lead": "Your body is already giving you information. This path helps you recognise what feels like you, notice the pressures and patterns that pull you away from yourself, and build trust in what you perceive without reaching for something more dramatic.",
+          "priceLabel": "",
+          "statusLabel": "",
+          "statusReady": false,
+          "statusColor": "",
+          "ctas": [
             {
-              "eyebrow": "Door Three · Develop Your Perception",
-              "title": "Perception begins with knowing your own signals",
-              "sub": "",
-              "body": "Your body is already giving you information. This path helps you recognise what feels like you, notice the pressures and patterns that pull you away from yourself, and build trust in what you perceive without reaching for something more dramatic.",
-              "listLabel": "",
-              "bullets": [],
-              "note": "",
-              "price": "",
-              "ctaLabel": "Begin with the Somatic Signature",
-              "ctaHref": "/landing-star-preview/offer/somatic-signature/",
-              "variant": "media",
-              "mediaUrl": "/images/tenants/resonantweaver/learn.jpg",
-              "mediaAlt": "A grounded figure sensing space while crossing a subtle threshold",
-              "mediaRight": true
+              "label": "Begin with the Somatic Signature",
+              "href": "/landing-star-preview/offer/somatic-signature/",
+              "variant": "plate",
+              "arrow": true,
+              "color": "rgba(183, 138, 119, 0.38)"
+            },
+            {
+              "label": "See where the path leads ↓",
+              "href": "#gateway-content",
+              "variant": "monolink",
+              "color": "rgba(232, 229, 218, 0.52)"
             }
-          ]
+          ],
+          "maxWidth": 86,
+          "accent": "rgb(183, 138, 119)",
+          "muted": "rgba(232, 229, 218, 0.63)"
         }
       }
     },
     {
       "id": "sec-gw-intro-develop",
-      "type": "rf-media-copy",
+      "type": "rf-section-head",
       "label": "Section intro",
       "blocks": [],
       "enabled": true,
       "config": {
         "props": {
-          "imageUrl": "",
-          "imageAlt": "",
-          "imagePosition": "left",
+          "anchorId": "gateway-content",
           "eyebrow": "The path of perception",
-          "eyebrowColor": "accent",
-          "heading": "From sensation to relationship",
-          "headingLevel": 2,
-          "headingAccent": "",
-          "paragraphs": [
-            "Perception develops in layers. First, you learn the feeling of your own system. Then you begin to recognise what belongs to you, what has been absorbed, and what may be coming through the field. From there, perception becomes a conscious relationship: grounded in the body, clear boundaries, and your own choice."
-          ],
-          "chips": [],
-          "ctas": []
+          "eyebrowTracking": 0.19,
+          "title": "From sensation to relationship",
+          "copy": "Perception develops in layers. First, you learn the feeling of your own system. Then you begin to recognise what belongs to you, what has been absorbed, and what may be coming through the field. From there, perception becomes a conscious relationship: grounded in the body, clear boundaries, and your own choice.",
+          "maxWidth": 86,
+          "spacedTop": true,
+          "accent": "rgb(183, 138, 119)",
+          "muted": "rgba(232, 229, 218, 0.58)"
         }
       }
     },
     {
       "id": "sec-gw-cards-develop",
-      "type": "rf-offer-card",
-      "label": "Cards",
+      "type": "rf-process-steps",
+      "label": "Steps",
       "blocks": [],
       "enabled": true,
       "config": {
         "props": {
-          "columns": 3,
-          "heading": "",
-          "bulletGlyph": "✦",
-          "padTop": 0,
-          "padBottom": 25,
-          "items": [
+          "eyebrow": "",
+          "title": "",
+          "mode": "rail",
+          "steps": [
             {
-              "eyebrow": "01",
+              "marker": "01",
               "title": "Sensation",
-              "sub": "",
-              "body": "Build a felt reference for your own body, attention, rhythm, and energetic baseline. Learn how your system signals pressure, openness, alignment, and the need to return.",
-              "listLabel": "",
-              "bullets": [],
-              "note": "",
-              "price": "",
-              "ctaLabel": "",
-              "ctaHref": "",
-              "variant": "standard",
-              "mediaUrl": "",
-              "mediaAlt": ""
+              "copy": "Build a felt reference for your own body, attention, rhythm, and energetic baseline. Learn how your system signals pressure, openness, alignment, and the need to return."
             },
             {
-              "eyebrow": "02",
+              "marker": "02",
               "title": "Discernment",
-              "sub": "",
-              "body": "Learn to tell the difference between direct sensation, personal interpretation, absorbed emotion, projection, and a clearer signal from beyond your own field.",
-              "listLabel": "",
-              "bullets": [],
-              "note": "",
-              "price": "",
-              "ctaLabel": "",
-              "ctaHref": "",
-              "variant": "standard",
-              "mediaUrl": "",
-              "mediaAlt": ""
+              "copy": "Learn to tell the difference between direct sensation, personal interpretation, absorbed emotion, projection, and a clearer signal from beyond your own field."
             },
             {
-              "eyebrow": "03",
+              "marker": "03",
               "title": "Relationship",
-              "sub": "",
-              "body": "Practise meeting subtle information consciously, with curiosity, boundaries, responsiveness, and enough grounding to remain fully yourself.",
-              "listLabel": "",
-              "bullets": [],
-              "note": "",
-              "price": "",
-              "ctaLabel": "",
-              "ctaHref": "",
-              "variant": "standard",
-              "mediaUrl": "",
-              "mediaAlt": ""
+              "copy": "Practise meeting subtle information consciously, with curiosity, boundaries, responsiveness, and enough grounding to remain fully yourself."
             }
-          ]
+          ],
+          "flowSteps": [],
+          "note": "",
+          "cardWash": "rgba(17, 40, 59, 0.2)",
+          "maxWidth": 86,
+          "spacedTop": false,
+          "accent": "rgb(183, 138, 119)",
+          "muted": "rgba(232, 229, 218, 0.56)"
         }
       }
     },
     {
       "id": "sec-gw-courses-intro-develop",
-      "type": "rf-media-copy",
+      "type": "rf-section-head",
       "label": "Courses — intro",
       "blocks": [],
       "enabled": true,
       "config": {
         "props": {
-          "imageUrl": "",
-          "imageAlt": "",
-          "imagePosition": "left",
           "eyebrow": "Ready when you are",
-          "eyebrowColor": "accent",
-          "heading": "The courses",
-          "headingLevel": 2,
-          "headingAccent": "",
-          "paragraphs": [
-            "Structured containers for the same work, for whenever you're ready to go deeper than a single practice."
-          ],
-          "chips": [],
-          "ctas": []
+          "eyebrowTracking": 0.19,
+          "title": "The courses",
+          "copy": "Structured containers for the same work, for whenever you're ready to go deeper than a single practice.",
+          "maxWidth": 86,
+          "spacedTop": true,
+          "accent": "rgb(183, 138, 119)",
+          "muted": "rgba(232, 229, 218, 0.58)"
         }
       }
     },
@@ -1655,31 +1649,35 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/develop', 'Develop Your Perc
     },
     {
       "id": "sec-gw-close-develop",
-      "type": "rf-media-copy",
+      "type": "rf-callout-bar",
       "label": "Closing",
       "blocks": [],
       "enabled": true,
       "config": {
         "props": {
-          "imageUrl": "",
-          "imageAlt": "",
-          "imagePosition": "left",
           "eyebrow": "At the threshold",
-          "eyebrowColor": "accent",
-          "heading": "The body is the first instrument",
-          "headingLevel": 2,
-          "headingAccent": "",
-          "paragraphs": [
-            "You do not need to become more sensitive before you begin. Start with what your body already tells you: where pressure gathers, what changes your breath, what feels steady, and what helps you return. Trust grows from learning these signals well."
-          ],
-          "chips": [],
+          "eyebrowTracking": 0.18,
+          "title": "The body is the first instrument",
+          "titleMax": "",
+          "titleTracking": -0.035,
+          "titleLineHeight": 0.98,
+          "copy": "You do not need to become more sensitive before you begin. Start with what your body already tells you: where pressure gathers, what changes your breath, what feels steady, and what helps you return. Trust grows from learning these signals well.",
+          "price": "",
+          "glow": "rgba(183, 138, 119, 0.11)",
           "ctas": [
             {
               "label": "Begin with the Somatic Signature",
               "href": "/landing-star-preview/offer/somatic-signature/",
-              "variant": "ritual"
+              "variant": "plate",
+              "arrow": true,
+              "color": "rgba(183, 138, 119, 0.38)"
             }
-          ]
+          ],
+          "maxWidth": 70,
+          "spacedTop": true,
+          "padBottom": "7rem",
+          "accent": "rgb(183, 138, 119)",
+          "muted": "rgba(232, 229, 218, 0.59)"
         }
       }
     }
@@ -1702,165 +1700,155 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/receive', 'Enter Your Own En
   },
   "sections": [
     {
+      "id": "sec-gw-tone-receive",
+      "type": "rf-page-tone",
+      "label": "Page tone",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "layers": [
+            "radial-gradient(ellipse 74% 34% at 70% 6%, rgba(72, 210, 185, 0.1), transparent 72%)",
+            "radial-gradient(ellipse 50% 30% at 12% 75%, rgba(30, 67, 96, 0.11), transparent 72%)"
+          ],
+          "ground": "#06111c"
+        }
+      }
+    },
+    {
       "id": "sec-gw-back-receive",
-      "type": "rf-linkbar",
+      "type": "rf-back-link",
       "label": "Back",
       "blocks": [],
       "enabled": true,
       "config": {
         "props": {
-          "links": [
-            {
-              "label": "← Choose another way in",
-              "href": "/"
-            }
-          ],
-          "align": "left"
+          "label": "← Choose another way in",
+          "href": "/",
+          "maxWidth": 86,
+          "pageTop": true,
+          "accent": "rgb(72, 210, 185)"
         }
       }
     },
     {
       "id": "sec-gw-hero-receive",
-      "type": "rf-offer-card",
+      "type": "rf-product-hero",
       "label": "Hero",
       "blocks": [],
       "enabled": true,
       "config": {
         "props": {
-          "columns": 1,
-          "heading": "",
-          "bulletGlyph": "✦",
-          "padTop": 0,
-          "padBottom": 25,
-          "items": [
+          "imageUrl": "/images/tenants/resonantweaver/experience.jpg",
+          "imageAlt": "A receptive human figure held by quiet energetic contours",
+          "imagePosition": "right",
+          "frameTone": "scrim",
+          "glow": "",
+          "eyebrow": "Door Two · Enter Your Own Energy Field",
+          "eyebrowTracking": 0.19,
+          "title": "Meet what is moving beneath the surface",
+          "titleTracking": -0.045,
+          "lead": "Beneath what you think and say, there are quieter patterns moving through the body, emotions, attention, and the space around you.\n\nYour energy field carries patterns, pressures, strengths, and intentions that may be difficult to name from the outside. This path offers a way to meet what is present, understand what is asking for attention, and support it with care.",
+          "priceLabel": "",
+          "statusLabel": "",
+          "statusReady": false,
+          "statusColor": "",
+          "ctas": [
             {
-              "eyebrow": "Door Two · Enter Your Own Energy Field",
-              "title": "Meet what is moving beneath the surface",
-              "sub": "",
-              "body": "Beneath what you think and say, there are quieter patterns moving through the body, emotions, attention, and the space around you.\n\nYour energy field carries patterns, pressures, strengths, and intentions that may be difficult to name from the outside. This path offers a way to meet what is present, understand what is asking for attention, and support it with care.",
-              "listLabel": "",
-              "bullets": [],
-              "note": "",
-              "price": "",
-              "ctaLabel": "See what is moving",
-              "ctaHref": "/landing-star-preview/experience/all-products/",
-              "variant": "media",
-              "mediaUrl": "/images/tenants/resonantweaver/experience.jpg",
-              "mediaAlt": "A receptive human figure held by quiet energetic contours",
-              "mediaRight": true
+              "label": "See what is moving",
+              "href": "/landing-star-preview/experience/all-products/",
+              "variant": "plate",
+              "arrow": true,
+              "color": "rgba(183, 138, 119, 0.38)"
+            },
+            {
+              "label": "Hold an intention",
+              "href": "/pearl-chamber",
+              "variant": "monolink",
+              "arrow": true,
+              "color": "rgba(232, 229, 218, 0.52)"
             }
-          ]
+          ],
+          "maxWidth": 86,
+          "accent": "rgb(72, 210, 185)",
+          "muted": "rgba(232, 229, 218, 0.63)"
         }
       }
     },
     {
       "id": "sec-gw-intro-receive",
-      "type": "rf-media-copy",
+      "type": "rf-section-head",
       "label": "Section intro",
       "blocks": [],
       "enabled": true,
       "config": {
         "props": {
-          "imageUrl": "",
-          "imageAlt": "",
-          "imagePosition": "left",
+          "anchorId": "gateway-content",
           "eyebrow": "Working with the field",
-          "eyebrowColor": "accent",
-          "heading": "Notice, understand, support",
-          "headingLevel": 2,
-          "headingAccent": "",
-          "paragraphs": [
-            "Energy often becomes visible through what keeps returning: a pressure you cannot quite place, a pattern that will not shift, or an intention that needs more than thought alone. This work helps you meet what is present, understand what it may be asking for, and offer the kind of support that fits."
-          ],
-          "chips": [],
-          "ctas": []
+          "eyebrowTracking": 0.19,
+          "title": "Notice, understand, support",
+          "copy": "Energy often becomes visible through what keeps returning: a pressure you cannot quite place, a pattern that will not shift, or an intention that needs more than thought alone. This work helps you meet what is present, understand what it may be asking for, and offer the kind of support that fits.",
+          "maxWidth": 86,
+          "spacedTop": true,
+          "accent": "rgb(72, 210, 185)",
+          "muted": "rgba(232, 229, 218, 0.58)"
         }
       }
     },
     {
       "id": "sec-gw-cards-receive",
-      "type": "rf-offer-card",
-      "label": "Cards",
+      "type": "rf-process-steps",
+      "label": "Steps",
       "blocks": [],
       "enabled": true,
       "config": {
         "props": {
-          "columns": 3,
-          "heading": "",
-          "bulletGlyph": "✦",
-          "padTop": 0,
-          "padBottom": 25,
-          "items": [
+          "eyebrow": "",
+          "title": "",
+          "mode": "rail",
+          "steps": [
             {
-              "eyebrow": "01",
+              "marker": "01",
               "title": "Notice",
-              "sub": "",
-              "body": "Bring attention to the patterns, pressures, and subtle movements that are active now.",
-              "listLabel": "",
-              "bullets": [],
-              "note": "",
-              "price": "",
-              "ctaLabel": "",
-              "ctaHref": "",
-              "variant": "standard",
-              "mediaUrl": "",
-              "mediaAlt": ""
+              "copy": "Bring attention to the patterns, pressures, and subtle movements that are active now."
             },
             {
-              "eyebrow": "02",
+              "marker": "02",
               "title": "Understand",
-              "sub": "",
-              "body": "Receive a clearer reflection of what is happening beneath the surface and how it may be affecting your life.",
-              "listLabel": "",
-              "bullets": [],
-              "note": "",
-              "price": "",
-              "ctaLabel": "",
-              "ctaHref": "",
-              "variant": "standard",
-              "mediaUrl": "",
-              "mediaAlt": ""
+              "copy": "Receive a clearer reflection of what is happening beneath the surface and how it may be affecting your life."
             },
             {
-              "eyebrow": "03",
+              "marker": "03",
               "title": "Support",
-              "sub": "",
-              "body": "Work with what is present through grounded guidance or ongoing energetic tending.",
-              "listLabel": "",
-              "bullets": [],
-              "note": "",
-              "price": "",
-              "ctaLabel": "",
-              "ctaHref": "",
-              "variant": "standard",
-              "mediaUrl": "",
-              "mediaAlt": ""
+              "copy": "Work with what is present through grounded guidance or ongoing energetic tending."
             }
-          ]
+          ],
+          "flowSteps": [],
+          "note": "",
+          "cardWash": "rgba(17, 40, 59, 0.2)",
+          "maxWidth": 86,
+          "spacedTop": false,
+          "accent": "rgb(72, 210, 185)",
+          "muted": "rgba(232, 229, 218, 0.56)"
         }
       }
     },
     {
       "id": "sec-gw-courses-intro-receive",
-      "type": "rf-media-copy",
+      "type": "rf-section-head",
       "label": "Courses — intro",
       "blocks": [],
       "enabled": true,
       "config": {
         "props": {
-          "imageUrl": "",
-          "imageAlt": "",
-          "imagePosition": "left",
           "eyebrow": "Ready when you are",
-          "eyebrowColor": "accent",
-          "heading": "The courses",
-          "headingLevel": 2,
-          "headingAccent": "",
-          "paragraphs": [
-            "Structured containers for the same work, for whenever you're ready to go deeper than a single practice."
-          ],
-          "chips": [],
-          "ctas": []
+          "eyebrowTracking": 0.19,
+          "title": "The courses",
+          "copy": "Structured containers for the same work, for whenever you're ready to go deeper than a single practice.",
+          "maxWidth": 86,
+          "spacedTop": true,
+          "accent": "rgb(72, 210, 185)",
+          "muted": "rgba(232, 229, 218, 0.58)"
         }
       }
     },
@@ -1914,31 +1902,35 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/receive', 'Enter Your Own En
     },
     {
       "id": "sec-gw-close-receive",
-      "type": "rf-media-copy",
+      "type": "rf-callout-bar",
       "label": "Closing",
       "blocks": [],
       "enabled": true,
       "config": {
         "props": {
-          "imageUrl": "",
-          "imageAlt": "",
-          "imagePosition": "left",
           "eyebrow": "At the threshold",
-          "eyebrowColor": "accent",
-          "heading": "You do not need the perfect words",
-          "headingLevel": 2,
-          "headingAccent": "",
-          "paragraphs": [
-            "You can arrive with a clear question, a repeating pattern, or simply the feeling that something is asking for attention. The work begins with what is present."
-          ],
-          "chips": [],
+          "eyebrowTracking": 0.18,
+          "title": "You do not need the perfect words",
+          "titleMax": "",
+          "titleTracking": -0.035,
+          "titleLineHeight": 0.98,
+          "copy": "You can arrive with a clear question, a repeating pattern, or simply the feeling that something is asking for attention. The work begins with what is present.",
+          "price": "",
+          "glow": "rgba(72, 210, 185, 0.1)",
           "ctas": [
             {
               "label": "Choose an offering",
               "href": "/landing-star-preview/experience/all-products/",
-              "variant": "ritual"
+              "variant": "plate",
+              "arrow": true,
+              "color": "rgba(183, 138, 119, 0.38)"
             }
-          ]
+          ],
+          "maxWidth": 70,
+          "spacedTop": true,
+          "padBottom": "7rem",
+          "accent": "rgb(72, 210, 185)",
+          "muted": "rgba(232, 229, 218, 0.59)"
         }
       }
     }
@@ -1962,19 +1954,17 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/experience/all-products', 'A
   "sections": [
     {
       "id": "sec-all-back",
-      "type": "rf-linkbar",
+      "type": "rf-back-link",
       "label": "Back",
       "blocks": [],
       "enabled": true,
       "config": {
         "props": {
-          "links": [
-            {
-              "label": "← Back to the three doors",
-              "href": "/"
-            }
-          ],
-          "align": "left"
+          "label": "← Back to the three doors",
+          "href": "/",
+          "maxWidth": 86,
+          "pageTop": true,
+          "accent": "rgb(72, 210, 185)"
         }
       }
     },
@@ -2976,56 +2966,72 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/meeting-your-galactic-
   },
   "sections": [
     {
+      "id": "sec-offer-tone-meeting-your-galactic-self-meditation",
+      "type": "rf-page-tone",
+      "label": "Page tone",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "layers": [
+            "radial-gradient(ellipse 62% 28% at 28% 8%, rgba(46, 92, 135, 0.24), transparent 72%)",
+            "radial-gradient(ellipse 44% 25% at 88% 68%, rgba(39, 78, 112, 0.12), transparent 72%)"
+          ],
+          "ground": "#06111c"
+        }
+      }
+    },
+    {
       "id": "sec-offer-back-meeting-your-galactic-self-meditation",
-      "type": "rf-linkbar",
+      "type": "rf-back-link",
       "label": "Back",
       "blocks": [],
       "enabled": true,
       "config": {
         "props": {
-          "links": [
-            {
-              "label": "← Back",
-              "href": "/landing-star-preview/meet/"
-            }
-          ],
-          "align": "left"
+          "label": "← Back",
+          "href": "/landing-star-preview/meet/",
+          "maxWidth": 82,
+          "pageTop": true,
+          "accent": "rgb(183, 138, 119)"
         }
       }
     },
     {
       "id": "sec-offer-hero-meeting-your-galactic-self-meditation",
-      "type": "rf-offer-card",
+      "type": "rf-product-hero",
       "label": "Hero",
       "blocks": [],
       "enabled": true,
       "config": {
         "props": {
-          "columns": 1,
-          "heading": "",
-          "bulletGlyph": "✦",
-          "padTop": 0,
-          "padBottom": 25,
-          "accent": "rgb(183, 138, 119)",
-          "items": [
+          "anchorId": "meeting-your-galactic-self-meditation",
+          "imageUrl": "",
+          "imageAlt": "",
+          "imagePosition": "left",
+          "frameTone": "glow",
+          "glow": "rgba(46, 92, 135, 0.24)",
+          "eyebrow": "Guided meditation · 10-15 minutes",
+          "eyebrowTracking": 0.18,
+          "title": "Meeting Your Galactic Self — Meditation",
+          "titleTracking": -0.03,
+          "lead": "A short guided first contact",
+          "priceLabel": "$17",
+          "statusLabel": "Coming soon",
+          "statusReady": false,
+          "statusColor": "rgb(72, 210, 185)",
+          "ctas": [
             {
-              "anchorId": "meeting-your-galactic-self-meditation",
-              "eyebrow": "Guided meditation · 10-15 minutes",
-              "title": "Meeting Your Galactic Self — Meditation",
-              "sub": "A short guided first contact",
-              "body": "",
-              "listLabel": "",
-              "bullets": [],
-              "note": "",
-              "price": "$17",
-              "ctaLabel": "Ask about this offer",
-              "ctaHref": "#",
-              "ctaTarget": "",
-              "variant": "media",
-              "mediaUrl": "/images/tenants/resonantweaver/GalacticSelf.jpg",
-              "mediaAlt": ""
+              "label": "Ask about this offer",
+              "href": "#",
+              "variant": "plate",
+              "arrow": true,
+              "color": "color-mix(in srgb, rgb(183, 138, 119) 48%, transparent)"
             }
-          ]
+          ],
+          "maxWidth": 82,
+          "accent": "rgb(183, 138, 119)",
+          "muted": "rgba(232, 229, 218, 0.63)"
         }
       }
     },
@@ -3055,65 +3061,60 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/meeting-your-galactic-
     },
     {
       "id": "sec-offer-work-meeting-your-galactic-self-meditation",
-      "type": "rf-offer-card",
+      "type": "rf-detail-split",
       "label": "The work",
       "blocks": [],
       "enabled": true,
       "config": {
         "props": {
-          "columns": 1,
-          "heading": "",
-          "bulletGlyph": "✦",
-          "padTop": 0,
-          "padBottom": 25,
-          "accent": "rgb(183, 138, 119)",
+          "eyebrow": "The work",
+          "title": "[[placeholder — awaiting final copy]]",
+          "paragraphs": [
+            "[[placeholder — awaiting final copy. This should describe the meditation as the easiest, least intimidating entry point into the work.]]"
+          ],
           "items": [
-            {
-              "eyebrow": "The work",
-              "title": "[[placeholder — awaiting final copy]]",
-              "sub": "",
-              "body": "[[placeholder — awaiting final copy. This should describe the meditation as the easiest, least intimidating entry point into the work.]]",
-              "listLabel": "You'll receive",
-              "bullets": [
-                "[[placeholder]]"
-              ],
-              "note": "",
-              "price": "",
-              "ctaLabel": "",
-              "ctaHref": "",
-              "variant": "standard"
-            }
-          ]
+            "[[placeholder]]"
+          ],
+          "listLabel": "You'll receive",
+          "listMuted": "rgba(232, 229, 218, 0.59)",
+          "maxWidth": 82,
+          "spacedTop": true,
+          "accent": "rgb(183, 138, 119)",
+          "muted": "rgba(232, 229, 218, 0.61)"
         }
       }
     },
     {
       "id": "sec-offer-close-meeting-your-galactic-self-meditation",
-      "type": "rf-media-copy",
+      "type": "rf-callout-bar",
       "label": "Closing",
       "blocks": [],
       "enabled": true,
       "config": {
         "props": {
-          "imageUrl": "",
-          "imageAlt": "",
-          "imagePosition": "left",
           "eyebrow": "When you are ready",
-          "eyebrowColor": "accent",
-          "heading": "[[placeholder]]",
-          "headingLevel": 2,
-          "headingAccent": "",
-          "paragraphs": [
-            "[[placeholder]]"
-          ],
-          "chips": [],
+          "eyebrowTracking": 0.18,
+          "title": "[[placeholder]]",
+          "titleMax": "22ch",
+          "titleTracking": -0.025,
+          "titleLineHeight": 1.04,
+          "copy": "[[placeholder]]",
+          "price": "",
+          "glow": "rgba(46, 92, 135, 0.24)",
           "ctas": [
             {
               "label": "Ask about this offer",
               "href": "#",
-              "variant": "ritual"
+              "variant": "plate",
+              "arrow": true,
+              "color": "color-mix(in srgb, rgb(183, 138, 119) 48%, transparent)"
             }
-          ]
+          ],
+          "maxWidth": 82,
+          "spacedTop": true,
+          "padBottom": "7rem",
+          "accent": "rgb(183, 138, 119)",
+          "muted": "rgba(232, 229, 218, 0.59)"
         }
       }
     }
@@ -3136,56 +3137,72 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/galactic-initiation', 
   },
   "sections": [
     {
+      "id": "sec-offer-tone-galactic-initiation",
+      "type": "rf-page-tone",
+      "label": "Page tone",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "layers": [
+            "radial-gradient(ellipse 62% 28% at 28% 8%, rgba(183, 138, 119, 0.11), transparent 72%)",
+            "radial-gradient(ellipse 44% 25% at 88% 68%, rgba(39, 78, 112, 0.12), transparent 72%)"
+          ],
+          "ground": "#06111c"
+        }
+      }
+    },
+    {
       "id": "sec-offer-back-galactic-initiation",
-      "type": "rf-linkbar",
+      "type": "rf-back-link",
       "label": "Back",
       "blocks": [],
       "enabled": true,
       "config": {
         "props": {
-          "links": [
-            {
-              "label": "← Back",
-              "href": "/landing-star-preview/develop/"
-            }
-          ],
-          "align": "left"
+          "label": "← Back",
+          "href": "/landing-star-preview/develop/",
+          "maxWidth": 82,
+          "pageTop": true,
+          "accent": "rgb(183, 138, 119)"
         }
       }
     },
     {
       "id": "sec-offer-hero-galactic-initiation",
-      "type": "rf-offer-card",
+      "type": "rf-product-hero",
       "label": "Hero",
       "blocks": [],
       "enabled": true,
       "config": {
         "props": {
-          "columns": 1,
-          "heading": "",
-          "bulletGlyph": "✦",
-          "padTop": 0,
-          "padBottom": 25,
-          "accent": "rgb(183, 138, 119)",
-          "items": [
+          "anchorId": "galactic-initiation",
+          "imageUrl": "",
+          "imageAlt": "",
+          "imagePosition": "left",
+          "frameTone": "glow",
+          "glow": "rgba(183, 138, 119, 0.11)",
+          "eyebrow": "Live course · Three days",
+          "eyebrowTracking": 0.18,
+          "title": "Galactic Initiation",
+          "titleTracking": -0.03,
+          "lead": "A three-day experiential course in galactic perception, contact and Earth translation",
+          "priceLabel": "$222",
+          "statusLabel": "Coming soon",
+          "statusReady": false,
+          "statusColor": "rgb(72, 210, 185)",
+          "ctas": [
             {
-              "anchorId": "galactic-initiation",
-              "eyebrow": "Live course · Three days",
-              "title": "Galactic Initiation",
-              "sub": "A three-day experiential course in galactic perception, contact and Earth translation",
-              "body": "",
-              "listLabel": "",
-              "bullets": [],
-              "note": "",
-              "price": "$222",
-              "ctaLabel": "Ask about this offer",
-              "ctaHref": "#",
-              "ctaTarget": "",
-              "variant": "media",
-              "mediaUrl": "/images/tenants/resonantweaver/GalacticSelf.jpg",
-              "mediaAlt": ""
+              "label": "Ask about this offer",
+              "href": "#",
+              "variant": "plate",
+              "arrow": true,
+              "color": "color-mix(in srgb, rgb(183, 138, 119) 48%, transparent)"
             }
-          ]
+          ],
+          "maxWidth": 82,
+          "accent": "rgb(183, 138, 119)",
+          "muted": "rgba(232, 229, 218, 0.63)"
         }
       }
     },
@@ -3215,69 +3232,65 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/galactic-initiation', 
     },
     {
       "id": "sec-offer-work-galactic-initiation",
-      "type": "rf-offer-card",
+      "type": "rf-detail-split",
       "label": "The work",
       "blocks": [],
       "enabled": true,
       "config": {
         "props": {
-          "columns": 1,
-          "heading": "",
-          "bulletGlyph": "✦",
-          "padTop": 0,
-          "padBottom": 25,
-          "accent": "rgb(183, 138, 119)",
+          "eyebrow": "The work",
+          "title": "Recognition, not spectacle",
+          "paragraphs": [
+            "Over three live sessions, you learn how galactic resonance registers through your own system, how to approach contact without surrendering discernment, and how to translate what you receive into something you can actually live on Earth.",
+            "You leave with your own sensory language, at least one recognisable energetic signature, a repeatable contact-and-closure method, a way to separate sensation from story, and a personal Ambassador Protocol — plus one grounded assignment to complete in the following seven days. This is not a course about proving where you came from. It is an initiation into perceiving, testing and working with the field."
+          ],
           "items": [
-            {
-              "eyebrow": "The work",
-              "title": "Recognition, not spectacle",
-              "sub": "",
-              "body": "Over three live sessions, you learn how galactic resonance registers through your own system, how to approach contact without surrendering discernment, and how to translate what you receive into something you can actually live on Earth.\n\nYou leave with your own sensory language, at least one recognisable energetic signature, a repeatable contact-and-closure method, a way to separate sensation from story, and a personal Ambassador Protocol — plus one grounded assignment to complete in the following seven days. This is not a course about proving where you came from. It is an initiation into perceiving, testing and working with the field.",
-              "listLabel": "You'll receive",
-              "bullets": [
-                "The Threshold (before Day One) — a welcome transmission, an 8-minute calibration audio and a short observation practice, so you arrive already attuned",
-                "Day One — The Signal: a blind resonance experiment across three currents, then following the first recognisable thread",
-                "Day Two — The Contact Chamber: ground, boundary, consent, receive, test, close — built and practised live",
-                "Day Three — The Embassy: translating what you received into one real, seven-day action",
-                "Seven days of integration afterward — a short daily prompt and a closing audio to formally complete the initiation"
-              ],
-              "note": "",
-              "price": "",
-              "ctaLabel": "",
-              "ctaHref": "",
-              "variant": "standard"
-            }
-          ]
+            "The Threshold (before Day One) — a welcome transmission, an 8-minute calibration audio and a short observation practice, so you arrive already attuned",
+            "Day One — The Signal: a blind resonance experiment across three currents, then following the first recognisable thread",
+            "Day Two — The Contact Chamber: ground, boundary, consent, receive, test, close — built and practised live",
+            "Day Three — The Embassy: translating what you received into one real, seven-day action",
+            "Seven days of integration afterward — a short daily prompt and a closing audio to formally complete the initiation"
+          ],
+          "listLabel": "You'll receive",
+          "listMuted": "rgba(232, 229, 218, 0.59)",
+          "maxWidth": 82,
+          "spacedTop": true,
+          "accent": "rgb(183, 138, 119)",
+          "muted": "rgba(232, 229, 218, 0.61)"
         }
       }
     },
     {
       "id": "sec-offer-close-galactic-initiation",
-      "type": "rf-media-copy",
+      "type": "rf-callout-bar",
       "label": "Closing",
       "blocks": [],
       "enabled": true,
       "config": {
         "props": {
-          "imageUrl": "",
-          "imageAlt": "",
-          "imagePosition": "left",
           "eyebrow": "When you are ready",
-          "eyebrowColor": "accent",
-          "heading": "A real outcome, not a certificate",
-          "headingLevel": 2,
-          "headingAccent": "",
-          "paragraphs": [
-            "You leave with a recognised signal, a tested method of contact, a closing practice and a personal Ambassador Protocol — plus one seven-day assignment for living what you carry. Six live hours across three days, in a small group, with a week of preparation before and integration after. Leave your name to hear when the next dates are set."
-          ],
-          "chips": [],
+          "eyebrowTracking": 0.18,
+          "title": "A real outcome, not a certificate",
+          "titleMax": "22ch",
+          "titleTracking": -0.025,
+          "titleLineHeight": 1.04,
+          "copy": "You leave with a recognised signal, a tested method of contact, a closing practice and a personal Ambassador Protocol — plus one seven-day assignment for living what you carry. Six live hours across three days, in a small group, with a week of preparation before and integration after. Leave your name to hear when the next dates are set.",
+          "price": "",
+          "glow": "rgba(183, 138, 119, 0.11)",
           "ctas": [
             {
               "label": "Ask about this offer",
               "href": "#",
-              "variant": "ritual"
+              "variant": "plate",
+              "arrow": true,
+              "color": "color-mix(in srgb, rgb(183, 138, 119) 48%, transparent)"
             }
-          ]
+          ],
+          "maxWidth": 82,
+          "spacedTop": true,
+          "padBottom": "7rem",
+          "accent": "rgb(183, 138, 119)",
+          "muted": "rgba(232, 229, 218, 0.59)"
         }
       }
     }
@@ -3300,202 +3313,174 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/resonance-mirror', 'Re
   },
   "sections": [
     {
+      "id": "sec-offer-tone-resonance-mirror",
+      "type": "rf-page-tone",
+      "label": "Page tone",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "layers": [
+            "radial-gradient(ellipse 62% 28% at 28% 8%, rgba(72, 210, 185, 0.12), transparent 72%)",
+            "radial-gradient(ellipse 44% 25% at 88% 68%, rgba(39, 78, 112, 0.12), transparent 72%)"
+          ],
+          "ground": "#06111c"
+        }
+      }
+    },
+    {
       "id": "sec-offer-back-resonance-mirror",
-      "type": "rf-linkbar",
+      "type": "rf-back-link",
       "label": "Back",
       "blocks": [],
       "enabled": true,
       "config": {
         "props": {
-          "links": [
-            {
-              "label": "← Back",
-              "href": "/landing-star-preview/receive/"
-            }
-          ],
-          "align": "left"
+          "label": "← Back",
+          "href": "/landing-star-preview/receive/",
+          "maxWidth": 82,
+          "pageTop": true,
+          "accent": "rgb(72, 210, 185)"
         }
       }
     },
     {
       "id": "sec-offer-hero-resonance-mirror",
-      "type": "rf-offer-card",
+      "type": "rf-product-hero",
       "label": "Hero",
       "blocks": [],
       "enabled": true,
       "config": {
         "props": {
-          "columns": 1,
-          "heading": "",
-          "bulletGlyph": "✦",
-          "padTop": 0,
-          "padBottom": 25,
-          "accent": "rgb(72, 210, 185)",
-          "items": [
+          "anchorId": "resonance-mirror",
+          "imageUrl": "/images/tenants/resonantweaver/energybody.png",
+          "imageAlt": "Subtle energy body artwork",
+          "imagePosition": "left",
+          "frameTone": "glow",
+          "glow": "rgba(72, 210, 185, 0.12)",
+          "eyebrow": "Personal energy-field reading",
+          "eyebrowTracking": 0.18,
+          "title": "Resonance Mirror",
+          "titleTracking": -0.03,
+          "lead": "See what is moving through your energy field",
+          "priceLabel": "$155",
+          "statusLabel": "",
+          "statusReady": true,
+          "statusColor": "rgb(72, 210, 185)",
+          "ctas": [
             {
-              "anchorId": "resonance-mirror",
-              "eyebrow": "Personal energy-field reading",
-              "title": "Resonance Mirror",
-              "sub": "See what is moving through your energy field",
-              "body": "",
-              "listLabel": "",
-              "bullets": [],
-              "note": "",
-              "price": "$155",
-              "ctaLabel": "Book the Resonance Mirror",
-              "ctaHref": "https://www.paypal.com/ncp/payment/BZBB2PTAPG6GQ",
-              "ctaTarget": "",
-              "variant": "media",
-              "mediaUrl": "/images/tenants/resonantweaver/energybody.png",
-              "mediaAlt": "Subtle energy body artwork"
+              "label": "Book the Resonance Mirror",
+              "href": "https://www.paypal.com/ncp/payment/BZBB2PTAPG6GQ",
+              "variant": "plate",
+              "arrow": true,
+              "color": "color-mix(in srgb, rgb(72, 210, 185) 48%, transparent)",
+              "target": "_blank"
             }
-          ]
+          ],
+          "maxWidth": 82,
+          "accent": "rgb(72, 210, 185)",
+          "muted": "rgba(232, 229, 218, 0.63)"
         }
       }
     },
     {
       "id": "sec-offer-work-resonance-mirror",
-      "type": "rf-offer-card",
+      "type": "rf-detail-split",
       "label": "The work",
       "blocks": [],
       "enabled": true,
       "config": {
         "props": {
-          "columns": 1,
-          "heading": "",
-          "bulletGlyph": "✦",
-          "padTop": 0,
-          "padBottom": 25,
-          "accent": "rgb(72, 210, 185)",
+          "eyebrow": "The work",
+          "title": "Reading the living field",
+          "paragraphs": [
+            "Through direct energetic perception, light language, and pendulum work, I read the patterns, pressures, strengths, and influences active in your field now. Some may feel unmistakably your own. Others may have been absorbed through relationships, environments, past experiences, or old ways of protecting yourself.",
+            "Each reading follows what is actually present rather than forcing your field into a fixed template. I trace how the different parts connect, reflect what I perceive in clear language, and offer grounded ways to support greater clarity in your body and everyday life."
+          ],
           "items": [
-            {
-              "eyebrow": "The work",
-              "title": "Reading the living field",
-              "sub": "",
-              "body": "Through direct energetic perception, light language, and pendulum work, I read the patterns, pressures, strengths, and influences active in your field now. Some may feel unmistakably your own. Others may have been absorbed through relationships, environments, past experiences, or old ways of protecting yourself.\n\nEach reading follows what is actually present rather than forcing your field into a fixed template. I trace how the different parts connect, reflect what I perceive in clear language, and offer grounded ways to support greater clarity in your body and everyday life.",
-              "listLabel": "You'll receive",
-              "bullets": [
-                "A personal graphic representation of your field",
-                "A detailed written reflection",
-                "Somatic practices chosen for what the reading reveals"
-              ],
-              "note": "",
-              "price": "",
-              "ctaLabel": "",
-              "ctaHref": "",
-              "variant": "standard"
-            }
-          ]
-        }
-      }
-    },
-    {
-      "id": "sec-offer-process-resonance-mirror",
-      "type": "rf-media-copy",
-      "label": "The movement — intro",
-      "blocks": [],
-      "enabled": true,
-      "config": {
-        "props": {
-          "imageUrl": "",
-          "imageAlt": "",
-          "imagePosition": "left",
-          "eyebrow": "The movement",
-          "eyebrowColor": "accent",
-          "heading": "How it unfolds",
-          "headingLevel": 2,
-          "headingAccent": "",
-          "paragraphs": [],
-          "chips": [],
-          "ctas": []
+            "A personal graphic representation of your field",
+            "A detailed written reflection",
+            "Somatic practices chosen for what the reading reveals"
+          ],
+          "listLabel": "You'll receive",
+          "listMuted": "rgba(232, 229, 218, 0.59)",
+          "maxWidth": 82,
+          "spacedTop": true,
+          "accent": "rgb(72, 210, 185)",
+          "muted": "rgba(232, 229, 218, 0.61)"
         }
       }
     },
     {
       "id": "sec-offer-steps-resonance-mirror",
-      "type": "rf-offer-card",
+      "type": "rf-process-steps",
       "label": "The movement",
       "blocks": [],
       "enabled": true,
       "config": {
         "props": {
-          "columns": 3,
-          "heading": "",
-          "bulletGlyph": "✦",
-          "padTop": 0,
-          "padBottom": 25,
-          "accent": "rgb(72, 210, 185)",
-          "items": [
+          "eyebrow": "The process",
+          "title": "How the reading unfolds",
+          "mode": "cards",
+          "steps": [
             {
-              "eyebrow": "01",
+              "marker": "01",
               "title": "I enter the field",
-              "sub": "",
-              "body": "You do not need to prepare a question or explain what is going on. I begin with the field itself and see what is most active.",
-              "listLabel": "",
-              "bullets": [],
-              "note": "",
-              "price": "",
-              "ctaLabel": "",
-              "ctaHref": "",
-              "variant": "standard"
+              "copy": "You do not need to prepare a question or explain what is going on. I begin with the field itself and see what is most active."
             },
             {
-              "eyebrow": "02",
+              "marker": "02",
               "title": "I follow what opens",
-              "sub": "",
-              "body": "Using direct energetic perception, light language, and pendulum work, I follow the patterns, pressures, and connections that show themselves and look at how they relate to one another.",
-              "listLabel": "",
-              "bullets": [],
-              "note": "",
-              "price": "",
-              "ctaLabel": "",
-              "ctaHref": "",
-              "variant": "standard"
+              "copy": "Using direct energetic perception, light language, and pendulum work, I follow the patterns, pressures, and connections that show themselves and look at how they relate to one another."
             },
             {
-              "eyebrow": "03",
+              "marker": "03",
               "title": "You receive the reading",
-              "sub": "",
-              "body": "You receive a written reflection of what I found, a personal field map, and somatic practices chosen to support what is present.",
-              "listLabel": "",
-              "bullets": [],
-              "note": "",
-              "price": "",
-              "ctaLabel": "",
-              "ctaHref": "",
-              "variant": "standard"
+              "copy": "You receive a written reflection of what I found, a personal field map, and somatic practices chosen to support what is present."
             }
-          ]
+          ],
+          "flowSteps": [],
+          "note": "",
+          "cardWash": "rgba(18, 63, 82, 0.5)",
+          "maxWidth": 82,
+          "spacedTop": true,
+          "accent": "rgb(72, 210, 185)",
+          "muted": "rgba(232, 229, 218, 0.56)"
         }
       }
     },
     {
       "id": "sec-offer-close-resonance-mirror",
-      "type": "rf-media-copy",
+      "type": "rf-callout-bar",
       "label": "Closing",
       "blocks": [],
       "enabled": true,
       "config": {
         "props": {
-          "imageUrl": "",
-          "imageAlt": "",
-          "imagePosition": "left",
           "eyebrow": "When you are ready",
-          "eyebrowColor": "accent",
-          "heading": "See what is actually there",
-          "headingLevel": 2,
-          "headingAccent": "",
-          "paragraphs": [
-            "You do not need to arrive knowing what needs attention. The reading begins with the field itself and follows what is most active, so you can understand what is moving and what may help support it."
-          ],
-          "chips": [],
+          "eyebrowTracking": 0.18,
+          "title": "See what is actually there",
+          "titleMax": "22ch",
+          "titleTracking": -0.025,
+          "titleLineHeight": 1.04,
+          "copy": "You do not need to arrive knowing what needs attention. The reading begins with the field itself and follows what is most active, so you can understand what is moving and what may help support it.",
+          "price": "",
+          "glow": "rgba(72, 210, 185, 0.12)",
           "ctas": [
             {
               "label": "Book the Resonance Mirror",
               "href": "https://www.paypal.com/ncp/payment/BZBB2PTAPG6GQ",
-              "variant": "ritual"
+              "variant": "plate",
+              "arrow": true,
+              "color": "color-mix(in srgb, rgb(72, 210, 185) 48%, transparent)",
+              "target": "_blank"
             }
-          ]
+          ],
+          "maxWidth": 82,
+          "spacedTop": true,
+          "padBottom": "7rem",
+          "accent": "rgb(72, 210, 185)",
+          "muted": "rgba(232, 229, 218, 0.59)"
         }
       }
     }
@@ -3518,202 +3503,173 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/pearl-chamber', 'The P
   },
   "sections": [
     {
+      "id": "sec-offer-tone-pearl-chamber",
+      "type": "rf-page-tone",
+      "label": "Page tone",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "layers": [
+            "radial-gradient(ellipse 62% 28% at 28% 8%, rgba(183, 138, 119, 0.13), transparent 72%)",
+            "radial-gradient(ellipse 44% 25% at 88% 68%, rgba(39, 78, 112, 0.12), transparent 72%)"
+          ],
+          "ground": "#06111c"
+        }
+      }
+    },
+    {
       "id": "sec-offer-back-pearl-chamber",
-      "type": "rf-linkbar",
+      "type": "rf-back-link",
       "label": "Back",
       "blocks": [],
       "enabled": true,
       "config": {
         "props": {
-          "links": [
-            {
-              "label": "← Back",
-              "href": "/landing-star-preview/receive/"
-            }
-          ],
-          "align": "left"
+          "label": "← Back",
+          "href": "/landing-star-preview/receive/",
+          "maxWidth": 82,
+          "pageTop": true,
+          "accent": "rgb(183, 138, 119)"
         }
       }
     },
     {
       "id": "sec-offer-hero-pearl-chamber",
-      "type": "rf-offer-card",
+      "type": "rf-product-hero",
       "label": "Hero",
       "blocks": [],
       "enabled": true,
       "config": {
         "props": {
-          "columns": 1,
-          "heading": "",
-          "bulletGlyph": "✦",
-          "padTop": 0,
-          "padBottom": 25,
-          "accent": "rgb(183, 138, 119)",
-          "items": [
+          "anchorId": "pearl-chamber",
+          "imageUrl": "/images/tenants/resonantweaver/ReikiBox.png",
+          "imageAlt": "Pearl Chamber subscription artwork",
+          "imagePosition": "left",
+          "frameTone": "glow",
+          "glow": "rgba(183, 138, 119, 0.13)",
+          "eyebrow": "Reiki · Intention holding",
+          "eyebrowTracking": 0.18,
+          "title": "The Pearl Chamber",
+          "titleTracking": -0.03,
+          "lead": "A week of tending for one intention",
+          "priceLabel": "$11",
+          "statusLabel": "",
+          "statusReady": true,
+          "statusColor": "rgb(72, 210, 185)",
+          "ctas": [
             {
-              "anchorId": "pearl-chamber",
-              "eyebrow": "Reiki · Intention holding",
-              "title": "The Pearl Chamber",
-              "sub": "A week of tending for one intention",
-              "body": "",
-              "listLabel": "",
-              "bullets": [],
-              "note": "",
-              "price": "$11",
-              "ctaLabel": "Leave intention",
-              "ctaHref": "/pearl-chamber",
-              "ctaTarget": "",
-              "variant": "media",
-              "mediaUrl": "/images/tenants/resonantweaver/ReikiBox.png",
-              "mediaAlt": "Pearl Chamber subscription artwork"
+              "label": "Leave intention",
+              "href": "/pearl-chamber",
+              "variant": "plate",
+              "arrow": true,
+              "color": "color-mix(in srgb, rgb(183, 138, 119) 48%, transparent)"
             }
-          ]
+          ],
+          "maxWidth": 82,
+          "accent": "rgb(183, 138, 119)",
+          "muted": "rgba(232, 229, 218, 0.63)"
         }
       }
     },
     {
       "id": "sec-offer-work-pearl-chamber",
-      "type": "rf-offer-card",
+      "type": "rf-detail-split",
       "label": "The work",
       "blocks": [],
       "enabled": true,
       "config": {
         "props": {
-          "columns": 1,
-          "heading": "",
-          "bulletGlyph": "✦",
-          "padTop": 0,
-          "padBottom": 25,
-          "accent": "rgb(183, 138, 119)",
+          "eyebrow": "The work",
+          "title": "A quiet place for one intention",
+          "paragraphs": [
+            "The Pearl Chamber holds one intention for seven days. Within 24 hours of purchase, your written intention is placed inside the chamber and included in a daily practice of meditation, Reiki, and spoken enchantment.",
+            "The chamber itself carries a raw milky quartz cluster from the land and the four primary Usui Reiki symbols. It is not there to force an outcome, but to give your intention steady attention while you continue living your life.",
+            "The box found me at a secondhand market in Bulgaria. Inside the lid, a previous owner had written Martha — a version of my own name. Naturally, I had to get the box."
+          ],
           "items": [
-            {
-              "eyebrow": "The work",
-              "title": "A quiet place for one intention",
-              "sub": "",
-              "body": "The Pearl Chamber holds one intention for seven days. Within 24 hours of purchase, your written intention is placed inside the chamber and included in a daily practice of meditation, Reiki, and spoken enchantment.\n\nThe chamber itself carries a raw milky quartz cluster from the land and the four primary Usui Reiki symbols. It is not there to force an outcome, but to give your intention steady attention while you continue living your life.\n\nThe box found me at a secondhand market in Bulgaria. Inside the lid, a previous owner had written Martha — a version of my own name. Naturally, I had to get the box.",
-              "listLabel": "You'll receive",
-              "bullets": [
-                "A photograph of your intention inside the chamber",
-                "Seven days of daily energetic tending",
-                "A quiet place for your intention to be held"
-              ],
-              "note": "",
-              "price": "",
-              "ctaLabel": "",
-              "ctaHref": "",
-              "variant": "standard"
-            }
-          ]
-        }
-      }
-    },
-    {
-      "id": "sec-offer-process-pearl-chamber",
-      "type": "rf-media-copy",
-      "label": "The movement — intro",
-      "blocks": [],
-      "enabled": true,
-      "config": {
-        "props": {
-          "imageUrl": "",
-          "imageAlt": "",
-          "imagePosition": "left",
-          "eyebrow": "The movement",
-          "eyebrowColor": "accent",
-          "heading": "How it unfolds",
-          "headingLevel": 2,
-          "headingAccent": "",
-          "paragraphs": [],
-          "chips": [],
-          "ctas": []
+            "A photograph of your intention inside the chamber",
+            "Seven days of daily energetic tending",
+            "A quiet place for your intention to be held"
+          ],
+          "listLabel": "You'll receive",
+          "listMuted": "rgba(232, 229, 218, 0.59)",
+          "maxWidth": 82,
+          "spacedTop": true,
+          "accent": "rgb(183, 138, 119)",
+          "muted": "rgba(232, 229, 218, 0.61)"
         }
       }
     },
     {
       "id": "sec-offer-steps-pearl-chamber",
-      "type": "rf-offer-card",
+      "type": "rf-process-steps",
       "label": "The movement",
       "blocks": [],
       "enabled": true,
       "config": {
         "props": {
-          "columns": 3,
-          "heading": "",
-          "bulletGlyph": "✦",
-          "padTop": 0,
-          "padBottom": 25,
-          "accent": "rgb(183, 138, 119)",
-          "items": [
+          "eyebrow": "The process",
+          "title": "How the chamber works",
+          "mode": "cards",
+          "steps": [
             {
-              "eyebrow": "01",
+              "marker": "01",
               "title": "Name",
-              "sub": "",
-              "body": "Choose one intention you want to give steady attention to for the coming week.",
-              "listLabel": "",
-              "bullets": [],
-              "note": "",
-              "price": "",
-              "ctaLabel": "",
-              "ctaHref": "",
-              "variant": "standard"
+              "copy": "Choose one intention you want to give steady attention to for the coming week."
             },
             {
-              "eyebrow": "02",
+              "marker": "02",
               "title": "Place",
-              "sub": "",
-              "body": "I write or place your words inside the Pearl Chamber within 24 hours and send you a photograph once they are there.",
-              "listLabel": "",
-              "bullets": [],
-              "note": "",
-              "price": "",
-              "ctaLabel": "",
-              "ctaHref": "",
-              "variant": "standard"
+              "copy": "I write or place your words inside the Pearl Chamber within 24 hours and send you a photograph once they are there."
             },
             {
-              "eyebrow": "03",
+              "marker": "03",
               "title": "Tend",
-              "sub": "",
-              "body": "For seven days, your intention is included in the chamber's daily practice of meditation, Reiki, and spoken enchantment.",
-              "listLabel": "",
-              "bullets": [],
-              "note": "",
-              "price": "",
-              "ctaLabel": "",
-              "ctaHref": "",
-              "variant": "standard"
+              "copy": "For seven days, your intention is included in the chamber's daily practice of meditation, Reiki, and spoken enchantment."
             }
-          ]
+          ],
+          "flowSteps": [],
+          "note": "",
+          "cardWash": "rgba(18, 63, 82, 0.5)",
+          "maxWidth": 82,
+          "spacedTop": true,
+          "accent": "rgb(183, 138, 119)",
+          "muted": "rgba(232, 229, 218, 0.56)"
         }
       }
     },
     {
       "id": "sec-offer-close-pearl-chamber",
-      "type": "rf-media-copy",
+      "type": "rf-callout-bar",
       "label": "Closing",
       "blocks": [],
       "enabled": true,
       "config": {
         "props": {
-          "imageUrl": "",
-          "imageAlt": "",
-          "imagePosition": "left",
           "eyebrow": "When you are ready",
-          "eyebrowColor": "accent",
-          "heading": "Some intentions need holding more than pushing",
-          "headingLevel": 2,
-          "headingAccent": "",
-          "paragraphs": [
-            "You do not need to keep working at the intention every day. Once it is in the chamber, you can let it have its place there while you return to your own life."
-          ],
-          "chips": [],
+          "eyebrowTracking": 0.18,
+          "title": "Some intentions need holding more than pushing",
+          "titleMax": "22ch",
+          "titleTracking": -0.025,
+          "titleLineHeight": 1.04,
+          "copy": "You do not need to keep working at the intention every day. Once it is in the chamber, you can let it have its place there while you return to your own life.",
+          "price": "",
+          "glow": "rgba(183, 138, 119, 0.13)",
           "ctas": [
             {
               "label": "Leave intention",
               "href": "/pearl-chamber",
-              "variant": "ritual"
+              "variant": "plate",
+              "arrow": true,
+              "color": "color-mix(in srgb, rgb(183, 138, 119) 48%, transparent)"
             }
-          ]
+          ],
+          "maxWidth": 82,
+          "spacedTop": true,
+          "padBottom": "7rem",
+          "accent": "rgb(183, 138, 119)",
+          "muted": "rgba(232, 229, 218, 0.59)"
         }
       }
     }
@@ -3736,122 +3692,223 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/somatic-signature', 'S
   },
   "sections": [
     {
+      "id": "sec-offer-tone-somatic-signature",
+      "type": "rf-page-tone",
+      "label": "Page tone",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "layers": [
+            "radial-gradient(ellipse 62% 28% at 28% 8%, rgba(72, 210, 185, 0.1), transparent 72%)",
+            "radial-gradient(ellipse 44% 25% at 88% 68%, rgba(39, 78, 112, 0.12), transparent 72%)"
+          ],
+          "ground": "#06111c"
+        }
+      }
+    },
+    {
       "id": "sec-offer-back-somatic-signature",
-      "type": "rf-linkbar",
+      "type": "rf-back-link",
       "label": "Back",
       "blocks": [],
       "enabled": true,
       "config": {
         "props": {
-          "links": [
-            {
-              "label": "← Back",
-              "href": "/landing-star-preview/receive/"
-            }
-          ],
-          "align": "left"
+          "label": "← Back",
+          "href": "/landing-star-preview/receive/",
+          "maxWidth": 82,
+          "pageTop": true,
+          "accent": "rgb(72, 210, 185)"
         }
       }
     },
     {
       "id": "sec-offer-hero-somatic-signature",
-      "type": "rf-offer-card",
+      "type": "rf-product-hero",
       "label": "Hero",
       "blocks": [],
       "enabled": true,
       "config": {
         "props": {
-          "columns": 1,
-          "heading": "",
-          "bulletGlyph": "✦",
-          "padTop": 0,
-          "padBottom": 25,
-          "accent": "rgb(72, 210, 185)",
-          "items": [
+          "anchorId": "somatic-signature",
+          "imageUrl": "/images/tenants/resonantweaver/7chakra-yogi.png",
+          "imageAlt": "A seated figure with the seven chakra centres marked along the spine",
+          "imagePosition": "left",
+          "frameTone": "glow",
+          "glow": "rgba(72, 210, 185, 0.1)",
+          "eyebrow": "Human Design · Personal body practice",
+          "eyebrowTracking": 0.18,
+          "title": "Somatic Signature",
+          "titleTracking": -0.03,
+          "lead": "Learn the feeling of your own alignment",
+          "priceLabel": "$22",
+          "statusLabel": "",
+          "statusReady": true,
+          "statusColor": "rgb(72, 210, 185)",
+          "ctas": [
             {
-              "anchorId": "somatic-signature",
-              "eyebrow": "Human Design · Personal body practice",
-              "title": "Somatic Signature",
-              "sub": "Learn the feeling of your own alignment",
-              "body": "",
-              "listLabel": "",
-              "bullets": [],
-              "note": "",
-              "price": "$22",
-              "ctaLabel": "Get your Somatic Signature",
-              "ctaHref": "https://www.paypal.com/ncp/payment/P5DX9G44NHL3C",
-              "ctaTarget": "",
-              "variant": "media",
-              "mediaUrl": "/images/tenants/resonantweaver/7chakra-yogi.png",
-              "mediaAlt": "A seated figure with the seven chakra centres marked along the spine"
+              "label": "Get your Somatic Signature",
+              "href": "https://www.paypal.com/ncp/payment/P5DX9G44NHL3C",
+              "variant": "plate",
+              "arrow": true,
+              "color": "color-mix(in srgb, rgb(72, 210, 185) 48%, transparent)",
+              "target": "_blank"
             }
-          ]
+          ],
+          "maxWidth": 82,
+          "accent": "rgb(72, 210, 185)",
+          "muted": "rgba(232, 229, 218, 0.63)"
         }
       }
     },
     {
       "id": "sec-offer-work-somatic-signature",
-      "type": "rf-offer-card",
+      "type": "rf-detail-split",
       "label": "The work",
       "blocks": [],
       "enabled": true,
       "config": {
         "props": {
-          "columns": 1,
-          "heading": "",
-          "bulletGlyph": "✦",
-          "padTop": 0,
-          "padBottom": 25,
-          "accent": "rgb(72, 210, 185)",
+          "eyebrow": "The practice",
+          "title": "Your design, translated into something you can feel",
+          "paragraphs": [
+            "Human Design can describe how your system is built. The Somatic Signature takes that information out of the chart and brings it into the body.",
+            "Your personal practice looks at the parts of your design that are most useful to recognise in everyday life: where pressure tends to build, what you may absorb from around you, how your own energy wants to move, and what returning to your natural baseline can feel like.",
+            "Rather than giving you more information to remember, it gives you something to practise and notice for yourself."
+          ],
           "items": [
+            "Your personal Human Design blueprint",
+            "A body-led practice built around your design",
+            "Somatic cues and micro-adjustments to help you recognise your baseline"
+          ],
+          "listLabel": "You'll receive",
+          "listMuted": "rgba(232, 229, 218, 0.59)",
+          "maxWidth": 82,
+          "spacedTop": true,
+          "accent": "rgb(72, 210, 185)",
+          "muted": "rgba(232, 229, 218, 0.61)"
+        }
+      }
+    },
+    {
+      "id": "sec-offer-inside-somatic-signature",
+      "type": "rf-process-steps",
+      "label": "Inside",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "eyebrow": "Inside your Somatic Signature",
+          "title": "A practice built around your own system",
+          "mode": "cards",
+          "steps": [
             {
-              "eyebrow": "The work",
-              "title": "Your design, translated into something you can feel",
-              "sub": "",
-              "body": "Human Design can describe how your system is built. The Somatic Signature takes that information out of the chart and brings it into the body.\n\nYour personal practice looks at the parts of your design that are most useful to recognise in everyday life: where pressure tends to build, what you may absorb from around you, how your own energy wants to move, and what returning to your natural baseline can feel like.\n\nRather than giving you more information to remember, it gives you something to practise and notice for yourself.",
-              "listLabel": "You'll receive",
-              "bullets": [
-                "Your personal Human Design blueprint",
-                "A body-led practice built around your design",
-                "Somatic cues and micro-adjustments to help you recognise your baseline"
-              ],
-              "note": "",
-              "price": "",
-              "ctaLabel": "",
-              "ctaHref": "",
-              "variant": "standard"
+              "marker": "01",
+              "title": "Your blueprint",
+              "copy": "A clear overview of the Human Design elements shaping your practice, including your type, authority, energy centres, channels, and the areas most relevant to your body's natural way of regulating."
+            },
+            {
+              "marker": "02",
+              "title": "Your body-led practice",
+              "copy": "A short sequence of movement, breath, sound, and somatic attention chosen around your design, with guidance on what to notice as you move through it."
+            },
+            {
+              "marker": "03",
+              "title": "Your return",
+              "copy": "Simple ways to recognise pressure, emotional heaviness, mental overload, or other patterns that may pull you away from your baseline, plus small adjustments you can use when a full practice is not needed."
             }
-          ]
+          ],
+          "flowSteps": [],
+          "note": "",
+          "cardWash": "rgba(18, 63, 82, 0.5)",
+          "maxWidth": 82,
+          "spacedTop": true,
+          "accent": "rgb(72, 210, 185)",
+          "muted": "rgba(232, 229, 218, 0.56)"
+        }
+      }
+    },
+    {
+      "id": "sec-offer-steps-somatic-signature",
+      "type": "rf-process-steps",
+      "label": "The movement",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "eyebrow": "The process",
+          "title": "From chart to body",
+          "mode": "flow",
+          "steps": [],
+          "flowSteps": [
+            "Send your birth details",
+            "I build your practice",
+            "Your personalised PDF arrives"
+          ],
+          "note": "You'll provide your birth date, exact time, and birthplace. I use your Human Design to create the practice, then send your finished Somatic Signature digitally.",
+          "cardWash": "",
+          "maxWidth": 82,
+          "spacedTop": true,
+          "accent": "rgb(72, 210, 185)",
+          "muted": "rgba(232, 229, 218, 0.61)"
+        }
+      }
+    },
+    {
+      "id": "sec-offer-noteband-somatic-signature",
+      "type": "rf-process-steps",
+      "label": "Note",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "eyebrow": "",
+          "title": "Remember your design",
+          "mode": "cards",
+          "steps": [],
+          "flowSteps": [],
+          "note": "The point is not to learn another system perfectly or monitor yourself all day. The chart gives us a starting point. Your own experience is what matters.\n\nOver time, the practice helps you notice the difference between pressure and ease, what feels borrowed and what feels familiar, and the small bodily signals that tell you when you are moving closer to yourself again.",
+          "cardWash": "",
+          "maxWidth": 82,
+          "spacedTop": true,
+          "accent": "rgb(72, 210, 185)",
+          "muted": "rgba(232, 229, 218, 0.61)"
         }
       }
     },
     {
       "id": "sec-offer-close-somatic-signature",
-      "type": "rf-media-copy",
+      "type": "rf-callout-bar",
       "label": "Closing",
       "blocks": [],
       "enabled": true,
       "config": {
         "props": {
-          "imageUrl": "",
-          "imageAlt": "",
-          "imagePosition": "left",
-          "eyebrow": "When you are ready",
-          "eyebrowColor": "accent",
-          "heading": "Your body gives you somewhere to return to",
-          "headingLevel": 2,
-          "headingAccent": "",
-          "paragraphs": [
-            "There's no need to become more sensitive. Begin by becoming aware of what your own system feels like when there is less noise layered over it. The more familiar that becomes, the easier it is to notice when something changes."
-          ],
-          "chips": [],
+          "eyebrow": "Begin with your own signals",
+          "eyebrowTracking": 0.18,
+          "title": "Your body gives you somewhere to return to",
+          "titleMax": "22ch",
+          "titleTracking": -0.025,
+          "titleLineHeight": 1.04,
+          "copy": "There's no need to become more sensitive. Begin by becoming aware of what your own system feels like when there is less noise layered over it. The more familiar that becomes, the easier it is to notice when something changes.",
+          "price": "",
+          "glow": "rgba(72, 210, 185, 0.1)",
           "ctas": [
             {
               "label": "Get your Somatic Signature",
               "href": "https://www.paypal.com/ncp/payment/P5DX9G44NHL3C",
-              "variant": "ritual"
+              "variant": "plate",
+              "arrow": true,
+              "color": "color-mix(in srgb, rgb(72, 210, 185) 48%, transparent)",
+              "target": "_blank"
             }
-          ]
+          ],
+          "maxWidth": 82,
+          "spacedTop": true,
+          "padBottom": "7rem",
+          "accent": "rgb(72, 210, 185)",
+          "muted": "rgba(232, 229, 218, 0.59)"
         }
       }
     }
@@ -3874,202 +3931,172 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/galactic-pendulum', 'G
   },
   "sections": [
     {
+      "id": "sec-offer-tone-galactic-pendulum",
+      "type": "rf-page-tone",
+      "label": "Page tone",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "layers": [
+            "radial-gradient(ellipse 62% 28% at 28% 8%, rgba(105, 127, 205, 0.16), transparent 72%)",
+            "radial-gradient(ellipse 44% 25% at 88% 68%, rgba(39, 78, 112, 0.12), transparent 72%)"
+          ],
+          "ground": "#06111c"
+        }
+      }
+    },
+    {
       "id": "sec-offer-back-galactic-pendulum",
-      "type": "rf-linkbar",
+      "type": "rf-back-link",
       "label": "Back",
       "blocks": [],
       "enabled": true,
       "config": {
         "props": {
-          "links": [
-            {
-              "label": "← Back",
-              "href": "/landing-star-preview/receive/"
-            }
-          ],
-          "align": "left"
+          "label": "← Back",
+          "href": "/landing-star-preview/receive/",
+          "maxWidth": 82,
+          "pageTop": true,
+          "accent": "rgb(138, 163, 226)"
         }
       }
     },
     {
       "id": "sec-offer-hero-galactic-pendulum",
-      "type": "rf-offer-card",
+      "type": "rf-product-hero",
       "label": "Hero",
       "blocks": [],
       "enabled": true,
       "config": {
         "props": {
-          "columns": 1,
-          "heading": "",
-          "bulletGlyph": "✦",
-          "padTop": 0,
-          "padBottom": 25,
-          "accent": "rgb(138, 163, 226)",
-          "items": [
+          "anchorId": "galactic-pendulum",
+          "imageUrl": "/images/tenants/resonantweaver/galactic-pendulum.svg",
+          "imageAlt": "A luminous pendulum suspended within a celestial field",
+          "imagePosition": "left",
+          "frameTone": "glow",
+          "glow": "rgba(105, 127, 205, 0.16)",
+          "eyebrow": "Focused divination · One clear question",
+          "eyebrowTracking": 0.18,
+          "title": "Galactic Pendulum",
+          "titleTracking": -0.03,
+          "lead": "A focused reading for one clear question",
+          "priceLabel": "$44",
+          "statusLabel": "Coming soon",
+          "statusReady": false,
+          "statusColor": "rgb(72, 210, 185)",
+          "ctas": [
             {
-              "anchorId": "galactic-pendulum",
-              "eyebrow": "Focused divination · One clear question",
-              "title": "Galactic Pendulum",
-              "sub": "A focused reading for one clear question",
-              "body": "",
-              "listLabel": "",
-              "bullets": [],
-              "note": "",
-              "price": "$44",
-              "ctaLabel": "Ask about the Galactic Pendulum",
-              "ctaHref": "/landing-star-preview/experience/galactic-pendulum",
-              "ctaTarget": "",
-              "variant": "media",
-              "mediaUrl": "/images/tenants/resonantweaver/galactic-pendulum.svg",
-              "mediaAlt": "A luminous pendulum suspended within a celestial field"
+              "label": "Ask about the Galactic Pendulum",
+              "href": "/landing-star-preview/experience/galactic-pendulum",
+              "variant": "plate",
+              "arrow": true,
+              "color": "color-mix(in srgb, rgb(138, 163, 226) 48%, transparent)"
             }
-          ]
+          ],
+          "maxWidth": 82,
+          "accent": "rgb(138, 163, 226)",
+          "muted": "rgba(232, 229, 218, 0.63)"
         }
       }
     },
     {
       "id": "sec-offer-work-galactic-pendulum",
-      "type": "rf-offer-card",
+      "type": "rf-detail-split",
       "label": "The work",
       "blocks": [],
       "enabled": true,
       "config": {
         "props": {
-          "columns": 1,
-          "heading": "",
-          "bulletGlyph": "✦",
-          "padTop": 0,
-          "padBottom": 25,
-          "accent": "rgb(138, 163, 226)",
+          "eyebrow": "The work",
+          "title": "More than yes or no",
+          "paragraphs": [
+            "A pendulum can answer quickly. This reading slows the answer down enough to notice what is shaping it: where the signal is clean, where fear or expectation is pulling on it and what the field is actually ready to support.",
+            "Bring one clear question. I follow its movement through the pendulum and reflect the pattern back in language you can use, without turning a living choice into a fixed verdict."
+          ],
           "items": [
-            {
-              "eyebrow": "The work",
-              "title": "More than yes or no",
-              "sub": "",
-              "body": "A pendulum can answer quickly. This reading slows the answer down enough to notice what is shaping it: where the signal is clean, where fear or expectation is pulling on it and what the field is actually ready to support.\n\nBring one clear question. I follow its movement through the pendulum and reflect the pattern back in language you can use, without turning a living choice into a fixed verdict.",
-              "listLabel": "You'll receive",
-              "bullets": [
-                "A focused pendulum reading",
-                "A written map of the signals observed",
-                "One grounded practice for returning to your own knowing"
-              ],
-              "note": "",
-              "price": "",
-              "ctaLabel": "",
-              "ctaHref": "",
-              "variant": "standard"
-            }
-          ]
-        }
-      }
-    },
-    {
-      "id": "sec-offer-process-galactic-pendulum",
-      "type": "rf-media-copy",
-      "label": "The movement — intro",
-      "blocks": [],
-      "enabled": true,
-      "config": {
-        "props": {
-          "imageUrl": "",
-          "imageAlt": "",
-          "imagePosition": "left",
-          "eyebrow": "The movement",
-          "eyebrowColor": "accent",
-          "heading": "How it unfolds",
-          "headingLevel": 2,
-          "headingAccent": "",
-          "paragraphs": [],
-          "chips": [],
-          "ctas": []
+            "A focused pendulum reading",
+            "A written map of the signals observed",
+            "One grounded practice for returning to your own knowing"
+          ],
+          "listLabel": "You'll receive",
+          "listMuted": "rgba(232, 229, 218, 0.59)",
+          "maxWidth": 82,
+          "spacedTop": true,
+          "accent": "rgb(138, 163, 226)",
+          "muted": "rgba(232, 229, 218, 0.61)"
         }
       }
     },
     {
       "id": "sec-offer-steps-galactic-pendulum",
-      "type": "rf-offer-card",
+      "type": "rf-process-steps",
       "label": "The movement",
       "blocks": [],
       "enabled": true,
       "config": {
         "props": {
-          "columns": 3,
-          "heading": "",
-          "bulletGlyph": "✦",
-          "padTop": 0,
-          "padBottom": 25,
-          "accent": "rgb(138, 163, 226)",
-          "items": [
+          "eyebrow": "The movement",
+          "title": "How it unfolds",
+          "mode": "cards",
+          "steps": [
             {
-              "eyebrow": "01",
+              "marker": "01",
               "title": "Ask",
-              "sub": "",
-              "body": "Name the one question that is asking for clean attention now.",
-              "listLabel": "",
-              "bullets": [],
-              "note": "",
-              "price": "",
-              "ctaLabel": "",
-              "ctaHref": "",
-              "variant": "standard"
+              "copy": "Name the one question that is asking for clean attention now."
             },
             {
-              "eyebrow": "02",
+              "marker": "02",
               "title": "Trace",
-              "sub": "",
-              "body": "The pendulum follows alignment, resistance and interference around the question.",
-              "listLabel": "",
-              "bullets": [],
-              "note": "",
-              "price": "",
-              "ctaLabel": "",
-              "ctaHref": "",
-              "variant": "standard"
+              "copy": "The pendulum follows alignment, resistance and interference around the question."
             },
             {
-              "eyebrow": "03",
+              "marker": "03",
               "title": "Choose",
-              "sub": "",
-              "body": "Receive the pattern in clear language, then bring the choice back into your own body.",
-              "listLabel": "",
-              "bullets": [],
-              "note": "",
-              "price": "",
-              "ctaLabel": "",
-              "ctaHref": "",
-              "variant": "standard"
+              "copy": "Receive the pattern in clear language, then bring the choice back into your own body."
             }
-          ]
+          ],
+          "flowSteps": [],
+          "note": "",
+          "cardWash": "rgba(18, 63, 82, 0.5)",
+          "maxWidth": 82,
+          "spacedTop": true,
+          "accent": "rgb(138, 163, 226)",
+          "muted": "rgba(232, 229, 218, 0.56)"
         }
       }
     },
     {
       "id": "sec-offer-close-galactic-pendulum",
-      "type": "rf-media-copy",
+      "type": "rf-callout-bar",
       "label": "Closing",
       "blocks": [],
       "enabled": true,
       "config": {
         "props": {
-          "imageUrl": "",
-          "imageAlt": "",
-          "imagePosition": "left",
           "eyebrow": "When you are ready",
-          "eyebrowColor": "accent",
-          "heading": "The clearest answer leaves your agency intact",
-          "headingLevel": 2,
-          "headingAccent": "",
-          "paragraphs": [
-            "The pendulum does not make the choice for you. It makes the movement visible enough that you can meet it without abandoning your own knowing."
-          ],
-          "chips": [],
+          "eyebrowTracking": 0.18,
+          "title": "The clearest answer leaves your agency intact",
+          "titleMax": "22ch",
+          "titleTracking": -0.025,
+          "titleLineHeight": 1.04,
+          "copy": "The pendulum does not make the choice for you. It makes the movement visible enough that you can meet it without abandoning your own knowing.",
+          "price": "",
+          "glow": "rgba(105, 127, 205, 0.16)",
           "ctas": [
             {
               "label": "Ask about the Galactic Pendulum",
               "href": "/landing-star-preview/experience/galactic-pendulum",
-              "variant": "ritual"
+              "variant": "plate",
+              "arrow": true,
+              "color": "color-mix(in srgb, rgb(138, 163, 226) 48%, transparent)"
             }
-          ]
+          ],
+          "maxWidth": 82,
+          "spacedTop": true,
+          "padBottom": "7rem",
+          "accent": "rgb(138, 163, 226)",
+          "muted": "rgba(232, 229, 218, 0.59)"
         }
       }
     }
@@ -4092,56 +4119,72 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/galactic-integration-s
   },
   "sections": [
     {
+      "id": "sec-offer-tone-galactic-integration-session",
+      "type": "rf-page-tone",
+      "label": "Page tone",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "layers": [
+            "radial-gradient(ellipse 62% 28% at 28% 8%, rgba(72, 210, 185, 0.1), transparent 72%)",
+            "radial-gradient(ellipse 44% 25% at 88% 68%, rgba(39, 78, 112, 0.12), transparent 72%)"
+          ],
+          "ground": "#06111c"
+        }
+      }
+    },
+    {
       "id": "sec-offer-back-galactic-integration-session",
-      "type": "rf-linkbar",
+      "type": "rf-back-link",
       "label": "Back",
       "blocks": [],
       "enabled": true,
       "config": {
         "props": {
-          "links": [
-            {
-              "label": "← Back",
-              "href": "/landing-star-preview/receive/"
-            }
-          ],
-          "align": "left"
+          "label": "← Back",
+          "href": "/landing-star-preview/receive/",
+          "maxWidth": 82,
+          "pageTop": true,
+          "accent": "rgb(72, 210, 185)"
         }
       }
     },
     {
       "id": "sec-offer-hero-galactic-integration-session",
-      "type": "rf-offer-card",
+      "type": "rf-product-hero",
       "label": "Hero",
       "blocks": [],
       "enabled": true,
       "config": {
         "props": {
-          "columns": 1,
-          "heading": "",
-          "bulletGlyph": "✦",
-          "padTop": 0,
-          "padBottom": 25,
-          "accent": "rgb(72, 210, 185)",
-          "items": [
+          "anchorId": "galactic-integration-session",
+          "imageUrl": "",
+          "imageAlt": "",
+          "imagePosition": "left",
+          "frameTone": "glow",
+          "glow": "rgba(72, 210, 185, 0.1)",
+          "eyebrow": "One-to-one session · ~75 minutes",
+          "eyebrowTracking": 0.18,
+          "title": "Galactic Integration Session",
+          "titleTracking": -0.03,
+          "lead": "Personal integration support",
+          "priceLabel": "$144 (founding) → $177",
+          "statusLabel": "Founding access",
+          "statusReady": true,
+          "statusColor": "rgb(72, 210, 185)",
+          "ctas": [
             {
-              "anchorId": "galactic-integration-session",
-              "eyebrow": "One-to-one session · ~75 minutes",
-              "title": "Galactic Integration Session",
-              "sub": "Personal integration support",
-              "body": "",
-              "listLabel": "",
-              "bullets": [],
-              "note": "",
-              "price": "$144 (founding) → $177",
-              "ctaLabel": "Book Galactic Integration Session",
-              "ctaHref": "#",
-              "ctaTarget": "",
-              "variant": "media",
-              "mediaUrl": "/images/tenants/resonantweaver/GalacticSelf.jpg",
-              "mediaAlt": ""
+              "label": "Book Galactic Integration Session",
+              "href": "#",
+              "variant": "plate",
+              "arrow": true,
+              "color": "color-mix(in srgb, rgb(72, 210, 185) 48%, transparent)"
             }
-          ]
+          ],
+          "maxWidth": 82,
+          "accent": "rgb(72, 210, 185)",
+          "muted": "rgba(232, 229, 218, 0.63)"
         }
       }
     },
@@ -4171,65 +4214,60 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/galactic-integration-s
     },
     {
       "id": "sec-offer-work-galactic-integration-session",
-      "type": "rf-offer-card",
+      "type": "rf-detail-split",
       "label": "The work",
       "blocks": [],
       "enabled": true,
       "config": {
         "props": {
-          "columns": 1,
-          "heading": "",
-          "bulletGlyph": "✦",
-          "padTop": 0,
-          "padBottom": 25,
-          "accent": "rgb(72, 210, 185)",
+          "eyebrow": "The work",
+          "title": "[[placeholder — awaiting final copy]]",
+          "paragraphs": [
+            "[[placeholder]]"
+          ],
           "items": [
-            {
-              "eyebrow": "The work",
-              "title": "[[placeholder — awaiting final copy]]",
-              "sub": "",
-              "body": "[[placeholder]]",
-              "listLabel": "You'll receive",
-              "bullets": [
-                "[[placeholder — may include a short one-page Integration Compass after the session]]"
-              ],
-              "note": "",
-              "price": "",
-              "ctaLabel": "",
-              "ctaHref": "",
-              "variant": "standard"
-            }
-          ]
+            "[[placeholder — may include a short one-page Integration Compass after the session]]"
+          ],
+          "listLabel": "You'll receive",
+          "listMuted": "rgba(232, 229, 218, 0.59)",
+          "maxWidth": 82,
+          "spacedTop": true,
+          "accent": "rgb(72, 210, 185)",
+          "muted": "rgba(232, 229, 218, 0.61)"
         }
       }
     },
     {
       "id": "sec-offer-close-galactic-integration-session",
-      "type": "rf-media-copy",
+      "type": "rf-callout-bar",
       "label": "Closing",
       "blocks": [],
       "enabled": true,
       "config": {
         "props": {
-          "imageUrl": "",
-          "imageAlt": "",
-          "imagePosition": "left",
           "eyebrow": "When you are ready",
-          "eyebrowColor": "accent",
-          "heading": "[[placeholder]]",
-          "headingLevel": 2,
-          "headingAccent": "",
-          "paragraphs": [
-            "[[placeholder]]"
-          ],
-          "chips": [],
+          "eyebrowTracking": 0.18,
+          "title": "[[placeholder]]",
+          "titleMax": "22ch",
+          "titleTracking": -0.025,
+          "titleLineHeight": 1.04,
+          "copy": "[[placeholder]]",
+          "price": "",
+          "glow": "rgba(72, 210, 185, 0.1)",
           "ctas": [
             {
               "label": "Book Galactic Integration Session",
               "href": "#",
-              "variant": "ritual"
+              "variant": "plate",
+              "arrow": true,
+              "color": "color-mix(in srgb, rgb(72, 210, 185) 48%, transparent)"
             }
-          ]
+          ],
+          "maxWidth": 82,
+          "spacedTop": true,
+          "padBottom": "7rem",
+          "accent": "rgb(72, 210, 185)",
+          "muted": "rgba(232, 229, 218, 0.59)"
         }
       }
     }
@@ -4252,77 +4290,94 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/extended-starseed-prof
   },
   "sections": [
     {
+      "id": "sec-wait-tone-extended-starseed-profile",
+      "type": "rf-page-tone",
+      "label": "Page tone",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "layers": [
+            "radial-gradient(ellipse 62% 28% at 28% 8%, rgba(46, 92, 135, 0.24), transparent 72%)",
+            "radial-gradient(ellipse 44% 25% at 88% 68%, rgba(39, 78, 112, 0.12), transparent 72%)"
+          ],
+          "ground": "#06111c"
+        }
+      }
+    },
+    {
       "id": "sec-wait-back-extended-starseed-profile",
-      "type": "rf-linkbar",
+      "type": "rf-back-link",
       "label": "Back",
       "blocks": [],
       "enabled": true,
       "config": {
         "props": {
-          "links": [
-            {
-              "label": "← Back",
-              "href": "/landing-star-preview/meet/"
-            }
-          ],
-          "align": "left"
+          "label": "← Back",
+          "href": "/landing-star-preview/meet/",
+          "maxWidth": 82,
+          "pageTop": true,
+          "accent": "rgb(183, 138, 119)"
         }
       }
     },
     {
       "id": "sec-wait-hero-extended-starseed-profile",
-      "type": "rf-offer-card",
+      "type": "rf-product-hero",
       "label": "Hero",
       "blocks": [],
       "enabled": true,
       "config": {
         "props": {
-          "columns": 1,
-          "heading": "",
-          "bulletGlyph": "✦",
-          "padTop": 0,
-          "padBottom": 25,
-          "accent": "rgb(183, 138, 119)",
-          "items": [
+          "anchorId": "extended-starseed-profile",
+          "imageUrl": "/images/tenants/resonantweaver/GalacticSelf.jpg",
+          "imageAlt": "",
+          "imagePosition": "left",
+          "frameTone": "glow",
+          "glow": "rgba(46, 92, 135, 0.24)",
+          "eyebrow": "In development",
+          "eyebrowTracking": 0.18,
+          "title": "Extended Starseed Profile",
+          "titleTracking": -0.03,
+          "lead": "The full personal reading",
+          "priceLabel": "$177 – $222",
+          "statusLabel": "Coming soon",
+          "statusReady": false,
+          "statusColor": "rgb(72, 210, 185)",
+          "ctas": [
             {
-              "anchorId": "extended-starseed-profile",
-              "eyebrow": "In development",
-              "title": "Extended Starseed Profile",
-              "sub": "The full personal reading",
-              "body": "",
-              "listLabel": "",
-              "bullets": [],
-              "price": "$177 – $222 · Coming soon",
-              "note": "",
-              "ctaLabel": "",
-              "ctaHref": "",
-              "variant": "media",
-              "mediaUrl": "/images/tenants/resonantweaver/GalacticSelf.jpg",
-              "mediaAlt": ""
+              "label": "Join the waitlist",
+              "href": "#waitlist",
+              "variant": "plate",
+              "arrow": true,
+              "color": "color-mix(in srgb, rgb(183, 138, 119) 48%, transparent)"
             }
-          ]
+          ],
+          "maxWidth": 82,
+          "accent": "rgb(183, 138, 119)",
+          "muted": "rgba(232, 229, 218, 0.63)"
         }
       }
     },
     {
       "id": "sec-wait-head-extended-starseed-profile",
-      "type": "rf-media-copy",
+      "type": "rf-process-steps",
       "label": "Stay in the loop",
       "blocks": [],
       "enabled": true,
       "config": {
         "props": {
-          "imageUrl": "",
-          "imageAlt": "",
-          "imagePosition": "left",
+          "anchorId": "waitlist",
           "eyebrow": "Stay in the loop",
-          "eyebrowColor": "accent",
-          "heading": "Be first to know when this opens",
-          "headingLevel": 2,
-          "headingAccent": "",
-          "paragraphs": [],
-          "chips": [],
-          "ctas": []
+          "title": "Be first to know when this opens",
+          "mode": "cards",
+          "steps": [],
+          "flowSteps": [],
+          "note": "",
+          "cardWash": "",
+          "maxWidth": 82,
+          "spacedTop": true,
+          "accent": "rgb(183, 138, 119)"
         }
       }
     },
@@ -4360,77 +4415,94 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/awareness-and-percepti
   },
   "sections": [
     {
+      "id": "sec-wait-tone-awareness-and-perception-training",
+      "type": "rf-page-tone",
+      "label": "Page tone",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "layers": [
+            "radial-gradient(ellipse 62% 28% at 28% 8%, rgba(183, 138, 119, 0.11), transparent 72%)",
+            "radial-gradient(ellipse 44% 25% at 88% 68%, rgba(39, 78, 112, 0.12), transparent 72%)"
+          ],
+          "ground": "#06111c"
+        }
+      }
+    },
+    {
       "id": "sec-wait-back-awareness-and-perception-training",
-      "type": "rf-linkbar",
+      "type": "rf-back-link",
       "label": "Back",
       "blocks": [],
       "enabled": true,
       "config": {
         "props": {
-          "links": [
-            {
-              "label": "← Back",
-              "href": "/landing-star-preview/develop/"
-            }
-          ],
-          "align": "left"
+          "label": "← Back",
+          "href": "/landing-star-preview/develop/",
+          "maxWidth": 82,
+          "pageTop": true,
+          "accent": "rgb(183, 138, 119)"
         }
       }
     },
     {
       "id": "sec-wait-hero-awareness-and-perception-training",
-      "type": "rf-offer-card",
+      "type": "rf-product-hero",
       "label": "Hero",
       "blocks": [],
       "enabled": true,
       "config": {
         "props": {
-          "columns": 1,
-          "heading": "",
-          "bulletGlyph": "✦",
-          "padTop": 0,
-          "padBottom": 25,
-          "accent": "rgb(183, 138, 119)",
-          "items": [
+          "anchorId": "awareness-and-perception-training",
+          "imageUrl": "/images/tenants/resonantweaver/GalacticSelf.jpg",
+          "imageAlt": "",
+          "imagePosition": "left",
+          "frameTone": "glow",
+          "glow": "rgba(183, 138, 119, 0.11)",
+          "eyebrow": "In development",
+          "eyebrowTracking": 0.18,
+          "title": "Awareness and Perception Training",
+          "titleTracking": -0.03,
+          "lead": "Training in subtle perception",
+          "priceLabel": "",
+          "statusLabel": "In development",
+          "statusReady": false,
+          "statusColor": "rgb(72, 210, 185)",
+          "ctas": [
             {
-              "anchorId": "awareness-and-perception-training",
-              "eyebrow": "In development",
-              "title": "Awareness and Perception Training",
-              "sub": "Training in subtle perception",
-              "body": "",
-              "listLabel": "",
-              "bullets": [],
-              "price": " · In development",
-              "note": "",
-              "ctaLabel": "",
-              "ctaHref": "",
-              "variant": "media",
-              "mediaUrl": "/images/tenants/resonantweaver/GalacticSelf.jpg",
-              "mediaAlt": ""
+              "label": "Join the waitlist",
+              "href": "#waitlist",
+              "variant": "plate",
+              "arrow": true,
+              "color": "color-mix(in srgb, rgb(183, 138, 119) 48%, transparent)"
             }
-          ]
+          ],
+          "maxWidth": 82,
+          "accent": "rgb(183, 138, 119)",
+          "muted": "rgba(232, 229, 218, 0.63)"
         }
       }
     },
     {
       "id": "sec-wait-head-awareness-and-perception-training",
-      "type": "rf-media-copy",
+      "type": "rf-process-steps",
       "label": "Stay in the loop",
       "blocks": [],
       "enabled": true,
       "config": {
         "props": {
-          "imageUrl": "",
-          "imageAlt": "",
-          "imagePosition": "left",
+          "anchorId": "waitlist",
           "eyebrow": "Stay in the loop",
-          "eyebrowColor": "accent",
-          "heading": "Be first to know when this opens",
-          "headingLevel": 2,
-          "headingAccent": "",
-          "paragraphs": [],
-          "chips": [],
-          "ctas": []
+          "title": "Be first to know when this opens",
+          "mode": "cards",
+          "steps": [],
+          "flowSteps": [],
+          "note": "",
+          "cardWash": "",
+          "maxWidth": 82,
+          "spacedTop": true,
+          "accent": "rgb(183, 138, 119)"
         }
       }
     },
@@ -4527,7 +4599,7 @@ BEGIN
     FROM public.page_models p, LATERAL jsonb_array_elements(p.model_json->'sections') s
    WHERE p.site = 'resonantweaver'
      AND p.slug = ANY(expected || expected_drafts)
-     AND s->>'type' NOT IN ('rf-split-hero', 'rf-media-copy', 'rf-door-card', 'rf-offer-card', 'rf-accordion', 'form-live', 'rf-testimonials', 'rf-linkbar', 'rf-list');
+     AND s->>'type' NOT IN ('rf-split-hero', 'rf-centered-intro', 'rf-door-card', 'rf-offer-card', 'rf-media-copy', 'rf-accordion', 'form-live', 'rf-testimonials', 'rf-page-tone', 'rf-back-link', 'rf-product-hero', 'rf-section-head', 'rf-callout-bar', 'rf-process-steps', 'rf-list', 'rf-detail-split');
   IF n <> 0 THEN
     RAISE EXCEPTION 'assert: % section(s) name an unexpected type', n;
   END IF;
