@@ -937,6 +937,89 @@ not styling; the two draft offers pair nothing because the form + chrome
 dominate short pages). pearl-chamber + home-classic stay parked on the
 Cormorant-wholesale ruling (Gio).
 
+### THE ATTRIBUTION RULING + HOME'S BANDS — 2026-08-08 (the window after that)
+
+**The ruling (Gio):** the "powered by tiny global village" line is DROPPED on
+dashboards and KEPT on the public website. Code says the drop half was already
+true — the string renders in exactly one place, `PublicTenantLanding`
+(`/u/**` pages + blog); the `(app)` group serving `/dashboard` never mounts it
+and HQ's marketing footer's own advert line is commented out. (Noted while
+verifying: the granted app surfaces under `SiteSurfaceChrome` — sun-walk,
+course, field guide — carry NO attribution at all, so the line is inconsistent
+across her site; platform call, not parity work.) The kept line therefore
+became a MEASUREMENT rule: the candidate capture records where
+`[data-powered-by]` starts (visible-only — rf-journey hides it and a hidden
+rect reads y=0, which would crop the whole page) and the differ treats the
+page as ending there — a CROP, not a mask, because a mask leaves the height
+delta, which is most of what the line costs. Printed as
+"(attribution 67px cropped)" so it is visible, not silent. HQ harness commit
+`08f345e3`, pushed. Honest re-rank `rw-p3-rank3` (all 25, live @ `1f9ba8f8`):
+offers fell 8–15% → 5.8–7.8% with +20px remainders (the +90px WAS mostly the
+line), all-products 9.60, open-your-journey 2.63 (attr 0 there — rf-journey
+hides the line, correctly), home 52.15 = the worst measurable page.
+
+**Home's bands, two rounds, DEPLOYED (`37aba7bf` then `25ce4c4d`), rows
+redriven twice, fleet green: 52.15 → 12.91 → 9.89% aligned, dH −758 → −28.**
+Seven mono commits of knobs — every default byte-identical (320/320
+render-check), her values authored in the rows, never the defaults:
+- `ea7dfa3c` rf-split-hero `padAsMargin` — the entry carried her Main's 8rem
+  top pad INSIDE the section, so every pooled hero box was 128px taller than
+  hers and segment alignment charged the page top for it (both 128px "her-only
+  segments" were THIS + her Section rhythm). Margin, not padding: the
+  rf-back-link pageTop lesson, again.
+- `15dd42b5` rf-centered-intro `marginTop` — her home rhythm is
+  clamp(5rem, 9vw, 8rem); spacedTop's boolean is the callout family's
+  clamp(6rem, 11vw, 10rem). Two real rhythms, string wins.
+- `4ab1db95` rf-door-card density + BOTH hues — teal index, copper-0.94 arrow;
+  one accent could not carry both. Her flex arrow (0.5rem gap, 1rem glyph,
+  5px hover slide), her cardHeadline title, sidePad 0 (the entry's 1.5rem was
+  narrowing every card 24px).
+- `1fe574f5` rf-hud-cards density knobs + `profile` (her AboutCard — the same
+  material worn as a bio; third layout, not a new entry).
+- `b377a0f9` rf-accordion card face (FaqCard: hud wash + 48rem + her hairlines
+  white-0.08, display-role names 0.98/300, compact #f5f9f8 head, upright
+  #9aa4ab lede, teal-0.7 chevron) + RfSection padding="none"/marginTop.
+- `35db9cfc` module-forms: --mf field lh/font, placeholder, focus RING,
+  textarea-minh, submit width/align/weight/minh/lh/shadow, a full --mf-title-*
+  family; form-live cardWash/cardPad (one hud material across all three home
+  cards).
+- `25ce4c4d` round 2: eyebrowSize 0.68rem, hud marginBottom (the page's bottom
+  breath), rf-media-copy framePad/marginTop/centered (its lg frame was +121px
+  of the archive segment), RfCtaDef per-CTA type overrides (NotifyButton = the
+  ritual plate worn in the accent mono — no variant could say that).
+Office `77507c1` + `84de20f`: the star rows author all of it, including
+ContactCard RESOLVED (FormWrapper/RitualButton base + the && overrides baked
+into 36 --mf vars, 544px card) and the featured tiles' true tones the measure
+named (index teal-0.7, link copper-0.94, copy bone-0.57 — round 1 had them
+teal/teal/platform-grey).
+
+**Also this window: Gio's dashboard-reset question, answered** — 🟡 S2
+`~/.claude/bugs/dashboard-layout-canon-always-wins.md`. HQ's dashboard page
+passes `{layout, updatedAt}` into a prop typed `LayoutNode[]`, so
+`liveLayout.length` is undefined, `hasRow` is always false, and EVERY member's
+saved arrangement silently resets to canon on reload (the save itself lands in
+`member_dashboard_layout` and is never read). Plus: the canon-publish gate
+`!activeSiteId` is never true for an admin on HQ (P11 self-site seam), and tab
+toggles write `dashboard_features` without the HQ-self-site override the read
+applies. Fix is three small HQ edits (in the bug file) + an optional DB-only
+promote of his saved tree into `dashboard_layout_canon` tonight.
+
+**Left on home (1440):** hero interior 20.96 + its 84px gap 29.18 (halo/nav
+pixels — needs the seg diffs read against her HeroSection), intro bands ~30%
+of 262+80 (metrics match the census — 42.4/520 both sides; the offset needs a
+crop-level look), doors 19.86 (photo RESAMPLING — her next/image optimized vs
+pooled raw <img> — plus small text ghosts; may be the differ's floor unless
+pooled serves the same bytes), about 10.3, featured 5.6, FAQ 6.4, contact 2.5.
+**Next window, in order:** (0) hero + intro segment forensics (read
+`rw-p3-home2/1440/home@seg01..04.diff.png` against her HeroSection/Intro);
+(1) the doors image question — same bytes or accept a floor; (2) the five
+NO-ANCHOR pages (journey/writing/galactic-field-guide = missing content); (3)
+sweep the new knobs' EditorPanel fields (authored via SQL today, not yet
+studio-editable — flagged, not hidden); (4) re-rank all 25. pearl-chamber +
+home-classic stay parked on the Cormorant ruling. The differ's `--only` needs
+full slugs (`home`, `landing-star-preview-develop`, …); infra: tunnel 3101 +
+host-proxy 8105 still up.
+
 ## Phase 4 — images
 
 1. Restore every missing asset under `/images/tenants/resonantweaver/`.
