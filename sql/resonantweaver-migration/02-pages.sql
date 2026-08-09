@@ -304,7 +304,7 @@ INSERT INTO _rw_pages VALUES ('home', 'Resonant Weaver', true, 'published', $rwj
           "markAlt": "",
           "markGlow": true,
           "markBreathe": true,
-          "markRight": true,
+          "markRight": false,
           "eyebrow": "Galactic Bridge ✦ Energy Guide",
           "words": [
             "RESONANT",
@@ -313,7 +313,11 @@ INSERT INTO _rw_pages VALUES ('home', 'Resonant Weaver', true, 'published', $rwj
           "dropInitials": true,
           "ariaLabel": "Resonant Weaver",
           "tagline": "A return to yourself",
-          "rule": true
+          "rule": true,
+          "accent": "var(--tgv-gold, #b78a77)",
+          "amber": "var(--tgv-cyan, #48d2b9)",
+          "wordmarkSize": "clamp(2.65rem, 4.5vw, 4.4rem)",
+          "wordmarkLineHeight": 1.04
         }
       }
     },
@@ -442,6 +446,7 @@ INSERT INTO _rw_pages VALUES ('home', 'Resonant Weaver', true, 'published', $rwj
               "ctaLabel": "Explore",
               "ctaHref": "/starseed/",
               "ctaTarget": "",
+              "ctaArrow": true,
               "variant": "standard"
             },
             {
@@ -457,6 +462,7 @@ INSERT INTO _rw_pages VALUES ('home', 'Resonant Weaver', true, 'published', $rwj
               "ctaLabel": "Learn more",
               "ctaHref": "/landing-star-preview/offer/resonance-mirror/",
               "ctaTarget": "",
+              "ctaArrow": true,
               "variant": "standard"
             },
             {
@@ -472,6 +478,7 @@ INSERT INTO _rw_pages VALUES ('home', 'Resonant Weaver', true, 'published', $rwj
               "ctaLabel": "Learn more",
               "ctaHref": "/landing-star-preview/offer/somatic-signature/",
               "ctaTarget": "",
+              "ctaArrow": true,
               "variant": "standard"
             }
           ]
@@ -583,7 +590,8 @@ INSERT INTO _rw_pages VALUES ('home', 'Resonant Weaver', true, 'published', $rwj
             {
               "label": "Ask about access",
               "href": "#contact",
-              "variant": "ritual"
+              "variant": "ritual",
+              "arrow": true
             }
           ]
         }
@@ -736,7 +744,7 @@ INSERT INTO _rw_pages VALUES ('home-classic', 'Resonant Weaver — classic landi
           "markAlt": "",
           "markGlow": true,
           "markBreathe": true,
-          "markRight": true,
+          "markRight": false,
           "eyebrow": "Galactic Bridge ✦ Energy Guide",
           "words": [
             "RESONANT",
@@ -745,7 +753,9 @@ INSERT INTO _rw_pages VALUES ('home-classic', 'Resonant Weaver — classic landi
           "dropInitials": true,
           "ariaLabel": "Resonant Weaver",
           "tagline": "A return to yourself",
-          "rule": true
+          "rule": true,
+          "accent": "var(--tgv-gold, #b78a77)",
+          "amber": "var(--tgv-cyan, #48d2b9)"
         }
       }
     },
@@ -1684,10 +1694,7 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/receive', 'Enter Your Own En
     "navEnabled": true,
     "footerEnabled": true,
     "meta": {
-      "description": [
-        "Beneath what you think and say, there are quieter patterns moving through the body, emotions, attention, and the space around you.",
-        "Your energy field carries patterns, pressures, strengths, and intentions that may be difficult to name from the outside. This path offers a way to meet what is present, understand what is asking for attention, and support it with care."
-      ],
+      "description": "Beneath what you think and say, there are quieter patterns moving through the body, emotions, attention, and the space around you. Your energy field carries patterns, pressures, strengths, and intentions that may be difficult to name from the outside. This path offers a way to meet what is present, understand what is asking for attention, and support it with care.",
       "keywords": [],
       "ogImage": "/images/tenants/resonantweaver/experience.jpg",
       "noindex": true
@@ -1730,10 +1737,7 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/receive', 'Enter Your Own En
               "eyebrow": "Door Two · Enter Your Own Energy Field",
               "title": "Meet what is moving beneath the surface",
               "sub": "",
-              "body": [
-                "Beneath what you think and say, there are quieter patterns moving through the body, emotions, attention, and the space around you.",
-                "Your energy field carries patterns, pressures, strengths, and intentions that may be difficult to name from the outside. This path offers a way to meet what is present, understand what is asking for attention, and support it with care."
-              ],
+              "body": "Beneath what you think and say, there are quieter patterns moving through the body, emotions, attention, and the space around you.\n\nYour energy field carries patterns, pressures, strengths, and intentions that may be difficult to name from the outside. This path offers a way to meet what is present, understand what is asking for attention, and support it with care.",
               "listLabel": "",
               "bullets": [],
               "note": "",

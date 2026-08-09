@@ -323,20 +323,41 @@ function offeringToItem(o) {
 
 /** Her hero, which BOTH landings render — `HeroSection.tsx` is imported
  *  unchanged by `onePage.tsx` and by `LandingStarPreview.tsx`. Built once here
- *  so the two pages cannot drift apart in the one place they are identical. */
-function heroSection() {
+ *  so the two pages cannot drift apart in the one place they are identical.
+ *
+ *  The colours are the ROW's, deliberately swapped off the theme fan-out: this
+ *  hero's primary is her COPPER (the wordmark, the mark's halo and near
+ *  drop-shadow, the rule — `var(--primary)` / `FadeLineV` in her source) and
+ *  its second accent is the TEAL her eyebrow and tagline wear at 0.68/0.64.
+ *  Left to the fallbacks the entry paints the wordmark `--tgv-cyan` and the
+ *  eyebrow `--tgv-gold` — the exact copper↔teal inversion the 2026-08-08
+ *  differ measured on every wordmark letter. `markRight` was the other row
+ *  bug: `SymbolWrap` is the FIRST grid child in `HeroSection.tsx`, mark LEFT.
+ *
+ *  `size` fits the STAR landing, whose `PreviewBody h1` upsizes every h1 on
+ *  the page (4.5vw at 1440 = 64.8px base, ×1.22 initials = the 79.056px the
+ *  differ measured); the classic landing has no such override, so it keeps
+ *  the entry's default clamp — which IS `H1`'s in `OnePage.styles.ts`. */
+function heroSection(data, { size } = {}) {
+  const copper = toHex(parseTriplet(data.tokens.COPPER));
+  const teal = toHex(parseTriplet(data.tokens.TEAL));
   return section("sec-hero", "rf-split-hero", "Hero", {
     markUrl: asset(verbatim(inlineCopy.hero.markUrl)),
     markAlt: "",
     markGlow: true,
     markBreathe: true,
-    markRight: true,
+    markRight: false,
     eyebrow: verbatim(inlineCopy.hero.eyebrow),
     words: inlineCopy.hero.words,
     dropInitials: true,
     ariaLabel: verbatim(inlineCopy.hero.ariaLabel),
     tagline: verbatim(inlineCopy.hero.tagline),
     rule: true,
+    accent: `var(--tgv-gold, ${copper})`,
+    amber: `var(--tgv-cyan, ${teal})`,
+    ...(size
+      ? { wordmarkSize: "clamp(2.65rem, 4.5vw, 4.4rem)", wordmarkLineHeight: 1.04 }
+      : {}),
   });
 }
 
@@ -362,21 +383,12 @@ function introBlock(id, label, copy) {
 function buildHomeClassic(data, formId) {
   const sections = [];
 
-  sections.push(
-    section("sec-hero", "rf-split-hero", "Hero", {
-      markUrl: asset(verbatim(inlineCopy.hero.markUrl)),
-      markAlt: "",
-      markGlow: true,
-      markBreathe: true,
-      markRight: true,
-      eyebrow: verbatim(inlineCopy.hero.eyebrow),
-      words: inlineCopy.hero.words,
-      dropInitials: true,
-      ariaLabel: verbatim(inlineCopy.hero.ariaLabel),
-      tagline: verbatim(inlineCopy.hero.tagline),
-      rule: true,
-    }),
-  );
+  // The SAME hero the star landing renders — heroSection() is the one place it
+  // is built, matching how her `HeroSection.tsx` is imported by both pages.
+  // No `size`: the classic page has no `PreviewBody h1` upsizing, so the
+  // entry's default clamp — which is `H1`'s own in `OnePage.styles.ts` — is
+  // already hers.
+  sections.push(heroSection(data));
 
   sections.push(
     section("sec-intro", "rf-media-copy", "Intro", {
@@ -540,7 +552,7 @@ function buildHomeClassic(data, formId) {
  *  by the same function the live page computes them with. */
 function buildStarLanding(data, formId) {
   const star = data.star;
-  const sections = [heroSection()];
+  const sections = [heroSection(data, { size: true })];
 
   sections.push(introBlock("sec-star-intro", "Intro", star.intro));
 
@@ -600,6 +612,8 @@ function buildStarLanding(data, formId) {
               : "Explore",
           ctaHref: offer.href,
           ctaTarget: offer.external ? "_blank" : "",
+          // OfferingTile ends every link `{linkLabel} <span aria-hidden>→</span>`.
+          ctaArrow: true,
           variant: "standard",
         };
       }),
@@ -646,6 +660,8 @@ function buildStarLanding(data, formId) {
           label: star.fieldGuide.notify.buttonLabel,
           href: star.fieldGuide.notify.href,
           variant: "ritual",
+          // NotifyButton renders "Ask about access →" — the arrow is hers.
+          arrow: true,
         },
       ],
     }),
@@ -978,6 +994,12 @@ function gatewayCardToItem(card) {
 function buildGatewayPage(data, id) {
   const g = data.star_gateways.GATEWAYS[id];
   const shared = data.star_gateways.shared;
+  // `lead: string | string[]` — receive's is an array (one <p> per entry in
+  // GatewayPage.tsx). Authored unjoined it 500'd the whole page: the offer
+  // card splits `body` on blank lines and tenantPageMetadata trims
+  // `description`, and an array answers to neither. The blank-line join is the
+  // exact inverse of the split, so the render is per-paragraph either way.
+  const lead = Array.isArray(g.lead) ? g.lead.join("\n\n") : g.lead;
   const sections = [];
 
   sections.push(
@@ -1001,7 +1023,7 @@ function buildGatewayPage(data, id) {
           eyebrow: g.eyebrow,
           title: g.title,
           sub: "",
-          body: g.lead,
+          body: lead,
           listLabel: "",
           bullets: [],
           note: "",
@@ -1106,7 +1128,15 @@ function buildGatewayPage(data, id) {
         footerEnabled: true,
         // Every gateway is noindex on her site — `[gateway]/page.tsx`'s
         // generateMetadata sets robots index:false for all of them.
-        meta: { description: g.lead, keywords: [], ogImage: asset(g.image), noindex: true },
+        // A meta description is one flat string — space-joined, not the body's
+        // blank-line join. Her app writes none at all for these (title+robots
+        // only), so the copy choice here is SEO surplus, not a parity target.
+        meta: {
+          description: Array.isArray(g.lead) ? g.lead.join(" ") : g.lead,
+          keywords: [],
+          ogImage: asset(g.image),
+          noindex: true,
+        },
       },
       sections,
     },
