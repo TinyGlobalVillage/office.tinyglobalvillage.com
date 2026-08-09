@@ -1037,6 +1037,20 @@ const STATUS_LABEL = Object.fromEntries(
   Object.entries(inlineCopy.offerStatus).map(([status, entry]) => [status, verbatim(entry)]),
 );
 
+/** Cards.tsx: `READY_STATUSES = ["available", "founding-access"]` — the two
+ *  statuses whose badge wears the teal instead of muting toward the ink. */
+const READY_STATUSES = ["available", "founding-access"];
+
+/** The badge pair rf-hud-cards wants, from her status enum. `available`
+ *  deliberately has no label — an offer that is simply open says so by being
+ *  open — so it arrives badge-less here too. */
+function hudStatus(status) {
+  return {
+    statusLabel: (status ? STATUS_LABEL[status] : "") ?? "",
+    statusReady: status ? READY_STATUSES.includes(status) : false,
+  };
+}
+
 /** GatewayPage.tsx's `resolveHref`, reimplemented. Her version prefixes the
  *  language segment, which the pooled renderer supplies itself — so what is
  *  stored is the unprefixed path. */
@@ -1048,25 +1062,22 @@ function gatewayHref(target) {
   return `/${target}/`;
 }
 
-/** One card in a gateway's grid — `DoorCard`, which is `rf-offer-card` with the
- *  marker as the eyebrow and the status badge folded into `note`. rf-offer-card
- *  has no badge of its own; a card that reads "Coming soon" on her site must not
- *  arrive here looking available, and `note` is the quiet line that says so. */
+/** One card in a gateway's grid — `DoorCard`, now rf-hud-cards' door layout
+ *  verbatim: marker, optional 4/3 artwork, cardHeadline, copy, price + the
+ *  real StatusBadge, and the bare "label →" link her ArchiveLink draws. The
+ *  first cut folded the badge into rf-offer-card's `note` because that entry
+ *  had no badge; the refinement retires the fold. */
 function gatewayCardToItem(card) {
   return {
-    eyebrow: card.marker,
+    marker: card.marker,
     title: card.title,
-    sub: "",
-    body: card.copy,
-    listLabel: "",
-    bullets: [],
-    note: (card.status ? STATUS_LABEL[card.status] : "") ?? "",
+    copy: card.copy,
+    imageUrl: card.image ? asset(card.image) : "",
+    imageAlt: card.imageAlt ?? "",
     price: card.price ?? "",
-    ctaLabel: card.linkLabel ?? "",
-    ctaHref: card.link ? gatewayHref(card.link) : "",
-    variant: card.image ? "media" : "standard",
-    mediaUrl: card.image ? asset(card.image) : "",
-    mediaAlt: card.imageAlt ?? "",
+    ...hudStatus(card.status),
+    linkLabel: card.linkLabel ?? "",
+    href: card.link ? gatewayHref(card.link) : "",
   };
 }
 
@@ -1179,9 +1190,20 @@ function buildGatewayPage(data, id) {
     }),
   );
 
-  // The grid under the intro: her training rail for cardsAsSteps, the card
-  // grid otherwise (still rf-offer-card — the DoorCard refinement is its own
-  // ledger item). Both sit flush on the intro's hairline.
+  // The grid under the intro: her training rail for cardsAsSteps, the door
+  // card grid otherwise. Both sit flush on the intro's hairline. Her Cards.tsx
+  // tones, authored: markers and links follow --page-accent, the price is
+  // copper (ArchivePrice), the badge is teal on EVERY door (Badge), and the
+  // card material is hudCardSurface's rgba(18, 63, 82, 0.5) wash.
+  const doorGridTones = {
+    cardWash: "rgba(18, 63, 82, 0.5)",
+    cardWashFeatured: "",
+    imageGlow: "",
+    markerColor: pageAccent,
+    priceColor: `rgb(${data.tokens.COPPER})`,
+    linkColor: pageAccent,
+    badgeColor: `rgb(${data.tokens.TEAL})`,
+  };
   if (g.cardsAsSteps) {
     sections.push(
       section(`sec-gw-cards-${id}`, "rf-process-steps", "Steps", {
@@ -1204,13 +1226,17 @@ function buildGatewayPage(data, id) {
     );
   } else {
     sections.push(
-      section(`sec-gw-cards-${id}`, "rf-offer-card", "Cards", {
-        columns: 3,
+      section(`sec-gw-cards-${id}`, "rf-hud-cards", "Cards", {
+        mode: "door",
+        // Her ArchiveGrid is auto-fit over 20rem tracks — three cards land
+        // three-up, two land two-up, one rule for both grids.
+        columns: 0,
         heading: "",
-        bulletGlyph: "✦",
-        padTop: 0,
-        padBottom: 25,
+        marginTop: "",
+        ...doorGridTones,
+        maxWidth: 86,
         items: g.cards.map(gatewayCardToItem),
+        muted: bone(data, 0.56),
       }),
     );
   }
@@ -1232,13 +1258,15 @@ function buildGatewayPage(data, id) {
       }),
     );
     sections.push(
-      section(`sec-gw-courses-${id}`, "rf-offer-card", "Courses", {
-        columns: 2,
+      section(`sec-gw-courses-${id}`, "rf-hud-cards", "Courses", {
+        mode: "door",
+        columns: 0,
         heading: "",
-        bulletGlyph: "✦",
-        padTop: 0,
-        padBottom: 25,
+        marginTop: "",
+        ...doorGridTones,
+        maxWidth: 86,
         items: g.offerCards.map(gatewayCardToItem),
+        muted: bone(data, 0.56),
       }),
     );
   }
@@ -1573,45 +1601,56 @@ function buildAllProducts(data) {
     }),
   ];
 
+  let firstDoor = true;
   for (const door of doorSections) {
     const offers = data.offersByDoor(door.id);
     if (!offers.length) continue;
     sections.push(
-      section(`sec-all-${door.id}`, "rf-offer-card", door.label, {
+      // OfferingTile over ProductGrid, now rf-hud-cards' tile layout verbatim:
+      // heading = her DoorHeading (small display h2 IN THE INK — the first
+      // cut's 52px teal row heading was the loudest census row on this page),
+      // contained artwork on the teal-glow well, the "01 · <sub>" index run,
+      // and the foot pinned level — copper price left, copper 94% sliding-arrow
+      // link right. DoorSection's own rhythm rides marginTop; the first
+      // section sits closer under the page header, like hers.
+      section(`sec-all-${door.id}`, "rf-hud-cards", door.label, {
+        mode: "tile",
         columns: 2,
         heading: door.label,
-        bulletGlyph: "✦",
-        padTop: 0,
-        padBottom: 25,
+        marginTop: firstDoor ? "clamp(3rem, 5vw, 4rem)" : "clamp(4rem, 7vw, 6rem)",
+        cardWash: "rgba(18, 63, 82, 0.5)",
+        cardWashFeatured: "rgba(18, 63, 82, 0.62)",
+        imageGlow: `rgba(${data.tokens.TEAL}, 0.08)`,
+        markerColor: `rgba(${data.tokens.TEAL}, 0.7)`,
+        priceColor: `rgb(${data.tokens.COPPER})`,
+        linkColor: `rgba(${data.tokens.COPPER}, 0.94)`,
+        badgeColor: `rgb(${data.tokens.TEAL})`,
+        maxWidth: 86,
         items: offers.map((offer, i) => ({
-          anchorId: offer.slug,
           // OfferingTile prints "01 · <sub>" as one line above the title, so the
           // index and the qualifier arrive joined the way she wrote them.
-          eyebrow: `0${i + 1} · ${offer.sub}`,
+          marker: `0${i + 1} · ${offer.sub}`,
           title: offer.title,
-          sub: "",
-          body: offer.paragraphs[0] ?? offer.sub,
-          listLabel: "",
-          bullets: [],
+          copy: offer.paragraphs[0] ?? offer.sub,
+          imageUrl: offer.image ? asset(offer.image) : "",
+          imageAlt: offer.imageAlt ?? "",
+          price: offer.price,
           // The StatusBadge beside the price. A tile that says "Coming soon" on
           // her site must not arrive silently bookable here.
-          note: STATUS_LABEL[offer.status] ?? "",
-          price: offer.price,
-          ctaLabel: offer.hasDetailPage ? "Learn more" : "View offering",
+          ...hudStatus(offer.status),
+          linkLabel: offer.hasDetailPage ? "Learn more" : "View offering",
           // resolveOffer already decided where the tile points; her component
           // only adds the language segment, which the pooled renderer supplies.
-          ctaHref: offer.href,
-          ctaTarget: offer.external ? "_blank" : "",
-          // Two of the nine carry artwork. It sits ABOVE the copy on her tiles,
-          // and it is artwork on a transparent ground, so it is fitted whole
-          // rather than cropped to fill.
-          variant: offer.image ? "media-top" : "standard",
-          mediaUrl: asset(offer.image),
-          mediaAlt: offer.imageAlt ?? "",
-          mediaFit: "contain",
+          href: offer.href,
+          target: offer.external ? "_blank" : "",
+          // AllProducts.tsx: `featured={index === 0}` — the first tile per door
+          // floors taller under the brighter wash.
+          featured: i === 0,
         })),
+        muted: bone(data, 0.57),
       }),
     );
+    firstDoor = false;
   }
 
   sections.push(
