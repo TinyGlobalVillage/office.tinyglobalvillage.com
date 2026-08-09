@@ -2524,6 +2524,8 @@ INSERT INTO _rw_pages VALUES ('starseed', 'The Starwoven Journey | Discover your
           "mediaSplit": "0.95fr 1.05fr",
           "mediaGap": "clamp(2.5rem, 5vw, 3.5rem)",
           "maxWidth": 992,
+          "padTop": "116px",
+          "padBottom": "56px",
           "eyebrow": "A personal Starseed Oracle journey",
           "eyebrowColor": "accent",
           "heading": "The Starwoven Journey",
@@ -2564,16 +2566,23 @@ INSERT INTO _rw_pages VALUES ('starseed', 'The Starwoven Journey | Discover your
             "You will meet the primary star at your incarnation gateway, your wider Hybrid Starseed Lineages, and the Stellar Braid they form together.",
             "The journey gives language to the gifts, shadow gates and deeper direction you may have carried long before you knew how to name them."
           ],
-          "chips": [
-            "64 fixed stars",
-            "Your exact birth sky",
-            "A guided personal reading"
-          ],
+          "chips": [],
+          "finePrint": "64 fixed stars · Your exact birth sky · A guided personal reading",
+          "finePrintRole": "accent",
+          "finePrintSize": "11.5px",
+          "finePrintLh": "1.65",
+          "finePrintTop": "18px",
+          "finePrintColor": "#9aa4ab",
+          "mediaMaxWidth": "31rem",
+          "imageRadius": "0",
+          "imageBorder": "none",
           "ctas": [
             {
               "label": "Begin the journey",
               "href": "#begin",
-              "variant": "ritual"
+              "variant": "ritual",
+              "font": "var(--tgv-fontAccent, inherit)",
+              "padX": "1.35rem"
             }
           ]
         }

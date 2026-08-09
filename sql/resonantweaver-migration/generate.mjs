@@ -2158,6 +2158,13 @@ function buildStarseed(data) {
   // Her PullQuote, declaration by declaration — the band closes on it.
   guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "max-width: 34rem; margin: 2.5rem auto 0; padding: 1.5rem 1.75rem;" });
   guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "font-size: clamp(1.25rem, 2.35vw, 1.75rem); font-style: italic; line-height: 1.42; text-align: center;" });
+  // Her hero's FinePrint and PrimaryButton — the line under the button and the
+  // widening that makes the plate hers.
+  guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "margin-top: 18px; font-size: 11.5px; line-height: 1.65;" });
+  guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "padding-inline: 1.35rem;" });
+  // And her hero figure's own ceiling, stated inline on the <Image>.
+  guardOnly({ file: SSPAGE, find: 'maxWidth: "31rem"' });
+  guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "padding-top: 116px; padding-bottom: 56px;" });
   guardOnly({ file: `${SS}/theme.ts`, find: 'textDim: "#c4ccd0"' });
   guardOnly({ file: `${SS}/theme.ts`, find: 'muted: "#9aa4ab"' });
   guardOnly({ file: `${SS}/theme.ts`, find: 'serif: "var(--gfg-font-display), var(--gfg-font-tech), sans-serif"' });
@@ -2321,6 +2328,15 @@ function buildStarseed(data) {
       mediaSplit: "0.95fr 1.05fr",
       mediaGap: "clamp(2.5rem, 5vw, 3.5rem)",
       maxWidth: 992,
+      // Her Hero is its own frame and not a rung of any scale: 116px above
+      // (the fixed SiteNav's clearance, which her own comment names) and 56px
+      // below. The `lg` rung's 88/88 was 28px short at the top and 32px long
+      // at the bottom, which is most of what the hero band still measured.
+      // Her ≤900 step to 104px is not carried: a stated pad holds at every
+      // width, her break is 900 and the shared frame's is 768, so honouring it
+      // would need a second knob for 12px at one viewport.
+      padTop: "116px",
+      padBottom: "56px",
       eyebrow: c.hero.eyebrow,
       eyebrowColor: "accent",
       heading: c.hero.titleBefore,
@@ -2361,10 +2377,36 @@ function buildStarseed(data) {
       copyTop: "1.25rem",
       copyInk: "#c4ccd0",
       paragraphs: c.hero.lead,
-      // "64 fixed stars · Your exact birth sky · A guided personal reading" is a
-      // row of small caps under the button, which is what a chip row is.
-      chips: c.hero.finePrint.split("·").map((t) => t.trim()).filter(Boolean),
-      ctas: [{ label: c.hero.primary, href: "#begin", variant: "ritual" }],
+      // NOT chips. It is her `FinePrint` — ONE 11.5px mono line UNDER the
+      // button, in the muted grey. The first cut split it on the interpuncts
+      // into three chips ABOVE it: a different sentence, in a different place,
+      // in a different face. Her separator is part of the sentence.
+      chips: [],
+      finePrint: verbatim({ file: `${SS}/content.ts`, text: c.hero.finePrint }),
+      finePrintRole: "accent",
+      finePrintSize: "11.5px",
+      finePrintLh: "1.65",
+      finePrintTop: "18px",
+      finePrintColor: "#9aa4ab",
+      // Her figure is a cut-out PNG on the sky: 31rem, centered, no frame.
+      // Uncapped it only shows once the grid has stacked — at 768 it ran 709px
+      // against her 496 and pushed the hero down 277px.
+      mediaMaxWidth: "31rem",
+      imageRadius: "0",
+      imageBorder: "none",
+      // Her PrimaryButton is the ritual plate in her mono, widened.
+      ctas: [
+        {
+          label: c.hero.primary,
+          href: "#begin",
+          variant: "ritual",
+          // Her PrimaryButton names `theme.mono`, which on THIS page resolves
+          // to Space Mono — the accent role, not the `mono` role her nav wears.
+          // Measured on her live button, not read off the name.
+          font: "var(--tgv-fontAccent, inherit)",
+          padX: "1.35rem",
+        },
+      ],
     }),
   );
 
