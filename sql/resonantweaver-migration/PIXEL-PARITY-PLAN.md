@@ -1672,3 +1672,119 @@ hairlines are two real rows of pixels per band and have no knob yet.
 Cormorant A) · experience-resonance-mirror 21.30 · experience-pearl-chamber
 20.37 · **starseed 11.18** · home 7.55 · writing 6.80 · all-products 6.66 ·
 offers 1.94–4.61 · open-your-journey 0.52 · sun-walk 0.05.
+
+---
+
+## THE GLYPHS, THE BLOCKQUOTE AND THE HERO — 2026-08-09 (11.18 → 9.01 at 1440)
+
+Three units in one window, each the same shape of finding: a thing her page
+states that the entry had no way to say, and a first cut that rendered
+something adjacent instead.
+
+| band (1440) | before | after | height |
+|---|---|---|---|
+| seg 0 hero | 15.23 | 15.06 | 1203 → 1184 (hers 1159) |
+| seg 1 lineage | 18.21 | **6.02** | 791 → 901 (hers 904) |
+| seg 6 method cards | 20.05 | **7.74** | 773 → 830 (hers 834) |
+
+Page: **1440 11.18 → 9.01 · 768 29.13 → 24.29 · 390 21.07 → 19.45.**
+Hero at 768 alone: **41.66 → 25.72**, +234px → −58px.
+
+### The glyphs — masked, not `<img>`'d
+
+Her three method cards each open on a 30px stroke-drawn line icon in the theme
+teal. `RfGlyph` is shared (any entry can wear one) and paints by MASK: an
+`<img>` carries the drawing and LOSES the colour — baked into the file, so a
+tenant recolouring the section leaves the glyph behind and a second accent
+needs a second copy of the same artwork. A mask keeps the drawing in the URL
+and the paint in `background-color`, which is a knob. That is the whole reason
+a glyph belongs to the editor and not to a hardcoded icon set. The URL is a
+`data:image/svg+xml` URI, so there is no asset to ship and no `public/` 404
+window.
+
+**The generator EXTRACTS `CARD_ICONS` rather than transcribing it.** Every
+other value on this page is one we read and re-state, and `verbatim` can guard
+a value; path data is a *drawing*, and a drawing re-typed drifts silently —
+the differ reports a few hundred pixels and names nothing. Parsed, it follows
+her redraws. The conversion is the part with teeth: React attribute spellings
+become SVG's own, and any camelCase attribute that survives fails the run,
+because a browser IGNORES `strokeWidth` in a real SVG file — a hairline glyph
+would arrive at a 1px default stroke with square caps and nothing would say so.
+`viewBox` and its camelCase-by-spec siblings are named, not banned.
+
+**And the glyph rides the baseline.** Everything matched but 12px: hers is an
+inline `<svg>` in flow, so the card's own descender space falls UNDER it. She
+declares 16px; the seat measures 25px. Carrying 25px would make her 16px a lie
+and drift the moment the card's face changes, so the MECHANISM is carried —
+`display: inline-block` — and `iconGap` stays her literal value.
+
+Also here: her `Card` rule restates the p's size and colour and NOT its
+line-height, so the copy keeps `P`'s own 1.72 rather than the stages' 1.68.
+
+### The blockquote — and why it is not its own entry
+
+Her `PullQuote` is a real `<blockquote>`: 34rem centered on a band far wider,
+ruled top and bottom, copper, serif italic at clamp(1.25rem, 2.35vw, 1.75rem)
+/1.42, each line its own block because she breaks them herself. It was authored
+as two emphasised paragraphs, which is why that band ran 113px short with every
+word in place.
+
+It belongs to `rf-media-copy`, not to an entry of its own, because it lives
+inside her one `Section` with the paragraphs above it — **a second pooled row
+would carry a second frame, and a logical section split across two rows
+double-counts its padding.** That is the trap the page-frame pass caught on
+four grids; not repeating it is the point.
+
+TWO coppers, deliberately not collapsed: the words wear her theme's own
+`copper` literal (#c79a86), the hairlines wear `pullQuoteBorderRgba` — the
+COPPER token at 0.34 (#b78a77).
+
+### The hero — three findings, one of them invisible at 1440
+
+1. **Chips are not a fine print.** Her hero closes on one 11.5px mono line
+   UNDER the button — what the price buys. The first cut split it on its
+   interpuncts into three chips ABOVE the button: a different sentence, in a
+   different place, in a different face.
+2. **Her figure is capped at 31rem and unframed.** At 1440 the grid track IS
+   the cap, so it looked right; at 768 ours ran 709px against her 496 and
+   pushed the hero down 277px. **The 1440 capture could not see it** — which is
+   why the rig shoots three widths, and the reason to read the 768 column even
+   when 1440 is green. The 16px radius over a 22%-accent hairline is right
+   round a photograph in a card and wrong round a cut-out PNG on a sky; both
+   are escape hatches now (`"0"`, `"none"`) defaulting to the old frame.
+3. **Her Hero is its own frame** — 116px above (the fixed nav's clearance, her
+   own comment says so) and 56px below, not a rung of any scale. Her ≤900 step
+   to 104px is NOT carried: a stated pad holds at every width, her break is 900
+   and the shared frame's is 768, so honouring it would cost a second knob to
+   move 12px at one viewport.
+
+`RfCtaDef.padX` came with it — her PrimaryButton is the ritual plate WIDENED to
+`padding-inline: 1.35rem`, which is geometry and cannot ride `size`. The six
+per-CTA overrides a row could state and the studio could not (variant, font,
+size, weight, tracking, colour) got their levers at the same time.
+
+**A number that got worse and should have:** seg 0 reads 15.06% at 1440 against
+14.23% before the frame fix, while being 4px closer in height. Our hero column
+is 25px taller than hers (1012 against 987); starting 28px too high used to
+cancel part of that in the middle of the column. Two errors cancelling is not
+parity, and the honest frame exposes the real one.
+
+### Left, in order
+
+- **seg 5 the braid stages at 768: 51.94%, 2246 → 2603 (+357px)** — the largest
+  single band on the page at any width, and 1440 sees only 12.37% of it.
+- **The hero's remaining 25px of column height** (1012 vs 987), measured.
+- **seg 10 the begin block, 11.91 → 11.76%, 783 → 850.**
+- Her `Or` line — a 13.5px sentence with a teal link inside it; `parseInline`
+  has no grammar for inline links.
+- Her `Band` hairlines — four of eleven bands carry a 1px rgba(255,255,255,0.09)
+  top and bottom over a 3% teal gradient; the wash is below the differ's
+  tolerance and the hairlines have no knob.
+- pearl-chamber 45.99 + home-classic 43.52 — unparked by Cormorant A, NON-font
+  deltas only. doors/experiences ~20% — Gio's eye.
+- Then: **tell Gio "come look", his eyeball pass, then the flip.**
+
+Commits: mono `96c9fa22` (glyph) · `861d8c86` (baseline) · `69bf93f6` (pull
+quote) · `5f170049` (hero). Office `cf07bb1` · `4a883f7` · `7e47bbe` · `26be946`.
+HQ deployed four times, RCS built nothing each time; render-check 435/435;
+`02-pages.sql` redriven to production five times, 17 published rows each.
