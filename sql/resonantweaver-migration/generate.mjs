@@ -2165,6 +2165,10 @@ function buildStarseed(data) {
   // And her hero figure's own ceiling, stated inline on the <Image>.
   guardOnly({ file: SSPAGE, find: 'maxWidth: "31rem"' });
   guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "padding-top: 116px; padding-bottom: 56px;" });
+  // The three stack widths, and her stage's second breakpoint. All four are
+  // separate numbers in her file and a change to any one moves a whole band.
+  guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "@media (max-width: 720px) { grid-template-columns: 1fr;" });
+  guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "@media (max-width: 900px) { min-height: auto; padding: 1.75rem 0.5rem;" });
   guardOnly({ file: `${SS}/theme.ts`, find: 'textDim: "#c4ccd0"' });
   guardOnly({ file: `${SS}/theme.ts`, find: 'muted: "#9aa4ab"' });
   guardOnly({ file: `${SS}/theme.ts`, find: 'serif: "var(--gfg-font-display), var(--gfg-font-tech), sans-serif"' });
@@ -2474,6 +2478,15 @@ function buildStarseed(data) {
       maxWidth: 62,
       gap: "1rem",
       cardPad: "clamp(1.35rem, 2.5vw, 1.85rem)",
+      // Her BraidStages hold two columns down to 720 — not the door mode's
+      // 800. At 768 that one number was the whole band: hers still two-up,
+      // ours already stacked, 2246px against 2603.
+      stackAt: 720,
+      // And her stage swaps its padding at 900, which is NOT where its grid
+      // stacks. A stage on a phone gives the words the full column and takes
+      // its air vertically instead.
+      cardPadNarrow: "1.75rem 0.5rem",
+      cardPadAt: 900,
       cardMinHeight: "0",
       lastOddWidth: "calc(50% - 0.625rem)",
       cardWash: CARD_WASH,
@@ -2520,6 +2533,9 @@ function buildStarseed(data) {
     section("sec-ss-currents", "rf-hud-cards", "The eight currents", {
       mode: "row",
       columns: 2,
+      // Her CurrentsGrid's own 900, stated rather than inherited from the row
+      // mode's default — the default is where it came FROM, not a guarantee.
+      stackAt: 900,
       heading: "",
       marginTop: "40px",
       marginBottom: PAGE_PAD,
@@ -2575,6 +2591,9 @@ function buildStarseed(data) {
       maxWidth: 62,
       gap: "16px",
       cardPad: "22px 22px 24px",
+      // Her Cards stack at 900, not the door mode's 800. Invisible at the
+      // three widths the rig shoots and wrong for every width between them.
+      stackAt: 900,
       cardMinHeight: "0",
       lastOddWidth: "",
       cardWash: CARD_WASH,
