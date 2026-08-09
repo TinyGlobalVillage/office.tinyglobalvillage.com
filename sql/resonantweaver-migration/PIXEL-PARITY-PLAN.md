@@ -1075,6 +1075,101 @@ the same photos); (2) the five NO-ANCHOR pages; (3) the +19px footer tail;
 (4) EditorPanel fields for the SQL-only knobs. Same infra, same `--only`
 slugs.
 
+### THE NO-ANCHOR PAGES + THE INHERITED 1.6 — 2026-08-09 (items 1–3)
+
+**The ruling (Gio, item 1):** photos are judged by eye, not by bytes — ~20%
+on the doors/experience segments is the accepted resampling floor, and HE is
+the eye: everything gets committed before the cutover and nothing switches
+until he has looked. So the doors (19.87) and the experience pages (20.35 /
+21.28 in this ranking) are DONE pending his pass, not work items.
+
+**Item 2 — the three pages that paired nothing, three different causes:**
+
+- **/writing was a different design, now it is her page on its own entries.**
+  Two new catalog entries derived from `WritingPage.styles`, one commit
+  (mono `55c881f7`): `rf-serif-head` (small-caps serif eyebrow, the two-line
+  title with the italic second line, the ghost ampersand at −48%, the 1.85-lh
+  lede, the FadeLine rule at container width) and `rf-cover-cards` (4/5
+  cover-art cards under her scrim, footer pinned to the card's bottom edge,
+  the RESONANT WEAVER byline wordmark with enlarged initials, the bookmark).
+  The row (office `ad16bf2`): sec-writing-tone — her FOUR-layer wash, where
+  the fourth layer IS the ground (a deep-blue radial, not #06111c) — plus the
+  two entries, fourteen new source guards, colors on the surface tokens and
+  type on the SERIF role. Card 2's cover is deliberately empty: her
+  `LeafOscilator-Logo4.png` never existed (broken on her live site), so the
+  pooled card wears her CoverFallback ground instead of carrying a 404. The
+  studio-instruction rewrites (copy.mjs) are unchanged and remain the one
+  deliberate text delta.
+- **/journey was wearing the wrong ruling.** "The section owns the viewport,
+  so chrome off" was an assumption; her live page has the nav pill FLOATING
+  over the sealed experience and 112px of real footer below it (1012 vs 900).
+  `09-journey-chrome.sql` flips the applied row (nav+footer true), 03/04
+  corrected so a replay agrees; rf-journey's [data-powered-by] hide (Gio's
+  2026-08-05 ruling) is untouched — the line she shows is her OWN footer's.
+  Measured: nav floats without pushing (JourneyGlobals still zeroes the body
+  pad), footer lands below, dH 0. The page stays aligned-n/a STRUCTURALLY —
+  its nine baseline bands are her textless 100svh scroll markers, nothing for
+  the sig-matcher to hold — but every strip diffs ≤1.9%, which is the honest
+  number for a page that is one canvas.
+- **/galactic-field-guide was pixel-identical with a footer painted over
+  it.** Her page mounts the HUD inside `position:fixed; inset:0;
+  z-index:100000`, so the layout's footer exists UNDER an opaque chart; the
+  pooled mount had dropped that wrapper, the flow height collapsed, and the
+  tenant footer landed at the top of the viewport across the star chart. One
+  HQ commit (`0576fd5a`) restores her wrapper verbatim: **3.91% aligned,
+  dH 0, 5/5 sections paired.**
+
+**Item 3 — the +19px footer tail was ONE MISSING DECLARATION, and it was the
+inherited-1.6 family all along.** Her footer never declares a line-height and
+renders at `normal` (16px lines); the pooled base styles set 1.6 on the body,
+which rf-site-footer inherited — 25.6px lines, two of them, +19.2px on every
+RW page (her 112 vs pooled 131, same padding, measured live). The entry now
+declares `line-height: normal` (mono `04955d80`). THE SAME MECHANISM then
+surfaced twice more the same hour: the writing eyebrow (+7px, everything
+below it shifted) and the cover-card footer runs — every block her files
+leave undeclared now declares `normal` in the two new entries. Fleet risk
+nil: rf-site-footer serves only RW's chrome rows.
+
+**Two cascade lessons the new entries taught, both now pinned in
+render-check (347/347):**
+1. **A styled class cannot out-vote the theme's heading rule.** themeToFontCss
+   applies the site's heading role as `[data-site-theme] h1…h6` — (0,1,1) —
+   which beats a bare styled class (0,1,0). Every prior rf heading WANTED the
+   heading/display role, so the trap never fired; writing is the first SERIF
+   heading, and its h1 rendered Science Gothic with `--tgv-fontSerif`
+   correctly set on the very element. Both new entries declare font-family
+   behind a doubled class (`&&`); an entry asking for a NON-heading role on a
+   heading must do the same.
+2. **padTop is a margin here** — her 4.5rem lives outside the header band, so
+   padding inside the section put the band top at y=0 and every strip cut 72px
+   out of phase (mono `80d4f5f9`… the lane's last commit; the
+   margin-not-padding family, one more member).
+
+**Measured (rw-p3-rank5 full 1440, then rw-p3-noanchor7 for writing):**
+writing none → **6.73%** (page top 0.64, body 7.19 = the cover art + the two
+ruled text rewrites); galactic-field-guide none → **3.91%**; journey strips
+≤1.9, dH 0. And the footer fix moved the whole board: **offers 1.88–4.54**
+(was 3.05–5.90), **open-your-journey 0.41** (was 2.63), develop 3.94, receive
+4.69, course 4.71, all-products 6.61, home **7.43**, galactic-pendulum
+experience 6.19. Unchanged and parked: experiences 20.35/21.28 + doors (the
+photo floor, Gio's eye at the end), sun-walk 13.38, starseed 32.76,
+pearl-chamber 46.18 + home-classic 43.56 (Cormorant ruling). writing at
+390/768 carries −30/−56px (card/title clamp midpoints) — a refinement, not a
+gap. Four deploys, all smoke-green, RCS built nothing.
+
+**Item 4 (NEXT) — EditorPanel fields for the SQL-only knobs**, audited
+2026-08-09, panels missing exactly these: rf-split-hero `padAsMargin`;
+rf-centered-intro `eyebrowSize`/`marginTop`; rf-door-card's density family
+(`rowGap sidePad cardBg titleSize titleWeight titleTracking titleLh copySize
+arrowColor arrowSize arrowWeight arrowTracking arrowTop arrowGap
+arrowGlyphSize hoverGlow`); rf-hud-cards' density/profile family
+(`marginBottom gap cardPad marker* title* copy*`); rf-accordion's card-face
+family (`cardWash cardPad maxWidth framePad marginTop itemEdge itemHoverWash
+name* head* lede* chevColor`); rf-media-copy `framePad`/`marginTop`/
+`centered`; rf-callout-bar `eyebrowTracking`. Then: writing's mobile
+clamps, sun-walk/starseed, and the pre-cutover eyeball pass Gio asked for —
+**commit everything, then tell him BEFORE any switch; he looks first.**
+
 ## Phase 4 — images
 
 1. Restore every missing asset under `/images/tenants/resonantweaver/`.
