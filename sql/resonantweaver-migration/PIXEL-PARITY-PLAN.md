@@ -1284,6 +1284,45 @@ lh 1.65 `#9aa4ab` with `b` in copper 600; Section 80px/0 (60 at ≤900); Wrap
 `IntroEyebrow`/`IntroTitle` the star landing already uses, which the pooled row
 did not point at.
 
+### EVERY ATOM PICKS ITS OWN TYPE ROLE — 2026-08-09 (Gio's ruling)
+
+Asked whether Option A would still be editable later, the answer was *half*:
+the theme panel's Fonts group already offered all six roles, but its hint
+pointed at a **"Fonts under Site Settings"** screen that had never been built.
+Gio's ruling: **not** under Site Settings — self-serve in the EDITOR, and
+*"every atom should be able to change its font."*
+
+`TextSpec.font` — one of `display · heading · body · serif · mono · accent`, or
+`""` for inherit. `TextSlotSpec` extends `TextSpec`, so every named run carries
+it too: an offer card's price can be mono while its title is serif.
+
+**A role, not a family**, and that is the design. A role is a pointer the theme
+resolves and `siteFonts` actually loads, so a pick can only land on a face the
+site really has — a typed family name is a wish, and naming one nothing serves
+is precisely how a page silently renders Arial. `""` emits **no `font-family`
+declaration at all** (not `inherit`, which would still outrank a host rule), so
+every pre-2026-08-09 spec emits byte-for-byte what it always did — the fifth use
+of the same back-compat mechanism after `gradient`, `states`, `textSlots` and
+`shadows`, and the 39 existing pins prove it unchanged.
+
+One `FontRow` in the shared Atomic Editor panel, so the Atom Library and the
+Component Composer both get it from one definition. The drift guard grew
+`fontFamily` (a NAMED family fails; `inherit` and `var()` pass) — a component
+that hardcodes a face has taken the decision back off the editor, invisibly,
+until someone re-themes.
+
+**Proven on the deployed Office** (mono `5cb611bd` + office `a55e128`, authed
+Playwright through the tgv.com UAT door): the Font row renders under Text with
+all seven options; picking Serif put `font-family: var(--tgv-fontSerif)` on the
+bench atom's own inline style, and it computed to Office's inherited stack
+because Office defines no `--tgv-fontSerif` — which is the designed answer and
+the proof that leaving the var fallback-less is right: on resonantweaver, where
+that role IS defined, the same atom paints Cormorant. Set back to Inherit and
+the declaration disappeared; the shared draft was left as found. 40/40 atom
+tests, render-check 354/354, office tsc at its 66-error baseline. Only console
+errors were the known employee-role 403s (uat@ is not an admin), which is
+correct gating.
+
 ## Phase 4 — images
 
 1. Restore every missing asset under `/images/tenants/resonantweaver/`.
