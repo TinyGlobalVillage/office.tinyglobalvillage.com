@@ -1020,6 +1020,61 @@ home-classic stay parked on the Cormorant ruling. The differ's `--only` needs
 full slugs (`home`, `landing-star-preview-develop`, …); infra: tunnel 3101 +
 host-proxy 8105 still up.
 
+### THE WASH FORENSICS — 2026-08-09 (items 0 and 4; rf-page-tone was never painting)
+
+**The hero/intro forensics found one missing paint, and it wasn't the hero's.**
+Her `PreviewBody` puts two radial washes on the PAGE-HEIGHT body — at 1440 the
+blue `ellipse 66% 36% at 50% 12%` is a ~2,200px-tall glow reaching from the
+hero through the intro into the doors. The pooled page approximated it with
+`siteBackground`'s orbs, which render in SiteBackdrop's `position: fixed`
+viewport layer: the same wash at ~1/7 the height, pinned to the top of the
+screen. Measured: her empty center column reads (11,28,44) at hero AND intro
+depths; the pooled page read bare `#06111c` — that one wash was most of
+seg01–04 (21–31% each). Fix: `sec-star-tone` + `sec-all-tone` author each
+page's own `rf-page-tone` layers (source-guarded; office `6602d71`, applied by
+redrive). The orbs STAY for open-your-journey and starseed, whose `Sky` is
+genuinely `position: fixed` in her source — that is why open-your-journey
+measures 0.22% with orbs alone.
+
+**Which exposed that rf-page-tone had NEVER painted, anywhere, for anyone.**
+Two defects, both proven in a live browser and fixed in the package (mono
+`d22b72d2` + `4f5f9713`, deployed):
+1. **The cascade.** SiteBackdrop's `body { background: transparent }` lands
+   AFTER the tone's bare `body` rule in the served sheet (SSR extraction order
+   ≠ mount order), so every tone row on the fleet was inert — computed body
+   background transparent on home and on an offer page both. The offers'
+   "toned" look was their heroes' local glows. Now `html body` — one level of
+   specificity, order-proof.
+2. **The backdrop paints OVER the body.** With the cascade fixed, the wash
+   showed in fullPage captures but NOT in the live viewport at any scroll —
+   the opaque fixed z:-1 ground covers the body's background in Chromium
+   ("an opaque body hides the fixed layer" is false; fullPage renders the
+   fixed layer only once, which is why the differ could see what users could
+   not). The tone now hides `[data-site-backdrop]` while mounted — a page
+   declaring an opaque tone has no use for the site backdrop, same reasoning
+   as her opaque bodies covering the starfield. Plus `display: flow-root` on
+   body: the first section's collapsed top margin was shifting the gradient's
+   positioning area down 128px; flow-root contains it without moving content.
+
+**Measured after deploy (differ, live HQ):** home 9.89 → **7.79%** (hero seg01
+20.96 → 2.95, its gap 29.18 → 0, intro seg03 30.61 → 6.28, seg04 29.11 → 0);
+all-products 10.85 → **7.08%** (header band 36.18 → 4.89 — its teal wash).
+Full re-rank `rw-p3-rank4` (item 4): **offers now 3.05–5.90** (was 5.8–7.8),
+develop 4.50, receive 5.33, course 6.03, pendulum experience 7.03,
+open-your-journey 2.63 unchanged. Remaining, in order: pearl-chamber 47.02 +
+home-classic 43.29 (PARKED, Cormorant ruling), starseed 32.88, experience
+resonance-mirror 21.97 + pearl-chamber 21.06, sun-walk 13.80, home 7.79
+(doors 19.87 = the image-resampling ruling; about 10.29; tail seg14 24.36 =
+the +19px footer delta, now lit up by the wash edge — the same "+20px
+remainder" the offers carry). journey/writing/galactic-field-guide still
+pair nothing (missing content).
+
+**Next window, in order:** (1) the doors/experience image question — same
+bytes or accept a floor (GIO'S RULING; experiences 21–22% are card grids of
+the same photos); (2) the five NO-ANCHOR pages; (3) the +19px footer tail;
+(4) EditorPanel fields for the SQL-only knobs. Same infra, same `--only`
+slugs.
+
 ## Phase 4 — images
 
 1. Restore every missing asset under `/images/tenants/resonantweaver/`.
