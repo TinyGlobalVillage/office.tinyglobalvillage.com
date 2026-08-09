@@ -1245,7 +1245,33 @@ the site footer (+19px) and the writing eyebrow (+7px). Declared on SunWalk's
 nothing moves there. Verified on the deploy: **her 4496, ours 4496.** Mono
 `4224a5d7`.
 
-**starseed (32.76%) is the one real page left, and it is a re-author, not a
+**AND THE FIX MADE THE NUMBERS WORSE, WHICH IS HOW THE RULER WAS CAUGHT.** The
+moment the pooled pages reserved the gutter — becoming geometrically identical
+to hers, `develop`'s h1 at x 24.5 / w 688.2 on both sides — the whole board
+drifted 1.5–4.4 points the wrong way, with **heights unchanged on every single
+page**. Only the horizontal phase had moved. Her own live page, re-shot through
+the same harness, needed a **−7px shift** to align with her own 2026-08-08
+baseline (7.45% changed at shift 0, 2.33% at −7), on an app that had not changed
+commit and still measured 4077px tall. That baseline was captured with the
+gutter NOT reserved, so it was laid out at 1440 where her app lays out at 1425 —
+and it was the only thing left in the old phase.
+
+Re-frozen as `rw-her-app-2026-08-09` (fingerprints in `baseline/`), and two
+guards so it cannot be silent again: `measurePage` records `layoutWidth`
+(`document.body.clientWidth`, not the ICB, which stays 1440 either way), both
+captures store it, and the differ collects an `outOfPhase` list printed ABOVE
+the findings — *the ruler is wrong, not the pages; re-freeze, don't nudge
+pixels.* Proven to fire on a doctored capture. HQ `274b79eb`.
+
+**The board against the re-frozen ruler (1440, aligned%)** — every page back
+within ±0.12 of its pre-gutter number, `outOfPhase` empty, and **sun-walk
+13.38 → 0.05**: pearl-chamber 45.99 · home-classic 43.52 · **starseed 32.75** ·
+experience-resonance-mirror 21.30 · experience-pearl-chamber 20.37 · home 7.55 ·
+writing 6.80 · all-products 6.66 · galactic-pendulum-exp 6.23 · course 4.77 ·
+receive 4.70 · the nine offer pages 1.94–4.61 · galactic-field-guide 3.92 ·
+open-your-journey 0.52 · sun-walk 0.05 · journey n/a (structural).
+
+**starseed (32.75%) is the one real page left, and it is a re-author, not a
 tune.** Its row was authored early as generic `rf-media-copy` bands and never
 given her seats: Space Mono absent entirely (26 elements → 0), 66 size / 60
 weight / 60 colour mismatches, and 13 text runs missing. Her seats are in
