@@ -377,6 +377,7 @@ function introBlock(data, id, label, copy, extra = {}) {
     eyebrow: copy.eyebrow,
     eyebrowTracking: 0.2,
     eyebrowAlpha: 66,
+    eyebrowSize: "0.68rem",
     title: copy.title,
     copy: copy.copy,
     maxWidth: 55,
@@ -629,11 +630,12 @@ function buildStarLanding(data, formId) {
       cardWash: "rgba(18, 63, 82, 0.5)",
       cardWashFeatured: "",
       imageGlow: "",
-      markerColor: `rgb(${data.tokens.TEAL})`,
+      markerColor: `rgba(${data.tokens.TEAL}, 0.7)`,
       priceColor: `rgb(${data.tokens.COPPER})`,
-      linkColor: `rgb(${data.tokens.TEAL})`,
+      linkColor: `rgba(${data.tokens.COPPER}, 0.94)`,
       badgeColor: `rgb(${data.tokens.TEAL})`,
       maxWidth: 78,
+      muted: `rgba(${data.tokens.BONE}, 0.57)`,
       items: star.featuredSlugs.map((slug, i) => {
         const offer = data.resolveOffer(data.getOfferBySlug(slug));
         return {
@@ -702,6 +704,13 @@ function buildStarLanding(data, formId) {
       headingAccent: "",
       paragraphs: [star.fieldGuide.notify.prompt],
       chips: [],
+      // Her notify block is a bare centered note — no section frame at all,
+      // 2.5rem above, and the button is the ritual plate's geometry worn in
+      // the accent mono at her NotifyButton's exact type.
+      framePad: "none",
+      marginTop: "2.5rem",
+      centered: true,
+      muted: `rgba(${data.tokens.BONE}, 0.63)`,
       ctas: [
         {
           label: star.fieldGuide.notify.buttonLabel,
@@ -709,6 +718,11 @@ function buildStarLanding(data, formId) {
           variant: "ritual",
           // NotifyButton renders "Ask about access →" — the arrow is hers.
           arrow: true,
+          font: "var(--tgv-fontAccent, inherit)",
+          size: "0.72rem",
+          weight: 700,
+          tracking: "0.12em",
+          transform: "uppercase",
         },
       ],
     }),
@@ -822,6 +836,7 @@ function buildStarLanding(data, formId) {
       columns: 1,
       heading: "",
       marginTop: "clamp(5rem, 9vw, 8rem)",
+      marginBottom: "clamp(5rem, 9vw, 8rem)",
       gap: "",
       cardWash: "rgba(18, 63, 82, 0.5)",
       cardWashFeatured: "",

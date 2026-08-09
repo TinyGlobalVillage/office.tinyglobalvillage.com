@@ -333,6 +333,7 @@ INSERT INTO _rw_pages VALUES ('home', 'Resonant Weaver', true, 'published', $rwj
           "eyebrow": "Three ways into the work",
           "eyebrowTracking": 0.2,
           "eyebrowAlpha": 66,
+          "eyebrowSize": "0.68rem",
           "title": "The stars, the field, and your own perception",
           "copy": "You can meet yourself through the stars, through the living energy of your own field, or by developing the perception that lets you sense more directly yourself. Each path returns you to the same place: a clearer relationship with who you are, what you carry, and how you are here to live.",
           "maxWidth": 55,
@@ -420,6 +421,7 @@ INSERT INTO _rw_pages VALUES ('home', 'Resonant Weaver', true, 'published', $rwj
         "props": {
           "eyebrowTracking": 0.2,
           "eyebrowAlpha": 66,
+          "eyebrowSize": "0.68rem",
           "title": "Begin where you feel the pull",
           "copy": "Each path has a doorway open. The Starwoven Journey is your Starseed heritage. The Resonance Mirror and Pearl Chamber work with the energy moving through your field. The Somatic Signature helps you learn the language of your own body. Begin with the one that feels closest to what you need now.",
           "maxWidth": 55,
@@ -446,11 +448,12 @@ INSERT INTO _rw_pages VALUES ('home', 'Resonant Weaver', true, 'published', $rwj
           "cardWash": "rgba(18, 63, 82, 0.5)",
           "cardWashFeatured": "",
           "imageGlow": "",
-          "markerColor": "rgb(72, 210, 185)",
+          "markerColor": "rgba(72, 210, 185, 0.7)",
           "priceColor": "rgb(183, 138, 119)",
-          "linkColor": "rgb(72, 210, 185)",
+          "linkColor": "rgba(183, 138, 119, 0.94)",
           "badgeColor": "rgb(72, 210, 185)",
           "maxWidth": 78,
+          "muted": "rgba(232, 229, 218, 0.57)",
           "items": [
             {
               "marker": "01 · Your birth sky, woven into a personal journey",
@@ -494,6 +497,7 @@ INSERT INTO _rw_pages VALUES ('home', 'Resonant Weaver', true, 'published', $rwj
           "eyebrow": "An evolving archive",
           "eyebrowTracking": 0.2,
           "eyebrowAlpha": 66,
+          "eyebrowSize": "0.68rem",
           "title": "The Galactic Field Guide",
           "copy": "A growing atlas of the fixed stars, star lineages, and civilisations that shape this work. Each entry explores the character of a star current, the gifts and shadows it carries, and how its presence may be recognised in human life. The archive currently spans 42 systems, with new writing and illustrations added as the guide continues to unfold.",
           "maxWidth": 55,
@@ -569,12 +573,21 @@ INSERT INTO _rw_pages VALUES ('home', 'Resonant Weaver', true, 'published', $rwj
             "The guide is not open yet, but early access will become available before the full archive is complete. Send a message below if you would like to hear when the first doors open."
           ],
           "chips": [],
+          "framePad": "none",
+          "marginTop": "2.5rem",
+          "centered": true,
+          "muted": "rgba(232, 229, 218, 0.63)",
           "ctas": [
             {
               "label": "Ask about access",
               "href": "#contact",
               "variant": "ritual",
-              "arrow": true
+              "arrow": true,
+              "font": "var(--tgv-fontAccent, inherit)",
+              "size": "0.72rem",
+              "weight": 700,
+              "tracking": "0.12em",
+              "transform": "uppercase"
             }
           ]
         }
@@ -729,6 +742,7 @@ INSERT INTO _rw_pages VALUES ('home', 'Resonant Weaver', true, 'published', $rwj
           "columns": 1,
           "heading": "",
           "marginTop": "clamp(5rem, 9vw, 8rem)",
+          "marginBottom": "clamp(5rem, 9vw, 8rem)",
           "gap": "",
           "cardWash": "rgba(18, 63, 82, 0.5)",
           "cardWashFeatured": "",
