@@ -171,7 +171,8 @@ SELECT 'siteBackground', 'en', 'published', NULL, $rwjson${
       "duration": 0
     }
   ],
-  "color": "#06111c"
+  "color": "#06111c",
+  "scrollbarGutter": true
 }$rwjson$::jsonb, now(), 'resonantweaver'
  WHERE NOT EXISTS (
    SELECT 1 FROM public.content_overrides
@@ -210,7 +211,8 @@ UPDATE public.content_overrides
       "duration": 0
     }
   ],
-  "color": "#06111c"
+  "color": "#06111c",
+  "scrollbarGutter": true
 }$rwjson$::jsonb, updated_at = now()
  WHERE site = 'resonantweaver' AND key = 'siteBackground'
    AND lang = 'en' AND mode = 'published'
@@ -244,7 +246,8 @@ UPDATE public.content_overrides
       "duration": 0
     }
   ],
-  "color": "#06111c"
+  "color": "#06111c",
+  "scrollbarGutter": true
 }$rwjson$::jsonb;
 
 -- ── siteFonts ────────────────────────────────────────────────────────────────
@@ -502,6 +505,15 @@ BEGIN
      AND data->>'color' = '#06111c';
   IF n <> 1 THEN
     RAISE EXCEPTION 'assert: siteBackground.color is not %', '#06111c';
+  END IF;
+
+  -- The reserved scrollbar gutter. Silent when wrong: every page simply lays
+  -- out 15px wider than it does on her app, and only a narrow viewport shows it.
+  SELECT count(*) INTO n FROM public.content_overrides
+   WHERE site = 'resonantweaver' AND key = 'siteBackground'
+     AND data->>'scrollbarGutter' = 'true';
+  IF n <> 1 THEN
+    RAISE EXCEPTION 'assert: siteBackground.scrollbarGutter is not reserved';
   END IF;
 
   RAISE NOTICE 'assertions passed';

@@ -2594,9 +2594,16 @@ function themeSql(data) {
     radius: { card: radii.card.value, button: radii.button.value, small: radii.small.value },
   };
 
+  // Her `html` reserves the classic scrollbar's width on every page. It is one
+  // line of her GlobalStyles and it is worth 15px of content width at every
+  // viewport — which on a phone is where a paragraph decides whether to wrap.
+  // Measured 2026-08-09: /writing/ at 390, her body box 375 and the pooled one
+  // 390, so her intro ran four lines and ours three (−30px of page).
+  guardOnly({ file: "src/styles/GlobalStyles.ts", find: "scrollbar-gutter: stable;" });
   const background = {
     orbs: orbs.map(({ guards, ...o }) => o),
     color: toHex(bg),
+    scrollbarGutter: true,
   };
 
   const fonts = { faces: webfonts };
@@ -2728,6 +2735,15 @@ BEGIN
      AND data->>'color' = ${lit(ground.hex)};
   IF n <> 1 THEN
     RAISE EXCEPTION 'assert: siteBackground.color is not %', ${lit(ground.hex)};
+  END IF;
+
+  -- The reserved scrollbar gutter. Silent when wrong: every page simply lays
+  -- out 15px wider than it does on her app, and only a narrow viewport shows it.
+  SELECT count(*) INTO n FROM public.content_overrides
+   WHERE site = ${lit(SITE)} AND key = 'siteBackground'
+     AND data->>'scrollbarGutter' = 'true';
+  IF n <> 1 THEN
+    RAISE EXCEPTION 'assert: siteBackground.scrollbarGutter is not reserved';
   END IF;
 
   RAISE NOTICE 'assertions passed';
