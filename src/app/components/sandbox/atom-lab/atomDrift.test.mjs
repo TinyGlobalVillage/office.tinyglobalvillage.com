@@ -57,6 +57,12 @@ const LITERALS = {
   fontSize: /font-size:\s*\d/,
   fontWeight: /font-weight:\s*\d/,
   letterSpacing: /letter-spacing:\s*[\d.]/,
+  // A NAMED family is the literal here; `inherit` and a `var()` are not.
+  // Since 2026-08-09 the spec governs which type ROLE a run wears, so a
+  // component that names a family instead has taken the decision back off the
+  // editor — the exact thing Gio's "every atom should be able to change its
+  // font" ruling is against, and invisible until someone re-themes the site.
+  fontFamily: /font-family:\s*(?!inherit\b|var\()/,
 };
 
 test("a migrated component opens the publish channel", () => {

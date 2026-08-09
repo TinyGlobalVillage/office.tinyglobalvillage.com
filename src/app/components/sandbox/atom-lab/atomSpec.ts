@@ -15,6 +15,7 @@ export {
   DEFAULT_SHADOW_LAYER,
   DEFAULT_SPEC,
   DEFAULT_TEXT_SLOT,
+  FONT_ROLES,
   SPEC_LIMITS,
   STATE_NAMES,
   clampSpec,
@@ -28,6 +29,7 @@ export {
 export type {
   AtomSpec,
   AtomSpecPatch,
+  FontRole,
   AtomStatePatch,
   AtomStates,
   IconSpec,

@@ -19,11 +19,13 @@ import { colors, rgb } from "../../../theme";
 import Tooltip from "../../ui/Tooltip";
 import {
   type AtomSpec,
+  type FontRole,
   type ShadowLayer,
   type StateName,
   type TextSlotSpec,
   DEFAULT_SHADOW_LAYER,
   DEFAULT_TEXT_SLOT,
+  FONT_ROLES,
   SPEC_LIMITS,
   STATE_NAMES,
   isSlotName,
@@ -512,6 +514,52 @@ export function ColorRow({
   );
 }
 
+/**
+ * Which of the site's six type ROLES a run of text wears — Gio's ruling of
+ * 2026-08-09, "every atom should be able to change its font", and self-serve
+ * HERE rather than behind a Site Settings screen.
+ *
+ * Roles, not family names, for the reason the whole font stack exists: a role
+ * is a pointer the site's theme resolves and the site's webfont row actually
+ * loads, so picking one can only land on a face the site really has. Typing a
+ * family nothing serves is how a page silently renders Arial.
+ *
+ * "Inherit" is the default and emits NO declaration at all, which is what
+ * every atom did before roles existed.
+ */
+const FONT_ROLE_LABELS: Record<FontRole, string> = {
+  display: "Display",
+  heading: "Heading",
+  body: "Body",
+  serif: "Serif",
+  mono: "Mono",
+  accent: "Accent",
+};
+
+export function FontRow({
+  value,
+  onChange,
+}: {
+  value: FontRole | "";
+  onChange: (v: FontRole | "") => void;
+}) {
+  return (
+    <Row>
+      <RowLabel>Font</RowLabel>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <DdmSelect
+          value={value || ""}
+          onChange={(v) => onChange((v || "") as FontRole | "")}
+          options={[
+            { key: "", label: "Inherit" },
+            ...FONT_ROLES.map((role) => ({ key: role, label: FONT_ROLE_LABELS[role] })),
+          ]}
+        />
+      </div>
+    </Row>
+  );
+}
+
 export function ToggleRow({
   label,
   value,
@@ -628,6 +676,7 @@ function SlotLevers({
       <SliderRow label="Weight" value={slot.weight} min={100} max={900} step={100} defaultValue={defSlot.weight} onChange={set("weight")} />
       <SliderRow label="Tracking" value={slot.tracking} min={0} max={0.3} step={0.01} defaultValue={defSlot.tracking} onChange={set("tracking")} />
       <ToggleRow label="Uppercase" value={slot.uppercase} onChange={set("uppercase")} />
+      <FontRow value={slot.font ?? ""} onChange={(v) => setSlotField(name, "font", v)} />
       <Row>
         <RowLabel>Color</RowLabel>
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -1205,6 +1254,7 @@ export function AtomicEditorPanel({
                   <SliderRow label="Weight" value={spec.text.weight} min={100} max={900} step={100} defaultValue={d.text.weight} onChange={(v) => setField("text", "weight", v)} />
                   <SliderRow label="Tracking" value={spec.text.tracking} min={0} max={0.3} step={0.01} defaultValue={d.text.tracking} onChange={(v) => setField("text", "tracking", v)} />
                   <ToggleRow label="Uppercase" value={spec.text.uppercase} onChange={(v) => setField("text", "uppercase", v)} />
+                  <FontRow value={spec.text.font ?? ""} onChange={(v) => setField("text", "font", v)} />
                 </>
               )}
 

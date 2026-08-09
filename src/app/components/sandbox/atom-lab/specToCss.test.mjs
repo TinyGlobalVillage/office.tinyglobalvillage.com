@@ -18,10 +18,12 @@ import {
   clampSpec,
   DEFAULT_SHADOW_LAYER,
   DEFAULT_SPEC,
+  FONT_ROLES,
   mergeSpec,
   pruneStates,
   specWithState,
 } from "@tgv/module-component-library/atoms/spec";
+import { FONT_ROLES as THEME_FONT_ROLES } from "@tgv/module-component-library/components/tgv-v5/theme";
 import {
   fontPx,
   iconPaint,
@@ -401,4 +403,49 @@ test("a spec off the wire cannot smuggle a value past the emitter", () => {
   const css = specToCss(DEFAULT_SPEC, box) + specTextToCss(DEFAULT_SPEC, box);
   assert.ok(!css.includes("}"), "no declaration can close its own block");
   assert.ok(!css.includes("@"), "no at-rule can be injected through a value");
+});
+
+test("an atom wears a type ROLE, and no role declares no family", () => {
+  // The back-compat pin, a fifth time: a spec written before roles existed
+  // says nothing about the family and emits exactly what it always did. The
+  // check is the ABSENCE of the property, not a value — declaring
+  // `font-family: inherit` would still outrank a host rule that a bare
+  // declaration leaves alone.
+  const box = specToBox(DEFAULT_SPEC);
+  assert.equal(DEFAULT_SPEC.text.font, "");
+  assert.ok(!("fontFamily" in textDecls(DEFAULT_SPEC, box)));
+  assert.ok(!specTextToCss(DEFAULT_SPEC, box).includes("font-family"));
+
+  // A role emits the site's var for that role — the pointer the theme
+  // resolves and `siteFonts` actually loads, never a raw family name.
+  const serif = mergeSpec(DEFAULT_SPEC, { text: { font: "serif" } });
+  assert.equal(textDecls(serif, box).fontFamily, "var(--tgv-fontSerif)");
+  assert.ok(specTextToCss(serif, box).includes("font-family:"));
+  assert.ok(specTextToCss(serif, box).includes("--tgv-fontSerif"));
+
+  // Every one of the six roles resolves to its own var, and no two share one.
+  const vars = FONT_ROLES.map((role) => textDecls(mergeSpec(DEFAULT_SPEC, { text: { font: role } }), box).fontFamily);
+  assert.equal(new Set(vars).size, FONT_ROLES.length);
+
+  // Per SLOT, independently of the label — an offer card's price can be mono
+  // while its title is serif.
+  const slots = mergeSpec(DEFAULT_SPEC, {
+    text: { font: "serif" },
+    textSlots: { price: { font: "mono" }, note: {} },
+  });
+  assert.equal(slotTextDecls(slots, "price", box).fontFamily, "var(--tgv-fontMono)");
+  assert.ok(!("fontFamily" in slotTextDecls(slots, "note", box)), "a slot with no role declares none");
+
+  // Off the wire: an unknown role is not a family, it is garbage, and it falls
+  // back to "no opinion" rather than reaching CSS.
+  const hostile = clampSpec({
+    ...DEFAULT_SPEC,
+    text: { ...DEFAULT_SPEC.text, font: "Comic Sans; } body { display: none" },
+  });
+  assert.equal(hostile.text.font, "");
+  assert.ok(!specTextToCss(hostile, box).includes("font-family"));
+
+  // The roles the atom offers ARE the roles the theme names — one list, or the
+  // editor would offer a role no site can fill.
+  assert.deepEqual([...FONT_ROLES], [...THEME_FONT_ROLES]);
 });
