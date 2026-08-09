@@ -2154,6 +2154,10 @@ function buildStarseed(data) {
   // theme.ts — the page's own tokens.
   guardOnly({ file: `${SS}/theme.ts`, find: 'h1Color: "#f5f9f8"' });
   guardOnly({ file: `${SS}/theme.ts`, find: 'copper: "#c79a86"' });
+  guardOnly({ file: `${SS}/theme.ts`, find: "pullQuoteBorderRgba: `rgba(${COPPER}, 0.34)`" });
+  // Her PullQuote, declaration by declaration — the band closes on it.
+  guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "max-width: 34rem; margin: 2.5rem auto 0; padding: 1.5rem 1.75rem;" });
+  guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "font-size: clamp(1.25rem, 2.35vw, 1.75rem); font-style: italic; line-height: 1.42; text-align: center;" });
   guardOnly({ file: `${SS}/theme.ts`, find: 'textDim: "#c4ccd0"' });
   guardOnly({ file: `${SS}/theme.ts`, find: 'muted: "#9aa4ab"' });
   guardOnly({ file: `${SS}/theme.ts`, find: 'serif: "var(--gfg-font-display), var(--gfg-font-tech), sans-serif"' });
@@ -2368,7 +2372,27 @@ function buildStarseed(data) {
   // with the section it belongs to as an emphasised final paragraph rather than
   // becoming a testimonial — nobody said it about her.
   sections.push(
-    band("sec-ss-lineage", "The Stellar Braid", c.lineage, c.lineage.quote.map((l) => `*${l}*`)),
+    // Her PullQuote is its own <blockquote> closing the band — ruled top and
+    // bottom, copper, serif italic, 34rem centered. It was authored as two
+    // emphasised paragraphs in the first cut, which is why this band still ran
+    // 113px short of hers with every word in place.
+    band("sec-ss-lineage", "The Stellar Braid", c.lineage, [], {
+      quote: c.lineage.quote.join("\n\n"),
+      quoteRole: "display",
+      quoteSize: "clamp(1.25rem, 2.35vw, 1.75rem)",
+      quoteLh: "1.42",
+      quoteItalic: true,
+      // TWO coppers, and they are not the same one: the words wear her
+      // theme's own `copper` literal (#c79a86, guarded above), the rules wear
+      // `pullQuoteBorderRgba` — the COPPER token at 0.34 (#b78a77). Collapsing
+      // them onto one value would be a quiet recolour of either the type or
+      // the hairlines.
+      quoteColor: "#c79a86",
+      quoteRule: `rgba(${T.COPPER}, 0.34)`,
+      quoteMaxWidth: "34rem",
+      quoteMargin: "2.5rem auto 0",
+      quotePad: "1.5rem 1.75rem",
+    }),
   );
   sections.push(band("sec-ss-responsive", "A responsive sky", c.responsive));
   sections.push(band("sec-ss-recognition", "Recognition", c.recognition));

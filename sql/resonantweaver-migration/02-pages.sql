@@ -2600,8 +2600,7 @@ INSERT INTO _rw_pages VALUES ('starseed', 'The Starwoven Journey | Discover your
             "Human ancestry rarely comes from only one place. Trace it back far enough and many different places, people and histories meet in one person. Your stellar inheritance can be understood in much the same way.",
             "Most of us carry more than one strong stellar thread. The Starwoven Journey returns to the sky as it stood at the moment you were born, following the star at your incarnation gateway alongside the others woven through your planets, horizon, emotional world, deeper roots and direction of life.",
             "One star carries the primary current through which you entered this life. The others add their own gifts, pressures and ways of seeing. Together, they form your Stellar Braid: the particular pattern of Hybrid Starseed Lineages woven through you.",
-            "The journey helps you recognise what you may have brought with you to Earth, and how it is asking to become grounded, lived and useful through your human life.",
-            "*You were woven to arrive in this world.*"
+            "The journey helps you recognise what you may have brought with you to Earth, and how it is asking to become grounded, lived and useful through your human life."
           ],
           "chips": [],
           "ctas": [],
@@ -2626,7 +2625,17 @@ INSERT INTO _rw_pages VALUES ('starseed', 'The Starwoven Journey | Discover your
           "copyGap": "16px",
           "copyMaxWidth": "72ch",
           "copyTop": "1.25rem",
-          "copyInk": "#c4ccd0"
+          "copyInk": "#c4ccd0",
+          "quote": "You were woven to arrive in this world.",
+          "quoteRole": "display",
+          "quoteSize": "clamp(1.25rem, 2.35vw, 1.75rem)",
+          "quoteLh": "1.42",
+          "quoteItalic": true,
+          "quoteColor": "#c79a86",
+          "quoteRule": "rgba(183, 138, 119, 0.34)",
+          "quoteMaxWidth": "34rem",
+          "quoteMargin": "2.5rem auto 0",
+          "quotePad": "1.5rem 1.75rem"
         }
       }
     },
