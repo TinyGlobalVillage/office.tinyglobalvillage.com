@@ -3067,18 +3067,24 @@ INSERT INTO _rw_pages VALUES ('starseed', 'The Starwoven Journey | Discover your
           "copyLh": "1.68",
           "copyColor": "#9aa4ab",
           "copyGap": "0",
+          "iconSize": "30px",
+          "iconGap": "16px",
+          "iconColor": "rgb(72, 210, 185)",
           "items": [
             {
               "title": "Your real birth sky",
-              "copy": "The reading begins with astronomical calculation. Your active stars are drawn from the sky at your specific moment and place of birth."
+              "copy": "The reading begins with astronomical calculation. Your active stars are drawn from the sky at your specific moment and place of birth.",
+              "iconUrl": "data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23000%22%20stroke-width%3D%221.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M3%2021l6-6%22%20%2F%3E%3Cpath%20d%3D%22M8.5%2015.5l-3-3%209-9%203%203z%22%20%2F%3E%3Cpath%20d%3D%22M14%205l3%203%22%20%2F%3E%3Ccircle%20cx%3D%2218.5%22%20cy%3D%225.5%22%20r%3D%221.4%22%20%2F%3E%3C%2Fsvg%3E"
             },
             {
               "title": "Your Starseed pattern",
-              "copy": "You are not reduced to one cosmic label. The journey explores your primary lineage, your wider Hybrid Starseed Lineages and the unique pattern they form together."
+              "copy": "You are not reduced to one cosmic label. The journey explores your primary lineage, your wider Hybrid Starseed Lineages and the unique pattern they form together.",
+              "iconUrl": "data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23000%22%20stroke-width%3D%221.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M5%204h11a2%202%200%20012%202v14H7a2%202%200%2001-2-2z%22%20%2F%3E%3Cpath%20d%3D%22M18%2020a2%202%200%20002-2V4%22%20%2F%3E%3Cpath%20d%3D%22M9%208h6M9%2011.5h6%22%20%2F%3E%3C%2Fsvg%3E"
             },
             {
               "title": "Made to return to Earth",
-              "copy": "The stars are never used to remove you from your body or human life. The journey continually returns to embodiment, belonging and the practical expression of what you carry."
+              "copy": "The stars are never used to remove you from your body or human life. The journey continually returns to embodiment, belonging and the practical expression of what you carry.",
+              "iconUrl": "data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23000%22%20stroke-width%3D%221.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Ccircle%20cx%3D%2212%22%20cy%3D%2212%22%20r%3D%229%22%20%2F%3E%3Cpath%20d%3D%22M3%2012h18M12%203c3%203.5%203%2014.5%200%2018M12%203c-3%203.5-3%2014.5%200%2018%22%20%2F%3E%3C%2Fsvg%3E"
             }
           ]
         }

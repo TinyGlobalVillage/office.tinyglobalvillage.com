@@ -108,6 +108,71 @@ function guardOnly(entry) {
   }
 }
 
+/** EXTRACT an inline-JSX `<svg>` array from her source as standalone SVG data
+ *  URIs, in her order.
+ *
+ *  Not a transcription. Every other glyph-shaped thing on this page is a value
+ *  we read and re-state, and `verbatim` can guard a value; path data is a
+ *  drawing, and a drawing re-typed is a drawing that drifts silently — the
+ *  differ would report a few hundred pixels and name nothing. So her JSX is
+ *  parsed and re-emitted: if she redraws a glyph the row follows, and if the
+ *  array changes SHAPE the run fails and says so.
+ *
+ *  The stroke is forced opaque black because a mask reads the ALPHA channel —
+ *  `currentColor` is meaningless in an image rendered in isolation, and the
+ *  paint belongs to `iconColor` on the section anyway (see RfGlyph). */
+function jsxSvgDataUris({ file, arrayName, expect }) {
+  const abs = path.join(RW, file);
+  if (!fs.existsSync(abs)) die(`source file is gone: ${file}`);
+  const raw = fs.readFileSync(abs, "utf8");
+  const block = raw.match(new RegExp(`const ${arrayName} = \\[([\\s\\S]*?)\\n\\];`));
+  if (!block) {
+    drift.push(`${file}: no \`const ${arrayName} = [ … ];\` array — the glyphs moved or were renamed`);
+    return [];
+  }
+  const svgs = block[1].match(/<svg[\s\S]*?<\/svg>/g) || [];
+  if (svgs.length !== expect) {
+    drift.push(`${file}: ${arrayName} holds ${svgs.length} <svg> elements, expected ${expect}`);
+    return [];
+  }
+  return svgs.map((jsx, i) => {
+    const markup = jsx
+      // React attribute spellings → SVG's own.
+      .replace(/\bstrokeWidth=/g, "stroke-width=")
+      .replace(/\bstrokeLinecap=/g, "stroke-linecap=")
+      .replace(/\bstrokeLinejoin=/g, "stroke-linejoin=")
+      .replace(/\bfillRule=/g, "fill-rule=")
+      .replace(/\bclipRule=/g, "clip-rule=")
+      // React's list key is not an SVG attribute.
+      .replace(/\s+key="[^"]*"/g, "")
+      .replace(/currentColor/g, "#000")
+      .replace(/<svg /, '<svg xmlns="http://www.w3.org/2000/svg" ')
+      .replace(/\s+/g, " ")
+      .replace(/> </g, "><")
+      .trim();
+    if (!/<(path|circle|rect|line|polyline|polygon|ellipse)\b/.test(markup)) {
+      drift.push(`${file}: ${arrayName}[${i}] draws nothing — no path/circle/rect/line`);
+    }
+    // A React attribute left in camelCase is silently ignored in a real SVG
+    // file — a hairline glyph would arrive with a 1px default stroke and no
+    // round caps, and nothing would say so. A handful of SVG attributes are
+    // camelCase by spec, so the scan names them rather than banning the shape.
+    const SVG_CAMEL = new Set([
+      "viewBox", "preserveAspectRatio", "pathLength", "gradientUnits",
+      "gradientTransform", "spreadMethod", "clipPathUnits", "maskUnits",
+      "maskContentUnits", "patternUnits", "patternContentUnits", "patternTransform",
+      "markerWidth", "markerHeight", "markerUnits", "startOffset", "textLength",
+      "lengthAdjust", "baseProfile",
+    ]);
+    for (const [, attr] of markup.matchAll(/\s([a-zA-Z]+)=/g)) {
+      if (/[a-z][A-Z]/.test(attr) && !SVG_CAMEL.has(attr)) {
+        drift.push(`${file}: ${arrayName}[${i}] keeps \`${attr}\` — a browser ignores it in an SVG file`);
+      }
+    }
+    return `data:image/svg+xml,${encodeURIComponent(markup)}`;
+  });
+}
+
 /** WHICH COMPONENT A ROUTE ACTUALLY RENDERS.
  *
  *  Every guard above asks whether a STRING still says what we transcribed.
@@ -2075,6 +2140,13 @@ function buildStarseed(data) {
   // gateway grids, made a second time here.
   const CARDS = "src/components/Cards.tsx";
   const CALLOUT = "src/components/CalloutBar.tsx";
+  // Her three method-card glyphs, extracted (not transcribed) from CARD_ICONS.
+  const methodGlyphs = jsxSvgDataUris({ file: SSPAGE, arrayName: "CARD_ICONS", expect: 3 });
+  // The three facts that make them what they are: the pairing is POSITIONAL,
+  // and the size/gap/paint live on her `Card svg` rule, not on the svg itself.
+  guardOnly({ file: SSPAGE, find: "{cardIcons[index]}" });
+  guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "svg { width: 30px; height: 30px;" });
+  guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "color: ${({ theme }) => theme.teal}; margin-bottom: 16px;" });
   // theme.ts — the page's own tokens.
   guardOnly({ file: `${SS}/theme.ts`, find: 'h1Color: "#f5f9f8"' });
   guardOnly({ file: `${SS}/theme.ts`, find: 'copper: "#c79a86"' });
@@ -2456,7 +2528,18 @@ function buildStarseed(data) {
       copyLh: "1.68",
       copyColor: "#9aa4ab",
       copyGap: "0",
-      items: c.cards.map((card) => ({ title: card.title, copy: card.body })),
+      // Her three card glyphs — `Card svg { 30px, teal, 16px under }`, drawn
+      // inline in her page file and left behind by the first cut, which is 46px
+      // of the band's remaining delta. Masked, so the teal stays a knob.
+      iconSize: "30px",
+      iconGap: "16px",
+      iconColor: `rgb(${data.tokens.TEAL})`,
+      items: c.cards.map((card, i) => ({
+        title: card.title,
+        copy: card.body,
+        // `cardIcons[index]` — her pairing is positional, so ours is too.
+        iconUrl: methodGlyphs[i] || "",
+      })),
     }),
   );
 
