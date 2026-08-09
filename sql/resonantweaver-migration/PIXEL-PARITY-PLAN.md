@@ -1582,3 +1582,93 @@ Cormorant A, which unparks them for their NON-font deltas) · experience-
 resonance-mirror 21.30 · experience-pearl-chamber 20.37 · **starseed 19.32** ·
 home 7.55 · writing 6.80 · all-products 6.66 · offers 1.94–4.61 ·
 open-your-journey 0.52 · sun-walk 0.05.
+
+---
+
+## THE CURRENTS AND THE PAGE FRAME — 2026-08-09 (19.32 → 11.18 at 1440)
+
+Two findings, and the second was the bigger one by a factor of four.
+
+**The eight currents were a list of her cards.** `CurrentsGrid` is eight
+`hudSurface` rows two across — a lit 13px dot beside a family name and one
+essence line — and the pooled row said `rf-list`. Same shape of finding as the
+four grids the window before: a list is not the material she wrote, and no
+number of type levers on a list turns it into a card. It became `rf-hud-cards`
+mode **`row`** (mono `db5c5f1f`), the fourth layout of the one material, derived
+from CurrentRow/Dot/Name/Essence — and her own file says why it belongs to this
+entry rather than a new one: its hudSurface holds *"the same values as the
+landing-star hub's shared card surface … so every card on this page reads as one
+system"*.
+
+The dot's colour rides the **item** (`dotColor`), because that is the band's
+whole point — each current wears the WCAG-checked accent the starseed package
+paints that family in, and a section-level colour would flatten eight into one.
+The name renders as a **div**, as hers is: these are the rows of a grid, not the
+headings of a page, and a heading here would also have to fight
+`[data-site-theme] h1…h6` for its face. Measured after: the row is her box to
+the pixel — 489×106 at the same x, same padding, same gradient, same shadow,
+same dot, same type, same paint on both sides.
+
+**AND THE ROW BEING EXACT IS WHAT EXPOSED THE FRAME.** With nothing left to
+blame inside the card, the band was still 31px out — and the probe put 144px
+between her prose and her grid where she has 40. Two causes, both structural:
+
+1. **Her page frame is not on the scale.** Every Section and Band on the page is
+   `padding: 80px 0` (60 under 900). The pooled rows wore `lg` — 88 desktop, 52
+   mobile — so all eleven bands ran 8px tall and then 8px short.
+2. **A logical section split across two pooled rows double-counts.** Her stars
+   Section holds the prose AND the grid, so its 80px closes BELOW the grid. Ours
+   is a head band plus a grid band, so the head's 88px bottom pad landed in the
+   middle where she has nothing, and the close under the grid went missing:
+   **128px in the wrong place, on all four of this page's grids.**
+
+`RfSection` grew `padTop`/`padBottom` and rf-process-steps grew `marginBottom`
+(mono `911f8b7d`); the four heads close at `0` and the four grids carry the
+section's close as their own bottom margin, which cannot collapse with the next
+band's padding, so her 80 + 80 between sections survives. `PAGE_PAD` is
+`clamp(60px, 7.8vw, 80px)` — the single-value form of her step, since hers
+breaks at 900 and the shared frame breaks at 768; it lands on HER number at all
+three measured widths.
+
+**The first draft of the override was a bug the assertion caught before any
+capture.** It appended `padding-top:` after the shorthand — which beats the flat
+rule and LOSES to the mobile media query, where the whole shorthand is restated.
+It would have held on a desktop and been silently taken back on a phone. The
+value is composed INTO the shorthand now, so there is one declaration to win;
+a row that states neither still emits the two-value form byte for byte, pinned
+both ways. render-check 414/414.
+
+**Measured (1440), band by band:**
+
+| seg | | before | after |
+|---|---|---|---|
+| 2 | responsive | 10.46 | **5.01** (496 → 496) |
+| 3 | recognition | 9.73 | **5.62** |
+| 4 | braid stages | 23.99 | **12.37** |
+| 5 | the eight currents | 24.18 (35.63 before the row mode) | **6.06** (1058 → 1057) |
+| 6 | method cards | 35.36 | **20.05** |
+| 7 | how it works | 10.96 | **6.77** |
+| 8 | audience | 9.45 | **6.16** |
+
+**starseed 19.32 → 11.18% at 1440, +199px → −37px.** 390: 29.01 → 22.75.
+768: 33 → 31.35 (its hero is the outlier there, +234px — a stacking question the
+1440 capture cannot see).
+
+**LEFT ON THIS PAGE, in size order at 1440:** the method cards (20.05, −61px —
+**and 46px of that is her three card glyphs**, 30px stroke-only line icons with
+16px under them, drawn inline in her page file and deliberately left behind by
+the first cut; carrying them needs an item-level glyph on rf-hud-cards, masked
+rather than `<img>`'d so the teal stays a knob); the lineage band (18.21, −113px
+— the PullQuote, her own blockquote at 28px display copper italic, ruled top and
+bottom, currently an emphasised paragraph); the hero (15.23); the begin block
+(11.91). And her `Or` line still has no grammar in `parseInline`.
+
+Also unmeasured and unpainted: her `Band` (four of the eleven) carries a 1px
+`rgba(255,255,255,0.09)` hairline top and bottom over a 3% teal gradient. The
+wash is below the differ's tolerance and effectively below the eye's; the
+hairlines are two real rows of pixels per band and have no knob yet.
+
+**Board (1440):** pearl-chamber 45.99 · home-classic 43.52 (both parked on
+Cormorant A) · experience-resonance-mirror 21.30 · experience-pearl-chamber
+20.37 · **starseed 11.18** · home 7.55 · writing 6.80 · all-products 6.66 ·
+offers 1.94–4.61 · open-your-journey 0.52 · sun-walk 0.05.
