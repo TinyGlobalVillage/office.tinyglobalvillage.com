@@ -602,6 +602,88 @@ the stray `Explore` / `Learn more` CTAs her page does not have, and the `→`
 glyph dropped from "Ask about access". Fix those first — they are minutes, and
 they clear noise out of the differ before the real work starts.
 
+> **QUICK WINS — DONE 2026-08-08** (mono `1a3241b5` + office `490cf59`; rows
+> applied to prod by delete-and-redrive of the 18 generator-authored pages).
+> `markRight` false in both heroes (SymbolWrap is the FIRST grid child — mark
+> LEFT); the hero row carries `accent`=COPPER / `amber`=TEAL swapped off the
+> theme fan-out, which fixes wordmark, eyebrow, tagline, halo, rule and both
+> drop-shadows in one move (measured: the wordmark colour rows vanished from
+> the census; eyebrow/tagline now differ only in notation, rgba vs
+> color(srgb)); `wordmarkSize`/`wordmarkLineHeight` ride the star hero
+> (PreviewBody upsizes every h1 to 4.5vw — the 79.056px); `RfCtaDef.arrow` +
+> `RfOfferItem.ctaArrow` render her trailing `→` in its own aria-hidden span.
+> The stray-CTA claim retired: her launch RENDERS "Learn more"/"Explore"
+> (OfferingTile linkLabel) — the differ's real complaint was the arrows.
+> **Deployed and measured**: HQ @ `1a3241b5` (BUILD_ID `b3B9EuS49oFZcDuPCtW7p`,
+> mac-deploy from the lane, RCS built nothing); the re-diff drops the wordmark
+> size rows (79.056 → gone) and the arrows now render (missing 21 → 17; the
+> `→`s survive as a font row, Space Mono → Space Grotesk, which is the
+> offer-card CTA type-run work). Remaining census noise worth killing in the
+> HARNESS: the differ prints `rgba(72,210,185,.68) → color(srgb 0.282…/0.68)`
+> — identical pixels, different notation, because color-mix() output reads
+> back as color(srgb). Canonicalise colours in measure.mjs before the next
+> ranking or every swapped-accent row wears a false diff.
+>
+> **And the biggest single-page loss was a data bug, not component work:**
+> `receive` (−2879px, error boundary) 500'd because her gateway `lead` is
+> `string | string[]` and receive's is the array — authored raw, it broke
+> BOTH `tenantPageMetadata`'s trim and the offer card's body split. Joined
+> in the generator (blank-line for body — the exact inverse of the split —
+> space for meta); receive now renders 7 sections, 200 everywhere. Two
+> traps recorded on the way: 02-pages.sql is INSERT-only (`WHERE NOT
+> EXISTS`) so re-authoring means DELETE the 18 slugs + redrive, and the
+> LANE's RW checkout must be pulled to her launch commit (`e01bb4c`) before
+> regenerating or HIDDEN_GATEWAYS reads receive as hidden.
+
+### The gateway/offer family — the map (read 2026-08-08, sources verified)
+
+Twelve of the fourteen worst pages share ONE styled vocabulary, so the next
+pass is a family, not a page: `OfferDetail.tsx` composes `ProductHero` +
+`DetailSection` + `ProcessCard`/`ProcessFlow` + `CalloutBar` over local
+`BackLink`/`Eyebrow`/`SectionHeading`; `GatewayPage.tsx` composes
+`GatewayHero` + `SectionIntro` + the same steps/callout shapes.
+
+**Recurring atoms** (extract first, per §3b): meta eyebrow (mono face
+`--gfg-font-mono`, 0.67rem/700/0.13–0.19em/uppercase, accent-toned — the
+`accent` TYPE role, which `typeRole()` layers safely: unset ⇒ no-op
+fleet-wide); display heading (display face, clamp(1.75rem,3.2vw,2.65rem)
+section / clamp(2.65rem,4.5vw,4.4rem) page hero, weight 520, −0.025–0.045em,
+lh 0.98–1.04); muted copy (BONE 0.58–0.63, lh 1.68–1.72, max 35–39rem); mono
+plate button (0.68rem/700/uppercase, accent-38–48% border over
+rgba(8,24,38,.65), hover slides the `→` span 4px); mono text link (same run,
+no plate, BONE 0.47–0.52); ✦ list with mono label (DetailSection Includes);
+framed cover (radius 12, `0 18px 48px` drop, inset vignette, accent glow
+radial); price line (1.5rem display accent in hero, 1.05rem mono in callout).
+
+**Entries to derive** (five-file shape each, `derivedFrom` recorded):
+- `rf-product-hero` ← ProductHero/GatewayHero — framed image one side, eyebrow
+  + title + lead + optional price/status + actions (plate and/or text link);
+  gateway is the image-right, two-action, no-price parameterisation.
+- `rf-detail-split` ← DetailSection — 0.72/1.15/0.85 three-column, ruled top
+  and bottom, head | paragraphs | ✦ includes with mono label.
+- `rf-callout-bar` ← CalloutBar — centered ruled band, radial glow at 50% 0%,
+  eyebrow/title/copy/optional price/plate action; the three variants collapse
+  to props (glow + accent follow the row; offerings' bare copper link is the
+  no-plate parameterisation).
+- `rf-process-steps` ← ProcessCard grid + ProcessFlow — "01 …" numbered cards
+  three-up, or the compact one-line flow with separators.
+- `rf-section-head` ← GatewayPage SectionIntro — heading left, copy right,
+  aligned to baseline, hairline bottom border.
+- `rf-centered-intro` ← LandingStarPreview Intro — centered eyebrow/title/copy,
+  width min(100%−3rem, 55rem), title 520/−0.025em/0.98.
+- back link: her `BackLink` (mono 0.68rem, BONE 0.47, ← prefix, aligned to the
+  86rem container) — decide rf-linkbar `look:"mono"` param vs its own entry.
+
+**The page shell is the missing landmark-and-tone layer**: GatewayBody /
+OfferBody set a per-page toned background (radial glows keyed to the door),
+`--page-accent`/`--product-accent`, and the page base font, and her containers
+run min(100%−3rem, 86rem) = 1376px at 1440 where the pooled bands measure
+full-bleed 1440. The entries must reproduce the container; the per-page tone
+needs a home (page-level prop or a leading full-bleed section) — decide at
+build time. The offer pages read `offer.accent`/`offer.glow` from her offers
+catalog per slug (teal/copper/indigo per product) — the generator must carry
+those per-row the way the hero now carries its swap.
+
 Where a section of hers turns out to be genuinely the generic thing, keep the
 generic entry and say so in the ledger. The ruling is bias-to-more, not
 port-everything; a row that already matches is a row that already matches.
