@@ -692,6 +692,55 @@ port-everything; a row that already matches is a row that already matches.
 it carries the shared vertical rhythm behind all fourteen, and it is where most
 of the 690px lives. Treat its spacing scale as its own atom set.
 
+### THE FAMILY PASS — first cut BUILT + DEPLOYED 2026-08-08
+
+**Eight entries landed on mono main, one commit each** (`c8854f20` atoms →
+`ab781de7` rf-product-hero → `34c42db5` rf-detail-split → `0944f8ee`
+rf-callout-bar → `20740c74` rf-process-steps → `230aee58` rf-section-head →
+`6f155c2f` rf-centered-intro → `3037436e` rf-back-link → `cbc0cdf3`
+rf-page-tone, plus `c9b10101` + one fix commit). Atoms first per §3b: RfCta
+grew her `plate` and `monolink` shapes (+ per-CTA `color`, because her plate
+borders are copper at 38% even on the teal door), and RfMetaEyebrow /
+RfDisplayHeading / RfStatusBadge are shared primitives in refusion.tsx.
+`ComponentEntry.derivedFrom` is now a TYPED field; every entry records its
+lineage. Render-check grew to ~240 assertions.
+
+**Rulings taken and recorded in the entries themselves:**
+- back link = its OWN entry (rf-back-link), NOT `look:"mono"` on rf-linkbar —
+  one link on a container vs a wrap row; bending the generic one is the
+  anti-pattern §3 closed.
+- the page shell = rf-page-tone, a leading SECTION (rides rows/versioning/
+  Client Versions), failing toward NOTHING like siteBackground.
+- the family's mono runs follow the **accent** type role (her Space Mono),
+  never `mono` (her nav's Ubuntu Mono) — asking for mono would mis-face every
+  plate, marker, badge and back link the day the roles resolve.
+
+**Two lessons a browser taught that render-check could not:**
+1. **A section cannot own a fixed z:-1 layer.** The renderer's per-section
+   wrappers are positioned and z-indexed, so the tone layer painted at the
+   bottom of ITS wrapper's context and the wrapper lifted it above every later
+   section — an opaque tone over the whole page. The tone paints on the BODY
+   now (also her actual geometry: page-sized, scrolling).
+2. **The differ's first family run was 100% polluted by that layer** — every
+   band % from run rw-p3-family1 measured glows-over-nothing. Re-measure after
+   any page-level paint change before reading numbers.
+
+**Row bugs the first diff surfaced, fixed in the generator** (`30d745b` +
+`71b2289`, both redriven to prod): develop's offer grid heads with its OWN
+`offerEyebrow/Title/Copy` ("ways into the practice"), and the gateway
+noteTitle band ("which one fits?" / "practice, not performance") had never
+been authored by ANY generation. Three offer-page sections also author for
+the FIRST time: `detail.inside`, `detail.processCompact` (the → flow) and the
+`noteTitle` prose band — part of somatic-signature's lost height.
+
+**Still open after this cut (differ, non-polluted items):** the gateway/
+all-products CARD grids still render as rf-offer-card approximations
+(headings 52px teal vs her 30.4 bone; markers Space Grotesk; "learn more →"
+links missing) — the rf-door-card/rf-offer-card refinement is its own pass;
+form labels ("name *"); home's doors/FAQ/contact/about bands; and the
+harness's color-mix-vs-rgba false positives (canonicalise in measure.mjs)
+still pollute every text census.
+
 ## Phase 4 — images
 
 1. Restore every missing asset under `/images/tenants/resonantweaver/`.
