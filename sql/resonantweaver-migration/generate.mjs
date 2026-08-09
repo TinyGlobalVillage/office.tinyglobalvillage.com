@@ -562,7 +562,33 @@ function buildHomeClassic(data, formId) {
  *  by the same function the live page computes them with. */
 function buildStarLanding(data, formId) {
   const star = data.star;
-  const sections = [heroSection(data, { size: true })];
+
+  // PreviewBody's toned ground — the 2026-08-08 hero/intro forensics. Her page
+  // paints these two ellipses on the PAGE-HEIGHT body (`ellipse 66% 36%` = a
+  // ~2200px-tall blue wash at 1440), while `siteBackground`'s orbs render in a
+  // `position: fixed` viewport layer — the same wash at ~1/7 the height, pinned
+  // to the top of the screen. Measured: her center column reads (11,28,44)
+  // through the hero AND the intro; the pooled page read bare #06111c — that
+  // one missing wash was most of seg01–04 (21–31% each). rf-page-tone is the
+  // page-attached box her PreviewBody actually is; its opaque ground also
+  // hides the fixed orbs here, so nothing double-paints. The orbs stay for the
+  // pages whose wash IS viewport-fixed in her source (open-your-journey's and
+  // starseed's `Sky`).
+  guardOnly({
+    file: `${HOME_DIR}/landing-star-preview/LandingStarPreview.styles.ts`,
+    find: "radial-gradient(ellipse 66% 36% at 50% 12%, rgba(35, 82, 121, 0.2), transparent 72%)",
+  });
+  guardOnly({
+    file: `${HOME_DIR}/landing-star-preview/LandingStarPreview.styles.ts`,
+    find: "radial-gradient(ellipse 50% 34% at 82% 80%, rgba(${TEAL}, 0.035), transparent 70%)",
+  });
+  const sections = [
+    pageTone("sec-star-tone", [
+      "radial-gradient(ellipse 66% 36% at 50% 12%, rgba(35, 82, 121, 0.2), transparent 72%)",
+      `radial-gradient(ellipse 50% 34% at 82% 80%, rgba(${data.tokens.TEAL}, 0.035), transparent 70%)`,
+    ]),
+    heroSection(data, { size: true }),
+  ];
 
   sections.push(introBlock(data, "sec-star-intro", "Intro", star.intro));
 
@@ -1757,7 +1783,24 @@ function buildWaitlistPage(data, entry, formId) {
  *  generator gets to make on her behalf. */
 function buildAllProducts(data) {
   const { header, doorSections, closing } = data.star_all;
+
+  // ProductsBody's toned ground — same forensics as sec-star-tone above, this
+  // page's OWN wash: teal high and centered, copper low and right. Without it
+  // the pooled page wore the site orbs' BLUE wash (the star landing's colours)
+  // pinned to the viewport — the wrong glow in the wrong box.
+  guardOnly({
+    file: `${HOME_DIR}/landing-star-preview/experience/all-products/AllProducts.styles.ts`,
+    find: "radial-gradient(ellipse 66% 30% at 50% 4%, rgba(${TEAL}, 0.1), transparent 72%)",
+  });
+  guardOnly({
+    file: `${HOME_DIR}/landing-star-preview/experience/all-products/AllProducts.styles.ts`,
+    find: "radial-gradient(ellipse 44% 24% at 88% 76%, rgba(${COPPER}, 0.08), transparent 72%)",
+  });
   const sections = [
+    pageTone("sec-all-tone", [
+      `radial-gradient(ellipse 66% 30% at 50% 4%, rgba(${data.tokens.TEAL}, 0.1), transparent 72%)`,
+      `radial-gradient(ellipse 44% 24% at 88% 76%, rgba(${data.tokens.COPPER}, 0.08), transparent 72%)`,
+    ]),
     // "← Back to the three doors" — her href is `/{lang}/landing-star-preview/`,
     // which on both apps is a redirect to the site root. The doors ARE the home
     // page now, so the stored link goes straight there rather than through the

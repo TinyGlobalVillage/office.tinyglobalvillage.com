@@ -293,6 +293,22 @@ INSERT INTO _rw_pages VALUES ('home', 'Resonant Weaver', true, 'published', $rwj
   },
   "sections": [
     {
+      "id": "sec-star-tone",
+      "type": "rf-page-tone",
+      "label": "Page tone",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "layers": [
+            "radial-gradient(ellipse 66% 36% at 50% 12%, rgba(35, 82, 121, 0.2), transparent 72%)",
+            "radial-gradient(ellipse 50% 34% at 82% 80%, rgba(72, 210, 185, 0.035), transparent 70%)"
+          ],
+          "ground": "#06111c"
+        }
+      }
+    },
+    {
       "id": "sec-hero",
       "type": "rf-split-hero",
       "label": "Hero",
@@ -2064,6 +2080,22 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/experience/all-products', 'A
     }
   },
   "sections": [
+    {
+      "id": "sec-all-tone",
+      "type": "rf-page-tone",
+      "label": "Page tone",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "layers": [
+            "radial-gradient(ellipse 66% 30% at 50% 4%, rgba(72, 210, 185, 0.1), transparent 72%)",
+            "radial-gradient(ellipse 44% 24% at 88% 76%, rgba(183, 138, 119, 0.08), transparent 72%)"
+          ],
+          "ground": "#06111c"
+        }
+      }
+    },
     {
       "id": "sec-all-back",
       "type": "rf-back-link",
@@ -4738,7 +4770,7 @@ BEGIN
     FROM public.page_models p, LATERAL jsonb_array_elements(p.model_json->'sections') s
    WHERE p.site = 'resonantweaver'
      AND p.slug = ANY(expected || expected_drafts)
-     AND s->>'type' NOT IN ('rf-split-hero', 'rf-centered-intro', 'rf-door-card', 'rf-hud-cards', 'rf-media-copy', 'rf-accordion', 'form-live', 'rf-offer-card', 'rf-testimonials', 'rf-page-tone', 'rf-back-link', 'rf-product-hero', 'rf-section-head', 'rf-callout-bar', 'rf-process-steps', 'rf-list', 'rf-mono-note', 'rf-detail-split');
+     AND s->>'type' NOT IN ('rf-page-tone', 'rf-split-hero', 'rf-centered-intro', 'rf-door-card', 'rf-hud-cards', 'rf-media-copy', 'rf-accordion', 'form-live', 'rf-offer-card', 'rf-testimonials', 'rf-back-link', 'rf-product-hero', 'rf-section-head', 'rf-callout-bar', 'rf-process-steps', 'rf-list', 'rf-mono-note', 'rf-detail-split');
   IF n <> 0 THEN
     RAISE EXCEPTION 'assert: % section(s) name an unexpected type', n;
   END IF;
