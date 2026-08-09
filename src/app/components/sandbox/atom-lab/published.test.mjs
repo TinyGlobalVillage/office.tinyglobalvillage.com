@@ -21,6 +21,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { DEFAULT_SPEC, mergeSpec } from "@tgv/module-component-library/atoms/spec";
 import {
+  shadowStack,
   slotScope,
   specSkinToCss,
   specSlotToCss,
@@ -132,6 +133,25 @@ test("a published slot writes exactly the vars its child reads", () => {
   });
   assert.ok(!("--atom-tile-sub-line-height" in kept));
   assert.ok("--atom-tile-sub-font-size" in kept);
+});
+
+test("a published layered stack rides the one box-shadow var", () => {
+  const key = "tile";
+  const spec = mergeSpec(shippedSpec(key), {
+    shadows: [
+      { inset: true, x: 0, y: 1, blur: 0, spread: 0, colorMode: "accent", alpha: 0.1 },
+      { x: 0, y: 18, blur: 48, spread: 0, colorMode: "solid", color: "#000000", alpha: 0.18 },
+    ],
+  });
+  // No new var names: the stack is the VALUE of the box-shadow var the surface
+  // has always published — layers change what it says, not the contract.
+  const vars = atomVars(key, spec, undefined);
+  assert.equal(vars["--atom-tile-box-shadow"], shadowStack(spec));
+  assert.ok(vars["--atom-tile-box-shadow"].startsWith("inset 0 1px 0 rgba(var(--atom-accent-rgb"));
+  // tile's own ungoverned declaration still wins: a hand-tuned shadow is not
+  // silently overwritten by a publish, layers or no layers.
+  const kept = atomVars(key, spec, SHIPPED_ATOMS[key].ungoverned);
+  assert.ok(!("--atom-tile-box-shadow" in kept));
 });
 
 test("an atom key that is a state name cannot publish", () => {

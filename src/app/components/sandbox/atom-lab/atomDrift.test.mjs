@@ -23,6 +23,7 @@ import { fileURLToPath } from "node:url";
 import { clampSpec } from "@tgv/module-component-library/atoms/spec";
 import { SHIPPED_ATOMS, shippedSpec } from "@tgv/module-component-library/atoms/shipped";
 import {
+  shadowStack,
   skinDecls,
   slotScope,
   slotTextDecls,
@@ -134,6 +135,16 @@ test("ungoverned lists name real declarations, with reasons", () => {
         assert.ok(why.length > 20, `${key}: slot ${name} "${prop}" needs a reason, not a label`);
       }
     }
+    // Declared layers and a boxShadow escape hatch are mutually exclusive: a
+    // stack the spec states outright cannot also be "kept by the component" —
+    // that would be governed and ungoverned at once, the exact ambiguity this
+    // map exists to ban.
+    if (spec.shadows) {
+      assert.ok(
+        !("boxShadow" in (atom.ungoverned.surface ?? {})),
+        `${key}: declares shadow layers AND keeps boxShadow ungoverned — pick one`,
+      );
+    }
     // Per state, the same contract: an entry must name a declaration that
     // state's diff would emit — anything else is a stale skip, and a stale
     // skip is a hole in the literal scan below.
@@ -238,6 +249,23 @@ test("a slotless shipped atom emits no slot CSS — same claim, second feature",
     const spec = shippedSpec(key);
     if (!spec.textSlots) {
       assert.equal(specSlotToCss(spec, "sub", specToBox(spec), undefined, "", slotScope(key, "sub")), "");
+    }
+  }
+});
+
+test("a layerless shipped atom still answers to its knobs — same claim, third feature", () => {
+  // Explicit shadow layers landed after both migrations. A spec that says
+  // nothing about them keeps the DERIVED stack — the glow knob stays live —
+  // so the per-atom pins stay the whole story, byte for byte.
+  for (const key of Object.keys(SHIPPED_ATOMS)) {
+    const spec = shippedSpec(key);
+    if (!spec.shadows) {
+      const nudged = { ...spec, effects: { ...spec.effects, glow: spec.effects.glow + 10 } };
+      assert.notEqual(
+        shadowStack(nudged),
+        shadowStack(spec),
+        `${key}: its glow knob went inert with no layers declared`,
+      );
     }
   }
 });

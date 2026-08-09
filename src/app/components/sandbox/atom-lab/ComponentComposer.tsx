@@ -21,9 +21,12 @@ import Tooltip from "../../ui/Tooltip";
 import { ATOMS, ATOM_BY_KEY, ATOM_GROUPS } from "./atomRegistry";
 import {
   type AtomSpec,
+  type ShadowLayer,
   type StateName,
   type TextSlotSpec,
+  DEFAULT_SHADOW_LAYER,
   DEFAULT_TEXT_SLOT,
+  SPEC_LIMITS,
   pruneStates,
   specWithState,
 } from "./atomSpec";
@@ -522,6 +525,62 @@ export default function ComponentComposer({
     [commit, selected],
   );
 
+  // Shadow-layer handlers, same contract as the Atom Library's: a layer is a
+  // whole object, and the section order is re-laid canonically (textSlots →
+  // shadows → states) because doc equality runs through JSON.stringify.
+  const setNodeShadowField = useCallback(
+    (index: number, field: keyof ShadowLayer, value: unknown) => {
+      if (!selected) return;
+      commit((cur) => ({
+        ...cur,
+        nodes: cur.nodes.map((n) => {
+          if (n.id !== selected || !n.spec.shadows?.[index]) return n;
+          const shadows = n.spec.shadows.map((l, i) => (i === index ? { ...l, [field]: value } : l));
+          return { ...n, spec: { ...n.spec, shadows } };
+        }),
+      }));
+    },
+    [commit, selected],
+  );
+
+  const addNodeShadowLayer = useCallback(() => {
+    if (!selected) return;
+    commit((cur) => ({
+      ...cur,
+      nodes: cur.nodes.map((n) => {
+        if (n.id !== selected) return n;
+        const layers = n.spec.shadows ?? [];
+        if (layers.length >= SPEC_LIMITS.shadowLayers) return n;
+        const { states, ...core } = n.spec;
+        return {
+          ...n,
+          spec: {
+            ...core,
+            shadows: [...layers, { ...DEFAULT_SHADOW_LAYER }],
+            ...(states ? { states } : {}),
+          } as AtomSpec,
+        };
+      }),
+    }));
+  }, [commit, selected]);
+
+  const removeNodeShadowLayer = useCallback(
+    (index: number) => {
+      if (!selected) return;
+      commit((cur) => ({
+        ...cur,
+        nodes: cur.nodes.map((n) => {
+          if (n.id !== selected || !n.spec.shadows?.[index]) return n;
+          const shadows = n.spec.shadows.filter((_, i) => i !== index);
+          if (shadows.length) return { ...n, spec: { ...n.spec, shadows } };
+          const { shadows: _drop, ...rest } = n.spec;
+          return { ...n, spec: rest as AtomSpec };
+        }),
+      }));
+    },
+    [commit, selected],
+  );
+
   const resetNode = useCallback(() => {
     if (!selected) return;
     commit((cur) => ({
@@ -752,6 +811,9 @@ export default function ComponentComposer({
             setSlotField={setNodeSlotField}
             addSlot={addNodeSlot}
             removeSlot={removeNodeSlot}
+            setShadowField={setNodeShadowField}
+            addShadowLayer={addNodeShadowLayer}
+            removeShadowLayer={removeNodeShadowLayer}
             forcedState={forcedState}
             setForcedState={setForcedState}
             resetAtom={resetNode}

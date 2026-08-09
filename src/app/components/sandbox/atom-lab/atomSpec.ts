@@ -12,6 +12,7 @@
  */
 
 export {
+  DEFAULT_SHADOW_LAYER,
   DEFAULT_SPEC,
   DEFAULT_TEXT_SLOT,
   SPEC_LIMITS,
@@ -30,6 +31,7 @@ export type {
   AtomStatePatch,
   AtomStates,
   IconSpec,
+  ShadowLayer,
   StateName,
   TextSlotSpec,
   TextSlots,

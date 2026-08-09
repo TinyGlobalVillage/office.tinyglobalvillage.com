@@ -19,8 +19,10 @@ import { colors, rgb } from "../../../theme";
 import Tooltip from "../../ui/Tooltip";
 import {
   type AtomSpec,
+  type ShadowLayer,
   type StateName,
   type TextSlotSpec,
+  DEFAULT_SHADOW_LAYER,
   DEFAULT_TEXT_SLOT,
   SPEC_LIMITS,
   STATE_NAMES,
@@ -654,6 +656,60 @@ function SlotLevers({
   );
 }
 
+/**
+ * One shadow layer's levers. A layer is a whole object like a slot — no
+ * pruning, no sparse fallback; the ↺ on each row is the layer defaults (or
+ * the def's same-index layer, when the registry declares a stack).
+ */
+function ShadowLevers({
+  spec,
+  index,
+  defLayer,
+  setShadowField,
+  removeShadowLayer,
+}: {
+  spec: AtomSpec;
+  index: number;
+  defLayer: ShadowLayer;
+  setShadowField: (index: number, field: keyof ShadowLayer, value: unknown) => void;
+  removeShadowLayer: (index: number) => void;
+}) {
+  const layer = spec.shadows?.[index];
+  if (!layer) return null;
+  const set = (field: keyof ShadowLayer) => (v: unknown) => setShadowField(index, field, v);
+  const L = SPEC_LIMITS;
+  return (
+    <>
+      <ToggleRow label="Inset" value={layer.inset} onChange={set("inset")} />
+      <SliderRow label="Offset X" value={layer.x} min={L.shadowOffset[0]} max={L.shadowOffset[1]} defaultValue={defLayer.x} onChange={set("x")} />
+      <SliderRow label="Offset Y" value={layer.y} min={L.shadowOffset[0]} max={L.shadowOffset[1]} defaultValue={defLayer.y} onChange={set("y")} />
+      <SliderRow label="Blur" value={layer.blur} min={L.shadowBlur[0]} max={L.shadowBlur[1]} defaultValue={defLayer.blur} onChange={set("blur")} />
+      <SliderRow label="Spread" value={layer.spread} min={L.shadowSpread[0]} max={L.shadowSpread[1]} defaultValue={defLayer.spread} onChange={set("spread")} />
+      <Row>
+        <RowLabel>Color</RowLabel>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <DdmSelect
+            value={layer.colorMode}
+            onChange={(v) => setShadowField(index, "colorMode", v)}
+            options={[
+              { key: "accent", label: "Follow accent" },
+              { key: "solid", label: "Custom color" },
+            ]}
+            ariaLabel={`Layer ${index + 1} color mode`}
+            accent={PINK}
+            accentRgb={PINK_RGB}
+          />
+        </div>
+      </Row>
+      {layer.colorMode === "solid" && (
+        <ColorRow label="Custom" value={layer.color} defaultValue={defLayer.color} onChange={set("color")} />
+      )}
+      <SliderRow label="Alpha" value={layer.alpha} min={0} max={1} step={0.01} defaultValue={defLayer.alpha} onChange={set("alpha")} />
+      <ClearStateBtn onClick={() => removeShadowLayer(index)}>Remove layer {index + 1}</ClearStateBtn>
+    </>
+  );
+}
+
 // ── The panel ───────────────────────────────────────────────────────────
 
 export function AtomicEditorPanel({
@@ -665,6 +721,9 @@ export function AtomicEditorPanel({
   setSlotField,
   addSlot,
   removeSlot,
+  setShadowField,
+  addShadowLayer,
+  removeShadowLayer,
   forcedState,
   setForcedState,
   resetAtom,
@@ -689,6 +748,10 @@ export function AtomicEditorPanel({
   setSlotField: (name: string, field: keyof TextSlotSpec, value: unknown) => void;
   addSlot: (name: string) => void;
   removeSlot: (name: string) => void;
+  /** One shadow layer's field. Layers are whole objects, like slots. */
+  setShadowField: (index: number, field: keyof ShadowLayer, value: unknown) => void;
+  addShadowLayer: () => void;
+  removeShadowLayer: (index: number) => void;
   /**
    * The state the States section is editing — held by the host because the
    * canvas has to preview it: you cannot hover a preview while dragging a
@@ -721,7 +784,15 @@ export function AtomicEditorPanel({
   // has to preview a slot selection — every slot renders all the time.
   const [slotSel, setSlotSel] = React.useState<string | null>(null);
   const [newSlot, setNewSlot] = React.useState("");
-  React.useEffect(() => setSlotSel(null), [def.key]);
+  // Which shadow layer the Effects section is editing. Panel-local like the
+  // slot selection: layers render on the canvas all the time.
+  const [shadowSel, setShadowSel] = React.useState<number | null>(null);
+  React.useEffect(() => {
+    setSlotSel(null);
+    setShadowSel(null);
+  }, [def.key]);
+  const layers = spec.shadows ?? [];
+  const openLayer = shadowSel !== null && layers[shadowSel] ? shadowSel : null;
   const slots = spec.textSlots ?? {};
   const slotNames = Object.keys(slots);
   const openSlot = slotSel && slots[slotSel] ? slotSel : null;
@@ -830,6 +901,71 @@ export function AtomicEditorPanel({
               <SliderRow label="Opacity" value={spec.effects.opacity} min={0.1} max={1} step={0.01} defaultValue={d.effects.opacity} onChange={(v) => setField("effects", "opacity", v)} />
               {spec.colors.gradient && (
                 <SliderRow label="Gradient angle" value={spec.effects.gradientAngle} min={0} max={360} defaultValue={d.effects.gradientAngle} onChange={(v) => setField("effects", "gradientAngle", v)} />
+              )}
+
+              {/* Shadow layers — the explicit stack. While any layer exists it
+                  REPLACES what Glow + Shadow above derive; those two knobs go
+                  inert rather than mixing formula output into an authored stack. */}
+              <SubHead>Shadow layers</SubHead>
+              {layers.length > 0 && (
+                <SlotRow>
+                  {layers.map((_, i) => (
+                    <SlotPill
+                      key={i}
+                      $on={openLayer === i}
+                      $set
+                      onClick={() => setShadowSel(openLayer === i ? null : i)}
+                      aria-pressed={openLayer === i}
+                    >
+                      {i + 1}
+                    </SlotPill>
+                  ))}
+                  {layers.length < SPEC_LIMITS.shadowLayers && (
+                    <SlotPill
+                      $on={false}
+                      $set={false}
+                      onClick={() => {
+                        addShadowLayer();
+                        setShadowSel(layers.length);
+                      }}
+                      aria-label="Add shadow layer"
+                    >
+                      ＋
+                    </SlotPill>
+                  )}
+                </SlotRow>
+              )}
+              {openLayer !== null ? (
+                <ShadowLevers
+                  spec={spec}
+                  index={openLayer}
+                  defLayer={d.shadows?.[openLayer] ?? DEFAULT_SHADOW_LAYER}
+                  setShadowField={setShadowField}
+                  removeShadowLayer={(i) => {
+                    removeShadowLayer(i);
+                    setShadowSel(null);
+                  }}
+                />
+              ) : layers.length > 0 ? (
+                <IconHint>
+                  An explicit stack — it replaces Glow and Shadow while any layer
+                  exists. Layer 1 paints on top; pick a pill to edit it.
+                </IconHint>
+              ) : (
+                <Row>
+                  <ClearStateBtn
+                    onClick={() => {
+                      addShadowLayer();
+                      setShadowSel(0);
+                    }}
+                  >
+                    ＋ Add layer
+                  </ClearStateBtn>
+                  <IconHint style={{ margin: 0 }}>
+                    State the box-shadow outright — inset hairlines, negative
+                    spreads, a drop that isn&apos;t black. Replaces Glow + Shadow.
+                  </IconHint>
+                </Row>
               )}
             </SectionBody>
           )}

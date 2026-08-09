@@ -16,6 +16,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   clampSpec,
+  DEFAULT_SHADOW_LAYER,
   DEFAULT_SPEC,
   mergeSpec,
   pruneStates,
@@ -24,6 +25,7 @@ import {
 import {
   fontPx,
   iconPaint,
+  shadowLayerCss,
   shadowStack,
   slotScope,
   slotTextDecls,
@@ -295,6 +297,98 @@ test("clampSpec keeps slots whole: names validated, fields clamped, absent stays
   // compares with JSON.stringify, where key order is content.
   const both = mergeSpec(DEFAULT_SPEC, {
     textSlots: { sub: { ratio: 8 } },
+    states: { hover: { colors: { fillAlpha: 0.5 } } },
+  });
+  assert.equal(JSON.stringify(clampSpec(both)), JSON.stringify(both));
+});
+
+test("explicit shadow layers replace the two-knob stack, and an absent stack emits what it always did", () => {
+  // The hudCardSurface pair — the 1b·3 gap in one spec: an inset accent
+  // hairline over a black drop. Exact strings, because these are the shapes
+  // the fleet hand-writes today: zero lengths bare, a zero spread omitted.
+  const hud = mergeSpec(DEFAULT_SPEC, {
+    shadows: [
+      { inset: true, x: 0, y: 1, blur: 0, spread: 0, colorMode: "accent", alpha: 0.1 },
+      { x: 0, y: 18, blur: 48, spread: 0, colorMode: "solid", color: "#000000", alpha: 0.18 },
+    ],
+  });
+  assert.equal(
+    shadowStack(hud),
+    "inset 0 1px 0 rgba(var(--atom-accent-rgb, 255, 78, 203), 0.1), 0 18px 48px rgba(0, 0, 0, 0.18)",
+  );
+
+  // The knobs go inert while layers exist — an authored stack does not mix
+  // with formula output.
+  const knobbed = mergeSpec(hud, { effects: { glow: 99, shadow: 99 } });
+  assert.equal(shadowStack(knobbed), shadowStack(hud));
+
+  // A negative spread — Tile's bloom, and the layer defaults verbatim.
+  assert.equal(
+    shadowLayerCss(DEFAULT_SPEC, { ...DEFAULT_SHADOW_LAYER }),
+    "0 0 28px -6px rgba(var(--atom-accent-rgb, 255, 78, 203), 0.35)",
+  );
+
+  // The lab and a shipped atom read the same stack: surfaceDecls carries it.
+  const box = specToBox(hud);
+  assert.equal(surfaceDecls(hud, box).boxShadow, shadowStack(hud));
+
+  // Absent — and hand-typed empty — fall back to the derived stack, byte for
+  // byte. This is the whole back-compat story, third feature running.
+  assert.equal(shadowStack({ ...DEFAULT_SPEC, shadows: [] }), shadowStack(DEFAULT_SPEC));
+
+  // The stack is emitter-safe even before clamping: a layer's only string
+  // field goes through the hex parser, which falls back rather than passing
+  // text through.
+  const dirty = shadowLayerCss(DEFAULT_SPEC, {
+    ...DEFAULT_SHADOW_LAYER,
+    colorMode: "solid",
+    color: "black; } @import 'evil'",
+    alpha: 0.5,
+  });
+  assert.ok(!dirty.includes("}") && !dirty.includes("@"));
+});
+
+test("clampSpec keeps shadows whole: fields clamped, garbage dropped, absent stays absent", () => {
+  assert.equal(clampSpec({}).shadows, undefined, "absent stays absent");
+  assert.equal(clampSpec({ shadows: "nope" }).shadows, undefined, "present-but-not-an-array clamps away");
+
+  const hud = mergeSpec(DEFAULT_SPEC, { shadows: [{ inset: true, y: 1, blur: 0, alpha: 0.1 }] });
+  assert.deepEqual(clampSpec({}, hud).shadows, hud.shadows, "absent inherits the base, like states");
+  assert.equal(clampSpec({ shadows: 5 }, hud).shadows, undefined, "authored garbage does not borrow the base's stack");
+
+  // One garbage-valued layer clamps to the layer defaults field by field; a
+  // non-object entry is dropped whole.
+  const c = clampSpec({
+    shadows: [
+      { inset: "yes", x: "a", y: 9999, blur: -5, spread: -9999, colorMode: "plaid", color: "evil", alpha: 3 },
+      "garbage",
+      { inset: true },
+    ],
+  });
+  assert.equal(c.shadows.length, 2);
+  assert.deepEqual(c.shadows[0], {
+    inset: false,
+    x: 0,
+    y: 100,
+    blur: 0,
+    spread: -100,
+    colorMode: "accent",
+    color: "#000000",
+    alpha: 1,
+  });
+  assert.deepEqual(c.shadows[1], { ...DEFAULT_SHADOW_LAYER, inset: true });
+  assert.deepEqual(clampSpec(c), c, "idempotent, which the drift guard's in-range check relies on");
+
+  // The layer count is capped: state seven and the seventh is dropped.
+  const many = clampSpec({ shadows: Array.from({ length: 7 }, () => ({})) });
+  assert.equal(many.shadows.length, 6);
+
+  // The two builders serialize identically with all three optional sections
+  // present — the publish "ahead" check compares with JSON.stringify, where
+  // key order is content.
+  const both = mergeSpec(DEFAULT_SPEC, {
+    textSlots: { sub: { ratio: 8 } },
+    shadows: [{ inset: true, y: 1, blur: 0 }],
     states: { hover: { colors: { fillAlpha: 0.5 } } },
   });
   assert.equal(JSON.stringify(clampSpec(both)), JSON.stringify(both));

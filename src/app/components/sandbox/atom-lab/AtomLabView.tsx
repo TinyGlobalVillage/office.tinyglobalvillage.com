@@ -24,9 +24,12 @@ import { PanelSidebarItem } from "../../../styled";
 import Tooltip from "../../ui/Tooltip";
 import {
   type AtomSpec,
+  type ShadowLayer,
   type StateName,
   type TextSlotSpec,
+  DEFAULT_SHADOW_LAYER,
   DEFAULT_TEXT_SLOT,
+  SPEC_LIMITS,
   clampSpec,
   pruneStates,
   specWithState,
@@ -488,6 +491,59 @@ export default function AtomLabView({
     [def, commit],
   );
 
+  // One shadow layer's field. Whole objects like slots — updated in place, so
+  // the array (and the spec's key order) never re-lays.
+  const setShadowField = useCallback(
+    (index: number, field: keyof ShadowLayer, value: unknown) => {
+      commit(
+        def.key,
+        (cur) => {
+          if (!cur.shadows?.[index]) return cur;
+          const shadows = cur.shadows.map((l, i) => (i === index ? { ...l, [field]: value } : l));
+          return { ...cur, shadows };
+        },
+        def.defaults,
+      );
+    },
+    [def, commit],
+  );
+
+  // Appends the layer defaults. Re-laid in the builders' order (textSlots →
+  // shadows → states) for the same JSON.stringify reason as addSlot.
+  const addShadowLayer = useCallback(() => {
+    commit(
+      def.key,
+      (cur) => {
+        const layers = cur.shadows ?? [];
+        if (layers.length >= SPEC_LIMITS.shadowLayers) return cur;
+        const { states, ...core } = cur;
+        return {
+          ...core,
+          shadows: [...layers, { ...DEFAULT_SHADOW_LAYER }],
+          ...(states ? { states } : {}),
+        } as AtomSpec;
+      },
+      def.defaults,
+    );
+  }, [def, commit]);
+
+  const removeShadowLayer = useCallback(
+    (index: number) => {
+      commit(
+        def.key,
+        (cur) => {
+          if (!cur.shadows?.[index]) return cur;
+          const shadows = cur.shadows.filter((_, i) => i !== index);
+          if (shadows.length) return { ...cur, shadows };
+          const { shadows: _drop, ...rest } = cur;
+          return rest as AtomSpec;
+        },
+        def.defaults,
+      );
+    },
+    [def, commit],
+  );
+
   const undo = useCallback(() => {
     const stack = past[def.key] ?? [];
     if (!stack.length) return;
@@ -707,6 +763,9 @@ export default function AtomLabView({
           setSlotField={setSlotField}
           addSlot={addSlot}
           removeSlot={removeSlot}
+          setShadowField={setShadowField}
+          addShadowLayer={addShadowLayer}
+          removeShadowLayer={removeShadowLayer}
           forcedState={forcedState}
           setForcedState={setForcedState}
           resetAtom={resetAtom}
