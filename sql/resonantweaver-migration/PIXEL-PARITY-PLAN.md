@@ -2822,9 +2822,9 @@ and re-measured: 1440 worst band 3.23%, 768 4.44%, 390 8.62%.
 
 ### LEFT, IN ORDER
 
-1. **home-classic + pearl-chamber: the colour roles and the measure.** Both are
-   page-wide facts of exactly the kind `fontRoles` just became, and both are now
-   the only thing between those two pages and the rest of the board.
+1. **home-classic + pearl-chamber: the eyebrows, the muted copy and the
+   measure.** ~~The colour roles~~ — done, and it was the site's role map, not
+   a page fact; see §THE ROLE MAP WAS READ BACKWARDS. What is left is per-row.
 2. **home at 768 is 23.26% and at 390 19.05%** against 7.42 at 1440 — three
    bands render only in the candidate, +249px at 768. `writing` at 390 is 18.09%
    and is the same shape. Still the largest honest thing outside the two parked
@@ -2836,3 +2836,90 @@ and re-measured: 1440 worst band 3.23%, 768 4.44%, 390 8.62%.
    false` on guardians + nevlo — a studio setting, and turning the footer band
    on would also retire the double "powered by".
 6. Then: **tell Gio "come look", his eyeball pass, then the flip.**
+
+---
+
+## THE ROLE MAP WAS READ BACKWARDS — 2026-08-10
+
+The colour half of item 1 above turned out not to be page-scoped at all, and
+that is better news than the item was written to expect.
+
+**What the type unit had predicted.** `fontRoles` landed because her
+`data-font-preview` switch splits one component vocabulary across two
+typographic worlds and a site theme can only be right about one of them. The
+obvious next move was a page-scoped palette on `rf-page-tone`, for the same
+reasons and at the same layer.
+
+**Her source says no.** `OnePage.styles#Body` declares `--primary`,
+`--primary-glow`, `--accent`, `--accent-dim`, `--text`, `--text-muted`,
+`--text-dim`, `--rule` and `--rule-faint` in ONE block at lines 39–46, with
+no attribute keying whatsoever — the `&[data-font-preview="shared"]` block
+below it names only the three `--landing-*-font` variables. So unlike the
+type, her three landings share the palette exactly, and there is nothing
+page-scoped to state. What was wrong was site-wide.
+
+**`--primary` IS COPPER, AND accent1 IS THE ROLE THAT MEANS PRIMARY.** The
+theme row had `accent1` = her teal — read off the *name*, since her
+`--accent` is the teal her links, rules and kickers run on — and `accent3`,
+the gold family, = copper, because `amber` is what every `rf-*` entry calls
+its second colour and TGV's amber could not go on her page. But a pooled
+entry resolves its OWN primary through `--tgv-cyan`, which is accent1. So the
+theme painted every title on the site teal, and every title she has is copper.
+
+**The measurement that proves the direction was already in the tree.** The
+star hero row has carried `accent: var(--tgv-gold, #b78a77)` and
+`amber: var(--tgv-cyan, #48d2b9)` since 2026-08-08 — each prop pointing at
+the *other* role's var. That is not a colour override, it is a role map read
+backwards, written out one row at a time. The entries cannot move: nineteen
+of the sections behind that hero carry no colour prop at all, which is the
+entire reason a theme role exists. So `themeSql` swaps accent1 ↔ accent3 and
+`heroSection` gives its two props back.
+
+**Measured, all 75 captures, against `.baselines/rw-her-app-2026-08-10`:**
+
+| page (1440) | before | after |
+|---|---|---|
+| home-classic | 43.52 → 42.05 | **23.59** |
+| pearl-chamber | 45.99 → 45.52 | **39.27** |
+| home (the control — the hero) | 7.42 | 7.41 |
+| every other page | — | identical to the hundredth of a point |
+
+home-classic's colour census fell 70 → 35 rows and `box` is now what
+dominates it. One page moved the wrong way: **/sun-walk/**, four strings, the
+week label and range on its hero card.
+
+### THE STAR SURFACES READ accent1 TOO
+
+`@tgv/module-starseed`'s `starseed/ui/tokens.ts` maps `TEAL` →
+`var(--tgv-cyan-rgb)` and says so in its own header — "TEAL -> accent1, the
+primary accent (the current's colour, the rules, the focus rings, the active
+week)". Two consumers, one theme, and they do not mean the same thing by *the
+primary accent*: her one-page vocabulary means copper, her star surfaces mean
+teal. Irreconcilable at the theme; one consumer has to move, and it is not the
+platform catalog. `TEAL` now reads `var(--tgv-gold-rgb)` — the role that holds
+her teal — with `COPPER` left on `--tgv-mag-rgb`, where it was already right.
+
+Deployed (mono `66375286`, HQ `d28a51a7`, BUILD_ID `R6NoWNrkSgJQ59mUwkIMa`,
+RCS built nothing) and re-measured: **sun-walk 1440 is 0/14 bands over gate
+with a worst band of 0.00%** — better than the 1/14 at 3.33% it carried
+*before* the flip, because the band that failed was reading `--tgv-cyan` for
+something that should always have been copper. starseed and
+galactic-field-guide identical. Fleet 7/7.
+
+### WHAT IS LEFT ON THOSE TWO PAGES IS NOT COLOUR ROLES
+
+The 35 colour rows that survive on home-classic are per-section, not
+site-wide, and they come in two families the theme cannot reach:
+
+- **the eyebrows.** Her `rgba(COPPER, 0.58)` (`OnePage.styles` line 666)
+  against our full-strength `amber` — hue now right, alpha not, and the
+  entry's eyebrow follows the second accent by design.
+- **the muted copy.** Her `rgba(BONE, 0.65)` and `rgba(BONE, 0.22)` against
+  `rgb(125, 127, 125)` on both — which is `--tgv-t3`, the *darkened* sibling
+  `themeToPairs` derives from `textMuted`, not `--tgv-t2`, whose value
+  (`#999b98`) is exactly her flattened 65%. The rows want their `muted` prop
+  set, the way `introBlock` already sets it on the star landing.
+
+Both are row props on sections that were authored before either page was
+measured. That is the same job as the measure — every candidate band is 1440
+wide against her 800/928/1184/1312 — and it is now item 1.
