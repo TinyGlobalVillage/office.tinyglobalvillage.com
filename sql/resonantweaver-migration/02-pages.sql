@@ -2511,6 +2511,22 @@ INSERT INTO _rw_pages VALUES ('starseed', 'The Starwoven Journey | Discover your
   },
   "sections": [
     {
+      "id": "sec-ss-gutter",
+      "type": "rf-page-tone",
+      "label": "Page gutter",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "layers": [],
+          "ground": "",
+          "gutter": "clamp(32px, 5vw, 64px)",
+          "gutterNarrow": "22px",
+          "gutterAt": 640
+        }
+      }
+    },
+    {
       "id": "sec-ss-hero",
       "type": "rf-media-copy",
       "label": "Hero",

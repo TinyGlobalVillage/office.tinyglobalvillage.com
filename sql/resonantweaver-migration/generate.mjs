@@ -1000,9 +1000,12 @@ function buildStarLanding(data, formId) {
  *  is a FLATTENED hex (roles are hex-only), so per-section alphas live here. */
 const bone = (data, a) => `rgba(${data.tokens.BONE}, ${a})`;
 
-/** OfferBody/GatewayBody's toned ground, as the leading section. */
-const pageTone = (id, layers) =>
-  section(id, "rf-page-tone", "Page tone", { layers, ground: "#06111c" });
+/** OfferBody/GatewayBody's toned ground, as the leading section. `extra`
+ *  carries anything the page states about itself rather than about its wash —
+ *  today that is the gutter, which is a page fact and has no other page-level
+ *  row to live on. */
+const pageTone = (id, layers, extra = {}) =>
+  section(id, "rf-page-tone", "Page tone", { layers, ground: "#06111c", ...extra });
 
 /** Her BackLink: one quiet mono run on the page container, carrying the
  *  main's 9.5rem top pad, hover to the page/product accent. */
@@ -2325,6 +2328,32 @@ function buildStarseed(data) {
       ...bandType,
       ...over,
     });
+
+  // HER PAGE GUTTER — a starseed fact, not a site one. Every band on THIS page
+  // is laid out by one `Wrap` (`padding: 0 clamp(32px, 5vw, 64px)`, 22px under
+  // 640); her twelve detail pages and the landing hub use `min(100% - 3rem,
+  // 86rem)`, which is exactly the literal the entries already carry — so this
+  // is the only page of hers that states one, and it states it once. At 768 the
+  // difference is 38.4px a side against our 24: every band laid out 29px wider
+  // than hers with the text inside rewrapped, which is the whole of the currents
+  // band's delta (her sixth row wraps to two lines at 608px of column; ours did
+  // not at 637).
+  //
+  // It rides a tone row carrying NO tone — her page's own wash is the fixed
+  // `Sky`, which the site backdrop already paints, so a ground here would cover
+  // it. That is what the paint-half-conditional in rf-page-tone is for.
+  guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "padding: 0 clamp(32px, 5vw, 64px);" });
+  guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "@media (max-width: 640px) { padding-inline: 22px; }" });
+  guardOnly({ file: `${SS}/theme.ts`, find: 'maxw: "1120px",' });
+  sections.push(
+    section("sec-ss-gutter", "rf-page-tone", "Page gutter", {
+      layers: [],
+      ground: "",
+      gutter: "clamp(32px, 5vw, 64px)",
+      gutterNarrow: "22px",
+      gutterAt: 640,
+    }),
+  );
 
   sections.push(
     section("sec-ss-hero", "rf-media-copy", "Hero", {
