@@ -1864,3 +1864,86 @@ Commits: mono `30fb38a6` (stackAt + cardPadNarrow) · `0d2efc4d` (ctaTop/ctaGap)
 `54f1f350` (RfSection narrowAt). Office `d52de0d` · `0633bcf`. HQ deployed three
 times, RCS built nothing each time; render-check 444/444; `02-pages.sql` redriven
 three times, 17 published rows each.
+
+---
+
+## THE PAGE GUTTER — 2026-08-09 (768: 15.88 → 11.94 · 390: 17.64 → 15.03)
+
+**The finding is one value in thirteen places.** Her whole starseed page is laid
+out by ONE `Wrap`: `max-width: 1120px; padding: 0 clamp(32px, 5vw, 64px)`,
+stepping to a flat `22px` under 640. Ours hardcoded `min(100% - 3rem, Xrem)` in
+twelve entries and a per-rung horizontal value in the shared section frame —
+24px a side, which is right at no width she uses. At 768 hers is 38.4 and every
+band of ours laid out 29px wider, with the text inside rewrapped.
+
+Measured on the currents grid, where it was the *whole* of the band's delta: her
+column is 608px and ours was 637, so her sixth row wrapped to two lines and ours
+did not. After: **676×789 against her 676×789 at 768, row heights identical**;
+331×1151 against 331×1151 at 390. seg 6 **21.62 → 8.60%**.
+
+**So it became a mechanism, not a knob.** `--rf-gutter` is declared on the body
+and inherited; every consumer reads it with **its own old literal as the
+fallback** (`1.5rem` for the wraps, `1rem` for a door row, the rung's `h` for the
+frame), so an unset page renders the pixels it rendered before. `rf-page-tone` —
+the only page-level entry there is — states it once and every band on that page
+obeys, *including entries written before the variable existed*. A knob would have
+had to be authored on eleven rows and re-authored on the twelfth somebody adds.
+
+A tone row may now carry ONLY a gutter: the paint half stayed conditional, so
+stating an edge does not blank the body or hide the site backdrop. That is what
+her starseed page needs — her own wash is the fixed `Sky` the backdrop paints.
+
+**And it is a starseed fact, not a site one.** Her twelve detail pages, the
+landing hub and `/writing` all use `min(100% - 3rem, 86rem)` or a `1.5rem`
+container — the literal the entries already carry. Read from her source, guarded,
+and authored on exactly one row (`sec-ss-gutter`). Verified live: two
+`--rf-gutter:` declarations on `/starseed/`, zero on her other pages and zero on
+giocoelho, guardians, nevlo and refusionist.
+
+**Trap avoided:** the first cut authored it on `sec-star-tone`, which belongs to
+the **landing hub**, not the starseed page — the probe caught it (no `flow-root`
+in the served `/starseed/` html at all) before the number was believed.
+
+## THE HERO'S STACK — 2026-08-09 (seg 0 at 768: 12.64 → 11.00)
+
+Three more things her hero states that the entry could not.
+
+**The grid's media query hardcoded both of its numbers.** `@media (max-width:
+768px) { gap: 22px }` — so between 768 and 900 ours was still two columns where
+hers had stacked, and on every phone the 22px **silently took back** whatever
+`mediaGap` the row had stated. Her HeroGrid stacks at **900** and opens to a
+**flat 40px** there (the clamp is the desktop value only). Now `stackAt` and
+`mediaGapNarrow`, both defaulting to what the entry drew.
+
+**`eyebrowLh`** — the fifth page in the inherited-line-height family. Her Eyebrow
+declares none and inherits her `Page`'s 1.68; ours inherited the platform's 1.6.
+
+**`RfCtaDef.sparks`** — her `PrimaryButton` extends `RitualButtonAnchor`, the
+BARE plate. The four-point star is `RitualButtonStar`, a sibling component her
+callers mount when they want one, and this one does not. Ours drew two
+unconditionally: **220px of button against her 177**, and a decoration on a page
+that never asked for one. Empty ⇒ the pair, so no published ritual CTA moved.
+
+### Board after both (starseed, aligned)
+
+| | 1440 | 768 | 390 |
+|---|---|---|---|
+| before | 8.21 | 15.88 | 17.64 |
+| after | **8.20** | **11.94** | **15.03** |
+
+1440 is unmoved by design — her 62rem cap already won there.
+
+### Left, in order
+
+1. **seg 5 the braid at 768 — 17.91%** (2246 → 2259) and **seg 4 at 390 —
+   ~20%**. The worst band at both narrow widths now.
+2. **seg 11 at 768 — 14.15%** (732 → 778, +46px), the begin block.
+3. **seg 1 — 11.82% at 768** (799 → 796) and **seg 0 — 11.00%** (1494 → 1485).
+4. Her `Or` line — 13.5px with a teal link inside it; `parseInline` has no
+   grammar for inline links. The differ names it at every width.
+5. Her `Band` hairlines — 1px rgba(255,255,255,0.09) top and bottom over a 3%
+   teal gradient on four of eleven bands; the wash is under tolerance, the
+   hairlines have no knob.
+6. pearl-chamber 45.99 + home-classic 43.52 — parked on Cormorant A, NON-font
+   deltas only. doors/experiences ~20% — Gio's eye.
+7. Then: **tell Gio "come look", his eyeball pass, then the flip.**

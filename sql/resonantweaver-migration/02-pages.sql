@@ -2539,6 +2539,8 @@ INSERT INTO _rw_pages VALUES ('starseed', 'The Starwoven Journey | Discover your
           "imagePosition": "right",
           "mediaSplit": "0.95fr 1.05fr",
           "mediaGap": "clamp(2.5rem, 5vw, 3.5rem)",
+          "stackAt": 900,
+          "mediaGapNarrow": "40px",
           "maxWidth": 992,
           "padTop": "116px",
           "padBottom": "56px",
@@ -2554,6 +2556,7 @@ INSERT INTO _rw_pages VALUES ('starseed', 'The Starwoven Journey | Discover your
           "eyebrowSize": "11.5px",
           "eyebrowWeight": 500,
           "eyebrowTracking": "0.24em",
+          "eyebrowLh": "1.68",
           "eyebrowGap": "14px",
           "eyebrowInk": "#c79a86",
           "headingRole": "display",
@@ -2602,7 +2605,8 @@ INSERT INTO _rw_pages VALUES ('starseed', 'The Starwoven Journey | Discover your
               "href": "#begin",
               "variant": "ritual",
               "font": "var(--tgv-fontAccent, inherit)",
-              "padX": "1.35rem"
+              "padX": "1.35rem",
+              "sparks": "none"
             }
           ]
         }

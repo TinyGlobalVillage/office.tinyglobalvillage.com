@@ -2165,6 +2165,15 @@ function buildStarseed(data) {
   // widening that makes the plate hers.
   guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "margin-top: 18px; font-size: 11.5px; line-height: 1.65;" });
   guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "padding-inline: 1.35rem;" });
+  // …and that it extends the BARE anchor. The star is `RitualButtonStar`, a
+  // sibling this page never mounts — if she ever wraps PrimaryButton around
+  // the starred form, this guard fails rather than the button quietly staying
+  // 43px narrow than her own.
+  guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "export const PrimaryButton = styled(RitualButtonAnchor)`" });
+  // Her HeroGrid's stack point and the flat gap it opens to there.
+  guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "@media (max-width: 900px) { grid-template-columns: 1fr; gap: 40px; }" });
+  // The page line-height her Eyebrow inherits and never restates.
+  guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "line-height: 1.68;" });
   // And her hero figure's own ceiling, stated inline on the <Image>.
   guardOnly({ file: SSPAGE, find: 'maxWidth: "31rem"' });
   guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "padding-top: 116px; padding-bottom: 56px;" });
@@ -2364,6 +2373,11 @@ function buildStarseed(data) {
       // takes order:-1 only under 900px), so the copy holds the 1.05fr.
       mediaSplit: "0.95fr 1.05fr",
       mediaGap: "clamp(2.5rem, 5vw, 3.5rem)",
+      // Her HeroGrid stacks at 900 and opens to a FLAT 40px there — the clamp
+      // is the desktop value only, and the entry's own 22px had been taking
+      // the stated gap back on every phone.
+      stackAt: 900,
+      mediaGapNarrow: "40px",
       maxWidth: 992,
       // Her Hero is its own frame and not a rung of any scale: 116px above
       // (the fixed SiteNav's clearance, which her own comment names) and 56px
@@ -2394,6 +2408,10 @@ function buildStarseed(data) {
       eyebrowSize: "11.5px",
       eyebrowWeight: 500,
       eyebrowTracking: "0.24em",
+      // Her Eyebrow declares no line-height and inherits her Page's 1.68; ours
+      // inherited the platform's 1.6. Stated, because the value is the page's
+      // and there is nothing on our side for it to inherit from.
+      eyebrowLh: "1.68",
       eyebrowGap: "14px",
       eyebrowInk: "#c79a86",
       headingRole: "display",
@@ -2455,6 +2473,11 @@ function buildStarseed(data) {
           // Measured on her live button, not read off the name.
           font: "var(--tgv-fontAccent, inherit)",
           padX: "1.35rem",
+          // Her PrimaryButton extends `RitualButtonAnchor`, the bare plate —
+          // the four-point star is `RitualButtonStar`, a sibling component her
+          // callers mount when they want it, and this one does not. Ours drew
+          // two unasked: 220px of button against her 177.
+          sparks: "none",
         },
       ],
     }),
