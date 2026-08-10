@@ -2365,13 +2365,15 @@ function buildPearlChamber(data, formId) {
       // read at 100%, present on her page and simply absent from ours. The
       // classic landing gets `Main`'s 8rem from its hero's `padAsMargin`; this
       // page has no hero, so it had nobody to get it from.
-      // No `marginBottom` here, and that is the whole reason the two rows split
-      // the way they do: her form lives INSIDE this card's `FeatureDetail`, so
-      // `Main`'s closing 6rem falls after the FORM, not between the card and
-      // it. Authored here it opened 96px in the middle of one card — the same
-      // mistake the about band made at the other end of the classic landing,
-      // caught the same way.
+      // …and `Main`'s closing `padding-bottom: 6rem` below it. This was left
+      // OFF for one window and the reason is worth keeping: her form lives
+      // inside the card's `FeatureDetail`, so while ours was a separate band
+      // underneath, a `marginBottom` here opened 96px in the MIDDLE of one card
+      // and took the page from 39.12% to 43.70%. The form moved inside the card
+      // in the same commit as this line; the 6rem now falls where hers falls,
+      // which is under everything.
       marginTop: "8rem",
+      marginBottom: "6rem",
       items: [
         {
           anchorId: "pearl-chamber",
@@ -2392,68 +2394,85 @@ function buildPearlChamber(data, formId) {
           leadImageUrl: asset("/images/ReikiBox.png"),
           leadImageAlt: verbatim(c.imageAlt),
           leadImageGlow: false,
+          // THE FORM IS PART OF THE CARD, not a band under it — 2026-08-10.
+          // Her `FeatureDetail` reads `CardBody` (three paragraphs, then the
+          // `Form`) and only then `CardFoot` with the price. Carried as its own
+          // `form-live` section this sat OUTSIDE the plate at the page gutter,
+          // full-bleed, with the price stranded above it; it was the whole of
+          // this page's remaining diff at every viewport and the only reason
+          // 768 and 390 read `sections 4→2`. `rf-offer-card` hosts it now.
+          formId,
+          formShowHeader: false,
+          // HER PEARL FORM IS NOT HER CONTACT FORM, and the two share nothing
+          // but the ritual button. `PearlChamberSubscriptionPage.styles` gives
+          // it its own `Form`/`Field`: the label is uppercase 0.86rem on
+          // `--accent-dim` — the teal at 0.45, where the contact form's is bone
+          // at 0.7 — and the inputs wear `var(--rule)` (the copper at 0.22)
+          // over a 2.5% white wash at 8px, not the contact form's `#2f4f47` at
+          // 12px. Authoring one from the other would have been the
+          // duplicate-but-different trap in reverse.
+          formVars: {
+            "--mf-gap": "1rem",
+            "--mf-field-gap": "0.4rem",
+            "--mf-label-font": "var(--tgv-fontBody, inherit)",
+            "--mf-label-size": "0.86rem",
+            "--mf-label-weight": "400",
+            "--mf-label-tracking": "0.08em",
+            "--mf-label-transform": "uppercase",
+            // `--accent-dim`, which is her teal at 0.45 and nothing else on the
+            // page uses.
+            "--mf-label-color": `rgba(${data.tokens.TEAL}, 0.45)`,
+            // HER FORM MARKS NOTHING REQUIRED, and all three of its fields are.
+            // `Field` is a bare label with the field's name in it; the browser's
+            // own validation does the telling on submit. Ours printed a red `*`
+            // beside every label on a page that has no red on it.
+            "--mf-req-display": "none",
+            "--mf-field-pad": "0.8rem 0.9rem",
+            "--mf-field-size": "1rem",
+            "--mf-field-lh": "1.4",
+            "--mf-field-font": "var(--tgv-fontBody, inherit)",
+            "--mf-radius": "8px",
+            "--mf-field-bg": "rgba(255, 255, 255, 0.025)",
+            // `var(--rule)`.
+            "--mf-field-edge": `rgba(${data.tokens.COPPER}, 0.22)`,
+            "--mf-ink": `rgb(${data.tokens.BONE})`,
+            "--mf-field-focus": `rgba(${data.tokens.TEAL}, 0.45)`,
+            "--mf-field-focus-ring": `0 0 0 1px rgba(${data.tokens.TEAL}, 0.12)`,
+            "--mf-placeholder": "#b69fa1",
+            "--mf-placeholder-opacity": "1",
+            // Her `textarea { min-height: 9rem }`, not the contact form's 140px.
+            "--mf-textarea-minh": "144px",
+            // THE BUTTON STRETCHES, and it took a screenshot to see why. Her
+            // `RitualButtonButton` is `display: inline-flex` — which reads as an
+            // auto-width button and is how this was first authored — but it is a
+            // direct child of `Form`, a `display: grid` with the default
+            // `justify-items: stretch`, so it fills the column at every width.
+            // An inline-* box in a grid is still a grid ITEM.
+            "--mf-submit-width": "100%",
+            "--mf-submit-align": "stretch",
+            "--mf-submit-minh": "46px",
+            "--mf-submit-pad": "0.76rem 1rem",
+            "--mf-submit-size": "0.9rem",
+            "--mf-submit-weight": "400",
+            "--mf-submit-font": "var(--tgv-fontBody, inherit)",
+            "--mf-submit-tracking": "0.08em",
+            "--mf-submit-lh": "1",
+            "--mf-submit-transform": "none",
+            // `ritualButtonCss`'s `font-variant: small-caps` — the case every
+            // button on her site is set in, and the one thing about it a host
+            // could not reach until this run.
+            "--mf-submit-variant": "small-caps",
+            // …and its `@media (max-width: 767px)` step, which is why "continue
+            // to payment" censused 13.44px against our 14.4px at 390.
+            "--mf-submit-pad-narrow": "0.72rem 0.88rem",
+            "--mf-submit-size-narrow": "0.84rem",
+            "--mf-submit-ink": `rgb(${data.tokens.COPPER})`,
+            "--mf-submit-bg": `linear-gradient(180deg, rgba(${data.tokens.COPPER}, 0.07) 0%, rgba(255, 255, 255, 0.018) 100%)`,
+            "--mf-submit-edge": `rgba(${data.tokens.COPPER}, 0.22)`,
+            "--mf-submit-shadow": `inset 0 1px 0 rgba(${data.tokens.BONE}, 0.06), 0 10px 30px rgba(0, 0, 0, 0.16)`,
+          },
         },
       ],
-    }),
-    // HER PEARL FORM IS NOT HER CONTACT FORM, and the two share nothing but the
-    // ritual button. `PearlChamberSubscriptionPage.styles` gives it its own
-    // `Form`/`Field`: the label is uppercase 0.86rem on `--accent-dim` — the
-    // teal at 0.45, where the contact form's is bone at 0.7 — and the inputs
-    // wear `var(--rule)` (the copper at 0.22) over a 2.5% white wash at 8px,
-    // not the contact form's `#2f4f47` at 12px. Authoring one from the other
-    // would have been the duplicate-but-different trap in reverse.
-    //
-    // It sits INSIDE her card's `FeatureDetail`, under the three paragraphs, so
-    // the band brings no frame of its own — the card above closes the page.
-    section("sec-pearl-form", "form-live", "Set your intention", {
-      formId,
-      accent: "",
-      hideHeader: true,
-      maxWidth: 640,
-      padding: "none",
-      vars: {
-        "--mf-gap": "1rem",
-        "--mf-field-gap": "0.4rem",
-        "--mf-label-font": "var(--tgv-fontBody, inherit)",
-        "--mf-label-size": "0.86rem",
-        "--mf-label-weight": "400",
-        "--mf-label-tracking": "0.08em",
-        "--mf-label-transform": "uppercase",
-        // `--accent-dim`, which is her teal at 0.45 and nothing else on the
-        // page uses.
-        "--mf-label-color": `rgba(${data.tokens.TEAL}, 0.45)`,
-        "--mf-field-pad": "0.8rem 0.9rem",
-        "--mf-field-size": "1rem",
-        "--mf-field-lh": "1.4",
-        "--mf-field-font": "var(--tgv-fontBody, inherit)",
-        "--mf-radius": "8px",
-        "--mf-field-bg": "rgba(255, 255, 255, 0.025)",
-        // `var(--rule)`.
-        "--mf-field-edge": `rgba(${data.tokens.COPPER}, 0.22)`,
-        "--mf-ink": `rgb(${data.tokens.BONE})`,
-        "--mf-field-focus": `rgba(${data.tokens.TEAL}, 0.45)`,
-        "--mf-field-focus-ring": `0 0 0 1px rgba(${data.tokens.TEAL}, 0.12)`,
-        "--mf-placeholder": "#b69fa1",
-        "--mf-placeholder-opacity": "1",
-        // Her `textarea { min-height: 9rem }`, not the contact form's 140px.
-        "--mf-textarea-minh": "144px",
-        // `PaymentStack` is `width: min(100%, 18rem)`, and the submit that
-        // precedes it is the same ritual button the whole site runs on.
-        "--mf-submit-width": "auto",
-        "--mf-submit-align": "flex-start",
-        "--mf-submit-minh": "46px",
-        "--mf-submit-pad": "0.76rem 1rem",
-        "--mf-submit-size": "0.9rem",
-        "--mf-submit-weight": "400",
-        "--mf-submit-font": "var(--tgv-fontBody, inherit)",
-        "--mf-submit-tracking": "0.08em",
-        "--mf-submit-lh": "1",
-        "--mf-submit-transform": "none",
-        "--mf-submit-ink": `rgb(${data.tokens.COPPER})`,
-        "--mf-submit-bg": `linear-gradient(180deg, rgba(${data.tokens.COPPER}, 0.07) 0%, rgba(255, 255, 255, 0.018) 100%)`,
-        "--mf-submit-edge": `rgba(${data.tokens.COPPER}, 0.22)`,
-        "--mf-submit-shadow": `inset 0 1px 0 rgba(${data.tokens.BONE}, 0.06), 0 10px 30px rgba(0, 0, 0, 0.16)`,
-      },
     }),
   ];
 
