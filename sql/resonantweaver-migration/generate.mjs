@@ -459,8 +459,17 @@ function introBlock(data, id, label, copy, extra = {}) {
 function buildHomeClassic(data, formId) {
   const sections = [];
 
+  // HER SERIF, PAGE-WIDE — `onePage.tsx` starts its font switch at false, so
+  // this page renders `data-font-preview="original"` and every face falls
+  // through to SERIF. It has to lead the sections: the entry emits a global,
+  // and the order is what a reader of the row sees, not what the cascade needs.
+  sections.push(pageType("sec-classic-type"));
+
   // The SAME hero the star landing renders — heroSection() is the one place it
   // is built, matching how her `HeroSection.tsx` is imported by both pages.
+  // Which is exactly why the type row above is a PAGE fact and not a prop on
+  // this section: one component, two pages, two families, because the variables
+  // it reads are declared on one of the two pages and not the other.
   // No `size`: the classic page has no `PreviewBody h1` upsizing, so the
   // entry's default clamp — which is `H1`'s own in `OnePage.styles.ts` — is
   // already hers.
@@ -1007,6 +1016,47 @@ const bone = (data, a) => `rgba(${data.tokens.BONE}, ${a})`;
  *  row to live on. */
 const pageTone = (id, layers, extra = {}) =>
   section(id, "rf-page-tone", "Page tone", { layers, ground: "#06111c", ...extra });
+
+/** THE PAGES THE FONT SWITCH LEAVES AT "ORIGINAL" — her serif, page-wide.
+ *
+ *  `OnePage.styles` asks for all three of its faces through a variable with a
+ *  fallback (`var(--landing-display-font, SERIF)`) and declares those variables
+ *  in exactly one block: `&[data-font-preview="shared"]` on its own Body. The
+ *  star landing hardcodes that attribute, so her front door paints Science
+ *  Gothic / Space Grotesk / Space Mono — `themeFonts` above, and the faces
+ *  Marthe named. `onePage.tsx` starts the same switch at `useState(false)` and
+ *  `PearlChamberSubscriptionPage` renders the Body without the attribute at
+ *  all, so on those two pages the three variables are never declared and every
+ *  run on the page falls through to her `SERIF`.
+ *
+ *  Which is `font 74` of 80 compared strings on home-classic and 7 of 13 on
+ *  pearl-chamber — the two worst numbers on the board, 43.52% and 45.99% at
+ *  1440 — and neither was ever about which face ships. Both rows were authored
+ *  out of the star landing's vocabulary, and the star landing is the page that
+ *  OVERRIDES.
+ *
+ *  ALL SIX ROLES, one family. That is not laziness about the mapping: her page
+ *  points display, body and meta at the same fallback, so the roles genuinely
+ *  collapse here, and stating every one of them means the two entries with no
+ *  font knob at all (rf-steps, rf-list — they simply inherit) and the one that
+ *  is hard-wired to the accent role (rf-back-link) come along without needing a
+ *  prop each.
+ *
+ *  No ground and no layers: these two pages paint nothing of their own — her
+ *  `Body` sets custom properties, a min-height and a colour, and never a
+ *  background — so a tone row with a ground would blank the site backdrop this
+ *  page is supposed to keep. The entry's paint half stays conditional exactly
+ *  so a row can state type and nothing else. */
+const pageType = (id) =>
+  section(id, "rf-page-tone", "Page type", {
+    layers: [],
+    ground: "",
+    fontRoles: Object.fromEntries(
+      Object.keys(themeFonts)
+        .filter((k) => k !== "guards" && k !== "unbacked")
+        .map((role) => [role, themeFonts.serif]),
+    ),
+  });
 
 /** Her BackLink: one quiet mono run on the page container, carrying the
  *  main's 9.5rem top pad, hover to the page/product accent. */
@@ -2038,6 +2088,11 @@ function buildAllProducts(data) {
 function buildPearlChamber(data, formId) {
   const c = inlineCopy.pearl;
   const sections = [
+    // Her serif, page-wide. This page renders `OnePage.styles`' Body with no
+    // `data-font-preview` attribute at all — not "original" but ABSENT — so the
+    // three landing variables are never declared and every run on it, including
+    // the form's own labels, falls through to SERIF.
+    pageType("sec-pearl-type"),
     section("sec-pearl-card", "rf-offer-card", "The Pearl Chamber", {
       columns: 1,
       heading: "",
@@ -3690,6 +3745,30 @@ BEGIN
     IF n <> 0 THEN
       RAISE EXCEPTION 'assert: % draft page(s) also exist published', n;
     END IF;
+  END IF;
+
+  -- THE SIBLING ROWS THIS FILE DOES NOT AUTHOR ARE STILL HERE.
+  --
+  -- This assertion exists because the trap fired. The re-author recipe in
+  -- README.md deletes the slugs THIS file writes and re-runs it; a session
+  -- deleting \`site = 'resonantweaver' AND user_id IS NULL\` instead — every
+  -- pooled row, not the eighteen — and re-running only this file leaves the
+  -- site looking complete and \`/journey/\` answering 404. It did, for most of
+  -- 2026-08-09, and nothing said so: the page count was right, every assertion
+  -- in this block passed, and the differ reported \`aligned n/a\` for a page
+  -- that had measured 2.7% that morning. A 404 is not a parity finding, so the
+  -- board simply stopped mentioning it.
+  --
+  -- A file asserts about its own output — but it can NOTICE when a sibling's
+  -- output has gone missing under it, and that costs one query. The journey row
+  -- is authored by 03-journey-preview.sql, renamed by 04 and re-chromed by 09;
+  -- replay all three, in that order, to restore it.
+  SELECT count(*) INTO n FROM public.page_models
+   WHERE site = ${lit(SITE)} AND lang = 'en' AND mode = 'published'
+     AND user_id IS NULL AND deleted_at IS NULL AND is_public
+     AND slug = 'journey';
+  IF n <> 1 THEN
+    RAISE EXCEPTION 'assert: the journey row is gone — replay 03, then 04, then 09 (found %)', n;
   END IF;
 
   -- Every section names a type the shared catalog renders. A typo is invisible

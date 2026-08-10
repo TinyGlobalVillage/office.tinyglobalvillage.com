@@ -826,6 +826,27 @@ INSERT INTO _rw_pages VALUES ('home-classic', 'Resonant Weaver — classic landi
   },
   "sections": [
     {
+      "id": "sec-classic-type",
+      "type": "rf-page-tone",
+      "label": "Page type",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "layers": [],
+          "ground": "",
+          "fontRoles": {
+            "display": "Cormorant Garamond, Georgia, serif",
+            "heading": "Cormorant Garamond, Georgia, serif",
+            "body": "Cormorant Garamond, Georgia, serif",
+            "serif": "Cormorant Garamond, Georgia, serif",
+            "mono": "Cormorant Garamond, Georgia, serif",
+            "accent": "Cormorant Garamond, Georgia, serif"
+          }
+        }
+      }
+    },
+    {
       "id": "sec-hero",
       "type": "rf-split-hero",
       "label": "Hero",
@@ -2444,6 +2465,27 @@ INSERT INTO _rw_pages VALUES ('pearl-chamber', 'The Pearl Chamber', false, 'publ
     }
   },
   "sections": [
+    {
+      "id": "sec-pearl-type",
+      "type": "rf-page-tone",
+      "label": "Page type",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "layers": [],
+          "ground": "",
+          "fontRoles": {
+            "display": "Cormorant Garamond, Georgia, serif",
+            "heading": "Cormorant Garamond, Georgia, serif",
+            "body": "Cormorant Garamond, Georgia, serif",
+            "serif": "Cormorant Garamond, Georgia, serif",
+            "mono": "Cormorant Garamond, Georgia, serif",
+            "accent": "Cormorant Garamond, Georgia, serif"
+          }
+        }
+      }
+    },
     {
       "id": "sec-pearl-card",
       "type": "rf-offer-card",
@@ -5075,6 +5117,30 @@ BEGIN
     IF n <> 0 THEN
       RAISE EXCEPTION 'assert: % draft page(s) also exist published', n;
     END IF;
+  END IF;
+
+  -- THE SIBLING ROWS THIS FILE DOES NOT AUTHOR ARE STILL HERE.
+  --
+  -- This assertion exists because the trap fired. The re-author recipe in
+  -- README.md deletes the slugs THIS file writes and re-runs it; a session
+  -- deleting `site = 'resonantweaver' AND user_id IS NULL` instead — every
+  -- pooled row, not the eighteen — and re-running only this file leaves the
+  -- site looking complete and `/journey/` answering 404. It did, for most of
+  -- 2026-08-09, and nothing said so: the page count was right, every assertion
+  -- in this block passed, and the differ reported `aligned n/a` for a page
+  -- that had measured 2.7% that morning. A 404 is not a parity finding, so the
+  -- board simply stopped mentioning it.
+  --
+  -- A file asserts about its own output — but it can NOTICE when a sibling's
+  -- output has gone missing under it, and that costs one query. The journey row
+  -- is authored by 03-journey-preview.sql, renamed by 04 and re-chromed by 09;
+  -- replay all three, in that order, to restore it.
+  SELECT count(*) INTO n FROM public.page_models
+   WHERE site = 'resonantweaver' AND lang = 'en' AND mode = 'published'
+     AND user_id IS NULL AND deleted_at IS NULL AND is_public
+     AND slug = 'journey';
+  IF n <> 1 THEN
+    RAISE EXCEPTION 'assert: the journey row is gone — replay 03, then 04, then 09 (found %)', n;
   END IF;
 
   -- Every section names a type the shared catalog renders. A typo is invisible

@@ -2675,3 +2675,164 @@ sides, fleet 7/7, RCS built nothing across three deploys.
    footer's own `creditLabel` says "Tiny Global Village LLC™" and the platform
    line says it again underneath.
 5. Then: **tell Gio "come look", his eyeball pass, then the flip.**
+
+## NO CORMORANT SHIPS — 2026-08-09 (writing 6.43 → 2.32 at 1440)
+
+Marthe's ruling, and it overruled the recommendation: *"Currently using the
+science and Ubuntu fonts."* The Cormorant question had been parked as item (a)
+with a recommendation to keep the real face; her word closed it the other way.
+
+**Verified against her live page before acting**, because the census column that
+raised the question is the DECLARED first family and not the painted one. On
+`/home-classic/` `document.fonts` contains no Cormorant face at all, and the
+declared stack measures 203.3px against a Cormorant-less generic serif's
+183.3px — i.e. exactly Georgia. She has been painting Georgia the whole time.
+
+So the two faces came out of `webfonts` in `copy.mjs` and `themeFonts.serif`
+stayed exactly as it was, `"Cormorant Garamond, Georgia, serif"`, verbatim from
+her `tokens.ts` and guarded. Naming a family you do not load is the defect the
+whole `siteFonts` row was built to fix, so the exception is written down rather
+than exempted: `themeFonts.unbacked = ["serif"]`, excluded from the must-load
+assertion and given an INVERSE one — ship a Cormorant face again and the SQL
+fails and points at the paragraph explaining why.
+
+**writing 1440 6.43 → 2.32%, 768 15.73 → 10.64, 390 29.59 → 18.07**, and its
+font census went to 0 of 22. Controls exact (home 7.55, starseed 3.23).
+`01-theme.sql` regenerated to 6 faces + 3 aliases; office `03ec1fb`.
+
+**One slip worth recording because the symptom lied.** The edit that removed the
+two faces also removed the `accent` role, whose line sat immediately above the
+`guards` key in the same `old_string`. Starseed regressed 3.23 → 9.17 with
+`font 25`, home 7.55 → 8.05 with `font 20`, −19px height — every symptom looked
+like a rendering regression and none of them was. Diagnosed by querying
+`data->'fonts'` on prod (accent absent) against `git show HEAD:…01-theme.sql`
+(accent present). A role that vanishes from a theme fails silently everywhere it
+was used; nothing asserts that a role you never mention is still there.
+
+**home-classic 43.52 and pearl-chamber 45.99 did not move**, and the diagnosis
+became the next unit: their `font 74` / `font 7` rows are a ROW AUTHORING
+difference, not a shipping one.
+
+## THE PAGE THAT ANSWERS THE TYPE QUESTION DIFFERENTLY — 2026-08-10
+
+Her `OnePage.styles` asks for all three of its faces through a variable with a
+fallback — `var(--landing-display-font, SERIF)` — and declares those variables
+in exactly ONE block, `&[data-font-preview="shared"]` on its own `Body`.
+`LandingStarPreview.tsx` hardcodes that attribute, so her live front door paints
+Science Gothic / Space Grotesk / Space Mono: `themeFonts`, and the faces Marthe
+named. `onePage.tsx` starts the same switch at `useState(false)` and
+`PearlChamberSubscriptionPage` renders that Body with no attribute at all — so
+on those two pages the variables are never declared, every run falls through to
+`SERIF`, and the whole page is one face.
+
+One component vocabulary, two pages, two families. The site theme can only be
+right about one of them, and it is right about the star landing.
+
+**So `rf-page-tone` grew `fontRoles`** — a sparse role→family map for THIS page
+only. Same argument as `--rf-gutter` and `line-height` one layer down: an
+inherited declaration reaches every band on the page including entries written
+before it existed, while a font prop per entry reaches only the rows somebody
+remembers to author, and there are nineteen entries. It also reaches the two
+with no font knob at all (`rf-steps`, `rf-list`, which simply inherit) and the
+one hard-wired to the accent role (`rf-back-link`) — a per-entry answer could
+not have touched any of those three without three more commits.
+
+**Two cascade facts, both measured, both pinned in render-check.**
+`--tgv-font*` are INLINE custom properties on the `[data-site-theme]` element,
+and a custom property resolves at the nearest declaring ancestor — importance
+arbitrates only between declarations on the same element, so no rule on `body`
+can win, `!important` or not. The declaration has to live BELOW the theme scope:
+`[data-section-stack]`, which exists in all three renderers and wraps the page
+WITHOUT its chrome — also the right boundary, since a page answering the type
+question differently is not answering it for the site's nav. And `body` and
+`heading` must be re-APPLIED, not only re-declared, because `themeToFontCss`
+already applies those two at the theme element and what inherits from there is a
+computed family rather than a var reference; the heading selector is doubled so
+it cannot tie that rule at (0,1,1) and lose on sheet order.
+
+Five new source guards in `copy.mjs` carry the reasoning: the fallback shape,
+the one declaring block, `useState(false)`, the star landing's hardcoded
+attribute, and pearl-chamber's bare `<Body>`. Flip any of them and the run says
+so.
+
+**Result: the `font` column is GONE from both census rows** — home-classic
+74 → 0 of 80 strings, pearl-chamber 7 → 0 of 13 — and the painted faces read
+110 and 11 leaf runs of Georgia against zero on `/` and `/starseed/`. Mono
+`aa6a7bf4`, office row re-author, deployed.
+
+**And the aligned % barely moved: 43.52 → 42.05 and 45.99 → 45.52.** That is the
+honest finding of this unit. Type was 74 of 80 census rows and about a point and
+a half of pixels; what dominates both pages is GEOMETRY and COLOUR, which the
+census had been unable to show while the font column was saturated:
+
+- **Colour, and it is the same shape as the type.** Her `Body` declares
+  `--primary: rgb(COPPER)` and `--accent: rgb(TEAL)` in the same block system,
+  and the star landing inverts them. `color 70` on home-classic and `color 7` on
+  pearl-chamber are her copper title against our teal and her bone-at-65% body
+  against our grey. `rf-page-tone` is the obvious home for a page-scoped palette,
+  for exactly the reasons the type roles landed there.
+- **Measure.** Every candidate band is 1440 wide against her 800 / 928 / 1184 /
+  1312 — her `Container` is `max-width: 82rem` and the offer columns are
+  narrower still. pearl-chamber's one card is 524px against our 1440.
+- **The "work with me" band, 92.08%**, is her 363x60 heading against our
+  1440x717 block: the band-finder pairs her H2 with our whole offers grid.
+
+### THE RULER, A THIRD TIME — and this one lives in System Settings
+
+The re-measure failed 18/18 with `outOfPhase` firing on every capture: baseline
+753px, candidate 768px. Her own live app read 768 too, so the baseline was the
+stale side. Both sides declare `scrollbar-gutter: stable`, so whether 15px comes
+off the viewport depends on whether the scrollbar is classic or overlay — and on
+macOS with `AppleShowScrollBars` at its default "Automatic", that follows
+**whether a mouse is plugged in**. Same commit, same Chromium 151, same machine,
+753 in the morning and 768 at night.
+
+Correcting it in the runner was tried and reverted: re-opening the candidate at
+whatever viewport makes it lay out at the baseline's width sounds exact, and it
+moves the page into a different breakpoint — her `@media (max-width: 767px)`
+blocks then match on one side and not the other. Measured: at 1440 and 390 it
+reproduced the old numbers to the pixel; at 768 it grew home by 156px and every
+control by 1–5 points. A nudge that is right at two widths out of three is a
+ruler with a lie in it. Baseline re-frozen as `rw-her-app-2026-08-10`; every
+control lands where it was (starseed 3.22, writing 2.24, sun-walk 0.02,
+open-your-journey 0.41). HQ `24d888ae` + `d28a51a7`.
+
+### AND /journey/ HAD BEEN 404ING FOR A DAY
+
+Found while reading the report rather than by any check. It measured worst-band
+2.7% at 09:30 on 2026-08-09 and answered 404 by 23:00: a redrive that deleted
+`site='resonantweaver' AND user_id IS NULL` — every pooled row, not the eighteen
+`02-pages.sql` authors — and re-ran only that file. The journey row comes from
+`03-journey-preview.sql`, is renamed by `04` and re-chromed by `09`.
+
+**Nothing said so, and that is the defect.** The page count was right, every
+assertion in `02-pages.sql` passed, and the runner recorded the candidate's HTTP
+status into the capture metadata and never read it — so it measured HQ's
+not-found page against her seven gates, found no anchor pair between two
+documents with nothing in common, and printed `aligned n/a`: the same two words
+this page legitimately prints when her bands are textless scroll markers. The
+board simply stopped mentioning it.
+
+Two fixes, one per layer. `02-pages.sql` now asserts that the sibling row it
+does NOT author is still present, and names the three files to replay. The
+runner refuses a non-200 candidate outright, on the live path and on the frozen
+`--candidate-dir` path both, and puts it in `missing` — which is what fails a
+run — rather than in `findings`, because there is nothing to compare. Restored
+and re-measured: 1440 worst band 3.23%, 768 4.44%, 390 8.62%.
+
+### LEFT, IN ORDER
+
+1. **home-classic + pearl-chamber: the colour roles and the measure.** Both are
+   page-wide facts of exactly the kind `fontRoles` just became, and both are now
+   the only thing between those two pages and the rest of the board.
+2. **home at 768 is 23.26% and at 390 19.05%** against 7.42 at 1440 — three
+   bands render only in the candidate, +249px at 768. `writing` at 390 is 18.09%
+   and is the same shape. Still the largest honest thing outside the two parked
+   pages.
+3. The five split bands on starseed (`sections 11→16`) — markup, not the board.
+4. doors/experiences ~20% — Gio's eye. `experience-resonance-mirror` at 390 is
+   27.40%, the worst of that family.
+5. **FOR GIO:** `footerEnabled: false` on all four pooled hosts, `navEnabled:
+   false` on guardians + nevlo — a studio setting, and turning the footer band
+   on would also retire the double "powered by".
+6. Then: **tell Gio "come look", his eyeball pass, then the flip.**

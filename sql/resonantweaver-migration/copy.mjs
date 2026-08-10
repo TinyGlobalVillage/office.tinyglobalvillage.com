@@ -833,5 +833,39 @@ export const themeFonts = {
       file: `${HOME}/landing-star-preview/LandingStarPreview.styles.ts`,
       find: '&[data-font-preview="original"]',
     },
+    // ── AND THE OTHER SIDE OF THAT SWITCH (2026-08-10) ──────────────────────
+    // The four facts `pageType()` in generate.mjs is built on, each of which
+    // would silently invert the two pages' type if she changed it.
+    //
+    // 1. The faces are asked for through a variable with SERIF as the
+    //    fallback — so an undeclared variable is not a missing font, it is her
+    //    serif.
+    {
+      file: `${HOME}/OnePage.styles.ts`,
+      find: "const LANDING_DISPLAY_FONT = `var(--landing-display-font, ${SERIF})`;",
+    },
+    // 2. The ONLY block that declares them. Its selector is the attribute; the
+    //    variables exist nowhere else in her repo (verified by grep, twice).
+    { file: `${HOME}/OnePage.styles.ts`, find: '&[data-font-preview="shared"] {' },
+    // 3. The classic landing starts the switch OFF, so it renders "original".
+    //    Flip this initial value and home-classic becomes a Science Gothic page
+    //    and our row becomes wrong in the other direction.
+    { file: `${HOME}/onePage.tsx`, find: "const [sharedFonts, setSharedFonts] = useState(false);" },
+    // 4. The star landing is the one page that hardcodes it on. This is what
+    //    makes `themeFonts` above the SITE's answer and these two pages the
+    //    exception, rather than the other way round.
+    {
+      file: `${HOME}/landing-star-preview/LandingStarPreview.tsx`,
+      find: 'data-font-preview="shared"',
+    },
+    // 5. Pearl Chamber renders that same Body BARE — no attribute, no switch,
+    //    no way to reach the shared faces. A guard can only assert a presence,
+    //    so this asserts the shape that carries the absence: the Body opens
+    //    with no props at all, and the day it takes one this line stops
+    //    matching and the run says so.
+    {
+      file: `${HOME}/pearl-chamber/PearlChamberSubscriptionPage.tsx`,
+      find: "return ( <Body> <Main>",
+    },
   ],
 };
