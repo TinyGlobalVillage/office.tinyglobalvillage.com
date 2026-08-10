@@ -2822,38 +2822,122 @@ and re-measured: 1440 worst band 3.23%, 768 4.44%, 390 8.62%.
 
 ### LEFT, IN ORDER
 
-1. **pearl-chamber at 768 and 390 — 69.83% and 66.53%, and the only two numbers
-   on the board that got WORSE this window.** Both read `sections 4→2`: her
-   seg 0 is 617px (768) and 546px (390) of page against our 128, i.e. below
-   900px her `FeatureCardInner` drops to one column and the artwork stacks over
-   the copy, and the two sides stop finding the same anchors. 1440 is fine
-   (36.45%, +11px) because the card is side-by-side there. This is the card's
-   narrow reflow, not paint.
-2. **The sky is the star landing's on two pages that never wear it.**
-   `siteBackground`'s orbs are `PreviewBody`'s blue-and-teal washes, authored
-   from `LandingStarPreview.styles`. `/home-classic/` and `/pearl-chamber/`
-   paint no ground of their own, so they show those — where her page shows
-   `layout.client.tsx`'s `SiteShell` (a copper wash top-centre, a teal one
-   bottom-right, over a green-black radial, `background-attachment: fixed`)
-   plus `OnePage.styles`' own `OrbA`/`OrbB`. It is worth 74.78% of home-classic's
-   seg 0 and most of the hero's 39.62%, and `rf-page-tone` already takes layers.
-   The orbs animate, so exact parity is not on offer; the ground and the two
-   washes are.
-3. **home at 768 is 21.77% and at 390 18.83%** against 6.79 at 1440 — three
-   bands render only in the candidate, +202px at 768. `writing` at 390 is 18.07%
-   and is the same shape.
-4. The offerings stack is still 17.50% over 3241px on home-classic — the single
-   biggest item left on that page. The colours are hers now; what the seg07 diff
-   shows is a card-by-card VERTICAL DRIFT that grows down the stack, plus the
-   plate's own edge. `OfferingsStack`/`OfferingsRow` are both `gap: 25px` and
-   ours is 25px, so the drift is inside the card.
-5. The five split bands on starseed (`sections 11→16`) — markup, not the board.
-6. doors/experiences ~20% — Gio's eye. `experience-resonance-mirror` at 390 is
-   27.40%, the worst of that family.
-7. **FOR GIO:** `footerEnabled: false` on all four pooled hosts, `navEnabled:
+1. **The offerings stack on home-classic — 13.11% over 3241px, and the 91.88%
+   band the page's worst number keeps pointing at.** The colours are hers; what
+   the seg07 diff shows is a card-by-card VERTICAL DRIFT growing down the stack,
+   plus the plate's own edge. `OfferingsStack` and `OfferingsRow` are both
+   `gap: 25px` and so is ours, so the drift is inside the card. Biggest single
+   item on the biggest page left.
+2. **home at 768 is 21.77% and at 390 18.83%** against 6.79 at 1440 — three
+   bands render only in the candidate, +202px at 768. `writing` at 390 is
+   18.07% and is the same shape. Both are narrow-only, so it is a stack point
+   somewhere, not paint.
+3. **doors/experiences ~20% — Gio's eye.** `experience-resonance-mirror` at 390
+   is 27.01%, the worst number on the whole board now; `experience-pearl-chamber`
+   20.09/17.20/20.37. Image resampling, and he ruled ~20% is the accepted floor.
+4. The five split bands on starseed (`sections 11→16`) — markup, not the board
+   (3.24/5.56/7.51 aligned).
+5. home-classic's intro band: her 800x220 against our 1425x199 at 1440, 22.03%.
+   21px of height on a three-line paragraph.
+6. **FOR GIO:** `footerEnabled: false` on all four pooled hosts, `navEnabled:
    false` on guardians + nevlo — a studio setting, and turning the footer band
    on would also retire the double "powered by".
-8. Then: **tell Gio "come look", his eyeball pass, then the flip.**
+7. Then: **tell Gio "come look", his eyeball pass, then the flip.**
+
+---
+
+## HER FORM WAS ALWAYS INSIDE THE CARD — 2026-08-10
+
+Item 1 as it stood read "pearl-chamber at 768 and 390, the only two numbers on
+the board that got WORSE this window… below 900px her `FeatureCardInner` drops
+to one column and the two sides stop finding the same anchors. This is the
+card's narrow reflow, not paint."
+
+**It was not the reflow, and it was not narrow.** Our breakpoints already match
+hers to the pixel. What a screenshot showed in five seconds, after three
+readings of her stylesheet had not: her form is INSIDE the offering card, and
+ours was a band underneath it.
+
+Her page is one `OfferCard $feature`. Its `FeatureDetail` reads `CardBody` —
+three paragraphs, then the `Form` — and only then the `CardFoot` rule with the
+price under it. Carried as a `form-live` section beneath the card, our form
+stood outside the plate at the page gutter, full-bleed, with the price stranded
+above it. At 1440 that reads as a design choice; at 768 it is most of the page.
+
+**pearl-chamber 36.45 → 12.34 at 1440, 69.83 → 13.03 at 768, 66.53 → 21.11 at
+390**, height −99px → −3px, and 768/390 went `sections 4→2` → `4→4` with every
+paragraph band measuring her exact box on both sides (634x53 → 634x53 at 768,
+277x72 → 277x72 at 390). That last is the thing to read: the anchors were never
+disagreeing about the reflow, they were disagreeing about what the page was.
+
+`RfOfferItem` takes `formId` / `formVars` / `formShowHeader`; the fetch, the
+submit and the renderer call moved to `shared/LiveForm` so there is one reader
+and not two. `form-live` keeps its own frame and its editor affordances — its
+Configure CTA publishes against the enclosing LAYER, and a card inside a row is
+not a layer — and its output did not move. The slot carries no margin of its
+own: the gap above her form is the last paragraph's 1.05rem and nothing else.
+
+**Three things the form could not say from outside the card**, each read back
+off her source and each visible in the shot: her `Field` marks nothing required
+and ours printed a red asterisk beside every label on a page that has no red on
+it; her submit is `display: inline-flex` — which reads as auto-width, and is
+how it was first authored — but it is a direct child of a `display: grid`
+`Form`, and **an inline-* box in a grid is still a grid item**, so it stretches
+at every width; and it is set in `font-variant: small-caps` with a hard
+size/padding step at 767px, which is exactly why "continue to payment" censused
+13.44px against our 14.4px at 390. The renderer had no var for the variant and
+none for the step — a var cannot carry a media query — so both were added, each
+falling back to what shipped.
+
+**And `marginBottom: 6rem` went back on, which the previous window had measured
+as a regression and was right to remove.** While the form was a separate band,
+`Main`'s closing padding fell in the middle of one card (39.12 → 43.70). The
+form moved inside in the same commit, so the 6rem now falls where hers falls,
+which is under everything. A number that measured worse can be the right value
+in the wrong structure.
+
+---
+
+## THE TWO PAGES WITH NO SKY WERE WEARING ANOTHER PAGE'S — 2026-08-10
+
+`pageType` — the shared leading row on `/home-classic/` and `/pearl-chamber/` —
+carried this reasoning: *"no ground and no layers: these two pages paint nothing
+of their own, so a tone row with a ground would blank the site backdrop this
+page is supposed to keep."*
+
+Half right, and the wrong half was load-bearing. The page IS supposed to keep
+the sky it is inside. But the sky it is inside is her `layout.client.tsx`
+**SiteShell**, and `siteBackground` carries the STAR landing's blue-and-teal
+washes — authored from `LandingStarPreview.styles`, because that is the page
+the 2026-08-08 wash forensics were run on. So the only two pages with no ground
+of their own were the only two showing another page's.
+
+They are also the only two her shell is ever visible through: GatewayBody,
+OfferBody, PreviewBody, WritingPage and both star surfaces all paint an opaque
+ground over it.
+
+`shellSky` is the shell, guarded line by line — a copper wash off the top edge
+(`ellipse 90% 55% at 50% -5%`), a teal one low and right (`70% 45% at 85%
+100%`), and her opaque green-black radial, with `hsl(180, 10%, 2%)` as the flat
+ground under it. **`rf-page-tone` grew `fixed`** for the last of it:
+`background-attachment` is part of the transcription, not a detail — an
+`ellipse 90% 55%` sized against a 3000px page is a wash six times taller than
+the same ellipse against the viewport, and it scrolls with the copy instead of
+sitting behind it. Hers is fixed; her per-page bodies are not, which is why it
+is a row prop and not the entry's default.
+
+**pearl-chamber 12.34 → 2.23 / 4.25 / 11.25. home-classic 14.55 → 9.08, 17.29 →
+11.62, 21.04 → 16.43** — and its hero band, which this list had down as "most of
+the hero's 39.62%", is **1.46%**. The orbs were never needed: `OrbA`/`OrbB` are
+two blurred, animated `position: fixed` divs at 0.07 and 0.06 alpha, and with
+the shell underneath them correct they are worth less than a point.
+
+**The board after both, at 1440:** experience-resonance-mirror 21.29 ·
+experience-pearl-chamber 20.37 · home-classic 9.08 · home 6.79 ·
+all-products 6.65 · offers 1.92–4.60 · galactic-field-guide 3.92 · starseed
+3.24 · writing 2.32 · pearl-chamber 2.23 · open-your-journey 0.52 · sun-walk
+0.05. Worst on the whole board is now experience-resonance-mirror at 390
+(27.01%), which is the image-resampling family Gio rules on by eye.
 
 ---
 
