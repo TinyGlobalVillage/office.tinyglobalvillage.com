@@ -2540,3 +2540,138 @@ render-check 535/535 (20 new), tsc clean, fleet 7/7, RCS built nothing.
 3. pearl-chamber 45.99 + home-classic 43.52 — parked on Cormorant A, NON-font
    deltas only. doors/experiences ~20% — Gio's eye.
 4. Then: **tell Gio "come look", his eyeball pass, then the flip.**
+
+---
+
+## THE LANDMARKS — 2026-08-09
+
+The record above named the five split bands as "the largest thing left on this
+page by a wide margin", and said in the same breath that they are *also* the
+whole of `landmarks: main 1→0  header 2→1`. Reading that line again is what
+opened this unit: the pixel half of those bands is a measurement artifact — her
+2105px journey band compared against our 157px head, at 92.65% — while the
+segment numbers underneath it, which are anchor-aligned and honest, run 1.7–3.9%.
+The page is 3.23% and has been for a day. What was actually left was the
+STRUCTURE, and that is not a resonantweaver item at all: it is
+`bugs/pooled-pages-have-no-landmarks.md`, S3, open since the Phase 0 census, live
+on four customer domains.
+
+### What it was
+
+No page the shared renderer serves contained a `<main>`, a `<nav>` or a
+`<footer>`. Measured live, not inferred:
+
+    giocoelho.com          main=0 nav=0 footer=0
+    guardianstuffies.com   main=0 nav=0 footer=0
+    neverendinglogic.com   main=0 nav=0 footer=0
+    refusionist.com        main=0 nav=0 footer=0
+
+Her own app renders `main 1 · nav 1 · header 1` on starseed and `main 2` on home.
+A screen-reader user had nothing to list and nothing to jump to, and a keyboard
+visitor tabbed through the whole navigation on every page because there was
+nothing for a skip link to skip TO — on the customer's own domain, which is the
+same family as the chrome, `<head>`, OG, JSON-LD and 404 leaks. Invisible in a
+screenshot and invisible in a pixel diff; the only reason it is known at all is
+that `measure.mjs` records a landmark census beside every capture.
+
+### The fix is three tag swaps and a link
+
+The chrome bands and the section stack were **already block boxes**, so nothing
+new participates in layout — the same "display: block is what makes an element
+swap free" that the marker unit turned on the day before, one altitude up.
+`LayerRenderer` gained `as` (`"div" | "nav" | "header" | "footer"`, default
+`div`), `TgvLandingRenderer` gained `stackAs`, and the two chrome hosts name
+`nav` / `main#content` / `footer`. Every rule LayerRenderer emits is scoped by
+`[data-lyr-frame="…"]` — an attribute, never a tag — so the harness pins that the
+markup AND the collected CSS are byte-identical across all three but for the tag.
+
+`stackAs` and `as` are **opt-in rather than always-on**, and that is the whole of
+why: three of TgvLandingRenderer's callers already sit inside a `<main>` of their
+own, the storefront confirmation page most plainly, and a nested second one is
+worse than none. Two `main` landmarks is the error a rotor reports.
+
+`SkipLink` is one component with two callers rather than two copies — clipped to
+1px, never `display: none` or `visibility: hidden`, both of which take a link out
+of the focus order and produce a skip link nobody can reach.
+
+### THE GUARD EARNED ITSELF ON ITS FIRST RUN, THREE TIMES
+
+`tenant-parity.mjs` grew a landmark census, because structure is where this
+belongs and nothing about it is visible to the pixel harness. On the first pass
+it named three more pages carrying a second `<main>` — `open-your-journey`,
+`landing-star-preview/course` and the field guide — each declaring its page shell
+as `styled.main`, correct when nothing above them had one. All three demoted to
+divs; the styles are what the element was ever carrying.
+
+And then the guard needed correcting itself, which is the more interesting half.
+Its first draft demanded a `<nav>` and a `<footer>` on every page. That reads
+like the right rule and is not: giocoelho, guardians, nevlo and refusionist all
+publish `footerEnabled: false`, and two of them `navEnabled: false`. They author
+their bars as page sections or do without — **demanding the element there is
+demanding a landmark for content that does not exist.** So the rule is
+conditional on the band actually being rendered, which is a fact in the markup,
+and its absence is a note for a person rather than a defect. `<main>` and the
+skip link stay unconditional, because every page has content.
+
+### THE BOARD DID NOT MOVE, AND THE ONE PLACE IT DID WAS THE RULER AGAIN
+
+22 of 24 route×width numbers came back **+0.00** — home 7.55/22.54/18.89,
+all-products 6.65, starseed 3.23/5.55/7.50, the eleven offers, receive, develop,
+open-your-journey 0.52, sun-walk 0.05, every one of them to the second decimal.
+
+The two exceptions are `writing`: **390 went 21.12 → 29.59 and 768 went 15.62 →
+15.73, while 1440 went 6.80 → 6.43.** Not a repaint — the heights are unchanged
+(−30px at 390 before and after). `measure.mjs`'s band-finder starts its descent
+at `document.querySelector("main") || document.body`, and the long comment block
+explaining why that descent needs so many guards *is a comment about this bug*.
+With a `<main>` on both sides the descent is finally symmetric: writing's
+candidate band stopped being one 1264px block swallowing her two, her second band
+stopped pairing with nothing, and our footer stopped being a 15.17% phantom. The
+new numbers compare content to the content it is actually opposite.
+
+**Third time a fix has moved the instrument** — `scrollbar-gutter`, the
+attribution crop, and now this — and the third time the honest number was the
+worse-looking one. Worth stating as a rule: a parity number is only ever as good
+as the last thing that changed the ruler, and a fix that makes the board worse
+is not automatically a regression.
+
+### Measured, live
+
+    giocoelho.com          main=1 nav=1 footer=0 skip=1
+    guardianstuffies.com   main=1 nav=0 footer=0 skip=1
+    neverendinglogic.com   main=1 nav=0 footer=0 skip=1
+    refusionist.com        main=1 nav=1 footer=0 skip=1
+    resonantweaver (pooled, all 21 routes)  main=1 nav=2 footer=1 skip=1
+
+In a browser: the first Tab from page load focuses **Skip to content**, which
+paints at 8,8 in HER palette — bone `#e8e5da` on ground `#06111c` with a teal
+`#48d2b9` rule — and resolves to `<main id="content">`. That check is also what
+caught the link reading `--tgv-accent`, a token no theme declares; the accent
+role's channel in this system is `--tgv-cyan`.
+
+Shipped: mono `b396f3a5`; HQ `15fea5e9`, `6c5785a2`, `62022e6b`, deployed
+(BUILD_ID `YjwubViZXddMCxw3M7QzP`). render-check 542/542 (7 new), tsc clean both
+sides, fleet 7/7, RCS built nothing across three deploys.
+
+### Left, in order
+
+1. **home at 768 is 22.54% and at 390 is 18.89%**, against 7.55 at 1440 — three
+   bands render only in the candidate, the page runs +222px at 768 and −141px at
+   390, and its census reads `box 41 · tag 4 · size 2 · color 2 · weight 1` with
+   17 strings missing on each side. Never looked at, because the board only ever
+   ranked 1440. **writing at 390 is now the worst non-parked number on the fleet
+   at 29.59%** and is the same shape — her 65px segment renders as 0 in ours.
+   This is the largest honest thing left.
+2. The five split bands on starseed, demoted from item 1 to here on the evidence:
+   the segment numbers under those 92%/68%/65%/51%/28% strips are 1.7–3.9%, so
+   what is left there is the second `<section>` per band (`sections 11→16`) and
+   nothing a visitor can see. Worth doing for the markup, not for the board.
+3. pearl-chamber 45.99 + home-classic 43.52 — parked on Cormorant A, NON-font
+   deltas only. doors/experiences ~20% — Gio's eye.
+4. **FOR GIO, and it is a studio setting rather than code:** all four pooled
+   hosts publish `footerEnabled: false`, and guardians + nevlo `navEnabled:
+   false`, so those sites have no chrome band for the renderer to name. Turning
+   the footer band on would also retire the double "powered by" — her page
+   footer's own `creditLabel` says "Tiny Global Village LLC™" and the platform
+   line says it again underneath.
+5. Then: **tell Gio "come look", his eyeball pass, then the flip.**
