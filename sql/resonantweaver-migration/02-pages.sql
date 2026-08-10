@@ -304,7 +304,8 @@ INSERT INTO _rw_pages VALUES ('home', 'Resonant Weaver', true, 'published', $rwj
             "radial-gradient(ellipse 66% 36% at 50% 12%, rgba(35, 82, 121, 0.2), transparent 72%)",
             "radial-gradient(ellipse 50% 34% at 82% 80%, rgba(72, 210, 185, 0.035), transparent 70%)"
           ],
-          "ground": "#06111c"
+          "ground": "#06111c",
+          "lineHeight": "1.5"
         }
       }
     },
@@ -833,6 +834,9 @@ INSERT INTO _rw_pages VALUES ('home-classic', 'Resonant Weaver — classic landi
         "props": {
           "layers": [],
           "ground": "",
+          "gutter": "1.5rem",
+          "gutterNarrow": "1.5rem",
+          "lineHeight": "1.5",
           "fontRoles": {
             "display": "Cormorant Garamond, Georgia, serif",
             "heading": "Cormorant Garamond, Georgia, serif",
@@ -891,7 +895,19 @@ INSERT INTO _rw_pages VALUES ('home-classic', 'Resonant Weaver — classic landi
             "This work supports deeper awareness, wider perception, and the quiet internal coherence of knowing what is actually true for you."
           ],
           "chips": [],
-          "ctas": []
+          "ctas": [],
+          "framePad": "sm",
+          "padTop": "0",
+          "padBottom": "0",
+          "maxWidth": 752,
+          "centered": true,
+          "proseCenter": true,
+          "copyMaxWidth": "44rem",
+          "copyInk": "rgba(232, 229, 218, 0.65)",
+          "copySize": "clamp(1rem, 2vw, 1.15rem)",
+          "copyWeight": 300,
+          "copyLh": "1.62",
+          "copyGap": "1.25rem"
         }
       }
     },
@@ -907,13 +923,17 @@ INSERT INTO _rw_pages VALUES ('home-classic', 'Resonant Weaver — classic landi
           "imageAlt": "",
           "imagePosition": "left",
           "eyebrow": "Before you choose a service",
-          "eyebrowColor": "amber",
+          "eyebrowColor": "accent",
+          "eyebrowInk": "rgba(183, 138, 119, 0.58)",
+          "eyebrowSize": "0.82rem",
+          "eyebrowTracking": "0.16em",
+          "eyebrowGap": "2.25rem",
+          "eyebrowWeight": 400,
           "heading": "",
           "headingLevel": 2,
           "headingAccent": "",
           "paragraphs": [
-            "Where are you in your energetic field right now?",
-            "A short self-guided journey through the seven energy centers"
+            "Where are you in your energetic field right now?"
           ],
           "chips": [],
           "ctas": [
@@ -922,7 +942,26 @@ INSERT INTO _rw_pages VALUES ('home-classic', 'Resonant Weaver — classic landi
               "href": "/journey",
               "variant": "ritual"
             }
-          ]
+          ],
+          "finePrint": "A short self-guided journey through the seven energy centers",
+          "finePrintSize": "0.9rem",
+          "finePrintWeight": 300,
+          "finePrintColor": "rgba(232, 229, 218, 0.22)",
+          "finePrintTop": "2.25rem",
+          "framePad": "sm",
+          "padTop": "37px",
+          "padBottom": "37px",
+          "maxWidth": 880,
+          "centered": true,
+          "proseCenter": true,
+          "marginTop": "6rem",
+          "copyMaxWidth": "38rem",
+          "copyInk": "rgba(232, 229, 218, 0.65)",
+          "copySize": "clamp(1.15rem, 2.8vw, 1.55rem)",
+          "copyWeight": 300,
+          "copyLh": "1.65",
+          "copyGap": "0",
+          "ctaTop": "79px"
         }
       }
     },
@@ -939,6 +978,8 @@ INSERT INTO _rw_pages VALUES ('home-classic', 'Resonant Weaver — classic landi
           "bulletGlyph": "✦",
           "padTop": 0,
           "padBottom": 25,
+          "marginTop": "4rem",
+          "muted": "rgba(232, 229, 218, 0.65)",
           "items": [
             {
               "anchorId": "resonance-mirror",
@@ -979,6 +1020,7 @@ INSERT INTO _rw_pages VALUES ('home-classic', 'Resonant Weaver — classic landi
           "kicker": "Testimonials",
           "quoteMark": "\"",
           "ruleBelow": true,
+          "muted": "rgba(232, 229, 218, 0.72)",
           "items": [
             {
               "quote": "So much was spot on. Pretty much everything is true... there's so much that resonated.",
@@ -1009,6 +1051,7 @@ INSERT INTO _rw_pages VALUES ('home-classic', 'Resonant Weaver — classic landi
           "bulletGlyph": "✦",
           "padTop": 0,
           "padBottom": 25,
+          "muted": "rgba(232, 229, 218, 0.65)",
           "items": [
             {
               "anchorId": "the-pearl-chamber",
@@ -1051,6 +1094,7 @@ INSERT INTO _rw_pages VALUES ('home-classic', 'Resonant Weaver — classic landi
           "bulletGlyph": "✦",
           "padTop": 0,
           "padBottom": 25,
+          "muted": "rgba(232, 229, 218, 0.65)",
           "items": [
             {
               "anchorId": "pulse-mirror",
@@ -1092,6 +1136,7 @@ INSERT INTO _rw_pages VALUES ('home-classic', 'Resonant Weaver — classic landi
           "bulletGlyph": "✦",
           "padTop": 0,
           "padBottom": 25,
+          "muted": "rgba(232, 229, 218, 0.65)",
           "items": [
             {
               "anchorId": "harmonic-sweep",
@@ -1132,6 +1177,7 @@ INSERT INTO _rw_pages VALUES ('home-classic', 'Resonant Weaver — classic landi
           "kicker": "Testimonials",
           "quoteMark": "\"",
           "ruleBelow": true,
+          "muted": "rgba(232, 229, 218, 0.72)",
           "items": [
             {
               "quote": "This totally resonates... thank you for sharing your beautiful gift.",
@@ -1161,6 +1207,21 @@ INSERT INTO _rw_pages VALUES ('home-classic', 'Resonant Weaver — classic landi
           "ruleUnderHead": true,
           "animate": true,
           "exclusive": true,
+          "headColor": "rgb(183, 138, 119)",
+          "headSize": "clamp(1.9rem, 4.5vw, 3.25rem)",
+          "headWeight": 300,
+          "headTracking": "0.06em",
+          "ledeColor": "rgba(232, 229, 218, 0.65)",
+          "ledeSize": "1.02rem",
+          "ledeWeight": 300,
+          "ledeLh": "1.62",
+          "nameColor": "rgba(183, 138, 119, 0.75)",
+          "nameSize": "0.98rem",
+          "nameWeight": 300,
+          "nameTracking": "0.02em",
+          "muted": "rgba(232, 229, 218, 0.65)",
+          "maxWidth": 752,
+          "framePad": "md",
           "items": [
             {
               "name": "What kind of guidance is this?",
@@ -1209,7 +1270,54 @@ INSERT INTO _rw_pages VALUES ('home-classic', 'Resonant Weaver — classic landi
           "formId": "904a1f4d-26bb-42df-b3a2-a16a655fc99d",
           "accent": "",
           "hideHeader": false,
-          "maxWidth": 640
+          "maxWidth": 720,
+          "padding": "lg",
+          "align": "center",
+          "vars": {
+            "--mf-gap": "1.25rem",
+            "--mf-field-gap": "0.5rem",
+            "--mf-title-font": "var(--tgv-fontDisplay, inherit)",
+            "--mf-title-size": "clamp(1.9rem, 4.5vw, 3.25rem)",
+            "--mf-title-weight": "300",
+            "--mf-title-tracking": "0.06em",
+            "--mf-title-lh": "1.15",
+            "--mf-title-align": "center",
+            "--mf-title-color": "rgb(183, 138, 119)",
+            "--mf-title-gap": "calc(8.5rem + 1px)",
+            "--mf-label-font": "var(--tgv-fontBody, inherit)",
+            "--mf-label-size": "0.75rem",
+            "--mf-label-weight": "400",
+            "--mf-label-tracking": "0.1em",
+            "--mf-label-transform": "uppercase",
+            "--mf-label-color": "rgba(232, 229, 218, 0.7)",
+            "--mf-field-pad": "0.9rem 1rem",
+            "--mf-field-size": "1rem",
+            "--mf-field-lh": "1.4",
+            "--mf-field-font": "var(--tgv-fontBody, inherit)",
+            "--mf-radius": "12px",
+            "--mf-field-bg": "transparent",
+            "--mf-field-edge": "#2f4f47",
+            "--mf-ink": "rgb(232, 229, 218)",
+            "--mf-field-focus": "rgb(72, 210, 185)",
+            "--mf-field-focus-ring": "0 0 0 2px color-mix(in srgb, rgb(72, 210, 185) 40%, transparent)",
+            "--mf-placeholder": "#b69fa1",
+            "--mf-placeholder-opacity": "1",
+            "--mf-textarea-minh": "140px",
+            "--mf-submit-width": "auto",
+            "--mf-submit-align": "flex-start",
+            "--mf-submit-minh": "46px",
+            "--mf-submit-pad": "0.76rem 1rem",
+            "--mf-submit-size": "0.9rem",
+            "--mf-submit-weight": "400",
+            "--mf-submit-font": "var(--tgv-fontBody, inherit)",
+            "--mf-submit-tracking": "0.08em",
+            "--mf-submit-lh": "1",
+            "--mf-submit-transform": "none",
+            "--mf-submit-ink": "rgb(183, 138, 119)",
+            "--mf-submit-bg": "linear-gradient(180deg, rgba(183, 138, 119, 0.07) 0%, rgba(255, 255, 255, 0.018) 100%)",
+            "--mf-submit-edge": "rgba(183, 138, 119, 0.22)",
+            "--mf-submit-shadow": "inset 0 1px 0 rgba(232, 229, 218, 0.06), 0 10px 30px rgba(0, 0, 0, 0.16)"
+          }
         }
       }
     },
@@ -1224,8 +1332,10 @@ INSERT INTO _rw_pages VALUES ('home-classic', 'Resonant Weaver — classic landi
           "columns": 1,
           "heading": "",
           "bulletGlyph": "✦",
-          "padTop": 0,
-          "padBottom": 25,
+          "padTop": 16,
+          "padBottom": 12,
+          "marginBottom": "6rem",
+          "muted": "rgba(232, 229, 218, 0.65)",
           "items": [
             {
               "anchorId": "about",
@@ -2471,6 +2581,9 @@ INSERT INTO _rw_pages VALUES ('pearl-chamber', 'The Pearl Chamber', false, 'publ
         "props": {
           "layers": [],
           "ground": "",
+          "gutter": "1.5rem",
+          "gutterNarrow": "1.5rem",
+          "lineHeight": "1.5",
           "fontRoles": {
             "display": "Cormorant Garamond, Georgia, serif",
             "heading": "Cormorant Garamond, Georgia, serif",
@@ -2493,8 +2606,10 @@ INSERT INTO _rw_pages VALUES ('pearl-chamber', 'The Pearl Chamber', false, 'publ
           "columns": 1,
           "heading": "",
           "bulletGlyph": "✦",
-          "padTop": 0,
-          "padBottom": 25,
+          "padTop": 16,
+          "padBottom": 12,
+          "muted": "rgba(232, 229, 218, 0.65)",
+          "marginTop": "8rem",
           "items": [
             {
               "anchorId": "pearl-chamber",
@@ -2527,7 +2642,45 @@ INSERT INTO _rw_pages VALUES ('pearl-chamber', 'The Pearl Chamber', false, 'publ
           "formId": "d05bbb9f-28f1-4f61-b866-78d02a264dd5",
           "accent": "",
           "hideHeader": true,
-          "maxWidth": 640
+          "maxWidth": 640,
+          "padding": "none",
+          "vars": {
+            "--mf-gap": "1rem",
+            "--mf-field-gap": "0.4rem",
+            "--mf-label-font": "var(--tgv-fontBody, inherit)",
+            "--mf-label-size": "0.86rem",
+            "--mf-label-weight": "400",
+            "--mf-label-tracking": "0.08em",
+            "--mf-label-transform": "uppercase",
+            "--mf-label-color": "rgba(72, 210, 185, 0.45)",
+            "--mf-field-pad": "0.8rem 0.9rem",
+            "--mf-field-size": "1rem",
+            "--mf-field-lh": "1.4",
+            "--mf-field-font": "var(--tgv-fontBody, inherit)",
+            "--mf-radius": "8px",
+            "--mf-field-bg": "rgba(255, 255, 255, 0.025)",
+            "--mf-field-edge": "rgba(183, 138, 119, 0.22)",
+            "--mf-ink": "rgb(232, 229, 218)",
+            "--mf-field-focus": "rgba(72, 210, 185, 0.45)",
+            "--mf-field-focus-ring": "0 0 0 1px rgba(72, 210, 185, 0.12)",
+            "--mf-placeholder": "#b69fa1",
+            "--mf-placeholder-opacity": "1",
+            "--mf-textarea-minh": "144px",
+            "--mf-submit-width": "auto",
+            "--mf-submit-align": "flex-start",
+            "--mf-submit-minh": "46px",
+            "--mf-submit-pad": "0.76rem 1rem",
+            "--mf-submit-size": "0.9rem",
+            "--mf-submit-weight": "400",
+            "--mf-submit-font": "var(--tgv-fontBody, inherit)",
+            "--mf-submit-tracking": "0.08em",
+            "--mf-submit-lh": "1",
+            "--mf-submit-transform": "none",
+            "--mf-submit-ink": "rgb(183, 138, 119)",
+            "--mf-submit-bg": "linear-gradient(180deg, rgba(183, 138, 119, 0.07) 0%, rgba(255, 255, 255, 0.018) 100%)",
+            "--mf-submit-edge": "rgba(183, 138, 119, 0.22)",
+            "--mf-submit-shadow": "inset 0 1px 0 rgba(232, 229, 218, 0.06), 0 10px 30px rgba(0, 0, 0, 0.16)"
+          }
         }
       }
     }

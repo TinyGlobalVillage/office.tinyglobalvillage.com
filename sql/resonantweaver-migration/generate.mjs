@@ -488,6 +488,29 @@ function buildHomeClassic(data, formId) {
       paragraphs: inlineCopy.intro.map(verbatim),
       chips: [],
       ctas: [],
+      // HER `IntroSection` PADS BY NOTHING, which is where its 142px came from.
+      // It is a 50rem `Container` — 752 inside its 1.5rem sides — laid out as a
+      // centred flex column with `gap: 1.25rem`, no vertical padding at all and
+      // a 6rem margin below; the two `Intro` paragraphs cap at 44rem and centre
+      // inside it, at her body scale on `var(--text-muted)`. Our row took the
+      // frame's `lg` rung, i.e. 88px above and below a band she pads by zero.
+      //
+      // `copyGap` is a MARGIN where hers is a flex `gap`, so the last paragraph
+      // now carries 20px her last one does not. It costs nothing: the frame
+      // states no bottom padding, so that margin collapses through the section
+      // and into the gateway's own 6rem — which is her `margin-bottom` exactly.
+      framePad: "sm",
+      padTop: "0",
+      padBottom: "0",
+      maxWidth: 752,
+      centered: true,
+      proseCenter: true,
+      copyMaxWidth: "44rem",
+      copyInk: bone(data, 0.65),
+      copySize: "clamp(1rem, 2vw, 1.15rem)",
+      copyWeight: 300,
+      copyLh: "1.62",
+      copyGap: "1.25rem",
     }),
   );
 
@@ -497,7 +520,20 @@ function buildHomeClassic(data, formId) {
       imageAlt: "",
       imagePosition: "left",
       eyebrow: verbatim(inlineCopy.gateway.eyebrow),
-      eyebrowColor: "amber",
+      // Not the amber role. Her `Eyebrow` is `rgba(COPPER, 0.58)` — the SAME
+      // declaration her offer cards' `Sub` carries, meta font, small-caps,
+      // 0.82rem, 0.16em — and the amber role is her teal, so this one line was
+      // the last full-strength teal left on the page after the role map went
+      // back the right way round. Stated as ink because it is an alpha the
+      // surface has no way to reach: the two accents are opaque roles.
+      eyebrowColor: "accent",
+      eyebrowInk: `rgba(${data.tokens.COPPER}, 0.58)`,
+      eyebrowSize: "0.82rem",
+      eyebrowTracking: "0.16em",
+      eyebrowGap: "2.25rem",
+      // Her `Eyebrow` declares no weight and inherits 400; this entry's own
+      // default is 800, which put a bold line on a page that has no bold on it.
+      eyebrowWeight: 400,
       // No heading, deliberately. Her gateway has none: `Question` is a
       // centred italic <p> in muted text, not an <h2>, and authoring it as a
       // heading put an 800-weight line on a page that has no bold on it.
@@ -506,7 +542,13 @@ function buildHomeClassic(data, formId) {
       heading: "",
       headingLevel: 2,
       headingAccent: "",
-      paragraphs: [verbatim(inlineCopy.gateway.question), verbatim(inlineCopy.gateway.note)],
+      // The `note` moved OUT of the paragraphs. Her `SubNote` is not a second
+      // Question — it is 0.9rem on `--text-dim` where the Question is 1.55rem
+      // on `--text-muted`, and it sits UNDER the button, not above it. Both
+      // facts are what `finePrint` is: the quiet line after the CTA. Authored
+      // as a paragraph it took the Question's whole type run and rendered 1.6px
+      // too large in the wrong colour in the wrong place.
+      paragraphs: [verbatim(inlineCopy.gateway.question)],
       chips: [],
       ctas: [
         {
@@ -515,6 +557,36 @@ function buildHomeClassic(data, formId) {
           variant: "ritual",
         },
       ],
+      finePrint: verbatim(inlineCopy.gateway.note),
+      finePrintSize: "0.9rem",
+      finePrintWeight: 300,
+      finePrintColor: bone(data, 0.22),
+      finePrintTop: "2.25rem",
+      // HER `Wrap`, MEASURED RATHER THAN GUESSED. 58rem wide (880 inside its
+      // 1.5rem sides), a centred flex column on a flat `gap: 2.25rem`, opening
+      // and closing with a `FadeLine` — so 1px of rule plus 36px of gap at each
+      // hand, carried here as the band's own padding because a gradient
+      // hairline is not a `border` and `ruleTop` takes one.
+      //
+      // `ctaTop` IS THE CHAKRA ROW. Between her Question and her button sit
+      // seven 7px dots on threads — decoration with no entry and no words —
+      // and dropping it silently would have moved everything below it up by
+      // 79px (36 + 7 + 36). The dots are not painted; the space they occupied
+      // is, so the button and the sub-note land where hers do.
+      framePad: "sm",
+      padTop: "37px",
+      padBottom: "37px",
+      maxWidth: 880,
+      centered: true,
+      proseCenter: true,
+      marginTop: "6rem",
+      copyMaxWidth: "38rem",
+      copyInk: bone(data, 0.65),
+      copySize: "clamp(1.15rem, 2.8vw, 1.55rem)",
+      copyWeight: 300,
+      copyLh: "1.65",
+      copyGap: "0",
+      ctaTop: "79px",
     }),
   );
 
@@ -527,8 +599,24 @@ function buildHomeClassic(data, formId) {
         columns: row.columns,
         heading: i === 0 ? verbatim(inlineCopy.offeringsHeading) : "",
         bulletGlyph: "✦",
+        // HER 64px ABOVE THE HEADING IS A MARGIN AND HAS TO STAY ONE. Her
+        // gateway `Wrap` closes on `margin-bottom: 4rem` and the bare
+        // `<H2>Work with me</H2>` follows it as a direct `Main` child. Carried
+        // as this frame's `padTop` it lands INSIDE the band, so the heading and
+        // all 3332px below it sat 64px lower inside their own strip and the
+        // offerings seg went 14.99% → 17.39% for a gap it was supposed to
+        // close. The entry grew a `marginTop` for exactly this (2026-08-10) —
+        // it was the last of the family without one — so the 64px now sits
+        // BETWEEN the bands, where hers does.
         padTop: 0,
         padBottom: 25,
+        ...(i === 0 ? { marginTop: "4rem" } : {}),
+        // Her `CardBody` — and through it every paragraph, every ✦ line and the
+        // whole reading half of the card — is `var(--text-muted)`. See `bone()`
+        // for why an unstated row is wrong rather than merely unspecified; this
+        // is where it bit hardest, because the offerings stack is 3332px of the
+        // 6970 this page runs to.
+        muted: bone(data, 0.65),
         items: row.items.map(offeringToItem),
       }),
     );
@@ -539,6 +627,9 @@ function buildHomeClassic(data, formId) {
           kicker: "Testimonials",
           quoteMark: '"',
           ruleBelow: true,
+          // Her `TestimonialText` is `rgba(BONE, 0.72)` — a THIRD alpha, not the
+          // card body's 0.65, and the only place on the page that uses it.
+          muted: bone(data, 0.72),
           items: quotes.map((t) => ({ quote: t.quote, attribution: t.attribution ?? "" })),
         }),
       );
@@ -555,16 +646,121 @@ function buildHomeClassic(data, formId) {
       ruleUnderHead: true,
       animate: true,
       exclusive: true,
+      // HER FAQ HEAD IS THE PAGE'S `H2`, not a section heading of its own —
+      // `FAQHead` imports it by name and only resets its bottom margin. So it
+      // is copper at the page's display scale, where ours was rendering bone at
+      // 38.4px. Below it, `FAQIntro` is `--text-muted`, `FAQSummaryButton` is
+      // the copper at 0.75 on the display face, and `FAQContentInner` is the
+      // same `bodyTextCss`/`--text-muted` every card body on the page runs.
+      headColor: `rgb(${data.tokens.COPPER})`,
+      headSize: "clamp(1.9rem, 4.5vw, 3.25rem)",
+      headWeight: 300,
+      headTracking: "0.06em",
+      ledeColor: bone(data, 0.65),
+      ledeSize: "1.02rem",
+      ledeWeight: 300,
+      ledeLh: "1.62",
+      nameColor: `rgba(${data.tokens.COPPER}, 0.75)`,
+      nameSize: "0.98rem",
+      nameWeight: 300,
+      nameTracking: "0.02em",
+      muted: bone(data, 0.65),
+      // `FAQSection` is a 50rem `Container` — 752 inside its 1.5rem sides —
+      // padding 3.5rem above and 5rem below. `md` (64) is the nearest rung the
+      // frame has; `lg` (88) is what the row was taking.
+      maxWidth: 752,
+      framePad: "md",
       items: data.faqItems.map((f) => ({ name: f.q, body: f.a })),
     }),
   );
 
   sections.push(
+    // HER `ContactSection`, RESOLVED — the last unauthored form on the site.
+    // The waitlists and the star landing's card both carry their `--mf-*` map;
+    // this one never did, so it rendered the platform's form inside a 640px
+    // column where hers runs 720 inside a 52rem section, and the census read it
+    // as 42.49% over 874px — the second-largest thing on the page.
+    //
+    // Every value is read out of `ContactFormWrapper.ts` (FormWrapper / Form /
+    // Field), `RitualButton.tsx` (the submit, which is `RitualButtonButton` and
+    // not the file's own `Button` export — she imports the ritual one) and
+    // `OnePage.styles`' `ContactSection` + `H2`.
+    //
+    // THREE OF HER DECLARATIONS RESOLVE TO NOTHING AND ARE CARRIED THAT WAY.
+    // `background-color: var(--card)` on the fields is an undefined custom
+    // property — `--card` is declared nowhere in her app — so her inputs are
+    // transparent over the page, not tinted; authoring the star card's
+    // `rgba(0,0,0,0.3)` here would have been a tint she does not have. Same for
+    // the autofill shadow, and `FormPanel` is never imported by this form.
+    //
+    // `--mf-title-gap` IS FOUR THINGS. Her H2 closes on `margin: 0 0 2.5rem`
+    // inside a `gap: 2rem` flex column, then a `FadeLine`, then another 2rem,
+    // then `FormWrapper`'s own `padding-top: 2rem` — 8.5rem and a hairline
+    // between the words and the first label. The rule itself is a gradient and
+    // has no border to be, so the space is carried and the line is not.
     section("sec-contact", "form-live", "Contact", {
       formId,
       accent: "",
       hideHeader: false,
-      maxWidth: 640,
+      // Her `FormWrapper` is 48rem with 1.5rem sides — a 720px form column
+      // inside a 52rem section. Ours closed at 640.
+      maxWidth: 720,
+      // HER 4rem/5rem IS PADDING, NOT A MARGIN, and the band has to wear it.
+      // Stated as `marginTop` the 64px landed BETWEEN the FAQ and this band and
+      // the census read it as a 64px strip her page does not have, while the
+      // band itself came up 128px short of her 874. `lg` is 80px at both hands
+      // — 16 over at the top, exact at the foot — and it is the closest rung
+      // the section chrome has, which states no explicit pads of its own.
+      padding: "lg",
+      align: "center",
+      vars: {
+        "--mf-gap": "1.25rem",
+        "--mf-field-gap": "0.5rem",
+        "--mf-title-font": "var(--tgv-fontDisplay, inherit)",
+        "--mf-title-size": "clamp(1.9rem, 4.5vw, 3.25rem)",
+        "--mf-title-weight": "300",
+        "--mf-title-tracking": "0.06em",
+        "--mf-title-lh": "1.15",
+        "--mf-title-align": "center",
+        "--mf-title-color": `rgb(${data.tokens.COPPER})`,
+        "--mf-title-gap": "calc(8.5rem + 1px)",
+        "--mf-label-font": "var(--tgv-fontBody, inherit)",
+        "--mf-label-size": "0.75rem",
+        "--mf-label-weight": "400",
+        "--mf-label-tracking": "0.1em",
+        "--mf-label-transform": "uppercase",
+        // `color: var(--text); opacity: 0.7` — one declaration, flattened.
+        "--mf-label-color": `rgba(${data.tokens.BONE}, 0.7)`,
+        "--mf-field-pad": "0.9rem 1rem",
+        "--mf-field-size": "1rem",
+        "--mf-field-lh": "1.4",
+        "--mf-field-font": "var(--tgv-fontBody, inherit)",
+        "--mf-radius": "12px",
+        "--mf-field-bg": "transparent",
+        "--mf-field-edge": "#2f4f47",
+        "--mf-ink": `rgb(${data.tokens.BONE})`,
+        "--mf-field-focus": `rgb(${data.tokens.TEAL})`,
+        "--mf-field-focus-ring": `0 0 0 2px color-mix(in srgb, rgb(${data.tokens.TEAL}) 40%, transparent)`,
+        "--mf-placeholder": "#b69fa1",
+        "--mf-placeholder-opacity": "1",
+        "--mf-textarea-minh": "140px",
+        // Her submit sits in a `justify-content: flex-start` row, so it is the
+        // width of its own words — the star card's is the only stretched one.
+        "--mf-submit-width": "auto",
+        "--mf-submit-align": "flex-start",
+        "--mf-submit-minh": "46px",
+        "--mf-submit-pad": "0.76rem 1rem",
+        "--mf-submit-size": "0.9rem",
+        "--mf-submit-weight": "400",
+        "--mf-submit-font": "var(--tgv-fontBody, inherit)",
+        "--mf-submit-tracking": "0.08em",
+        "--mf-submit-lh": "1",
+        "--mf-submit-transform": "none",
+        "--mf-submit-ink": `rgb(${data.tokens.COPPER})`,
+        "--mf-submit-bg": `linear-gradient(180deg, rgba(${data.tokens.COPPER}, 0.07) 0%, rgba(255, 255, 255, 0.018) 100%)`,
+        "--mf-submit-edge": `rgba(${data.tokens.COPPER}, 0.22)`,
+        "--mf-submit-shadow": `inset 0 1px 0 rgba(${data.tokens.BONE}, 0.06), 0 10px 30px rgba(0, 0, 0, 0.16)`,
+      },
     }),
   );
 
@@ -575,8 +771,23 @@ function buildHomeClassic(data, formId) {
       columns: 1,
       heading: "",
       bulletGlyph: "✦",
-      padTop: 0,
-      padBottom: 25,
+      // `GridSection`'s own `padding-top: 1rem`, and NOT the 80px above it —
+      // that is `ContactSection`'s `padding-bottom: 5rem`, which now rides the
+      // contact band where it belongs. Authored here it pushed every word in
+      // the band 80px down inside its own strip and took the closing seg from
+      // 32% to 66%: a band's padding moves its content, a page's rhythm moves
+      // the band.
+      //
+      // Below, `GridSection`'s `padding-bottom: 0.75rem` is this band's and
+      // `Main`'s closing `padding-bottom: 6rem` is the page's — the census read
+      // the pair as her 208px against our 112, and authoring both as padding
+      // grew the band instead of the gap.
+      padTop: 16,
+      padBottom: 12,
+      marginBottom: "6rem",
+      // Her `CardBody`, the same one the offerings ride — `AboutSection.tsx`
+      // imports it by name from `OnePage.styles`.
+      muted: bone(data, 0.65),
       items: [
         {
           anchorId: "about",
@@ -658,10 +869,16 @@ function buildStarLanding(data, formId) {
     find: "radial-gradient(ellipse 50% 34% at 82% 80%, rgba(${TEAL}, 0.035), transparent 70%)",
   });
   const sections = [
-    pageTone("sec-star-tone", [
-      "radial-gradient(ellipse 66% 36% at 50% 12%, rgba(35, 82, 121, 0.2), transparent 72%)",
-      `radial-gradient(ellipse 50% 34% at 82% 80%, rgba(${data.tokens.TEAL}, 0.035), transparent 70%)`,
-    ]),
+    pageTone(
+      "sec-star-tone",
+      [
+        "radial-gradient(ellipse 66% 36% at 50% 12%, rgba(35, 82, 121, 0.2), transparent 72%)",
+        `radial-gradient(ellipse 50% 34% at 82% 80%, rgba(${data.tokens.TEAL}, 0.035), transparent 70%)`,
+      ],
+      // `PreviewBody = styled(Body)`, so the star landing inherits the same 1.5
+      // its two siblings do — the wash is this page's own, the rhythm is not.
+      { lineHeight: LANDING_LINE_HEIGHT },
+    ),
     heroSection(data, { size: true }),
   ];
 
@@ -1007,7 +1224,17 @@ function buildStarLanding(data, formId) {
 // ruling: her design is the SOURCE, never the DEFAULT.
 
 /** `rgba(BONE, a)` — the alpha'd bone her muted copy runs on. The theme's t3
- *  is a FLATTENED hex (roles are hex-only), so per-section alphas live here. */
+ *  is a FLATTENED hex (roles are hex-only), so per-section alphas live here.
+ *
+ *  AND THE MUTED ROLE IS A ROW PROP, NEVER THE THEME'S — which is why this
+ *  helper is called at thirty-odd sites and skipping it is a real defect
+ *  rather than an omission. `muted()` in the shared surface falls back to
+ *  `var(--tgv-t3)`, and `themeToPairs` derives t3 by DARKENING `textMuted`
+ *  0.18; her `--text-muted` is `rgba(BONE, 0.65)`, which flattens to the theme's
+ *  `#999b98` — i.e. `--tgv-t2`, the sibling nothing reads. So an unstated row
+ *  paints `rgb(125, 127, 125)` where hers paints `rgba(232, 229, 218, 0.65)`,
+ *  and it does it on every paragraph in the band at once. That single missing
+ *  prop was 35 of home-classic's colour rows and 3 of pearl-chamber's. */
 const bone = (data, a) => `rgba(${data.tokens.BONE}, ${a})`;
 
 /** OfferBody/GatewayBody's toned ground, as the leading section. `extra`
@@ -1016,6 +1243,27 @@ const bone = (data, a) => `rgba(${data.tokens.BONE}, ${a})`;
  *  row to live on. */
 const pageTone = (id, layers, extra = {}) =>
   section(id, "rf-page-tone", "Page tone", { layers, ground: "#06111c", ...extra });
+
+/** HER THREE LANDINGS READ AT 1.5, AND ONLY HER THREE LANDINGS.
+ *
+ *  `OnePage.styles`' `Body` declares `line-height: 1.5` once, and every run on
+ *  the page that does not state its own inherits it — the card eyebrows, the
+ *  bullet lines, the prices, the form labels, the option list. Ours inherits
+ *  the platform's 1.60, which is a pixel or two per line on each of them and
+ *  reads out as `box` on half the strings the census compares.
+ *
+ *  It is the same shape as the 1.68 that took `/starseed/` its last 19px, and
+ *  the same argument for stating it here rather than per entry: an inherited
+ *  declaration reaches runs written before the knob existed. The scope is
+ *  narrow on purpose — her OTHER page roots (GatewayPage, OfferDetail,
+ *  StarseedOraclePage, OpenJourney) each declare their own and none of them is
+ *  1.5, so this belongs to the three rows that render `Body`: the star landing,
+ *  `/home-classic/` and `/pearl-chamber/`. */
+const LANDING_LINE_HEIGHT = verbatim({
+  file: `${HOME_DIR}/OnePage.styles.ts`,
+  find: "overflow-x: clip; position: relative; line-height: 1.5;",
+  text: "1.5",
+});
 
 /** THE PAGES THE FONT SWITCH LEAVES AT "ORIGINAL" — her serif, page-wide.
  *
@@ -1051,6 +1299,13 @@ const pageType = (id) =>
   section(id, "rf-page-tone", "Page type", {
     layers: [],
     ground: "",
+    // Her `Container` — `padding: 0 1.5rem`, one value, no mobile step, and
+    // every band on these two pages is one. The frame's own rungs step 24 → 18
+    // under 768, so without this the whole page laid out 12px wider on a phone
+    // than hers and rewrapped.
+    gutter: "1.5rem",
+    gutterNarrow: "1.5rem",
+    lineHeight: LANDING_LINE_HEIGHT,
     fontRoles: Object.fromEntries(
       Object.keys(themeFonts)
         .filter((k) => k !== "guards" && k !== "unbacked")
@@ -2097,8 +2352,26 @@ function buildPearlChamber(data, formId) {
       columns: 1,
       heading: "",
       bulletGlyph: "✦",
-      padTop: 0,
-      padBottom: 25,
+      padTop: 16,
+      padBottom: 12,
+      // Her `CardBody` again — this page renders the same card vocabulary as
+      // the classic landing's offerings row, one card wide.
+      muted: bone(data, 0.65),
+      // THE 160px NOTHING ON THIS PAGE WAS CARRYING. Her page is
+      // `Body > Main > GridSection > OfferingsStack > OfferingsRow > OfferCard`
+      // and every rung above the card contributes: `Main`'s `padding: 8rem 0
+      // 6rem` (128), `GridSection`'s `padding-top: 1rem` (16) and the row's own
+      // `clamp(10px, 1.5vw, 16px)` (16) — which is the 160px band the census
+      // read at 100%, present on her page and simply absent from ours. The
+      // classic landing gets `Main`'s 8rem from its hero's `padAsMargin`; this
+      // page has no hero, so it had nobody to get it from.
+      // No `marginBottom` here, and that is the whole reason the two rows split
+      // the way they do: her form lives INSIDE this card's `FeatureDetail`, so
+      // `Main`'s closing 6rem falls after the FORM, not between the card and
+      // it. Authored here it opened 96px in the middle of one card — the same
+      // mistake the about band made at the other end of the classic landing,
+      // caught the same way.
+      marginTop: "8rem",
       items: [
         {
           anchorId: "pearl-chamber",
@@ -2122,11 +2395,65 @@ function buildPearlChamber(data, formId) {
         },
       ],
     }),
+    // HER PEARL FORM IS NOT HER CONTACT FORM, and the two share nothing but the
+    // ritual button. `PearlChamberSubscriptionPage.styles` gives it its own
+    // `Form`/`Field`: the label is uppercase 0.86rem on `--accent-dim` — the
+    // teal at 0.45, where the contact form's is bone at 0.7 — and the inputs
+    // wear `var(--rule)` (the copper at 0.22) over a 2.5% white wash at 8px,
+    // not the contact form's `#2f4f47` at 12px. Authoring one from the other
+    // would have been the duplicate-but-different trap in reverse.
+    //
+    // It sits INSIDE her card's `FeatureDetail`, under the three paragraphs, so
+    // the band brings no frame of its own — the card above closes the page.
     section("sec-pearl-form", "form-live", "Set your intention", {
       formId,
       accent: "",
       hideHeader: true,
       maxWidth: 640,
+      padding: "none",
+      vars: {
+        "--mf-gap": "1rem",
+        "--mf-field-gap": "0.4rem",
+        "--mf-label-font": "var(--tgv-fontBody, inherit)",
+        "--mf-label-size": "0.86rem",
+        "--mf-label-weight": "400",
+        "--mf-label-tracking": "0.08em",
+        "--mf-label-transform": "uppercase",
+        // `--accent-dim`, which is her teal at 0.45 and nothing else on the
+        // page uses.
+        "--mf-label-color": `rgba(${data.tokens.TEAL}, 0.45)`,
+        "--mf-field-pad": "0.8rem 0.9rem",
+        "--mf-field-size": "1rem",
+        "--mf-field-lh": "1.4",
+        "--mf-field-font": "var(--tgv-fontBody, inherit)",
+        "--mf-radius": "8px",
+        "--mf-field-bg": "rgba(255, 255, 255, 0.025)",
+        // `var(--rule)`.
+        "--mf-field-edge": `rgba(${data.tokens.COPPER}, 0.22)`,
+        "--mf-ink": `rgb(${data.tokens.BONE})`,
+        "--mf-field-focus": `rgba(${data.tokens.TEAL}, 0.45)`,
+        "--mf-field-focus-ring": `0 0 0 1px rgba(${data.tokens.TEAL}, 0.12)`,
+        "--mf-placeholder": "#b69fa1",
+        "--mf-placeholder-opacity": "1",
+        // Her `textarea { min-height: 9rem }`, not the contact form's 140px.
+        "--mf-textarea-minh": "144px",
+        // `PaymentStack` is `width: min(100%, 18rem)`, and the submit that
+        // precedes it is the same ritual button the whole site runs on.
+        "--mf-submit-width": "auto",
+        "--mf-submit-align": "flex-start",
+        "--mf-submit-minh": "46px",
+        "--mf-submit-pad": "0.76rem 1rem",
+        "--mf-submit-size": "0.9rem",
+        "--mf-submit-weight": "400",
+        "--mf-submit-font": "var(--tgv-fontBody, inherit)",
+        "--mf-submit-tracking": "0.08em",
+        "--mf-submit-lh": "1",
+        "--mf-submit-transform": "none",
+        "--mf-submit-ink": `rgb(${data.tokens.COPPER})`,
+        "--mf-submit-bg": `linear-gradient(180deg, rgba(${data.tokens.COPPER}, 0.07) 0%, rgba(255, 255, 255, 0.018) 100%)`,
+        "--mf-submit-edge": `rgba(${data.tokens.COPPER}, 0.22)`,
+        "--mf-submit-shadow": `inset 0 1px 0 rgba(${data.tokens.BONE}, 0.06), 0 10px 30px rgba(0, 0, 0, 0.16)`,
+      },
     }),
   ];
 
