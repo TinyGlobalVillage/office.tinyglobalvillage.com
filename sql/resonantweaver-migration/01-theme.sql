@@ -62,9 +62,9 @@ SELECT 'theme', 'en', 'published', NULL, $rwjson${
     "surface": "#041414",
     "text": "#e8e5da",
     "textMuted": "#999b98",
-    "accent1": "#48d2b9",
+    "accent1": "#b78a77",
     "accent2": "#b78a77",
-    "accent3": "#b78a77"
+    "accent3": "#48d2b9"
   },
   "fonts": {
     "display": "Science Gothic, Science Gothic Fallback, Space Grotesk, Space Grotesk Fallback, sans-serif",
@@ -94,9 +94,9 @@ UPDATE public.content_overrides
     "surface": "#041414",
     "text": "#e8e5da",
     "textMuted": "#999b98",
-    "accent1": "#48d2b9",
+    "accent1": "#b78a77",
     "accent2": "#b78a77",
-    "accent3": "#b78a77"
+    "accent3": "#48d2b9"
   },
   "fonts": {
     "display": "Science Gothic, Science Gothic Fallback, Space Grotesk, Space Grotesk Fallback, sans-serif",
@@ -121,9 +121,9 @@ UPDATE public.content_overrides
     "surface": "#041414",
     "text": "#e8e5da",
     "textMuted": "#999b98",
-    "accent1": "#48d2b9",
+    "accent1": "#b78a77",
     "accent2": "#b78a77",
-    "accent3": "#b78a77"
+    "accent3": "#48d2b9"
   },
   "fonts": {
     "display": "Science Gothic, Science Gothic Fallback, Space Grotesk, Space Grotesk Fallback, sans-serif",

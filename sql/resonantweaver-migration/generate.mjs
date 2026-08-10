@@ -391,22 +391,24 @@ function offeringToItem(o) {
  *  unchanged by `onePage.tsx` and by `LandingStarPreview.tsx`. Built once here
  *  so the two pages cannot drift apart in the one place they are identical.
  *
- *  The colours are the ROW's, deliberately swapped off the theme fan-out: this
- *  hero's primary is her COPPER (the wordmark, the mark's halo and near
+ *  THE COLOURS ARE THE THEME'S AGAIN, and that is the fix, not a regression.
+ *  This hero's primary is her COPPER (the wordmark, the mark's halo and near
  *  drop-shadow, the rule — `var(--primary)` / `FadeLineV` in her source) and
  *  its second accent is the TEAL her eyebrow and tagline wear at 0.68/0.64.
- *  Left to the fallbacks the entry paints the wordmark `--tgv-cyan` and the
- *  eyebrow `--tgv-gold` — the exact copper↔teal inversion the 2026-08-08
- *  differ measured on every wordmark letter. `markRight` was the other row
- *  bug: `SymbolWrap` is the FIRST grid child in `HeroSection.tsx`, mark LEFT.
+ *  From 2026-08-08 the row said so by hand — `accent: var(--tgv-gold)` and
+ *  `amber: var(--tgv-cyan)`, each pointing at the OTHER role's var — because
+ *  the theme's accent1 held her teal and the entry's own primary reads
+ *  `--tgv-cyan`. Inverting both roles in one row is not a colour override, it
+ *  is a role map read backwards; `themeSql` swaps accent1↔accent3 now, so the
+ *  hero takes the theme unmodified and so do the nineteen sections behind it
+ *  that never had a colour prop to swap. `markRight` was the other row bug:
+ *  `SymbolWrap` is the FIRST grid child in `HeroSection.tsx`, mark LEFT.
  *
  *  `size` fits the STAR landing, whose `PreviewBody h1` upsizes every h1 on
  *  the page (4.5vw at 1440 = 64.8px base, ×1.22 initials = the 79.056px the
  *  differ measured); the classic landing has no such override, so it keeps
  *  the entry's default clamp — which IS `H1`'s in `OnePage.styles.ts`. */
 function heroSection(data, { size } = {}) {
-  const copper = toHex(parseTriplet(data.tokens.COPPER));
-  const teal = toHex(parseTriplet(data.tokens.TEAL));
   return section("sec-hero", "rf-split-hero", "Hero", {
     // Her Main's 8rem clearance, outside the hero's box — the section measures
     // content-only, like her HeroSection element does.
@@ -422,8 +424,6 @@ function heroSection(data, { size } = {}) {
     ariaLabel: verbatim(inlineCopy.hero.ariaLabel),
     tagline: verbatim(inlineCopy.hero.tagline),
     rule: true,
-    accent: `var(--tgv-gold, ${copper})`,
-    amber: `var(--tgv-cyan, ${teal})`,
     ...(size
       ? { wordmarkSize: "clamp(2.65rem, 4.5vw, 4.4rem)", wordmarkLineHeight: 1.04 }
       : {}),
@@ -3397,12 +3397,24 @@ function themeSql(data) {
       surface: toHex(surface),
       text: toHex(bone),
       textMuted: toHex(textMuted),
-      accent1: toHex(teal), // the teal her links, rules and kickers run on
-      accent2: toHex(copper), // copper, her primary
-      // accent3 is the gold family every rf-* section's `amber` role resolves
-      // through. She has no third colour, so it is copper again — anything else
-      // would put TGV's amber on her page.
-      accent3: toHex(copper),
+      // HER PRIMARY IS COPPER, AND accent1 IS THE ROLE THAT MEANS PRIMARY.
+      // Read the other way round for a day and a half: accent1 was named for
+      // her `--accent` (the teal her links and kickers run on) because the
+      // names line up, and accent3 — the gold family — was given copper
+      // because `amber` is what the rf-* entries call their second colour.
+      // But a pooled entry's OWN primary resolves through `--tgv-cyan`, so
+      // that mapping paints every title on the site teal, and her `--primary`
+      // is copper on every one of them (`OnePage.styles#Body` declares the
+      // palette once, with no attribute keying — unlike the type, the three
+      // landings share it exactly). The hero row had already been hand-swapped
+      // to `accent: var(--tgv-gold)` / `amber: var(--tgv-cyan)` on 2026-08-08
+      // to undo it, which is the measurement that proves the direction: a
+      // workaround that has to invert both roles is a role map read backwards.
+      // Swapped here, so the hero needs no swap and the nineteen rows behind
+      // it that have no colour prop at all come along.
+      accent1: toHex(copper), // her `--primary` — every title, wordmark, rule
+      accent2: toHex(copper), // the magenta family; she has no third colour
+      accent3: toHex(teal), // the gold family, i.e. every entry's `amber` role
     },
     // Every role themeFonts declares, `guards` excepted — so adding a role
     // there is the whole edit, and the SQL assertion below reads the same list.

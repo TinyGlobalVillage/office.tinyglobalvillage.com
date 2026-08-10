@@ -331,8 +331,6 @@ INSERT INTO _rw_pages VALUES ('home', 'Resonant Weaver', true, 'published', $rwj
           "ariaLabel": "Resonant Weaver",
           "tagline": "A return to yourself",
           "rule": true,
-          "accent": "var(--tgv-gold, #b78a77)",
-          "amber": "var(--tgv-cyan, #48d2b9)",
           "wordmarkSize": "clamp(2.65rem, 4.5vw, 4.4rem)",
           "wordmarkLineHeight": 1.04
         }
@@ -868,9 +866,7 @@ INSERT INTO _rw_pages VALUES ('home-classic', 'Resonant Weaver — classic landi
           "dropInitials": true,
           "ariaLabel": "Resonant Weaver",
           "tagline": "A return to yourself",
-          "rule": true,
-          "accent": "var(--tgv-gold, #b78a77)",
-          "amber": "var(--tgv-cyan, #48d2b9)"
+          "rule": true
         }
       }
     },
