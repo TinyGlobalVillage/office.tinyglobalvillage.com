@@ -2128,3 +2128,105 @@ The box census at 1440 is down to **1**.
 5. pearl-chamber 45.99 + home-classic 43.52 — parked on Cormorant A, NON-font
    deltas only. doors/experiences ~20% — Gio's eye.
 6. Then: **tell Gio "come look", his eyeball pass, then the flip.**
+
+---
+
+## THE DESCENDER UNDER HER FIGURE, AND TWO COLOURS — 2026-08-09
+
+The hero was the worst band at every width and consistently ~9px short. It was
+one declaration she never wrote.
+
+### 8.875px of nothing
+
+Her hero figure is a `next/image` whose inline style names width, height and a
+31rem ceiling and **not `display`** — so it computes to `inline`, rides its
+wrapper's baseline, and the strut's descender is held under it. Measured on her
+live page: **8.875px, identical at 1440, 768 and 390** (her wrapper's 26.88px
+line box = her page's 1.68 at 16px, in Space Grotesk). Ours is a block `img` and
+held nothing.
+
+That was the whole remaining delta, and it presented as two different bugs:
+
+- **stacked** (768, 390) the wheel row was 8.8px short, so the copy column began
+  8.8px high and the whole band ran short — 1494 → 1485, 1734 → 1725;
+- **side by side** (1440) the two band heights matched *exactly* and the figure
+  still sat 4.5px low, because `align-items: center` split the difference.
+
+`mediaSpaceBelow` states it on the media **cell**. Not the grid gap, which also
+opens between the columns; not padding on the `img`, which would sit inside a
+frame this row has turned off. Stated as a value rather than reproduced as inline
+layout: the number comes from her font's metrics, and a customer's uploaded
+photograph should inherit no descender it never asked for. The guard is her
+`display`-less style — state a display there and the value has to come out.
+
+**Hero band: 1440 7.73 → 3.73% · 768 11.00 → 5.75% (1494 → 1494) · 390 15.92 →
+7.66% (1734 → 1734).** Every height exact.
+
+An inline-image census across seven of her routes found this on the starseed
+hero and nowhere else — her other figures are blocks with frames of their own.
+
+### Her plate rests copper and only hovers teal
+
+`ritualButtonCss` hardcodes `color: rgb(COPPER)` at rest for every ritual button
+on her site and moves to `--button-hover-rgb` on hover, which her starseed
+`PrimaryButton` — and only that button — sets to TEAL. Ours rested on the
+section's accent and hovered to its amber. **On her copper-accented offer pages
+the two coincide**, which is why this stood through nine deploys; on the
+teal-accented starseed page they are exactly swapped, and her copper button
+rendered teal.
+
+`cta.color` already existed for the plate and monolink variants and now reaches
+the ritual plate — the same statement one rung down. Her button is *built* out of
+that colour, so it carries the hairline at 22% and the gradient's top stop at 7%
+with it: a knob that moved only the word would have left a teal frame round a
+copper one. `hoverColor` is the second, independent statement. No published row
+carries a colour on a ritual CTA, so widening it moved nothing.
+
+### Her nav never marks the current page — and the reason is the `/en/`
+
+PillNav paints the link matching `usePathname()` in bone at 94%. On her own app
+that branch has **never once fired**: her nav items carry a `/${lang}/` prefix
+her config hides from the URL, so `pathname === item.href` is false on every page
+of hers, including the one she is standing on. Pooling had to drop the prefix —
+`/en/starseed` 307s on her app and 404s here — the comparison started succeeding,
+and one link per page turned bone. On all twenty-five pages, because it is chrome.
+
+`PillNavTheme.currentPageColor`: empty is the bone the bar has always drawn,
+`"none"` takes it off (the var is published as the ordinary link tone, so the
+current link becomes its own sibling), anything else is a colour. One
+`--pn-current` behind a fallback, so the rule is unchanged and a site that states
+nothing is indistinguishable from the bar before this existed. Blast radius
+checked at the database: **resonantweaver is the only site whose `navLayers` point
+at `rf-pill-nav`.**
+
+> **FOR GIO — this one reproduces an accident, not a decision.** The current-page
+> mark is a real affordance, and Marthe's visitors have never had it only because
+> of the prefix mismatch. The row says `"none"` to match her site; say the word
+> and it becomes an empty string and the mark comes back. It is one line in
+> `gen-chrome-rows.mjs`, flagged there too.
+
+Both colour findings closed the census: **`color 2` → 0** at every width.
+
+### Board (starseed, aligned)
+
+| | 1440 | 768 | 390 |
+|---|---|---|---|
+| the gutter + the hero | 8.20 | 11.94 | 15.03 |
+| the rhythm + the head | 5.05 | 8.08 | 9.73 |
+| the closing lines | 4.28 | 7.78 | 9.70 |
+| the descender + two colours | **3.81** | **6.67** | **8.78** |
+
+### Left, in order
+
+1. **768 and 390 in the closing block** — 9.96% / 11.42%, ours 21px SHORT at
+   both. Her `Section` there carries `padding: 53.76px` with
+   `margin: 96px 24px 0`; ours `padding: 96px`, `margin: 0 152.5px`.
+2. Her `Band` hairlines — 1px rgba(255,255,255,0.09) top and bottom over a 3%
+   teal gradient on four of eleven bands; the wash is under tolerance, the
+   hairlines have no knob.
+3. `tag 15` — her braid stage number is a `<span>`, ours a `<p>`; her step
+   markers likewise. Invisible to a pixel diff, named by the text census.
+   `weight 7` is the rest of it; `color` is now clean.
+4. pearl-chamber 45.99 + home-classic 43.52 — parked on Cormorant A, NON-font
+   deltas only. doors/experiences ~20% — Gio's eye.
+5. Then: **tell Gio "come look", his eyeball pass, then the flip.**

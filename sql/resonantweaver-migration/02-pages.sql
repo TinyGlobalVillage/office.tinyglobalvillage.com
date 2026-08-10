@@ -2600,6 +2600,7 @@ INSERT INTO _rw_pages VALUES ('starseed', 'The Starwoven Journey | Discover your
           "mediaMaxWidth": "31rem",
           "imageRadius": "0",
           "imageBorder": "none",
+          "mediaSpaceBelow": "8.875px",
           "ctas": [
             {
               "label": "Begin the journey",
@@ -2607,7 +2608,9 @@ INSERT INTO _rw_pages VALUES ('starseed', 'The Starwoven Journey | Discover your
               "variant": "ritual",
               "font": "var(--tgv-fontAccent, inherit)",
               "padX": "1.35rem",
-              "sparks": "none"
+              "sparks": "none",
+              "color": "rgb(183, 138, 119)",
+              "hoverColor": "rgb(72, 210, 185)"
             }
           ]
         }

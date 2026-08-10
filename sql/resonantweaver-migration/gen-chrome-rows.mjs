@@ -98,6 +98,22 @@ const navProps = {
   // the site theme's `mono` role (01-theme.sql). A role, not a family, so
   // re-typing the site re-types the bar.
   fontRole: from(LAYOUT, "serif: 'var(--font-mono)'", "mono"),
+  // HER BAR NEVER MARKS THE CURRENT PAGE, and the reason is in the four hrefs
+  // guarded above: every one of them carries a `/${lang}/` prefix her own config
+  // hides from the URL, so PillNav's `pathname === item.href` is false on every
+  // page of hers — including the one she is standing on. Pooling took the prefix
+  // off (it had to: `/en/starseed` 307s on her app and 404s here), the comparison
+  // started succeeding, and one link per page turned bone where her site keeps it
+  // copper. On all twenty-five pages at once, which is why it is chrome.
+  //
+  // Guarded on the same needle as the Starseed item, because it IS the same
+  // fact: drop the prefix in her source and her own bar starts marking the
+  // current page, at which point this "none" must come out.
+  //
+  // FOR GIO: this reproduces an accident, not a decision. The mark is a real
+  // affordance every other pooled tenant keeps and Marthe's visitors have never
+  // had. Say the word and this line becomes an empty string.
+  currentPageColor: from(LAYOUT, "{ label: 'Starseed', href: `/${lang}/starseed` }", "none"),
   navId: "rw-sitenav",
 };
 

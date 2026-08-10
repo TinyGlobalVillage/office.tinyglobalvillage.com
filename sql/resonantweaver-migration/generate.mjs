@@ -2133,6 +2133,8 @@ function buildStarseed(data) {
   const SS = `${HOME_DIR}/starseed`;
   const SSPAGE = `${SS}/StarseedOraclePage.tsx`;
   const LSP = `${HOME_DIR}/landing-star-preview/LandingStarPreview.styles.ts`;
+  // The shared ritual plate every CTA on her site is cut from.
+  const RITUAL = "src/app/[lang]/_allPageComponents/buttons/RitualButton.tsx";
   // The two SHARED components this page mounts. Three of its four grids were
   // authored as `rf-offer-card` in the first cut and none of them is one: the
   // stages and the method cards are her hudCardSurface material (rf-hud-cards),
@@ -2170,12 +2172,27 @@ function buildStarseed(data) {
   // the starred form, this guard fails rather than the button quietly staying
   // 43px narrow than her own.
   guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "export const PrimaryButton = styled(RitualButtonAnchor)`" });
+  // Her plate's TWO tones, one from each file. The rest is site-wide and the
+  // hover is this button's alone — a single guard on either would let the
+  // other drift silently, and they are what the CTA's `color`/`hoverColor`
+  // carry. `--button-hover-rgb` is her own name for the second statement.
+  guardOnly({ file: RITUAL, find: "color: rgb(${COPPER});" });
+  guardOnly({ file: RITUAL, find: "color: rgb(var(--button-hover-rgb, ${TEAL}));" });
+  guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "--button-hover-rgb: ${TEAL};" });
   // Her HeroGrid's stack point and the flat gap it opens to there.
   guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "@media (max-width: 900px) { grid-template-columns: 1fr; gap: 40px; }" });
   // The page line-height her Eyebrow inherits and never restates.
   guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "line-height: 1.68;" });
-  // And her hero figure's own ceiling, stated inline on the <Image>.
-  guardOnly({ file: SSPAGE, find: 'maxWidth: "31rem"' });
+  // And her hero figure's own ceiling, stated inline on the <Image>. The whole
+  // style is guarded, not just the ceiling, because what it does NOT say is
+  // load-bearing: no `display`, so the image computes to `inline`, rides its
+  // wrapper's baseline and holds 8.875px of descender under itself. That is
+  // `mediaSpaceBelow` on the hero row. State a display here and this guard
+  // fails, which is the point — the value would have to come out with it.
+  guardOnly({
+    file: SSPAGE,
+    find: 'style={{ width: "100%", height: "auto", maxWidth: "31rem" }}',
+  });
   guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "padding-top: 116px; padding-bottom: 56px;" });
   guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "@media (max-width: 900px) { padding-top: 104px; min-height: auto;" });
   // The three stack widths, and her stage's second breakpoint. All four are
@@ -2486,6 +2503,17 @@ function buildStarseed(data) {
       mediaMaxWidth: "31rem",
       imageRadius: "0",
       imageBorder: "none",
+      // The last of the hero's geometry, and it was never geometry. Her figure
+      // is a next/image whose style names width, height and a ceiling and NOT
+      // display — so it computes to `inline`, rides its wrapper's baseline and
+      // holds the strut's descender under it: 8.875px, identical at 1440, 768
+      // and 390 (her page's 1.68 at 16px, in Space Grotesk). Ours is a block
+      // img and held nothing. Stacked, the copy column began 8.8px high and the
+      // whole band ran 8.8px short at both narrow widths; side by side,
+      // `align-items: center` split it and her figure sat 4.5px lower than
+      // ours. The guard below is the `display`-less style: if she ever states
+      // one, this value comes out with it.
+      mediaSpaceBelow: "8.875px",
       // Her PrimaryButton is the ritual plate in her mono, widened.
       ctas: [
         {
@@ -2502,6 +2530,16 @@ function buildStarseed(data) {
           // callers mount when they want it, and this one does not. Ours drew
           // two unasked: 220px of button against her 177.
           sparks: "none",
+          // HER PLATE RESTS COPPER AND ONLY HOVERS TEAL, and ours had the two
+          // exactly swapped on this page. `ritualButtonCss` hardcodes
+          // `color: rgb(COPPER)` at rest for every ritual button on her site
+          // and moves to `--button-hover-rgb` on hover — which this button,
+          // and only this button, sets to TEAL. Our plate rested on the
+          // section's accent (teal here) and hovered to its amber, which
+          // coincides with hers on the copper-accented offer pages and is
+          // backwards here. Two statements in her source, so two here.
+          color: `rgb(${T.COPPER})`,
+          hoverColor: `rgb(${T.TEAL})`,
         },
       ],
     }),

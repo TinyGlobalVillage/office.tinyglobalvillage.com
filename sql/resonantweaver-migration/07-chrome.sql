@@ -90,6 +90,7 @@ SELECT 'navLayers', 'en', 'published', NULL, $rwchrome${
           ],
           "accent": "183, 138, 119",
           "fontRole": "mono",
+          "currentPageColor": "none",
           "navId": "rw-sitenav"
         }
       }
@@ -152,6 +153,7 @@ UPDATE public.content_overrides
           ],
           "accent": "183, 138, 119",
           "fontRole": "mono",
+          "currentPageColor": "none",
           "navId": "rw-sitenav"
         }
       }
@@ -209,6 +211,7 @@ UPDATE public.content_overrides
           ],
           "accent": "183, 138, 119",
           "fontRole": "mono",
+          "currentPageColor": "none",
           "navId": "rw-sitenav"
         }
       }
