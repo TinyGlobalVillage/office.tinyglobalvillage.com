@@ -2315,7 +2315,18 @@ function buildStarseed(data) {
     copyLh: "1.72",
     copyGap: "16px",
     copyMaxWidth: "72ch",
-    copyTop: "1.25rem",
+    // HER 1.25rem IS A GAP UNDER THE HEAD, NOT ABOVE THE COLUMN. `Copy` is a
+    // wrapper round the PROSE — the eyebrow and the h2 are its siblings, not
+    // its children — so the value transcribed onto the column put all 20px
+    // above the eyebrow and left the words touching the h2. Measured: every
+    // head on this page opened at its section's pad + 20 where hers opens at
+    // the pad, and the two head-only bands (the journey intro, "How it works")
+    // grew 20px of air she has never had. The hero's own comment had already
+    // spotted half of this and drew the wrong conclusion — that the bands are
+    // safe "because there the column IS the prose", which is only true of the
+    // fine-print row that really has no head.
+    copyTop: "",
+    proseTop: "1.25rem",
     copyInk: "#c4ccd0",
   };
 
@@ -2354,13 +2365,26 @@ function buildStarseed(data) {
   guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "padding: 0 clamp(32px, 5vw, 64px);" });
   guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "@media (max-width: 640px) { padding-inline: 22px; }" });
   guardOnly({ file: `${SS}/theme.ts`, find: 'maxw: "1120px",' });
+  guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "margin-top: 1.25rem;" });
+  //
+  // THE SAME ROW CARRIES HER READING RHYTHM, for the same reason. Her `Page`
+  // declares `line-height: 1.68` at the root (guarded above, where the hero's
+  // eyebrow reads it) and every run that states none inherits it; ours inherit
+  // the platform's 1.60. A ratio sweep of the whole page against hers found six
+  // classes of small type a pixel short EACH — the band eyebrows, the braid's
+  // stage numbers, the "how it works" step markers, the closing eyebrow, a
+  // price and a CTA arrow — which is one fact of hers and six knobs if we
+  // answer it per entry. Declared once on the body it is +19px over the page,
+  // the braid grid landing on her 2026px exactly, with the fixed nav and the
+  // footer unmoved because both state their own.
   sections.push(
-    section("sec-ss-gutter", "rf-page-tone", "Page gutter", {
+    section("sec-ss-gutter", "rf-page-tone", "Page gutter + rhythm", {
       layers: [],
       ground: "",
       gutter: "clamp(32px, 5vw, 64px)",
       gutterNarrow: "22px",
       gutterAt: 640,
+      lineHeight: "1.68",
     }),
   );
 

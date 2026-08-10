@@ -1947,3 +1947,116 @@ that never asked for one. Empty ⇒ the pair, so no published ritual CTA moved.
 6. pearl-chamber 45.99 + home-classic 43.52 — parked on Cormorant A, NON-font
    deltas only. doors/experiences ~20% — Gio's eye.
 7. Then: **tell Gio "come look", his eyeball pass, then the flip.**
+
+---
+
+## THE PAGE'S RHYTHM, AND THE 20px UNDER THE HEAD — 2026-08-09
+
+**1440 8.20 → 5.05 · 768 11.94 → 8.08 · 390 15.03 → 9.73.** The single biggest
+move this page has made, and it came out of one ledger rather than one band.
+
+The braid was the named next unit and the braid turned out to be innocent. Every
+value in it already matched hers — the two-up grid at 720, the 28px/8px stage
+padding, the last odd child centered on `calc(50% - 0.625rem)`, the wash, the
+shadow, the h3's 480 at her clamp, the copper marker at 0.78rem/0.2em. The grid
+measured 2022px against her 2026 and 3433 against her 3440. So the 17.91% was
+not the braid; it was the band ABOVE the braid, and then the same thing on every
+other band of the page.
+
+### Finding one — her page reads at 1.68, ours at 1.60
+
+Her `Page` root declares `line-height: 1.68`. Ours inherits the platform's 1.60.
+A ratio sweep of every text run on the page — same string, same tag, both sides —
+named six classes where hers is 1.68 and ours 1.6:
+
+| run | size | entry |
+|---|---|---|
+| band eyebrows | 10.88px | rf-media-copy |
+| braid stage numbers | 12.48px | rf-hud-cards |
+| "how it works" step markers | 11.2px | rf-process-steps |
+| the closing eyebrow | 10.72px | the begin block |
+| a price | 16.8px | rf-hud-cards |
+| a CTA arrow | 10.88px | RfCta |
+
+One pixel each, seven bands, and every band below the first shifted by the
+accumulation — which is why bands whose values all matched still diffed at 8–14%.
+Answering it per entry is six knobs on four entries and a seventh the day
+somebody adds a run. It is the `--rf-gutter` argument verbatim, so it took the
+same shape: **`rf-page-tone.lineHeight`, declared on the body, inherited by every
+run that states none.** Runs that state their own (the fixed nav, the footer,
+every paragraph carrying `copyLh`) do not move — measured, not assumed.
+
+Injected against the deployed candidate before writing a line of it: +19px over
+the page, the braid grid landing on her **2026px exactly**, nav and footer
+unmoved. That experiment is why there is no `markerLh` knob in this commit.
+
+### Finding two — her 1.25rem is a gap under the head, not above the column
+
+Her `Copy` is a **wrapper round the prose** carrying `margin-top: 1.25rem`; the
+eyebrow and the h2 are its siblings, not its children. Ours has no wrapper, so
+the value was transcribed onto the copy COLUMN — which holds the head too. All
+20px landed above the eyebrow and the words sat touching the h2:
+
+```
+her   sec 1494 → eyebrow 1555 (pad 60)   h2 1589   prose 1636  (h2 + 20)
+ours  sec 1485 → eyebrow 1565 (pad 60+20) h2 1598   prose 1626  (h2 + 1)
+```
+
+Every head on the page opened 20px low with the prose 20px tight, and the two
+head-only bands — her journey intro and her "How it works" — grew 20px of air she
+has never had (our journey-head band was 141px where her whole head is 121).
+
+`proseTop` is the gap under the head: the first paragraph's own margin, and
+nothing at all when there are no paragraphs. `copyTop` keeps its meaning for the
+fine-print row, where the column really is the prose.
+
+**The hero's own comment had already found half of this and drawn the wrong
+conclusion** — it took the column knob off the hero because "her Copy's 1.25rem
+sits above the PROSE, not above the eyebrow", and then left it on the bands
+"because there the column IS the prose". It is not: the band column carries the
+eyebrow and the h2 as well. A correct observation, applied one row too narrowly.
+
+### Also learned, and worth keeping
+
+Her page has **fifteen `Reveal` blocks** — `opacity: 0; translateY(20px)` until
+an IntersectionObserver fires. A probe that scrolls in 400px steps at 40ms does
+NOT fire them, so an un-settled probe reads every head 20px low and reports a
+transform as geometry. `settle()` (0.8×viewport, 60ms) does fire them, and the
+baseline PNGs are correct — verified by cropping her capture at the journey head
+and looking at it. **Probe through `settle`, or measure her animation instead of
+her page.**
+
+### Board (starseed, aligned)
+
+| | 1440 | 768 | 390 |
+|---|---|---|---|
+| the gutter + the hero | 8.20 | 11.94 | 15.03 |
+| after this | **5.05** | **8.08** | **9.73** |
+
+The braid: 768 17.91 → **8.94** (2246 → 2243) · 390 20.40 → **8.55** (3687 →
+3685) · 1440 12.37 → **4.61**. The box census fell 20 → 5 at both narrow widths
+and 19 → 2 at 1440.
+
+Scope proven live: `line-height` and `--rf-gutter` appear on `/starseed/` and on
+nothing else — rw `/`, rw `/writing/`, giocoelho, guardians, nevlo, refusionist
+and the apex all declare neither. home (7.55), writing (6.80) and sun-walk (0.05)
+re-measured identical at 1440.
+
+### Left, in order
+
+1. **The begin block** — the worst band at every width now: 1440 11.72% (783 →
+   853, **+70px**), 768 13.91% (732 → 782, +50), 390 11.84% (1038 → 1047, +9).
+   Her `Section` there carries `padding: 53.76px` with `margin: 96px 24px 0`;
+   ours is `padding: 0` with `margin: 96px 0 0`.
+2. **The hero** — 1440 7.73%, 768 11.00% (1494 → 1485), 390 15.92% (1734 →
+   1725). Consistently ~9px short at every width.
+3. Her `Or` line — 13.5px with a teal link inside it; `parseInline` has no
+   grammar for inline links. The differ names it at every width.
+4. Her `Band` hairlines — 1px rgba(255,255,255,0.09) top and bottom over a 3%
+   teal gradient on four of eleven bands; the wash is under tolerance, the
+   hairlines have no knob.
+5. `tag 15` — her braid stage number is a `<span>`, ours a `<p>`; her step
+   markers likewise. Invisible to a pixel diff, named by the text census.
+6. pearl-chamber 45.99 + home-classic 43.52 — parked on Cormorant A, NON-font
+   deltas only. doors/experiences ~20% — Gio's eye.
+7. Then: **tell Gio "come look", his eyeball pass, then the flip.**

@@ -2513,7 +2513,7 @@ INSERT INTO _rw_pages VALUES ('starseed', 'The Starwoven Journey | Discover your
     {
       "id": "sec-ss-gutter",
       "type": "rf-page-tone",
-      "label": "Page gutter",
+      "label": "Page gutter + rhythm",
       "blocks": [],
       "enabled": true,
       "config": {
@@ -2522,7 +2522,8 @@ INSERT INTO _rw_pages VALUES ('starseed', 'The Starwoven Journey | Discover your
           "ground": "",
           "gutter": "clamp(32px, 5vw, 64px)",
           "gutterNarrow": "22px",
-          "gutterAt": 640
+          "gutterAt": 640,
+          "lineHeight": "1.68"
         }
       }
     },
@@ -2657,7 +2658,8 @@ INSERT INTO _rw_pages VALUES ('starseed', 'The Starwoven Journey | Discover your
           "copyLh": "1.72",
           "copyGap": "16px",
           "copyMaxWidth": "72ch",
-          "copyTop": "1.25rem",
+          "copyTop": "",
+          "proseTop": "1.25rem",
           "copyInk": "#c4ccd0",
           "quote": "You were woven to arrive in this world.",
           "quoteRole": "display",
@@ -2715,7 +2717,8 @@ INSERT INTO _rw_pages VALUES ('starseed', 'The Starwoven Journey | Discover your
           "copyLh": "1.72",
           "copyGap": "16px",
           "copyMaxWidth": "72ch",
-          "copyTop": "1.25rem",
+          "copyTop": "",
+          "proseTop": "1.25rem",
           "copyInk": "#c4ccd0"
         }
       }
@@ -2764,7 +2767,8 @@ INSERT INTO _rw_pages VALUES ('starseed', 'The Starwoven Journey | Discover your
           "copyLh": "1.72",
           "copyGap": "16px",
           "copyMaxWidth": "72ch",
-          "copyTop": "1.25rem",
+          "copyTop": "",
+          "proseTop": "1.25rem",
           "copyInk": "#c4ccd0"
         }
       }
@@ -2808,7 +2812,8 @@ INSERT INTO _rw_pages VALUES ('starseed', 'The Starwoven Journey | Discover your
           "copyLh": "1.72",
           "copyGap": "16px",
           "copyMaxWidth": "72ch",
-          "copyTop": "1.25rem",
+          "copyTop": "",
+          "proseTop": "1.25rem",
           "copyInk": "#c4ccd0"
         }
       }
@@ -2938,7 +2943,8 @@ INSERT INTO _rw_pages VALUES ('starseed', 'The Starwoven Journey | Discover your
           "copyLh": "1.72",
           "copyGap": "16px",
           "copyMaxWidth": "72ch",
-          "copyTop": "1.25rem",
+          "copyTop": "",
+          "proseTop": "1.25rem",
           "copyInk": "#c4ccd0"
         }
       }
@@ -3070,7 +3076,8 @@ INSERT INTO _rw_pages VALUES ('starseed', 'The Starwoven Journey | Discover your
           "copyLh": "1.72",
           "copyGap": "16px",
           "copyMaxWidth": "72ch",
-          "copyTop": "1.25rem",
+          "copyTop": "",
+          "proseTop": "1.25rem",
           "copyInk": "#c4ccd0"
         }
       }
@@ -3176,7 +3183,8 @@ INSERT INTO _rw_pages VALUES ('starseed', 'The Starwoven Journey | Discover your
           "copyLh": "1.72",
           "copyGap": "16px",
           "copyMaxWidth": "72ch",
-          "copyTop": "1.25rem",
+          "copyTop": "",
+          "proseTop": "1.25rem",
           "copyInk": "#c4ccd0"
         }
       }
@@ -3271,7 +3279,8 @@ INSERT INTO _rw_pages VALUES ('starseed', 'The Starwoven Journey | Discover your
           "copyLh": "1.72",
           "copyGap": "16px",
           "copyMaxWidth": "72ch",
-          "copyTop": "1.25rem",
+          "copyTop": "",
+          "proseTop": "1.25rem",
           "copyInk": "#c4ccd0"
         }
       }
