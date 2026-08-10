@@ -2312,6 +2312,52 @@ function buildStarseed(data) {
    *  padding, so her 80 + 80 between sections survives. */
   const HEAD_PAD = { padTop: PAGE_PAD, padBottom: "0" };
 
+  /** HER `Band` — the same `Section` with a hairline at each edge over a 3%
+   *  teal wash, worn by FOUR of this page's eleven bands (lineage, journey,
+   *  method, audience; the other seven are the bare `Section`).
+   *
+   *  Those four were the only four measuring short, each by exactly 2px, which
+   *  is the whole of the page's uniform −8px: a 1px border sits outside the
+   *  padding, so her content opens at 81 where ours opened at 80. Nothing in
+   *  the family could say "ruled at the edges" until now.
+   *
+   *  TWO OF THE FOUR ARE ONE `Band` OF HERS AND TWO POOLED ROWS OF OURS — the
+   *  journey and the method each hold prose AND a grid inside one ruled
+   *  Section. The head states the top rule, the grid states the bottom one,
+   *  and the grid's close becomes `padBottom` so the line falls below its own
+   *  80px rather than floating above it.
+   *
+   *  THE WASH RIDES THE HEAD ROW ALONE, for the same reason the rules are
+   *  split: her gradient runs the length of the band and ours cannot span two
+   *  boxes. Restarting it on the grid would put a 0.03 → 0 step at a boundary
+   *  she has nothing at — an artifact of our split, which is the one thing
+   *  this migration keeps refusing to reproduce. What is lost instead is the
+   *  tail, where her alpha is already under 0.02 (≈1 level of RGB over this
+   *  ground). On the two single-row bands the wash is exact. */
+  const BAND_RULE = verbatim({
+    file: `${SS}/theme.ts`,
+    find: 'border: "rgba(255, 255, 255, 0.09)",',
+    text: "1px solid rgba(255, 255, 255, 0.09)",
+  });
+  guardOnly({
+    file: `${SS}/StarseedOraclePage.styles.ts`,
+    find: "border-top: 1px solid ${({ theme }) => theme.border};",
+  });
+  guardOnly({
+    file: `${SS}/StarseedOraclePage.styles.ts`,
+    find: "border-bottom: 1px solid ${({ theme }) => theme.border};",
+  });
+  const BAND_WASH = verbatim({
+    file: `${SS}/StarseedOraclePage.styles.ts`,
+    find: "background: linear-gradient(180deg, rgba(72, 210, 185, 0.03), transparent);",
+    text: "linear-gradient(180deg, rgba(72, 210, 185, 0.03), transparent)",
+  });
+  /** A whole band of hers, ruled top and bottom — the two that are one row. */
+  const RULED = { ruleTop: BAND_RULE, ruleBottom: BAND_RULE, bg: BAND_WASH };
+  /** …and the two halves of the two that are not. */
+  const RULED_HEAD = { ...HEAD_PAD, ruleTop: BAND_RULE, bg: BAND_WASH };
+  const RULED_CLOSE = { ruleBottom: BAND_RULE, padBottom: PAGE_PAD, marginBottom: "" };
+
   const bandType = {
     // Her Wrap's content column, which every band on the page shares.
     maxWidth: 992,
@@ -2556,6 +2602,7 @@ function buildStarseed(data) {
     // emphasised paragraphs in the first cut, which is why this band still ran
     // 113px short of hers with every word in place.
     band("sec-ss-lineage", "The Stellar Braid", c.lineage, [], {
+      ...RULED,
       quote: c.lineage.quote.join("\n\n"),
       quoteRole: "display",
       quoteSize: "clamp(1.25rem, 2.35vw, 1.75rem)",
@@ -2590,8 +2637,7 @@ function buildStarseed(data) {
       chips: [],
       ctas: [],
       ...bandType,
-      ...HEAD_PAD,
-
+      ...RULED_HEAD,
     }),
   );
   /** Her `hudSurface` — one parameterisation of the shared `hudCardSurface`,
@@ -2607,7 +2653,9 @@ function buildStarseed(data) {
       columns: 2,
       heading: "",
       marginTop: "2.25rem",
-      marginBottom: PAGE_PAD,
+      // This grid CLOSES her ruled journey Band, so its 80px is padding and
+      // the hairline falls under it. See RULED_CLOSE.
+      ...RULED_CLOSE,
       maxWidth: 62,
       gap: "1rem",
       cardPad: "clamp(1.35rem, 2.5vw, 1.85rem)",
@@ -2710,7 +2758,7 @@ function buildStarseed(data) {
     }),
   );
 
-  sections.push(band("sec-ss-method", "The method", c.method, [], HEAD_PAD));
+  sections.push(band("sec-ss-method", "The method", c.method, [], RULED_HEAD));
   sections.push(
     // Her Cards / Card — the same material, three across, no marker. The three
     // inline SVG glyphs are drawn in the page file and stay behind, as noted
@@ -2720,7 +2768,8 @@ function buildStarseed(data) {
       columns: 3,
       heading: "",
       marginTop: "34px",
-      marginBottom: PAGE_PAD,
+      // …and this one closes her ruled method Band, the same way.
+      ...RULED_CLOSE,
       maxWidth: 62,
       gap: "16px",
       cardPad: "22px 22px 24px",
@@ -2818,7 +2867,7 @@ function buildStarseed(data) {
     }),
   );
 
-  sections.push(band("sec-ss-audience", "Who it is for", c.audience));
+  sections.push(band("sec-ss-audience", "Who it is for", c.audience, [], RULED));
 
   // The closing callout, which the hero's button jumps to — so the anchor is
   // load-bearing, not decoration.

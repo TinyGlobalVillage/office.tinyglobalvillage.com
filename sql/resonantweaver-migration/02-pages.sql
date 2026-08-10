@@ -2664,6 +2664,9 @@ INSERT INTO _rw_pages VALUES ('starseed', 'The Starwoven Journey | Discover your
           "copyTop": "",
           "proseTop": "1.25rem",
           "copyInk": "#c4ccd0",
+          "ruleTop": "1px solid rgba(255, 255, 255, 0.09)",
+          "ruleBottom": "1px solid rgba(255, 255, 255, 0.09)",
+          "bg": "linear-gradient(180deg, rgba(72, 210, 185, 0.03), transparent)",
           "quote": "You were woven to arrive in this world.",
           "quoteRole": "display",
           "quoteSize": "clamp(1.25rem, 2.35vw, 1.75rem)",
@@ -2817,7 +2820,9 @@ INSERT INTO _rw_pages VALUES ('starseed', 'The Starwoven Journey | Discover your
           "copyMaxWidth": "72ch",
           "copyTop": "",
           "proseTop": "1.25rem",
-          "copyInk": "#c4ccd0"
+          "copyInk": "#c4ccd0",
+          "ruleTop": "1px solid rgba(255, 255, 255, 0.09)",
+          "bg": "linear-gradient(180deg, rgba(72, 210, 185, 0.03), transparent)"
         }
       }
     },
@@ -2833,7 +2838,9 @@ INSERT INTO _rw_pages VALUES ('starseed', 'The Starwoven Journey | Discover your
           "columns": 2,
           "heading": "",
           "marginTop": "2.25rem",
-          "marginBottom": "clamp(60px, 7.8vw, 80px)",
+          "ruleBottom": "1px solid rgba(255, 255, 255, 0.09)",
+          "padBottom": "clamp(60px, 7.8vw, 80px)",
+          "marginBottom": "",
           "maxWidth": 62,
           "gap": "1rem",
           "cardPad": "clamp(1.35rem, 2.5vw, 1.85rem)",
@@ -3081,7 +3088,9 @@ INSERT INTO _rw_pages VALUES ('starseed', 'The Starwoven Journey | Discover your
           "copyMaxWidth": "72ch",
           "copyTop": "",
           "proseTop": "1.25rem",
-          "copyInk": "#c4ccd0"
+          "copyInk": "#c4ccd0",
+          "ruleTop": "1px solid rgba(255, 255, 255, 0.09)",
+          "bg": "linear-gradient(180deg, rgba(72, 210, 185, 0.03), transparent)"
         }
       }
     },
@@ -3097,7 +3106,9 @@ INSERT INTO _rw_pages VALUES ('starseed', 'The Starwoven Journey | Discover your
           "columns": 3,
           "heading": "",
           "marginTop": "34px",
-          "marginBottom": "clamp(60px, 7.8vw, 80px)",
+          "ruleBottom": "1px solid rgba(255, 255, 255, 0.09)",
+          "padBottom": "clamp(60px, 7.8vw, 80px)",
+          "marginBottom": "",
           "maxWidth": 62,
           "gap": "16px",
           "cardPad": "22px 22px 24px",
@@ -3284,7 +3295,10 @@ INSERT INTO _rw_pages VALUES ('starseed', 'The Starwoven Journey | Discover your
           "copyMaxWidth": "72ch",
           "copyTop": "",
           "proseTop": "1.25rem",
-          "copyInk": "#c4ccd0"
+          "copyInk": "#c4ccd0",
+          "ruleTop": "1px solid rgba(255, 255, 255, 0.09)",
+          "ruleBottom": "1px solid rgba(255, 255, 255, 0.09)",
+          "bg": "linear-gradient(180deg, rgba(72, 210, 185, 0.03), transparent)"
         }
       }
     },

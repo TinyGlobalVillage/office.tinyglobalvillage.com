@@ -2299,3 +2299,111 @@ sun-walk 0.05 — every one identical to its last recorded number.
 5. pearl-chamber 45.99 + home-classic 43.52 — parked on Cormorant A, NON-font
    deltas only. doors/experiences ~20% — Gio's eye.
 6. Then: **tell Gio "come look", his eyeball pass, then the flip.**
+
+---
+
+## FOUR BANDS, TWO PIXELS EACH — 2026-08-09
+
+The last record left one item at the top: *"the uniform −8px, and it is four 2px
+gaps… four bands, exactly 2px each, and nothing else on the page is off by a
+pixel. Same four at 390. Worth one probe: one cause, four places."* It was one
+cause, and it was already written two items further down the same list.
+
+**The probe answered it in one run.** Dumping the audience band's whole subtree
+on both sides: every row identical — the eyebrow 18.27, the h2 41.55, six
+paragraphs to the pixel, the inner column 533.52 on both — and her section's
+first child opening at **rel 81** where ours opens at **rel 80**. Computed
+padding read `80px/80px` on both. The 2px was not inside the band at all; it was
+the band's own edge.
+
+`Band = styled(Section)` — her page's one variant, and its whole body is three
+declarations:
+
+```
+border-top: 1px solid ${({ theme }) => theme.border};      /* rgba(255,255,255,0.09) */
+border-bottom: 1px solid ${({ theme }) => theme.border};
+background: linear-gradient(180deg, rgba(72, 210, 185, 0.03), transparent);
+```
+
+`<Band>` appears **four times** in her page — lineage, journey, method,
+audience — against seven bare `<Section>`s. Those four are exactly the four
+segments that measured short. A border sits outside the padding, so each one
+costs 1px at each edge: 4 × 2 = **the whole −8px**, and the reason it was
+uniform at 1440, 768 and 390 is that a hairline does not scale.
+
+So item 1 and item 2 of that list were the same finding. The plan had already
+named the hairlines and filed them as cosmetic ("no knob"); what it had not
+noticed is that they were also the entire height ledger.
+
+### The knob: a rule is the band's edge, so the FRAME emits it
+
+`RfSurface.ruleTop` / `ruleBottom` take a complete CSS border value, and
+`SectionWrap` emits them outside the padding and outside the mobile media query
+— a hairline is the band's edge at every width. That reaches all nine entries
+that mount `RfSection` at once. rf-hud-cards frames itself (the grid IS the
+band) and emits the same two on its own `Band`. Absent ⇒ no border, pinned both
+ways.
+
+The wash needed nothing new: `bg` has always taken a gradient.
+
+### Two of her four bands are two rows of ours, which is where the design was
+
+Her journey and method each hold prose AND a grid inside **one** ruled
+`Section`; ours are a head row plus a grid row. So the pair has to be sayable
+across two rows:
+
+- the **head** states `ruleTop` and nothing at the bottom — the band does not
+  close there, and a second hairline in the middle is an artifact of our split;
+- the **grid** states `ruleBottom` — and its close has to move from
+  `marginBottom` to a new `padBottom`, because the rule sits at the outer edge
+  and a margin would leave the line floating **above** its own 80px.
+
+That is the third time this page has taught the same lesson (the head's bottom
+pad, the gutter's opt-out, now the rule's close): *a page-level or band-level
+fact stated once by her has to be re-stated at the seam wherever we split her
+band in two.* The pooled grid that carries no rule is indifferent between margin
+and padding and keeps the margin it already had — the currents grid is
+untouched.
+
+**The wash rides the head row alone**, for the same reason. Her gradient runs
+the length of the band and ours cannot span two boxes. Restarting it on the grid
+would put a 0.03 → 0 step at a boundary she has nothing at; what is given up
+instead is the tail, where her alpha is already under 0.02 — about one level of
+RGB over this ground. On lineage and audience, which are one row each, the wash
+is exact.
+
+### The board
+
+| width | before | after | ledger |
+|---|---|---|---|
+| 1440 | 3.81% | **3.24%** | −8px → **same height** |
+| 768 | 6.32% | **5.56%** | −8px → **same height** |
+| 390 | 8.45% | **7.51%** | −8px → **same height** |
+
+Every one of the four is now exact at every width: 904→904, 2105→2105, 834→834,
+712→712 at 1440; 799→799, 2246→2246, 1124→1124, 685→685 at 768. **Not one band
+on the page is off by a pixel any more**, and `starseed` joins `sun-walk`,
+`open-your-journey` and `galactic-field-guide` on `same height`.
+
+Controls unmoved on the same pass — home 7.55 / 22.54 / 18.88, writing 6.80,
+all-products 6.66, open-your-journey 0.52, sun-walk 0.05, receive 4.70, develop
+3.99, offer/pearl-chamber 3.42 — which is what "absent ⇒ no border" is supposed
+to mean on nine entries at once. render-check 515/515, fleet 7/7, RCS built
+nothing.
+
+### Left, in order
+
+1. `tag 15` — her braid stage number is a `<span>`, ours a `<p>`; her step
+   markers likewise. Invisible to a pixel diff, named by the text census.
+   `weight 7` is the rest of it; `align`, `color` and `box` are down to one each.
+2. The five bands still carrying a candidate-only sibling (the aligned strips at
+   92%, 68%, 65%, 51%, 28%) — these are structure, not paint: her journey/
+   currents/method/how bands hold their grid INSIDE the band and ours emit a
+   second `<section>`, which is also the whole of `sections 11→16` and of
+   `landmarks: main 1→0  header 2→1`. One ruling, one shape, five bands.
+3. **home at 768 is 22.54% and at 390 is 18.88%**, against 7.55 at 1440 — three
+   bands render only in the candidate and the page runs +222px at 768 and −141px
+   at 390. Never looked at, because the board only ever ranked 1440.
+4. pearl-chamber 45.99 + home-classic 43.52 — parked on Cormorant A, NON-font
+   deltas only. doors/experiences ~20% — Gio's eye.
+5. Then: **tell Gio "come look", his eyeball pass, then the flip.**
