@@ -2286,7 +2286,9 @@ function buildStarseed(data) {
   // The closing block — the SHARED <CalloutBar variant="gateway">.
   guardOnly({ file: SSPAGE, find: '<CalloutBar' });
   guardOnly({ file: SSPAGE, find: 'variant="gateway"' });
-  guardOnly({ file: CALLOUT, find: "width: min(100% - 3rem, 70rem);" });
+  // Her gateway card's width rule is guarded where its VALUE is authored —
+  // `sec-ss-begin`'s `sideInset`, through `verbatim` — so the two cannot be
+  // edited apart.
   guardOnly({ file: CALLOUT, find: "letter-spacing: 0.18em;" });
   guardOnly({ file: CALLOUT, find: `color: rgba(\${BONE}, 0.59);` });
 
@@ -2837,6 +2839,18 @@ function buildStarseed(data) {
       price: c.begin.price,
       // `--page-glow`, declared on her Page.
       glow: `rgba(${T.TEAL}, 0.14)`,
+      // HER CARD IS 24px IN FROM EACH EDGE, not one page gutter. Her CalloutBar
+      // writes `width: min(100% - 3rem, 70rem)` as a literal, in a component
+      // shared across her pages — so the inset is the same whatever the page's
+      // reading gutter says. Once rf-page-tone could state a gutter this band
+      // started following it, and starseed's `clamp(32px, 5vw, 64px)` made the
+      // card 705 → 676px at 768. Stated outright, which is what `sideInset`
+      // is for.
+      sideInset: verbatim({
+        file: CALLOUT,
+        find: "width: min(100% - 3rem, 70rem);",
+        text: "1.5rem",
+      }),
       ctas: [
         {
           label: c.begin.cta,
@@ -2870,7 +2884,23 @@ function buildStarseed(data) {
   guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "text-decoration: none;" });
   sections.push(
     section("sec-ss-direct", "rf-media-copy", "Direct line", {
-      framePad: "none",
+      // HER GUTTER, AND NO VERTICAL FRAME AT ALL. These two lines live in her
+      // `Wrap` — `padding: 0 var(--gutter)` — inside a `div` that states no
+      // padding of its own, so they are inset by the page's reading gutter and
+      // by nothing else. `framePad: "none"` says the band asks the frame for
+      // NOTHING, gutter included (a full-bleed band has to stay full-bleed
+      // however the page is laid out), so these ran edge to edge: the
+      // disclaimer's own 720px cap became the wrap width instead of the page's
+      // 676px, and it set in three lines where hers sets in four. 21px short at
+      // 768 and at 390 alike.
+      //
+      // A rung with both vertical pads zeroed IS her Wrap: `padCss` emits
+      // `0 var(--rf-gutter, h) 0 var(--rf-gutter, h)`, and the rung's own `h`
+      // is only the fallback for a page that states no gutter. `md`'s 32px is
+      // her clamp's own floor, so even that fallback is hers.
+      framePad: "md",
+      padTop: "0",
+      padBottom: "0",
       marginTop: "20px",
       centered: true,
       maxWidth: 992,
@@ -2905,7 +2935,10 @@ function buildStarseed(data) {
     // at the column's left — which is what ours was, five lines against her
     // three.
     section("sec-ss-disclaimer", "rf-media-copy", "Disclaimer", {
-      framePad: "none",
+      // Her Wrap's gutter, and no vertical frame — see sec-ss-direct above.
+      framePad: "md",
+      padTop: "0",
+      padBottom: "0",
       marginTop: "2rem",
       centered: true,
       maxWidth: 992,

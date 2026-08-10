@@ -3306,6 +3306,7 @@ INSERT INTO _rw_pages VALUES ('starseed', 'The Starwoven Journey | Discover your
           "copy": "Your stars already form a pattern. The Starwoven Journey gives you language for the lineages, gifts, pressures and deeper direction you may have sensed throughout your life. The stars are not calling you away from your human life. They may be helping you understand how what you carry belongs here.",
           "price": "$33",
           "glow": "rgba(72, 210, 185, 0.14)",
+          "sideInset": "1.5rem",
           "ctas": [
             {
               "label": "Begin the journey",
@@ -3331,7 +3332,9 @@ INSERT INTO _rw_pages VALUES ('starseed', 'The Starwoven Journey | Discover your
       "enabled": true,
       "config": {
         "props": {
-          "framePad": "none",
+          "framePad": "md",
+          "padTop": "0",
+          "padBottom": "0",
           "marginTop": "20px",
           "centered": true,
           "maxWidth": 992,
@@ -3366,7 +3369,9 @@ INSERT INTO _rw_pages VALUES ('starseed', 'The Starwoven Journey | Discover your
       "enabled": true,
       "config": {
         "props": {
-          "framePad": "none",
+          "framePad": "md",
+          "padTop": "0",
+          "padBottom": "0",
           "marginTop": "2rem",
           "centered": true,
           "maxWidth": 992,

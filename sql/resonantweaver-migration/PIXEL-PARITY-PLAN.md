@@ -2216,17 +2216,86 @@ Both colour findings closed the census: **`color 2` → 0** at every width.
 | the closing lines | 4.28 | 7.78 | 9.70 |
 | the descender + two colours | **3.81** | **6.67** | **8.78** |
 
+---
+
+## THE CLOSING BLOCK: A GUTTER SAID TWICE, AND A GUTTER SAID BY MISTAKE — 2026-08-09
+
+21px short at 768 and at 390, identically. Two facts about horizontal inset, and
+neither of them was vertical at all.
+
+### Her card means 24px, not the page's gutter
+
+Her closing card is `CalloutBar variant="gateway"`:
+`width: min(100% - 3rem, 70rem)` with `margin: clamp(6rem, 11vw, 10rem) auto 0`.
+That inset is a **literal**, written in a component shared across her pages, so
+the card is 24px in from each edge whatever the page's reading gutter happens to
+be. rf-callout-bar's own schema has said `min(100% − 3rem, Nrem)` since it was
+written.
+
+Then `rf-page-tone` learned to state a gutter, and this band started following
+it — which is precisely what that mechanism is for: it has to reach bands written
+before it existed. On starseed the page says `clamp(32px, 5vw, 64px)`, so at 768
+the card came out **705 → 676px**.
+
+`sideInset` is how a band says it means a different inset. It replaces the width
+rule outright rather than changing the variable's fallback, because a fallback
+still loses to a page that states a gutter — the band would be back where it
+started. Empty ⇒ the gutter, which is every published row. Card now 705 at x24 at
+768 and 327 at x24 at 390, both hers exactly.
+
+### …and her two closing lines mean the gutter and nothing else
+
+Her `Or` and `Footnote` live in her `Wrap` — `padding: 0 var(--gutter)` — inside
+a `div` that states no padding of its own. So: the page's gutter horizontally,
+no frame vertically.
+
+Both rows were authored `framePad: "none"`, and "none" means the band asks the
+frame for **nothing, gutter included** — which is correct, and is what keeps a
+full-bleed band full-bleed however the page is laid out. But these two are not
+full-bleed bands; they are prose that wanted no *vertical* furniture. Running
+edge to edge, the disclaimer's own 720px cap became the wrap width instead of the
+page's 676px, and it set in **three lines where hers sets in four**. That is the
+21px, at both widths, for the same reason.
+
+**No knob was needed.** A rung with both vertical pads zeroed already IS her
+Wrap: `padCss` emits `0 var(--rf-gutter, h) 0 var(--rf-gutter, h)`, and the
+rung's own `h` is only the fallback for a page that states no gutter. `md`'s 32px
+is her clamp's own floor, so even the fallback is hers.
+
+**Closing block: 768 9.96 → 4.85% (732 → 732 exact) · 390 11.37 → 6.70%
+(1038 → 1038 exact).** The page-height delta fell from −29px to **−8px, uniform
+at all three widths**. Census `box` 5 → 1 at 390 and 4 → 1 at 768.
+
+Controls unmoved: home 7.55 at 1440 and 22.54 at 768, open-your-journey 0.52,
+sun-walk 0.05 — every one identical to its last recorded number.
+
+### Board (starseed, aligned)
+
+| | 1440 | 768 | 390 |
+|---|---|---|---|
+| the gutter + the hero | 8.20 | 11.94 | 15.03 |
+| the rhythm + the head | 5.05 | 8.08 | 9.73 |
+| the closing lines | 4.28 | 7.78 | 9.70 |
+| the descender + two colours | 3.81 | 6.67 | 8.78 |
+| the two gutters | **3.81** | **6.32** | **8.45** |
+
 ### Left, in order
 
-1. **768 and 390 in the closing block** — 9.96% / 11.42%, ours 21px SHORT at
-   both. Her `Section` there carries `padding: 53.76px` with
-   `margin: 96px 24px 0`; ours `padding: 96px`, `margin: 0 152.5px`.
+1. **The uniform −8px, and it is four 2px gaps.** At 768 the ledger reads
+   799 → 797, 2246 → 2244, 1124 → 1122, 685 → 683 — four bands, exactly 2px each,
+   and nothing else on the page is off by a pixel. Same four at 390. Worth one
+   probe: one cause, four places.
 2. Her `Band` hairlines — 1px rgba(255,255,255,0.09) top and bottom over a 3%
    teal gradient on four of eleven bands; the wash is under tolerance, the
    hairlines have no knob.
 3. `tag 15` — her braid stage number is a `<span>`, ours a `<p>`; her step
    markers likewise. Invisible to a pixel diff, named by the text census.
-   `weight 7` is the rest of it; `color` is now clean.
-4. pearl-chamber 45.99 + home-classic 43.52 — parked on Cormorant A, NON-font
+   `weight 7` is the rest of it; `color` and `box` are effectively clean.
+4. **home at 768 is 22.54% and at 390 is 18.88%**, against 7.55 at 1440 — three
+   bands render only in the candidate ("01 · your birth sky…", the star-lineage
+   grid, the early-access note) and the page runs +222px at 768 and −141px at
+   390. Not caused by this window (`rw-rhythm-control` recorded the same 22.54);
+   just never looked at, because the board only ever ranked 1440.
+5. pearl-chamber 45.99 + home-classic 43.52 — parked on Cormorant A, NON-font
    deltas only. doors/experiences ~20% — Gio's eye.
-5. Then: **tell Gio "come look", his eyeball pass, then the flip.**
+6. Then: **tell Gio "come look", his eyeball pass, then the flip.**
