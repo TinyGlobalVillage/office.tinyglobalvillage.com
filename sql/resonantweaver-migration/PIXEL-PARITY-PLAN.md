@@ -2822,20 +2822,118 @@ and re-measured: 1440 worst band 3.23%, 768 4.44%, 390 8.62%.
 
 ### LEFT, IN ORDER
 
-1. **home-classic + pearl-chamber: the eyebrows, the muted copy and the
-   measure.** ~~The colour roles~~ — done, and it was the site's role map, not
-   a page fact; see §THE ROLE MAP WAS READ BACKWARDS. What is left is per-row.
-2. **home at 768 is 23.26% and at 390 19.05%** against 7.42 at 1440 — three
-   bands render only in the candidate, +249px at 768. `writing` at 390 is 18.09%
-   and is the same shape. Still the largest honest thing outside the two parked
-   pages.
-3. The five split bands on starseed (`sections 11→16`) — markup, not the board.
-4. doors/experiences ~20% — Gio's eye. `experience-resonance-mirror` at 390 is
+1. **pearl-chamber at 768 and 390 — 69.83% and 66.53%, and the only two numbers
+   on the board that got WORSE this window.** Both read `sections 4→2`: her
+   seg 0 is 617px (768) and 546px (390) of page against our 128, i.e. below
+   900px her `FeatureCardInner` drops to one column and the artwork stacks over
+   the copy, and the two sides stop finding the same anchors. 1440 is fine
+   (36.45%, +11px) because the card is side-by-side there. This is the card's
+   narrow reflow, not paint.
+2. **The sky is the star landing's on two pages that never wear it.**
+   `siteBackground`'s orbs are `PreviewBody`'s blue-and-teal washes, authored
+   from `LandingStarPreview.styles`. `/home-classic/` and `/pearl-chamber/`
+   paint no ground of their own, so they show those — where her page shows
+   `layout.client.tsx`'s `SiteShell` (a copper wash top-centre, a teal one
+   bottom-right, over a green-black radial, `background-attachment: fixed`)
+   plus `OnePage.styles`' own `OrbA`/`OrbB`. It is worth 74.78% of home-classic's
+   seg 0 and most of the hero's 39.62%, and `rf-page-tone` already takes layers.
+   The orbs animate, so exact parity is not on offer; the ground and the two
+   washes are.
+3. **home at 768 is 21.77% and at 390 18.83%** against 6.79 at 1440 — three
+   bands render only in the candidate, +202px at 768. `writing` at 390 is 18.07%
+   and is the same shape.
+4. The offerings stack is still 17.50% over 3241px on home-classic — the single
+   biggest item left on that page. The colours are hers now; what the seg07 diff
+   shows is a card-by-card VERTICAL DRIFT that grows down the stack, plus the
+   plate's own edge. `OfferingsStack`/`OfferingsRow` are both `gap: 25px` and
+   ours is 25px, so the drift is inside the card.
+5. The five split bands on starseed (`sections 11→16`) — markup, not the board.
+6. doors/experiences ~20% — Gio's eye. `experience-resonance-mirror` at 390 is
    27.40%, the worst of that family.
-5. **FOR GIO:** `footerEnabled: false` on all four pooled hosts, `navEnabled:
+7. **FOR GIO:** `footerEnabled: false` on all four pooled hosts, `navEnabled:
    false` on guardians + nevlo — a studio setting, and turning the footer band
    on would also retire the double "powered by".
-6. Then: **tell Gio "come look", his eyeball pass, then the flip.**
+8. Then: **tell Gio "come look", his eyeball pass, then the flip.**
+
+---
+
+## THE RULER MOVED AGAIN, AND NOTHING ON EITHER SIDE DID — 2026-08-10
+
+Before a single number below can be read, this: **the baseline is now
+`.baselines/rw-her-app-2026-08-10b`**, 75 captures, and the two frozen rulers
+before it are dead.
+
+The first run of the window came back `OUT OF PHASE` on all nine captures —
+baseline laid out at 1440, candidate at 1425 — which looks exactly like a
+regression the change had just caused. It was not. A control run on `sun-walk`,
+which no row in this window touches, came back 1425 too; then HER OWN LIVE APP,
+re-shot on :3003 at a commit that has not moved since 2026-08-08, came back
+1425. Both sides moved by the same 15px, which is `scrollbar-gutter: stable`
+being honoured where the browser used to paint an overlay scrollbar.
+
+So it is the third time the ruler has moved and the second time the differ's
+own `outOfPhase` guard is what caught it. The guard is worth more than the
+numbers it protects: **run the control before believing a regression.**
+
+---
+
+## THE MUTED ROLE WAS NEVER THE THEME'S TO GIVE — 2026-08-10
+
+Item 1 as it stood — "the eyebrows, the muted copy and the measure" — is done,
+and two of the three turned out to be one fact each rather than a sweep.
+
+**home-classic 23.59 → 14.55 at 1440, 26.67 → 17.29 at 768, 28.02 → 21.04 at
+390**; pearl-chamber 39.27 → 36.45 at 1440 with +11px of height where it had
+−131. Controls unmoved to the hundredth: starseed 3.24, writing 2.32/10.51/18.07,
+sun-walk 0.05, open-your-journey 0.52.
+
+**The muted role is a ROW prop and an unstated row is wrong, not merely
+unspecified.** `muted()` falls back to `--tgv-t3`, which `themeToPairs` derives
+by DARKENING `textMuted` 0.18. Her `--text-muted` is `rgba(BONE, 0.65)`, which
+flattens to the theme's `#999b98` — that is `--tgv-t2`, the sibling nothing
+reads. So a row that says nothing paints `rgb(125, 127, 125)` on every paragraph
+in the band at once. 35 of home-classic's colour rows and 3 of pearl-chamber's,
+and `rf-offer-card` carries three of that page's four tallest bands.
+
+**Her `Body` declares `line-height: 1.5` once**, and every run on all three
+landings that states none of its own inherits it; ours inherited the platform's
+1.60. That is the fifth page in the inherited-line-height family and the same
+argument as `--rf-gutter`: an inherited declaration reaches runs written before
+the knob existed. Her `Container`'s `padding: 0 1.5rem` rides beside it as the
+page gutter — the frame's own rungs step 24 → 18 under 768 where hers does not.
+
+**Three entries had to grow before their rows could say it** (mono `d960b1b5`,
+every field defaulting to today's pixels, render-check 550/550):
+`rf-offer-card` gained `marginTop`/`marginBottom` — it was the last of the
+family without them; `rf-media-copy` gained `copyWeight` and `finePrintWeight`
+(her landing prose is 300 wherever it is hers, and the eyebrow's own default is
+800); `rf-accordion` gained `nameColor` and `ledeSize`/`ledeWeight`/`ledeLh`.
+
+**A BAND'S PADDING MOVES ITS CONTENT; A PAGE'S RHYTHM MOVES THE BAND.** Three
+placements went in as padding first and every one measured worse: the 64px above
+"Work with me" took the offerings seg 14.99 → 17.39, `ContactSection`'s
+`padding-bottom: 5rem` authored on the about band took its seg 32 → 66, and
+`padding-top: 4rem` authored as the contact band's `marginTop` opened a 64px
+strip her page does not have. All three are margins now, which is what the
+entry changes above were for.
+
+**The per-row facts, each read out of her source rather than inferred.** The
+gateway's eyebrow is `rgba(COPPER, 0.58)` — the SAME declaration her offer
+cards' `Sub` carries — so the amber role was painting the last full-strength
+teal on the page; its `SubNote` is `finePrint`, 0.9rem on `--text-dim` UNDER the
+button, and authored as a second paragraph it had been taking the Question's
+whole type run in the wrong place. `ctaTop: 79px` is her seven-dot chakra row:
+decoration with no entry, not painted, but its 36 + 7 + 36 is carried so
+everything below lands where hers does. The contact form was the last
+unauthored form on the site — 42.49% → 5.97% once it carried
+`ContactFormWrapper` verbatim, INCLUDING three declarations that resolve to
+nothing (`var(--card)` is declared nowhere in her app, so her fields are
+transparent, and `FormPanel` is never imported by that form). The pearl form is
+not that form and shares nothing with it but the ritual button. The FAQ head is
+the page's own `H2`, so it is copper at the display scale where ours was bone at
+38.4px. And pearl-chamber's missing 160px is `Main`'s `8rem` + `GridSection`'s
+`1rem` + the row's own clamp — the classic landing gets `Main`'s share from its
+hero's `padAsMargin` and that page has no hero to get it from.
 
 ---
 
