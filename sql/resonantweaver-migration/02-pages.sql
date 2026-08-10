@@ -3321,9 +3321,9 @@ INSERT INTO _rw_pages VALUES ('starseed', 'The Starwoven Journey | Discover your
       }
     },
     {
-      "id": "sec-ss-fineprint",
+      "id": "sec-ss-direct",
       "type": "rf-media-copy",
-      "label": "Direct line + disclaimer",
+      "label": "Direct line",
       "blocks": [],
       "enabled": true,
       "config": {
@@ -3332,10 +3332,47 @@ INSERT INTO _rw_pages VALUES ('starseed', 'The Starwoven Journey | Discover your
           "marginTop": "20px",
           "centered": true,
           "maxWidth": 992,
+          "copySize": "13.5px",
+          "copyInk": "#9aa4ab",
+          "copyLh": "1.68",
+          "copyGap": "0",
+          "copyMaxWidth": "none",
+          "linkColor": "rgb(72, 210, 185)",
+          "linkDecoration": "none",
+          "imageUrl": "",
+          "imageAlt": "",
+          "imagePosition": "left",
+          "eyebrow": "",
+          "eyebrowColor": "accent",
+          "heading": "",
+          "headingLevel": 2,
+          "headingAccent": "",
+          "paragraphs": [
+            "[Questions before you begin? Write directly to Resonant Weaver.](mailto:marthe@tinyglobalvillage.com?subject=Starwoven%20Journey)"
+          ],
+          "chips": [],
+          "ctas": []
+        }
+      }
+    },
+    {
+      "id": "sec-ss-disclaimer",
+      "type": "rf-media-copy",
+      "label": "Disclaimer",
+      "blocks": [],
+      "enabled": true,
+      "config": {
+        "props": {
+          "framePad": "none",
+          "marginTop": "2rem",
+          "centered": true,
+          "maxWidth": 992,
           "copySize": "12.5px",
           "copyInk": "#6b7980",
+          "copyLh": "1.68",
           "copyGap": "0",
-          "copyTop": "2rem",
+          "copyMaxWidth": "720px",
+          "proseCenter": true,
           "imageUrl": "",
           "imageAlt": "",
           "imagePosition": "left",
@@ -3348,13 +3385,7 @@ INSERT INTO _rw_pages VALUES ('starseed', 'The Starwoven Journey | Discover your
             "The Starwoven Journey is a spiritual and archetypal experience created for reflection and self-exploration. It does not claim to prove extraterrestrial origin or provide medical, psychological or professional guidance. The stars offer the framework, while your own recognition remains central. Keep what resonates and leave what does not."
           ],
           "chips": [],
-          "ctas": [
-            {
-              "label": "Questions before you begin? Write directly to Resonant Weaver.",
-              "href": "mailto:marthe@tinyglobalvillage.com?subject=Starwoven%20Journey",
-              "variant": "ghost"
-            }
-          ]
+          "ctas": []
         }
       }
     }

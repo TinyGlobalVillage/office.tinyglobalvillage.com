@@ -2816,21 +2816,67 @@ function buildStarseed(data) {
       muted: `rgba(${T.BONE}, 0.59)`,
     }),
   );
+  // HER `Or` AND HER `Footnote` — two lines inside the #begin div under the
+  // callout, and they were one band in the wrong order. Her link line comes
+  // FIRST and is a SENTENCE (`<Or><a …>{direct}</a></Or>` — 13.5px, centred,
+  // muted, the whole run a mailto in her teal with the underline off). Ours
+  // rendered it as a `RfCtaDef`, which is a plate: 51px of button where she has
+  // 23px of prose, and under the disclaimer rather than above it. `parseInline`
+  // now has a link grammar, so each line is the paragraph it is, in her order,
+  // with its own size and colour — which is why this is two rows and not one:
+  // a single `paragraphs` array cannot carry two type treatments.
+  const beginMail = `mailto:${verbatim(s.contactEmail)}?subject=${encodeURIComponent(
+    verbatim(s.contactTopic),
+  )}`;
+  guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "font-size: 13.5px;" });
+  guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "text-decoration: none;" });
   sections.push(
-    // Her `Or` line and her `Footnote`, which sit INSIDE the #begin div under
-    // the callout — 20px and then 2rem, not a section frame. The two are still
-    // one band in the wrong order (her link line comes first and is a sentence
-    // with a link in it, which `parseInline` has no grammar for); what is right
-    // here is the rhythm, which was a full padded band and is now hers.
-    section("sec-ss-fineprint", "rf-media-copy", "Direct line + disclaimer", {
+    section("sec-ss-direct", "rf-media-copy", "Direct line", {
       framePad: "none",
       marginTop: "20px",
       centered: true,
       maxWidth: 992,
-      copySize: "12.5px",
-      copyInk: "#6b7980",
+      copySize: "13.5px",
+      // theme.muted, not theme.faint — the two closing lines are different
+      // greys and collapsing them would be a quiet recolour of one of them.
+      copyInk: verbatim({ file: `${SS}/theme.ts`, find: 'muted: "#9aa4ab",', text: "#9aa4ab" }),
+      // Neither line declares a line-height, so both read at her page's 1.68;
+      // the entry's own default is 1.65, which is what made the disclaimer run
+      // long even before the column was too narrow.
+      copyLh: "1.68",
       copyGap: "0",
-      copyTop: "2rem",
+      copyMaxWidth: "none",
+      linkColor: `rgb(${T.TEAL})`,
+      linkDecoration: "none",
+      imageUrl: "",
+      imageAlt: "",
+      imagePosition: "left",
+      eyebrow: "",
+      eyebrowColor: "accent",
+      heading: "",
+      headingLevel: 2,
+      headingAccent: "",
+      paragraphs: [`[${c.begin.direct}](${beginMail})`],
+      chips: [],
+      ctas: [],
+    }),
+  );
+  sections.push(
+    // Her Footnote, with the inline style its caller gives it: a 720px box
+    // CENTRED in the 992 column (`margin: 2rem auto 0`), not a 62ch box parked
+    // at the column's left — which is what ours was, five lines against her
+    // three.
+    section("sec-ss-disclaimer", "rf-media-copy", "Disclaimer", {
+      framePad: "none",
+      marginTop: "2rem",
+      centered: true,
+      maxWidth: 992,
+      copySize: "12.5px",
+      copyInk: verbatim({ file: `${SS}/theme.ts`, find: 'faint: "#6b7980",', text: "#6b7980" }),
+      copyLh: "1.68",
+      copyGap: "0",
+      copyMaxWidth: "720px",
+      proseCenter: true,
       imageUrl: "",
       imageAlt: "",
       imagePosition: "left",
@@ -2841,15 +2887,7 @@ function buildStarseed(data) {
       headingAccent: "",
       paragraphs: [c.begin.disclaimer],
       chips: [],
-      ctas: [
-        {
-          label: c.begin.direct,
-          href: `mailto:${verbatim(s.contactEmail)}?subject=${encodeURIComponent(
-            verbatim(s.contactTopic),
-          )}`,
-          variant: "ghost",
-        },
-      ],
+      ctas: [],
     }),
   );
 

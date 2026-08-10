@@ -2060,3 +2060,71 @@ re-measured identical at 1440.
 6. pearl-chamber 45.99 + home-classic 43.52 — parked on Cormorant A, NON-font
    deltas only. doors/experiences ~20% — Gio's eye.
 7. Then: **tell Gio "come look", his eyeball pass, then the flip.**
+
+---
+
+## A SENTENCE CAN BE A LINK — 2026-08-09 (1440 5.05 → 4.28 · 768 8.08 → 7.78)
+
+The closing block was the worst band at every width and it was two lines, both
+unauthorable.
+
+Her `#begin` div closes with `<Or><a href={mailto…}>{direct}</a></Or>` then
+`<Footnote style={{maxWidth:720, margin:"2rem auto 0", textAlign:"center"}}>`.
+The `Or` is **13.5px of prose whose whole run is a link** — teal, no underline,
+centred, 20px under the callout. Ours rendered it as a `RfCtaDef`, because a
+CTA was the only thing that could carry an href: **51px of plate against her
+23px of sentence, and under the disclaimer rather than above it.** The
+disclaimer meanwhile ran five lines against her three — a 62ch box parked at the
+column's left where hers is a 720px box centred in the 992 column, at 1.65
+against her inherited 1.68.
+
+Three package changes, all empty by default:
+
+**`parseInline` gains `[text](href)`** — every entry that renders prose gets
+links inside sentences at once. The destination is **allowlisted** (http(s),
+mailto, tel, a site path, an anchor), not scheme-blocked: a parser that has to
+enumerate what is dangerous is a parser that will one day miss a scheme. Anything
+else stays literal text. Off-site links open away with `rel`. The anchor is
+emitted **bare** so no entry inherits a browser blue it never asked for.
+
+**`linkColor` / `linkDecoration`** on rf-media-copy — the host's half of that
+bargain, and the only reason a bare anchor is safe.
+
+**`proseCenter`** — `margin-inline: auto` on the paragraphs, composed INTO the
+margin shorthand rather than appended after it. A centred column is not a centred
+box, and the difference is invisible until the box is narrower than the column.
+
+The row split in two (`sec-ss-direct`, `sec-ss-disclaimer`) because one
+`paragraphs` array cannot carry two type treatments. Both greys are pinned to her
+theme by `verbatim` — `muted: #9aa4ab` and `faint: #6b7980` are different greys
+and collapsing them would have been a quiet recolour.
+
+**Closing band: 1440 11.72 → 2.62% at 783px against her 783 exactly** · 768
+13.91 → 9.96 (732 → 711) · 390 11.84 → 11.42 (1038 → 1017).
+
+### Board (starseed, aligned)
+
+| | 1440 | 768 | 390 |
+|---|---|---|---|
+| the gutter + the hero | 8.20 | 11.94 | 15.03 |
+| the rhythm + the head | 5.05 | 8.08 | 9.73 |
+| the closing lines | **4.28** | **7.78** | **9.70** |
+
+The box census at 1440 is down to **1**.
+
+### Left, in order
+
+1. **The hero** — the worst band at every width now: 1440 7.73%, 768 11.00%
+   (1494 → 1485), 390 15.92% (1734 → 1725). Consistently ~9px short.
+2. **768 and 390 in the closing block** — 9.96% / 11.42%, and ours is now 21px
+   SHORT at both. Her `Section` there carries `padding: 53.76px` with
+   `margin: 96px 24px 0`; ours `padding: 96px`, `margin: 0 152.5px`.
+3. Her `Band` hairlines — 1px rgba(255,255,255,0.09) top and bottom over a 3%
+   teal gradient on four of eleven bands; the wash is under tolerance, the
+   hairlines have no knob.
+4. `tag 15` — her braid stage number is a `<span>`, ours a `<p>`; her step
+   markers likewise. Invisible to a pixel diff, named by the text census.
+   `weight 7` and `color 2` are the rest of the census.
+5. pearl-chamber 45.99 + home-classic 43.52 — parked on Cormorant A, NON-font
+   deltas only. doors/experiences ~20% — Gio's eye.
+6. Then: **tell Gio "come look", his eyeball pass, then the flip.**
