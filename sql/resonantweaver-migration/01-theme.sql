@@ -67,12 +67,12 @@ SELECT 'theme', 'en', 'published', NULL, $rwjson${
     "accent3": "#b78a77"
   },
   "fonts": {
-    "display": "Science Gothic, Space Grotesk, sans-serif",
-    "heading": "Science Gothic, Space Grotesk, sans-serif",
-    "body": "Space Grotesk, ui-sans-serif, system-ui, sans-serif",
+    "display": "Science Gothic, Science Gothic Fallback, Space Grotesk, Space Grotesk Fallback, sans-serif",
+    "heading": "Science Gothic, Science Gothic Fallback, Space Grotesk, Space Grotesk Fallback, sans-serif",
+    "body": "Space Grotesk, Space Grotesk Fallback, ui-sans-serif, system-ui, sans-serif",
     "serif": "Cormorant Garamond, Georgia, serif",
-    "mono": "Ubuntu Mono, ui-monospace, SFMono-Regular, Menlo, monospace",
-    "accent": "Space Mono, Ubuntu Mono, ui-monospace, monospace"
+    "mono": "Ubuntu Mono, Ubuntu Mono Fallback, ui-monospace, SFMono-Regular, Menlo, monospace",
+    "accent": "Space Mono, Ubuntu Mono, Ubuntu Mono Fallback, ui-monospace, monospace"
   },
   "radius": {
     "card": "14px",
@@ -99,12 +99,12 @@ UPDATE public.content_overrides
     "accent3": "#b78a77"
   },
   "fonts": {
-    "display": "Science Gothic, Space Grotesk, sans-serif",
-    "heading": "Science Gothic, Space Grotesk, sans-serif",
-    "body": "Space Grotesk, ui-sans-serif, system-ui, sans-serif",
+    "display": "Science Gothic, Science Gothic Fallback, Space Grotesk, Space Grotesk Fallback, sans-serif",
+    "heading": "Science Gothic, Science Gothic Fallback, Space Grotesk, Space Grotesk Fallback, sans-serif",
+    "body": "Space Grotesk, Space Grotesk Fallback, ui-sans-serif, system-ui, sans-serif",
     "serif": "Cormorant Garamond, Georgia, serif",
-    "mono": "Ubuntu Mono, ui-monospace, SFMono-Regular, Menlo, monospace",
-    "accent": "Space Mono, Ubuntu Mono, ui-monospace, monospace"
+    "mono": "Ubuntu Mono, Ubuntu Mono Fallback, ui-monospace, SFMono-Regular, Menlo, monospace",
+    "accent": "Space Mono, Ubuntu Mono, Ubuntu Mono Fallback, ui-monospace, monospace"
   },
   "radius": {
     "card": "14px",
@@ -126,12 +126,12 @@ UPDATE public.content_overrides
     "accent3": "#b78a77"
   },
   "fonts": {
-    "display": "Science Gothic, Space Grotesk, sans-serif",
-    "heading": "Science Gothic, Space Grotesk, sans-serif",
-    "body": "Space Grotesk, ui-sans-serif, system-ui, sans-serif",
+    "display": "Science Gothic, Science Gothic Fallback, Space Grotesk, Space Grotesk Fallback, sans-serif",
+    "heading": "Science Gothic, Science Gothic Fallback, Space Grotesk, Space Grotesk Fallback, sans-serif",
+    "body": "Space Grotesk, Space Grotesk Fallback, ui-sans-serif, system-ui, sans-serif",
     "serif": "Cormorant Garamond, Georgia, serif",
-    "mono": "Ubuntu Mono, ui-monospace, SFMono-Regular, Menlo, monospace",
-    "accent": "Space Mono, Ubuntu Mono, ui-monospace, monospace"
+    "mono": "Ubuntu Mono, Ubuntu Mono Fallback, ui-monospace, SFMono-Regular, Menlo, monospace",
+    "accent": "Space Mono, Ubuntu Mono, Ubuntu Mono Fallback, ui-monospace, monospace"
   },
   "radius": {
     "card": "14px",
@@ -313,6 +313,30 @@ SELECT 'siteFonts', 'en', 'published', NULL, $rwjson${
       "style": "normal",
       "display": "swap",
       "unicodeRange": "U+0370-0377,U+037A-037F,U+0384-038A,U+038C,U+038E-03A1,U+03A3-03FF"
+    },
+    {
+      "family": "Science Gothic Fallback",
+      "local": "Arial",
+      "sizeAdjust": "125.9%",
+      "ascentOverride": "86.42%",
+      "descentOverride": "30.82%",
+      "lineGapOverride": "0%"
+    },
+    {
+      "family": "Space Grotesk Fallback",
+      "local": "Arial",
+      "sizeAdjust": "109.69%",
+      "ascentOverride": "89.71%",
+      "descentOverride": "26.62%",
+      "lineGapOverride": "0%"
+    },
+    {
+      "family": "Ubuntu Mono Fallback",
+      "local": "Arial",
+      "sizeAdjust": "112.16%",
+      "ascentOverride": "74%",
+      "descentOverride": "15.16%",
+      "lineGapOverride": "0%"
     }
   ]
 }$rwjson$::jsonb, now(), 'resonantweaver'
@@ -385,6 +409,30 @@ UPDATE public.content_overrides
       "style": "normal",
       "display": "swap",
       "unicodeRange": "U+0370-0377,U+037A-037F,U+0384-038A,U+038C,U+038E-03A1,U+03A3-03FF"
+    },
+    {
+      "family": "Science Gothic Fallback",
+      "local": "Arial",
+      "sizeAdjust": "125.9%",
+      "ascentOverride": "86.42%",
+      "descentOverride": "30.82%",
+      "lineGapOverride": "0%"
+    },
+    {
+      "family": "Space Grotesk Fallback",
+      "local": "Arial",
+      "sizeAdjust": "109.69%",
+      "ascentOverride": "89.71%",
+      "descentOverride": "26.62%",
+      "lineGapOverride": "0%"
+    },
+    {
+      "family": "Ubuntu Mono Fallback",
+      "local": "Arial",
+      "sizeAdjust": "112.16%",
+      "ascentOverride": "74%",
+      "descentOverride": "15.16%",
+      "lineGapOverride": "0%"
     }
   ]
 }$rwjson$::jsonb, updated_at = now()
@@ -452,6 +500,30 @@ UPDATE public.content_overrides
       "style": "normal",
       "display": "swap",
       "unicodeRange": "U+0370-0377,U+037A-037F,U+0384-038A,U+038C,U+038E-03A1,U+03A3-03FF"
+    },
+    {
+      "family": "Science Gothic Fallback",
+      "local": "Arial",
+      "sizeAdjust": "125.9%",
+      "ascentOverride": "86.42%",
+      "descentOverride": "30.82%",
+      "lineGapOverride": "0%"
+    },
+    {
+      "family": "Space Grotesk Fallback",
+      "local": "Arial",
+      "sizeAdjust": "109.69%",
+      "ascentOverride": "89.71%",
+      "descentOverride": "26.62%",
+      "lineGapOverride": "0%"
+    },
+    {
+      "family": "Ubuntu Mono Fallback",
+      "local": "Arial",
+      "sizeAdjust": "112.16%",
+      "ascentOverride": "74%",
+      "descentOverride": "15.16%",
+      "lineGapOverride": "0%"
     }
   ]
 }$rwjson$::jsonb;

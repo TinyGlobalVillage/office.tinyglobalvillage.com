@@ -19,6 +19,9 @@
 // genuinely differ (a template literal's backticks, a `<br />` inside a heading).
 
 const HOME = "src/app/[lang]/(public)/(home)";
+/** Where her four `next/font` declarations live — the field guide owns them,
+ *  and the whole site drinks from the same four CSS variables. */
+const GFG = "src/components/galacticfieldguide";
 
 /** Everything below is `{ file, text, find? }`. `file` is relative to the
  *  resonantweaver.com checkout. */
@@ -688,6 +691,59 @@ export const webfonts = [
   },
 ];
 
+/** The rungs BETWEEN her real faces and the generic families — the metric-
+ *  matched aliases `next/font` generates beside every family it loads and sits
+ *  in the stack immediately after that family.
+ *
+ *  WHY A POOLED SITE NEEDS THEM AT ALL. They are not just the flash-of-unstyled
+ *  layout before the file arrives. They are what draws, permanently, any glyph
+ *  the real file does not carry — and her CTAs end in `→`. Neither Space Mono
+ *  nor Ubuntu Mono has U+2192, so on her app that arrow is Arial scaled 112.16%
+ *  and 13.08px wide; the pooled render, whose stack fell straight through to
+ *  `ui-monospace`, drew 7.42px. Two renders agreeing on every declared family
+ *  and disagreeing on the glyph neither of them owns is the whole finding, and
+ *  the text census is what reported it (`box 13x18 → 7x18`).
+ *
+ *  THE NAMES ARE OURS, THE NUMBERS ARE HERS. She calls them `"scienceGothic
+ *  Fallback"` after her next/font variable; we call them after the family we
+ *  self-host, because the alias only has to be reachable from our own stacks.
+ *  The metrics cannot be transcribed from her source — `next/font` computes
+ *  them from the font file at build time — so they are MEASURED off the
+ *  `@font-face` blocks her live app serves (2026-08-09, all three `local
+ *  ("Arial")`), and the guards below hold the DECLARATIONS that produce them.
+ *
+ *  THERE IS NO SPACE MONO ALIAS, and that is hers too: `adjustFontFallback:
+ *  false` in her `fonts.ts`, because next/font's generated fallback carries no
+ *  unicode-range and would claim Greek before her Ubuntu Mono chain could. The
+ *  guard on that line is what keeps this list honest — if she ever turns it
+ *  back on, a fourth rung appears in her stacks and ours would be short one. */
+export const webfontAliases = [
+  {
+    family: "Science Gothic Fallback",
+    local: "Arial",
+    sizeAdjust: "125.9%",
+    ascentOverride: "86.42%",
+    descentOverride: "30.82%",
+    lineGapOverride: "0%",
+  },
+  {
+    family: "Space Grotesk Fallback",
+    local: "Arial",
+    sizeAdjust: "109.69%",
+    ascentOverride: "89.71%",
+    descentOverride: "26.62%",
+    lineGapOverride: "0%",
+  },
+  {
+    family: "Ubuntu Mono Fallback",
+    local: "Arial",
+    sizeAdjust: "112.16%",
+    ascentOverride: "74%",
+    descentOverride: "15.16%",
+    lineGapOverride: "0%",
+  },
+];
+
 /** The two families the theme NAMES, read off the star landing's own custom
  *  properties rather than off `tokens.ts`.
  *
@@ -705,9 +761,9 @@ export const themeFonts = {
   // anyway: her wordmark and her h2 both wear Science Gothic, but they are
   // different levers, and collapsing them is what made the wordmark
   // unfixable-without-moving-the-headings during the parity pass.
-  display: "Science Gothic, Space Grotesk, sans-serif",
-  heading: "Science Gothic, Space Grotesk, sans-serif",
-  body: "Space Grotesk, ui-sans-serif, system-ui, sans-serif",
+  display: "Science Gothic, Science Gothic Fallback, Space Grotesk, Space Grotesk Fallback, sans-serif",
+  heading: "Science Gothic, Science Gothic Fallback, Space Grotesk, Space Grotesk Fallback, sans-serif",
+  body: "Space Grotesk, Space Grotesk Fallback, ui-sans-serif, system-ui, sans-serif",
   // `SERIF` from her own tokens.ts. It is what `/journey/` wears; naming it
   // here does not put it on any page, it makes it NAMEABLE by one — which is
   // the whole difference between a loaded face and a usable one.
@@ -717,10 +773,10 @@ export const themeFonts = {
   // meta/kicker face and lands on `accent` below. Reading the two the other way
   // round would have put Space Mono in her nav and Ubuntu Mono on her kickers,
   // and both would have looked deliberate.
-  mono: "Ubuntu Mono, ui-monospace, SFMono-Regular, Menlo, monospace",
+  mono: "Ubuntu Mono, Ubuntu Mono Fallback, ui-monospace, SFMono-Regular, Menlo, monospace",
   // The star landing's `--preview-meta-font`, 762 elements across her site —
   // the single largest family the two-role model could not express.
-  accent: "Space Mono, Ubuntu Mono, ui-monospace, monospace",
+  accent: "Space Mono, Ubuntu Mono, Ubuntu Mono Fallback, ui-monospace, monospace",
   guards: [
     {
       file: "src/styles/GlobalStyles.ts",
@@ -742,6 +798,14 @@ export const themeFonts = {
       file: `${HOME}/landing-star-preview/LandingStarPreview.styles.ts`,
       find: "--preview-body-font: var(--gfg-font-tech), ui-sans-serif, system-ui, sans-serif",
     },
+    // Every stack above now carries her metric-matched fallback rung after its
+    // own family (see webfontAliases). These four guards are the declarations
+    // that MINT those rungs: three next/font calls that each generate one, and
+    // the one opt-out that deliberately does not.
+    { file: `${GFG}/fonts.ts`, find: "export const spaceGrotesk = Space_Grotesk({" },
+    { file: `${GFG}/fonts.ts`, find: "export const ubuntuMono = Ubuntu_Mono({" },
+    { file: `${GFG}/fonts.ts`, find: "export const scienceGothic = localFont({" },
+    { file: `${GFG}/fonts.ts`, find: "adjustFontFallback: false," },
     // The switch that makes the serif an alternative rather than the default.
     // If this line ever goes away, the reasoning above needs re-checking.
     {

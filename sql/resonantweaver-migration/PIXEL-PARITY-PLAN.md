@@ -2407,3 +2407,136 @@ nothing.
 4. pearl-chamber 45.99 + home-classic 43.52 — parked on Cormorant A, NON-font
    deltas only. doors/experiences ~20% — Gio's eye.
 5. Then: **tell Gio "come look", his eyeball pass, then the flip.**
+
+---
+
+## THE CENSUS GOES CLEAN — 2026-08-09
+
+*The window after the four ruled bands. `starseed`'s text census reads
+**"92 strings on both sides, identical"** at 1440, 768 and 390.*
+
+The board barely moved — 3.24 → **3.23** · 5.56 → **5.55** · 7.51 → **7.50** —
+and that is the point. Everything closed here was invisible to a pixel band and
+visible to the only instrument that reads type: `tag 15 · weight 7 · align 1 ·
+box 1`. Four findings, and only one of them was what the plan predicted.
+
+### The marker was bold, and no band could say so
+
+Her `BraidStageNumber` is a `styled.span` that declares no `font-weight`, so it
+runs 400. `rf-hud-cards` had `font-weight: 700` welded into both marker rules
+and `styled.p` welded under them. Seven markers on the page rendered **bold
+against her regular** — a real paint difference that the band percentage could
+not report, because that band is one of the five still carrying a structural
+sibling and its number is dominated by the split.
+
+The 700 is not wrong. It is where the entry came from: her gateway
+`OfferingIndex` and her landing `CardIndex` are both `<p>` at 700, read off her
+own `Cards.tsx` and `LandingStarPreview.styles.ts`. So the default stays and the
+stage states the exception — `markerWeight: 400`, `markerTag: "span"`.
+
+Both marker rules now declare `display: block`, which is what makes the element
+free: a paragraph is a block already and a bare span is not, so without it the
+swap would have changed the box as well as the tag.
+
+### "Her step markers likewise" was wrong
+
+The previous record predicted the same fix for the how-it-works rail. Measured,
+her step marker and ours are **already identical** — `01#2 | span | Space Mono |
+11.2px | 700 | rgb(72, 210, 185) | 112x108` on both sides. `rf-process-steps`'
+`RailNumber` was a `styled.span` from the day the rail mode was derived from her
+`TrainingStep`. Nothing to do; the prediction is corrected here rather than
+quietly dropped.
+
+### Eight rows of `div → p`, and ours is the better element
+
+Her `CurrentEssence` is a bare `div`. The row mode renders a `<p>`, which is the
+more correct element for a sentence — so the default stays and `copyTag: "div"`
+is hers to state. Zero pixels either way (both are blocks with the same margins;
+the census box read `421x45` on both sides before and after). It is transcribed
+anyway because a permanent eight-row census delta on an otherwise clean page
+makes the instrument read as noise, which is the same argument that earned the
+colour canonicalisation.
+
+### `left` vs `start` was the harness, not the page
+
+One row, on her hero eyebrow: she declares `text-align: left`, the catalog
+declares nothing and computes `start`. Identical paint at every width this rig
+shoots. Canonicalised in the differ beside `canonColor`, and **named rather than
+dropped from TPROPS** — the pair genuinely separates under `direction: rtl`, and
+the day something in the fleet sets it this has to come back.
+
+### The arrow was 13px wide because `next/font` builds a fallback face
+
+The last row was `box 13x18 → 7x18` on the `→` in her CTA. Both sides declared
+Space Mono at 10.88px/700. The stacks:
+
+```
+hers   "Space Mono", "Ubuntu Mono", "Ubuntu Mono Fallback", ui-monospace, monospace
+ours   "Space Mono", "Ubuntu Mono",                         ui-monospace, monospace
+```
+
+`next/font` generates one metric-matched alias beside every family it loads and
+sits it in the stack immediately after that family. Read off her live app:
+`"Ubuntu Mono Fallback"` is `local("Arial")` at `size-adjust: 112.16%`. **Neither
+Space Mono nor Ubuntu Mono carries U+2192**, so her arrow is Arial scaled 112.16%
+— 13.08px — and ours fell through to `ui-monospace` and drew 7.42px. Measured
+in her own document against nine candidate stacks: only her own rung reproduces
+13.08.
+
+That is not a flash-of-unstyled-text detail. The generated alias is what draws,
+permanently, **any glyph the real file does not have** — so two renders can agree
+on every declared family and still disagree on the glyphs neither of them owns.
+Nothing in `siteFonts` could say the rung that decides it: a face was a file or
+it was nothing.
+
+`SiteWebfont.local` is the alternative to `src` (never both), with `sizeAdjust`
+and the three metric overrides beside it, each **omitted rather than defaulted**
+— a `size-adjust: 100%` we invented is a scale we would be asserting. Aliases are
+counted apart from downloaded faces, because the twelve-face cap is a BYTES
+budget and an alias fetches nothing; counted together, a site restating four
+fallback rungs would silently lose a real face, and a dropped face is a page in
+the wrong typeface.
+
+Three aliases authored, and her four stacks re-stated around them. **The names
+are ours, the numbers are hers**: she calls them after her `next/font` variables
+(`"scienceGothic Fallback"`), we call them after the family we self-host, because
+the alias only has to be reachable from our own stacks. The metrics cannot be
+transcribed from her source — next/font computes them from the font file at build
+time — so they are measured off the `@font-face` blocks her live app serves, and
+the guards hold the four DECLARATIONS that mint them: `Space_Grotesk(…)`,
+`Ubuntu_Mono(…)`, `localFont(…)` and, load-bearing in the negative,
+`adjustFontFallback: false` on her Space Mono. That last one is why there is **no
+Space Mono alias** — her own comment says next/font's generated fallback carries
+no unicode-range and would claim Greek before her Ubuntu Mono chain could. If she
+ever turns it back on, a fourth rung appears in her stacks and the guard fails.
+
+### The board
+
+| width | before | after | census |
+|---|---|---|---|
+| 1440 | 3.24% | **3.23%** | `tag 15 weight 7 align 1 box 1` → **identical** |
+| 768 | 5.56% | **5.55%** | identical |
+| 390 | 7.51% | **7.50%** | identical |
+
+Controls flat-to-better on the same pass: home 7.55 / 22.54 / 18.89, writing
+6.80 / 15.62 / 21.12, all-products 6.65, open-your-journey 0.52, sun-walk 0.05,
+receive 4.69, develop 3.97, offer/pearl-chamber 3.40. `outOfPhase` empty.
+render-check 535/535 (20 new), tsc clean, fleet 7/7, RCS built nothing.
+
+### Left, in order
+
+1. The five bands still carrying a candidate-only sibling (the aligned strips at
+   92%, 68%, 65%, 51%, 28%) — structure, not paint: her journey/currents/method/
+   how bands hold their grid INSIDE the band and ours emit a second `<section>`,
+   which is also the whole of `sections 11→16` and of `landmarks: main 1→0
+   header 2→1`. One ruling, one shape, five bands. **Now the largest thing left
+   on this page by a wide margin** — with the census clean, every remaining
+   starseed point is this.
+2. **home at 768 is 22.54% and at 390 is 18.89%**, against 7.55 at 1440 — three
+   bands render only in the candidate, the page runs +222px at 768 and −141px at
+   390, and its census still reads `box 41 · tag 4 · size 2 · color 2 · weight 1`
+   with 17 strings missing on each side. Never looked at, because the board only
+   ever ranked 1440. writing is the same shape (`box 12` at 390, −30px).
+3. pearl-chamber 45.99 + home-classic 43.52 — parked on Cormorant A, NON-font
+   deltas only. doors/experiences ~20% — Gio's eye.
+4. Then: **tell Gio "come look", his eyeball pass, then the flip.**

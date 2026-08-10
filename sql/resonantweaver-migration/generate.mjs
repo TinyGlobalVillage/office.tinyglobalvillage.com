@@ -43,6 +43,7 @@ import {
   panel,
   assetMap,
   webfonts,
+  webfontAliases,
   themeFonts,
   ASSET_BASE,
 } from "./copy.mjs";
@@ -2352,6 +2353,21 @@ function buildStarseed(data) {
     find: "background: linear-gradient(180deg, rgba(72, 210, 185, 0.03), transparent);",
     text: "linear-gradient(180deg, rgba(72, 210, 185, 0.03), transparent)",
   });
+  /* The two ELEMENTS the page states that the entries default away from. Both
+     guards are the declaration itself: her stage number is a `styled.span` and
+     her current's essence a `styled.div`, and each rule's own absence of a
+     `font-weight` is why the stage runs 400 against the entry's 700. Nothing
+     to transcribe — the element IS the value — so these are guards only, and
+     if she ever reaches for a different tag the run says so. */
+  guardOnly({
+    file: `${SS}/StarseedOraclePage.styles.ts`,
+    find: "export const BraidStageNumber = styled.span`",
+  });
+  guardOnly({
+    file: `${SS}/StarseedOraclePage.styles.ts`,
+    find: "export const CurrentEssence = styled.div`",
+  });
+
   /** A whole band of hers, ruled top and bottom — the two that are one row. */
   const RULED = { ruleTop: BAND_RULE, ruleBottom: BAND_RULE, bg: BAND_WASH };
   /** …and the two halves of the two that are not. */
@@ -2679,6 +2695,15 @@ function buildStarseed(data) {
       markerSize: "0.78rem",
       markerTracking: "0.2em",
       markerGap: "0.65rem",
+      // …and it is a SPAN that declares no weight, so it runs 400. The entry's
+      // 700 comes from her own `OfferingIndex` and `CardIndex`, which are both
+      // `<p>` — right for those two families and wrong for this one. Seven
+      // markers rendered bold against her regular; the pixel bands could not
+      // say so (this one is dominated by the structural sibling), the text
+      // census could. Both guards are absence-shaped: the declaration IS the
+      // span, and the weight is what her rule does not contain.
+      markerTag: "span",
+      markerWeight: 400,
       priceColor: "",
       linkColor: "",
       badgeColor: "",
@@ -2737,6 +2762,10 @@ function buildStarseed(data) {
       priceColor: "",
       linkColor: "",
       badgeColor: "",
+      // Her CurrentEssence is a bare div too — the entry renders a paragraph,
+      // which is the better element and stays the default everywhere else.
+      // Eight rows of the page's text census, no pixels either way.
+      copyTag: "div",
       // Her CurrentName is a bare div in the display face — no weight and no
       // tracking of its own, so both are the page's, and both are stated
       // because the shared cardHeadline's are neither.
@@ -3340,7 +3369,10 @@ function themeSql(data) {
     scrollbarGutter: true,
   };
 
-  const fonts = { faces: webfonts };
+  // The downloaded faces, then the metric-matched aliases every stack above
+  // now names. Two lists because the asset check below asserts a FILE for each
+  // face it is given, and an alias has none to assert — it points at Arial.
+  const fonts = { faces: [...webfonts, ...webfontAliases] };
 
   const rows = [
     ["theme", theme],
@@ -3805,5 +3837,6 @@ if (CHECK && stale) process.exit(1);
 const sectionCount = pages.reduce((n, p) => n + p.model.sections.length, 0);
 console.log(
   `generate: ${pages.length} page(s), ${sectionCount} sections, ${forms.length} forms, ` +
-    `${orbs.length} orbs, ${webfonts.length} faces — assets under ${ASSET_BASE}`,
+    `${orbs.length} orbs, ${webfonts.length} faces + ${webfontAliases.length} aliases — ` +
+      `assets under ${ASSET_BASE}`,
 );
