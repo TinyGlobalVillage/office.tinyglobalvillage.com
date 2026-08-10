@@ -463,7 +463,7 @@ function buildHomeClassic(data, formId) {
   // this page renders `data-font-preview="original"` and every face falls
   // through to SERIF. It has to lead the sections: the entry emits a global,
   // and the order is what a reader of the row sees, not what the cascade needs.
-  sections.push(pageType("sec-classic-type"));
+  sections.push(pageType("sec-classic-type", data));
 
   // The SAME hero the star landing renders — heroSection() is the one place it
   // is built, matching how her `HeroSection.tsx` is imported by both pages.
@@ -1244,6 +1244,53 @@ const bone = (data, a) => `rgba(${data.tokens.BONE}, ${a})`;
 const pageTone = (id, layers, extra = {}) =>
   section(id, "rf-page-tone", "Page tone", { layers, ground: "#06111c", ...extra });
 
+/** HER SITE SHELL — `layout.client.tsx`, the wrapper EVERY page of hers is
+ *  inside, and the sky the two landings with no body of their own show.
+ *
+ *  A copper wash off the top edge, a teal one low and right, over a green-black
+ *  radial that is itself the ground, and the whole thing `background-attachment:
+ *  fixed`. Most of her pages cover it — GatewayBody, OfferBody, PreviewBody,
+ *  WritingPage and the two star surfaces all paint an opaque ground of their
+ *  own — so it only shows on `/home-classic/` and `/pearl-chamber/`, whose
+ *  `Body` sets custom properties, a min-height and a colour, and no background
+ *  at all. Those are exactly the two pages that were wearing the STAR
+ *  landing's blue-and-teal orbs instead: `siteBackground` is the only sky a
+ *  pooled page has when it declares none, and the row there was authored from
+ *  `LandingStarPreview.styles`.
+ *
+ *  ATTACHMENT IS PART OF THE TRANSCRIPTION, not a detail. `ellipse 90% 55%`
+ *  against a 3000px page is a wash six times taller than the same ellipse
+ *  against the viewport, and it scrolls. Hers is fixed; her per-page bodies are
+ *  not, which is why the flag is a row prop rather than the entry's default. */
+const SHELL_LAYERS = [
+  {
+    find: "radial-gradient(ellipse 90% 55% at 50% -5%, rgba(183, 138, 119, 0.08) 0%, transparent 65%)",
+    of: (d) => `radial-gradient(ellipse 90% 55% at 50% -5%, rgba(${d.tokens.COPPER}, 0.08) 0%, transparent 65%)`,
+  },
+  {
+    find: "radial-gradient(ellipse 70% 45% at 85% 100%, rgba(72, 210, 185, 0.06) 0%, transparent 60%)",
+    of: (d) => `radial-gradient(ellipse 70% 45% at 85% 100%, rgba(${d.tokens.TEAL}, 0.06) 0%, transparent 60%)`,
+  },
+  {
+    // Her third layer IS the ground — an opaque three-stop radial, no
+    // transparency anywhere in it — so `ground` below carries only its outer
+    // stop, for the sliver a fixed layer cannot reach.
+    find: "radial-gradient(circle at 50% 0%, hsl(165, 50%, 10%), hsl(170, 40%, 7%) 60%, hsl(180, 10%, 2%))",
+    of: () => "radial-gradient(circle at 50% 0%, hsl(165, 50%, 10%), hsl(170, 40%, 7%) 60%, hsl(180, 10%, 2%))",
+  },
+];
+const SHELL_FILE = "src/app/[lang]/layout.client.tsx";
+const shellSky = (data) => {
+  for (const l of SHELL_LAYERS) guardOnly({ file: SHELL_FILE, find: l.find });
+  guardOnly({ file: SHELL_FILE, find: "background-attachment: fixed;" });
+  return {
+    layers: SHELL_LAYERS.map((l) => l.of(data)),
+    // `hsl(180, 10%, 2%)`, her outermost stop, as the flat colour under it.
+    ground: "#050606",
+    fixed: true,
+  };
+};
+
 /** HER THREE LANDINGS READ AT 1.5, AND ONLY HER THREE LANDINGS.
  *
  *  `OnePage.styles`' `Body` declares `line-height: 1.5` once, and every run on
@@ -1290,15 +1337,19 @@ const LANDING_LINE_HEIGHT = verbatim({
  *  is hard-wired to the accent role (rf-back-link) come along without needing a
  *  prop each.
  *
- *  No ground and no layers: these two pages paint nothing of their own — her
- *  `Body` sets custom properties, a min-height and a colour, and never a
- *  background — so a tone row with a ground would blank the site backdrop this
- *  page is supposed to keep. The entry's paint half stays conditional exactly
- *  so a row can state type and nothing else. */
-const pageType = (id) =>
+ *  AND THE SKY IS HERS, WHICH IT WAS NOT UNTIL 2026-08-10. These two pages
+ *  paint nothing of their own — her `Body` sets custom properties, a min-height
+ *  and a colour, and never a background — and the reasoning here used to be
+ *  that a tone row with a ground would blank "the site backdrop this page is
+ *  supposed to keep". That was half right: the page IS supposed to keep the sky
+ *  it is inside, but the sky it is inside is her SITE SHELL, and
+ *  `siteBackground` carries the STAR landing's blue-and-teal washes instead —
+ *  they were authored from `LandingStarPreview.styles` because that is the page
+ *  the forensics were run on. So the two pages with no ground of their own were
+ *  the two showing another page's. `shellSky` is the shell itself. */
+const pageType = (id, data) =>
   section(id, "rf-page-tone", "Page type", {
-    layers: [],
-    ground: "",
+    ...shellSky(data),
     // Her `Container` — `padding: 0 1.5rem`, one value, no mobile step, and
     // every band on these two pages is one. The frame's own rungs step 24 → 18
     // under 768, so without this the whole page laid out 12px wider on a phone
@@ -2347,7 +2398,7 @@ function buildPearlChamber(data, formId) {
     // `data-font-preview` attribute at all — not "original" but ABSENT — so the
     // three landing variables are never declared and every run on it, including
     // the form's own labels, falls through to SERIF.
-    pageType("sec-pearl-type"),
+    pageType("sec-pearl-type", data),
     section("sec-pearl-card", "rf-offer-card", "The Pearl Chamber", {
       columns: 1,
       heading: "",

@@ -832,8 +832,13 @@ INSERT INTO _rw_pages VALUES ('home-classic', 'Resonant Weaver — classic landi
       "enabled": true,
       "config": {
         "props": {
-          "layers": [],
-          "ground": "",
+          "layers": [
+            "radial-gradient(ellipse 90% 55% at 50% -5%, rgba(183, 138, 119, 0.08) 0%, transparent 65%)",
+            "radial-gradient(ellipse 70% 45% at 85% 100%, rgba(72, 210, 185, 0.06) 0%, transparent 60%)",
+            "radial-gradient(circle at 50% 0%, hsl(165, 50%, 10%), hsl(170, 40%, 7%) 60%, hsl(180, 10%, 2%))"
+          ],
+          "ground": "#050606",
+          "fixed": true,
           "gutter": "1.5rem",
           "gutterNarrow": "1.5rem",
           "lineHeight": "1.5",
@@ -2579,8 +2584,13 @@ INSERT INTO _rw_pages VALUES ('pearl-chamber', 'The Pearl Chamber', false, 'publ
       "enabled": true,
       "config": {
         "props": {
-          "layers": [],
-          "ground": "",
+          "layers": [
+            "radial-gradient(ellipse 90% 55% at 50% -5%, rgba(183, 138, 119, 0.08) 0%, transparent 65%)",
+            "radial-gradient(ellipse 70% 45% at 85% 100%, rgba(72, 210, 185, 0.06) 0%, transparent 60%)",
+            "radial-gradient(circle at 50% 0%, hsl(165, 50%, 10%), hsl(170, 40%, 7%) 60%, hsl(180, 10%, 2%))"
+          ],
+          "ground": "#050606",
+          "fixed": true,
           "gutter": "1.5rem",
           "gutterNarrow": "1.5rem",
           "lineHeight": "1.5",
