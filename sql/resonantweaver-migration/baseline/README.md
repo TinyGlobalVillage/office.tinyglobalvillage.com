@@ -17,6 +17,17 @@ comparison are captured the same way by construction rather than by care.
 fingerprints only, no bands. Superseded but not deleted: it is the capture the
 rollback was verified against.
 
+`her-app-2026-08-10b.tgz` — **THE CURRENT RULER**, 25 routes x 3 = 75 captures,
+re-frozen 2026-08-10 because the browser started honouring `scrollbar-gutter:
+stable` and BOTH sides began laying out 15px narrower. Nothing in her app moved
+(same commit since 2026-08-08) and nothing in the pooled render did either — the
+control run is what proved it. Read `tenant-pixel-parity.mjs`'s `OUT OF PHASE`
+block before believing any regression; it has now caught this twice.
+
+`her-app-2026-08-09.tgz` — the previous ruler, superseded. Kept: it is what
+every number written into PIXEL-PARITY-PLAN before 2026-08-10 was measured
+against.
+
 `routes.txt` — the work list, and the input to both scripts.
 
 ## Why this is committed and why it was urgent
