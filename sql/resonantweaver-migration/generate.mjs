@@ -915,6 +915,16 @@ function buildStarLanding(data, formId) {
     file: `${HOME_DIR}/landing-star-preview/LandingStarPreview.styles.ts`,
     find: "radial-gradient(ellipse 50% 34% at 82% 80%, rgba(${TEAL}, 0.035), transparent 70%)",
   });
+  // The grids on this page stack at three different widths, and the two that
+  // matter here are one band apart — a single number could not answer both.
+  guardOnly({
+    file: `${HOME_DIR}/landing-star-preview/LandingStarPreview.styles.ts`,
+    find: "@media (max-width: 900px) { grid-template-columns: repeat(2, minmax(0, 1fr)); } @media (max-width: 560px) { grid-template-columns: 1fr; }",
+  });
+  guardOnly({
+    file: `${HOME_DIR}/landing-star-preview/LandingStarPreview.styles.ts`,
+    find: "export const FieldGuideRow = styled.div` display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.25rem; margin-top: clamp(2rem, 4vw, 3rem); @media (max-width: 760px) { grid-template-columns: 1fr; } `;",
+  });
   const sections = [
     pageTone(
       "sec-star-tone",
@@ -990,6 +1000,12 @@ function buildStarLanding(data, formId) {
       mode: "tile",
       columns: 3,
       heading: "",
+      // Her `FeaturedGrid` reflows 3 → 2 → 1, and states why in its own words:
+      // "narrow tablets never keep three cramped columns". Two numbers, so two
+      // knobs — one of them new this window, because the entry could only ever
+      // say where a grid becomes a column.
+      stackAt: 560,
+      stackTwoAt: 900,
       marginTop: "clamp(2rem, 4vw, 3rem)",
       gap: "clamp(0.85rem, 1.5vw, 1.35rem)",
       cardWash: "rgba(18, 63, 82, 0.5)",
@@ -1034,6 +1050,12 @@ function buildStarLanding(data, formId) {
       mode: "tile",
       columns: 3,
       heading: "",
+      // HER FIELD GUIDE GOES STRAIGHT 3 → 1, AND AT 760, NOT 768. The tile
+      // mode's own default is 780, so at the tablet width the rig shoots this
+      // row had already stacked while hers was still three-up: +203px, and the
+      // whole of home's +202 at 768. Her featured row one band above steps
+      // differently again (below), which is the argument for stating both.
+      stackAt: 760,
       marginTop: "clamp(2rem, 4vw, 3rem)",
       gap: "1.25rem",
       cardWash: "rgba(18, 63, 82, 0.5)",

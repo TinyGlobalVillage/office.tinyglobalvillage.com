@@ -2822,10 +2822,11 @@ and re-measured: 1440 worst band 3.23%, 768 4.44%, 390 8.62%.
 
 ### LEFT, IN ORDER
 
-1. **home at 768 is 21.77% and at 390 18.83%** against 6.79 at 1440 — three
-   bands render only in the candidate, +202px at 768. `writing` at 390 is
-   18.07% and is the same shape. Both are narrow-only, so it is a stack point
-   somewhere, not paint. Biggest non-photo number left on the board.
+1. **home at 390 is 18.83% and `writing` at 390 is 18.07%** — the two biggest
+   non-photo numbers left, and both are 390-only (home is 6.79 at 1440 and
+   10.10 at 768). home's heights at 390 are already within 99px over 8339, so
+   this is paint and reflow inside the bands, not a stack point: the star-
+   lineage strip alone censuses 39.87%.
 2. **doors/experiences ~20% — Gio's eye.** `experience-resonance-mirror` at 390
    is 27.01%, the worst number on the whole board now; `experience-pearl-chamber`
    20.09/17.20/20.37. Image resampling, and he ruled ~20% is the accepted floor.
@@ -2840,6 +2841,55 @@ and re-measured: 1440 worst band 3.23%, 768 4.44%, 390 8.62%.
    false` on guardians + nevlo — a studio setting, and turning the footer band
    on would also retire the double "powered by".
 7. Then: **tell Gio "come look", his eyeball pass, then the flip.**
+
+---
+
+## ONE STACK POINT ANSWERING FOR THREE — 2026-08-10
+
+Item 1 read *"three bands render only in the candidate, +202px at 768 — narrow-
+only, so it is a stack point somewhere, not paint."* That one was right, and the
+somewhere was two bands, one after the other.
+
+**home 768: 21.77 → 10.10%, +202px → −46px.** One line changed on the whole
+75-capture board.
+
+Her `/` states **three different stack points inside one page**, and two of them
+are a single band apart:
+
+| her grid | reflow | ours before |
+|---|---|---|
+| `Cards` (the three doors) | 3 → 1 at **600** | door mode's 800 |
+| `FeaturedGrid` (begin where you feel the pull) | 3 → **2** at 900, → 1 at **560** | tile mode's 780 |
+| `FieldGuideRow` (star lineage) | 3 → 1 at **760** | tile mode's 780 |
+
+760 against a default of 780 is a twenty-pixel disagreement, and 768 — the width
+the rig shoots, and the width a tablet is — falls between them. So at 768 her
+field guide was still three tiles across and ours had already stacked into
+three full-width rows: **+203px, which is the whole of the page's +202.**
+
+`stackAt` existed for exactly this (its own comment names three of her numbers)
+and answered the field guide in one word. The featured row needed something the
+entry could not say at all: **a grid with one stack point cannot state a middle
+step.** Hers is 3 → 2 → 1 and says why in its own comment — *"reflow 3 → 2 → 1
+so narrow tablets never keep three cramped columns"* — which is the argument for
+`stackTwoAt` written by the author of the design. Three-up only; a two-up row has
+nothing between two and one, and an auto-fit row is already doing this by itself.
+
+**The rule order is load-bearing and is asserted.** Two `max-width` queries both
+match at 390, they tie on specificity, and ties go to sheet order — so the
+two-column rule has to be written BEFORE the one-column rule or a phone renders
+two cramped columns instead of stacking. That is the same finding as the tone
+entry losing to `SiteBackdrop` and the heading roles losing to
+`[data-site-theme] h1…h6`: on this codebase, order is a load-bearing part of
+correctness often enough to be worth a test every time.
+
+390 did not move (18.83), and correctly: below 560 both sides are one column, so
+what is left there is paint and reflow inside the bands — the star-lineage strip
+alone censuses 39.87%. That is the new item 1.
+
+**Shipped:** mono `648bf320`; RCS turbo 50/50 (49s); mac-deploy at `648bf320`,
+"RCS did ZERO build", HTTP 200. Three props on the `home` row, redriven.
+render-check 568 → 572.
 
 ---
 
