@@ -980,9 +980,11 @@ INSERT INTO _rw_pages VALUES ('home-classic', 'Resonant Weaver — classic landi
         "props": {
           "columns": 1,
           "heading": "Work with me",
+          "headGap": "3.5rem",
           "bulletGlyph": "✦",
           "padTop": 0,
           "padBottom": 25,
+          "padBottomNarrow": 18,
           "marginTop": "4rem",
           "muted": "rgba(232, 229, 218, 0.65)",
           "items": [
@@ -1025,6 +1027,8 @@ INSERT INTO _rw_pages VALUES ('home-classic', 'Resonant Weaver — classic landi
           "kicker": "Testimonials",
           "quoteMark": "\"",
           "ruleBelow": true,
+          "marginBottom": "25px",
+          "marginBottomNarrow": "18px",
           "muted": "rgba(232, 229, 218, 0.72)",
           "items": [
             {
@@ -1056,6 +1060,7 @@ INSERT INTO _rw_pages VALUES ('home-classic', 'Resonant Weaver — classic landi
           "bulletGlyph": "✦",
           "padTop": 0,
           "padBottom": 25,
+          "padBottomNarrow": 18,
           "muted": "rgba(232, 229, 218, 0.65)",
           "items": [
             {
@@ -1099,6 +1104,7 @@ INSERT INTO _rw_pages VALUES ('home-classic', 'Resonant Weaver — classic landi
           "bulletGlyph": "✦",
           "padTop": 0,
           "padBottom": 25,
+          "padBottomNarrow": 18,
           "muted": "rgba(232, 229, 218, 0.65)",
           "items": [
             {
@@ -1141,6 +1147,7 @@ INSERT INTO _rw_pages VALUES ('home-classic', 'Resonant Weaver — classic landi
           "bulletGlyph": "✦",
           "padTop": 0,
           "padBottom": 25,
+          "padBottomNarrow": 18,
           "muted": "rgba(232, 229, 218, 0.65)",
           "items": [
             {
@@ -1182,6 +1189,8 @@ INSERT INTO _rw_pages VALUES ('home-classic', 'Resonant Weaver — classic landi
           "kicker": "Testimonials",
           "quoteMark": "\"",
           "ruleBelow": true,
+          "marginBottom": "12px",
+          "marginBottomNarrow": "32px",
           "muted": "rgba(232, 229, 218, 0.72)",
           "items": [
             {

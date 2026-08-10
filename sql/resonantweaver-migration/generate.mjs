@@ -592,12 +592,37 @@ function buildHomeClassic(data, formId) {
 
   // The offerings stack: a row, then that row's testimonials, repeating. The
   // heading rides on the first row so it cannot drift away from the stack.
+  //
+  // HER STACK IS A FLEX COLUMN WITH `gap: 25px` INSIDE `GridSection`'s OWN
+  // `padding: 1rem 0 0.75rem`, and split into pooled bands there is no stack
+  // left to hold either number. So every band states the gap that FOLLOWS it,
+  // and the two ends state the wrapper's insets — 16px above the first row,
+  // 12px below the last band, 25px between every pair. Three of those were
+  // being emitted and three were not, for −67px of the −83 this stack measured
+  // short at 1440: the 16 had nowhere to go while `padTop` pushes the heading
+  // too (hence `headGap`), a quote band could not state a trailing gap at all
+  // (hence its new `marginBottom`, and 26px lost mid-stack), and the closing
+  // 12 had never been carried by anything.
+  guardOnly({
+    file: `${HOME_DIR}/OnePage.styles.ts`,
+    find: "max-width: 82rem; padding-top: 1rem; padding-bottom: 0.75rem;",
+  });
+  guardOnly({
+    file: `${HOME_DIR}/OnePage.styles.ts`,
+    find: "export const OfferingsStack = styled.div` display: flex; flex-direction: column; gap: 25px; @media (max-width: 767px) { gap: 18px; } `;",
+  });
+  guardOnly({ file: `${HOME_DIR}/OnePage.styles.ts`, find: "@media (max-width: 767px) { padding-bottom: 2rem; } `;" });
+  guardOnly({ file: `${HOME_DIR}/OnePage.styles.ts`, find: "letter-spacing: 0.06em; text-shadow: 0 0 30px rgba(${COPPER}, 0.22); margin: 0 0 2.5rem;" });
   const rows = visibleRows(data.offeringRows);
+  const stack = [];
   rows.forEach((row, i) => {
-    sections.push(
+    stack.push(
       section(`sec-offer-${i + 1}`, "rf-offer-card", `Offerings ${i + 1}`, {
         columns: row.columns,
         heading: i === 0 ? verbatim(inlineCopy.offeringsHeading) : "",
+        // Her `<H2>` closes on 2.5rem and `GridSection` opens on 1rem, with the
+        // stack's first row under both. One gap here, two boxes on her page.
+        ...(i === 0 ? { headGap: "3.5rem" } : {}),
         bulletGlyph: "✦",
         // HER 64px ABOVE THE HEADING IS A MARGIN AND HAS TO STAY ONE. Her
         // gateway `Wrap` closes on `margin-bottom: 4rem` and the bare
@@ -610,6 +635,8 @@ function buildHomeClassic(data, formId) {
         // BETWEEN the bands, where hers does.
         padTop: 0,
         padBottom: 25,
+        // Her stack's gap steps with the row's own at 767px.
+        padBottomNarrow: 18,
         ...(i === 0 ? { marginTop: "4rem" } : {}),
         // Her `CardBody` — and through it every paragraph, every ✦ line and the
         // whole reading half of the card — is `var(--text-muted)`. See `bone()`
@@ -622,11 +649,15 @@ function buildHomeClassic(data, formId) {
     );
     const quotes = row.items.flatMap((o) => data.testimonialsByOffering[o.title] ?? []);
     if (quotes.length) {
-      sections.push(
+      stack.push(
         section(`sec-quotes-${i + 1}`, "rf-testimonials", `Testimonials — ${row.items[0].title}`, {
           kicker: "Testimonials",
           quoteMark: '"',
           ruleBelow: true,
+          // The stack gap after this band. A margin, not padding: this band
+          // paints a background, so padding would move the quotes inside it.
+          marginBottom: "25px",
+          marginBottomNarrow: "18px",
           // Her `TestimonialText` is `rgba(BONE, 0.72)` — a THIRD alpha, not the
           // card body's 0.65, and the only place on the page that uses it.
           muted: bone(data, 0.72),
@@ -635,6 +666,22 @@ function buildHomeClassic(data, formId) {
       );
     }
   });
+
+  // The last band closes the stack, so what follows it is not a gap between two
+  // children but `GridSection`'s own `padding-bottom: 0.75rem`, which steps to
+  // 2rem under 768. Whichever kind of band happens to be last states both in
+  // the knobs that band has.
+  const closing = stack[stack.length - 1];
+  if (closing) {
+    if (closing.type === "rf-testimonials") {
+      closing.config.props.marginBottom = "12px";
+      closing.config.props.marginBottomNarrow = "32px";
+    } else {
+      closing.config.props.padBottom = 12;
+      closing.config.props.padBottomNarrow = 32;
+    }
+  }
+  sections.push(...stack);
 
   sections.push(
     section("sec-faq", "rf-accordion", "FAQ", {

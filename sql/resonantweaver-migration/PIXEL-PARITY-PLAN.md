@@ -2822,27 +2822,121 @@ and re-measured: 1440 worst band 3.23%, 768 4.44%, 390 8.62%.
 
 ### LEFT, IN ORDER
 
-1. **The offerings stack on home-classic — 13.11% over 3241px, and the 91.88%
-   band the page's worst number keeps pointing at.** The colours are hers; what
-   the seg07 diff shows is a card-by-card VERTICAL DRIFT growing down the stack,
-   plus the plate's own edge. `OfferingsStack` and `OfferingsRow` are both
-   `gap: 25px` and so is ours, so the drift is inside the card. Biggest single
-   item on the biggest page left.
-2. **home at 768 is 21.77% and at 390 18.83%** against 6.79 at 1440 — three
+1. **home at 768 is 21.77% and at 390 18.83%** against 6.79 at 1440 — three
    bands render only in the candidate, +202px at 768. `writing` at 390 is
    18.07% and is the same shape. Both are narrow-only, so it is a stack point
-   somewhere, not paint.
-3. **doors/experiences ~20% — Gio's eye.** `experience-resonance-mirror` at 390
+   somewhere, not paint. Biggest non-photo number left on the board.
+2. **doors/experiences ~20% — Gio's eye.** `experience-resonance-mirror` at 390
    is 27.01%, the worst number on the whole board now; `experience-pearl-chamber`
    20.09/17.20/20.37. Image resampling, and he ruled ~20% is the accepted floor.
+3. home-classic's intro band: her 800x220 against our 1425x199 at 1440, 22.03%,
+   and 34.08% at 390 where her 355px band runs 458 on ours. 21px of height on a
+   three-line paragraph, and the only seg on that page still over 11%.
 4. The five split bands on starseed (`sections 11→16`) — markup, not the board
    (3.24/5.56/7.51 aligned).
-5. home-classic's intro band: her 800x220 against our 1425x199 at 1440, 22.03%.
-   21px of height on a three-line paragraph.
+5. `experience-all-products` climbs with narrowness — 6.65 / 10.00 / 14.70 —
+   and `develop` does the same (7.37 / 10.82). Same shape as item 1.
 6. **FOR GIO:** `footerEnabled: false` on all four pooled hosts, `navEnabled:
    false` on guardians + nevlo — a studio setting, and turning the footer band
    on would also retire the double "powered by".
 7. Then: **tell Gio "come look", his eyeball pass, then the flip.**
+
+---
+
+## THE LABEL WORE THE BLOCK'S RULE, AND THE STACK HAD LOST ITS GAPS — 2026-08-10
+
+Item 1 read *"the seg07 diff shows a card-by-card VERTICAL DRIFT growing down
+the stack… `OfferingsStack` and `OfferingsRow` are both `gap: 25px` and so is
+ours, so the drift is inside the card."* Half right, and the wrong half was the
+conclusion. Two of the three numbers were the stack's own frame, which our
+decomposition had simply dropped on the floor.
+
+**home-classic 9.08 → 4.31 (1440), 11.62 → 6.02 (768), 16.43 → 10.82 (390).**
+The offerings seg went **13.11% → 2.11% and 3241px → her 3332px exactly**; the
+five card bands under it went 14.43/8.93/6.62/3.70/3.13 → 2.83/1.80/2.25/1.58/
+1.17. Every other capture on the 75-shot board is unmoved to the hundredth —
+the whole diff of the two runs is three lines, all of them this page.
+
+### Measuring beat reading, for the third time this week
+
+Three readings of `OnePage.styles` had produced "the drift is inside the card",
+and one script that walks both pages' DOM and prints every box top-to-bottom
+produced the answer in a minute. Her cards and ours: **563/511/519/544 against
+554/501/509/534** — every one exactly 9–10px short, which is not drift at all
+but the same defect four times. And the tops told the rest: −16 before the first
+card, −26 after the first quote band, ±1 everywhere else.
+
+### The 9.6px was a rule nobody wrote
+
+Her `Best` block closes on a descendant selector meant for the little note under
+the list:
+
+```
+const Best = styled.div`
+  margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--rule-faint);
+  p { font-family: …; font-size: 0.72rem; letter-spacing: 0.07em;
+      padding-top: 0.6rem; color: var(--accent-dim); }
+`;
+const BestLabel = styled.p`${labelCss} margin: 0 0 0.45rem 0;
+  letter-spacing: 0.1em; text-transform: uppercase; …`;
+```
+
+`BestLabel` is a `<p>`, and it sits INSIDE `Best`. So `.Best p` at (0,1,1)
+outranks `.BestLabel` at (0,1,0) and **two of the four things the label declares
+never apply on her page**: its `letter-spacing: 0.1em` loses to 0.07em, and it
+inherits a `padding-top` it never asks for. Measured on her app at 1440 the
+label computes `letter-spacing: 0.8064px, padding-top: 9.6px`.
+
+This entry was transcribed from her SOURCE and read the label's own words, so it
+got both wrong — 9.6px per card, 38px down a four-card stack, and the largest
+single number left on the page. **Third time in this family a (0,1,1) descendant
+has quietly beaten a (0,1,0) component class**, after `[data-site-theme] h1…h6`
+twice. The rendered page is the ruler; a component's own declarations are only a
+proposal.
+
+### The other two were the stack's frame, and nothing could say them
+
+Her offerings are `GridSection > OfferingsStack > OfferingsRow`, i.e. a flex
+column with `gap: 25px` inside `padding: 1rem 0 0.75rem`. Pooled, there is no
+stack left to hold either number — each band has to state the gap that FOLLOWS
+it, and the two ends state the wrapper's insets. Three of those six were being
+emitted:
+
+| her box | where it has to live | was |
+|---|---|---|
+| `GridSection` padding-top 1rem | above the first row, below the heading | nothing |
+| `OfferingsStack` gap 25px, after an offer band | that band's `padBottom` | 25 ✓ |
+| …after a QUOTE band | the quote band's margin | **the entry had none** |
+| `GridSection` padding-bottom 0.75rem | the last band's closing space | nothing |
+
+`rf-testimonials` — the entry whose own schema comment says it *"sits BETWEEN
+two other sections"* — could not state a trailing gap at all, so every gap
+following one closed to zero: 26px in the middle of the stack. And `padTop`
+could not carry the leading 16px, because it is the frame's OUTER padding and
+would push the heading down with the row; hence `headGap`, one gap here for two
+of her boxes. (`/pearl-chamber/` and the about band state the same 16 as
+`padTop` and always could — they have no heading in the way.)
+
+### And her gaps step, so the bands' had to
+
+At 390 the fix left every band after the first sitting 7px lower than hers,
+compounding to +28 by the foot of the stack: her `OfferingsStack` steps to
+`gap: 18px` under 768 and `GridSection`'s closing inset the other way, 0.75rem →
+2rem. A CSS variable cannot carry a media query — the same finding the ritual
+button's narrow padding produced the window before — so each is a sibling knob
+with the query in the sheet: `padBottomNarrow` (stepping at 767px, where the
+row's own gap steps, because her single query moves `OfferingsStack` and
+`OfferingsRow` together) and `marginBottomNarrow`. No top siblings: her wrapper
+opens on the same 1rem at every width. **390: 13.91 → 10.82.**
+
+### Shipped
+
+mono `6d190bf4` + `380c8eb2`; RCS turbo 50/50 twice (50s, 48s); mac-deploy
+BUILD_IDs `8S_3Nrlvr5cqQW5mIkqav` and `erist9joVJBFiu2dphIU5`, both "RCS did
+ZERO build", HTTP 200. Rows: nine added props on `home-classic` alone, applied
+by delete-and-redrive, assertions green. render-check 550 → 568. Every new knob
+is empty/0 by default, so no other published row moved a pixel — and the board
+proves it.
 
 ---
 
