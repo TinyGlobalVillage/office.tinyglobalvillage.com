@@ -269,20 +269,6 @@ SELECT 'siteFonts', 'en', 'published', NULL, $rwjson${
       "display": "swap"
     },
     {
-      "family": "Cormorant Garamond",
-      "src": "/fonts/tenants/resonantweaver/cormorant-garamond-latin.woff2",
-      "weight": "300 700",
-      "style": "normal",
-      "display": "swap"
-    },
-    {
-      "family": "Cormorant Garamond",
-      "src": "/fonts/tenants/resonantweaver/cormorant-garamond-latin-italic.woff2",
-      "weight": "300 700",
-      "style": "italic",
-      "display": "swap"
-    },
-    {
       "family": "Space Mono",
       "src": "/fonts/tenants/resonantweaver/space-mono-latin.woff2",
       "weight": "400",
@@ -365,20 +351,6 @@ UPDATE public.content_overrides
       "display": "swap"
     },
     {
-      "family": "Cormorant Garamond",
-      "src": "/fonts/tenants/resonantweaver/cormorant-garamond-latin.woff2",
-      "weight": "300 700",
-      "style": "normal",
-      "display": "swap"
-    },
-    {
-      "family": "Cormorant Garamond",
-      "src": "/fonts/tenants/resonantweaver/cormorant-garamond-latin-italic.woff2",
-      "weight": "300 700",
-      "style": "italic",
-      "display": "swap"
-    },
-    {
       "family": "Space Mono",
       "src": "/fonts/tenants/resonantweaver/space-mono-latin.woff2",
       "weight": "400",
@@ -453,20 +425,6 @@ UPDATE public.content_overrides
       "src": "/fonts/tenants/resonantweaver/space-grotesk-latin.woff2",
       "weight": "300 700",
       "style": "normal",
-      "display": "swap"
-    },
-    {
-      "family": "Cormorant Garamond",
-      "src": "/fonts/tenants/resonantweaver/cormorant-garamond-latin.woff2",
-      "weight": "300 700",
-      "style": "normal",
-      "display": "swap"
-    },
-    {
-      "family": "Cormorant Garamond",
-      "src": "/fonts/tenants/resonantweaver/cormorant-garamond-latin-italic.woff2",
-      "weight": "300 700",
-      "style": "italic",
       "display": "swap"
     },
     {
@@ -555,7 +513,7 @@ BEGIN
   -- silence — correct colours, correct words, wrong site. The list is generated
   -- from the same `themeFonts` the row above is built from, so a role added
   -- there cannot arrive unasserted.
-  FOR role IN SELECT unnest(ARRAY['display', 'heading', 'body', 'serif', 'mono', 'accent']) LOOP
+  FOR role IN SELECT unnest(ARRAY['display', 'heading', 'body', 'mono', 'accent']) LOOP
     SELECT count(*) INTO n FROM public.content_overrides t
      WHERE t.site = 'resonantweaver' AND t.key = 'theme'
        AND NOT EXISTS (
@@ -566,6 +524,37 @@ BEGIN
        );
     IF n <> 0 THEN
       RAISE EXCEPTION 'assert: the theme''s % font is a family no face loads', role;
+    END IF;
+  END LOOP;
+
+  -- AND THE OTHER WAY, for the roles named unbacked in `themeFonts.unbacked`.
+  -- `serif` reads `'Cormorant Garamond', Georgia, serif` because that is her
+  -- token verbatim, and NO Cormorant face ships, because her live pages resolve
+  -- it to Georgia — 293 elements on home-classic, 28 on pearl-chamber, 24 on
+  -- writing, and Marthe's own account of what she uses (2026-08-09). Asserting
+  -- the ABSENCE is what keeps that a decision rather than an omission: ship the
+  -- face again and this fails, which is precisely when the ruling should be
+  -- re-read. It also insists the stack still names a real fallback, since an
+  -- unbacked first rung with nothing behind it is a page in the browser's
+  -- default and not a design.
+  FOR role IN SELECT unnest(ARRAY['serif']) LOOP
+    SELECT count(*) INTO n FROM public.content_overrides t
+     WHERE t.site = 'resonantweaver' AND t.key = 'theme'
+       AND EXISTS (
+         SELECT 1 FROM public.content_overrides c,
+              LATERAL jsonb_array_elements(c.data->'faces') f
+          WHERE c.site = t.site AND c.key = 'siteFonts'
+            AND split_part(t.data->'fonts'->>role, ',', 1) = (f->>'family')
+       );
+    IF n <> 0 THEN
+      RAISE EXCEPTION 'assert: % is declared unbacked but a face now loads it', role;
+    END IF;
+
+    SELECT count(*) INTO n FROM public.content_overrides t
+     WHERE t.site = 'resonantweaver' AND t.key = 'theme'
+       AND t.data->'fonts'->>role !~ ',';
+    IF n <> 0 THEN
+      RAISE EXCEPTION 'assert: % is unbacked and names no fallback', role;
     END IF;
   END LOOP;
 

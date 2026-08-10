@@ -584,15 +584,15 @@ export const assetMap = {
   // the SQL header records it so it can be filled in the studio.
 };
 
-/** The webfont her whole site is set in. Named in `src/styles/tokens.ts` as a
- *  family and loaded by a Google Fonts `@import` in `src/styles/journey.css` —
- *  which does not travel with her pages, so the face is re-hosted under HQ's
- *  own origin and declared as a `siteFonts` row. Cormorant Garamond is SIL OFL,
- *  which is what makes re-hosting it ours to do.
+/** Where her faces live once re-hosted. A tenant's type is served from HQ's own
+ *  origin rather than a font CDN: no third-party request from her domain,
+ *  nothing to consent to, and the page cannot lose its typeface because someone
+ *  else's host is slow. Every family below is SIL OFL, which is what makes
+ *  re-hosting them ours to do.
  *
- *  ONE FILE PER STYLE, not per weight: it is a variable font, and Google serves
- *  the identical woff2 for 300 and 400. `300 700` is the range that file
- *  actually covers. */
+ *  ONE FILE PER STYLE, not per weight, wherever the family is variable — Google
+ *  serves the identical woff2 for 300 and 400, and the declared range is what
+ *  the file actually covers. Space Mono is the exception and says why. */
 export const FONT_BASE = "/fonts/tenants/resonantweaver";
 
 /** The unicode-ranges Google serves these subsets under, copied verbatim from
@@ -623,26 +623,31 @@ export const webfonts = [
     style: "normal",
     display: "swap",
   },
-  // Cormorant is what `/journey/` wears on her own app. It rode along here
-  // unnamed for two days — loaded but unreachable, because the theme had no
-  // role that could hold a serif. It has one now (`themeFonts.serif`), so the
-  // face and the name arrived at the same place; naming it still puts it on no
-  // page by itself, which is what makes per-page typography a row rather than
-  // a re-run of this migration.
-  {
-    family: "Cormorant Garamond",
-    src: `${FONT_BASE}/cormorant-garamond-latin.woff2`,
-    weight: "300 700",
-    style: "normal",
-    display: "swap",
-  },
-  {
-    family: "Cormorant Garamond",
-    src: `${FONT_BASE}/cormorant-garamond-latin-italic.woff2`,
-    weight: "300 700",
-    style: "italic",
-    display: "swap",
-  },
+  // ── NO CORMORANT. Marthe's ruling, 2026-08-09: "not using Cormorant —
+  // currently using the science and Ubuntu fonts." ────────────────────────────
+  //
+  // It was here for two days as the two faces `/journey/` wears, and shipping
+  // them was the single largest disagreement left on the board: `tokens.ts`
+  // NAMES `'Cormorant Garamond', Georgia, serif`, and the only thing that ever
+  // LOADS the family is a Google `@import` in `src/styles/journey.css` — one
+  // page's stylesheet. So on her live app the other pages fall to Georgia: 293
+  // elements on home-classic, 28 on pearl-chamber, 24 on writing, measured. We
+  // self-hosted the real face site-wide, which made those three pages MORE
+  // faithful to her CSS and less faithful to her site, and there is no version
+  // that is both. home-classic sat at 43.52% and pearl-chamber at 45.99% on
+  // that difference alone.
+  //
+  // The recommendation here was to keep the real face — the designer's own
+  // account of what she is using overrules it, and it agrees with the
+  // measurement rather than contradicting it.
+  //
+  // `themeFonts.serif` still names the family below, verbatim from her tokens,
+  // because that IS her declaration: a stack whose first rung never arrives
+  // resolves to Georgia on both sides, which is the parity. The cost is
+  // `/journey/`, the one page whose own stylesheet does load Cormorant — it now
+  // renders Georgia where hers renders the serif. Site fonts cannot scope to a
+  // page; if that page ever earns its serif back, the mechanism is a per-page
+  // face, not these two rows.
   // ── The two mono faces, added 2026-08-07 with the type-role work ──────────
   // Measured, not guessed: at 1440 her home wears Space Mono on 31 elements and
   // Ubuntu Mono on 8, and the pooled render had ZERO of either because the
@@ -764,9 +769,12 @@ export const themeFonts = {
   display: "Science Gothic, Science Gothic Fallback, Space Grotesk, Space Grotesk Fallback, sans-serif",
   heading: "Science Gothic, Science Gothic Fallback, Space Grotesk, Space Grotesk Fallback, sans-serif",
   body: "Space Grotesk, Space Grotesk Fallback, ui-sans-serif, system-ui, sans-serif",
-  // `SERIF` from her own tokens.ts. It is what `/journey/` wears; naming it
-  // here does not put it on any page, it makes it NAMEABLE by one — which is
-  // the whole difference between a loaded face and a usable one.
+  // `SERIF` from her own tokens.ts, verbatim and guarded — and since 2026-08-09
+  // deliberately UNBACKED: no Cormorant face is shipped (see `webfonts`), so
+  // this stack resolves to Georgia, which is what her live pages do. Naming a
+  // family you do not load is normally the bug this whole `siteFonts` row was
+  // built to fix; here it is the faithful reproduction of her own stack, and
+  // the difference is that it is now written down.
   serif: "Cormorant Garamond, Georgia, serif",
   // Her site-wide `--font-mono` (GlobalStyles.ts), which is Ubuntu Mono — the
   // nav and the footer. NOT the landing's `--gfg-font-mono`; that one is the
@@ -776,7 +784,20 @@ export const themeFonts = {
   mono: "Ubuntu Mono, Ubuntu Mono Fallback, ui-monospace, SFMono-Regular, Menlo, monospace",
   // The star landing's `--preview-meta-font`, 762 elements across her site —
   // the single largest family the two-role model could not express.
+  // The star landing's `--preview-meta-font`, 762 elements across her site —
+  // the single largest family the two-role model could not express.
   accent: "Space Mono, Ubuntu Mono, Ubuntu Mono Fallback, ui-monospace, monospace",
+  /** Roles whose FIRST family is deliberately not shipped.
+   *
+   *  The SQL's font assertion exists because naming a family you do not load is
+   *  the defect this whole row was built to fix — a themed site coming up in
+   *  Georgia with every other value correct. `serif` is now the one place that
+   *  is on purpose (Marthe, 2026-08-09), so it is named here rather than
+   *  exempted in the assertion: listing it turns a silent hole into a written
+   *  decision, and the check runs the OTHER WAY for anything on this list. Ship
+   *  a Cormorant face again and the assertion fails, which is exactly when
+   *  somebody should be re-reading this paragraph. */
+  unbacked: ["serif"],
   guards: [
     {
       file: "src/styles/GlobalStyles.ts",
