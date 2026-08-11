@@ -3829,3 +3829,85 @@ rf-accordion, the contact band) and it is one phase, not one fix.
 6. **FOR GIO:** `footerEnabled: false` on all four pooled hosts, `navEnabled:
    false` on guardians + nevlo.
 7. Then: **tell Gio "come look", his eyeball pass, then the flip.**
+
+---
+
+## THE NARROW SWEEP, ENTRY 1 OF 7 — AND A HAIRLINE ABOVE THE FIRST WORD
+
+*(2026-08-11, the window after the viewport floor. Mono `637b35c2`, office
+`c2b0b2c` + `1e9d0e6`. HQ deployed once, `BUILD_ID v5gtEtNB34LOUbU7yH9-1`, RCS
+did zero build. render-check 634 → 644, package tsc clean, fleet 6/6 200.)*
+
+**rf-media-copy owns two of `home-classic`'s bands and both are now her exact
+height at all three widths.**
+
+Her `JourneyGateway` steps six declarations under 767 — the eyebrow's size and
+tracking, the `Wrap` gap that IS the eyebrow's space and the fine print's, and
+the Question's size, line-height and cap. The pooled row could only take the
+desktop half of each, so at 390 the band ran **395 against her 306**. The 89 is
+arithmetic, not an estimate, and every term was measured off her live app before
+a line was written:
+
+```
+eyebrow gap 36 → 24    12      the run above the button 79 → 55   24
+eyebrow size 13.1→12.2  2      fine print space 36 → 24           12
+the Question 61 → 51   10      fine print size 43 → 38             5
+                               the band's own two pads 37 → 25    24
+```
+
+Two things had to change shape to make room. **`ctaTop` rode an inline
+`style`, and no media query outranks one** — so the row's three inline knobs
+became real declarations, same values, same order, one cascade layer down.
+And **the narrow margins RE-STATE their shorthands** rather than setting a
+longhand, the trap the offer card's narrow rhythm hit the day before.
+
+Two knobs turned out never to have been narrow at all, just missing: her
+`Question` tracks `0.02em` and her `SubNote` `0.025em` at **every** width, and
+this entry had no paragraph tracking knob. Her landing's one italic line has
+been running tight since it was authored.
+
+**AND THEN THE PARAGRAPHS MATCHED TO THE PIXEL AND THE BAND WAS STILL SHORT.**
+Both intro paragraphs measured 327×191 and 327×72 on both sides, at her size,
+her line-height, her gap — and the band was 278 against her 295. The 17px was
+above the first word, not in it: `IntroSection.tsx` opens on
+`<FadeLine aria-hidden />`, so her flex column starts with 1px of gradient rule
+and one gap. **21px wide, 17px narrow — and that is the −21px band 1 has carried
+at 768 and 1440 since the wash forensics.** Carried as the band's own top
+padding, exactly as the gateway's two are, because a gradient hairline is not a
+`border` and `ruleTop` takes one.
+
+| | 390 | 768 | 1440 |
+|---|---|---|---|
+| home-classic | **8.71 → 2.60** | 4.02 → **3.27** | 3.10 → **2.44** |
+| its intro band | 27.42 → **2.34** | 29.20 → **0.69** | 20.96 → *under gate* |
+| its gateway band | 34.19 → **7.43** | 4.79 → 4.87 | 2.84 → 2.81 |
+
+The gateway band's residue is **flat across all three widths**, which is what
+says it is not geometry: it is the three marks the row reserves space for and
+does not paint — her two `FadeLine`s and the seven chakra dots between the
+Question and the button. Deliberate, documented at both call sites, and Gio's
+eye at the eyeball pass.
+
+Nothing else on the board moved by more than 0.02 — the CtaRow refactor is
+fleet-wide and byte-identical, proven across all 66 captures plus a 6/6 smoke.
+
+### LEFT, IN ORDER
+
+1. **THE NARROW SWEEP, 6 ENTRIES TO GO** — rf-split-hero (`Hero`, `HeroText`,
+   `HeroRule`, `SymbolWrap`, `HeroEyebrow`, `H1`, `Tagline` — seven blocks, and
+   `home` and `receive` render it too), rf-offer-card (`OfferCard`,
+   `FeatureLead`, `FeatureDetail`, `FeatureContent`, `CardHead`, `Sub`, `P`),
+   rf-hud-cards (`OfferingsStack`, `OfferingsRow`, `GridSection`),
+   rf-testimonials (`TestimonialCard`), rf-accordion (`FAQSection`, `FAQIntro`),
+   the contact band (`ContactSection`). One commit per entry.
+2. **`writing` at 390 (7.73)** — now the top of the board. Residue is her two
+   book covers, one of which 404s on her own site. Gio's eye.
+3. **`galactic-field-guide` (6.86 / 3.52 / 3.92)** — 11 bands over gate at 390
+   with the page the same height, so it is inside the bands.
+4. **starseed's five split bands** (`sections 11→16`) — markup, and the source
+   of its 92–96% worst band even at 0.69% aligned.
+5. **The image-resampling family, GIO'S EYE** — the door photography. ~20% is
+   his floor; nothing is close to it now.
+6. **FOR GIO:** `footerEnabled: false` on all four pooled hosts, `navEnabled:
+   false` on guardians + nevlo; and the three unpainted marks above.
+7. Then: **tell Gio "come look", his eyeball pass, then the flip.**
