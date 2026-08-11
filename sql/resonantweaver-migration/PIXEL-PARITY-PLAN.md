@@ -4221,6 +4221,116 @@ sides, same `object-fit: cover`, same `object-position: 50% 16%`, painted from
 our raw 533×800 tenant copy on ours. **Item 5's family**, and it goes to Gio's
 eye with the door photography.
 
+---
+
+## STARSEED WAS NEVER SPLIT — THE RULER WAS — 2026-08-11
+
+Item 4 read *"starseed's five split bands (`sections 11→16`) — markup, and the
+source of its 92–96% worst band even at 0.69% aligned."* The markup was fine.
+The differ was comparing two boxes that were never the same box.
+
+### What the page actually was, before anything changed
+
+**Same height at all three widths. 0.18 / 0.69 / 0.74% aligned. 92 strings on
+both sides.** A page in that state does not have a 95.93% band in it, and the
+gap between those two numbers was the finding.
+
+Band pairing matches on what a band SAYS and then diffs each side inside its own
+element box. Her page wraps five of our sections in one `<Band>`, so the pair
+matched — both start `inside your journey from gateway to mirror` — and then
+compared **her 3687px box against our 150px one**. `home-classic` has the same
+defect upside down: her bare `<h2>Work with me</h2>` is a 35px band where our
+section holds the heading and all the offerings, `212x35 → 375x1244`, 97.19%.
+
+**Fix, in the ruler** (HQ `b2e66b61`): when the two extents disagree materially,
+take the taller side's height on both, each strip starting at its own band top —
+which the signature match says is the same place. That is exactly what the
+one-sided branch beside it has always done, for the reason its own comment
+gives: content that is genuinely missing still scores high, honestly, because
+the aligned strip shows the page that is actually there. Threshold, not
+equality — a pair differing by a pixel or two is the sharpest measure this
+differ has and keeps its own boxes — and the band prints `regrouped (aligned
+strip)` when the fallback fires, so a number reached a different way stays
+arguable. `alignedPct`, the metric that ranks, is untouched by construction.
+
+| | worst band before | after |
+|---|---|---|
+| starseed 390 / 768 / 1440 | 95.93 / 94.63 / 92.54 | **2.85 / 3.55 / 1.49** |
+| home-classic 390 / 768 / 1440 | 97.19 / 96.43 / 91.98 | **7.43 / 10.91 / 4.22** |
+
+home-classic's new worst is its about band at 768, which is her portrait — item
+5's family, and the honest number for it.
+
+**This is the fourth time the ruler has been the defect** (colour notation, band
+x-extent, one-sided bands, now regrouped pairs), and every one of them was found
+the same way: a number that disagreed with what the rest of the report said
+about the same page.
+
+### And the page did own one real defect, which the census had been printing
+
+Six strings rendered in the site's COPPER where hers are TEAL — the four `how it
+works` step numbers, the closing eyebrow `your journey begins here`, and the
+price. Same y, same size, same weight, same Space Mono, same band heights.
+Colour only, and the text census had been listing all six by name.
+
+Her shared components read **`--page-accent`, declared once PER PAGE**: copper
+on the landing, teal here and on `/receive/`. `CalloutBar`'s gateway variant
+paints its eyebrow *and* its price from it; `Cards.tsx` names the same variable
+in its own header. Ours has no page-level accent — a section's `accent` prop or
+the site's role — and `sec-ss-how` and `sec-ss-begin` stated neither.
+
+Stated on the two bands rather than as a page-wide default, because that is the
+granularity her own file has: the hero already carries `accentInk` teal, and her
+gateway plate stays **copper right beside a teal eyebrow**, so a page accent
+nobody could override would have been wrong within one band of itself.
+
+**Census: 92 strings differing on 6 → 92 identical, all three widths.**
+
+---
+
+## THE HONEST BOARD — `rw-p27-board`, 2026-08-11
+
+66 captures, 22 routes × 3. Ranked by `alignedPct`, worst first; `dH` is the
+height delta after the attribution crop.
+
+| page | 390 | 768 | 1440 | dH | note |
+|---|---|---|---|---|---|
+| `writing` | **7.73** | 4.65 | 2.32 | same | half ruled — her cover art, item 5's family |
+| `galactic-field-guide` | **6.86** | 3.52 | 3.92 | same | **RULED: ours.** Accepted residue |
+| `receive` | 4.63 | 2.22 | 2.17 | −9 | `sections 5→7` |
+| `home` | 4.56 | 4.42 | **4.90** | −42/−28/−70 | **the worst UNRULED page on the board** |
+| `offer/extended-starseed-profile` | 4.27 | 2.73 | 2.19 | −6 | the waitlist pair |
+| `offer/awareness-and-perception-training` | 4.08 | 2.53 | 2.36 | −6 | the waitlist pair |
+| `offer/galactic-initiation` | 3.05 | 1.95 | 1.28 | −1 | |
+| `offer/somatic-signature` | 2.82 | 1.92 | 0.82 | −1 | |
+| `offer/galactic-pendulum` | 2.27 | 1.44 | 0.55 | −1 | |
+| `pearl-chamber` | 2.23 | 1.12 | 0.51 | same | 0 bands over gate |
+| `home-classic` | 2.10 | 2.02 | 1.11 | +5/+6/+6 | the +5 IS the FAQ hairline |
+| `open-your-journey` | 1.99 | 1.17 | 0.67 | same | |
+| `experience/all-products` | 1.90 | 2.02 | 1.24 | −18 | |
+| `offer/resonance-mirror` | 1.72 | 1.25 | 0.60 | −1 | |
+| `offer/galactic-integration-session` | 1.47 | 1.88 | 1.15 | −1 | |
+| `develop` | 1.46 | 1.66 | 1.14 | | |
+| `offer/pearl-chamber` | 1.42 | 0.94 | 0.58 | −1 | |
+| `offer/meeting-your-galactic-self` | 1.22 | 1.32 | 1.05 | −1 | |
+| `course` | 0.68 | 0.78 | 0.37 | | |
+| `starseed` | 0.67 | 0.72 | 0.17 | same | census identical |
+| `sun-walk` | 0.26 | 0.12 | 0.09 | same | |
+| `journey` | n/a | n/a | n/a | | structural, ruled |
+
+**Not a defect, and it is why the board is 66 and not 75.** Three routes report
+`candidate redirected …/experience/<slug>/ → …/offer/<slug>/`. Those three used
+to sit at the TOP of an earlier LEFT list (27.52 / 17.12 / …). They are the
+already-ruled safety-net redirect — her own `STATUS.md` calls
+`experience/[product]` the "old safety-net route (untouched)", superseded by
+`offer/[slug]`, and `siteRedirects.ts` states at length why a redirect beats a
+page row: authoring them would put a SECOND editable copy of the same three
+offers in the studio, to be kept in step by hand forever.
+
+**Every worst-band on the whole board is now single digit** except `home`
+(13.18 / 14.56 / 15.98). Before the regroup fix there were phantom 90%+ bands on
+five pages.
+
 ### LEFT, IN ORDER
 
 1. ~~**The 26px inside her FAQ items and the 16px inside her contact band**~~ —
@@ -4229,7 +4339,10 @@ eye with the door photography.
    the hairline finding**: our FAQ paints seven per-item borders read out of her
    `<details>` no-JS fallback, which never renders. Six pixels, seven visible
    lines. The fix is `itemEdge` empty plus one panel-bottom hairline; it REMOVES
-   lines, so it goes to Gio's eye with the other marks.
+   lines, so it goes to Gio's eye with the other marks. **Costed, so his ruling
+   is one edit away:** `rf-accordion` has `itemEdge` and nothing for the panel's
+   own closing rule, so the "yes" branch is a small package change (a
+   `panelEdge` prop on the panel look) plus one row value — not SQL alone.
 1b. ~~**home-classic at 390 only:** `seg 6` +16px, and the about band −20px.~~
    **CLOSED 2026-08-11.** Three narrow halves of declarations already read —
    her gateway `Wrap`'s `margin-bottom`, `GridSection`'s `padding-bottom` and
@@ -4260,8 +4373,20 @@ eye with the door photography.
    Still open: **cover 1's `next/image` `w=384&q=75` re-encode against our raw
    640px original** — same box, different resampling. That is item 5's family,
    not its own question, and it goes to Gio's eye with the door photography.
-4. **starseed's five split bands** (`sections 11→16`) — markup, and the source
-   of its 92–96% worst band even at 0.69% aligned.
+4. ~~**starseed's five split bands** (`sections 11→16`) — markup.~~ **CLOSED
+   2026-08-11, and it was not markup.** The page was already same-height,
+   sub-1% aligned and identical string for string; the 92–96% was the differ
+   comparing her one `<Band>` against our first section inside it. Fixed in the
+   ruler — worst band **95.93 / 94.63 / 92.54 → 2.85 / 3.55 / 1.49**, and
+   home-classic's own phantom band went with it. The page DID own one real
+   defect, which the census had been naming all along: six strings in the
+   site's copper where her `--page-accent` is teal. Both in the entry above.
+4b. **`home` — NEW, and it is now the worst UNRULED page on the board.** It came
+   off this list at 9.35 / 7.88 / 6.75 when everything above it was bigger;
+   everything above it is now closed or ruled, and the page has been re-measured
+   at **4.56 / 4.42 / 4.90** with real negative height deltas — **dH −42 / −28 /
+   −70** — and `sections 8→11`. Worst band 13.18 / 14.56 / 15.98, the only
+   double-digit band left anywhere. Her front door, so it earns the attention.
 5. **The image-resampling family, GIO'S EYE** — the door photography.
 6. **FOR GIO:** `footerEnabled: false` on all four pooled hosts, `navEnabled:
    false` on guardians + nevlo; and the three unpainted marks (two `FadeLine`s
