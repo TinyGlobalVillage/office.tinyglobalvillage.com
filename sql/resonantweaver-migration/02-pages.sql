@@ -1271,6 +1271,8 @@ INSERT INTO _rw_pages VALUES ('home-classic', 'Resonant Weaver — classic landi
           "ledeSize": "1.02rem",
           "ledeWeight": 300,
           "ledeLh": "1.62",
+          "ledeSizeNarrow": "0.97rem",
+          "ledeLhNarrow": "1.52",
           "nameColor": "rgba(183, 138, 119, 0.75)",
           "nameSize": "0.98rem",
           "nameWeight": 300,
@@ -1278,6 +1280,11 @@ INSERT INTO _rw_pages VALUES ('home-classic', 'Resonant Weaver — classic landi
           "muted": "rgba(232, 229, 218, 0.65)",
           "maxWidth": 752,
           "framePad": "md",
+          "padTop": "3.5rem",
+          "padBottom": "5rem",
+          "padTopNarrow": "2.75rem",
+          "padBottomNarrow": "3.75rem",
+          "narrowAt": 767,
           "items": [
             {
               "name": "What kind of guidance is this?",
@@ -1328,6 +1335,11 @@ INSERT INTO _rw_pages VALUES ('home-classic', 'Resonant Weaver — classic landi
           "hideHeader": false,
           "maxWidth": 720,
           "padding": "lg",
+          "padTop": "4rem",
+          "padBottom": "5rem",
+          "padTopNarrow": "3rem",
+          "padBottomNarrow": "3.75rem",
+          "narrowAt": 767,
           "align": "center",
           "vars": {
             "--mf-gap": "1.25rem",

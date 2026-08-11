@@ -798,19 +798,28 @@ function buildHomeClassic(data, formId) {
       headWeight: 300,
       headTracking: "0.06em",
       ledeColor: bone(data, 0.65),
-      ledeSize: "1.02rem",
+      ledeSize: LANDING_BAND_PADS.lede.size,
       ledeWeight: 300,
-      ledeLh: "1.62",
+      ledeLh: LANDING_BAND_PADS.lede.lh,
+      ledeSizeNarrow: LANDING_BAND_PADS.lede.sizeNarrow,
+      ledeLhNarrow: LANDING_BAND_PADS.lede.lhNarrow,
       nameColor: `rgba(${data.tokens.COPPER}, 0.75)`,
       nameSize: "0.98rem",
       nameWeight: 300,
       nameTracking: "0.02em",
       muted: bone(data, 0.65),
       // `FAQSection` is a 50rem `Container` — 752 inside its 1.5rem sides —
-      // padding 3.5rem above and 5rem below. `md` (64) is the nearest rung the
-      // frame has; `lg` (88) is what the row was taking.
+      // padding 3.5rem above and 5rem below, stepping to 2.75rem/3.75rem under
+      // 767. `md` (64 at both hands) was the nearest rung the frame had, which
+      // is 8 short above and 16 over below and neither of her narrow numbers.
+      // Now the four values are hers; the rung stays for the sides.
       maxWidth: 752,
       framePad: "md",
+      padTop: LANDING_BAND_PADS.faq.top,
+      padBottom: LANDING_BAND_PADS.faq.bottom,
+      padTopNarrow: LANDING_BAND_PADS.faq.topNarrow,
+      padBottomNarrow: LANDING_BAND_PADS.faq.bottomNarrow,
+      narrowAt: 767,
       items: data.faqItems.map((f) => ({ name: f.q, body: f.a })),
     }),
   );
@@ -849,10 +858,19 @@ function buildHomeClassic(data, formId) {
       // HER 4rem/5rem IS PADDING, NOT A MARGIN, and the band has to wear it.
       // Stated as `marginTop` the 64px landed BETWEEN the FAQ and this band and
       // the census read it as a 64px strip her page does not have, while the
-      // band itself came up 128px short of her 874. `lg` is 80px at both hands
-      // — 16 over at the top, exact at the foot — and it is the closest rung
-      // the section chrome has, which states no explicit pads of its own.
+      // band itself came up 128px short of her 874.
+      //
+      // `lg` was the closest rung — 80px at both hands, 16 over at the top —
+      // and the comment here used to end "the section chrome states no explicit
+      // pads of its own", which was the reason to stop rather than a fact about
+      // her page. It has them now, so the four numbers below are hers and the
+      // rung is left holding only the sides.
       padding: "lg",
+      padTop: LANDING_BAND_PADS.contact.top,
+      padBottom: LANDING_BAND_PADS.contact.bottom,
+      padTopNarrow: LANDING_BAND_PADS.contact.topNarrow,
+      padBottomNarrow: LANDING_BAND_PADS.contact.bottomNarrow,
+      narrowAt: 767,
       align: "center",
       vars: {
         "--mf-gap": "1.25rem",
@@ -1564,6 +1582,39 @@ const LANDING_MAIN_PAD_NARROW = (() => {
     find: "padding: 8rem 0 6rem; position: relative; @media (max-width: 767px) { padding: 7rem 0 4.5rem; } `;",
   });
   return { top: "7rem", bottom: "4.5rem" };
+})();
+
+/** HER FAQ AND HER CONTACT BAND, WHICH BOTH WRITE FOUR PADS AND A TYPE STEP.
+ *
+ *  `FAQSection` is 3.5rem/5rem stepping to 2.75rem/3.75rem; `ContactSection` is
+ *  4rem/5rem stepping to 3rem/3.75rem. Both rows were rounding to a `framePad`
+ *  rung — `md` is 64 at both hands where she writes 56 and 80, `lg` is 80 where
+ *  she writes 64 and 80 — and a rung has no narrow half of its own beyond the
+ *  frame's, so a phone got the frame's number twice over.
+ *
+ *  `FAQIntro` steps 1.02rem/1.62 → 0.97rem/1.52 with them. That one was in the
+ *  parity report the whole time and read as a census row rather than a knob:
+ *  `"common queries about the nature of"  size: 15.52px → 16.32px` is her
+ *  0.97rem against our 1.02rem, printed at 390 on every run since the band was
+ *  authored. A number the differ hands you is still a number she wrote. */
+const LANDING_BAND_PADS = (() => {
+  guardOnly({
+    file: `${HOME_DIR}/OnePage.styles.ts`,
+    find: "padding-top: 3.5rem; padding-bottom: 5rem; display: flex; flex-direction: column; gap: 2rem; @media (max-width: 767px) { padding-top: 2.75rem; padding-bottom: 3.75rem; }",
+  });
+  guardOnly({
+    file: `${HOME_DIR}/OnePage.styles.ts`,
+    find: "padding-top: 4rem; padding-bottom: 5rem; display: flex; flex-direction: column; gap: 2rem; @media (max-width: 767px) { padding-top: 3rem; padding-bottom: 3.75rem; }",
+  });
+  guardOnly({
+    file: `${HOME_DIR}/OnePage.styles.ts`,
+    find: "font-size: 1.02rem; font-weight: 300; line-height: 1.62; color: var(--text-muted); @media (max-width: 767px) { font-size: 0.97rem; line-height: 1.52; }",
+  });
+  return {
+    faq: { top: "3.5rem", bottom: "5rem", topNarrow: "2.75rem", bottomNarrow: "3.75rem" },
+    contact: { top: "4rem", bottom: "5rem", topNarrow: "3rem", bottomNarrow: "3.75rem" },
+    lede: { size: "1.02rem", lh: "1.62", sizeNarrow: "0.97rem", lhNarrow: "1.52" },
+  };
 })();
 
 /** …and so does her `IntroSection`, the band above the gateway.
