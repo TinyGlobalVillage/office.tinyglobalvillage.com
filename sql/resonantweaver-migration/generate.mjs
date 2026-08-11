@@ -507,8 +507,23 @@ function buildHomeClassic(data, formId) {
       // now carries 20px her last one does not. It costs nothing: the frame
       // states no bottom padding, so that margin collapses through the section
       // and into the gateway's own 6rem — which is her `margin-bottom` exactly.
+      // AND HER INTRO OPENS ON A `FadeLine`, WHICH IS THE BAND'S WHOLE HEIGHT
+      // DELTA. `IntroSection.tsx` renders `<FadeLine aria-hidden />` before the
+      // two paragraphs, so the flex column starts with 1px of gradient hairline
+      // and one gap — 21px wide, 17px narrow — that the pooled row simply did
+      // not have. It is the −21px that has sat on band 1 at 768 and 1440 since
+      // the wash forensics, and the −17px at 390 that survived every step
+      // above; the paragraphs themselves measure hers to the pixel.
+      //
+      // Carried as the band's own top padding for the same reason the gateway's
+      // two are: a gradient hairline is not a `border`, and `ruleTop` takes
+      // one. The rule is NOT painted, exactly as the gateway's pair are not —
+      // the space they occupy is what moves the page, and a solid border in
+      // place of her gradient would be a different mark, not a closer one.
+      // Both are Gio's eye at the eyeball pass.
       framePad: "sm",
-      padTop: "0",
+      padTop: LANDING_INTRO_NARROW.ruleWide,
+      padTopNarrow: LANDING_INTRO_NARROW.rule,
       padBottom: "0",
       maxWidth: 752,
       centered: true,
@@ -1569,7 +1584,13 @@ const LANDING_INTRO_NARROW = (() => {
     find: "font-size: clamp(1rem, 2vw, 1.15rem); line-height: 1.62;",
   });
   guardOnly({ file: `${HOME_DIR}/OnePage.styles.ts`, find: "font-size: 0.98rem; line-height: 1.52;" });
-  return { gap: "1rem", size: "0.98rem", lh: "1.52", marginBottom: "4.25rem" };
+  // The hairline is the band's whole height delta, so its presence is guarded
+  // as tightly as the numbers: 1px of rule plus one gap, at each width.
+  guardOnly({
+    file: `${HOME_DIR}/components/IntroSection.tsx`,
+    find: "<IntroSectionWrapper> <FadeLine aria-hidden /> <Intro>",
+  });
+  return { gap: "1rem", size: "0.98rem", lh: "1.52", marginBottom: "4.25rem", rule: "17px", ruleWide: "21px" };
 })();
 
 /** …and her `GridSection` steps in the SAME query, 0.75rem → 2rem below.
