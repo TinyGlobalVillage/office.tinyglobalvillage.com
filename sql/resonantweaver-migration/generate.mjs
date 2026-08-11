@@ -1454,15 +1454,59 @@ const shellSky = (data) => {
  *  It is the same shape as the 1.68 that took `/starseed/` its last 19px, and
  *  the same argument for stating it here rather than per entry: an inherited
  *  declaration reaches runs written before the knob existed. The scope is
- *  narrow on purpose — her OTHER page roots (GatewayPage, OfferDetail,
- *  StarseedOraclePage, OpenJourney) each declare their own and none of them is
- *  1.5, so this belongs to the three rows that render `Body`: the star landing,
- *  `/home-classic/` and `/pearl-chamber/`. */
+ *  narrow on purpose — this belongs to the three rows that render `Body`: the
+ *  star landing, `/home-classic/` and `/pearl-chamber/`. See PAGE_RHYTHM_NONE
+ *  below for what the OTHER roots do, which is not what this comment used to
+ *  claim they do. */
 const LANDING_LINE_HEIGHT = verbatim({
   file: `${HOME_DIR}/OnePage.styles.ts`,
   find: "overflow-x: clip; position: relative; line-height: 1.5;",
   text: "1.5",
 });
+
+/** AND HER OTHER SIX ROOTS DECLARE NO RHYTHM AT ALL, WHICH IS NOT THE SAME AS
+ *  DECLARING A DIFFERENT ONE.
+ *
+ *  The note above used to read "her OTHER page roots each declare their own and
+ *  none of them is 1.5". Half of that is true — starseed's is 1.68 and
+ *  open-your-journey's is its own — and half of it was never checked. Six roots
+ *  declare NOTHING: `GatewayBody`, `OfferBody`, `ProductBody`, `ProductsBody`,
+ *  `CourseBody` and writing's `PageShell`. A root that declares nothing runs at
+ *  `normal`, and `normal` is roughly 1.15–1.2 for this face — so nineteen of
+ *  her twenty-five routes read at `normal` and every one of ours read at the
+ *  platform's 1.60. Measured in a browser on her live app, both sides, all 25.
+ *
+ *  It is only a pixel on each run that states no line-height of its own, which
+ *  is why the page HEIGHTS were already right and why this went six rounds as
+ *  single findings — her footer, the writing eyebrow, the card footer runs,
+ *  sun-walk, the dossier shell, and this window's form labels — before anyone
+ *  asked what the ROOT said. Her eyebrows are 16px tall and ours were 17, on
+ *  every offer, gateway, experience and course page on the site.
+ *
+ *  `normal` is a real CSS value, so this is a stated rhythm like the other two,
+ *  not an absence. */
+const PAGE_RHYTHM_NONE = (() => {
+  const roots = [
+    [`${HOME_DIR}/landing-star-preview/[gateway]/GatewayPage.styles.ts`, "GatewayBody"],
+    [`${HOME_DIR}/landing-star-preview/offer/[slug]/OfferDetail.styles.ts`, "OfferBody"],
+    [`${HOME_DIR}/landing-star-preview/experience/[product]/ProductPreview.styles.ts`, "ProductBody"],
+    [`${HOME_DIR}/landing-star-preview/experience/all-products/AllProducts.styles.ts`, "ProductsBody"],
+    [`${HOME_DIR}/landing-star-preview/course/Course.styles.ts`, "CourseBody"],
+    [`${HOME_DIR}/writing/WritingPage.styles.ts`, "PageShell"],
+  ];
+  for (const [file, name] of roots) {
+    const src = normalizedSource(file);
+    const m = src.match(new RegExp(`export const ${name} = styled[^\`]*\`([^\`]*)\``));
+    if (!m) {
+      drift.push(`${file}: ${name} is gone — the pages that inherit its rhythm no longer read from it`);
+      continue;
+    }
+    if (/line-height\s*:/.test(m[1])) {
+      drift.push(`${file}: ${name} now declares a line-height — its pages are no longer "normal"`);
+    }
+  }
+  return "normal";
+})();
 
 /** THE PAGES THE FONT SWITCH LEAVES AT "ORIGINAL" — her serif, page-wide.
  *
@@ -1543,10 +1587,15 @@ function buildOfferPage(data, entry) {
   // OfferBody's toned ground: the offer's own glow at 28% 8%, the fixed cool
   // counter-glow at 88% 68%, over the opaque dark.
   sections.push(
-    pageTone(`sec-offer-tone-${offer.slug}`, [
-      `radial-gradient(ellipse 62% 28% at 28% 8%, ${offer.glow}, transparent 72%)`,
-      "radial-gradient(ellipse 44% 25% at 88% 68%, rgba(39, 78, 112, 0.12), transparent 72%)",
-    ]),
+    pageTone(
+      `sec-offer-tone-${offer.slug}`,
+      [
+        `radial-gradient(ellipse 62% 28% at 28% 8%, ${offer.glow}, transparent 72%)`,
+        "radial-gradient(ellipse 44% 25% at 88% 68%, rgba(39, 78, 112, 0.12), transparent 72%)",
+      ],
+      // `OfferBody` declares no rhythm, so the page reads at `normal`.
+      { lineHeight: PAGE_RHYTHM_NONE },
+    ),
   );
 
   // Back to the door this offer sits behind. Her own link is
@@ -1857,10 +1906,15 @@ function buildGatewayPage(data, id) {
   // GatewayBody's toned ground: the door's glow high right, the fixed cool
   // counter-glow low left, over the opaque dark.
   sections.push(
-    pageTone(`sec-gw-tone-${id}`, [
-      `radial-gradient(ellipse 74% 34% at 70% 6%, ${toneGlow}, transparent 72%)`,
-      "radial-gradient(ellipse 50% 30% at 12% 75%, rgba(30, 67, 96, 0.11), transparent 72%)",
-    ]),
+    pageTone(
+      `sec-gw-tone-${id}`,
+      [
+        `radial-gradient(ellipse 74% 34% at 70% 6%, ${toneGlow}, transparent 72%)`,
+        "radial-gradient(ellipse 50% 30% at 12% 75%, rgba(30, 67, 96, 0.11), transparent 72%)",
+      ],
+      // `GatewayBody` declares no rhythm, so the page reads at `normal`.
+      { lineHeight: PAGE_RHYTHM_NONE },
+    ),
   );
 
   // Her back link points at /landing-star-preview/, which REDIRECTS to the
@@ -2183,7 +2237,16 @@ function buildWaitlistForm(offer) {
         { ref: "email", type: "email", title: verbatim(c.fieldEmail), required: true },
         // Optional on her form and optional here — the one field a person can
         // skip, which is why it is the one that must not become required.
-        { ref: "note", type: "long_text", title: verbatim(c.fieldNote), required: false },
+        // `rows: 2` is her Textarea, which states none and so opens at the HTML
+        // default of 2; ours opened at the renderer's 4. 38px of height on a
+        // 608px band — the largest single number on either waitlist page.
+        {
+          ref: "note",
+          type: "long_text",
+          title: verbatim(c.fieldNote),
+          required: false,
+          properties: { rows: 2 },
+        },
       ],
       settings: { submitLabel: verbatim(c.submitLabel) },
       thankyou: { title: verbatim(c.successMessage), description: "" },
@@ -2204,6 +2267,29 @@ function buildWaitlistForm(offer) {
 function buildWaitlistPage(data, entry, formId) {
   const offer = data.resolveOffer(entry);
   const c = inlineCopy.waitlist;
+  // The four values the form band below states outright, each read back from
+  // the file it came out of. `OfferMain`'s own padding is what closes every
+  // offer page; her Form's width, gap and margin are what the band replaces the
+  // `md` rung with; her Textarea states no `rows`, which is the whole of the
+  // 38px; her Submit is a bare grid child, which is the whole of the 165 → 342.
+  const WAITLIST_SRC = "src/components/WaitlistForm.tsx";
+  const OFFER_STYLES = `${HOME_DIR}/landing-star-preview/offer/[slug]/OfferDetail.styles.ts`;
+  guardOnly({ file: OFFER_STYLES, find: "width: min(100% - 3rem, 82rem); margin: 0 auto; padding: 9.5rem 0 7rem;" });
+  guardOnly({
+    file: WAITLIST_SRC,
+    find: "const Form = styled.form` display: grid; gap: 0.9rem; max-width: 28rem; margin-top: 2rem; text-align: left; `;",
+  });
+  guardOnly({ file: WAITLIST_SRC, find: "const Textarea = styled.textarea`${fieldStyles}`;" });
+  const waitlistSrc = normalizedSource(WAITLIST_SRC);
+  if (/<Textarea[^>]*\brows=/.test(waitlistSrc)) {
+    drift.push(`${WAITLIST_SRC}: her Textarea now states rows — the note field's \`rows: 2\` is no longer her default`);
+  }
+  if (/const Submit = styled\.button`[^`]*\b(width|align-self|justify-self)\s*:/.test(waitlistSrc)) {
+    drift.push(`${WAITLIST_SRC}: her Submit now states its own width — \`--mf-submit-align: stretch\` may no longer be it`);
+  }
+  if (/const Form = styled\.form`[^`]*\bline-height\s*:/.test(waitlistSrc)) {
+    drift.push(`${WAITLIST_SRC}: her Form now states a line-height — \`--mf-lh: normal\` is no longer her value`);
+  }
   const statusLabel = (offer.status ? STATUS_LABEL[offer.status] : "") ?? "";
   if (offer.status && !statusLabel) {
     die(`no transcribed badge label for offer status ${JSON.stringify(offer.status)} (${offer.slug})`);
@@ -2211,10 +2297,14 @@ function buildWaitlistPage(data, entry, formId) {
 
   const sections = [
     // OfferBody's toned ground — the waitlist shares the detail page's shell.
-    pageTone(`sec-wait-tone-${offer.slug}`, [
-      `radial-gradient(ellipse 62% 28% at 28% 8%, ${offer.glow}, transparent 72%)`,
-      "radial-gradient(ellipse 44% 25% at 88% 68%, rgba(39, 78, 112, 0.12), transparent 72%)",
-    ]),
+    pageTone(
+      `sec-wait-tone-${offer.slug}`,
+      [
+        `radial-gradient(ellipse 62% 28% at 28% 8%, ${offer.glow}, transparent 72%)`,
+        "radial-gradient(ellipse 44% 25% at 88% 68%, rgba(39, 78, 112, 0.12), transparent 72%)",
+      ],
+      { lineHeight: PAGE_RHYTHM_NONE },
+    ),
     backLinkRow(
       `sec-wait-back-${offer.slug}`,
       verbatim(c.backLabel),
@@ -2284,9 +2374,23 @@ function buildWaitlistPage(data, entry, formId) {
       accent: "",
       hideHeader: true,
       maxWidth: 448,
+      // THE FRAME BROUGHT ITS OWN GUTTER AND THE PAGE'S CLOSE HAD NOWHERE TO
+      // LIVE. Her `Form` is a `margin-top: 2rem` column inside `OfferMain`
+      // (`width: min(100% - 3rem, 82rem)`, `padding: 9.5rem 0 7rem`), so at 390
+      // it is 342 wide with 112px of ground under it. Ours sat on the `md`
+      // rung — 32px 20px — which read the top right by accident, ran 350 wide,
+      // and closed the page 80px early. Stated outright now, the same three
+      // knobs her home contact card carries.
+      padding: "none",
+      marginTop: "2rem",
+      sideInset: "1.5rem",
+      padBottom: "7rem",
       vars: {
         "--mf-ink": `rgb(${data.tokens.BONE})`,
         "--mf-gap": "0.9rem",
+        // Her form declares no line-height, so it sets at `normal`; ours
+        // inherited the platform's 1.6 and every label ran a pixel tall.
+        "--mf-lh": "normal",
         "--mf-field-gap": "0.45rem",
         "--mf-radius": "0",
         "--mf-label-font": "var(--tgv-fontAccent, inherit)",
@@ -2300,6 +2404,10 @@ function buildWaitlistPage(data, entry, formId) {
         "--mf-field-bg": "rgba(0, 0, 0, 0.28)",
         "--mf-field-edge": bone(data, 0.18),
         "--mf-field-focus": `rgb(${data.tokens.TEAL})`,
+        // Her Submit is a plain grid child of a `display: grid` Form, so it
+        // spans the column — 342 at 390. Ours is a flex child that sets
+        // `align-self: flex-start`, so it shrank to its label: 165.
+        "--mf-submit-align": "stretch",
         "--mf-submit-pad": "0.85rem 1.1rem",
         "--mf-submit-size": "0.68rem",
         "--mf-submit-tracking": "0.08em",
@@ -2374,10 +2482,15 @@ function buildAllProducts(data) {
     find: "radial-gradient(ellipse 44% 24% at 88% 76%, rgba(${COPPER}, 0.08), transparent 72%)",
   });
   const sections = [
-    pageTone("sec-all-tone", [
-      `radial-gradient(ellipse 66% 30% at 50% 4%, rgba(${data.tokens.TEAL}, 0.1), transparent 72%)`,
-      `radial-gradient(ellipse 44% 24% at 88% 76%, rgba(${data.tokens.COPPER}, 0.08), transparent 72%)`,
-    ]),
+    pageTone(
+      "sec-all-tone",
+      [
+        `radial-gradient(ellipse 66% 30% at 50% 4%, rgba(${data.tokens.TEAL}, 0.1), transparent 72%)`,
+        `radial-gradient(ellipse 44% 24% at 88% 76%, rgba(${data.tokens.COPPER}, 0.08), transparent 72%)`,
+      ],
+      // `ProductsBody` declares no rhythm, so the page reads at `normal`.
+      { lineHeight: PAGE_RHYTHM_NONE },
+    ),
     // "← Back to the three doors" — her href is `/{lang}/landing-star-preview/`,
     // which on both apps is a redirect to the site root. The doors ARE the home
     // page now, so the stored link goes straight there rather than through the
@@ -3720,6 +3833,8 @@ function buildWriting(data) {
         "radial-gradient(circle at 50% 0%, hsl(235, 72%, 16%), hsl(228, 58%, 9%) 56%, hsl(220, 28%, 4%) 100%)",
       ],
       ground: "",
+      // `PageShell` declares no rhythm, so the page reads at `normal`.
+      lineHeight: PAGE_RHYTHM_NONE,
     }),
     section("sec-writing-head", "rf-serif-head", "Writing", {
       eyebrow: verbatim(w.eyebrow),

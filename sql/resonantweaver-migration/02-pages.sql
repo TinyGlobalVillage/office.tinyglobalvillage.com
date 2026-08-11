@@ -203,7 +203,10 @@ SELECT 'c57bb534-fce0-4e32-aa70-ecf0c6feead6'::uuid, v.id, o.member_id, 'waitlis
       "ref": "note",
       "type": "long_text",
       "title": "Anything you'd like to add (optional)",
-      "required": false
+      "required": false,
+      "properties": {
+        "rows": 2
+      }
     }
   ],
   "settings": {
@@ -243,7 +246,10 @@ SELECT 'f36f08e2-053d-4c0e-9ffc-dad4332527e3'::uuid, v.id, o.member_id, 'waitlis
       "ref": "note",
       "type": "long_text",
       "title": "Anything you'd like to add (optional)",
-      "required": false
+      "required": false,
+      "properties": {
+        "rows": 2
+      }
     }
   ],
   "settings": {
@@ -1422,7 +1428,8 @@ INSERT INTO _rw_pages VALUES ('writing', 'Writing', true, 'published', $rwjson${
             "radial-gradient(ellipse 46% 38% at 10% 18%, rgba(0, 15, 137, 0.1) 0%, transparent 58%)",
             "radial-gradient(circle at 50% 0%, hsl(235, 72%, 16%), hsl(228, 58%, 9%) 56%, hsl(220, 28%, 4%) 100%)"
           ],
-          "ground": ""
+          "ground": "",
+          "lineHeight": "normal"
         }
       }
     },
@@ -1544,7 +1551,8 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/meet', 'Meet Your Galactic S
             "radial-gradient(ellipse 74% 34% at 70% 6%, rgba(46, 92, 135, 0.24), transparent 72%)",
             "radial-gradient(ellipse 50% 30% at 12% 75%, rgba(30, 67, 96, 0.11), transparent 72%)"
           ],
-          "ground": "#06111c"
+          "ground": "#06111c",
+          "lineHeight": "normal"
         }
       }
     },
@@ -1747,7 +1755,8 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/develop', 'Develop Your Perc
             "radial-gradient(ellipse 74% 34% at 70% 6%, rgba(183, 138, 119, 0.11), transparent 72%)",
             "radial-gradient(ellipse 50% 30% at 12% 75%, rgba(30, 67, 96, 0.11), transparent 72%)"
           ],
-          "ground": "#06111c"
+          "ground": "#06111c",
+          "lineHeight": "normal"
         }
       }
     },
@@ -2020,7 +2029,8 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/receive', 'Enter Your Own En
             "radial-gradient(ellipse 74% 34% at 70% 6%, rgba(72, 210, 185, 0.1), transparent 72%)",
             "radial-gradient(ellipse 50% 30% at 12% 75%, rgba(30, 67, 96, 0.11), transparent 72%)"
           ],
-          "ground": "#06111c"
+          "ground": "#06111c",
+          "lineHeight": "normal"
         }
       }
     },
@@ -2275,7 +2285,8 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/experience/all-products', 'A
             "radial-gradient(ellipse 66% 30% at 50% 4%, rgba(72, 210, 185, 0.1), transparent 72%)",
             "radial-gradient(ellipse 44% 24% at 88% 76%, rgba(183, 138, 119, 0.08), transparent 72%)"
           ],
-          "ground": "#06111c"
+          "ground": "#06111c",
+          "lineHeight": "normal"
         }
       }
     },
@@ -3659,7 +3670,8 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/meeting-your-galactic-
             "radial-gradient(ellipse 62% 28% at 28% 8%, rgba(46, 92, 135, 0.24), transparent 72%)",
             "radial-gradient(ellipse 44% 25% at 88% 68%, rgba(39, 78, 112, 0.12), transparent 72%)"
           ],
-          "ground": "#06111c"
+          "ground": "#06111c",
+          "lineHeight": "normal"
         }
       }
     },
@@ -3822,7 +3834,8 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/galactic-initiation', 
             "radial-gradient(ellipse 62% 28% at 28% 8%, rgba(183, 138, 119, 0.11), transparent 72%)",
             "radial-gradient(ellipse 44% 25% at 88% 68%, rgba(39, 78, 112, 0.12), transparent 72%)"
           ],
-          "ground": "#06111c"
+          "ground": "#06111c",
+          "lineHeight": "normal"
         }
       }
     },
@@ -3990,7 +4003,8 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/resonance-mirror', 'Re
             "radial-gradient(ellipse 62% 28% at 28% 8%, rgba(72, 210, 185, 0.12), transparent 72%)",
             "radial-gradient(ellipse 44% 25% at 88% 68%, rgba(39, 78, 112, 0.12), transparent 72%)"
           ],
-          "ground": "#06111c"
+          "ground": "#06111c",
+          "lineHeight": "normal"
         }
       }
     },
@@ -4180,7 +4194,8 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/pearl-chamber', 'The P
             "radial-gradient(ellipse 62% 28% at 28% 8%, rgba(183, 138, 119, 0.13), transparent 72%)",
             "radial-gradient(ellipse 44% 25% at 88% 68%, rgba(39, 78, 112, 0.12), transparent 72%)"
           ],
-          "ground": "#06111c"
+          "ground": "#06111c",
+          "lineHeight": "normal"
         }
       }
     },
@@ -4369,7 +4384,8 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/somatic-signature', 'S
             "radial-gradient(ellipse 62% 28% at 28% 8%, rgba(72, 210, 185, 0.1), transparent 72%)",
             "radial-gradient(ellipse 44% 25% at 88% 68%, rgba(39, 78, 112, 0.12), transparent 72%)"
           ],
-          "ground": "#06111c"
+          "ground": "#06111c",
+          "lineHeight": "normal"
         }
       }
     },
@@ -4608,7 +4624,8 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/galactic-pendulum', 'G
             "radial-gradient(ellipse 62% 28% at 28% 8%, rgba(105, 127, 205, 0.16), transparent 72%)",
             "radial-gradient(ellipse 44% 25% at 88% 68%, rgba(39, 78, 112, 0.12), transparent 72%)"
           ],
-          "ground": "#06111c"
+          "ground": "#06111c",
+          "lineHeight": "normal"
         }
       }
     },
@@ -4796,7 +4813,8 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/galactic-integration-s
             "radial-gradient(ellipse 62% 28% at 28% 8%, rgba(72, 210, 185, 0.1), transparent 72%)",
             "radial-gradient(ellipse 44% 25% at 88% 68%, rgba(39, 78, 112, 0.12), transparent 72%)"
           ],
-          "ground": "#06111c"
+          "ground": "#06111c",
+          "lineHeight": "normal"
         }
       }
     },
@@ -4959,7 +4977,8 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/extended-starseed-prof
             "radial-gradient(ellipse 62% 28% at 28% 8%, rgba(46, 92, 135, 0.24), transparent 72%)",
             "radial-gradient(ellipse 44% 25% at 88% 68%, rgba(39, 78, 112, 0.12), transparent 72%)"
           ],
-          "ground": "#06111c"
+          "ground": "#06111c",
+          "lineHeight": "normal"
         }
       }
     },
@@ -5051,9 +5070,14 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/extended-starseed-prof
           "accent": "",
           "hideHeader": true,
           "maxWidth": 448,
+          "padding": "none",
+          "marginTop": "2rem",
+          "sideInset": "1.5rem",
+          "padBottom": "7rem",
           "vars": {
             "--mf-ink": "rgb(232, 229, 218)",
             "--mf-gap": "0.9rem",
+            "--mf-lh": "normal",
             "--mf-field-gap": "0.45rem",
             "--mf-radius": "0",
             "--mf-label-font": "var(--tgv-fontAccent, inherit)",
@@ -5067,6 +5091,7 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/extended-starseed-prof
             "--mf-field-bg": "rgba(0, 0, 0, 0.28)",
             "--mf-field-edge": "rgba(232, 229, 218, 0.18)",
             "--mf-field-focus": "rgb(72, 210, 185)",
+            "--mf-submit-align": "stretch",
             "--mf-submit-pad": "0.85rem 1.1rem",
             "--mf-submit-size": "0.68rem",
             "--mf-submit-tracking": "0.08em",
@@ -5110,7 +5135,8 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/awareness-and-percepti
             "radial-gradient(ellipse 62% 28% at 28% 8%, rgba(183, 138, 119, 0.11), transparent 72%)",
             "radial-gradient(ellipse 44% 25% at 88% 68%, rgba(39, 78, 112, 0.12), transparent 72%)"
           ],
-          "ground": "#06111c"
+          "ground": "#06111c",
+          "lineHeight": "normal"
         }
       }
     },
@@ -5202,9 +5228,14 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/awareness-and-percepti
           "accent": "",
           "hideHeader": true,
           "maxWidth": 448,
+          "padding": "none",
+          "marginTop": "2rem",
+          "sideInset": "1.5rem",
+          "padBottom": "7rem",
           "vars": {
             "--mf-ink": "rgb(232, 229, 218)",
             "--mf-gap": "0.9rem",
+            "--mf-lh": "normal",
             "--mf-field-gap": "0.45rem",
             "--mf-radius": "0",
             "--mf-label-font": "var(--tgv-fontAccent, inherit)",
@@ -5218,6 +5249,7 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/awareness-and-percepti
             "--mf-field-bg": "rgba(0, 0, 0, 0.28)",
             "--mf-field-edge": "rgba(232, 229, 218, 0.18)",
             "--mf-field-focus": "rgb(72, 210, 185)",
+            "--mf-submit-align": "stretch",
             "--mf-submit-pad": "0.85rem 1.1rem",
             "--mf-submit-size": "0.68rem",
             "--mf-submit-tracking": "0.08em",
