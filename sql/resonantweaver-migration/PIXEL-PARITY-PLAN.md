@@ -4076,11 +4076,16 @@ start at different scanlines and the line looks perfect either way.
    at 390 and both newly visible now that the pads around them are hers. Neither
    component steps at 767 in her source, so this is our content being taller,
    not a missing narrow value.
-2. **`galactic-field-guide` — GIO'S RULING.** Her sky is `SiteShell`
-   (green-black); `siteBackground` is the star landing's (`#06111c` + two orbs)
-   by his own 2026-08-06 call, with an assertion pinning it. Either the site
-   background becomes her shell and the orbs move to the page that owns them, or
-   the field guide keeps a sky that is not hers. Worth ~6.9 points at 390.
+2. ~~**`galactic-field-guide` — GIO'S RULING.**~~ **RULED 2026-08-11: OURS.**
+   Shown both at 1440, Gio chose the pooled sky — the star landing's `#06111c`
+   plus the two orbs — over her `SiteShell` green-black. His 2026-08-06 ruling
+   stands and the assertion pinning `siteBackground.color` stays. **No code
+   changes; the ~6.9% at 390 on this page is now ACCEPTED RESIDUE**, not a
+   defect, and the page will never close it. Her design is the source, never the
+   default. Scope: the field guide is the only surface where the site background
+   shows — every authored page that declares no ground of its own already
+   carries `shellSky` — so this ruling reaches this page and any future granted
+   app surface with no ground, and nothing else.
 3. **`writing` — GIO'S EYE**, and it is two questions: the `next/image` q75
    re-encode (the resampling family, his ~20% floor) and whether cover 2 should
    render her fallback gradient or her broken image.
