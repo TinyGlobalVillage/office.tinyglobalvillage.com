@@ -1028,6 +1028,7 @@ INSERT INTO _rw_pages VALUES ('home-classic', 'Resonant Weaver — classic landi
           "padBottom": 25,
           "padBottomNarrow": 18,
           "marginTop": "4rem",
+          "marginTopNarrow": "3rem",
           "muted": "rgba(232, 229, 218, 0.65)",
           "items": [
             {
@@ -1405,7 +1406,9 @@ INSERT INTO _rw_pages VALUES ('home-classic', 'Resonant Weaver — classic landi
           "bulletGlyph": "✦",
           "padTop": 16,
           "padBottom": 12,
+          "padBottomNarrow": 32,
           "marginBottom": "6rem",
+          "marginBottomNarrow": "4.5rem",
           "muted": "rgba(232, 229, 218, 0.65)",
           "items": [
             {

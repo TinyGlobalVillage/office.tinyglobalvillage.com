@@ -727,11 +727,21 @@ function buildHomeClassic(data, formId) {
         // close. The entry grew a `marginTop` for exactly this (2026-08-10) —
         // it was the last of the family without one — so the 64px now sits
         // BETWEEN the bands, where hers does.
+        //
+        // AND IT STEPS UNDER 768, WHICH THE FIRST PASS TOOK ONLY HALF OF. That
+        // `margin-bottom: 4rem` sits in a rule the narrow block overrides —
+        // `@media (max-width: 767px) { margin-bottom: 3rem; gap: 1.5rem; }`,
+        // the same declaration `GATEWAY_NARROW` above already guards and reads
+        // its `gap` out of. The gap was taken and the margin was left, so the
+        // space above "Work with me" ran 64 against her 48 at 390 and matched
+        // at 768 and 1440 — the whole of the page's `seg 6`, 49px → 65px.
+        // A guard that a value is still in her source proves nothing about the
+        // OTHER value on the same line.
         padTop: 0,
         padBottom: 25,
         // Her stack's gap steps with the row's own at 767px.
         padBottomNarrow: 18,
-        ...(i === 0 ? { marginTop: "4rem" } : {}),
+        ...(i === 0 ? { marginTop: "4rem", marginTopNarrow: "3rem" } : {}),
         // Her `CardBody` — and through it every paragraph, every ✦ line and the
         // whole reading half of the card — is `var(--text-muted)`. See `bone()`
         // for why an unstated row is wrong rather than merely unspecified; this
@@ -998,7 +1008,24 @@ function buildHomeClassic(data, formId) {
       // grew the band instead of the gap.
       padTop: 16,
       padBottom: 12,
+      // AND THIS BAND OWED THREE NARROW NUMBERS AND TOOK NONE OF THEM — the
+      // same lesson /pearl-chamber/ learned one page over, where the comment
+      // beside `marginTopNarrow` says it outright: her `Main` and her
+      // `GridSection` step in the SAME `@media (max-width: 767px)` block, and a
+      // band standing in for either owes both halves. Both constants have been
+      // sitting here since that fix; the about band is a second `GridSection`
+      // and a second stand-in for `Main`'s close, and it was given the desktop
+      // half of each.
+      //
+      // `GridSection`'s `padding-bottom: 0.75rem → 2rem` is the band's own 20px
+      // (1007 against her 1027, and it is the LAST band on the page, so nothing
+      // below it could absorb the error); `Main`'s `6rem → 4.5rem` is the 24px
+      // of page under it. The second one only became visible once the first was
+      // fixed — the short band had been swallowing the long tail, and `seg 11`
+      // went from silent to 173px → 197px the moment the band came right.
+      padBottomNarrow: LANDING_GRID_PAD_BOTTOM_NARROW,
       marginBottom: "6rem",
+      marginBottomNarrow: LANDING_MAIN_PAD_NARROW.bottom,
       // Her `CardBody`, the same one the offerings ride — `AboutSection.tsx`
       // imports it by name from `OnePage.styles`.
       muted: bone(data, 0.65),

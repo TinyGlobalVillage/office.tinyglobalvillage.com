@@ -4147,11 +4147,79 @@ bottom hairline in `var(--rule)`. It is a visual change — it REMOVES seven lin
 — so it wants Gio's eye alongside the other marks, even though the measurement is
 unambiguous.
 
-### Still open on home-classic at 390 (and only at 390)
+---
 
-`seg 6` runs `49px → 65px` (**+16**) around "work with me", and band 7, the about
-band, runs `1027 → 1007` (**−20**). Neither is the FAQ or the contact band;
-both are new and unattributed.
+## THREE NARROW HALVES OF DECLARATIONS WE HAD ALREADY READ — 2026-08-11
+
+**home-classic at 390: 2.38 → 2.10% aligned, dH +25 → +5px.** Every segment on
+the page now matches her height EXACTLY. The +5 is the FAQ hairline above, which
+is Gio's to rule; at 768 and 1440 the page is +6, which is the same six lines.
+
+Item 1b named two deltas. Both were the same defect, a third one was hiding
+behind the second, and none of the three needed a value we had not already read
+out of her source.
+
+### The defect: a media query has two sides and a guard only proves one
+
+Her landing writes its narrow half as an override *inside* the same block as the
+wide half. `guardOnly` asserts that a string is still in her file — so a guard
+written for the value we DID take goes on passing, forever, for the value we did
+not.
+
+| her declaration | the narrow half | what ours had |
+|---|---|---|
+| `JourneyGateway`'s `Wrap`: `margin: 0 auto 4rem` … `@media (max-width:767px){ margin-bottom: 3rem; gap: 1.5rem; }` | 48px | `marginTop: "4rem"` only |
+| `GridSection`: `padding-bottom: 0.75rem` … `{ padding-bottom: 2rem; }` | 32px | `padBottom: 12` only |
+| `Main`: `padding: 8rem 0 6rem` … `{ padding: 7rem 0 4.5rem; }` | 72px | `marginBottom: "6rem"` only |
+
+The first line is the sharpest: `GATEWAY_NARROW` **already guards that exact
+declaration** and reads `gap: 1.5rem` out of it. The gap was taken and the margin
+on the same line was left, which is how the space above "Work with me" came to
+run 64 against her 48 at 390 and match at 768 and 1440 — the whole of `seg 6`,
+`49px → 65px`.
+
+The other two were the lesson /pearl-chamber/ learned a window earlier, one page
+over: `LANDING_MAIN_PAD_NARROW` and `LANDING_GRID_PAD_BOTTOM_NARROW` have both
+been sitting in this generator since that fix, with a comment beside them saying
+a band standing in for `Main` or for `GridSection` owes BOTH halves. The about
+band is a second `GridSection` **and** a second stand-in for `Main`'s close, and
+it took the desktop half of each.
+
+### And the short band was hiding the long tail
+
+`seg 11` — the 173px of page under the about band — reported **nothing** while
+the about band was 20px short. Fix the band and the tail appears at once, `173px
+→ 197px`, 18.44%: the page's total had been two errors of opposite sign, and the
+differ ranks pages by total. **A band coming right can make the number worse,
+and that is the differ telling the truth, not losing it.** Only the third fix
+took the page down.
+
+Reading order, for the record: `+25 → +29 → +5`.
+
+### The probes had been reading her mid-animation, and the rig now says so
+
+Her `fadeIn` is `translateY(22px) → 0` over 1.8s on a 0.35s delay, and
+`getBoundingClientRect` reports the TRANSFORMED position. Every ad-hoc probe in
+this file that read a y-offset off her app on `networkidle` was reading a partial
+transform — which is where a phantom "9.25px gap" between her h2 and her
+offerings came from, and an *overlap* of the same 9.25 one band later.
+
+Heights were never affected (a transform does not change layout), so every
+finding measured as a height stands. But the differ has never had this problem:
+`measure.mjs` exports `settle()`, which drives every keyframe animation to its
+END frame with a negative delay. The scratch probes now import that same helper —
+**the rig and the ruler settle a page the same way, or they are not measuring the
+same page.**
+
+### What is left on home-classic, and it is not a defect of ours
+
+`seg 10` is 5.12% at 390 and 10.91% at 768 with the band's height EXACT and every
+paragraph identical to the subpixel (same size, same line-height, same colour,
+same width, same y). The remainder is her portrait: one 211×634 box on both
+sides, same `object-fit: cover`, same `object-position: 50% 16%`, painted from
+`next/image`'s `w=828&q=75` re-encode of a 768×1152 original on her side and from
+our raw 533×800 tenant copy on ours. **Item 5's family**, and it goes to Gio's
+eye with the door photography.
 
 ### LEFT, IN ORDER
 
@@ -4162,8 +4230,14 @@ both are new and unattributed.
    `<details>` no-JS fallback, which never renders. Six pixels, seven visible
    lines. The fix is `itemEdge` empty plus one panel-bottom hairline; it REMOVES
    lines, so it goes to Gio's eye with the other marks.
-1b. **home-classic at 390 only:** `seg 6` +16px around "work with me", and the
-   about band −20px. New, unattributed, and the last of that page's +25.
+1b. ~~**home-classic at 390 only:** `seg 6` +16px, and the about band −20px.~~
+   **CLOSED 2026-08-11.** Three narrow halves of declarations already read —
+   her gateway `Wrap`'s `margin-bottom`, `GridSection`'s `padding-bottom` and
+   `Main`'s close — and every seg on the page now matches her height exactly.
+   **2.38 → 2.10%, dH +25 → +5**, and the +5 is item 1's hairline. The entry
+   above records the third fix that only appeared once the second landed, and
+   the animation trap that had been polluting every ad-hoc y-offset probe.
+   What is left on the page is her portrait, which is **item 5's family**.
 2. ~~**`galactic-field-guide` — GIO'S RULING.**~~ **RULED 2026-08-11: OURS.**
    Shown both at 1440, Gio chose the pooled sky — the star landing's `#06111c`
    plus the two orbs — over her `SiteShell` green-black. His 2026-08-06 ruling
