@@ -807,6 +807,26 @@ function buildHomeClassic(data, formId) {
       nameSize: "0.98rem",
       nameWeight: 300,
       nameTracking: "0.02em",
+      // AND THE FIFTH VALUE IS THE ONE SHE DOESN'T WRITE. The guard below is
+      // her whole `FAQSummaryButton` declaration block: face, size, tracking,
+      // weight, colour — and no `line-height` anywhere between them, so her
+      // question sets at the FACE's normal (≈1.083 in Cormorant). Ours hard-
+      // coded 1.25, which at 0.98rem is 19.60px against her 16.98 — 2.62px on
+      // a one-line row, eight rows deep, and her closed FAQ measured 53.78px
+      // per row against our 56.39. Seventh in the inherited-line-height family.
+      // `normal` and not 16.98px: the number would pin her band to Cormorant.
+      nameLh: (() => {
+        guardOnly({
+          file: `${HOME_DIR}/OnePage.styles.ts`,
+          find:
+            "padding: 1.15rem 0; display: flex; align-items: center; " +
+            "justify-content: space-between; gap: 1rem; " +
+            "font-family: ${LANDING_DISPLAY_FONT}; font-size: 0.98rem; " +
+            "letter-spacing: 0.02em; font-weight: 300; " +
+            "color: rgba(${COPPER}, 0.75); text-align: left;",
+        });
+        return "normal";
+      })(),
       muted: bone(data, 0.65),
       // `FAQSection` is a 50rem `Container` — 752 inside its 1.5rem sides —
       // padding 3.5rem above and 5rem below, stepping to 2.75rem/3.75rem under
@@ -848,6 +868,20 @@ function buildHomeClassic(data, formId) {
     // then `FormWrapper`'s own `padding-top: 2rem` — 8.5rem and a hairline
     // between the words and the first label. The rule itself is a gradient and
     // has no border to be, so the space is carried and the line is not.
+    //
+    // AND IT IS FIVE THINGS, WHICH IS WHY THIS NUMBER MOVED. 8.5rem is the
+    // whole distance on HER page — but on ours the title is a flex child of
+    // `Root`, and `Root` adds `--mf-gap` under every child. So the authored
+    // value renders as `title-gap + 20px`: 157px measured against her 137,
+    // her first field row at y=219.95 and ours at 239.95, the same +20 all the
+    // way down to the submit. The margin has to state the distance MINUS the
+    // gap it sits inside — the same rule-order trap as `SectionChrome`'s
+    // padding shorthand and `padCss`'s `$side`, one container up.
+    //
+    // Written as `7.25rem + 1px` rather than `8.5rem + 1px - 1.25rem` because
+    // a reader checking this against her stylesheet should see one number to
+    // find, not an equation to re-derive — the arithmetic is what this comment
+    // is for. 116 + 1 + 20 = 137.
     section("sec-contact", "form-live", "Contact", {
       formId,
       accent: "",
@@ -882,7 +916,15 @@ function buildHomeClassic(data, formId) {
         "--mf-title-lh": "1.15",
         "--mf-title-align": "center",
         "--mf-title-color": `rgb(${data.tokens.COPPER})`,
-        "--mf-title-gap": "calc(8.5rem + 1px)",
+        "--mf-title-gap": "calc(7.25rem + 1px)",
+        // Her submit is not a bare flex child: `ContactForm.tsx` puts it in a
+        // row of its own with 0.25rem of top padding, so it sits 4px below
+        // where the column gap alone would place it. Four of the sixteen.
+        "--mf-submit-gap": verbatim({
+          file: "src/app/[lang]/_allPageComponents/forms/ContactForm.tsx",
+          find: "display: 'flex', justifyContent: 'flex-start', paddingTop: '0.25rem'",
+          text: "0.25rem",
+        }),
         "--mf-label-font": "var(--tgv-fontBody, inherit)",
         "--mf-label-size": "0.75rem",
         "--mf-label-weight": "400",
