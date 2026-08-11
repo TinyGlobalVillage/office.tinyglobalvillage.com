@@ -1464,6 +1464,26 @@ const LANDING_LINE_HEIGHT = verbatim({
   text: "1.5",
 });
 
+/** AND HER `Main` CARRIES TWO PADDINGS, NOT ONE.
+ *
+ *  `padding: 8rem 0 6rem`, stepping to `7rem 0 4.5rem` under 767. Any band that
+ *  takes `Main`'s padding on a page's behalf — /pearl-chamber/ has no hero to
+ *  get it from — has to take BOTH halves, or the page is 16px low on a phone
+ *  and right on a desktop, which is the shape of bug a wide-only capture cannot
+ *  see. Read as one string so a change to either number fails the run. */
+const LANDING_MAIN_PAD_NARROW = (() => {
+  guardOnly({
+    file: `${HOME_DIR}/OnePage.styles.ts`,
+    find: "padding: 8rem 0 6rem; position: relative; @media (max-width: 767px) { padding: 7rem 0 4.5rem; } `;",
+  });
+  return { top: "7rem", bottom: "4.5rem" };
+})();
+
+/** …and her `GridSection` steps in the SAME query, 0.75rem → 2rem below.
+ *  Already guarded above as `padding-bottom: 2rem`; named here so the band that
+ *  states it says where it came from. 2rem = 32px. */
+const LANDING_GRID_PAD_BOTTOM_NARROW = 32;
+
 /** AND HER OTHER SIX ROOTS DECLARE NO RHYTHM AT ALL, WHICH IS NOT THE SAME AS
  *  DECLARING A DIFFERENT ONE.
  *
@@ -2716,6 +2736,16 @@ function buildPearlChamber(data, formId) {
       // which is under everything.
       marginTop: "8rem",
       marginBottom: "6rem",
+      // …AND HER `Main` CARRIES TWO PADDINGS, NOT ONE. It closes on a
+      // `@media (max-width: 767px)` that steps the whole shorthand to
+      // `7rem 0 4.5rem`. The pair above took the wide half only, so at 390
+      // every word on this page sat 16px lower than hers and the opening
+      // 546px segment — which is most of the page above the fold — diffed
+      // 20.33%. Her `GridSection` steps in the same query, 0.75rem → 2rem
+      // below, which is `padBottom` 12 → 32.
+      marginTopNarrow: LANDING_MAIN_PAD_NARROW.top,
+      marginBottomNarrow: LANDING_MAIN_PAD_NARROW.bottom,
+      padBottomNarrow: LANDING_GRID_PAD_BOTTOM_NARROW,
       items: [
         {
           anchorId: "pearl-chamber",
@@ -2771,7 +2801,13 @@ function buildPearlChamber(data, formId) {
             "--mf-req-display": "none",
             "--mf-field-pad": "0.8rem 0.9rem",
             "--mf-field-size": "1rem",
-            "--mf-field-lh": "1.4",
+            // HER INPUTS TAKE THE PAGE'S RHYTHM, not the form renderer's.
+            // `Field`'s `input, textarea` opens on `font: inherit` before it
+            // states a size, and the shorthand carries line-height with it — so
+            // her inputs run at `Body`'s 1.5 (24px at 16px type) where ours ran
+            // the renderer's 1.4 (22.4px). Two px per input, four across the
+            // three fields, and the whole card measured 4px short of hers.
+            "--mf-field-lh": LANDING_LINE_HEIGHT,
             "--mf-field-font": "var(--tgv-fontBody, inherit)",
             "--mf-radius": "8px",
             "--mf-field-bg": "rgba(255, 255, 255, 0.025)",

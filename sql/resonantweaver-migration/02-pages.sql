@@ -2656,6 +2656,9 @@ INSERT INTO _rw_pages VALUES ('pearl-chamber', 'The Pearl Chamber', false, 'publ
           "muted": "rgba(232, 229, 218, 0.65)",
           "marginTop": "8rem",
           "marginBottom": "6rem",
+          "marginTopNarrow": "7rem",
+          "marginBottomNarrow": "4.5rem",
+          "padBottomNarrow": 32,
           "items": [
             {
               "anchorId": "pearl-chamber",
@@ -2686,7 +2689,7 @@ INSERT INTO _rw_pages VALUES ('pearl-chamber', 'The Pearl Chamber', false, 'publ
                 "--mf-req-display": "none",
                 "--mf-field-pad": "0.8rem 0.9rem",
                 "--mf-field-size": "1rem",
-                "--mf-field-lh": "1.4",
+                "--mf-field-lh": "1.5",
                 "--mf-field-font": "var(--tgv-fontBody, inherit)",
                 "--mf-radius": "8px",
                 "--mf-field-bg": "rgba(255, 255, 255, 0.025)",
