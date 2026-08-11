@@ -2820,7 +2820,10 @@ runner refuses a non-200 candidate outright, on the live path and on the frozen
 run — rather than in `findings`, because there is nothing to compare. Restored
 and re-measured: 1440 worst band 3.23%, 768 4.44%, 390 8.62%.
 
-### LEFT, IN ORDER
+### LEFT, IN ORDER — superseded 2026-08-10, see the list at the end of this file
+
+*(kept as written, because the entry below is the record of item 1 turning out
+not to be a defect at all.)*
 
 1. **The image-resampling family — GIO'S EYE, and it is now six of the top seven
    numbers on the board.** `experience-resonance-mirror` 27.52 / 16.91 / 21.48,
@@ -3351,3 +3354,205 @@ row redriven on prod, `pages authored: 1`). RCS turbo 50/50 in 58s; mac-deploy
 on her file, including the `AboutBody p` rule and the `<AboutBody><AboutEyebrow>`
 nesting, so the cascade claim fails the generator if she ever unnests it.
 
+
+---
+
+## SIX ROOTS THAT DECLARE NOTHING, AND THREE ROUTES THAT WERE NEVER THE SAME PAGE — 2026-08-10
+
+Item 2 was the two waitlist offers and it closed. Reading the residue on those
+pages opened the largest single finding in this whole pass, and re-ranking the
+board afterwards showed that item 1 — the three biggest numbers on it — had
+never been a rendering defect at all.
+
+### Her waitlist form: four structural facts, no paint
+
+`offer-extended-starseed-profile` and `offer-awareness-and-perception-training`
+were 12.49 / 12.46 at 390 and are **5.77 / 5.59**; the height gap went −39 and
+−43 to −6 on both. Nothing in the list below is a colour, a size or a weight.
+
+Her `<Form>` is `display: grid; gap: 0.9rem; max-width: 28rem; margin-top: 2rem`
+sitting in `OfferMain`'s 342-wide column. Ours sat on the chrome's `md` rung —
+which read the 32px top right by accident and ran the full 350. Her `Textarea`
+states no `rows`, so it opens at the HTML default of 2 and ours opened at 4:
+**38px on a 608px band, the biggest single number on either page.** Her `Submit`
+is a bare grid child, so it spans the column at 342; ours shrank to its label at
+165. And her form declares no line-height while ours inherited 1.6 — the sixth
+surface in that family, and the one that started the next section.
+
+`rows` went on `FormFieldProperties`, not into the `--mf-*` map, because **how
+tall an answer box opens is a property of the QUESTION, not of the theme**:
+"anything you'd like to add (optional)" wants a smaller box than "tell us what
+happened", on any site and in any paint.
+
+The closing 80px needed a seat that did not exist. Her `OfferMain` is
+`padding: 9.5rem 0 7rem`, and every other page in the family already carries
+that 7rem as a `padBottom` on whatever entry ends it — the gateways and
+all-products end on `rf-callout-bar`. The two waitlist pages end on a FORM.
+`SectionChrome.padBottom` replaces the rung's bottom value and leaves the other
+three sides alone, **and it has to be re-stated inside the narrow query**: that
+query re-declares the `padding` SHORTHAND, which resets all four sides, so a
+`padding-bottom` written only above it is silently thrown away below 768 — the
+width a phone is. Third time rule ORDER has been load-bearing here, after
+`padCss`'s `$side` and the two-column-before-one-column ordering on her grids;
+the assertion checks the order, not just the value.
+
+### AND HER OTHER SIX ROOTS DECLARE NO RHYTHM AT ALL
+
+The generator's own comment claimed her page roots "each declare their own and
+none of them is 1.5". Half of that was true and half had never been checked.
+**Six declare NOTHING** — `GatewayBody`, `OfferBody`, `ProductBody`,
+`ProductsBody`, `CourseBody` and writing's `PageShell` — and a root that
+declares nothing is not a root that declares something else. Those pages run
+`normal`, about 1.15–1.2 for that face. Ours inherited the platform's 1.6.
+
+Measured in a browser at the deepest `<main>` on all 25 routes, both sides:
+**22 disagreed.** Only `/`, `/home-classic/` and `/pearl-chamber/` agreed, and
+those three were derived correctly because their root says 1.5 out loud.
+
+Stating `lineHeight: "normal"` on 14 tone rows moved **46 of 72 captures down,
+25 unmoved, 1 up by 0.15**. The biggest movers, at 390 unless said:
+`experience-all-products` **15.75 → 5.53** (768 10.49 → 3.97, 1440 6.80 → 2.76),
+`somatic-signature` 10.68 → 6.20, `develop` 10.55 → 6.69, `receive` 11.01 → 8.08.
+
+**It is one pixel on each run that states no line-height of its own** — which is
+why the page HEIGHTS were already right, and why this went six rounds as single
+findings (her footer, the writing eyebrow, the card footer runs, sun-walk, the
+dossier shell, this window's form labels) before anyone asked what the ROOT
+said. `PAGE_RHYTHM_NONE` now reads all six roots out of her source and fails the
+generator if any is renamed or grows a `line-height`. Proven non-vacuous:
+renaming `GatewayBody` in a scratch edit of her file exits 1 with "the pages
+that inherit its rhythm no longer read from it".
+
+**The seventh surface is CODE, not a row, which is why it survived that sweep.**
+`/landing-star-preview/course/` is an app route ported into HQ, not a page row —
+`SITE_SURFACES` grants it — and its `Course.styles.ts` header says "every rule
+below is hers, byte for byte". It was, and that is exactly the defect: her
+`CourseBody` states no rhythm and neither does her global sheet, so her page
+runs `normal`; HQ's global sheet says `body { line-height: 1.6 }`, so the
+byte-for-byte port rendered at 25.6px and 12px taller. **A port is only faithful
+when both sides inherit the same thing.** One declaration, and the header now
+names the one rule that is not hers and why. A fresh 25-route sweep of both apps
+puts the remaining six disagreements at the CHROME's `<main>` on pages whose
+content root states its own — all six read `same height` on the board, and
+course was the only one carrying a height delta.
+
+**course 8.04 / 7.56 / 5.10 → `0.36` / `0.51` / `0.22`, same height at all three
+widths.** One declaration, and the page came within a third of a point of hers
+at every width — the second time in this family (after sun-walk's 13.38 → 0.05)
+that a whole page's remaining diff turned out to be nothing but the rhythm.
+
+### AND THEN ITEM 1 TURNED OUT NOT TO BE A DEFECT
+
+With the rhythm landed, `experience-resonance-mirror` (27.37 / 17.06 / 21.41)
+and `experience-pearl-chamber` (16.23 / 16.40 / 19.97) were the top six numbers
+on the board, and item 1 called them the image-resampling family awaiting Gio's
+eye. **They are not photographs. They are two different pages.**
+
+The tell was in the report and had been printed on every run since these routes
+were added: *15 strings on both sides, identical; 18 MISSING from candidate; 16
+added*, with no band pairing to any other band. Her page reads "personal field
+reading · full spectrum / see your field clearly / a mirror, not a verdict / the
+movement / how it unfolds"; ours reads "personal energy-field reading /
+resonance mirror / reading the living field / the process / how the reading
+unfolds". Not one of those is a resampled photograph.
+
+`experience/[product]` is a THIRD page family — `ProductPreview` with its own
+`ProductPreview.content.ts`, three products, `robots: noindex` — and her own
+STATUS.md calls it the "old safety-net route (untouched)", superseded by
+`offer/[slug]`. **02-pages.sql lists it in its own NOT-AUTHORED block** and
+`siteRedirects.ts` says why at length: their copy is the catalog's `detail`
+blocks nearly verbatim, so authoring them would put two editable copies of the
+same three offers in the studio to be kept in step by hand forever. All three
+URLs 308 to their successors, live, today. So the differ was capturing our OFFER
+page and diffing it against her PREVIEW page, and reporting the difference as
+drift.
+
+### THE RULER, A FOURTH TIME — a 200 at a different address
+
+The fix is the same shape as the one before it, and that one's own comment
+walked straight past the gap: *"`page.goto` follows redirects, so this is the
+status of the page that actually rendered"* — correct about the STATUS, blind to
+the ADDRESS. A retired route answers 200 from its replacement, so the non-200
+refusal cannot see it.
+
+`landed` is recorded now, and a candidate that lands anywhere but the requested
+route goes in a third class. Not `missing`, because `missing` fails the run and
+these redirects are permanent — the board would never pass again. Not a finding,
+because there is no candidate page for this baseline route to be a finding
+about. **Printed either way**, in its own block above the pass line, because a
+redirect nobody intended looks exactly like one that was intended until somebody
+reads it — the whole lesson of `/journey/` answering 404 for a day while the
+board stayed quiet. It writes a `{status, landed}` stub before bailing so a
+`--candidate-dir` re-diff reaches the same verdict; without it the frozen branch
+would find no capture, call it `missing`, and fail a run the live pass passed.
+
+**The baseline was re-frozen on the way, for the third time and the same cause.**
+`outOfPhase` fired on every capture at 1425/753/375 against a baseline of
+1440/768/390 — her own app, unchanged commit. That is the macOS classic-vs-
+overlay scrollbar, which follows whether a mouse is plugged in, and three
+Chromium flags were tried against it first (`--enable-features=OverlayScrollbar`,
+`--hide-scrollbars`, `--disable-features=CSSScrollbarGutter`): **none of them
+moves it**, so re-freezing is the remedy, as the entry above already ruled.
+`rw-her-app-2026-08-11`, 75 captures. Against it the run has **no `missing` and
+no `outOfPhase`** — 66 compared, 9 redirected, every route accounted for — and
+every number lands within ~0.5 of its pre-re-freeze value.
+
+### THE BOARD, HONEST (`rw-p12-board`)
+
+| page | 390 | 768 | 1440 |
+|---|---|---|---|
+| journey | n/a (worst 11.87) | n/a (6.54) | n/a (3.48) |
+| pearl-chamber | **11.25** | 4.25 | 2.23 |
+| writing | 7.74 | **10.62** | 2.32 |
+| home-classic | **10.37** | 6.00 | 4.30 |
+| home | 8.95 | 7.53 | 6.61 |
+| course | 8.04 → **0.36** | 7.56 → **0.51** | 5.10 → **0.22** |
+| starseed | 7.51 | 5.56 | 3.24 |
+| receive | 7.45 | 4.03 | 3.52 |
+| galactic-field-guide | 6.86 | 3.52 | 3.92 |
+| develop | 6.48 | 4.52 | 3.16 |
+| the seven offer details | 3.88–7.13 | 2.46–4.92 | 1.72–3.14 |
+| the two waitlist offers | 5.59–5.77 | 3.20–3.34 | 2.60–2.77 |
+| experience-all-products | 5.62 | 3.99 | 2.81 |
+| open-your-journey | 1.47 | 0.88 | 0.52 |
+| sun-walk | 0.20 | 0.06 | 0.05 |
+
+The three `experience/[product]` routes are off it entirely, in `redirected`.
+
+### Shipped
+
+Office `aac0da0` (generator + the two waitlist rows and 14 tone rows, redriven on
+prod: `DELETE 2`+`DELETE 2` then re-run, then `DELETE 14` then `pages authored:
+14`, assertions green both times). Mono `7ebeea29` — `rows` on
+`FormFieldProperties` with its editor knob, `--mf-lh` on the form root,
+`SectionChrome.padBottom` re-stated inside the narrow query, `padBottom` on
+form-live; render-check 587 → 594, the new assertions checking the rule ORDER
+and not only the value. RCS turbo 50/50 in 55.1s; mac-deploy `w4eDgy_YCxK7vmheI4RNE`,
+"RCS did ZERO build", HTTP 200. Then HQ `f73aad1d` (the differ) + `7c8893fe`
+(the course rhythm), deployed at BUILD_ID `QZbbZ8jBGsC2wXlO1-etz`, "RCS did ZERO
+build", HTTP 200; proxy-route harness 71 + 23 + 25 green. Baseline re-frozen as
+`rw-her-app-2026-08-11` (75 captures) — **that is the ruler now**.
+
+### LEFT, IN ORDER
+
+1. **`pearl-chamber` at 390 (11.25)** — the top real number now. 1440 is 2.23
+   and 768 is 4.25, so it is narrow-only, and the page is +16px.
+2. **`writing` at 768 (10.62)** with a raw whole-page diff of 2.21 and −57px, and
+   `sections 2→3` — one band too many on our side at that width only. `writing`
+   at 1440 is 2.32 and at 390 is 7.74. The 390 residue is her two book covers;
+   the 768 number is a band the page should not be splitting.
+3. **home-classic at 390 (10.37, +158px)** — its intro band, her 800x220 against
+   our 1425x199 at 1440 and her 355px band running 458 at 390. 1440 is 4.30.
+4. **home at 390 (8.95, −42px)**, then `starseed` 390 (7.51), `receive` 390
+   (7.45) and `galactic-field-guide` 390 (6.86). Course is off this list:
+   0.36 / 0.51 / 0.22.
+5. **starseed's five split bands** (`sections 11→16` at every width) — markup,
+   and worth doing because the split is what produces its 96% worst band.
+6. **The image-resampling family, GIO'S EYE — and it is one page, not six
+   numbers.** `experience-all-products` 5.62 / 3.99 / 2.81 is the door
+   photography; `writing` at 390 carries her two book covers. He ruled ~20% is
+   the accepted floor, and nothing is near it any more.
+7. **FOR GIO:** `footerEnabled: false` on all four pooled hosts, `navEnabled:
+   false` on guardians + nevlo — a studio setting, and turning the footer band
+   on would also retire the double "powered by".
+8. Then: **tell Gio "come look", his eyeball pass, then the flip.**
