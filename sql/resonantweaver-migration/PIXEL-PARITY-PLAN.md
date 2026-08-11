@@ -2822,25 +2822,29 @@ and re-measured: 1440 worst band 3.23%, 768 4.44%, 390 8.62%.
 
 ### LEFT, IN ORDER
 
-1. **home at 390 is 18.83% and `writing` at 390 is 18.07%** — the two biggest
-   non-photo numbers left, and both are 390-only (home is 6.79 at 1440 and
-   10.10 at 768). home's heights at 390 are already within 99px over 8339, so
-   this is paint and reflow inside the bands, not a stack point: the star-
-   lineage strip alone censuses 39.87%.
-2. **doors/experiences ~20% — Gio's eye.** `experience-resonance-mirror` at 390
-   is 27.01%, the worst number on the whole board now; `experience-pearl-chamber`
-   20.09/17.20/20.37. Image resampling, and he ruled ~20% is the accepted floor.
-3. home-classic's intro band: her 800x220 against our 1425x199 at 1440, 22.03%,
-   and 34.08% at 390 where her 355px band runs 458 on ours. 21px of height on a
+1. **The image-resampling family — GIO'S EYE, and it is now six of the top seven
+   numbers on the board.** `experience-resonance-mirror` 27.52 / 16.91 / 21.48,
+   `experience-pearl-chamber` 17.12 / 16.86 / 20.35, `experience-all-products`
+   15.75 / 10.49 / 6.80. He ruled ~20% is the accepted floor and that he judges
+   these himself. Nothing below this line is bigger.
+2. `offer-extended-starseed-profile` and `offer-awareness-and-perception-training`
+   at 390, both 12.4% with a `worst band 81%` — the two waitlist offers, and the
+   81 is a band-pairing artifact (`sections 2→4`), so read the segs.
+3. `pearl-chamber` at 390 (11.23) and `receive` at 390 (11.01).
+4. home-classic's intro band: her 800x220 against our 1425x199 at 1440, and
+   34.08% at 390 where her 355px band runs 458 on ours. 21px of height on a
    three-line paragraph, and the only seg on that page still over 11%.
-4. The five split bands on starseed (`sections 11→16`) — markup, not the board
-   (3.24/5.56/7.51 aligned).
-5. `experience-all-products` climbs with narrowness — 6.65 / 10.00 / 14.70 —
-   and `develop` does the same (7.37 / 10.82). Same shape as item 1.
-6. **FOR GIO:** `footerEnabled: false` on all four pooled hosts, `navEnabled:
+   home-classic is 10.91 / 5.94 / 4.29.
+5. `writing` at 390 is 7.76 with a raw whole-page diff of 2.26 — the remainder
+   is her two book covers, which is item 1's family at a smaller size. Same for
+   `writing` at 768 (10.45, raw 2.21).
+6. The five split bands on starseed (`sections 11→16`) — markup, not the board.
+7. **FOR GIO:** `footerEnabled: false` on all four pooled hosts, `navEnabled:
    false` on guardians + nevlo — a studio setting, and turning the footer band
    on would also retire the double "powered by".
-7. Then: **tell Gio "come look", his eyeball pass, then the flip.**
+8. Then: **tell Gio "come look", his eyeball pass, then the flip.**
+
+home is off this list: **9.35 / 7.88 / 6.75**, from 18.83 / 10.10 / 6.79.
 
 ---
 
@@ -3249,3 +3253,101 @@ site-wide, and they come in two families the theme cannot reach:
 Both are row props on sections that were authored before either page was
 measured. That is the same job as the measure — every candidate band is 1440
 wide against her 800/928/1184/1312 — and it is now item 1.
+
+---
+
+## A BAND THAT IS NOT ASKING THE PAGE, AND A RULER THAT CUT IN THE WRONG PLACE — 2026-08-10
+
+Item 1 named two numbers and was half right about one of them. **home at 390 was
+real and is now 9.35%. `writing` at 390 was never 18% at all** — a raw
+whole-page diff of the same two captures reads 2.26%, and the gap was the
+differ's own segmentation.
+
+### The page half: four things her nesting says and a pooled sibling cannot
+
+Everything below was found by walking both DOMs side by side. Reading her
+stylesheet a fourth time would not have found any of them, because three are
+facts about WHERE a component sits rather than what it declares.
+
+**Her `<Intro>` is one component at two depths and therefore two widths.** It
+states `width: min(100% - 3rem, 55rem)`. The one that opens the page has her
+padded main for a parent and comes out 342 at 390; the two that open a
+`<Section>` inherit that section's own 24px inset first and come out **294**.
+Pooled, every band is a page-level sibling and the nesting is gone — ours ran
+342 for all three. One more line of copy on each nested band (−26px and −27px),
+and every glyph below them offset for the rest of the page: seg 7 was 21.54%
+across 1610px and seg 8 33.16% across 1095px, almost all of it that offset.
+New knob `sideInset`, and the row states 3rem.
+
+**"No frame" is true vertically and false at the sides.** Her field-guide notify
+note is authored `framePad: "none"` because the rhythm above it is a margin —
+and the frame's own comment says "none" means full-bleed, *including the page
+gutter*. But the note sits inside her Section and is 24px in like everything
+else there. Ours ran the whole 390: −28px. Same knob, plus her Section's 78rem
+close and `IntroCopy`'s 43rem measure, which our column had been capping at the
+frame's 1100 and the entry's own 62ch (636px).
+
+**A cap says what a box may not exceed and nothing about its edges.** Her
+contact card is `min(100%, 34rem)` inside that same inset section, so below 544
+it is the section's width — 342 at 390. Ours carried the identical cap over
+`width: 100%` and was right at 768 and 1440, where the cap binds, and 48px wide
+at 390. Every label, field and button on the band out of place: 22.83% on a
+657px band, all of it horizontal. `sideInset` on form-live.
+
+**And her About eyebrow is a body paragraph wearing a tracking.**
+`<AboutBody><AboutEyebrow>` — so `AboutBody p` at (0,1,1) outranks the
+eyebrow's own class at (0,1,0), and three of its five declarations never apply.
+It declares 0.64rem in `rgba(TEAL, 0.8)` with 0.6rem under it and renders
+0.98rem in `#c4ccd0` on a 1.7 line with 1rem under it — the same three values
+as the card's own copy levers, which is the tell. **Fifth time this cascade has
+decided a run in this family.** +12px, and it was the whole of seg 13's 20.03%
+over 1655px. The line-height it renders is one it never declares, so the knob
+(`markerLh`) had to exist before the row could state it.
+
+**Plus five colour rows the census had been printing since the pass that
+authored them.** Her accent on the star landing is the COPPER and three of her
+eyebrows are the TEAL — `IntroEyebrow` at 0.66, `CardIndex` at 0.62. The alpha
+knob thins the accent, which is the wrong colour thinned correctly. rf-door-card's
+own schema names this defect in its own words — *"hers is the copper at 0.94
+while the index runs teal, two hues one entry"* — and the escape hatch went to
+the arrow, the side the accent already paints right. `indexColor` and
+`eyebrowInk` close it; the census's colour column is now empty.
+
+**home 18.83 → 9.35 at 390, 10.10 → 7.88 at 768, 6.79 → 6.75 at 1440.**
+
+### The ruler half: two instrument faults, one of them mine to find
+
+**The baseline had gone out of phase, and the differ said so before I read a
+number.** Her own live app, unchanged commit, measured 1440/768/390 against a
+baseline frozen that morning at 1425/753/375 — the browser had stopped
+rendering a scrollbar between the two runs. This is the second time the
+`outOfPhase` list has caught the instrument moving under an unchanged page, and
+it is exactly what it was built for. Re-frozen as `rw-her-app-2026-08-10c`;
+her app against it is 0.00% on 74 of 75 captures. The 75th is her About
+portrait failing to load in one of two shots — shot noise on her own app.
+
+**Then `writing` at 390 was still 18.09% against a raw diff of 2.26%.** The
+bottom-edge cut rule read `heightsAgree = |Δh| <= max(32, 15% of the taller
+box)`, and 15% of a tall band is over a hundred pixels of licence. Her writing
+index is one padded div; the pooled page splits it into two bands and the outer
+one carries the 80px bottom padding — same pixels, different BOX, 825 against
+905. The tolerance waved it through, the cut landed 80px apart on two pages
+aligned to the pixel, and everything after it diffed against the wrong scanline.
+
+Same visual line is an ABSOLUTE claim, so the tolerance is rounding-level now
+(4px). The error is asymmetric: a wrong bottom cut misaligns the whole segment
+below it, while declining to cut costs only that band's interior, because the
+next anchor's top edge re-aligns immediately. **390/writing 18.09 → 7.76.**
+Fifty of the other 72 captures unmoved; the 22 that moved all moved UP, by at
+most 1.06 — the honest direction, since real drift is now counted instead of
+hidden behind a cut placed at a convenient wrong line.
+
+### Shipped
+
+Mono `b0a1dc01` (six entries, render-check 572 → 587, every field defaulting to
+the pre-knob render), HQ `5fdde258` (the differ), office (generator + the `home`
+row redriven on prod, `pages authored: 1`). RCS turbo 50/50 in 58s; mac-deploy
+`o3DXVBj23H3cqiZNgCjet`, RCS did ZERO build, HTTP 200. Five new source guards
+on her file, including the `AboutBody p` rule and the `<AboutBody><AboutEyebrow>`
+nesting, so the cascade claim fails the generator if she ever unnests it.
+

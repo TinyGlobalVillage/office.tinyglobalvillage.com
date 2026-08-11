@@ -444,6 +444,13 @@ function introBlock(data, id, label, copy, extra = {}) {
     eyebrowTracking: 0.2,
     eyebrowAlpha: 66,
     eyebrowSize: "0.68rem",
+    // HER ACCENT ON THIS PAGE IS THE COPPER AND THIS EYEBROW IS THE TEAL.
+    // `IntroEyebrow` is `rgba(TEAL, 0.66)` outright, and the alpha above thins
+    // the accent — the wrong colour, thinned correctly. Every eyebrow on the
+    // star landing rendered copper against her teal, at every width, from the
+    // pass that authored them; the text census had been printing the rows all
+    // along and they read as a token question rather than a defect.
+    eyebrowInk: `rgba(${data.tokens.TEAL}, 0.66)`,
     title: copy.title,
     copy: copy.copy,
     maxWidth: 55,
@@ -925,6 +932,34 @@ function buildStarLanding(data, formId) {
     file: `${HOME_DIR}/landing-star-preview/LandingStarPreview.styles.ts`,
     find: "export const FieldGuideRow = styled.div` display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.25rem; margin-top: clamp(2rem, 4vw, 3rem); @media (max-width: 760px) { grid-template-columns: 1fr; } `;",
   });
+  // The 2026-08-10 pass, four claims, each of them a number a row now states.
+  // (1) `Intro`'s own inset — the reason the same component renders 342 at the
+  //     top of her page and 294 inside a Section.
+  guardOnly({
+    file: `${HOME_DIR}/landing-star-preview/LandingStarPreview.styles.ts`,
+    find: "export const Intro = styled.section` width: min(100% - 3rem, 55rem);",
+  });
+  // (2) Its eyebrow's HUE, which is the teal on a page whose accent is copper.
+  guardOnly({
+    file: `${HOME_DIR}/landing-star-preview/LandingStarPreview.styles.ts`,
+    find: "export const IntroEyebrow = styled.p` margin: 0 0 1rem; color: rgba(${TEAL}, 0.66);",
+  });
+  // (3) The notify note's measure — `IntroCopy`, the same 43rem her intros use.
+  guardOnly({
+    file: `${HOME_DIR}/landing-star-preview/LandingStarPreview.styles.ts`,
+    find: "export const IntroCopy = styled.p` max-width: 43rem;",
+  });
+  // (4) The rule that overrules her About eyebrow. It is a DESCENDANT rule on
+  //     the block, and the eyebrow is inside the block — so this is what the
+  //     eyebrow renders, whatever `AboutEyebrow` says a few lines below it.
+  guardOnly({
+    file: `${HOME_DIR}/landing-star-preview/LandingStarPreview.styles.ts`,
+    find: "p { margin: 0 0 1rem; color: #c4ccd0; line-height: 1.7; font-size: 0.98rem; }",
+  });
+  guardOnly({
+    file: `${HOME_DIR}/landing-star-preview/LandingStarPreview.tsx`,
+    find: "<AboutBody> <AboutEyebrow>{about.eyebrow}</AboutEyebrow>",
+  });
   const sections = [
     pageTone(
       "sec-star-tone",
@@ -962,6 +997,12 @@ function buildStarLanding(data, formId) {
       titleLh: 1.05,
       copySize: "0.96rem",
       arrowColor: `rgba(${data.tokens.COPPER}, 0.94)`,
+      // The other half of that pair, and it was missed the first time. The
+      // entry's schema says it in its own words — "hers is the copper at 0.94
+      // while the index runs teal, two hues one entry" — and then the escape
+      // hatch went to the arrow, which is the one the accent already paints
+      // correctly. All three "i · door" runs rendered copper against her teal.
+      indexColor: `rgba(${data.tokens.TEAL}, 0.62)`,
       arrowSize: "0.7rem",
       arrowWeight: 700,
       arrowTracking: "0.1em",
@@ -990,6 +1031,16 @@ function buildStarLanding(data, formId) {
   sections.push(
     introBlock(data, "sec-star-featured-intro", "Featured — intro", star.featured, {
       marginTop: "clamp(5rem, 9vw, 8rem)",
+      // HER `<Intro>` RENDERS AT TWO WIDTHS BECAUSE IT SITS AT TWO DEPTHS.
+      // It states `min(100% - 3rem, 55rem)`; the one that opens the page has
+      // the main for a parent, and this one opens a `<Section>` that is
+      // already 24px in from each hand — so hers is 294 at 390 where the
+      // opener is 342. Pooled, every band is a page-level sibling and the
+      // nesting is gone, so the inset has to be stated. Ours ran the opener's
+      // width here and on the field guide below: one line more of copy each,
+      // 26px and 27px, and every glyph beneath them offset for the rest of
+      // the page — most of home's 18.83% at 390.
+      sideInset: "3rem",
     }),
   );
   // Her FeaturedGrid renders OfferingTile — which IS rf-hud-cards' tile mode
@@ -1041,6 +1092,8 @@ function buildStarLanding(data, formId) {
   sections.push(
     introBlock(data, "sec-star-fieldguide-intro", "Field Guide — intro", star.fieldGuide, {
       marginTop: "clamp(5rem, 9vw, 8rem)",
+      // The second of the two nested Intros — see the featured one above.
+      sideInset: "3rem",
     }),
   );
   // Her FieldGuideTile is the hud material in its SMALL form — 1.4rem pad,
@@ -1097,6 +1150,19 @@ function buildStarLanding(data, formId) {
       framePad: "none",
       marginTop: "2.5rem",
       centered: true,
+      // "no frame" IS TRUE VERTICALLY AND FALSE AT THE SIDES. The rhythm above
+      // is a margin, so the rung had nothing to give — but the band sits inside
+      // her `<Section>` and is 24px in from each hand like everything else in
+      // it, while "none" means full-bleed in this frame by design. Ours ran the
+      // whole 390 and came out one line shorter than hers: −28px, and the two
+      // bands under it offset by that much.
+      sideInset: "1.5rem",
+      // Her Section closes at 78rem, and her copy is `IntroCopy` — 43rem. Ours
+      // capped the column at the frame's 1100 and the prose at the entry's own
+      // 62ch (636px), so the note read 52px narrow at every width above the
+      // stack point and full-bleed below it.
+      maxWidth: 1248,
+      copyMaxWidth: "43rem",
       muted: `rgba(${data.tokens.BONE}, 0.63)`,
       ctas: [
         {
@@ -1162,6 +1228,14 @@ function buildStarLanding(data, formId) {
       accent: "",
       hideHeader: false,
       maxWidth: 544,
+      // A CAP SAYS WHAT THE BOX MAY NOT EXCEED AND NOTHING ABOUT THE EDGES.
+      // Her card is that cap inside a section already 24px in from each hand,
+      // so below 544 it is the section's width and at 390 that is 342. Ours
+      // was the same cap over `width: 100%` and ran the full 390 — right at
+      // 768 and 1440, where the cap binds, and 48px wide at 390, which put
+      // every label, field and button on the band out of place. 22.83% on a
+      // 657px band, all of it horizontal.
+      sideInset: "1.5rem",
       padding: "none",
       marginTop: "clamp(5rem, 9vw, 8rem)",
       align: "center",
@@ -1228,15 +1302,24 @@ function buildStarLanding(data, formId) {
       cardWash: "rgba(18, 63, 82, 0.5)",
       cardWashFeatured: "",
       imageGlow: "",
-      markerColor: `rgba(${data.tokens.TEAL}, 0.8)`,
+      // HER EYEBROW HERE IS A BODY PARAGRAPH WEARING A TRACKING, and the four
+      // values below are the ones her page RENDERS, not the four `AboutEyebrow`
+      // declares (0.64rem, rgba(TEAL, 0.8), 0.6rem under, no line-height at
+      // all). The markup is `<AboutBody><AboutEyebrow>…`, so `AboutBody p` at
+      // (0,1,1) outranks the eyebrow's own class at (0,1,0) and takes size,
+      // colour and margin with it — which is why they are the same three
+      // values as `copySize`/`copyLh`/`copyColor` a few lines down. All that
+      // survives of the eyebrow is its tracking and its uppercase.
+      markerColor: "#c4ccd0",
+      markerLh: "1.7",
       priceColor: "",
       linkColor: "",
       badgeColor: "",
       maxWidth: 46,
       cardPad: "clamp(1.6rem, 5vw, 2.6rem)",
-      markerSize: "0.64rem",
+      markerSize: "0.98rem",
       markerTracking: "0.22em",
-      markerGap: "0.6rem",
+      markerGap: "1rem",
       titleSize: "clamp(1.5rem, 4vw, 2rem)",
       titleWeight: 500,
       titleTracking: "-0.01em",

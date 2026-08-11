@@ -349,6 +349,7 @@ INSERT INTO _rw_pages VALUES ('home', 'Resonant Weaver', true, 'published', $rwj
           "eyebrowTracking": 0.2,
           "eyebrowAlpha": 66,
           "eyebrowSize": "0.68rem",
+          "eyebrowInk": "rgba(72, 210, 185, 0.66)",
           "title": "The stars, the field, and your own perception",
           "copy": "You can meet yourself through the stars, through the living energy of your own field, or by developing the perception that lets you sense more directly yourself. Each path returns you to the same place: a clearer relationship with who you are, what you carry, and how you are here to live.",
           "maxWidth": 55,
@@ -380,6 +381,7 @@ INSERT INTO _rw_pages VALUES ('home', 'Resonant Weaver', true, 'published', $rwj
           "titleLh": 1.05,
           "copySize": "0.96rem",
           "arrowColor": "rgba(183, 138, 119, 0.94)",
+          "indexColor": "rgba(72, 210, 185, 0.62)",
           "arrowSize": "0.7rem",
           "arrowWeight": 700,
           "arrowTracking": "0.1em",
@@ -437,13 +439,15 @@ INSERT INTO _rw_pages VALUES ('home', 'Resonant Weaver', true, 'published', $rwj
           "eyebrowTracking": 0.2,
           "eyebrowAlpha": 66,
           "eyebrowSize": "0.68rem",
+          "eyebrowInk": "rgba(72, 210, 185, 0.66)",
           "title": "Begin where you feel the pull",
           "copy": "Each path has a doorway open. The Starwoven Journey is your Starseed heritage. The Resonance Mirror and Pearl Chamber work with the energy moving through your field. The Somatic Signature helps you learn the language of your own body. Begin with the one that feels closest to what you need now.",
           "maxWidth": 55,
           "spacedBottom": true,
           "spacedTop": false,
           "muted": "rgba(232, 229, 218, 0.63)",
-          "marginTop": "clamp(5rem, 9vw, 8rem)"
+          "marginTop": "clamp(5rem, 9vw, 8rem)",
+          "sideInset": "3rem"
         }
       }
     },
@@ -515,13 +519,15 @@ INSERT INTO _rw_pages VALUES ('home', 'Resonant Weaver', true, 'published', $rwj
           "eyebrowTracking": 0.2,
           "eyebrowAlpha": 66,
           "eyebrowSize": "0.68rem",
+          "eyebrowInk": "rgba(72, 210, 185, 0.66)",
           "title": "The Galactic Field Guide",
           "copy": "A growing atlas of the fixed stars, star lineages, and civilisations that shape this work. Each entry explores the character of a star current, the gifts and shadows it carries, and how its presence may be recognised in human life. The archive currently spans 42 systems, with new writing and illustrations added as the guide continues to unfold.",
           "maxWidth": 55,
           "spacedBottom": true,
           "spacedTop": false,
           "muted": "rgba(232, 229, 218, 0.63)",
-          "marginTop": "clamp(5rem, 9vw, 8rem)"
+          "marginTop": "clamp(5rem, 9vw, 8rem)",
+          "sideInset": "3rem"
         }
       }
     },
@@ -594,6 +600,9 @@ INSERT INTO _rw_pages VALUES ('home', 'Resonant Weaver', true, 'published', $rwj
           "framePad": "none",
           "marginTop": "2.5rem",
           "centered": true,
+          "sideInset": "1.5rem",
+          "maxWidth": 1248,
+          "copyMaxWidth": "43rem",
           "muted": "rgba(232, 229, 218, 0.63)",
           "ctas": [
             {
@@ -695,6 +704,7 @@ INSERT INTO _rw_pages VALUES ('home', 'Resonant Weaver', true, 'published', $rwj
           "accent": "",
           "hideHeader": false,
           "maxWidth": 544,
+          "sideInset": "1.5rem",
           "padding": "none",
           "marginTop": "clamp(5rem, 9vw, 8rem)",
           "align": "center",
@@ -765,15 +775,16 @@ INSERT INTO _rw_pages VALUES ('home', 'Resonant Weaver', true, 'published', $rwj
           "cardWash": "rgba(18, 63, 82, 0.5)",
           "cardWashFeatured": "",
           "imageGlow": "",
-          "markerColor": "rgba(72, 210, 185, 0.8)",
+          "markerColor": "#c4ccd0",
+          "markerLh": "1.7",
           "priceColor": "",
           "linkColor": "",
           "badgeColor": "",
           "maxWidth": 46,
           "cardPad": "clamp(1.6rem, 5vw, 2.6rem)",
-          "markerSize": "0.64rem",
+          "markerSize": "0.98rem",
           "markerTracking": "0.22em",
-          "markerGap": "0.6rem",
+          "markerGap": "1rem",
           "titleSize": "clamp(1.5rem, 4vw, 2rem)",
           "titleWeight": 500,
           "titleTracking": "-0.01em",
