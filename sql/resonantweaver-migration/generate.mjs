@@ -827,6 +827,19 @@ function buildHomeClassic(data, formId) {
         });
         return "normal";
       })(),
+      // AND HER CHEVRON IS A DRAWING, NOT A GLYPH. Ours is `⌄` at 1.1rem —
+      // a 17.60px box — and hers is a flat 16px svg square. The summary row is
+      // centred flex, so the tallest child sets its height: her question's own
+      // line is 16.98px, which our chevron beat by 0.60 and hers loses to by
+      // 0.98. Sized to her box, the TEXT drives the row on both sides. A glyph
+      // will never be her stroke; it can stop deciding how tall her row is.
+      chevSize: (() => {
+        guardOnly({
+          file: `${HOME_DIR}/OnePage.styles.ts`,
+          find: "width: 16px; height: 16px; flex: 0 0 auto; opacity: 0.4; color: var(--primary);",
+        });
+        return "1rem";
+      })(),
       muted: bone(data, 0.65),
       // `FAQSection` is a 50rem `Container` — 752 inside its 1.5rem sides —
       // padding 3.5rem above and 5rem below, stepping to 2.75rem/3.75rem under

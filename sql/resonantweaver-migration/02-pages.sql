@@ -1278,6 +1278,7 @@ INSERT INTO _rw_pages VALUES ('home-classic', 'Resonant Weaver — classic landi
           "nameWeight": 300,
           "nameTracking": "0.02em",
           "nameLh": "normal",
+          "chevSize": "1rem",
           "muted": "rgba(232, 229, 218, 0.65)",
           "maxWidth": 752,
           "framePad": "md",
