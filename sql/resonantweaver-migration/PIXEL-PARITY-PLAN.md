@@ -3533,7 +3533,7 @@ and not only the value. RCS turbo 50/50 in 55.1s; mac-deploy `w4eDgy_YCxK7vmheI4
 build", HTTP 200; proxy-route harness 71 + 23 + 25 green. Baseline re-frozen as
 `rw-her-app-2026-08-11` (75 captures) — **that is the ruler now**.
 
-### LEFT, IN ORDER
+### LEFT, IN ORDER — superseded a few hours later; see the end of this file
 
 1. **`pearl-chamber` at 390 (11.25)** — the top real number now. 1440 is 2.23
    and 768 is 4.25, so it is narrow-only, and the page is +16px.
@@ -3556,3 +3556,135 @@ build", HTTP 200; proxy-route harness 71 + 23 + 25 green. Baseline re-frozen as
    false` on guardians + nevlo — a studio setting, and turning the footer band
    on would also retire the double "powered by".
 8. Then: **tell Gio "come look", his eyeball pass, then the flip.**
+
+---
+
+## TEN ROOTS ASK FOR THIN GLYPHS, AND TWO LIVE ROUTES HAD NO GROUND AT ALL — 2026-08-10
+
+Item 1 was `pearl-chamber` at 390 (11.25%), and reading it found two things that
+had nothing to do with pearl-chamber: a typographic fact stated ten times in her
+source that nothing pooled had ever carried, and a rendering bug that had been
+silently blanking two of her pages since 2026-08-04.
+
+**51 of 63 captures came down.** `starseed` 7.51 → 0.69 at 390, `course` 8.04 →
+0.68, `develop` 6.48 → 1.44, `home` 8.95 → 4.56, `receive` 7.45 → 4.63.
+
+### The measurement that had no box to point at
+
+Her paragraph and ours on `/pearl-chamber/` at 390 agreed **to two decimals** on
+x, y, width, height, family, size, line-height, weight, tracking and colour —
+and the band diffed 13.34%, three times over, on three identically-sized bands.
+The diff image is every glyph lit and nothing around them.
+
+The one property left is `-webkit-font-smoothing`: hers `antialiased`, ours
+`auto`. `auto` on macOS is subpixel-antialiased and heavier; hers is greyscale
+and thinner, and on Cormorant Garamond at weight 300 that is the texture of the
+page. **It moves no box**, which is why it survived every pass so far — every
+height, width and wrap on the board was already right.
+
+Her source declares it **ten times, and every one is a page root**:
+`OnePage#Body`, `ProductsBody`, `ProductBody`, `CourseBody`, `OfferBody`,
+`GatewayBody`, starseed's, open-your-journey's, sun-walk's `Page`, and the field
+guide's own GlobalStyles. Ten declarations of one thing is the site, not a page
+— so it rides `siteBackground` beside the scrollbar gutter, where it also
+reaches the six surfaces that are CODE and have no row to state it on. Site-
+scoped for the gutter's reason exactly: switching the fleet to greyscale would
+re-render every glyph on four live customer sites. The ten roots are READ, not
+transcribed; dropping the declaration from `SunWalk.tsx` exits the generator 1.
+
+### AND HER WRITING PAGE IS THE ONE THAT SAYS OTHERWISE
+
+Shipping it site-wide moved 51 captures towards her and pushed `/writing/`
+**3.85 points away** at 390. `WritingPage.styles#PageShell` declares neither a
+font-smoothing nor a line-height — it is the single route of hers that renders
+at the browser default on both counts. `rf-page-tone.smoothing` is the escape,
+at `html body` so it outranks the site's bare `body` in either document order —
+the same specificity trick, for the same reason, as the `line-height` beside it.
+Writing measured back at **7.74 / 10.62 / 2.32**, its pre-smoothing numbers to
+the hundredth. `PAGE_SMOOTHING_NONE` guards the claim: the site-wide rule is
+only honest BECAUSE exactly one page opts out.
+
+### THE BUG UNDER IT: TWO ROUTES HAD BEEN SERVING NO SITE GROUND SINCE 2026-08-04
+
+The smoothing shipped, deployed, and did not appear on `/pearl-chamber/`. Nor
+did the scrollbar gutter. Nor did `html{background:#06111c}` — **the site's own
+ground, which has been the row's job since the sky landed on 2026-08-04.**
+Swept across all 25 routes: 23 carried the site globals and `/home-classic/` and
+`/pearl-chamber/` carried none. Those are, and this is not a coincidence, the
+two pages that have sat near the top of this board and been called anomalous for
+a week.
+
+**`createGlobalStyle` groups its rules under a generated id, and without the
+babel/SWC plugin that id comes from a per-chunk counter.** So `sc-global-doPMcq`
+— group `g1218` — named `SiteBackdrop`'s globals on `/writing/` and
+`rf-page-tone`'s TYPE globals on `/pearl-chamber/`, and on the two routes where
+both mount, one of them is simply not emitted. Read straight off the served
+HTML of both pages, side by side.
+
+Both are plain `<style>` strings now — the escape the orbs in that same
+component already take, for a weaker reason. A style tag has no id to collide
+on, and the dedupe a global style buys is worth nothing here: there is one
+backdrop and one tone per page.
+
+**The harness had been green through all of it, and that is the second half of
+the finding.** The assertions read the styled-components sheet, and a global
+style that loses its slot on a real page still renders perfectly in isolation.
+They read the markup now, plus three new ones for the ground itself — the thing
+the collision actually cost. `renderAll` folds plain `<style>` markup into
+`.css` for every assertion that means to ask whether the page CARRIES a rule;
+where the mechanism is the point, `.html` and `.css` are read apart on purpose.
+594 → 617.
+
+### THE BOARD (`rw-p15-board`, baseline `rw-her-app-2026-08-11`)
+
+| page | 390 | 768 | 1440 |
+|---|---|---|---|
+| journey | n/a (worst 11.06) | n/a (6.09) | n/a (3.35) |
+| writing | 7.74 | **10.62** | 2.32 |
+| pearl-chamber | **9.72** | 3.27 | 1.67 |
+| home-classic | **8.71** | 4.02 | 3.10 |
+| galactic-field-guide | 6.86 | 3.52 | 3.92 |
+| home | 4.56 | 4.42 | 4.90 |
+| receive | 4.63 | ~2.9 | ~2.4 |
+| the two waitlist offers | 4.08–4.27 | ~2.3 | ~2.2 |
+| starseed | **0.69** | 0.73 | ~0.8 |
+| course | **0.68** | 0.78 | 0.37 |
+| develop | **1.44** | ~1.2 | ~1.0 |
+| open-your-journey | 1.99 | ~0.9 | ~0.6 |
+| sun-walk | 0.26 | 0.12 | 0.09 |
+
+51 down, 6 up (the largest +0.52, `open-your-journey` at 390), 6 unmoved.
+
+### Shipped
+
+Mono `72b87329` (`siteBackground.fontSmoothing`), `507431a8` (the backdrop's
+globals as plain styles), `7dab235c` (the tone's globals, `rf-page-tone.smoothing`
+and its studio lever). Office `632abff` (the ten-root guard + the site row) and
+`4478ab1` (writing's escape). Three RCS turbo runs 50/50 (~45s each), three
+mac-deploys — `oB6tVyAtgbM6nHyeM3aSn`, `507431a8`, `7dab235c` — every one "RCS
+did ZERO build", HTTP 200. The theme row UPDATEs in place so it needed no
+redrive; the writing row was deleted and re-authored (`pages authored: 1`,
+assertions green). render-check 594 → 617, package tsc 0 errors.
+
+### LEFT, IN ORDER
+
+1. **`writing` at 768 (10.62)** — `sections 2→3` and −57px: at that width only,
+   we split a band she does not. 1440 is 2.32 and 390 is 7.74, whose residue is
+   her two book covers.
+2. **`pearl-chamber` at 390 (9.72, +16px)** — the +16 is entirely above the
+   first band (her sections start 546/632/719/805, ours exactly 16 lower) plus
+   −3px inside the form. 1440 is 1.67. The form also still shows required
+   asterisks she does not mark (`--mf-req-display: none`, the waitlist rows'
+   fix, not yet on the pearl form).
+3. **`home-classic` at 390 (8.71, +158px)** — its intro band; 1440 is 3.10.
+4. **`galactic-field-guide` (6.86 / 3.52 / 3.92)** — 11 bands over gate at 390
+   with the page the same height, so it is inside the bands.
+5. **`home` (4.56 / 4.42 / 4.90)** and `receive` at 390 (4.63).
+6. **starseed's five split bands** (`sections 11→16`) — markup, and the source
+   of its 92–96% worst band even at 0.69% aligned.
+7. **The image-resampling family, GIO'S EYE** — `experience-all-products`
+   (~5.6 / 4.0 / 2.8) is the door photography and `writing` at 390 carries her
+   two book covers. He ruled ~20% is the floor; nothing is close to it now.
+8. **FOR GIO:** `footerEnabled: false` on all four pooled hosts, `navEnabled:
+   false` on guardians + nevlo.
+9. Then: **tell Gio "come look", his eyeball pass, then the flip.**
