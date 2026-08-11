@@ -3666,7 +3666,7 @@ did ZERO build", HTTP 200. The theme row UPDATEs in place so it needed no
 redrive; the writing row was deleted and re-authored (`pages authored: 1`,
 assertions green). render-check 594 → 617, package tsc 0 errors.
 
-### LEFT, IN ORDER
+### LEFT, IN ORDER — superseded 2026-08-11; see the end of this file
 
 1. **`writing` at 768 (10.62)** — `sections 2→3` and −57px: at that width only,
    we split a band she does not. 1440 is 2.32 and 390 is 7.74, whose residue is
@@ -3688,3 +3688,144 @@ assertions green). render-check 594 → 617, package tsc 0 errors.
 8. **FOR GIO:** `footerEnabled: false` on all four pooled hosts, `navEnabled:
    false` on guardians + nevlo.
 9. Then: **tell Gio "come look", his eyeball pass, then the flip.**
+
+---
+
+## A SHELL THAT NEVER LETS A PAGE BE SHORT, AND A `Main` WITH TWO PADDINGS
+
+*2026-08-11, the window after the glyph finding. Two items off the list, both
+of them a declaration of hers that a pooled page had taken half of.*
+
+### The viewport floor — item 1, and it was never about the band
+
+`/writing/` at 768 was the top of the board at 10.62% and read `sections 2→3`,
+`−57px`, with a 27% tail segment. The band split was a red herring: measured
+side by side at 768, her header and ours are the same box to the pixel
+(`705x226` at `24,72`), her cover grid and ours are the same box (`705x400`,
+`320px 320px`), and each card sits at the same x, y, w and h. Nothing on the
+page was laid out differently.
+
+**Her `main` was 900 tall and ours was 843.** `WritingPage.styles`' `PageShell`
+opens on `min-height: 100vh`, and so — the thing that actually matters — does
+`SiteShell` in her `layout.client.tsx`, the wrapper every page of hers renders
+inside. Nine more of her page roots restate it (`open-your-journey` says
+`100dvh`). Pooling the pages left the shell behind, so a short page of hers
+ended where its content ended.
+
+It bites only where a page is short, which is why nothing found it in eleven
+prior passes. Swept live across her 25 routes at 390/768/1440 before shipping:
+**exactly one capture moves.**
+
+`siteBackground.fillsViewport` (mono `c14b273d`), beside `scrollbarGutter` and
+`fontSmoothing`, site-scoped for their reason exactly — the other three pooled
+tenants emit not one character of it, verified on the live domains.
+
+Two things about the CSS are load-bearing and both were measured, not reasoned:
+
+- **`display: flow-root` travels with the `min-height`.** A pooled page's first
+  section carries its own top margin, which collapses straight out through
+  `main` — no padding, no border — and leaves `main`'s box starting BELOW the
+  nav band. A bare `min-height: 100vh` measures from there and overshoots by
+  exactly that margin. Containing the margin puts `main`'s box where her
+  `PageShell`'s is, at every width, with nobody hardcoding a nav height.
+- **A page whose content is a fixed overlay is exempt**, by
+  `:not(:has(> [data-fixed-surface]))`. `/galactic-field-guide/` is her one page
+  that sails out of flow entirely (`position: fixed; inset: 0` in her own
+  GlobalStyles), so its `main` has no flow content to fill; the floor would have
+  hung a footer 112px below a page that is exactly one viewport tall on her app.
+  The surface declares the attribute beside the `position: fixed` that earns it
+  (HQ `17eb54f6`); the site rule reads it. The sweep is what caught this — it
+  was a regression on all three widths before the escape existed.
+
+**`/writing/` 10.62% → 4.65%, her height at all three widths, `sections 2→2`.**
+What is left on that page is her two book covers — and the second one is the
+cover that 404s on her own live site, which the row deliberately does not carry.
+
+### Her `Main` carries two paddings — item 2, and the form's rhythm under it
+
+`/pearl-chamber/` at 390 was 9.70% with a 20.33% opening segment and `+16px`,
+and the +16 was every box on the page: her article at y=138, ours at 154.
+
+**`OnePage.styles`' `Main` is `padding: 8rem 0 6rem` stepping to
+`7rem 0 4.5rem` under 767**, and `GridSection` steps its `padding-bottom`
+0.75rem → 2rem in the same query. The card band takes `Main`'s padding on this
+page's behalf — /pearl-chamber/ has no hero to get it from — and had taken the
+wide half only. Right on a desktop, 16px low on a phone.
+
+`rf-offer-card.marginTopNarrow` / `marginBottomNarrow` (mono `c1666f7a`), empty
+by default, stepping in the same `max-width: 767px` query `padBottomNarrow`
+already opens — her one narrow block moves `Main` and `GridSection` at once.
+They re-state the **shorthand**, not the longhands: a `margin-top` longhand
+loses to any later shorthand and the wide rule is one. Asserted.
+
+And the 4px under that: **her `Field`'s `input, textarea` opens on
+`font: inherit` BEFORE it states a size**, so the shorthand carries line-height
+with it and her inputs run at the page's 1.5 (24px) where the form renderer's
+default 1.4 gave 22.4. Two px an input, four across three fields.
+
+| capture | was | now | |
+|---|---|---|---|
+| pearl-chamber 390 | 9.70 | **2.23** | her height, 0/5 bands over gate |
+| pearl-chamber 768 | 3.26 | **1.12** | her height, 0/5 over gate |
+| pearl-chamber 1440 | 1.66 | **0.51** | her height, 0/2 over gate |
+| writing 768 | 10.62 | **4.65** | her height, `sections 2→2` |
+
+Shipped: mono `c14b273d`, `c1666f7a`; HQ `17eb54f6`; office `be8064a`, `96d33f9`.
+Two RCS turbo runs 50/50, two mac-deploys (`c14b273d`, `c1666f7a`), both "RCS
+did ZERO build", HTTP 200. `01-theme.sql` UPDATEs in place; the pearl row was
+deleted and re-authored (`pages authored: 1`, assertions green). render-check
+617 → 629 → 634, package tsc 0 errors, proxy harness 71+23+25 green. Fleet smoke
+all 200 (Office 307 → login).
+
+**Board `rw-p16-board`: 66 compared, 9 redirected, no `missing`, no
+`outOfPhase`.** Every other movement on it was ±0.06 — run-to-run noise on the
+photography, not a regression.
+
+### THE NEXT ONE IS A SWEEP, NOT A FIX
+
+`home-classic` at 390 (8.71) is now the top, and reading it named the shape of
+everything below it. Its two worst bands are `27.42%` and `34.19%`, and the
+census names the cause outright — **type that is the wrong SIZE at 390 only**:
+
+```
+"before you choose a service"          12.16px → 13.12px
+"where are you in your energetic fi"   16.80px → 18.40px
+"a short self-guided journey throug"   13.12px → 14.40px
+```
+
+Those are her `JourneyGateway`'s narrow steps, and there are six of them in that
+one component (eyebrow size + tracking, the question's size, line-height and
+max-width, the stack's gap, the button's padding and size, the sub-note's size).
+`OnePage.styles` holds **25 more**, one per box: `Hero`, `HeroText`, `HeroRule`,
+`SymbolWrap`, `HeroEyebrow`, `H1`, `Tagline`, `IntroSection`, `Intro` (×2),
+`GridSection`, `OfferingsStack`, `OfferingsRow`, `OfferCard`, `FeatureLead`,
+`FeatureDetail`, `FeatureContent`, `CardHead`, `Sub`, `P`, `TestimonialCard`,
+`FAQSection`, `FAQIntro`, `ContactSection`.
+
+**Every one of them is a second number she wrote, and the pooled rows carry only
+the first.** That is the same finding as `padBottomNarrow`, `gutterNarrow`,
+`stackAt`, `cardPadAt` and this window's `marginTopNarrow` — five times now — and
+it is why the phone column of the board has been worse than the desktop column
+on every page that renders her classic vocabulary. It reaches seven entries
+(rf-split-hero, rf-centered-intro, rf-offer-card, rf-media-copy, rf-testimonials,
+rf-accordion, the contact band) and it is one phase, not one fix.
+
+### LEFT, IN ORDER
+
+1. **THE NARROW-WIDTH SWEEP** — her 31 `max-width: 767px` blocks, read from her
+   source into `*Narrow` knobs across the seven entries above. It is the top of
+   the board (`home-classic` 390 at 8.71) and it is most of `home` (4.56 / 4.42 /
+   4.90) and `receive` at 390 (4.63) too, since all three render the same
+   vocabulary. One commit per entry.
+2. **`galactic-field-guide` (6.86 / 3.52 / 3.92)** — 11 bands over gate at 390
+   with the page the same height, so it is inside the bands, not the layout.
+3. **`writing` at 390 (7.73)** — the residue is her two book covers, one of
+   which 404s on her own site. Gio's eye.
+4. **starseed's five split bands** (`sections 11→16`) — markup, and the source
+   of its 92–96% worst band even at 0.69% aligned.
+5. **The image-resampling family, GIO'S EYE** — `experience-all-products`
+   (~5.6 / 4.0 / 2.8) is the door photography. He ruled ~20% is the floor;
+   nothing is close to it now.
+6. **FOR GIO:** `footerEnabled: false` on all four pooled hosts, `navEnabled:
+   false` on guardians + nevlo.
+7. Then: **tell Gio "come look", his eyeball pass, then the flip.**
