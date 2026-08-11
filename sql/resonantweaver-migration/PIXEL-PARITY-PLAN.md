@@ -4070,12 +4070,100 @@ One thing the report genuinely does not print: a segment's **offset**. It shows
 `138px → 138px`, which is the two HEIGHTS; two strips can be the same height and
 start at different scanlines and the line looks perfect either way.
 
+---
+
+## ITEM 1 CLOSED, AND A HAIRLINE TRANSCRIBED FROM DEAD CODE — 2026-08-11
+
+Both halves of item 1 measured, fixed and verified. **home-classic 2.89 / 2.83 /
+2.12 → 2.38 / 2.02 / 1.11**, and the height delta collapsed from **+62 / +43 /
++42px to +25 / +6 / +6**. Deployed at mono `1bd75fb2`.
+
+### The contact band's 16px was +20 at the top and −4 at the bottom
+
+Measured as OFFSETS, not heights — the report prints `138px → 138px` and two
+strips of equal height can start at different scanlines. Her first field row sat
+at y=219.95 from the band top and ours at 239.95, and the same +20 carried
+unchanged all the way down to the submit.
+
+**`--mf-title-gap` was four things and it is five.** The comment beside it
+already read the four correctly — her `H2` closes on `margin: 0 0 2.5rem` inside
+a `gap: 2rem` column, then a `FadeLine`, then another 2rem, then `FormWrapper`'s
+own `padding-top: 2rem`, so 8.5rem plus a hairline is her whole distance. What
+it did not account for is OUR side: the title is a flex child of the renderer's
+`Root`, and `Root` adds `--mf-gap` under every child. So an authored 137 renders
+137 + 20. The margin has to state the distance minus the gap it sits inside —
+the same rule-order trap as `SectionChrome`'s padding shorthand and `padCss`'s
+`$side`, one container up. Now `calc(7.25rem + 1px)`.
+
+The −4 is `--mf-submit-gap`, new: her submit is not a bare flex child.
+`ContactForm.tsx` wraps it in a row of its own carrying `paddingTop: '0.25rem'`,
+so it sits 4px below where the column gap alone puts it. A margin on `Primary`
+rather than a wrapper, because a wrapper changes what `align-self` measures
+against. Default 0, so no published form moves.
+
+**+20 − 4 = the +16.00px the band measured, and the band is now 831.47 → 831.47.**
+
+### The FAQ items' 26px was one declaration and one glyph
+
+`nameLh`, new. Her `FAQSummaryButton` sets the face, the size, the weight and the
+tracking and declares **no line-height**, so her question sets at Cormorant's
+normal — 16.98px at her 0.98rem, against the 19.60 our hardcoded 1.25 produced.
+**Seventh member of the inherited-line-height family.** `normal` is the faithful
+transcription precisely because it tracks the face; writing 16.98px would pin her
+band to Cormorant forever.
+
+That closed 2.61 of the 2.62 per row and left **0.60px**, which was the chevron:
+ours is `⌄` at 1.1rem with line-height 1, a **17.60px box**, and hers is a flat
+16px svg square. The summary is a centred flex row, so the tallest child sets the
+height — our glyph beat her question's 16.98px line and her drawing loses to it.
+`chevSize`, authored to her box, and the TEXT drives the row on both sides.
+
+**Rows now measure 53.78px on both sides, all eight.**
+
+### AND THE HAIRLINE UNDER EVERY QUESTION IS TRANSCRIBED FROM CODE THAT NEVER RUNS
+
+The FAQ BAND is still **+6px at all three widths** with its rows exact, and the
++6 is six hairlines her page does not have.
+
+Her panel measures 431.25 for 8 × 53.78 = 430.24 — **one** stray pixel, which is
+`FAQPanel`'s own `border-bottom: 1px solid var(--rule)`. Ours measures 437.25:
+**seven**, one under each item but the last. Read directly off the rendered DOM,
+her item wrappers carry `border-bottom: 0px none`; ours carry
+`1px solid rgba(copper, 0.1)`.
+
+That colour names the source. `FAQDetails` — the styled block that carries
+`border-bottom: 1px solid rgba(${COPPER}, 0.1)` and a `&:last-child` reset — is
+her **`<details>` no-JS fallback**, and the JS path renders `FAQItemRow`, which
+is `styled.div\`\``. Every question on her live page is separated by nothing.
+
+**This is the failure mode the guards cannot catch.** `guardOnly` proves a string
+is still in her source; it cannot prove the branch renders. Six pixels and seven
+visible lines came from a value read out of dead code — worth naming as a class,
+because the generator transcribes from her JSX everywhere and this is the first
+time a *rendered* check disagreed with a *guarded* one.
+
+**Fix, not yet applied:** `itemEdge` goes empty and the panel takes a single
+bottom hairline in `var(--rule)`. It is a visual change — it REMOVES seven lines
+— so it wants Gio's eye alongside the other marks, even though the measurement is
+unambiguous.
+
+### Still open on home-classic at 390 (and only at 390)
+
+`seg 6` runs `49px → 65px` (**+16**) around "work with me", and band 7, the about
+band, runs `1027 → 1007` (**−20**). Neither is the FAQ or the contact band;
+both are new and unattributed.
+
 ### LEFT, IN ORDER
 
-1. **The 26px inside her FAQ items and the 16px inside her contact band**, both
-   at 390 and both newly visible now that the pads around them are hers. Neither
-   component steps at 767 in her source, so this is our content being taller,
-   not a missing narrow value.
+1. ~~**The 26px inside her FAQ items and the 16px inside her contact band**~~ —
+   **CLOSED 2026-08-11**, both exactly: the contact band is 831.47 → 831.47 and
+   the FAQ rows are 53.78 on both sides. See the entry above. **What it left is
+   the hairline finding**: our FAQ paints seven per-item borders read out of her
+   `<details>` no-JS fallback, which never renders. Six pixels, seven visible
+   lines. The fix is `itemEdge` empty plus one panel-bottom hairline; it REMOVES
+   lines, so it goes to Gio's eye with the other marks.
+1b. **home-classic at 390 only:** `seg 6` +16px around "work with me", and the
+   about band −20px. New, unattributed, and the last of that page's +25.
 2. ~~**`galactic-field-guide` — GIO'S RULING.**~~ **RULED 2026-08-11: OURS.**
    Shown both at 1440, Gio chose the pooled sky — the star landing's `#06111c`
    plus the two orbs — over her `SiteShell` green-black. His 2026-08-06 ruling
