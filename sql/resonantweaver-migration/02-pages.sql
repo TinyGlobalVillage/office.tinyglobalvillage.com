@@ -1429,7 +1429,8 @@ INSERT INTO _rw_pages VALUES ('writing', 'Writing', true, 'published', $rwjson${
             "radial-gradient(circle at 50% 0%, hsl(235, 72%, 16%), hsl(228, 58%, 9%) 56%, hsl(220, 28%, 4%) 100%)"
           ],
           "ground": "",
-          "lineHeight": "normal"
+          "lineHeight": "normal",
+          "smoothing": "auto"
         }
       }
     },

@@ -1508,6 +1508,32 @@ const PAGE_RHYTHM_NONE = (() => {
   return "normal";
 })();
 
+/** AND `PageShell` IS ALSO THE ONE ROOT THAT ASKS FOR NO SMOOTHING.
+ *
+ *  `SMOOTHED_ROOTS` in `themeSql` reads the ten roots that declare
+ *  `-webkit-font-smoothing: antialiased` and the site row states it once for
+ *  all of them. Her writing page is the exception on both counts — no rhythm
+ *  and no smoothing — so its tone row has to say so, and this guard is the
+ *  other half of that claim: the site-wide rule is only safe to state BECAUSE
+ *  exactly one page opts out, and if `PageShell` ever grows the declaration
+ *  the opt-out becomes a lie about her design.
+ *
+ *  Measured 2026-08-10: stating the site rule without this escape moved 51 of
+ *  63 captures towards her and pushed `/writing/` 3.85 points away at 390. */
+const PAGE_SMOOTHING_NONE = (() => {
+  const file = `${HOME_DIR}/writing/WritingPage.styles.ts`;
+  const src = normalizedSource(file);
+  const m = src.match(/export const PageShell = styled[^`]*`([^`]*)`/);
+  if (!m) {
+    drift.push(`${file}: PageShell is gone — /writing/ no longer reads its glyph rendering from it`);
+  } else if (/font-smoothing\s*:/.test(m[1])) {
+    drift.push(
+      `${file}: PageShell now declares a font-smoothing — /writing/ is no longer the page that opts out`,
+    );
+  }
+  return "auto";
+})();
+
 /** THE PAGES THE FONT SWITCH LEAVES AT "ORIGINAL" — her serif, page-wide.
  *
  *  `OnePage.styles` asks for all three of its faces through a variable with a
@@ -3835,6 +3861,14 @@ function buildWriting(data) {
       ground: "",
       // `PageShell` declares no rhythm, so the page reads at `normal`.
       lineHeight: PAGE_RHYTHM_NONE,
+      // AND IT IS THE ONE ROOT ON THE SITE THAT ASKS FOR NO SMOOTHING EITHER.
+      // Ten of her page roots declare `-webkit-font-smoothing: antialiased`
+      // (see SMOOTHED_ROOTS, which reads all ten); `PageShell` declares
+      // neither that nor a line-height, so /writing/ is the single route of
+      // hers that renders at the browser default on both counts. Stating the
+      // site-wide rule without this escape moved 51 captures towards her and
+      // pushed writing 3.85 points away at 390. Guarded below.
+      smoothing: PAGE_SMOOTHING_NONE,
     }),
     section("sec-writing-head", "rf-serif-head", "Writing", {
       eyebrow: verbatim(w.eyebrow),
