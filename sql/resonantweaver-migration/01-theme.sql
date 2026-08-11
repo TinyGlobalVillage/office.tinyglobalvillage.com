@@ -172,7 +172,8 @@ SELECT 'siteBackground', 'en', 'published', NULL, $rwjson${
     }
   ],
   "color": "#06111c",
-  "scrollbarGutter": true
+  "scrollbarGutter": true,
+  "fontSmoothing": true
 }$rwjson$::jsonb, now(), 'resonantweaver'
  WHERE NOT EXISTS (
    SELECT 1 FROM public.content_overrides
@@ -212,7 +213,8 @@ UPDATE public.content_overrides
     }
   ],
   "color": "#06111c",
-  "scrollbarGutter": true
+  "scrollbarGutter": true,
+  "fontSmoothing": true
 }$rwjson$::jsonb, updated_at = now()
  WHERE site = 'resonantweaver' AND key = 'siteBackground'
    AND lang = 'en' AND mode = 'published'
@@ -247,7 +249,8 @@ UPDATE public.content_overrides
     }
   ],
   "color": "#06111c",
-  "scrollbarGutter": true
+  "scrollbarGutter": true,
+  "fontSmoothing": true
 }$rwjson$::jsonb;
 
 -- ── siteFonts ────────────────────────────────────────────────────────────────
@@ -575,6 +578,16 @@ BEGIN
      AND data->>'scrollbarGutter' = 'true';
   IF n <> 1 THEN
     RAISE EXCEPTION 'assert: siteBackground.scrollbarGutter is not reserved';
+  END IF;
+
+  -- Her glyph rendering. Silent when wrong in the strongest sense of the word:
+  -- it moves no box on any page, so every height, width and wrap stays right
+  -- and only the weight of the type is hers or is not.
+  SELECT count(*) INTO n FROM public.content_overrides
+   WHERE site = 'resonantweaver' AND key = 'siteBackground'
+     AND data->>'fontSmoothing' = 'true';
+  IF n <> 1 THEN
+    RAISE EXCEPTION 'assert: siteBackground.fontSmoothing is not set';
   END IF;
 
   RAISE NOTICE 'assertions passed';

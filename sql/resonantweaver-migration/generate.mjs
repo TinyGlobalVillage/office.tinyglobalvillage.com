@@ -4094,10 +4094,49 @@ function themeSql(data) {
   // Measured 2026-08-09: /writing/ at 390, her body box 375 and the pooled one
   // 390, so her intro ran four lines and ours three (−30px of page).
   guardOnly({ file: "src/styles/GlobalStyles.ts", find: "scrollbar-gutter: stable;" });
+
+  /** AND EVERY PAGE ROOT SHE HAS ASKS FOR THIN GLYPHS.
+   *
+   *  `-webkit-font-smoothing: antialiased` appears TEN times in her source and
+   *  every one of them is a page root: `OnePage#Body`, the five star-preview
+   *  roots (`ProductsBody`, `ProductBody`, `CourseBody`, `OfferBody`,
+   *  `GatewayBody`), starseed, open-your-journey, sun-walk's `Page` and the
+   *  field guide's own GlobalStyles. Ten declarations of one thing is not a
+   *  per-page choice, it is the site — which is why it is a `siteBackground`
+   *  field beside the gutter and not a prop on fourteen tone rows, and why
+   *  neither would have reached the six surfaces that are CODE.
+   *
+   *  IT CHANGES NO BOX, WHICH IS WHY IT SURVIVED EVERY PASS SO FAR. Measured
+   *  on `/pearl-chamber/` at 390 on 2026-08-10: her paragraph and ours agreed
+   *  to two decimals on x, y, width, height, family, size, line-height,
+   *  weight, tracking and colour — and the band still diffed 13.34%, with the
+   *  diff image showing every glyph lit and nothing around them. `auto` is
+   *  subpixel-antialiased and heavier; hers is greyscale and thinner, and on
+   *  Cormorant Garamond at weight 300 that is the whole texture of her page.
+   *
+   *  The list is READ, not transcribed, so a root she stops smoothing fails
+   *  the generator rather than leaving the site claiming a rule she dropped. */
+  const SMOOTHED_ROOTS = [
+    "src/app/[lang]/(public)/(home)/OnePage.styles.ts",
+    "src/app/[lang]/(public)/(home)/landing-star-preview/experience/all-products/AllProducts.styles.ts",
+    "src/app/[lang]/(public)/(home)/landing-star-preview/experience/[product]/ProductPreview.styles.ts",
+    "src/app/[lang]/(public)/(home)/landing-star-preview/course/Course.styles.ts",
+    "src/app/[lang]/(public)/(home)/landing-star-preview/offer/[slug]/OfferDetail.styles.ts",
+    "src/app/[lang]/(public)/(home)/landing-star-preview/[gateway]/GatewayPage.styles.ts",
+    "src/app/[lang]/(public)/(home)/starseed/StarseedOraclePage.styles.ts",
+    "src/app/[lang]/(public)/(home)/open-your-journey/OpenJourney.styles.ts",
+    "src/app/[lang]/sun-walk/SunWalk.tsx",
+    "src/components/galacticfieldguide/GlobalStyles.tsx",
+  ];
+  for (const file of SMOOTHED_ROOTS) {
+    guardOnly({ file, find: "-webkit-font-smoothing: antialiased;" });
+  }
+
   const background = {
     orbs: orbs.map(({ guards, ...o }) => o),
     color: toHex(bg),
     scrollbarGutter: true,
+    fontSmoothing: true,
   };
 
   // The downloaded faces, then the metric-matched aliases every stack above
@@ -4274,6 +4313,16 @@ BEGIN
      AND data->>'scrollbarGutter' = 'true';
   IF n <> 1 THEN
     RAISE EXCEPTION 'assert: siteBackground.scrollbarGutter is not reserved';
+  END IF;
+
+  -- Her glyph rendering. Silent when wrong in the strongest sense of the word:
+  -- it moves no box on any page, so every height, width and wrap stays right
+  -- and only the weight of the type is hers or is not.
+  SELECT count(*) INTO n FROM public.content_overrides
+   WHERE site = ${lit(SITE)} AND key = 'siteBackground'
+     AND data->>'fontSmoothing' = 'true';
+  IF n <> 1 THEN
+    RAISE EXCEPTION 'assert: siteBackground.fontSmoothing is not set';
   END IF;
 
   RAISE NOTICE 'assertions passed';
