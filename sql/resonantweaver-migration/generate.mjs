@@ -3172,6 +3172,32 @@ function buildStarseed(data) {
   // gateway grids, made a second time here.
   const CARDS = "src/components/Cards.tsx";
   const CALLOUT = "src/components/CalloutBar.tsx";
+  /** THIS PAGE'S ACCENT IS TEAL, AND HER SHARED COMPONENTS READ IT FROM THE
+   *  PAGE, NOT FROM THE SITE.
+   *
+   *  `--page-accent` is declared once per page in her source and every shared
+   *  band picks it up: `CalloutBar`'s gateway variant paints its eyebrow and
+   *  its price `var(--page-accent)`, and `Cards.tsx` names the same variable in
+   *  its own header. On the landing that variable is COPPER, on `/receive/` and
+   *  here it is TEAL — one declaration, and the whole vocabulary follows it.
+   *
+   *  Ours has no page-level accent: a section's `accent` prop or the site's
+   *  role, and these two bands stated neither, so six strings came out in the
+   *  site's copper — the four "how it works" step numbers, the closing
+   *  eyebrow and the price. Nothing else on the page was wrong: same y, same
+   *  size, same weight, same Space Mono, same band heights. Colour only, and
+   *  only where her shared components ask the PAGE.
+   *
+   *  Stated on the two bands rather than invented as a page-wide default,
+   *  because that is the granularity her own file has: the hero already
+   *  carries `accentInk` teal for the same reason, and the closing plate stays
+   *  copper right beside a teal eyebrow — a page accent nobody can override
+   *  would have been wrong within one band of itself. */
+  const PAGE_ACCENT = (() => {
+    guardOnly({ file: `${SS}/StarseedOraclePage.styles.ts`, find: "--page-accent: rgb(${TEAL});" });
+    guardOnly({ file: CALLOUT, find: 'if ($variant === "gateway") return "var(--page-accent)";' });
+    return `rgb(${T.TEAL})`;
+  })();
   // Her three method-card glyphs, extracted (not transcribed) from CARD_ICONS.
   const methodGlyphs = jsxSvgDataUris({ file: SSPAGE, arrayName: "CARD_ICONS", expect: 3 });
   // The three facts that make them what they are: the pairing is POSITIONAL,
@@ -3906,6 +3932,8 @@ function buildStarseed(data) {
       })),
       flowSteps: [],
       note: "",
+      // The rail's `01`–`04` are her `--page-accent`, which is teal here.
+      accent: PAGE_ACCENT,
       // TrainingStepRoot's own wash — a literal in her file, not accent-derived.
       cardWash: "rgba(17, 40, 59, 0.2)",
       maxWidth: 62,
@@ -3941,6 +3969,10 @@ function buildStarseed(data) {
       titleLineHeight: 0.98,
       copy: c.begin.lead.join(" "),
       price: c.begin.price,
+      // The gateway variant's eyebrow AND its price are `var(--page-accent)`.
+      // The glow below is stated outright, so this moves the two type runs and
+      // nothing else.
+      accent: PAGE_ACCENT,
       // `--page-glow`, declared on her Page.
       glow: `rgba(${T.TEAL}, 0.14)`,
       // HER CARD IS 24px IN FROM EACH EDGE, not one page gutter. Her CalloutBar
