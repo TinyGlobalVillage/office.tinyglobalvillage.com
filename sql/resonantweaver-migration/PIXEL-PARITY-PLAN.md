@@ -4086,9 +4086,18 @@ start at different scanlines and the line looks perfect either way.
    shows — every authored page that declares no ground of its own already
    carries `shellSky` — so this ruling reaches this page and any future granted
    app surface with no ground, and nothing else.
-3. **`writing` — GIO'S EYE**, and it is two questions: the `next/image` q75
-   re-encode (the resampling family, his ~20% floor) and whether cover 2 should
-   render her fallback gradient or her broken image.
+3. **`writing` — HALF RULED 2026-08-11.** **Cover 2: SHIP THE GRADIENT.** Gio
+   ruled for her `CoverFallback` over her live pixels — the pooled page renders
+   her INTENT where her own site renders her bug, and matching her would mean
+   reproducing a missing file. No code changes; it is what the entry already
+   does. **Confirmed missing, not mis-pathed:** `articles.ts:33` asks for
+   `/images/LeafOscilator-Logo4.png` and no such file exists in her repo's
+   `public/images/` or on RCS — the generator drops it too. **ACTION FOR
+   MARTHE:** the cover art for that piece was never committed; she can either
+   add the file or accept the gradient permanently.
+   Still open: **cover 1's `next/image` `w=384&q=75` re-encode against our raw
+   640px original** — same box, different resampling. That is item 5's family,
+   not its own question, and it goes to Gio's eye with the door photography.
 4. **starseed's five split bands** (`sections 11→16`) — markup, and the source
    of its 92–96% worst band even at 0.69% aligned.
 5. **The image-resampling family, GIO'S EYE** — the door photography.
