@@ -4166,11 +4166,54 @@ function themeSql(data) {
     guardOnly({ file, find: "-webkit-font-smoothing: antialiased;" });
   }
 
+  /** AND HER SHELL NEVER LETS A PAGE BE SHORTER THAN THE SCREEN.
+   *
+   *  `SiteShell` — the wrapper in `layout.client.tsx` that every page of hers
+   *  renders inside — opens with `min-height: 100vh`, and nine of her page
+   *  roots restate it on their own. So it is the site, by the same count and
+   *  the same argument as the smoothing above, and it goes in the same row.
+   *
+   *  IT BITES ONLY WHERE A PAGE IS SHORT, which is why nothing found it until
+   *  now. Swept across her 25 routes at 390/768/1440 on 2026-08-11: exactly ONE
+   *  capture moves, `/writing/` at 768, where her content region is padded out
+   *  to the viewport's 900 and the pooled one stopped at its natural 843 —
+   *  her footer 57px below ours, and the whole of that page's worst segment.
+   *  The other 74 captures are byte-identical with the rule on.
+   *
+   *  `/open-your-journey/` is read separately because she wrote `100dvh` there
+   *  — the dynamic viewport unit, which on a phone excludes the browser's own
+   *  chrome. It is the same intent and it is NOT the same string, so reading it
+   *  with the others would let her change one into the other unnoticed.
+   *
+   *  Her field guide and her starseed page declare neither: the field guide
+   *  sails out of flow entirely (`position: fixed; inset: 0`, which is why the
+   *  pooled surface carries `data-fixed-surface`), and starseed is far taller
+   *  than any screen. Absence is read here as deliberately as presence. */
+  const VIEWPORT_FILLING_ROOTS = [
+    "src/app/[lang]/layout.client.tsx",
+    "src/app/[lang]/(public)/(home)/OnePage.styles.ts",
+    "src/app/[lang]/(public)/(home)/writing/WritingPage.styles.ts",
+    "src/app/[lang]/(public)/(home)/landing-star-preview/experience/all-products/AllProducts.styles.ts",
+    "src/app/[lang]/(public)/(home)/landing-star-preview/experience/[product]/ProductPreview.styles.ts",
+    "src/app/[lang]/(public)/(home)/landing-star-preview/course/Course.styles.ts",
+    "src/app/[lang]/(public)/(home)/landing-star-preview/offer/[slug]/OfferDetail.styles.ts",
+    "src/app/[lang]/(public)/(home)/landing-star-preview/[gateway]/GatewayPage.styles.ts",
+    "src/app/[lang]/sun-walk/SunWalk.tsx",
+  ];
+  for (const file of VIEWPORT_FILLING_ROOTS) {
+    guardOnly({ file, find: "min-height: 100vh;" });
+  }
+  guardOnly({
+    file: "src/app/[lang]/(public)/(home)/open-your-journey/OpenJourney.styles.ts",
+    find: "min-height: 100dvh;",
+  });
+
   const background = {
     orbs: orbs.map(({ guards, ...o }) => o),
     color: toHex(bg),
     scrollbarGutter: true,
     fontSmoothing: true,
+    fillsViewport: true,
   };
 
   // The downloaded faces, then the metric-matched aliases every stack above
@@ -4357,6 +4400,16 @@ BEGIN
      AND data->>'fontSmoothing' = 'true';
   IF n <> 1 THEN
     RAISE EXCEPTION 'assert: siteBackground.fontSmoothing is not set';
+  END IF;
+
+  -- Her shell's viewport floor. Silent when wrong in a third way again: it is
+  -- invisible on every page long enough to fill a screen, and shows up only as
+  -- a short page's footer riding up with bare ground beneath it.
+  SELECT count(*) INTO n FROM public.content_overrides
+   WHERE site = ${lit(SITE)} AND key = 'siteBackground'
+     AND data->>'fillsViewport' = 'true';
+  IF n <> 1 THEN
+    RAISE EXCEPTION 'assert: siteBackground.fillsViewport is not set';
   END IF;
 
   RAISE NOTICE 'assertions passed';

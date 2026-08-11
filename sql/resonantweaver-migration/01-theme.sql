@@ -173,7 +173,8 @@ SELECT 'siteBackground', 'en', 'published', NULL, $rwjson${
   ],
   "color": "#06111c",
   "scrollbarGutter": true,
-  "fontSmoothing": true
+  "fontSmoothing": true,
+  "fillsViewport": true
 }$rwjson$::jsonb, now(), 'resonantweaver'
  WHERE NOT EXISTS (
    SELECT 1 FROM public.content_overrides
@@ -214,7 +215,8 @@ UPDATE public.content_overrides
   ],
   "color": "#06111c",
   "scrollbarGutter": true,
-  "fontSmoothing": true
+  "fontSmoothing": true,
+  "fillsViewport": true
 }$rwjson$::jsonb, updated_at = now()
  WHERE site = 'resonantweaver' AND key = 'siteBackground'
    AND lang = 'en' AND mode = 'published'
@@ -250,7 +252,8 @@ UPDATE public.content_overrides
   ],
   "color": "#06111c",
   "scrollbarGutter": true,
-  "fontSmoothing": true
+  "fontSmoothing": true,
+  "fillsViewport": true
 }$rwjson$::jsonb;
 
 -- ── siteFonts ────────────────────────────────────────────────────────────────
@@ -588,6 +591,16 @@ BEGIN
      AND data->>'fontSmoothing' = 'true';
   IF n <> 1 THEN
     RAISE EXCEPTION 'assert: siteBackground.fontSmoothing is not set';
+  END IF;
+
+  -- Her shell's viewport floor. Silent when wrong in a third way again: it is
+  -- invisible on every page long enough to fill a screen, and shows up only as
+  -- a short page's footer riding up with bare ground beneath it.
+  SELECT count(*) INTO n FROM public.content_overrides
+   WHERE site = 'resonantweaver' AND key = 'siteBackground'
+     AND data->>'fillsViewport' = 'true';
+  IF n <> 1 THEN
+    RAISE EXCEPTION 'assert: siteBackground.fillsViewport is not set';
   END IF;
 
   RAISE NOTICE 'assertions passed';
