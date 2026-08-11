@@ -61,6 +61,7 @@ const CHECK = process.argv.includes("--check");
 
 /** Her `(public)/(home)` group, which every route this generator reads sits in. */
 const HOME_DIR = "src/app/[lang]/(public)/(home)";
+const GATEWAY_FILE = `${HOME_DIR}/JourneyGateway.tsx`;
 
 /** The archived landing's own title, from `home-classic/page.tsx`'s metadata —
  *  not `dict.home.meta.title`, which is the LIVE page's and would put the same
@@ -518,8 +519,62 @@ function buildHomeClassic(data, formId) {
       copyWeight: 300,
       copyLh: "1.62",
       copyGap: "1.25rem",
+      // …AND HER INTRO'S OWN SECOND SET, read the same way. `IntroSection`
+      // steps its flex gap 1.25rem → 1rem and its bottom margin 6rem →
+      // 4.25rem under 767; `Intro` steps the clamp to a flat 0.98rem on a
+      // 1.52 line. The margin is the space ABOVE the gateway (it collapses
+      // through a band with no top margin of its own), so it is stated there.
+      copyGapNarrow: LANDING_INTRO_NARROW.gap,
+      copySizeNarrow: LANDING_INTRO_NARROW.size,
+      copyLhNarrow: LANDING_INTRO_NARROW.lh,
+      narrowAt: 767,
     }),
   );
+
+  // HER GATEWAY'S SECOND SET OF NUMBERS, READ RATHER THAN GUESSED.
+  //
+  // `JourneyGateway.tsx` steps six declarations under 767 and the pooled row
+  // took the desktop half of every one of them, so at 390 the band ran 89px
+  // taller than hers with each value inside it a shade too large. The 89 is
+  // not an estimate: 12 (eyebrow gap) + 2 (eyebrow size) + 10 (Question size
+  // and line-height) + 24 (the run above the button) + 12 (the fine print's
+  // space) + 5 (its size) + 24 (the band's own two pads) — measured back off
+  // her live app at 390 before a line of this was written, and the band was
+  // 395 against her 306.
+  //
+  // The frame steps at HER 767, not the shared 768: 768 is one of the three
+  // widths the differ measures, and a band that went narrow there would go
+  // narrow at the exact width her page is still wide.
+  const GATEWAY_NARROW = (() => {
+    guardOnly({ file: GATEWAY_FILE, find: "margin-bottom: 3rem; gap: 1.5rem;" });
+    guardOnly({ file: GATEWAY_FILE, find: "font-size: 0.76rem; letter-spacing: 0.13em;" });
+    guardOnly({ file: GATEWAY_FILE, find: "font-size: 1.05rem; line-height: 1.52; max-width: 22rem;" });
+    guardOnly({ file: GATEWAY_FILE, find: "font-size: 0.82rem; max-width: 18rem; line-height: 1.45;" });
+    // The Question's tracking is NOT a step — she declares 0.02em at every
+    // width, and this entry had no paragraph tracking knob at all, so the one
+    // italic line her landing pages open on has been running tight since it
+    // was authored. Same for the SubNote's 0.025em.
+    guardOnly({ file: GATEWAY_FILE, find: "font-size: clamp(1.15rem, 2.8vw, 1.55rem); font-weight: 300; letter-spacing: 0.02em; line-height: 1.65;" });
+    guardOnly({ file: GATEWAY_FILE, find: "font-size: 0.9rem; font-weight: 300; letter-spacing: 0.025em;" });
+    const gap = "1.5rem"; // her Wrap's narrow gap, which IS every space below
+    return {
+      gap,
+      eyebrowSize: "0.76rem",
+      eyebrowTracking: "0.13em",
+      copySize: "1.05rem",
+      copyLh: "1.52",
+      copyMaxWidth: "22rem",
+      finePrintSize: "0.82rem",
+      finePrintLh: "1.45",
+      finePrintMaxWidth: "18rem",
+      // 24 + the 7px chakra row + 24, the same arithmetic as the wide 79.
+      ctaTop: "55px",
+      // 1px of FadeLine plus the gap, at each hand — the wide pair is 37px.
+      framePad: "25px",
+      questionTracking: "0.02em",
+      noteTracking: "0.025em",
+    };
+  })();
 
   sections.push(
     section("sec-journey-gateway", "rf-media-copy", "Journey gateway", {
@@ -538,6 +593,9 @@ function buildHomeClassic(data, formId) {
       eyebrowSize: "0.82rem",
       eyebrowTracking: "0.16em",
       eyebrowGap: "2.25rem",
+      eyebrowSizeNarrow: GATEWAY_NARROW.eyebrowSize,
+      eyebrowTrackingNarrow: GATEWAY_NARROW.eyebrowTracking,
+      eyebrowGapNarrow: GATEWAY_NARROW.gap,
       // Her `Eyebrow` declares no weight and inherits 400; this entry's own
       // default is 800, which put a bold line on a page that has no bold on it.
       eyebrowWeight: 400,
@@ -569,6 +627,11 @@ function buildHomeClassic(data, formId) {
       finePrintWeight: 300,
       finePrintColor: bone(data, 0.22),
       finePrintTop: "2.25rem",
+      finePrintTracking: GATEWAY_NARROW.noteTracking,
+      finePrintSizeNarrow: GATEWAY_NARROW.finePrintSize,
+      finePrintLhNarrow: GATEWAY_NARROW.finePrintLh,
+      finePrintMaxWidthNarrow: GATEWAY_NARROW.finePrintMaxWidth,
+      finePrintTopNarrow: GATEWAY_NARROW.gap,
       // HER `Wrap`, MEASURED RATHER THAN GUESSED. 58rem wide (880 inside its
       // 1.5rem sides), a centred flex column on a flat `gap: 2.25rem`, opening
       // and closing with a `FadeLine` — so 1px of rule plus 36px of gap at each
@@ -583,17 +646,26 @@ function buildHomeClassic(data, formId) {
       framePad: "sm",
       padTop: "37px",
       padBottom: "37px",
+      padTopNarrow: GATEWAY_NARROW.framePad,
+      padBottomNarrow: GATEWAY_NARROW.framePad,
+      narrowAt: 767,
       maxWidth: 880,
       centered: true,
       proseCenter: true,
       marginTop: "6rem",
+      marginTopNarrow: LANDING_INTRO_NARROW.marginBottom,
       copyMaxWidth: "38rem",
+      copyMaxWidthNarrow: GATEWAY_NARROW.copyMaxWidth,
       copyInk: bone(data, 0.65),
       copySize: "clamp(1.15rem, 2.8vw, 1.55rem)",
+      copySizeNarrow: GATEWAY_NARROW.copySize,
       copyWeight: 300,
       copyLh: "1.65",
+      copyLhNarrow: GATEWAY_NARROW.copyLh,
+      copyTracking: GATEWAY_NARROW.questionTracking,
       copyGap: "0",
       ctaTop: "79px",
+      ctaTopNarrow: GATEWAY_NARROW.ctaTop,
     }),
   );
 
@@ -1477,6 +1549,27 @@ const LANDING_MAIN_PAD_NARROW = (() => {
     find: "padding: 8rem 0 6rem; position: relative; @media (max-width: 767px) { padding: 7rem 0 4.5rem; } `;",
   });
   return { top: "7rem", bottom: "4.5rem" };
+})();
+
+/** …and so does her `IntroSection`, the band above the gateway.
+ *
+ *  Its flex `gap` steps 1.25rem → 1rem and its `margin-bottom` 6rem → 4.25rem,
+ *  while `Intro` itself drops the clamp for a flat 0.98rem on a 1.52 line. The
+ *  MARGIN is the space above the gateway rather than below the intro — it
+ *  collapses through a band that declares no top margin of its own — so it is
+ *  authored on the gateway, where the row that renders it can be measured. */
+const LANDING_INTRO_NARROW = (() => {
+  guardOnly({
+    file: `${HOME_DIR}/OnePage.styles.ts`,
+    find: "gap: 1.25rem; text-align: center; margin-bottom: 6rem;",
+  });
+  guardOnly({ file: `${HOME_DIR}/OnePage.styles.ts`, find: "gap: 1rem; margin-bottom: 4.25rem;" });
+  guardOnly({
+    file: `${HOME_DIR}/OnePage.styles.ts`,
+    find: "font-size: clamp(1rem, 2vw, 1.15rem); line-height: 1.62;",
+  });
+  guardOnly({ file: `${HOME_DIR}/OnePage.styles.ts`, find: "font-size: 0.98rem; line-height: 1.52;" });
+  return { gap: "1rem", size: "0.98rem", lh: "1.52", marginBottom: "4.25rem" };
 })();
 
 /** …and her `GridSection` steps in the SAME query, 0.75rem → 2rem below.

@@ -932,7 +932,11 @@ INSERT INTO _rw_pages VALUES ('home-classic', 'Resonant Weaver — classic landi
           "copySize": "clamp(1rem, 2vw, 1.15rem)",
           "copyWeight": 300,
           "copyLh": "1.62",
-          "copyGap": "1.25rem"
+          "copyGap": "1.25rem",
+          "copyGapNarrow": "1rem",
+          "copySizeNarrow": "0.98rem",
+          "copyLhNarrow": "1.52",
+          "narrowAt": 767
         }
       }
     },
@@ -953,6 +957,9 @@ INSERT INTO _rw_pages VALUES ('home-classic', 'Resonant Weaver — classic landi
           "eyebrowSize": "0.82rem",
           "eyebrowTracking": "0.16em",
           "eyebrowGap": "2.25rem",
+          "eyebrowSizeNarrow": "0.76rem",
+          "eyebrowTrackingNarrow": "0.13em",
+          "eyebrowGapNarrow": "1.5rem",
           "eyebrowWeight": 400,
           "heading": "",
           "headingLevel": 2,
@@ -973,20 +980,34 @@ INSERT INTO _rw_pages VALUES ('home-classic', 'Resonant Weaver — classic landi
           "finePrintWeight": 300,
           "finePrintColor": "rgba(232, 229, 218, 0.22)",
           "finePrintTop": "2.25rem",
+          "finePrintTracking": "0.025em",
+          "finePrintSizeNarrow": "0.82rem",
+          "finePrintLhNarrow": "1.45",
+          "finePrintMaxWidthNarrow": "18rem",
+          "finePrintTopNarrow": "1.5rem",
           "framePad": "sm",
           "padTop": "37px",
           "padBottom": "37px",
+          "padTopNarrow": "25px",
+          "padBottomNarrow": "25px",
+          "narrowAt": 767,
           "maxWidth": 880,
           "centered": true,
           "proseCenter": true,
           "marginTop": "6rem",
+          "marginTopNarrow": "4.25rem",
           "copyMaxWidth": "38rem",
+          "copyMaxWidthNarrow": "22rem",
           "copyInk": "rgba(232, 229, 218, 0.65)",
           "copySize": "clamp(1.15rem, 2.8vw, 1.55rem)",
+          "copySizeNarrow": "1.05rem",
           "copyWeight": 300,
           "copyLh": "1.65",
+          "copyLhNarrow": "1.52",
+          "copyTracking": "0.02em",
           "copyGap": "0",
-          "ctaTop": "79px"
+          "ctaTop": "79px",
+          "ctaTopNarrow": "55px"
         }
       }
     },
