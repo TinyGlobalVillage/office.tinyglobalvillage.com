@@ -3891,7 +3891,7 @@ eye at the eyeball pass.
 Nothing else on the board moved by more than 0.02 — the CtaRow refactor is
 fleet-wide and byte-identical, proven across all 66 captures plus a 6/6 smoke.
 
-### LEFT, IN ORDER
+### LEFT, IN ORDER — superseded 2026-08-11; see the end of this file
 
 1. **THE NARROW SWEEP, 6 ENTRIES TO GO** — rf-split-hero (`Hero`, `HeroText`,
    `HeroRule`, `SymbolWrap`, `HeroEyebrow`, `H1`, `Tagline` — seven blocks, and
@@ -3910,4 +3910,184 @@ fleet-wide and byte-identical, proven across all 66 captures plus a 6/6 smoke.
    his floor; nothing is close to it now.
 6. **FOR GIO:** `footerEnabled: false` on all four pooled hosts, `navEnabled:
    false` on guardians + nevlo; and the three unpainted marks above.
+7. Then: **tell Gio "come look", his eyeball pass, then the flip.**
+
+
+---
+
+## THE SWEEP WAS FOUR ENTRIES SHORTER THAN IT LOOKED — 2026-08-11
+
+*Entry 2 of the narrow sweep, and three pages read rather than fixed. Mono
+`e458a48f` + `76923d77`, office `57bd9f8`. Deployed at `76923d77`
+(`BUILD_ID=WLhcb71oifDWFPVKBwEyM`, RCS did zero app build); `home-classic`
+redriven, assertions passed; fleet 6/6 200. Board `rw-p20-board`, 66 captures.*
+
+### The audit came first, and it retired four of the six
+
+The plan named six entries left. Reading each one's `Render` against her own
+`OnePage.styles.ts` — component by component, her narrow declaration against
+the entry's — retired four of them without a commit:
+
+| her components | entry | verdict |
+|---|---|---|
+| `Hero` `HeroText` `HeroRule` `SymbolWrap` `HeroEyebrow` `H1` `Tagline` | rf-split-hero | **already verbatim, all seven** |
+| `OfferCard` `FeatureLead` `FeatureDetail` `FeatureContent` `CardHead` `Sub` `P` | rf-offer-card | **already verbatim, all seven** |
+| `OfferingsStack` `OfferingsRow` `GridSection` | rf-hud-cards | already there |
+| `TestimonialCard` | rf-testimonials | already there |
+| `FAQSection` `FAQIntro` | rf-accordion | **gap — shipped below** |
+| `ContactSection` | form-live / SectionChrome | **gap — shipped below** |
+
+rf-split-hero carries her seven narrow blocks because the entry was DERIVED from
+that stylesheet rather than written to match its desktop half — the queries came
+across with the declarations. `home`'s hero band measures 1.76% at 390 against
+her 460px, which is the same statement in the differ's words.
+
+**The audit is the cheap half and it should have run first.** One `awk` over her
+stylesheet keyed on `export const`, one `@media` count per `Render`, and the
+work list went from six entries to two. Doing it entry-by-entry would have spent
+four commits proving four no-ops.
+
+### What the two real gaps were
+
+Both bands were **rounding to a `framePad` rung**, which is a guess where she
+wrote a value:
+
+* `FAQSection` is `3.5rem`/`5rem`, stepping to `2.75rem`/`3.75rem` under 767.
+  `md` is 64px at both hands — 8 short above, 16 over below, and neither of her
+  narrow numbers.
+* `ContactSection` is `4rem`/`5rem`, stepping to `3rem`/`3.75rem`. `lg` is 80px
+  at both hands. The old comment ended *"the section chrome states no explicit
+  pads of its own"* — which is a reason to stop, not a fact about her page.
+* `FAQIntro` steps `1.02rem`/`1.62` → `0.97rem`/`1.52`.
+
+**The third one was in the parity report the whole time.** Every run since the
+band was authored printed
+
+```
+"common queries about the nature of"  size: 15.52px → 16.32px
+```
+
+15.52px IS 0.97rem. The differ had been handing back her value next to ours at
+390 for weeks and it read as a census row rather than as a knob. *A number the
+differ hands you is still a number she wrote.*
+
+### Two package commits, both shared
+
+`rf-accordion` (`e458a48f`) gained `ledeSizeNarrow`/`ledeLhNarrow`, the four pad
+props and `narrowAt` — and the lede had to stop riding an inline `style` first,
+because **no media query outranks an inline declaration**. Second instance of
+that exact refactor (`ctaTop` on rf-media-copy was the first). A value with a
+narrow twin becomes a real declaration; one without stays inline where it was.
+
+`SectionChrome` (`76923d77`) gained `padTop` and both narrow halves, so any band
+on the shared chrome — every form on the fleet — can state its own four numbers.
+**And it gained `narrowAt`.** That file's query has always been `max-width:
+768px`, which is one of the three widths the differ measures: a band stepping at
+768 goes narrow exactly where her page is still wide. Defaulted to 768, so every
+published row is unchanged; the two RW bands ask for 767.
+
+render-check 644 → 652 → 659.
+
+### The measurement, including the part that got worse
+
+| home-classic | before | after |
+|---|---|---|
+| 390 | 2.60% | **2.89%** |
+| 768 | 3.27% | **2.83%** |
+| 1440 | 2.44% | **2.12%** |
+
+60 of 63 comparable captures moved by ≤0.01, so the SectionChrome change is
+byte-safe across every other tenant's forms.
+
+**390 got worse and that is the honest result.** The FAQ band went 730→738 to
+730→756. Her band is 104px of pad plus 626 of content; ours was 64 of pad plus
+674 of content, and the two errors were cancelling. With the pads exactly hers
+and the lede narrowed (−22px of content), what is left is **26px of content the
+FAQ items carry and hers do not** — which the wrong pads had been hiding. The
+contact band is the same shape, +16. Neither is a regression; both are a
+concealed number becoming visible, which is the only way it was ever going to
+get fixed.
+
+768 swung 104px of height (−61 → +43) for one reason: at exactly 768 her page is
+WIDE, and until this commit ours took the mobile rung there. That is the
+`narrowAt` fix paying out.
+
+### THREE PAGES READ INSTEAD OF FIXED
+
+**`writing` (7.73 at 390, the top of the board) has no geometry, type or colour
+delta at all.** Probed element by element on both sides: the header at y72
++324, x24 w327; eyebrow 14.4px; h1 48px/lh48; intro 16.8px/lh31.08 at y272
++124; the card grid at 461, both articles 320×400 at x28, title 28px/lh29.96,
+excerpt 14.08px/lh19.9936 — every number identical to the decimal. Her whole
+`WritingPage.styles.ts` contains **zero media queries**, so rf-serif-head and
+rf-cover-cards having none is correct, not a gap.
+
+Its 7.73% is the two book covers, and they are two different findings:
+
+* **Cover 1** — hers is served through `next/image` at `w=384&q=75` (natural
+  350×350); ours is the raw 640×640 file. Same box, different resampling. The
+  entry's own comment says *"A plain img with the same box renders the same"* —
+  true of the geometry, not of the pixels. **The image-resampling family.**
+* **Cover 2** — `LeafOscilator-Logo4.png` **404s on her own live site** (the
+  generator drops it too: *no asset mapping … dropped*). She renders a broken
+  `<img>`; we render her `CoverFallback` gradient. **We are rendering her
+  intent and she is rendering her bug**, and matching her pixels would mean
+  reproducing a missing file. **GIO'S EYE.**
+
+**`galactic-field-guide` (6.86) is one wash, not eleven bands.** Every text
+element, every colour, every fixed layer and both `.crt` vignettes match. The
+ground does not: peeling the chart on both sides leaves her greenish
+`SiteShell` ramp (`11,27,24` → `5,10,12` left to right) against our flat
+`#06111c`. Her field-guide root is semi-transparent at the periphery, so at
+`y=450` the two agree to Δ≤6 out to x≈320 and then diverge to Δ37 by x=370 —
+small, everywhere, and enough to put all eleven bands over a gate that counts
+the SUM of four channel deltas.
+
+Her sky is `layout.client.tsx`'s `SiteShell`; `siteBackground` carries the STAR
+landing's blue-and-teal orbs, authored from `LandingStarPreview.styles` because
+that is the page the forensics ran on. Every authored page now covers it
+(`shellSky` on the two that declare no ground of their own); the three GRANTED
+APP SURFACES have no page row to put a tone on, and the field guide is the one
+whose ground shows through. **`siteBackground.color` is `#06111c` by Gio's
+2026-08-06 ruling and there is an assertion pinning it, so this is a ruling and
+not a fix.**
+
+### AND A NOTE ON THE RULER, WHICH IS HONEST
+
+A first pass at the field guide measured it at 0.58% against the differ's 6.86%
+and read like a fourth ruler defect. It was not. `diffBands` thresholds on the
+**sum** of four channel deltas — `|Δr|+|Δg|+|Δb|+|Δa| > 24` — then requires two
+changed neighbours; the check had used `max(Δchannel) > 24`, which is roughly
+three times looser on a neutral shift. Re-measured with the differ's own metric,
+seg 0 reproduces its reported 6.91% **exactly, at zero offset**.
+
+Worth keeping because the shape recurs: *the ruler has lied three times, so the
+fourth suspicion feels earned* — and this one was the checker's. Any tool
+measuring against this board has to use the sum-of-four metric and the
+two-neighbour company rule, or it is measuring a different ruler.
+
+One thing the report genuinely does not print: a segment's **offset**. It shows
+`138px → 138px`, which is the two HEIGHTS; two strips can be the same height and
+start at different scanlines and the line looks perfect either way.
+
+### LEFT, IN ORDER
+
+1. **The 26px inside her FAQ items and the 16px inside her contact band**, both
+   at 390 and both newly visible now that the pads around them are hers. Neither
+   component steps at 767 in her source, so this is our content being taller,
+   not a missing narrow value.
+2. **`galactic-field-guide` — GIO'S RULING.** Her sky is `SiteShell`
+   (green-black); `siteBackground` is the star landing's (`#06111c` + two orbs)
+   by his own 2026-08-06 call, with an assertion pinning it. Either the site
+   background becomes her shell and the orbs move to the page that owns them, or
+   the field guide keeps a sky that is not hers. Worth ~6.9 points at 390.
+3. **`writing` — GIO'S EYE**, and it is two questions: the `next/image` q75
+   re-encode (the resampling family, his ~20% floor) and whether cover 2 should
+   render her fallback gradient or her broken image.
+4. **starseed's five split bands** (`sections 11→16`) — markup, and the source
+   of its 92–96% worst band even at 0.69% aligned.
+5. **The image-resampling family, GIO'S EYE** — the door photography.
+6. **FOR GIO:** `footerEnabled: false` on all four pooled hosts, `navEnabled:
+   false` on guardians + nevlo; and the three unpainted marks (two `FadeLine`s
+   and the seven chakra dots).
 7. Then: **tell Gio "come look", his eyeball pass, then the flip.**
