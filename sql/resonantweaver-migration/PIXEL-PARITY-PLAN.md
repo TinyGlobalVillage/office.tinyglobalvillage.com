@@ -4413,13 +4413,20 @@ five pages.
      is her portrait — item 5 again.
    - the 768 note band at 8.32%, candidate-only, still unexplained at that one
      width (0.64% at 1440).
-5. **The image-resampling family, GIO'S EYE** — the door photography (home's
-   only double-digit band, and it is three photographs) and home-classic's About
-   portrait. ~~writing's cover 1~~ left this family 2026-08-11 with item 3's
-   full ruling: ours.
-6. **FOR GIO:** `footerEnabled: false` on all four pooled hosts, `navEnabled:
-   false` on guardians + nevlo; and the three unpainted marks (two `FadeLine`s
-   and the seven chakra dots).
+5. ~~**The image-resampling family, GIO'S EYE**~~ — **RULED 2026-08-11: OURS.**
+   Shown the difference and told it is sharpness and compression only, nothing
+   of layout or content, Gio ruled ours for the door photography (home's only
+   double-digit band, and it is three photographs) and for home-classic's About
+   portrait, as he had already for writing's two covers. **No code changes; the
+   doors' 13–16% and the About band's 3.5–6% are ACCEPTED RESIDUE.** With this
+   the whole resampling family is closed and every photograph on the site ships
+   her original file rather than her pipeline's re-encode.
+6. ~~the three unpainted marks (two `FadeLine`s and the seven chakra dots)~~ —
+   **RULED 2026-08-11: BUILD THEM**, and built. See "THE MARKS SHE DRAWS AND WE
+   ONLY MADE ROOM FOR" below; the pass also found two more of her rules we never
+   drew and one we drew 348px too wide. **STILL FOR GIO:** `footerEnabled:
+   false` on all four pooled hosts and `navEnabled: false` on guardians + nevlo
+   — a studio setting, not a renderer defect.
 7. Then: **tell Gio "come look", his eyeball pass, then the flip.**
 
 ---
@@ -4634,3 +4641,93 @@ body, the section column and a fixed backdrop — and which one a value lands on
 decides where it stops. This entry had been treating them as interchangeable
 since it was written, and the cost was hidden by the differ's tolerance being,
 to the unit, the size of the error.
+
+---
+
+## THE MARKS SHE DRAWS AND WE ONLY MADE ROOM FOR — 2026-08-11
+
+Gio, shown the band and asked whether to draw them or take the space back:
+**"build the dots and lines."**
+
+### What the row had been carrying
+
+Her `JourneyGateway` `Wrap` is a centred flex column that opens and closes on a
+`<FadeLine aria-hidden />` and carries seven chakra dots on threads between the
+Question and the button. None of the three has a word in it, so no entry had a
+place for them and the row was authored carrying only their SPACE —
+`padTop`/`padBottom` at 37px (1px of rule + 36px of gap) and `ctaTop` at 79px
+(36 + 7 + 36). Everything below them landed where hers does and the marks were
+not there. **That is why the band's residue was flat at 2.8–7.4% across all
+three widths: the signature of paint, not geometry.**
+
+### Built
+
+`fadeRule` / `fadeRuleAt` / `fadeRuleGap` and `dotRow` + its six on
+`rf-media-copy` (mono `6a002911`, `0b0cf0e7`). The arithmetic did not change, it
+moved: the rules take the frame's padding as their own gap, the dot row takes
+the run above the button and hands `ctaTop` the half below it.
+
+Her thread carries the FOLLOWING dot's colour, in hex alpha byte for byte
+(`${c}33` / `${c}55`) when the colour is a 6-digit hex and through `color-mix`
+at the same two alphas when it is not — a concatenated `rgba(…)33` would void
+the whole declaration in silence. Her row steps at 480 while the band steps at
+767, so it keeps its own breakpoint. The breathing is hers; holding it still
+under `prefers-reduced-motion` is not.
+
+**Measured back:** all seven dots at her exact x and y, 7×7, her colours, her
+glow; all six threads at her x and width; both rules at `y848 x273 w880` and
+`y1200 x273 w880`, which is hers to the pixel. The gateway band **7.40 / 4.78 /
+2.76 → 6.06 / 3.84 / 2.21** with every height unchanged.
+
+### And measuring the rules found three more, one of them a real defect
+
+A probe for 1px full-width gradients on `/home-classic/` printed **five on her
+side and two on ours**:
+
+| her rule | what it is | ours before |
+|---|---|---|
+| y532 x337 w752 | `IntroSection`'s opening FadeLine | not drawn (carried as 21px of padding) |
+| y848 / y1200 x273 w880 | the gateway's pair | now exact |
+| y4784 x337 w752 | the rule under her FAQ head | **drawn at x163 w1100** |
+| y5524 x321 w784 | the rule under "Get in touch" | not drawn (carried in `--mf-title-gap`) |
+
+The intro's is now painted (`fadeRuleAt: "top"`, because she opens on one and
+does not close on one).
+
+**THE FAQ ONE WAS NOT A RULE PROBLEM.** `maxWidth` on `rf-accordion` is the CARD
+in rem and does nothing on a row with no `cardWash`, and the entry passed **no
+width at all** to `RfSection` — so `/home-classic/`'s FAQ, whose row has said
+`maxWidth: 752` since the day it was authored, laid out at the shared 1100:
+every question starting at **x=163 against her 337** and every chevron 174px
+out. The heading has its own cap and landed correctly, which is why every pass
+over this band read it as a type delta rather than a geometry one. New
+`frameWidth`; the column now measures x337 w752, hers exactly.
+
+### What it moved
+
+| | before today | after |
+|---|---|---|
+| home-classic 1440 | 1.11 | **0.85** |
+| home-classic 768 | 2.02 | **1.70** |
+| home-classic 390 | 2.10 | **1.77** |
+
+Nothing else on the twenty-five moved by as much as 0.03. Board `rw-p34-board`.
+
+### Left from this pass, itemized
+
+**Her contact rule is not drawn** — `y5524 x321 w784`, 72px under the head and
+44px above the form. It needs the forms module: `--mf-title-gap` already
+reserves its 1px, but her `ContactSection` is 784 wide where our form column is
+720, so an `::after` on the title would run 32px short at each hand. Cheap
+whenever `FormRenderer` is next open; not worth reopening that package for one
+hairline at 22% alpha.
+
+### The lesson
+
+**A prop can be read, spelled right, and land nowhere.** `maxWidth: 752` sat in
+that FAQ row for a week with a comment explaining her 50rem Container, and the
+entry it was handed to spends that name on a different box in a different unit.
+Nothing failed; the band just quietly laid out 348px wide. It surfaced only
+because painting her hairline gave the band ONE element whose width could be
+compared against hers — the marks we were told to draw turned out to be the
+measuring stick for the thing behind them.

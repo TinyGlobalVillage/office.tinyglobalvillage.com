@@ -515,15 +515,18 @@ function buildHomeClassic(data, formId) {
       // the wash forensics, and the −17px at 390 that survived every step
       // above; the paragraphs themselves measure hers to the pixel.
       //
-      // Carried as the band's own top padding for the same reason the gateway's
-      // two are: a gradient hairline is not a `border`, and `ruleTop` takes
-      // one. The rule is NOT painted, exactly as the gateway's pair are not —
-      // the space they occupy is what moves the page, and a solid border in
-      // place of her gradient would be a different mark, not a closer one.
-      // Both are Gio's eye at the eyeball pass.
+      // AND NOW IT IS PAINTED — Gio's ruling, 2026-08-11, the same one that
+      // built the gateway's pair below. `fadeRuleAt: "top"` because her
+      // `IntroSection` opens on a FadeLine and does not close on one; the 21px
+      // and 17px this band carried as padding become the rule (1px) plus her
+      // own flex gap (20px wide, 16px narrow), so nothing under it moves.
       framePad: "sm",
-      padTop: LANDING_INTRO_NARROW.ruleWide,
-      padTopNarrow: LANDING_INTRO_NARROW.rule,
+      fadeRule: `rgba(${data.tokens.COPPER}, 0.22)`,
+      fadeRuleAt: "top",
+      fadeRuleGap: "20px",
+      fadeRuleGapNarrow: "16px",
+      padTop: "0",
+      padTopNarrow: "0",
       padBottom: "0",
       maxWidth: 752,
       centered: true,
@@ -591,6 +594,68 @@ function buildHomeClassic(data, formId) {
     };
   })();
 
+  /** HER TWO FADE LINES AND HER SEVEN CHAKRA DOTS — Gio's ruling 2026-08-11,
+   *  shown the band and asked whether to draw them or take the space back:
+   *  "build the dots and lines."
+   *
+   *  Until now this row carried their SPACE and not the marks — `padTop`/
+   *  `padBottom` at 37px (1px of rule + 36px of gap) and `ctaTop` at 79px
+   *  (36 + 7 + 36) — because none of the three has a word in it and no entry
+   *  had anywhere to put them. That is why the band's residue was FLAT at
+   *  2.8–7.4% across all three widths: the signature of paint, not geometry.
+   *
+   *  Painted, the same arithmetic just moves: the rules take the frame's
+   *  padding as their own gap, the dot row takes the run above the button and
+   *  gives `ctaTop` the half below it. Nothing below the band moves. */
+  const GATEWAY_MARKS = (() => {
+    guardOnly({
+      file: "src/styles/dividers.ts",
+      find: "export const FadeLine = styled.div` height: 1px; width: 100%; " +
+        "background: linear-gradient( to right, transparent, rgba(${COPPER}, 0.22), transparent );",
+    });
+    // Both ends of her Wrap, so a rule that stopped opening or closing the
+    // column would be caught rather than silently drawn twice.
+    guardOnly({ file: GATEWAY_FILE, find: "<FadeLine aria-hidden /> <Eyebrow>" });
+    guardOnly({ file: GATEWAY_FILE, find: "<FadeLine aria-hidden /> </Wrap>" });
+    guardOnly({
+      file: GATEWAY_FILE,
+      find: "const CHAKRAS = [ \"#8B2222\", \"#B05010\", \"#A09000\", \"#0A6A30\", " +
+        "\"#0A5A8A\", \"#5A2A9A\", \"#8A30AA\", ];",
+    });
+    guardOnly({ file: GATEWAY_FILE, find: "const DotsRow = styled.div` display: flex; align-items: center; `;" });
+    guardOnly({
+      file: GATEWAY_FILE,
+      find: "const Thread = styled.div<{ $color: string }>` width: 22px; height: 1px; " +
+        "background: linear-gradient(to right, ${({ $color }) => `${$color}33`}, " +
+        "${({ $color }) => `${$color}55`});",
+    });
+    guardOnly({ file: GATEWAY_FILE, find: "@media (max-width: 480px) { width: 13px; }" });
+    guardOnly({
+      file: GATEWAY_FILE,
+      find: "const Dot = styled.div<{ $color: string; $delay: number }>` width: 7px; height: 7px; " +
+        "border-radius: 50%; background: ${({ $color }) => $color}; " +
+        "box-shadow: 0 0 7px ${({ $color }) => $color};",
+    });
+    guardOnly({
+      file: GATEWAY_FILE,
+      find: "0%, 100% { opacity: 0.35; transform: scale(1); } 50% { opacity: 0.9; transform: scale(1.45); }",
+    });
+    return {
+      fadeRule: `rgba(${data.tokens.COPPER}, 0.22)`,
+      fadeRuleGap: "2.25rem",
+      fadeRuleGapNarrow: GATEWAY_NARROW.gap,
+      dotRow: ["#8B2222", "#B05010", "#A09000", "#0A6A30", "#0A5A8A", "#5A2A9A", "#8A30AA"],
+      dotSize: "7px",
+      dotThread: "22px",
+      dotThreadNarrow: "13px",
+      dotNarrowAt: 480,
+      dotGlow: "7px",
+      dotPulse: true,
+      dotTop: "2.25rem",
+      dotTopNarrow: GATEWAY_NARROW.gap,
+    };
+  })();
+
   sections.push(
     section("sec-journey-gateway", "rf-media-copy", "Journey gateway", {
       imageUrl: "",
@@ -653,16 +718,17 @@ function buildHomeClassic(data, formId) {
       // hand, carried here as the band's own padding because a gradient
       // hairline is not a `border` and `ruleTop` takes one.
       //
-      // `ctaTop` IS THE CHAKRA ROW. Between her Question and her button sit
-      // seven 7px dots on threads — decoration with no entry and no words —
-      // and dropping it silently would have moved everything below it up by
-      // 79px (36 + 7 + 36). The dots are not painted; the space they occupied
-      // is, so the button and the sub-note land where hers do.
+      // AND NOW THEY ARE PAINTED — Gio's ruling, 2026-08-11. The arithmetic
+      // above is unchanged and simply moved onto the marks: the two rules take
+      // the frame's 37px as their own 36px gap (the 1px is the rule itself),
+      // and the run above the button splits into 36 above the dot row and 36
+      // below it. Nothing under the band moves by a pixel.
+      ...GATEWAY_MARKS,
       framePad: "sm",
-      padTop: "37px",
-      padBottom: "37px",
-      padTopNarrow: GATEWAY_NARROW.framePad,
-      padBottomNarrow: GATEWAY_NARROW.framePad,
+      padTop: "0",
+      padBottom: "0",
+      padTopNarrow: "0",
+      padBottomNarrow: "0",
       narrowAt: 767,
       maxWidth: 880,
       centered: true,
@@ -679,8 +745,9 @@ function buildHomeClassic(data, formId) {
       copyLhNarrow: GATEWAY_NARROW.copyLh,
       copyTracking: GATEWAY_NARROW.questionTracking,
       copyGap: "0",
-      ctaTop: "79px",
-      ctaTopNarrow: GATEWAY_NARROW.ctaTop,
+      // The half BELOW the dot row now; the half above it is `dotTop`.
+      ctaTop: "2.25rem",
+      ctaTopNarrow: GATEWAY_NARROW.gap,
     }),
   );
 
@@ -869,6 +936,15 @@ function buildHomeClassic(data, formId) {
       // is 8 short above and 16 over below and neither of her narrow numbers.
       // Now the four values are hers; the rung stays for the sides.
       maxWidth: 752,
+      // AND `maxWidth` WAS NEVER THE SECTION. On rf-accordion it is the CARD
+      // in rem and does nothing on a row with no `cardWash`; the entry passed
+      // no width to its frame at all, so this band has laid out at the shared
+      // 1100 since it was authored — every question starting at x=163 against
+      // her 337 and every chevron 174px out, while the heading's own cap landed
+      // correctly and hid it as a type delta rather than a geometry one. Found
+      // 2026-08-11 by measuring the FadeLine this row draws under the head:
+      // 1100 wide against her 752.
+      frameWidth: 752,
       framePad: "md",
       padTop: LANDING_BAND_PADS.faq.top,
       padBottom: LANDING_BAND_PADS.faq.bottom,
