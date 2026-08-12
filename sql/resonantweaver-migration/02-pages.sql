@@ -1661,6 +1661,7 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/meet', 'Meet Your Galactic S
           "href": "/",
           "maxWidth": 86,
           "pageTop": true,
+          "inlineLead": "",
           "accent": "rgb(183, 138, 119)"
         }
       }
@@ -1868,6 +1869,7 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/develop', 'Develop Your Perc
           "href": "/",
           "maxWidth": 86,
           "pageTop": true,
+          "inlineLead": "",
           "accent": "rgb(183, 138, 119)"
         }
       }
@@ -2145,6 +2147,7 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/receive', 'Enter Your Own En
           "href": "/",
           "maxWidth": 86,
           "pageTop": true,
+          "inlineLead": "",
           "accent": "rgb(72, 210, 185)"
         }
       }
@@ -2404,6 +2407,7 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/experience/all-products', 'A
           "href": "/",
           "maxWidth": 86,
           "pageTop": true,
+          "inlineLead": "4px",
           "accent": "rgb(72, 210, 185)"
         }
       }
@@ -3798,6 +3802,7 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/meeting-your-galactic-
           "href": "/landing-star-preview/meet/",
           "maxWidth": 82,
           "pageTop": true,
+          "inlineLead": "4px",
           "accent": "rgb(183, 138, 119)"
         }
       }
@@ -3964,6 +3969,7 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/galactic-initiation', 
           "href": "/landing-star-preview/develop/",
           "maxWidth": 82,
           "pageTop": true,
+          "inlineLead": "4px",
           "accent": "rgb(183, 138, 119)"
         }
       }
@@ -4135,6 +4141,7 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/resonance-mirror', 'Re
           "href": "/landing-star-preview/receive/",
           "maxWidth": 82,
           "pageTop": true,
+          "inlineLead": "4px",
           "accent": "rgb(72, 210, 185)"
         }
       }
@@ -4328,6 +4335,7 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/pearl-chamber', 'The P
           "href": "/landing-star-preview/receive/",
           "maxWidth": 82,
           "pageTop": true,
+          "inlineLead": "4px",
           "accent": "rgb(183, 138, 119)"
         }
       }
@@ -4520,6 +4528,7 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/somatic-signature', 'S
           "href": "/landing-star-preview/receive/",
           "maxWidth": 82,
           "pageTop": true,
+          "inlineLead": "4px",
           "accent": "rgb(72, 210, 185)"
         }
       }
@@ -4762,6 +4771,7 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/galactic-pendulum', 'G
           "href": "/landing-star-preview/receive/",
           "maxWidth": 82,
           "pageTop": true,
+          "inlineLead": "4px",
           "accent": "rgb(138, 163, 226)"
         }
       }
@@ -4953,6 +4963,7 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/galactic-integration-s
           "href": "/landing-star-preview/receive/",
           "maxWidth": 82,
           "pageTop": true,
+          "inlineLead": "4px",
           "accent": "rgb(72, 210, 185)"
         }
       }
@@ -5119,6 +5130,7 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/extended-starseed-prof
           "href": "/landing-star-preview/meet/",
           "maxWidth": 82,
           "pageTop": true,
+          "inlineLead": "4px",
           "accent": "rgb(183, 138, 119)"
         }
       }
@@ -5279,6 +5291,7 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/awareness-and-percepti
           "href": "/landing-star-preview/develop/",
           "maxWidth": 82,
           "pageTop": true,
+          "inlineLead": "4px",
           "accent": "rgb(183, 138, 119)"
         }
       }

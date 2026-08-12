@@ -4784,3 +4784,60 @@ Nothing unruled is over 4.1%. The three biggest numbers left —
 accepted residue under Gio's rulings. Next unruled: the two waitlist offers at
 390 (4.09 / 3.82), whose first divergence is **−4px above the back link**, and
 whose form shows one label our render words differently.
+
+---
+
+## THE FOUR PIXELS UNDER EVERY BACK LINK — 2026-08-11
+
+The two waitlist offers were the worst unruled pages left (4.09 / 3.82 at 390),
+and their first divergence was the FIRST element on the page: her `← Back` at
+y124 against our y120, at every width, on every offer page.
+
+Her `BackLink` is `display: inline-block`, so it sits on the BASELINE of the
+page main's line box and the strut's half-leading is held above it — **a flat
+4px at 1440, 768 and 390.** Ours is a block and held nothing, so each of those
+pages opened 4px high and carried it all the way to the footer.
+
+`inlineLead` on rf-back-link (mono `d46bd684`, `8506bd94`), stated rather than
+reproduced — the same call as `mediaSpaceBelow`, and for the same reason: the
+number is a product of HER page's inherited rhythm, and a customer's back link
+should not acquire a half-leading from whatever line-height their own page
+happens to state.
+
+### It took three tries and each failure was a different law
+
+1. **The declaration was emitted and computed to zero.** `margin-top` went in
+   above the element's own `margin: 0 auto 2.2rem`, and a longhand loses to any
+   later shorthand. The board moved by nothing on 25 pages and 13 rows carried
+   the value. *(The third time this exact trap has been recorded here.)*
+2. **Fixed, it collapsed.** A top margin on the only child of a marginless band
+   collapses straight through into the band's own `9.5rem` and `max()` eats it.
+   `display: flow-root` on the band, and only when a lead is stated.
+3. **Applied, it was right on ten pages and wrong on three.** Ten offer pages
+   moved towards her by 0.09–0.31 and the three GATEWAYS moved AWAY by
+   0.11–0.14 — because her gateway's `BackLink` is a different component:
+   `display: block`, `margin: 0 auto 2.2rem`, exactly what this entry has always
+   emitted. Passed per call site now, with all three declarations guarded
+   including the one that must NOT get it.
+
+### The board
+
+Zero regressions on any of the 25 pages at any width; the mean aligned figure
+**1.737 → 1.646**. Every offer page and all-products improved; the gateways sit
+back where they were.
+
+**Nothing unruled is over 3.8%.** The list, worst first: `galactic-field-guide`
+6.86 / 3.92 / 3.52 (ruled ours), `writing` 6.76 / 3.31 / 1.46 (ruled ours), the
+two waitlist offers 3.78 / 3.51 at 390, `home` 3.06 at 390 (its doors band
+ruled ours). Board `rw-p39-board`.
+
+### The lesson
+
+**Two components that render the same words are two components.** The helper
+that authors her back links serves four call sites and she wrote the element
+twice — inline-block on the offer pages, block on the gateways. A value read off
+one and handed to all four is right three quarters of the time and invisible the
+rest, and only a board that measures every page at once could say which quarter.
+It is the `FAQAccordion` lesson from this morning with the sign flipped: that one
+was one component of hers ported twice and fixed once; this one is two
+components of hers treated as one.

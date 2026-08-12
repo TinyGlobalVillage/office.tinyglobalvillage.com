@@ -2133,8 +2133,43 @@ const pageType = (id, data) =>
 
 /** Her BackLink: one quiet mono run on the page container, carrying the
  *  main's 9.5rem top pad, hover to the page/product accent. */
-const backLinkRow = (id, label, href, maxWidth, accent) =>
-  section(id, "rf-back-link", "Back", { label, href, maxWidth, pageTop: true, accent });
+/** SHE HAS TWO BACK LINKS AND THEY ARE DIFFERENT ELEMENTS. The offer detail's
+ *  and all-products' are `display: inline-block`, so the page main's line box
+ *  holds the strut's ascent above them — a flat 4px, measured on her live app at
+ *  1440, 768 and 390. Her GATEWAY's is `display: block` with the same
+ *  `margin: 0 auto 2.2rem` this entry has always emitted, and holds nothing.
+ *
+ *  Handing all four rows the 4px moved ten offer pages towards her by 0.09–0.31
+ *  and pushed the three gateways AWAY by 0.11–0.14, which is what says it is
+ *  two components and not one. Passed per call site now, and guarded on both
+ *  declarations so a change to either is caught. */
+const BACK_LINK_LEAD = (() => {
+  const STAR = `${HOME_DIR}/landing-star-preview`;
+  guardOnly({
+    file: `${STAR}/offer/[slug]/OfferDetail.styles.ts`,
+    find: "export const BackLink = styled.a` display: inline-block; margin-bottom: 2.2rem;",
+  });
+  guardOnly({
+    file: `${STAR}/experience/all-products/AllProducts.styles.ts`,
+    find: "export const BackLink = styled.a` display: inline-block; margin-bottom: 3rem;",
+  });
+  // The one that does NOT get it, guarded just as hard.
+  guardOnly({
+    file: `${STAR}/[gateway]/GatewayPage.styles.ts`,
+    find: "export const BackLink = styled.a` display: block; width: min(100% - 3rem, 86rem); margin: 0 auto 2.2rem;",
+  });
+  return "4px";
+})();
+
+const backLinkRow = (id, label, href, maxWidth, accent, inlineLead = "") =>
+  section(id, "rf-back-link", "Back", {
+    label,
+    href,
+    maxWidth,
+    pageTop: true,
+    inlineLead,
+    accent,
+  });
 
 /** ONE OFFER DETAIL PAGE — `offer/[slug]/OfferDetail.tsx`, seven parts.
  *
@@ -2179,6 +2214,7 @@ function buildOfferPage(data, entry) {
       `/landing-star-preview/${offer.door}/`,
       82,
       offer.accent,
+      BACK_LINK_LEAD,
     ),
   );
 
@@ -2901,6 +2937,7 @@ function buildWaitlistPage(data, entry, formId) {
       `/landing-star-preview/${offer.door}/`,
       82,
       offer.accent,
+      BACK_LINK_LEAD,
     ),
     section(`sec-wait-hero-${offer.slug}`, "rf-product-hero", "Hero", {
       anchorId: offer.slug,
@@ -3085,7 +3122,7 @@ function buildAllProducts(data) {
     // which on both apps is a redirect to the site root. The doors ARE the home
     // page now, so the stored link goes straight there rather than through the
     // hop. Her ProductsMain runs the 86rem container.
-    backLinkRow("sec-all-back", data.star_all.backLink, "/", 86, `rgb(${data.tokens.TEAL})`),
+    backLinkRow("sec-all-back", data.star_all.backLink, "/", 86, `rgb(${data.tokens.TEAL})`, BACK_LINK_LEAD),
     // Her Header, on rf-section-head at h1 scale. The first cut authored this
     // as rf-media-copy and the differ measured the drift: h1 51.2px against
     // her 64.8, the eyebrow in Space Grotesk against her Space Mono. Every
