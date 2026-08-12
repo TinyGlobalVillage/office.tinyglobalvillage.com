@@ -4334,15 +4334,20 @@ five pages.
 ### LEFT, IN ORDER
 
 1. ~~**The 26px inside her FAQ items and the 16px inside her contact band**~~ —
-   **CLOSED 2026-08-11**, both exactly: the contact band is 831.47 → 831.47 and
-   the FAQ rows are 53.78 on both sides. See the entry above. **What it left is
-   the hairline finding**: our FAQ paints seven per-item borders read out of her
-   `<details>` no-JS fallback, which never renders. Six pixels, seven visible
-   lines. The fix is `itemEdge` empty plus one panel-bottom hairline; it REMOVES
-   lines, so it goes to Gio's eye with the other marks. **Costed, so his ruling
-   is one edit away:** `rf-accordion` has `itemEdge` and nothing for the panel's
-   own closing rule, so the "yes" branch is a small package change (a
-   `panelEdge` prop on the panel look) plus one row value — not SQL alone.
+   **CLOSED 2026-08-11**, both exactly. **And its hairline residue is CLOSED
+   too, 2026-08-11** — the "his eye" park is lifted, because her rendered page
+   settled it rather than her source. Shot side by side at 1440: her eight
+   questions are separated by SPACE. The mechanism was not the `<details>`
+   fallback after all — `FAQDetails` declares `border-bottom: 1px solid
+   rgba(COPPER, 0.1)` and then `&:last-child { border-bottom: none; }`, and
+   `FAQItemRow` wraps exactly ONE `FAQDetails`, so `:last-child` matches every
+   row and kills the border on all of them. The one rule she draws is
+   `FAQPanel`'s own, under the whole block. Ours had it inverted. Shipped as
+   the costed change — `itemEdge: "none"` + a new `panelEdge` (mono
+   `5db39efe`, office `939a0f9`) — on BOTH landings, because both import the
+   same `FAQAccordion`. It is still a change that REMOVES lines, so it goes in
+   front of Gio at item 7 with the before/after; it is now a fix he can veto
+   rather than a question blocking the sweep.
 1b. ~~**home-classic at 390 only:** `seg 6` +16px, and the about band −20px.~~
    **CLOSED 2026-08-11.** Three narrow halves of declarations already read —
    her gateway `Wrap`'s `margin-bottom`, `GridSection`'s `padding-bottom` and
@@ -4381,14 +4386,148 @@ five pages.
    home-classic's own phantom band went with it. The page DID own one real
    defect, which the census had been naming all along: six strings in the
    site's copper where her `--page-accent` is teal. Both in the entry above.
-4b. **`home` — NEW, and it is now the worst UNRULED page on the board.** It came
-   off this list at 9.35 / 7.88 / 6.75 when everything above it was bigger;
-   everything above it is now closed or ruled, and the page has been re-measured
-   at **4.56 / 4.42 / 4.90** with real negative height deltas — **dH −42 / −28 /
-   −70** — and `sections 8→11`. Worst band 13.18 / 14.56 / 15.98, the only
-   double-digit band left anywhere. Her front door, so it earns the attention.
-5. **The image-resampling family, GIO'S EYE** — the door photography.
+4b. ~~**`home`** — the worst unruled page on the board, **dH −42 / −28 / −70**.~~
+   **HEIGHT CLOSED 2026-08-11 to within 6px: 4.56 / 4.42 / 4.90 → 3.40 / 2.71 /
+   3.49, dH −6 / −5 / −5.** Three bands, three declarations we had already read
+   and taken half of — see "HER FRONT DOOR, AND THE THREE DECLARATIONS WE READ
+   HALF OF" above. The archive band and the FAQ band are now her exact height at
+   all three widths. **What remains on the page, in size order:**
+   - **the doors band, 13.18 / 14.56 / 15.98** — same height, text ghosted
+     through the diff, only the three photographs differ. **This is item 5**,
+     not a defect of its own.
+   - **the footer ground, 17.32 / 21.76 / 19.65 on a 112px band.** Her footer
+     sits INSIDE `SiteShell` and OUTSIDE `<main>`, so it is painted by her
+     fixed site sky (rgb(5,10,12) where it lands) — ours is painted by the page
+     tone, which `rf-page-tone` emits on `html body` and therefore runs to the
+     bottom of the document. rgb(5,10,12) against rgb(6,17,28): |Δ| sums to 24
+     at the page centre and 25–27 toward the edges, which is why the diff shows
+     a block on one side and not the other — it is sitting exactly on the
+     differ's tolerance line. **Costed:** a `scope: "content"` (tone on `main`)
+     plus an outer ground on rf-page-tone; the default must stay `html body` or
+     every tone row on the fleet moves. NOT a row value alone.
+   - **the contact band, −4px** and the About band's 3.45 / 6.11 / 1.82, which
+     is her portrait — item 5 again.
+   - the 768 note band at 8.32%, candidate-only, still unexplained at that one
+     width (0.64% at 1440).
+5. **The image-resampling family, GIO'S EYE** — the door photography (home's
+   only double-digit band, and it is three photographs), home-classic's About
+   portrait, writing's cover 1.
 6. **FOR GIO:** `footerEnabled: false` on all four pooled hosts, `navEnabled:
    false` on guardians + nevlo; and the three unpainted marks (two `FadeLine`s
    and the seven chakra dots).
 7. Then: **tell Gio "come look", his eyeball pass, then the flip.**
+
+---
+
+## HER FRONT DOOR, AND THE THREE DECLARATIONS WE READ HALF OF — 2026-08-11
+
+`home` came to the top of the list at 4.56 / 4.42 / 4.90 with dH −42 / −28 /
+−70 and `sections 8→11`. Three bands owed all of it, and all three are the
+same shape as the narrow halves closed the same morning: a value sitting on a
+line we had already guarded.
+
+### 1 — the archive note, which is her `IntroCopy`
+
+Her field-guide notify block is `<div style={{marginTop:"2.5rem",textAlign:
+"center"}}>` wrapping an `IntroCopy` and a `NotifyButton`. The generator's
+guard on that component read
+
+    export const IntroCopy = styled.p` max-width: 43rem;
+
+and stopped at the semicolon. The next three lines of the same block are
+`margin: 1.35rem auto 0`, `font-size: clamp(1rem, 1.55vw, 1.18rem)` and
+`line-height: 1.65`.
+
+| her declaration | hers @1440 | ours before |
+|---|---|---|
+| `font-size: clamp(1rem, 1.55vw, 1.18rem)` | 18.88px, 3 lines | **16px, 2 lines** |
+| `margin: 1.35rem **auto** 0` | box centred, 21.6px above | **flush left, 14px below** |
+| `line-height: 1.65` | 31.15px | 26.4px (right ratio, wrong size) |
+
+`centered: true` was already on the row and centres the WORDS; the box stayed
+at the column's left edge, which only shows once the box is narrower than the
+column — 688px inside 1248. `proseCenter` exists for exactly this and its own
+doc says so.
+
+Her `NotifyButton` was read the same way: `margin-top: 1.5rem` and
+`padding: 0.85rem 1.4rem` were never taken, and her markup is
+
+    <NotifyButton href={…}>{label} <span aria-hidden>→</span></NotifyButton>
+
+— no `RitualButtonStar` anywhere. Ours drew a spark on each side: 229px of
+button against her 198.
+
+### 2 — the FAQ, ported twice, and only one port learned anything
+
+`FAQAccordion` is imported by BOTH her landings. The star landing's `FaqCard`
+overrides the head scale, the colours and the italic with a `&&` block and
+NOTHING else — so `FAQIntro`'s own 1.02rem/300/1.62 (0.97rem/1.52 under 767)
+and `FAQSummaryButton`'s absent line-height govern the star FAQ exactly as
+they govern home-classic's. The home-classic row states all five. The star row
+was authored first and was never handed back what that pass found.
+
+Measured at 1440: her closed row is 59.8px, ours was 57.4 — 2.4px, eight rows
+deep, on top of a lede 0.8px short. `nameLh: "normal"` is the **eighth**
+member of the inherited-line-height family, and `normal` rather than a number
+for the same reason as the seventh: here the face is Science Gothic, not
+Cormorant, and a number would pin the band to one of them.
+
+**And the breakpoint came with it.** Her media query is `max-width: 767px`;
+the entry defaults to `narrowAt || 768`, which INCLUDES 768 — so the first cut
+of this fix put the phone's 0.97rem lede on the tablet capture and the census
+printed `size: 16.32px → 15.52px` at exactly one width. home-classic's FAQ has
+stated 767 since it was authored. This row never had.
+
+### 3 — the hairlines, which she does not draw
+
+This is item 1's residue, and it took her RENDERED page to settle rather than
+her source. Her `FAQDetails`:
+
+    border-bottom: 1px solid rgba(${COPPER}, 0.1);
+    …
+    &:last-child { border-bottom: none; }
+
+and `FAQItemRow` wraps exactly one `FAQDetails` — so `:last-child` matches
+every row and the border above it paints on none of them. The star card's
+`&& [data-open] { border-bottom-color: rgba(255,255,255,0.08) }` then recolours
+a border with no width, and THAT is the value `itemEdge` was transcribed from.
+
+What survives is `FAQPanel`'s own `border-bottom: 1px solid var(--rule)` — one
+rule under the whole block. The panel look had it exactly inverted: a rule
+between every pair of rows and nothing at the end. Two shots at 1440 settle it
+in one look — her eight questions are separated by space, ours by seven lines.
+
+`itemEdge: "none"` and a new `panelEdge` (mono `5db39efe`), both
+empty-means-unchanged, 669/669 render-check including the two controls.
+
+### What it moved
+
+| | before | after | dH |
+|---|---|---|---|
+| home 1440 | 4.90% | **3.49%** | −70 → −5 |
+| home 768 | 4.42% | **2.71%** | −28 → −5 |
+| home 390 | 4.56% | **3.40%** | −42 → −6 |
+| home-classic 1440 | 1.11% | **0.99%** | +6 → 0 |
+| home-classic 768 | 2.02% | **1.74%** | +6 → 0 |
+| home-classic 390 | 2.10% | **1.80%** | +5 → −1 |
+
+The archive band and the FAQ band are now her exact height at every width on
+home (705→705, 699→699, 828→828), and the FAQ is exact on home-classic too
+(730→730, 710→710, 729→729). Boards `rw-p28-home`, `rw-p29-faq`,
+`rw-p30-home`, `rw-p30-hc`.
+
+### The lesson, stated once more because it has now cost four bands in one day
+
+A guard proves a string is in her source. It cannot prove you took every value
+on the line, or in the block, that the string sits in — and it will go on
+passing forever for the ones you did not. The four this window: `IntroCopy`'s
+margin/size/line-height behind its `max-width`, `FAQSummaryButton`'s absence of
+a line-height behind its five present declarations, `FAQIntro`'s narrow half
+behind its wide one, and a border-colour override that had no border under it.
+
+**And the new one: the same component of hers, ported twice, does not learn
+twice.** `FAQAccordion` serves both her landings; the pass that read it for
+`/home-classic/` left the star landing's row exactly as it was. Anything she
+shares between pages needs the fix applied to every row that renders it, and
+the generator is the only place that can be checked — a per-page measurement
+will only ever find the page you are looking at.
