@@ -4424,9 +4424,19 @@ five pages.
 6. ~~the three unpainted marks (two `FadeLine`s and the seven chakra dots)~~ —
    **RULED 2026-08-11: BUILD THEM**, and built. See "THE MARKS SHE DRAWS AND WE
    ONLY MADE ROOM FOR" below; the pass also found two more of her rules we never
-   drew and one we drew 348px too wide. **STILL FOR GIO:** `footerEnabled:
-   false` on all four pooled hosts and `navEnabled: false` on guardians + nevlo
-   — a studio setting, not a renderer defect.
+   drew and one we drew 348px too wide. ~~STILL FOR GIO: `footerEnabled: false`
+   on all four pooled hosts and `navEnabled: false` on guardians + nevlo~~ —
+   **CLOSED 2026-08-11, and the claim was wrong.** It generalised from the four
+   HOME pages the landmark sweep happened to measure. Counting published rows:
+   guardians 4/4 and nevlo 3/3 are chrome-less **by design** — their templates
+   say so outright (`landing-guardians.ts`: *"The page renders CHROME-LESS
+   (navEnabled/footerEnabled false): a tenant storefront, not a TGV-chromed
+   page"*; `landing-nevlo.ts` follows *"the guardians idiom"*) — while
+   **resonantweaver carries nav AND footer on all eighteen pages**, so this
+   never touched the site we are about to cut over. What is actually left is
+   three per-page flags on Gio's own two sites: `giocoelho/fitness` (nav off),
+   `giocoelho/home` and `refusionist/home` (footer off), each one studio toggle
+   and each a preference, not a defect.
 7. Then: **tell Gio "come look", his eyeball pass, then the flip.**
 
 ---
