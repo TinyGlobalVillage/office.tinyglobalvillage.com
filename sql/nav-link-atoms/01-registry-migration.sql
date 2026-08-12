@@ -156,14 +156,14 @@ BEGIN
   IF n <> 0 THEN RAISE EXCEPTION '% nevlo navLayers rows survive', n; END IF;
 
   SELECT count(*) INTO n
-  FROM content_overrides, jsonb_each(data->'links') e
-  WHERE key = 'navigation' AND mode = 'published' AND user_id IS NULL AND site = 'giocoelho'
+  FROM content_overrides co, jsonb_each(co.data->'links') e
+  WHERE co.key = 'navigation' AND co.mode = 'published' AND co.user_id IS NULL AND co.site = 'giocoelho'
     AND e.value->>'balloon' = 'true' AND e.value->>'inNav' = 'false';
   IF n <> 5 THEN RAISE EXCEPTION 'giocoelho: expected 5 hidden+balloon rows, found %', n; END IF;
 
   SELECT count(*) INTO n
-  FROM content_overrides, jsonb_each(data->'links') e
-  WHERE key = 'navigation' AND mode = 'published' AND user_id IS NULL AND site = 'refusionist'
+  FROM content_overrides co, jsonb_each(co.data->'links') e
+  WHERE co.key = 'navigation' AND co.mode = 'published' AND co.user_id IS NULL AND co.site = 'refusionist'
     AND e.value->>'balloon' = 'true' AND e.value->>'inNav' = 'false';
   IF n <> 5 THEN RAISE EXCEPTION 'refusionist: expected 5 hidden+balloon rows, found %', n; END IF;
 END $$;
