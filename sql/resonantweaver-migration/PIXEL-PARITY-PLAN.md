@@ -4437,7 +4437,10 @@ five pages.
    three per-page flags on Gio's own two sites: `giocoelho/fitness` (nav off),
    `giocoelho/home` and `refusionist/home` (footer off), each one studio toggle
    and each a preference, not a defect.
-7. Then: **tell Gio "come look", his eyeball pass, then the flip.**
+7. ~~Then: tell Gio "come look", his eyeball pass, then the flip.~~ — **DONE
+   2026-08-11. Gio looked, said "I'm happy with what you created", then "lets
+   flip". resonantweaver.com is served by the pooled renderer.** Record at the
+   end of this file, under THE CUTOVER.
 
 ---
 
@@ -4851,3 +4854,107 @@ rest, and only a board that measures every page at once could say which quarter.
 It is the `FAQAccordion` lesson from this morning with the sign flipped: that one
 was one component of hers ported twice and fixed once; this one is two
 components of hers treated as one.
+
+---
+
+## THE CUTOVER — 2026-08-11. resonantweaver.com is pooled.
+
+Gio's eyeball pass came back "I'm happy with what you created", then "lets
+flip". What follows is the pre-flight, the flip, and what it found.
+
+### The pre-flight, and it was not a formality
+
+**Routes.** All 25 baseline URLs answer on the pooled renderer with her Host —
+21 at 200 and the rest redirecting to a live equivalent. The three
+`/landing-star-preview/experience/<product>/` URLs 308 to their `offer/`
+siblings, which is `siteRedirects.ts` doing exactly what its own comment says:
+her STATUS.md calls those the "old safety-net route", they are the catalog's
+`detail` copy published twice, and authoring them would put two editable copies
+of the same three offers in the studio. `/landing-star-preview/` bare redirects
+to `/` on both sides. `/cart`, `/dashboard`, `/login` and `/editor/<slug>` all
+hand off to Keycloak; hers redirected to her own OIDC login, so the shape is the
+same and the door is the platform's.
+
+**URL shape.** Both apps run `trailingSlash: true` and both hide the default
+locale, so every indexed link keeps its shape — the same preflight that saved
+giocoelho and refusionist. One difference recorded, not fixed: her app 307s
+`/en/writing/` to `/writing/`, ours serves 200 at both. Her canonical form is the
+unprefixed one and that is what is indexed, so nothing breaks; it is a duplicate
+address, not a wrong one.
+
+**Assets.** Crawled all 22 content routes on the pooled renderer, extracted every
+`src`/`href` ending in an image, font or video, and probed the unique set:
+**14 assets, all 200.** The 45 image references in `02-pages.sql` all point at
+`/images/tenants/resonantweaver/`, the pooled home.
+
+**White label.** Every page carries her own `<title>` and her own
+`og:site_name`, and exactly ONE "Tiny Global Village" hit per page — the ruled
+attribution line. Her 404 page wears her name on both sides, so the open
+`tenant-404-wears-tgv-name` bug does not reach her.
+
+**Money.** Her offers are plain `paypal.com` links; her app holds no Stripe keys
+at all, and the platform account has four webhook endpoints, **none** pointing at
+resonantweaver.com. Nothing to repoint, nothing to disable — unlike refusionist,
+where two endpoints had to be found and turned off.
+
+**Forms — the one that needed proving, not reading.** Her four pooled forms
+(contact, pearl-chamber, and the two waitlists) are `form-live` sections against
+`@tgv/module-forms`. A real POST to the live renderer with
+`Origin: https://resonantweaver.com` returned **200 with a stored responseId**
+(deleted afterwards; her three genuine responses untouched). That single request
+proved three things at once: the custom-domain origin allowance resolves her
+through `villager_sites.domain`, the definition validates, and the response
+lands. The first attempt 400'd on the anti-abuse timing gate — which is the gate
+working, since the origin check runs first and would have 403'd.
+
+**BUT THE MAIL MOVES HOUSE.** Her app SMTPs contact mail from
+`connect@resonantweaver.com` to `connect@resonantweaver.com` — her own inbox on
+her own domain. Pooled, `submit.ts` looks up the form OWNER's member row and
+mails that address: **marthe@tinyglobalvillage.com**, from
+`no-reply@tinyglobalvillage.com`. `FormNotify` is `{ email?: boolean; inbox?:
+boolean }` — booleans, no address — so there is no row-level way to redirect it.
+Nothing is lost: `notify: {}` leaves BOTH channels on, so every submission also
+raises an in-app notification and is stored as a response she can read in the
+dashboard. It is more redundant than what she had and it arrives somewhere
+different. **If she wants it back on her own domain, that is a `notify.to` field
+on FormNotify** — type, the destination line in `submit.ts`, and one input in
+`FormSettingsPanel` — and it is a platform gap, not an RW one: every pooled
+tenant with a business inbox has it.
+
+### The flip
+
+The config was already written — `resonantweaver.com.pooled-2026-08-07`, from
+the attempt that was rolled back on 2026-08-07 — so it was re-dated and
+installed rather than re-derived. Backup at
+`sites-available/resonantweaver.com.pre-pool-2026-08-11`; `sites-enabled` is a
+real symlink here, so editing `sites-available` is enough (refusionist's was a
+regular file and its first flip did nothing).
+
+Two names, two blocks. `resonantweaver.com` → `:3001`, keeping the `/recordings/`
+alias exactly as it was because a cutover changes one thing. `www.resonantweaver.com`
+→ **301 to the apex**, its own block: measured before the flip, `Host:
+www.resonantweaver.com` on the renderer serves **Tiny Global Village's own
+Contact page**, because HQ matches `villager_sites.domain` exactly. The cert
+covers both names. `nginx -t`, reload, then `pm2 stop resonantweaver.com` +
+`pm2 save`.
+
+**Verified live through Cloudflare:** all 25 routes 200 wearing her own titles,
+www 301s to the apex, and the fleet is green — TGV, Office, giocoelho,
+guardianstuffies, neverendinglogic, refusionist and demo all unchanged on the
+same pass.
+
+**Rollback is two commands:** restore
+`sites-available/resonantweaver.com.pre-pool-2026-08-11`, `nginx -t && reload`,
+then `pm2 start resonantweaver.com`. Her app is still installed and its `.next`
+is the build that served this domain until tonight.
+
+### What the pre-flight found that was not about her
+
+`/robots.txt` on every pooled domain says `Sitemap:
+https://tinyglobalvillage.com/sitemap.xml`, and `/sitemap.xml` answers **200 with
+the platform's marketing Contact page** — on all five tenants, pre-existing, the
+sixth member of the white-label family. Her own app served an HTML page there
+too, so no side has ever had a real sitemap; what pooling changed is whose name
+is in the file. Logged as `~/.claude/bugs/tenant-sitemap-and-robots-point-at-tgv.md`
+with a three-way compare and a plan; NOT fixed tonight, because a cutover changes
+one thing.
