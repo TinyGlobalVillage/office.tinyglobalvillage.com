@@ -4958,3 +4958,78 @@ too, so no side has ever had a real sitemap; what pooling changed is whose name
 is in the file. Logged as `~/.claude/bugs/tenant-sitemap-and-robots-point-at-tgv.md`
 with a three-way compare and a plan; NOT fixed tonight, because a cutover changes
 one thing.
+
+---
+
+## THE ROLLBACK, AND THE THREE THINGS GIO SAW IN FOUR MINUTES — 2026-08-11
+
+He looked at the live pooled site and said, in order: *"her navbar is
+missing"*, *"she still has double footer"*, *"her balloon menu is not showing
+her pages"*. All three were real. **Rolled back inside the hour** — nginx
+restored from the backup beside it, `pm2 start`, fleet green. One scar: `pm2
+start resonantweaver.com` by NAME silently no-opped and the site 502'd for
+about two minutes until it was started by id.
+
+### The navbar and the balloon menu were the same bug, and it was mine
+
+`[data-section-stack]` IS the `<main>`, and `TgvLandingRenderer` renders it
+`position: relative`. The content-scope tone from the same morning gave it an
+opaque ground. Her chrome nav band is its SIBLING, also positioned, also
+`z-index: auto` — and **two positioned siblings with `z-index: auto` paint in
+tree order**, main second. So her navigation went behind her own page.
+
+It looked like a deleted bar rather than a covered one because her PillNav is
+`position: fixed` inside the band: nothing reserved space where it used to be,
+so the page simply started at the top. The balloon menu is that same buried
+header's panel, which is why opening it showed nothing.
+
+The fix is `LayerRenderer.chromeLayer`. The fixed and sticky branches have
+always emitted `z-index: CHROME_Z` — a band that leaves the flow has to say
+where it lands — and the static branch never had to until something painted
+over it. Chrome is chrome at every behaviour. Default off, so every existing
+caller emits the same bytes; deliberately NOT inferred from `as`, because that
+prop's whole contract is that naming a landmark changes markup and nothing
+else.
+
+### AND THE RULER SAW IT AND SHRUGGED, WHICH IS THE PART TO REMEMBER
+
+A missing navigation bar cost **1.10%** of the top band on `home` and **1.27%**
+on `writing` — under the per-band gate, indistinguishable from noise. Her
+chrome is a thin pill of small light type on a dark ground, so a whole
+component's worth of missing pixels is about one percent of the area it sits
+in. The board that ran after the tone landed read 1.646 mean and *nothing
+unruled over 3.8%*, and it was not wrong; it was measuring the right thing and
+the right thing was small.
+
+The landmark census printed `nav 1→2` on every page the whole time. **Nothing
+asserted that a nav a visitor cannot see is a nav that is not there.** A
+visibility assertion — is the band's first link the topmost element at its own
+coordinates — is what would have caught this, and it is what caught it in the
+end, by hand, after the customer's own domain was serving it.
+
+### The double footer
+
+Her footer band said *"Powered by Tiny Global Village LLC™"* — ported
+faithfully, because her own app's footer said it — and the platform's own line
+said *"Powered by Tiny Global Village"* 66px below. The rule stated in
+`PublicTenantLanding.client.tsx` is that the platform appears on a tenant's
+domain in **exactly one place**. It now means one: `footerAlreadyCredits()`
+reads the footer atom's `creditHref`/`creditLabel` BY NAME and suppresses the
+platform line when the site's own footer already carries it. Hers wins — it is
+the line the ruler measured and the one wearing her type. Delete it in the
+studio and ours returns on the next render.
+
+### Her forms mail her own domain again
+
+Gio: *"RW forms should be sent to connect@rw, period."* `FormNotify` gained a
+`to` — the destination is a property of the FORM, not of whoever owns the row —
+and `08-form-notify.sql` sets it on all **six** of her live forms, re-runnably,
+merging into `notify` so a later studio toggle survives a re-drive. Absent, the
+owner's account address still wins, so nothing else on the fleet moved.
+
+### The board after the fixes
+
+`rw-p40-chrome`: **zero regressions, 21 pages improved, mean 1.646 → 1.601.**
+The improvements are the two fixes showing up honestly — the top band on
+`writing` went 1.27% → 0.20%, and its height went 1084 → **1020, her exact
+number**, because the duplicated attribution band is gone.
