@@ -107,6 +107,23 @@ UPDATE page_models
 SET in_nav = false
 WHERE site = 'resonantweaver' AND slug = 'writing' AND in_nav IS DISTINCT FROM false;
 
+-- ── 5. The canonical balloon row re-seeds from the navbar ──────────────────
+-- The stored row's enabled flags were the OLD page-row seed's defaults
+-- (Writing true, Starseed false — nobody curated them; the first GET after
+-- the balloon-derives-from-navbar change would preserve the stale false as if
+-- it were curation, leaving Starseed Unlisted). Deleting the owner-canonical
+-- row lets the route re-seed it from the navbar on the next read: Starseed +
+-- Sun Walk Listed, everything else Unlisted. Re-running re-deletes a row the
+-- route regenerates identically, so this stays a material no-op.
+DELETE FROM member_bottom_navbar
+WHERE site = 'resonantweaver'
+  AND user_id = (
+    SELECT v.member_id FROM villager v
+    JOIN villager_sites s ON s.id = v.site_id
+    WHERE s.subdomain = 'resonantweaver' AND v.status IN ('registered','active')
+    LIMIT 1
+  );
+
 -- ── Assertions ──────────────────────────────────────────────────────────────
 DO $$
 DECLARE

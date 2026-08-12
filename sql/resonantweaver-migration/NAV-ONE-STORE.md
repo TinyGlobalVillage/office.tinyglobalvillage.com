@@ -42,6 +42,30 @@ the reader gap that ALSO hid her links in the editor) + `23b26570`
 `10-nav-one-store.sql` (apply AFTER the deploy — flipping the block before
 the package ships would blank her bar).
 
+## SHIPPED AND VERIFIED — 2026-08-12, all six phases
+
+Deployed @ HQ `3f7ec482` (BUILD_ID from mac-deploy, RCS built nothing), SQL
+applied + re-run idempotent. Verified live: her bar renders BYTE-IDENTICAL
+markup from the dict (curl diff against the pre-migration capture); the
+editor loads her four links (authed door, "Go to Starseed"/"Go to Sun Walk"
+in the payload, no base HOME dict); her balloon = Starseed (page) + Sun Walk
+(custom, no page row) Listed, Contact/Login absent, Writing clamped Unlisted;
+the Listed toggle round-trips both directions through POST (the "can't
+unclick" path). Fleet: guardians unchanged (no dict → legacy seed).
+
+**Two finds on the way:** (1) `readDraftNavAndFooter` fell back to BASE, never
+published — the missing middle rung was the other half of "her links are not
+in the Nav section" (`ede7cc19`). (2) **jsonb re-sorts object keys**, so the
+dict rendered Login first and NavBarEditor's drag-reorder was an illusion
+after any round trip; links now carry an explicit `order` stamped on save,
+sorted by every reader (`3f7ec482` mono, `b92357b6` HQ).
+
+**Ruling deltas on other dict sites** (balloon now mirrors THEIR navbar):
+giocoelho 5 Listed pages → clamped, only UAT Blog (his navbar's one link);
+refusionist 5 Listed → none (dict is home-only); main's empty bar → its real
+navbar (Blog, UAT Balloon Test, Fashion Boutique). Fix-forward on any of
+them: list links in the editor's Nav card and they flow to the balloon.
+
 ## The convergence — one store, the pattern that already exists
 
 `TgvV5Nav.Render` reads `props.useSiteLinks ? navData.links : props.links`. Copy
