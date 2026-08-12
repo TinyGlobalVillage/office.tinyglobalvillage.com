@@ -42,6 +42,15 @@ the reader gap that ALSO hid her links in the editor) + `23b26570`
 `10-nav-one-store.sql` (apply AFTER the deploy — flipping the block before
 the package ships would blank her bar).
 
+## REVISED AGAIN the same evening — four switches (nav-link atoms)
+
+Gio's follow-up architecture: the dict is the REGISTRY; rows carry
+inNav/balloon/attached/order; atoms flag in via `navKey`; the utility
+exceptions became balloon DEFAULTS (overridable); the eyeball no longer gates
+the balloon. Canon moved to `clients/tinyglobalvillage.com/docs/balloon-menu.md`
++ plan `generic-popping-sunset.md`; fleet migration
+`sql/nav-link-atoms/01-registry-migration.sql`. RW needed no data change.
+
 ## SHIPPED AND VERIFIED — 2026-08-12, all six phases
 
 Deployed @ HQ `3f7ec482` (BUILD_ID from mac-deploy, RCS built nothing), SQL
