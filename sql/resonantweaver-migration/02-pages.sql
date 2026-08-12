@@ -311,6 +311,8 @@ INSERT INTO _rw_pages VALUES ('home', 'Resonant Weaver', true, 'published', $rwj
             "radial-gradient(ellipse 50% 34% at 82% 80%, rgba(72, 210, 185, 0.035), transparent 70%)"
           ],
           "ground": "#06111c",
+          "scope": "content",
+          "outerGround": "#050a0c",
           "lineHeight": "1.5"
         }
       }
@@ -876,6 +878,8 @@ INSERT INTO _rw_pages VALUES ('home-classic', 'Resonant Weaver — classic landi
           ],
           "ground": "#050606",
           "fixed": true,
+          "scope": "content",
+          "outerGround": "#050a0c",
           "gutter": "1.5rem",
           "gutterNarrow": "1.5rem",
           "lineHeight": "1.5",
@@ -1488,6 +1492,8 @@ INSERT INTO _rw_pages VALUES ('writing', 'Writing', true, 'published', $rwjson${
             "radial-gradient(circle at 50% 0%, hsl(235, 72%, 16%), hsl(228, 58%, 9%) 56%, hsl(220, 28%, 4%) 100%)"
           ],
           "ground": "",
+          "scope": "content",
+          "outerGround": "#050a0c",
           "lineHeight": "normal",
           "smoothing": "auto"
         }
@@ -1612,6 +1618,8 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/meet', 'Meet Your Galactic S
             "radial-gradient(ellipse 50% 30% at 12% 75%, rgba(30, 67, 96, 0.11), transparent 72%)"
           ],
           "ground": "#06111c",
+          "scope": "content",
+          "outerGround": "#050a0c",
           "lineHeight": "normal"
         }
       }
@@ -1816,6 +1824,8 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/develop', 'Develop Your Perc
             "radial-gradient(ellipse 50% 30% at 12% 75%, rgba(30, 67, 96, 0.11), transparent 72%)"
           ],
           "ground": "#06111c",
+          "scope": "content",
+          "outerGround": "#050a0c",
           "lineHeight": "normal"
         }
       }
@@ -2090,6 +2100,8 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/receive', 'Enter Your Own En
             "radial-gradient(ellipse 50% 30% at 12% 75%, rgba(30, 67, 96, 0.11), transparent 72%)"
           ],
           "ground": "#06111c",
+          "scope": "content",
+          "outerGround": "#050a0c",
           "lineHeight": "normal"
         }
       }
@@ -2346,6 +2358,8 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/experience/all-products', 'A
             "radial-gradient(ellipse 44% 24% at 88% 76%, rgba(183, 138, 119, 0.08), transparent 72%)"
           ],
           "ground": "#06111c",
+          "scope": "content",
+          "outerGround": "#050a0c",
           "lineHeight": "normal"
         }
       }
@@ -2685,6 +2699,8 @@ INSERT INTO _rw_pages VALUES ('pearl-chamber', 'The Pearl Chamber', false, 'publ
           ],
           "ground": "#050606",
           "fixed": true,
+          "scope": "content",
+          "outerGround": "#050a0c",
           "gutter": "1.5rem",
           "gutterNarrow": "1.5rem",
           "lineHeight": "1.5",
@@ -3736,6 +3752,8 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/meeting-your-galactic-
             "radial-gradient(ellipse 44% 25% at 88% 68%, rgba(39, 78, 112, 0.12), transparent 72%)"
           ],
           "ground": "#06111c",
+          "scope": "content",
+          "outerGround": "#050a0c",
           "lineHeight": "normal"
         }
       }
@@ -3900,6 +3918,8 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/galactic-initiation', 
             "radial-gradient(ellipse 44% 25% at 88% 68%, rgba(39, 78, 112, 0.12), transparent 72%)"
           ],
           "ground": "#06111c",
+          "scope": "content",
+          "outerGround": "#050a0c",
           "lineHeight": "normal"
         }
       }
@@ -4069,6 +4089,8 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/resonance-mirror', 'Re
             "radial-gradient(ellipse 44% 25% at 88% 68%, rgba(39, 78, 112, 0.12), transparent 72%)"
           ],
           "ground": "#06111c",
+          "scope": "content",
+          "outerGround": "#050a0c",
           "lineHeight": "normal"
         }
       }
@@ -4260,6 +4282,8 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/pearl-chamber', 'The P
             "radial-gradient(ellipse 44% 25% at 88% 68%, rgba(39, 78, 112, 0.12), transparent 72%)"
           ],
           "ground": "#06111c",
+          "scope": "content",
+          "outerGround": "#050a0c",
           "lineHeight": "normal"
         }
       }
@@ -4450,6 +4474,8 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/somatic-signature', 'S
             "radial-gradient(ellipse 44% 25% at 88% 68%, rgba(39, 78, 112, 0.12), transparent 72%)"
           ],
           "ground": "#06111c",
+          "scope": "content",
+          "outerGround": "#050a0c",
           "lineHeight": "normal"
         }
       }
@@ -4690,6 +4716,8 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/galactic-pendulum', 'G
             "radial-gradient(ellipse 44% 25% at 88% 68%, rgba(39, 78, 112, 0.12), transparent 72%)"
           ],
           "ground": "#06111c",
+          "scope": "content",
+          "outerGround": "#050a0c",
           "lineHeight": "normal"
         }
       }
@@ -4879,6 +4907,8 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/galactic-integration-s
             "radial-gradient(ellipse 44% 25% at 88% 68%, rgba(39, 78, 112, 0.12), transparent 72%)"
           ],
           "ground": "#06111c",
+          "scope": "content",
+          "outerGround": "#050a0c",
           "lineHeight": "normal"
         }
       }
@@ -5043,6 +5073,8 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/extended-starseed-prof
             "radial-gradient(ellipse 44% 25% at 88% 68%, rgba(39, 78, 112, 0.12), transparent 72%)"
           ],
           "ground": "#06111c",
+          "scope": "content",
+          "outerGround": "#050a0c",
           "lineHeight": "normal"
         }
       }
@@ -5201,6 +5233,8 @@ INSERT INTO _rw_pages VALUES ('landing-star-preview/offer/awareness-and-percepti
             "radial-gradient(ellipse 44% 25% at 88% 68%, rgba(39, 78, 112, 0.12), transparent 72%)"
           ],
           "ground": "#06111c",
+          "scope": "content",
+          "outerGround": "#050a0c",
           "lineHeight": "normal"
         }
       }

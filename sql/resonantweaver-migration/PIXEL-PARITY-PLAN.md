@@ -4366,7 +4366,14 @@ five pages.
    shows — every authored page that declares no ground of its own already
    carries `shellSky` — so this ruling reaches this page and any future granted
    app surface with no ground, and nothing else.
-3. **`writing` — HALF RULED 2026-08-11.** **Cover 2: SHIP THE GRADIENT.** Gio
+3. ~~**`writing`**~~ — **FULLY RULED 2026-08-11: OURS.** Gio, shown the pair:
+   *"for writing, ours is chosen."* That settles BOTH covers in one word — cover
+   2's gradient (below) and cover 1, which had been parked in item 5 as an
+   image-resampling question. Our `next/image`-free 640px original is the one
+   that ships; her `w=384&q=75` re-encode is not the target. **No code changes**,
+   and writing's remaining % on the board is now ACCEPTED RESIDUE. The half-rule
+   that got here is kept below because its Marthe action is still live.
+   **Cover 2: SHIP THE GRADIENT.** Gio
    ruled for her `CoverFallback` over her live pixels — the pooled page renders
    her INTENT where her own site renders her bug, and matching her would mean
    reproducing a missing file. No code changes; it is what the entry already
@@ -4387,31 +4394,29 @@ five pages.
    defect, which the census had been naming all along: six strings in the
    site's copper where her `--page-accent` is teal. Both in the entry above.
 4b. ~~**`home`** — the worst unruled page on the board, **dH −42 / −28 / −70**.~~
-   **HEIGHT CLOSED 2026-08-11 to within 6px: 4.56 / 4.42 / 4.90 → 3.40 / 2.71 /
-   3.49, dH −6 / −5 / −5.** Three bands, three declarations we had already read
+   **HEIGHT CLOSED 2026-08-11 to within 6px, then the footer ground with it:
+   4.56 / 4.42 / 4.90 → 3.40 / 2.71 / 3.49 → 3.06 / 2.00 / 2.88.** What is left
+   on the page is item 5 twice over (the doors at 15.91, the About portrait at
+   3.46) and a −4px contact band. Three bands, three declarations we had read
    and taken half of — see "HER FRONT DOOR, AND THE THREE DECLARATIONS WE READ
    HALF OF" above. The archive band and the FAQ band are now her exact height at
    all three widths. **What remains on the page, in size order:**
    - **the doors band, 13.18 / 14.56 / 15.98** — same height, text ghosted
      through the diff, only the three photographs differ. **This is item 5**,
      not a defect of its own.
-   - **the footer ground, 17.32 / 21.76 / 19.65 on a 112px band.** Her footer
-     sits INSIDE `SiteShell` and OUTSIDE `<main>`, so it is painted by her
-     fixed site sky (rgb(5,10,12) where it lands) — ours is painted by the page
-     tone, which `rf-page-tone` emits on `html body` and therefore runs to the
-     bottom of the document. rgb(5,10,12) against rgb(6,17,28): |Δ| sums to 24
-     at the page centre and 25–27 toward the edges, which is why the diff shows
-     a block on one side and not the other — it is sitting exactly on the
-     differ's tolerance line. **Costed:** a `scope: "content"` (tone on `main`)
-     plus an outer ground on rf-page-tone; the default must stay `html body` or
-     every tone row on the fleet moves. NOT a row value alone.
+   - ~~**the footer ground, 17.32 / 21.76 / 19.65 on a 112px band.**~~
+     **CLOSED 2026-08-11 — Δ0 at every x, and it took seventeen rows.** Built as
+     costed: `scope: "content"` + `outerGround` on rf-page-tone (mono
+     `ced8e2ac`), both opt-in and inert apart, 675/675. See "THE CHROME IS NOT
+     ON THE PAGE" below.
    - **the contact band, −4px** and the About band's 3.45 / 6.11 / 1.82, which
      is her portrait — item 5 again.
    - the 768 note band at 8.32%, candidate-only, still unexplained at that one
      width (0.64% at 1440).
 5. **The image-resampling family, GIO'S EYE** — the door photography (home's
-   only double-digit band, and it is three photographs), home-classic's About
-   portrait, writing's cover 1.
+   only double-digit band, and it is three photographs) and home-classic's About
+   portrait. ~~writing's cover 1~~ left this family 2026-08-11 with item 3's
+   full ruling: ours.
 6. **FOR GIO:** `footerEnabled: false` on all four pooled hosts, `navEnabled:
    false` on guardians + nevlo; and the three unpainted marks (two `FadeLine`s
    and the seven chakra dots).
@@ -4531,3 +4536,101 @@ twice.** `FAQAccordion` serves both her landings; the pass that read it for
 shares between pages needs the fix applied to every row that renders it, and
 the generator is the only place that can be checked — a per-page measurement
 will only ever find the page you are looking at.
+
+---
+
+## THE CHROME IS NOT ON THE PAGE — 2026-08-11
+
+`home`'s last unruled band was its footer: **17.32 / 21.76 / 19.65 on 112px**,
+painted as a block on one side of the page and nothing on the other, with no
+text in it and no height delta to explain it.
+
+### What her footer sits on
+
+    <SiteShell>            ← min-height:100vh, three radials, ATTACHMENT: FIXED
+      <PillNav/>
+      <main>{children}</main>   ← every ground she paints is in here
+      <Footer/>
+    </SiteShell>
+
+and `GlobalStyles` states `background: #050a0c` on `html` **and** on `body`.
+Her page grounds — `GatewayBody`, `OfferBody`, `PreviewBody`, `WritingPage` —
+are all inside `main`. Her shell's radials are fixed, so in a full-page capture
+they paint once at the top and reach nothing 6000px down. Measured on four of
+her routes: **her footer band is a flat `rgb(5,10,12)` at every x**.
+
+Ours emitted the tone on `html body`, so the page's ground ran to the bottom of
+the DOCUMENT and came out from under the footer — with its page-attached glows
+still on it.
+
+### Why it looked like a one-sided block
+
+| | hers | ours | Δ |
+|---|---|---|---|
+| footer, most of the width | rgb(5,10,12) | rgb(6,17,28) | **24** |
+| footer, under the teal orb | rgb(5,10,12) | rgb(6,18,29) / rgb(7,19,29) | 26–28 |
+
+`pixeldiff` is `d = |Δr|+|Δg|+|Δb|+|Δa|; if (d > tolerance)` at tolerance 24. So
+the flat two thirds of the band were wrong by **exactly** the tolerance and did
+not count, and only the orb-tinted third did. A defect that is uniform across a
+band can present as a shape.
+
+### And a 15px column nobody had looked at
+
+Her `html` reserves `scrollbar-gutter: stable`. That gutter is OUTSIDE the body
+box and shows the CANVAS — which follows `html` the moment html has a background
+of its own. Ours ran a 15px stripe of the SITE ground (`#06111c`) down the right
+hand of every page, full height, while hers ran `#050a0c`. `outerGround` is
+therefore emitted on `html, body`, not `html body`.
+
+### The build
+
+`scope: "content"` moves the paint to `[data-section-stack]` — the `<main>` the
+pooled renderer emits, and the same box `fontRoles` already scopes to for the
+same reason: it wraps the page WITHOUT the chrome, exactly as her `<Body>` wraps
+the landing and not her nav. `outerGround` then states what the chrome bands sit
+on. Both halves are opt-in and each is inert without the other; absent, the
+render is byte-identical (pinned) and no published row moves. Mono `ced8e2ac`,
+675/675.
+
+**Seventeen of the eighteen tone rows take it**, from one guarded `SITE_GROUND`
+in the generator, because this is one fact of hers and not a per-page value —
+the `FAQAccordion` lesson from the morning applied before it could cost
+anything. `sec-ss-gutter` is the eighteenth and is left alone: it paints
+nothing, so it has no ground to move and no chrome to hand one to.
+
+### AND IT IS NOT GIO'S FIELD-GUIDE RULING REOPENED
+
+That ruling chose the pooled `siteBackground` over her shell green-black for the
+surfaces that declare no ground of their own. This is a page that DOES declare
+one, now saying what its own chrome sits on. `/galactic-field-guide/`,
+`/starseed/` and `/open-your-journey/` state no ground and did not move by a
+hundredth of a point — which is the check, and it passed.
+
+### What it moved
+
+| | before | after |
+|---|---|---|
+| home 1440 / 768 / 390 | 3.49 / 2.71 / 3.40 | **2.88 / 2.00 / 3.06** |
+| writing 1440 / 768 / 390 | 2.32 / 4.65 / 7.73 | **1.46 / 3.31 / 6.76** |
+| home-classic | 0.99 / 1.74 / 1.80 | 0.99 / 1.75 / 1.83 |
+
+`writing` came second-biggest and was never suspected: its blue page wash ran
+under the footer and drifted from Δ5 at the left hand to Δ29 at the right,
+against a footer of hers that is one flat colour.
+
+Every other page of the twenty-five moved between −0.08 and +0.07. The four
+that moved the wrong way are the two waitlist offers at their three widths, all
+of it in `seg 0` and all of it the same mechanism read honestly: a page ground
+sized against the CONTENT column is sized against a shorter box than the
+document, and those two pages are the ones whose column already disagrees with
+hers by 6–9px. Board `rw-p31-outer` against `rw-p27-board`.
+
+### The lesson
+
+**A band with no text in it is still a band, and "the ground" is not one thing.**
+Four surfaces can paint what looks like a single colour behind a page — html,
+body, the section column and a fixed backdrop — and which one a value lands on
+decides where it stops. This entry had been treating them as interchangeable
+since it was written, and the cost was hidden by the differ's tolerance being,
+to the unit, the size of the error.

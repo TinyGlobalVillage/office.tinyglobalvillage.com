@@ -1698,12 +1698,51 @@ function buildStarLanding(data, formId) {
  *  prop was 35 of home-classic's colour rows and 3 of pearl-chamber's. */
 const bone = (data, a) => `rgba(${data.tokens.BONE}, ${a})`;
 
+/** HER SITE GROUND — `GlobalStyles`, `background: #050a0c` on html AND on body,
+ *  and the only thing behind her chrome bands.
+ *
+ *  THE TONE IS THE PAGE'S GROUND AND THE FOOTER IS NOT ON THE PAGE. Her shell
+ *  is `<SiteShell><PillNav/><main>{children}</main><Footer/></SiteShell>`, and
+ *  every ground she paints — GatewayBody, OfferBody, PreviewBody, WritingPage —
+ *  is inside `main`. Her shell's three radials are `background-attachment:
+ *  fixed`, so in a full-page capture they paint once at the top and reach
+ *  nothing 6000px down: her footer band measures a flat `rgb(5,10,12)` at every
+ *  x on every route probed.
+ *
+ *  Ours painted the tone on `html body`, so the page's ground ran out from
+ *  under the footer with its page-attached glows still on it. On `/` that is
+ *  `rgb(6,17,28)` against her `rgb(5,10,12)` — a channel sum of exactly 24,
+ *  which is the differ's tolerance to the pixel, so only the orb-tinted half of
+ *  the band counted and it read as a block on one side with no cause.
+ *
+ *  `html` as well as `body` because the 15px scrollbar gutter she reserves is
+ *  outside the body box and shows the canvas — which follows html once html has
+ *  a background — so ours ran a column of the SITE ground down the right hand
+ *  of every page.
+ *
+ *  WHICH IS NOT GIO'S FIELD-GUIDE RULING REOPENED. That ruling chose the pooled
+ *  `siteBackground` over her shell green-black for the surfaces that declare no
+ *  ground of their own; this is a page that DOES declare one, now saying what
+ *  its own chrome sits on. `/galactic-field-guide/`, `/starseed/` and
+ *  `/open-your-journey/` state no ground and are untouched. */
+const SITE_GROUND = (() => {
+  const file = "src/styles/GlobalStyles.ts";
+  guardOnly({ file, find: "html { scroll-behavior: smooth; background: #050a0c;" });
+  guardOnly({ file, find: "body { background: #050a0c; color: #e8e5da; }" });
+  return { scope: "content", outerGround: "#050a0c" };
+})();
+
 /** OfferBody/GatewayBody's toned ground, as the leading section. `extra`
  *  carries anything the page states about itself rather than about its wash —
  *  today that is the gutter, which is a page fact and has no other page-level
  *  row to live on. */
 const pageTone = (id, layers, extra = {}) =>
-  section(id, "rf-page-tone", "Page tone", { layers, ground: "#06111c", ...extra });
+  section(id, "rf-page-tone", "Page tone", {
+    layers,
+    ground: "#06111c",
+    ...SITE_GROUND,
+    ...extra,
+  });
 
 /** HER SITE SHELL — `layout.client.tsx`, the wrapper EVERY page of hers is
  *  inside, and the sky the two landings with no body of their own show.
@@ -1997,6 +2036,11 @@ const PAGE_SMOOTHING_NONE = (() => {
 const pageType = (id, data) =>
   section(id, "rf-page-tone", "Page type", {
     ...shellSky(data),
+    // Her shell sky is fixed, so it never reached her footer either — these two
+    // pages show it because their Body paints nothing, not because it runs the
+    // document. Scoped to the column it stops covering the chrome, and the
+    // chrome gets the ground her html and body actually state.
+    ...SITE_GROUND,
     // Her `Container` — `padding: 0 1.5rem`, one value, no mobile step, and
     // every band on these two pages is one. The frame's own rungs step 24 → 18
     // under 768, so without this the whole page laid out 12px wider on a phone
@@ -4332,6 +4376,11 @@ function buildWriting(data) {
         "radial-gradient(circle at 50% 0%, hsl(235, 72%, 16%), hsl(228, 58%, 9%) 56%, hsl(220, 28%, 4%) 100%)",
       ],
       ground: "",
+      // `PageShell` is inside her `<main>` like every other page ground of
+      // hers, and this is the page where it showed worst: the blue wash ran
+      // under the footer and the band drifted from Δ5 at the left hand to Δ29
+      // at the right, against a footer of hers that is one flat colour.
+      ...SITE_GROUND,
       // `PageShell` declares no rhythm, so the page reads at `normal`.
       lineHeight: PAGE_RHYTHM_NONE,
       // AND IT IS THE ONE ROOT ON THE SITE THAT ASKS FOR NO SMOOTHING EITHER.

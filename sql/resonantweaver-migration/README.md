@@ -154,3 +154,14 @@ DELETE FROM public.page_models
 
 `site_releases` keeps every version the capture trigger saw, so the previous
 state is recoverable from Client Versions either way.
+
+**Name the slugs. Do NOT delete the whole site.** `journey` is authored by
+`03`/`04`/`09`, not by `02` — and `02` asserts it is present, so a
+`DELETE … WHERE site = 'resonantweaver'` leaves the file aborting on
+
+    assert: the journey row is gone — replay 03, then 04, then 09 (found 0)
+
+with the delete already committed. The assertion says exactly what to do and
+the three files are idempotent, so the recovery is to run them in that order
+and then re-run `02` — but the whole trip is avoided by listing the slugs.
+(2026-08-11, the footer-ground redrive.)
