@@ -4731,3 +4731,56 @@ Nothing failed; the band just quietly laid out 348px wide. It surfaced only
 because painting her hairline gave the band ONE element whose width could be
 compared against hers — the marks we were told to draw turned out to be the
 measuring stick for the thing behind them.
+
+---
+
+## THE PARAGRAPH GAP SHE NEVER WROTE — 2026-08-11
+
+With every ruling in, `receive` was the worst unruled page on the board:
+**2.09 / 2.18 / 4.62, worst band 11.19%, −9px**. All 35 of its strings matched
+on both sides.
+
+A run-by-run walk of the two DOMs put the whole page 9px high from **one**
+element down — her lede's SECOND paragraph, `margin-top: 27.2px` against our
+18.4px. Nothing below it diverged by anything else.
+
+    HeroCopy = styled.p`  max-width: 35rem;  margin: 1.7rem 0 0;  … `
+    {(Array.isArray(content.lead) ? content.lead : [content.lead])
+      .map((p) => <HeroCopy key={p}>{p}</HeroCopy>)}
+
+One declaration, no `:first-child`, mapped over the whole array. Her OFFER hero
+(`components/ProductHero`) renders exactly one `<Lead>` at `margin: 1.5rem 0 0`,
+so a FOLLOWER's gap was never read off anything of hers — and the entry filled
+that hole with `1.15rem`, a value that appears **nowhere in her repo**.
+
+`leadGap` (mono `69e401b6`), empty ⇒ the invented value so no published row
+moves; her `1.7rem` authored on the three gateway heroes behind a guard on both
+the declaration and the `.map`.
+
+| | before | after |
+|---|---|---|
+| receive 1440 | 2.09% | **0.55%** |
+| receive 768 | 2.18% | **0.87%** |
+| receive 390 | 4.62% | **1.14%** |
+| its worst band | 11.19% | 4.74% |
+| its height | −9px | **same at all three widths** |
+
+`develop` and `meet` share the row builder and did not move: their leads are one
+paragraph, so the invented value never rendered. Board `rw-p36-board`.
+
+### The lesson, which is the day's other one turned around
+
+A guard proves you took a value that IS in her source. **Nothing guards the
+values that are not** — the gaps an entry has to fill because her design never
+had to answer the question. Her offer hero renders one paragraph, so "what
+should the second one do" was ours to invent, and the invention only became
+visible on the one page of hers with two. Every such hole is a place the entry
+can be right about her source and wrong about her page.
+
+### The board, with every ruling in
+
+Nothing unruled is over 4.1%. The three biggest numbers left —
+`galactic-field-guide` 6.86, `writing` 6.76 and home's doors band — are all
+accepted residue under Gio's rulings. Next unruled: the two waitlist offers at
+390 (4.09 / 3.82), whose first divergence is **−4px above the back link**, and
+whose form shows one label our render words differently.

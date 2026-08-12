@@ -2534,6 +2534,25 @@ function buildGatewayPage(data, id) {
       title: g.title,
       titleTracking: -0.045,
       lead,
+      // HER `HeroCopy` IS ONE DECLARATION MAPPED OVER THE WHOLE ARRAY —
+      // `margin: 1.7rem 0 0`, no `:first-child`, and `GatewayPage.tsx` renders
+      // one per lead paragraph. The entry gave the first paragraph her margin
+      // and every later one an invented 1.15rem, a value that appears nowhere
+      // in her repo. `/receive/`'s lead is two paragraphs, so its second one
+      // opened 8.8px tight and the whole page below it sat 9px high at all
+      // three widths — 35 strings identical, every other box the same, one
+      // margin apart.
+      leadGap: (() => {
+        guardOnly({
+          file: `${HOME_DIR}/landing-star-preview/[gateway]/GatewayPage.styles.ts`,
+          find: "export const HeroCopy = styled.p` max-width: 35rem; margin: 1.7rem 0 0;",
+        });
+        guardOnly({
+          file: `${HOME_DIR}/landing-star-preview/[gateway]/GatewayPage.tsx`,
+          find: "(Array.isArray(content.lead) ? content.lead : [content.lead]).map((paragraph) => ( <HeroCopy key={paragraph}>{paragraph}</HeroCopy>",
+        });
+        return "1.7rem";
+      })(),
       priceLabel: "",
       statusLabel: "",
       statusReady: false,
