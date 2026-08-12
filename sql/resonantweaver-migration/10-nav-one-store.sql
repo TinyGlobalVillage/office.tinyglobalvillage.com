@@ -57,10 +57,10 @@ WITH dict AS (
       "height": 1024
     },
     "links": {
-      "starseed": { "label": "Starseed", "ariaLabel": "Go to Starseed", "href": "/starseed/", "inNav": true },
-      "sun-walk": { "label": "Sun Walk", "ariaLabel": "Go to Sun Walk", "href": "/sun-walk/", "inNav": true },
-      "contact":  { "label": "Contact",  "ariaLabel": "Go to the contact form", "href": "/#contact", "inNav": true },
-      "login":    { "label": "Login",    "ariaLabel": "Log in", "href": "/login/", "inNav": true }
+      "starseed": { "label": "Starseed", "ariaLabel": "Go to Starseed", "href": "/starseed/", "inNav": true, "order": 0 },
+      "sun-walk": { "label": "Sun Walk", "ariaLabel": "Go to Sun Walk", "href": "/sun-walk/", "inNav": true, "order": 1 },
+      "contact":  { "label": "Contact",  "ariaLabel": "Go to the contact form", "href": "/#contact", "inNav": true, "order": 2 },
+      "login":    { "label": "Login",    "ariaLabel": "Log in", "href": "/login/", "inNav": true, "order": 3 }
     },
     "socialMedia": [],
     "langToggle": { "toggleLabel": "Language Toggle", "enAlt": "English" }
