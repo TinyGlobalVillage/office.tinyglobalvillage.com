@@ -797,6 +797,18 @@ function buildHomeClassic(data, formId) {
       ruleUnderHead: true,
       animate: true,
       exclusive: true,
+      // AND THE SEVEN HAIRLINES THIS BAND HAS BEEN PAINTING ARE THE SAME
+      // DEFECT THE STAR LANDING'S FAQ CARRIES — one component, two ports. The
+      // difference here is that ours never STATED a rule at all: with
+      // `itemEdge` empty the panel look derives one from the accent, so the
+      // lines came from the entry's own default rather than from a value read
+      // off her. Same result on the page, same fix, and the same 1px per row.
+      // This closes the residue left open on 2026-08-10 — it needed her
+      // rendered page to settle, and her rendered page shows no line between
+      // any two questions on either landing.
+      ...LANDING_FAQ_RULES,
+      // `FAQPanel`'s rule at `--rule`, which on this landing nothing recolours.
+      panelEdge: `rgba(${data.tokens.COPPER}, 0.22)`,
       // HER FAQ HEAD IS THE PAGE'S `H2`, not a section heading of its own —
       // `FAQHead` imports it by name and only resets its bottom margin. So it
       // is copper at the page's display scale, where ours was rendering bone at
@@ -1132,10 +1144,56 @@ function buildStarLanding(data, formId) {
     find: "export const IntroEyebrow = styled.p` margin: 0 0 1rem; color: rgba(${TEAL}, 0.66);",
   });
   // (3) The notify note's measure — `IntroCopy`, the same 43rem her intros use.
-  guardOnly({
-    file: `${HOME_DIR}/landing-star-preview/LandingStarPreview.styles.ts`,
-    find: "export const IntroCopy = styled.p` max-width: 43rem;",
-  });
+  //
+  // AND THE MEASURE WAS ONE OF SIX NUMBERS ON THAT DECLARATION. The guard read
+  // `max-width: 43rem` and stopped at the semicolon; `margin`, `font-size` and
+  // `line-height` sat on the next three lines of the same block, unread, and
+  // the guard went on passing for all of them. Same shape as the three narrow
+  // halves closed the same day — a guard proves a string is in her source, it
+  // cannot prove you took every value on the line it sits in.
+  //
+  // What it cost, measured at 1440: the note set at the clamp's FLOOR (16px
+  // against her 18.88, so 2 lines where she has 3), the box flush LEFT in a
+  // 1248 column because `centered` centres the words and `margin: … auto …`
+  // centres the box, and 21.6px of her space above it replaced by 14px of ours
+  // below it. The band ran 43px short and everything under it — FAQ, contact,
+  // about, footer — sat that much high.
+  const NOTIFY_NOTE = (() => {
+    guardOnly({
+      file: `${HOME_DIR}/landing-star-preview/LandingStarPreview.styles.ts`,
+      find:
+        "export const IntroCopy = styled.p` max-width: 43rem; margin: 1.35rem auto 0; " +
+        "color: rgba(${BONE}, 0.63); font-family: var(--preview-body-font); " +
+        "font-size: clamp(1rem, 1.55vw, 1.18rem); line-height: 1.65;",
+    });
+    return {
+      maxWidth: "43rem",
+      size: "clamp(1rem, 1.55vw, 1.18rem)",
+      lh: "1.65",
+      top: "1.35rem",
+      bottom: "0",
+    };
+  })();
+  // Her `NotifyButton` in full — the one CTA on this page, and the ritual
+  // plate's geometry is only PART of it. `margin-top: 1.5rem` is the space our
+  // row never had, `padding: 0.85rem 1.4rem` its own, and there is no
+  // `RitualButtonStar` anywhere in the markup: her button is a bare `<a>` with
+  // a label and an arrow, where ours drew a spark on each side.
+  const NOTIFY_BUTTON = (() => {
+    guardOnly({
+      file: `${HOME_DIR}/landing-star-preview/LandingStarPreview.styles.ts`,
+      find:
+        "export const NotifyButton = styled.a` display: inline-flex; align-items: center; " +
+        "gap: 0.5rem; margin-top: 1.5rem; padding: 0.85rem 1.4rem;",
+    });
+    guardOnly({
+      file: `${HOME_DIR}/landing-star-preview/LandingStarPreview.tsx`,
+      find:
+        "<NotifyButton href={fieldGuide.notify.href}> {fieldGuide.notify.buttonLabel} " +
+        "<span aria-hidden>→</span> </NotifyButton>",
+    });
+    return { top: "1.5rem", padX: "1.4rem" };
+  })();
   // (4) The rule that overrules her About eyebrow. It is a DESCENDANT rule on
   //     the block, and the eyebrow is inside the block — so this is what the
   //     eyebrow renders, whatever `AboutEyebrow` says a few lines below it.
@@ -1349,7 +1407,16 @@ function buildStarLanding(data, formId) {
       // 62ch (636px), so the note read 52px narrow at every width above the
       // stack point and full-bleed below it.
       maxWidth: 1248,
-      copyMaxWidth: "43rem",
+      copyMaxWidth: NOTIFY_NOTE.maxWidth,
+      // …and the other four values on that same declaration, read at last.
+      copySize: NOTIFY_NOTE.size,
+      copyLh: NOTIFY_NOTE.lh,
+      copyTop: NOTIFY_NOTE.top,
+      copyGap: NOTIFY_NOTE.bottom,
+      // `margin: 1.35rem AUTO 0` — the box, not the words. `centered` above
+      // was already true and centred neither.
+      proseCenter: true,
+      ctaTop: NOTIFY_BUTTON.top,
       muted: `rgba(${data.tokens.BONE}, 0.63)`,
       ctas: [
         {
@@ -1358,6 +1425,12 @@ function buildStarLanding(data, formId) {
           variant: "ritual",
           // NotifyButton renders "Ask about access →" — the arrow is hers.
           arrow: true,
+          // …and the two sparks are not. Her markup is the anchor, the label
+          // and one aria-hidden arrow; `RitualButtonStar` appears nowhere on
+          // this page. Ours drew both, which is 31px of button she never
+          // authored (229 against her 198).
+          sparks: "none",
+          padX: NOTIFY_BUTTON.padX,
           font: "var(--tgv-fontAccent, inherit)",
           size: "0.72rem",
           weight: 700,
@@ -1388,7 +1461,23 @@ function buildStarLanding(data, formId) {
       maxWidth: 48,
       framePad: "none",
       marginTop: "clamp(5rem, 9vw, 8rem)",
-      itemEdge: "rgba(255, 255, 255, 0.08)",
+      // AND THE HAIRLINE WE READ OFF `[data-open]` IS A COLOUR ON A BORDER
+      // WITH NO WIDTH. `FAQDetails` sets `border-bottom: 1px solid
+      // rgba(COPPER, 0.1)` and then `&:last-child { border-bottom: none; }` —
+      // and each `FAQDetails` is the ONLY child of its own `FAQItemRow`, so
+      // `:last-child` matches every row and kills the border on all of them.
+      // The card's `&& [data-open] { border-bottom-color: … }` then recolours
+      // nothing. Shot at 1440 side by side: her eight questions are separated
+      // by space; ours were separated by seven hairlines plus a 1px row each.
+      //
+      // What she DOES draw is one closing rule, `FAQPanel`'s own
+      // `border-bottom: 1px solid var(--rule)`, recoloured by that same card
+      // block — the exact inverse of the panel look, which put rules between
+      // the rows and none at the end.
+      ...LANDING_FAQ_RULES,
+      // …recoloured by `FaqCard`'s `&& > div > div:last-child`, which is the
+      // one selector in that block that lands on a border with a width.
+      panelEdge: "rgba(255, 255, 255, 0.08)",
       itemHoverWash: "rgba(255, 255, 255, 0.02)",
       nameFont: "var(--tgv-fontDisplay, inherit)",
       nameSize: "0.98rem",
@@ -1400,6 +1489,39 @@ function buildStarLanding(data, formId) {
       headTracking: "-0.01em",
       ledeUpright: true,
       ledeColor: "#9aa4ab",
+      // IT IS THE SAME COMPONENT AS `/home-classic/`'s FAQ, AND ONLY ONE OF
+      // THE TWO PORTS EVER LEARNED THIS. `FAQAccordion` is imported by both
+      // her landings; `FaqCard`'s `&&` block overrides the head scale, the
+      // colours and the italic, and NOTHING ELSE — so `FAQIntro`'s own
+      // 1.02rem/300/1.62 (0.97rem/1.52 narrow) and `FAQSummaryButton`'s
+      // absent line-height govern here exactly as they do there. The
+      // home-classic row states all five; this one was authored first and was
+      // never handed back what that pass found. 2.4px per closed row, eight
+      // rows deep, and the lede 0.8 short of hers on top of it: the band ran
+      // 22px under her 833.
+      //
+      // `nameLh: normal` is the eighth member of the inherited-line-height
+      // family and the same argument as the seventh — the number would pin
+      // her band to a face. Here the face is Science Gothic, not Cormorant,
+      // and `normal` is 23.0px against the 19.60 we hardcoded.
+      ledeSize: LANDING_BAND_PADS.lede.size,
+      ledeWeight: 300,
+      ledeLh: LANDING_BAND_PADS.lede.lh,
+      ledeSizeNarrow: LANDING_BAND_PADS.lede.sizeNarrow,
+      ledeLhNarrow: LANDING_BAND_PADS.lede.lhNarrow,
+      // …AND THE BREAKPOINT THE NARROW HALF ANSWERS TO. Hers is
+      // `max-width: 767px`; the entry defaults to 768, which INCLUDES 768 —
+      // so the first run of this fix put the phone's 0.97rem on the tablet
+      // capture and the census read `16.32px → 15.52px` at exactly one width.
+      // home-classic's FAQ has stated 767 since it was authored; this row is
+      // the one that never did.
+      narrowAt: 767,
+      nameLh: "normal",
+      // Her Chevron is the same 16px svg on both landings; ours is a 17.6px
+      // glyph. It does not drive THIS row's height — her question's own line
+      // is taller than either — but it is her drawing's box, and a row where
+      // the chevron can win is one line-height away.
+      chevSize: "16px",
       chevColor: `rgba(${data.tokens.TEAL}, 0.7)`,
       muted: `rgba(${data.tokens.BONE}, 0.65)`,
       items: star.faq.map((f) => ({ name: f.q, body: f.a })),
@@ -1697,6 +1819,42 @@ const LANDING_BAND_PADS = (() => {
     contact: { top: "4rem", bottom: "5rem", topNarrow: "3rem", bottomNarrow: "3.75rem" },
     lede: { size: "1.02rem", lh: "1.62", sizeNarrow: "0.97rem", lhNarrow: "1.52" },
   };
+})();
+
+/** HER FAQ HAS ONE HAIRLINE, AND IT IS NOT BETWEEN THE ROWS.
+ *
+ *  `FAQDetails` opens with `border-bottom: 1px solid rgba(COPPER, 0.22)` and
+ *  closes with `&:last-child { border-bottom: none; }` — and its parent
+ *  `FAQItemRow` wraps exactly one of them, so `:last-child` matches EVERY row
+ *  and the first declaration paints on none of them. `FAQPanel`'s own
+ *  `border-bottom: 1px solid var(--rule)` is the only rule that survives: one
+ *  line under the whole block. Ours had it exactly inverted — a rule between
+ *  every pair and nothing at the end — because `itemEdge` was transcribed off
+ *  the star card's `&& [data-open] { border-bottom-color: … }`, which is a
+ *  colour applied to a border with no width.
+ *
+ *  Both landings import the same `FAQAccordion`, so both carry it. The star
+ *  card recolours the surviving rule to rgba(255,255,255,0.08); home-classic
+ *  leaves it at `--rule`. Proven by shooting both sides at 1440 — her rows are
+ *  separated by space, ours were separated by lines — and it is why removing
+ *  eight borders makes her band 8px SHORTER, not taller. */
+const LANDING_FAQ_RULES = (() => {
+  guardOnly({
+    file: `${HOME_DIR}/OnePage.styles.ts`,
+    find: "export const FAQPanel = styled.div` border-bottom: 1px solid var(--rule); `;",
+  });
+  guardOnly({
+    file: `${HOME_DIR}/OnePage.styles.ts`,
+    find:
+      "export const FAQDetails = styled.div` border-bottom: 1px solid rgba(${COPPER}, 0.1); " +
+      "transition: background 0.4s ease; &:last-child { border-bottom: none; }",
+  });
+  guardOnly({
+    file: `${HOME_DIR}/components/FAQAccordion.tsx`,
+    find: "<FAQItemRow key={idx}> <FAQDetails data-open={isOpen}>",
+  });
+  guardOnly({ file: `${HOME_DIR}/OnePage.styles.ts`, find: "--rule: rgba(${COPPER}, 0.22);" });
+  return { itemEdge: "none" };
 })();
 
 /** …and so does her `IntroSection`, the band above the gateway.
