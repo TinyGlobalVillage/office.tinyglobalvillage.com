@@ -21,6 +21,9 @@ export type SignerPlacement = {
   signature: PlacedRect;
   datePageNumber: number;
   date: PlacedRect;
+  /** Operator X'd the date box out — this signer signs, and dates nothing. The rect is
+   *  kept so restoring puts the box back where it was rather than at a fresh default. */
+  noDate?: boolean;
 };
 
 type Signer = { email: string; name: string | null };
@@ -228,6 +231,15 @@ export default function SignaturePlacer({
 
   const onPointerUp = () => { dragRef.current = null; };
 
+  /** Show or hide ONE signer's date box. Not every form asks its co-signers to date their
+   *  signature, and a box the operator cannot remove ends up placed somewhere harmless and
+   *  meaningless — so the X removes the field itself, not just the preview. */
+  const setDateOff = (email: string, off: boolean) => {
+    const p = placements[email];
+    if (!p) return;
+    onChange({ ...placements, [email]: { ...p, noDate: off } });
+  };
+
   const resetAll = () => {
     if (status !== "ready" || !numPages) return;
     const lastPage = Math.min(numPages, MAX_PREVIEW_PAGES);
@@ -249,13 +261,25 @@ export default function SignaturePlacer({
           <LegendChip key={s.email} $c={COLORS[i % COLORS.length]}>
             <Dot $c={COLORS[i % COLORS.length]} />
             {i + 1}. {s.name || s.email}
+            {/* The only way back once the box is X'd out — it lives on the chip because a
+                removed box has no surface of its own left to click. */}
+            {placements[s.email]?.noDate && (
+              <ChipBtn
+                type="button"
+                title="Give this signer a date box again"
+                onClick={() => setDateOff(s.email, false)}
+              >
+                + date
+              </ChipBtn>
+            )}
           </LegendChip>
         ))}
         <ResetBtn type="button" onClick={resetAll}>Reset boxes</ResetBtn>
       </Legend>
       <Note>
         Drag each signer&apos;s <strong>Sign</strong> and <strong>Date</strong> boxes exactly where they belong —
-        recipients see their boxes right there. Drag either box&apos;s corner to resize it.
+        recipients see their boxes right there. Drag either box&apos;s corner to resize it, or X out a date box
+        this form doesn&apos;t ask that signer for.
       </Note>
       {status === "loading" && <Note>Rendering preview…</Note>}
       {status === "ready" && (
@@ -291,7 +315,7 @@ export default function SignaturePlacer({
                         <ResizeHandle $c={c} onPointerDown={(e) => onBoxPointerDown(e, s.email, "signature", "resize")} />
                       </Box>
                     )}
-                    {p.datePageNumber === n && (
+                    {p.datePageNumber === n && !p.noDate && (
                       <Box
                         $c={c}
                         $dashed
@@ -304,6 +328,20 @@ export default function SignaturePlacer({
                         onPointerDown={(e) => onBoxPointerDown(e, s.email, "date", "move")}
                       >
                         <BoxLabel>{i + 1} · date</BoxLabel>
+                        {/* pointerdown is where a drag starts, so the X has to stop it there —
+                            stopping the click alone would leave the box travelling with the
+                            pointer after the removal. */}
+                        <BoxX
+                          type="button"
+                          title="Remove this signer's date box"
+                          aria-label={`Remove the date box for signer ${i + 1}`}
+                          onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                          onClick={(e) => { e.stopPropagation(); setDateOff(s.email, true); }}
+                        >
+                          <svg viewBox="0 0 12 12" width="9" height="9" aria-hidden="true">
+                            <path d="M2 2 L10 10 M10 2 L2 10" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" fill="none" />
+                          </svg>
+                        </BoxX>
                         <ResizeHandle $c={c} onPointerDown={(e) => onBoxPointerDown(e, s.email, "date", "resize")} />
                       </Box>
                     )}
@@ -403,6 +441,20 @@ const BoxLabel = styled.span`
   position: absolute; left: 3px; top: 2px; right: 3px; font-size: 10px; line-height: 1.2;
   font-weight: 650; color: rgba(10,14,22,0.9); pointer-events: none; overflow: hidden;
   white-space: nowrap; text-overflow: ellipsis; text-shadow: 0 0 3px rgba(255,255,255,0.7);
+`;
+const ChipBtn = styled.button`
+  background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.18); border-radius: 999px;
+  color: #e8e8ef; font-size: 10.5px; line-height: 1; padding: 3px 7px; margin-left: 2px; cursor: pointer;
+  &:hover { border-color: rgba(120,200,255,0.55); }
+`;
+const BoxX = styled.button`
+  /* Sits on the box's top-right corner, opposite the resize handle, so the two gestures
+     can never be aimed at each other. */
+  position: absolute; right: -7px; top: -7px; width: 15px; height: 15px; padding: 0;
+  display: flex; align-items: center; justify-content: center; border-radius: 50%;
+  background: #0d0d12; border: 1.5px solid rgba(255,255,255,0.55); color: rgba(255,255,255,0.85);
+  cursor: pointer; touch-action: none;
+  &:hover { background: #d94a5a; border-color: #d94a5a; color: #fff; }
 `;
 const ResizeHandle = styled.span<{ $c: string }>`
   position: absolute; right: -6px; bottom: -6px; width: 12px; height: 12px; border-radius: 3px;

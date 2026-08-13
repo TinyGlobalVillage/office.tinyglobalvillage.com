@@ -211,6 +211,8 @@ export async function POST(req: NextRequest) {
     signature: { pageX: number; pageY: number; width: number; height: number };
     date?: { pageX: number; pageY: number; width: number; height: number };
     datePageNumber?: number;
+    /** Operator X'd this signer's date box out — they sign, and date nothing. */
+    noDate?: boolean;
   };
   const placements: PlacementEntry[] = [];
   if (kind === "multisig") {
@@ -238,14 +240,18 @@ export async function POST(req: NextRequest) {
       if (!Number.isInteger(page) || page < 1 || page > 5000) continue;
       if (!sig || seenIdx.has(idx)) continue;
       seenIdx.add(idx);
-      const date = e?.date ? rectOf(e.date) : null;
+      // noDate is carried on its own rather than inferred from a missing rect: absent
+      // means "derive one" downstream, so only the explicit flag removes the field.
+      const noDate = e?.noDate === true;
+      const date = !noDate && e?.date ? rectOf(e.date) : null;
       const datePage = Number(e?.datePageNumber);
       placements.push({
         signerIndex: idx,
         pageNumber: page,
         signature: sig,
+        ...(noDate ? { noDate: true } : {}),
         ...(date ? { date } : {}),
-        ...(Number.isInteger(datePage) && datePage >= 1 && datePage <= 5000 ? { datePageNumber: datePage } : {}),
+        ...(!noDate && Number.isInteger(datePage) && datePage >= 1 && datePage <= 5000 ? { datePageNumber: datePage } : {}),
       });
     }
   }

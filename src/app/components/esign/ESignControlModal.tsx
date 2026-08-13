@@ -335,9 +335,13 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
       const placed = recipients
         .map((r, i) => {
           const p = placements[r.email];
-          return p
-            ? { signerIndex: i, pageNumber: p.pageNumber, signature: p.signature, date: p.date, datePageNumber: p.datePageNumber }
-            : null;
+          if (!p) return null;
+          // An X'd-out date is sent as an explicit noDate, never as a missing rect —
+          // the server DERIVES a date box when one is absent, so silence would put the
+          // field back rather than remove it.
+          return p.noDate
+            ? { signerIndex: i, pageNumber: p.pageNumber, signature: p.signature, noDate: true }
+            : { signerIndex: i, pageNumber: p.pageNumber, signature: p.signature, date: p.date, datePageNumber: p.datePageNumber };
         })
         .filter(Boolean);
       if (placed.length) fd.append("placements", JSON.stringify(placed));
