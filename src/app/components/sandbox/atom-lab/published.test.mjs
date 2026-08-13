@@ -54,12 +54,21 @@ test("what a publish writes is exactly what the shipped atom reads", () => {
   for (const key of Object.keys(SHIPPED_ATOMS)) {
     const spec = shippedSpec(key);
     const { ungoverned } = SHIPPED_ATOMS[key];
+    const box = specToBox(spec);
+    // Every emitter the atom renders through, in one string — skin, label,
+    // states AND each named slot. The slots have to be here: atomVars publishes
+    // a slot's paint whether or not the slot draws anything (enabled is the
+    // renderer's business), so leaving them out would read as "published a var
+    // nothing reads" the first time a slotted atom migrated.
     const read = varsRead(
-      specSkinToCss(spec, ungoverned.surface, "", key) +
-        "\n" +
-        specTextToCss(spec, specToBox(spec), ungoverned.text, "", textScope(key)) +
-        "\n" +
+      [
+        specSkinToCss(spec, ungoverned.surface, "", key),
+        specTextToCss(spec, box, ungoverned.text, "", textScope(key)),
         specStatesToCss(spec, ungoverned.states, "", key),
+        ...Object.keys(spec.textSlots ?? {}).map((name) =>
+          specSlotToCss(spec, name, box, ungoverned.slots?.[name], "", slotScope(key, name)),
+        ),
+      ].join("\n"),
     );
     const written = Object.keys(atomVars(key, spec, ungoverned));
 

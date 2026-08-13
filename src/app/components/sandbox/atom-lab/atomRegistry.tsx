@@ -938,18 +938,10 @@ export const ATOMS: AtomDef[] = [
     effects: { radius: 10, glow: 0, shadow: 0 },
     text: { content: "Add", ratio: 34, weight: 700 },
   }, DashedAddAtom),
-  def("tilebutton", "TileButton", "Controls", "Launcher tile — icon over an uppercase label and a sub-line.", {
-    size: { widthPct: 22, heightPct: 34 },
-    colors: { fill: "#12111f", borderAlpha: 0.3 },
-    effects: { radius: 12, glow: 16, shadow: 12 },
-    text: { content: "Sandbox", ratio: 20, weight: 800, tracking: 0.1 },
-    // The sub-line as a named slot — the values the hardcoded second style
-    // carried before slots existed (0.4 of a ratio-20 label = ratio 8).
-    textSlots: {
-      sub: { content: "sub-line", ratio: 8, weight: 500, tracking: 0.1, colorMode: "accent", colorAlpha: 0.6 },
-    },
-    icon: { enabled: true, sizePct: 70 },
-  }, TileButtonAtom, true),
+  // Read off the shipped <TileButton>, not drawn to look like it — the two
+  // moved alphas are its `states`, the icon well and sub-line its `textSlots`.
+  def("tilebutton", "TileButton", "Controls", "Launcher tile — icon over an uppercase label and a sub-line.",
+    SHIPPED_ATOMS.tilebutton.patch, TileButtonAtom, true),
   def("drawermenubutton", "DrawerMenuButton", "Controls", "Accent-FILLED square with a bold glyph and glow.", {
     size: { widthPct: 8, heightPct: 12 },
     colors: { fillAlpha: 0.9, accent: "#ffb020", border: "#ffb020", borderAlpha: 0.7, text: "#0b0d13" },

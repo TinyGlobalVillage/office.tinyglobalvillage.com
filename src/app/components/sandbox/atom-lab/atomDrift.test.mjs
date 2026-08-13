@@ -42,6 +42,7 @@ const read = (p) => readFileSync(p, "utf8");
 /** Where each migrated atom's shipped component lives. */
 const COMPONENTS = {
   tile: `${PKG}/components/ui/Tile.tsx`,
+  tilebutton: `${PKG}/components/ui/TileButton.tsx`,
   tooltip: `${PKG}/components/ui/Tooltip.tsx`,
 };
 
@@ -311,6 +312,73 @@ test("Tile emits exactly the CSS it shipped with before the migration", () => {
   assert.equal(title.letterSpacing, "0.14em", "1.4px of tracking at a 10px title");
   assert.equal(title.textTransform, "uppercase");
   assert.equal(title.color, "rgba(var(--atom-text-rgb, 0, 228, 253), 0.85)");
+});
+
+test("TileButton emits exactly the CSS it shipped with before the migration", () => {
+  // Same purpose as the two pins around it, over a bigger surface: this atom is
+  // the first with states AND slots, so "no pixels moved" has to be readable in
+  // three places — the rest skin, the two moved alphas, and all three runs of
+  // type. The one deliberate exception is named at the bottom.
+  const spec = shippedSpec("tilebutton");
+  const box = specToBox(spec);
+  const css = specSkinToCss(spec, SHIPPED_ATOMS.tilebutton.ungoverned.surface, "", "tilebutton");
+  const decl = (p) =>
+    new RegExp(`^${p}: var\\(--atom-[a-z-]+, var\\(--atom-tilebutton-[a-z-]+, (.*)\\)\\);$`, "m").exec(
+      css,
+    )?.[1];
+  assert.equal(decl("background"), "rgba(var(--atom-fill-rgb, 0, 228, 253), 0.04)");
+  assert.equal(decl("border"), "1px solid rgba(var(--atom-border-rgb, 0, 228, 253), 0.35)");
+  assert.equal(decl("border-radius"), "10px");
+  // At rest the launcher really did carry no shadow — the stacks it grows are
+  // all in states, which is why they stay with the component.
+  assert.equal(decl("box-shadow"), "none");
+  assert.equal(decl("color"), undefined, "the 0.9 accent tint stays with the component");
+
+  // The four accents are ONE retint of the above: the hue lives in the channel
+  // vars, so pink/gold/neutral reach the same declarations rather than three
+  // more copies of them. Same trick as Tooltip's three themes.
+  assert.ok(decl("background").includes("--atom-fill-rgb"));
+  assert.ok(decl("border").includes("--atom-border-rgb"));
+
+  const label = textDecls(spec, box);
+  assert.equal(label.fontSize, 11);
+  assert.equal(label.fontWeight, 800);
+  // 0.8px at 11px is 0.0727em → 0.7997px. Three ten-thousandths of a pixel per
+  // character, the same rounding Tooltip's 0.6003px documents below.
+  assert.equal(label.letterSpacing, "0.0727em");
+  assert.equal(Number((0.0727 * 11).toFixed(4)), 0.7997);
+  assert.equal(label.textTransform, "uppercase");
+  assert.equal(label.color, "rgba(var(--atom-text-rgb, 0, 228, 253), 0.9)");
+
+  // The sub-line and the icon WELL: two more runs of type at the sizes the two
+  // hardcoded child styles carried. Both take the label's color, which is what
+  // they inherited before — colorMode "text" is not a new decision.
+  const sub = slotTextDecls(spec, "sub", box);
+  assert.equal(sub.fontSize, 10);
+  assert.equal(sub.fontWeight, 500);
+  assert.equal(sub.letterSpacing, "0.03em", "0.3px of tracking at a 10px sub-line");
+  assert.equal(sub.color, "rgba(var(--atom-text-rgb, 0, 228, 253), 0.9)");
+  const glyph = slotTextDecls(spec, "glyph", box);
+  assert.equal(glyph.fontSize, 22, "the icon well's font-size — the size a text glyph falls back to");
+
+  // The two paints that move, and the only two. Read straight off the diff the
+  // component emits, so a third property creeping into either state fails here
+  // rather than in someone's eye.
+  const hover = stateSurfaceDiff(spec, "hover");
+  assert.deepEqual(Object.keys(hover), ["background", "border"]);
+  assert.equal(hover.background, "rgba(var(--atom-fill-rgb, 0, 228, 253), 0.12)");
+  assert.equal(hover.border, "1px solid rgba(var(--atom-border-rgb, 0, 228, 253), 0.55)");
+  const selected = stateSurfaceDiff(spec, "selected");
+  assert.deepEqual(Object.keys(selected), ["background", "border"]);
+  assert.equal(selected.background, "rgba(var(--atom-fill-rgb, 0, 228, 253), 0.12)");
+  assert.equal(selected.border, "1px solid rgba(var(--atom-border-rgb, 0, 228, 253), 0.6)");
+
+  // The one pixel that DID move, pinned so it stays a decision rather than a
+  // regression: selected is an attribute selector and hover is a pseudo-class,
+  // so a tile that is both now takes 0.6 where it used to take 0.55. Nothing
+  // else differs — the backgrounds are the same 0.12 either way.
+  assert.equal(hover.background, selected.background);
+  assert.notEqual(hover.border, selected.border);
 });
 
 test("Tooltip emits exactly the CSS it shipped with before the migration", () => {
