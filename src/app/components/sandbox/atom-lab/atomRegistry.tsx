@@ -340,9 +340,9 @@ function LightswitchAtom({ spec, box }: AtomRenderProps) {
   const accRgb = hexToRgbTriple(acc);
   const knob = Math.max(6, Math.round(box.h * 0.84));
   const pad = Math.round(box.h * 0.08);
-  // The accent reaches the ON track through the fill channels, the same way the
-  // shipped switch retints it — so the editor's accent knob moves the emitted
-  // declaration itself rather than a copy of it standing next to it.
+  // The ON paint is the spec's own `selected` state, and the accent reaches it
+  // through the fill channels below — so the editor's accent knob moves the
+  // emitted declaration itself rather than a copy of it standing alongside.
   const shown = on ? specWithState(spec, "selected") : spec;
   return (
     <button
@@ -351,12 +351,18 @@ function LightswitchAtom({ spec, box }: AtomRenderProps) {
       onClick={() => setOn((v) => !v)}
       style={{
         ...surfaceStyle(shown, box),
-        ["--atom-fill-rgb" as string]: accRgb,
-        ["--atom-fill-to-rgb" as string]: accRgb,
-        // The ON glow is the component's stack, not the spec's: explicit shadow
-        // layers are stateless, so the spec holds the rest lip and nothing else.
+        // Scoped to ON, because the shipped switch scopes it the same way: all
+        // three tracks read the same fill channel and only the on one wears the
+        // accent, so retinting at rest would paint a cyan OFF track the real
+        // switch has never had. The ON glow is the component's own stack —
+        // explicit shadow layers are stateless, so the spec holds the rest lip
+        // and nothing else.
         ...(on
-          ? { boxShadow: `inset 0 0 6px rgba(${accRgb}, 0.15), 0 0 8px rgba(${accRgb}, 0.1)` }
+          ? {
+              ["--atom-fill-rgb" as string]: accRgb,
+              ["--atom-fill-to-rgb" as string]: accRgb,
+              boxShadow: `inset 0 0 6px rgba(${accRgb}, 0.15), 0 0 8px rgba(${accRgb}, 0.1)`,
+            }
           : null),
         position: "relative",
         padding: 0,
