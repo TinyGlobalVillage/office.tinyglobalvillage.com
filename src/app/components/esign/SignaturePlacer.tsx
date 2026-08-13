@@ -53,11 +53,22 @@ function seedDefault(index: number, count: number, lastPage: number): SignerPlac
 
 type DragState = {
   email: string;
-  kind: "signature" | "date" | "resize";
+  /** WHICH box the gesture owns. Kind names the target, never the gesture — that
+   *  separation is what lets the date box resize with the same code path. */
+  kind: "signature" | "date";
+  /** What the gesture does to it: carry it, or drag its bottom-right corner. */
+  mode: "move" | "resize";
   /** Pointer's grab offset inside the box, in percent of the page. */
   offX: number;
   offY: number;
 };
+
+/** Resize floor/ceiling per box, in percent of the page. A date is a short stamp,
+ *  so it gets a smaller range than a signature — but both have one. */
+const LIMITS = {
+  signature: { minW: 8, maxW: 95, minH: 3, maxH: 40 },
+  date: { minW: 5, maxW: 60, minH: 2, maxH: 20 },
+} as const;
 
 export default function SignaturePlacer({
   file,
@@ -145,7 +156,19 @@ export default function SignaturePlacer({
     return best; // nearest page when the pointer is between/outside pages
   }, []);
 
-  const onBoxPointerDown = (e: React.PointerEvent, email: string, kind: DragState["kind"]) => {
+  /** The page a box already lives on — a resize measures against THAT page, never
+   *  whichever one the pointer happens to be over. */
+  const pageFor = useCallback((n: number): { n: number; rect: DOMRect } | null => {
+    const el = wrapRefs.current.get(n);
+    return el ? { n, rect: el.getBoundingClientRect() } : null;
+  }, []);
+
+  const onBoxPointerDown = (
+    e: React.PointerEvent,
+    email: string,
+    kind: DragState["kind"],
+    mode: DragState["mode"],
+  ) => {
     e.preventDefault();
     e.stopPropagation();
     const p = placements[email];
@@ -160,8 +183,9 @@ export default function SignaturePlacer({
     dragRef.current = {
       email,
       kind,
-      offX: kind === "resize" ? 0 : ptrX - rect.pageX,
-      offY: kind === "resize" ? 0 : ptrY - rect.pageY,
+      mode,
+      offX: mode === "resize" ? 0 : ptrX - rect.pageX,
+      offY: mode === "resize" ? 0 : ptrY - rect.pageY,
     };
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
   };
@@ -171,28 +195,33 @@ export default function SignaturePlacer({
     if (!drag) return;
     const p = placements[drag.email];
     if (!p) return;
-    const target = pageAt(e.clientY);
+    const rect = drag.kind === "date" ? p.date : p.signature;
+    // A move can carry a box onto another page, so it re-reads which page is under the
+    // pointer. A resize stays anchored to the page the box is already on — otherwise
+    // dragging the corner past the page edge would re-measure against the next page
+    // down and the box would snap to a nonsense size.
+    const target = drag.mode === "resize"
+      ? pageFor(drag.kind === "date" ? p.datePageNumber : p.pageNumber)
+      : pageAt(e.clientY);
     if (!target) return;
     const ptrX = Math.min(100, Math.max(0, ((e.clientX - target.rect.left) / target.rect.width) * 100));
     const ptrY = Math.min(100, Math.max(0, ((e.clientY - target.rect.top) / target.rect.height) * 100));
 
     const next = { ...placements };
-    if (drag.kind === "resize") {
+    if (drag.mode === "resize") {
       // bottom-right handle: the box grows toward the pointer; page never changes here
-      const sig = p.signature;
-      const width = Math.min(95, Math.max(8, ptrX - sig.pageX));
-      const height = Math.min(40, Math.max(3, ptrY - sig.pageY));
-      next[drag.email] = { ...p, signature: { ...sig, width, height } };
-    } else if (drag.kind === "signature") {
-      const sig = p.signature;
-      const pageX = Math.min(100 - sig.width, Math.max(0, ptrX - drag.offX));
-      const pageY = Math.min(100 - sig.height, Math.max(0, ptrY - drag.offY));
-      next[drag.email] = { ...p, pageNumber: target.n, signature: { ...sig, pageX, pageY } };
+      const lim = LIMITS[drag.kind];
+      const width = Math.min(lim.maxW, Math.max(lim.minW, ptrX - rect.pageX));
+      const height = Math.min(lim.maxH, Math.max(lim.minH, ptrY - rect.pageY));
+      const sized = { ...rect, width, height };
+      next[drag.email] = drag.kind === "date" ? { ...p, date: sized } : { ...p, signature: sized };
     } else {
-      const d = p.date;
-      const pageX = Math.min(100 - d.width, Math.max(0, ptrX - drag.offX));
-      const pageY = Math.min(100 - d.height, Math.max(0, ptrY - drag.offY));
-      next[drag.email] = { ...p, datePageNumber: target.n, date: { ...d, pageX, pageY } };
+      const pageX = Math.min(100 - rect.width, Math.max(0, ptrX - drag.offX));
+      const pageY = Math.min(100 - rect.height, Math.max(0, ptrY - drag.offY));
+      const moved = { ...rect, pageX, pageY };
+      next[drag.email] = drag.kind === "date"
+        ? { ...p, datePageNumber: target.n, date: moved }
+        : { ...p, pageNumber: target.n, signature: moved };
     }
     onChange(next);
   };
@@ -226,7 +255,7 @@ export default function SignaturePlacer({
       </Legend>
       <Note>
         Drag each signer&apos;s <strong>Sign</strong> and <strong>Date</strong> boxes exactly where they belong —
-        recipients see their boxes right there. Drag a Sign box&apos;s corner to resize it.
+        recipients see their boxes right there. Drag either box&apos;s corner to resize it.
       </Note>
       {status === "loading" && <Note>Rendering preview…</Note>}
       {status === "ready" && (
@@ -256,10 +285,10 @@ export default function SignaturePlacer({
                           width: `${p.signature.width}%`,
                           height: `${p.signature.height}%`,
                         }}
-                        onPointerDown={(e) => onBoxPointerDown(e, s.email, "signature")}
+                        onPointerDown={(e) => onBoxPointerDown(e, s.email, "signature", "move")}
                       >
                         <BoxLabel>{i + 1} · {s.name || s.email} — sign</BoxLabel>
-                        <ResizeHandle $c={c} onPointerDown={(e) => onBoxPointerDown(e, s.email, "resize")} />
+                        <ResizeHandle $c={c} onPointerDown={(e) => onBoxPointerDown(e, s.email, "signature", "resize")} />
                       </Box>
                     )}
                     {p.datePageNumber === n && (
@@ -272,9 +301,10 @@ export default function SignaturePlacer({
                           width: `${p.date.width}%`,
                           height: `${p.date.height}%`,
                         }}
-                        onPointerDown={(e) => onBoxPointerDown(e, s.email, "date")}
+                        onPointerDown={(e) => onBoxPointerDown(e, s.email, "date", "move")}
                       >
                         <BoxLabel>{i + 1} · date</BoxLabel>
+                        <ResizeHandle $c={c} onPointerDown={(e) => onBoxPointerDown(e, s.email, "date", "resize")} />
                       </Box>
                     )}
                   </span>
@@ -342,10 +372,19 @@ const ResetBtn = styled.button`
 const Note = styled.p`margin: 0; font-size: 11.5px; line-height: 1.45; color: rgba(232,232,239,0.5);`;
 const Pages = styled.div`
   display: flex; flex-direction: column; gap: 10px; max-height: 56vh; overflow-y: auto;
+  /* The preview sits inside the modal's own scroller; contain keeps a wheel that
+     reaches the last page from yanking the whole modal along with it. */
+  overscroll-behavior: contain;
   padding: 10px; border: 1px solid rgba(255,255,255,0.1); border-radius: 10px;
   background: rgba(255,255,255,0.03);
 `;
 const PageWrap = styled.div`
+  /* Never shrink. Pages is a column flex box with a max-height, so the default
+     flex-shrink:1 squeezed every page down to a sliver until they all fit — the
+     container then had nothing to overflow, so the preview could not be scrolled
+     and only the top strip of page one was reachable. A page keeps its rendered
+     height and Pages scrolls, which is the whole point of the preview. */
+  flex: 0 0 auto;
   position: relative; width: 100%; line-height: 0; border-radius: 4px; overflow: hidden;
   box-shadow: 0 2px 10px rgba(0,0,0,0.45);
   canvas { display: block; background: #fff; }

@@ -16,9 +16,12 @@
 // Multisig boxes default to auto-stacking on the last page IN THE ORDER SIGNERS ARE ADDED —
 // but once a PDF is staged, the SignaturePlacer preview renders every page and the operator
 // DRAGS each signer's Sign + Date boxes exactly onto the document's printed signature lines.
-// The header gear (multisig only) opens Email settings: subject, message, reply-to. The FROM
-// identity is instance-wide Documenso SMTP env (Tiny Global Village · no-reply@…) — per-send
-// sender control is honestly only Reply-To, and the panel says so.
+// The header gear (multisig only) opens Email settings — subject, message, reply-to — as a
+// DIALOG LAYERED OVER the console (z 1100 above the console's 1000), and it opens itself
+// whenever a document is staged, so every send is a deliberate choice of what the recipient
+// reads. The FROM identity is instance-wide Documenso SMTP env (Tiny Global Village ·
+// no-reply@…) — per-send sender control is honestly only Reply-To, and the dialog's footer
+// QMBM says so.
 //
 // Self-contained (styled-components, per Office's no-Tailwind rule). Inline SVGs — no emoji.
 
@@ -198,6 +201,11 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
   }, [loadDocuments, loadActivity]);
 
   useEscapeToClose({ open: true, onClose });
+  // Email settings is a layer of its own, so it registers its own Escape entry — the
+  // canonical stack pops the topmost one, which is exactly the behaviour we want:
+  // the first Escape closes the settings, the next closes the console.
+  const gearOpen = tab === "new" && mode === "multisig" && showEmailSettings;
+  useEscapeToClose({ open: gearOpen, onClose: () => setShowEmailSettings(false) });
 
   // A recorded link belongs to one upload; switching mode invalidates it.
   useEffect(() => { setRecordedUrl(null); }, [mode]);
@@ -286,6 +294,10 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
     setUploadFile(f);
     setPlacements({}); // a new document invalidates any box positions from the previous one
     setMsg("");
+    // A new document is a new email. Open the settings so subject/message/reply-to are a
+    // decision the operator makes every time rather than one they have to remember the
+    // gear exists to make — Save (or Escape) puts them straight back on the document.
+    if (mode === "multisig") setShowEmailSettings(true);
   };
   const clearStaged = () => { if (!uploading) { setUploadFile(null); setPlacements({}); } };
 
@@ -478,43 +490,41 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
 
           {!loading && tab === "new" && (
             <Section>
-              <PillBar variant="flat"
-                segments={MODE_SEGMENTS}
-                active={mode}
-                onChange={(k) => setMode(k as DocKind)}
-                accent={ACCENT}
-                ariaLabel="Signature mode"
-              />
-              <Hint>
-                {mode === "waiver"
-                  ? "One reusable signing link — anyone who opens it signs their own copy. Recipients below are optional."
-                  : "Named signers on ONE document — each gets their own emailed link and their own signature box. Add signers in signing order, stage the PDF, then drag each signer's Sign and Date boxes exactly onto the document's printed lines in the preview below. The gear (top right) sets the email's subject, message and reply-to."}
-              </Hint>
-
-              {mode === "multisig" && showEmailSettings && (
-                <GearPanel>
-                  <GearTitle><SettingsIcon size={14} /> Email settings</GearTitle>
-                  <Label>Subject</Label>
-                  <Input
-                    placeholder={uploadFile ? `Please sign: ${uploadFile.name.replace(/\.pdf$/i, "")}` : "Please sign: (document title)"}
-                    value={emailSubject}
-                    maxLength={200}
-                    onChange={(e) => setEmailSubject(e.target.value)}
-                  />
-                  <Label>Message — the body each signer sees</Label>
-                  <Textarea rows={3} value={note} onChange={(e) => setNote(e.target.value)} placeholder="A short note included in the email…" />
-                  <Label>Reply-to</Label>
-                  <Input
-                    placeholder="where replies land — e.g. your own address"
-                    value={emailReplyTo}
-                    onChange={(e) => setEmailReplyTo(e.target.value)}
-                  />
-                  <SenderLine>
-                    Emails are sent from <strong>Tiny Global Village &lt;no-reply@tinyglobalvillage.com&gt;</strong> —
-                    that identity is server-wide. Set Reply-to so a signer&apos;s response reaches you.
-                  </SenderLine>
-                </GearPanel>
-              )}
+              {/* The mode's explanation is a QMBM beside the bar, not a paragraph under
+                  it — the same treatment the waiver delivery bar already gets, and what
+                  keeps this modal readable now that it carries a document preview. */}
+              <ModeRow>
+                <PillBar variant="flat"
+                  segments={MODE_SEGMENTS}
+                  active={mode}
+                  onChange={(k) => setMode(k as DocKind)}
+                  accent={ACCENT}
+                  ariaLabel="Signature mode"
+                />
+                <InfoBubble
+                  title={mode === "waiver" ? "Waiver — one shared link" : "Multiple signatures"}
+                  theme="cyan"
+                  placement="popover"
+                  body={mode === "waiver" ? (
+                    <>
+                      <p>One reusable signing link — anyone who opens it signs their own copy.</p>
+                      <p>Recipients are optional: add them and Office emails each one the link (or
+                      just records them and hands you the link to deliver yourself); add none and
+                      you simply get a link to publish wherever you like.</p>
+                    </>
+                  ) : (
+                    <>
+                      <p>Named signers on ONE document — each gets their own emailed link and their
+                      own signature box.</p>
+                      <p>Add signers in signing order, stage the PDF, then drag each signer&apos;s
+                      Sign and Date boxes exactly onto the document&apos;s printed lines in the
+                      preview below. Either box resizes from its bottom-right corner.</p>
+                      <p>The gear at the top right sets the email&apos;s subject, message and
+                      reply-to; it opens on its own the moment you stage a document.</p>
+                    </>
+                  )}
+                />
+              </ModeRow>
 
               <Label>{mode === "multisig" ? "Signers (in document order)" : "Recipients (optional)"}</Label>
               <Row>
@@ -801,6 +811,58 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
         </Body>
       </Panel>
     </Backdrop>
+
+    {/* Email settings — a dialog LAYERED OVER the console, not a card wedged into its
+        scroll. It sits above the modal's own backdrop, so opening it never moves the
+        page the operator was working on, and Save simply closes it: the fields are the
+        live send state, so there is nothing to commit. */}
+    {gearOpen && (
+      <GearBackdrop onClick={() => setShowEmailSettings(false)}>
+        <GearDialog onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Email settings">
+          <GearHead>
+            <GearTitle><SettingsIcon size={14} /> Email settings</GearTitle>
+            <CloseBtn type="button" onClick={() => setShowEmailSettings(false)} aria-label="Close"><XIcon size={16} /></CloseBtn>
+          </GearHead>
+
+          <Label>Subject</Label>
+          <LineInput
+            placeholder={uploadFile ? `Please sign: ${uploadFile.name.replace(/\.pdf$/i, "")}` : "Please sign: (document title)"}
+            value={emailSubject}
+            maxLength={200}
+            onChange={(e) => setEmailSubject(e.target.value)}
+          />
+
+          <Label>Message — the body each signer sees</Label>
+          <Textarea rows={8} value={note} onChange={(e) => setNote(e.target.value)} placeholder="A short note included in the email…" />
+
+          <Label>Reply-to</Label>
+          <HalfInput
+            placeholder="where replies land"
+            value={emailReplyTo}
+            onChange={(e) => setEmailReplyTo(e.target.value)}
+          />
+
+          <GearFooter>
+            <InfoBubble
+              title="Who the email comes from"
+              theme="cyan"
+              placement="popover"
+              body={
+                <>
+                  <p>Emails are sent from <strong>Tiny Global Village
+                  &lt;no-reply@tinyglobalvillage.com&gt;</strong>. That identity is server-wide —
+                  it is the Documenso instance&apos;s own mailer, not a per-send choice.</p>
+                  <p>Reply-to is the part you control: set it to your own address so a signer who
+                  hits reply reaches you rather than an unattended mailbox.</p>
+                </>
+              }
+            />
+            <PrimaryBtn type="button" onClick={() => setShowEmailSettings(false)}>Save</PrimaryBtn>
+          </GearFooter>
+        </GearDialog>
+      </GearBackdrop>
+    )}
+
     <ConfirmModal
       open={!!confirm}
       title={confirm?.title ?? ""}
@@ -848,23 +910,34 @@ const GearBtn = styled.button<{ $active: boolean }>`
   cursor: pointer; padding: 4px; border-radius: 6px; line-height: 0;
   &:hover { color: #7fd0ff; background: rgba(120,200,255,0.1); }
 `;
-const GearPanel = styled.div`
-  display: flex; flex-direction: column; gap: 4px; padding: 12px 14px 14px; margin-top: 4px;
-  border: 1px solid rgba(120,200,255,0.25); border-radius: 10px; background: rgba(120,200,255,0.05);
+// Email settings dialog — its own layer above the console's backdrop (1000), so it
+// lands in front of the modal instead of pushing the form down inside it.
+const GearBackdrop = styled.div`
+  position: fixed; inset: 0; z-index: 1100;
+  background: rgba(0,0,0,0.5); backdrop-filter: blur(2px);
+  display: flex; align-items: center; justify-content: center; padding: 24px;
+`;
+const GearDialog = styled.div`
+  width: min(520px, 100%); max-height: 86vh; overflow-y: auto;
+  display: flex; flex-direction: column; gap: 4px; padding: 16px 18px 18px;
+  background: #11141b; border: 1px solid rgba(120,200,255,0.3); border-radius: 13px;
+  box-shadow: 0 24px 70px rgba(0,0,0,0.65); color: #e8e8ef;
+`;
+const GearHead = styled.div`
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 4px;
 `;
 const GearTitle = styled.div`
   display: flex; align-items: center; gap: 7px; font-size: 12.5px; font-weight: 650; color: #cfe9ff;
 `;
-const SenderLine = styled.p`
-  margin: 8px 0 0; font-size: 11.5px; line-height: 1.5; color: rgba(232,232,239,0.5);
-  strong { color: rgba(232,232,239,0.75); font-weight: 600; }
+const GearFooter = styled.div`
+  display: flex; align-items: center; gap: 10px; margin-top: 16px;
 `;
+const ModeRow = styled.div`display: flex; align-items: center; gap: 10px; flex-wrap: wrap;`;
 const Warn = styled.div`margin: 12px 22px 0; padding: 10px 12px; border-radius: 8px; font-size: 12.5px; background: rgba(255,180,60,0.1); border: 1px solid rgba(255,180,60,0.3); color: #ffcf87;`;
 const TabsRow = styled.div`padding: 14px 22px 0;`;
 const Msg = styled.div`margin: 12px 22px 0; padding: 9px 12px; border-radius: 8px; font-size: 12.5px; background: rgba(120,200,255,0.1); border: 1px solid rgba(120,200,255,0.28); color: #cfe9ff; cursor: pointer;`;
 const Body = styled.div`padding: 18px 22px 22px; overflow-y: auto;`;
 const Section = styled.div`display: flex; flex-direction: column; gap: 8px;`;
-const Hint = styled.p`margin: 2px 0 0; font-size: 12px; line-height: 1.5; color: rgba(232,232,239,0.5); text-align: center;`;
 const Label = styled.label`font-size: 12px; font-weight: 600; color: rgba(232,232,239,0.75); margin-top: 10px;`;
 const Row = styled.div`display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 2px;`;
 const baseField = `
@@ -873,6 +946,11 @@ const baseField = `
   &:focus { border-color: rgba(120,200,255,0.5); }
 `;
 const Input = styled.input`${baseField} flex: 1 1 180px;`;
+// Input's `flex: 1 1 180px` is sized for a ROW. In the settings dialog's column the
+// same basis is read on the vertical axis, which is what made Subject 180px tall —
+// so the dialog's fields carry their own width and refuse to flex at all.
+const LineInput = styled.input`${baseField} flex: 0 0 auto; width: 100%;`;
+const HalfInput = styled(LineInput)`width: 50%;`;
 const Textarea = styled.textarea`${baseField} resize: vertical; width: 100%;`;
 const CheckRow = styled.label`
   display: flex; align-items: baseline; gap: 8px; margin-top: 8px;
