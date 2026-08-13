@@ -27,6 +27,7 @@ import {
   DEFAULT_SPEC,
   mergeSpec,
   hexToRgbTriple,
+  specWithState,
 } from "./atomSpec";
 import {
   type AtomBox,
@@ -321,52 +322,66 @@ function PillAtom({ spec, box }: AtomRenderProps) {
   );
 }
 
+/**
+ * Lightswitch — read off the shipped <Lightswitch>, not drawn to look like it.
+ * The TRACK is the atom's surface, so it comes through the same emitter the
+ * component renders from, and its on/off paints are the spec's own `selected`
+ * state rather than a second set of literals. The KNOB is the second box the
+ * spec does not model — redrawn here exactly as the component draws it, which
+ * is also why moving the editor's fill or radius knobs does nothing to it.
+ *
+ * The silhouette changed with the migration: it was a ball on a stick that
+ * rotated 180°, which is where the atom's old blurb came from. The real switch
+ * has always been a track with a knob that slides.
+ */
 function LightswitchAtom({ spec, box }: AtomRenderProps) {
   const [on, setOn] = useState(true);
   const acc = spec.colors.accent;
   const accRgb = hexToRgbTriple(acc);
-  const h = box.h;
-  const ball = Math.max(10, Math.round(h * 0.42));
-  const stickH = Math.max(8, Math.round(h * 0.4));
+  const knob = Math.max(6, Math.round(box.h * 0.84));
+  const pad = Math.round(box.h * 0.08);
+  // The accent reaches the ON track through the fill channels, the same way the
+  // shipped switch retints it — so the editor's accent knob moves the emitted
+  // declaration itself rather than a copy of it standing next to it.
+  const shown = on ? specWithState(spec, "selected") : spec;
   return (
-    <Center style={{ ...surfaceStyle(spec, box), background: "transparent", border: "none", boxShadow: "none" }}>
-      <HoverLift
-        type="button"
-        onClick={() => setOn((v) => !v)}
-        aria-pressed={on}
+    <button
+      type="button"
+      aria-pressed={on}
+      onClick={() => setOn((v) => !v)}
+      style={{
+        ...surfaceStyle(shown, box),
+        ["--atom-fill-rgb" as string]: accRgb,
+        ["--atom-fill-to-rgb" as string]: accRgb,
+        // The ON glow is the component's stack, not the spec's: explicit shadow
+        // layers are stateless, so the spec holds the rest lip and nothing else.
+        ...(on
+          ? { boxShadow: `inset 0 0 6px rgba(${accRgb}, 0.15), 0 0 8px rgba(${accRgb}, 0.1)` }
+          : null),
+        position: "relative",
+        padding: 0,
+        cursor: "pointer",
+        transition: "all 0.25s ease",
+      }}
+    >
+      <span
         style={{
-          background: "transparent",
-          border: "none",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          gap: 0,
-          transition: "transform 0.2s ease",
-          transform: on ? "none" : "rotate(180deg)",
+          position: "absolute",
+          top: pad,
+          left: on ? box.w - knob - pad : pad,
+          width: knob,
+          height: knob,
+          borderRadius: knob / 2,
+          background: on
+            ? `radial-gradient(circle at 40% 35%, color-mix(in srgb, ${acc} 55%, #fff), ${acc}, color-mix(in srgb, ${acc} 72%, #000))`
+            : "radial-gradient(circle at 40% 35%, #888, #555)",
+          boxShadow: on
+            ? `0 0 8px rgba(${accRgb}, 0.5), 0 2px 4px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.3)`
+            : "0 1px 3px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1)",
+          transition: "all 0.25s ease",
         }}
-      >
-        <span
-          style={{
-            width: ball,
-            height: ball,
-            borderRadius: "50%",
-            background: on
-              ? `radial-gradient(circle at 32% 30%, rgba(255,255,255,0.85), rgba(${accRgb}, 1) 55%)`
-              : `rgba(${hexToRgbTriple(spec.colors.fill)}, 1)`,
-            border: `${Math.max(1, spec.effects.borderWidth)}px solid rgba(${accRgb}, ${on ? 0.9 : 0.45})`,
-            boxShadow: on ? `0 0 ${Math.round(spec.effects.glow * 0.4 + 4)}px rgba(${accRgb}, 0.7)` : "none",
-          }}
-        />
-        <span
-          style={{
-            width: Math.max(2, Math.round(spec.effects.borderWidth * 1.5)),
-            height: stickH,
-            background: `rgba(${accRgb}, ${on ? 0.8 : 0.4})`,
-            borderRadius: 2,
-          }}
-        />
-      </HoverLift>
-    </Center>
+      />
+    </button>
   );
 }
 
@@ -963,12 +978,11 @@ export const ATOMS: AtomDef[] = [
   }, InputAtom),
 
   // ── Toggles ──
-  def("lightswitch", "Lightswitch", "Toggles", "Circle-on-stick toggle — click it.", {
-    size: { widthPct: 12, heightPct: 22 },
-    colors: { accent: "#22d3ee", fill: "#10131d" },
-    effects: { glow: 25, borderWidth: 2, shadow: 0 },
-    text: { enabled: false },
-  }, LightswitchAtom),
+  // Read off the shipped <Lightswitch>, not drawn to look like it — the on
+  // paint is its `selected` state, the pill is radius 200 clamping to half the
+  // track, and the knob is the second box the spec leaves to the component.
+  def("lightswitch", "Lightswitch", "Toggles", "Track-and-knob toggle — click it.",
+    SHIPPED_ATOMS.lightswitch.patch, LightswitchAtom),
   def("ecl", "ECL", "Toggles", "Expand-Collapse Lightswitch — the per-component mini toggle.", {
     size: { widthPct: 6, heightPct: 9 },
     colors: { fill: "#10131d", accent: "#ff4ecb", borderAlpha: 0.5 },

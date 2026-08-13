@@ -30,10 +30,13 @@ import {
   specSkinToCss,
   specSlotToCss,
   specStatesToCss,
+  specTextToCss,
   stateSurfaceDiff,
   textDecls,
+  textScope,
   specToBox,
 } from "@tgv/module-component-library/atoms/specToCss";
+import { atomVars } from "@tgv/module-component-library/atoms/published";
 
 const HERE = fileURLToPath(new URL(".", import.meta.url));
 const PKG = `${HERE}../../../../../../../packages/@tgv/module-core/module-component-library`;
@@ -41,6 +44,7 @@ const read = (p) => readFileSync(p, "utf8");
 
 /** Where each migrated atom's shipped component lives. */
 const COMPONENTS = {
+  lightswitch: `${PKG}/components/ui/Lightswitch.tsx`,
   tile: `${PKG}/components/ui/Tile.tsx`,
   tilebutton: `${PKG}/components/ui/TileButton.tsx`,
   tooltip: `${PKG}/components/ui/Tooltip.tsx`,
@@ -78,11 +82,16 @@ test("a migrated component opens the publish channel", () => {
       /specSkinToCss\([^;]*,\s*KEY\s*\)/,
       `${key}: its surface CSS is unscoped, so publishing this atom would change nothing`,
     );
-    assert.match(
-      src,
-      /specTextToCss\([^;]*,\s*textScope\(KEY\)\s*\)/,
-      `${key}: its label must be scoped under textScope(KEY) — surface and text both declare "color"`,
-    );
+    // An atom with no text run has no child to scope; one with a run must
+    // scope it, because the surface and the label both declare "color" and a
+    // single name for both would make a published text color repaint the box.
+    if (shippedSpec(key).text.enabled) {
+      assert.match(
+        src,
+        /specTextToCss\([^;]*,\s*textScope\(KEY\)\s*\)/,
+        `${key}: its label must be scoped under textScope(KEY) — surface and text both declare "color"`,
+      );
+    }
     assert.match(
       src,
       /data-atom=\{KEY\}/,
@@ -277,6 +286,26 @@ test("a layerless shipped atom still answers to its knobs — same claim, third 
   }
 });
 
+test("a textless shipped atom emits no text CSS, and publishes no text vars", () => {
+  // Not every atom has a label. A toggle is a box and a knob, and the text
+  // half of the spec is off — so both ends of the channel must say nothing:
+  // no emitted declarations to land on a child that does not exist, and no
+  // published names for a component that reads none. The second half is the
+  // one that bites, because a publish writing vars nobody reads is a Publish
+  // button that appears to work.
+  for (const key of Object.keys(SHIPPED_ATOMS)) {
+    const spec = shippedSpec(key);
+    if (spec.text.enabled) continue;
+    assert.equal(specTextToCss(spec, specToBox(spec), undefined, "", textScope(key)), "");
+    const published = Object.keys(atomVars(key, spec, SHIPPED_ATOMS[key].ungoverned));
+    assert.deepEqual(
+      published.filter((n) => n.startsWith(`--atom-${textScope(key)}-`)),
+      [],
+      `${key}: has no text run but publishes text vars`,
+    );
+  }
+});
+
 test("the Atom Library reads the shipped patch, not a copy of it", () => {
   const registry = read(`${HERE}atomRegistry.tsx`);
   for (const key of Object.keys(SHIPPED_ATOMS)) {
@@ -285,6 +314,56 @@ test("the Atom Library reads the shipped patch, not a copy of it", () => {
       `${key}: the lab defines its own defaults instead of reading SHIPPED_ATOMS.${key}.patch`,
     );
   }
+});
+
+test("Lightswitch emits exactly the CSS it shipped with before the migration", () => {
+  // The track's three paints, which is the whole atom — the knob is a second
+  // box the spec never claimed. Same purpose as the pins around it: the
+  // literals this replaced, kept so "no pixels moved" is readable.
+  const spec = shippedSpec("lightswitch");
+  const css = specSkinToCss(spec, SHIPPED_ATOMS.lightswitch.ungoverned.surface, "", "lightswitch");
+  const decl = (p) =>
+    new RegExp(`^${p}: var\\(--atom-[a-z-]+, var\\(--atom-lightswitch-[a-z-]+, (.*)\\)\\);$`, "m").exec(
+      css,
+    )?.[1];
+  assert.equal(decl("background"), "rgba(var(--atom-fill-rgb, 120, 120, 120), 0.2)");
+  // The switch has no border, and says so with a width rather than by omission
+  // — `0px solid` computes to the same nothing `border: none` did.
+  assert.equal(decl("border"), "0px solid rgba(var(--atom-border-rgb, 120, 120, 120), 0)");
+  assert.equal(decl("box-shadow"), "inset 0 1px 3px rgba(0, 0, 0, 0.2)");
+  assert.equal(decl("color"), undefined, "a track paints no text; its only child is the knob");
+
+  // The pill. The component used to compute half the track's height by hand,
+  // at four different heights; 200 reaches the same pixel at every one of them
+  // because border-radius scales down by min(side / sum of that side's radii)
+  // — h/400 here, which turns each 200 into exactly h/2.
+  assert.equal(decl("border-radius"), "200px");
+  for (const h of [20, 25, 34, 48]) {
+    const w = Math.round(h * 1.84);
+    assert.equal(200 * Math.min(w / 400, h / 400), h / 2, `a ${h}px track still clamps to its own half`);
+  }
+
+  // ON: one declaration, and the hue lives in the channel vars the component
+  // retints — so the accent picker still reaches the real gradient rather than
+  // a copy of it standing next to it.
+  const selected = stateSurfaceDiff(spec, "selected");
+  assert.deepEqual(Object.keys(selected), ["background"]);
+  assert.equal(
+    selected.background,
+    "linear-gradient(90deg, rgba(var(--atom-fill-rgb, 0, 228, 253), 0.3), rgba(var(--atom-fill-to-rgb, 0, 228, 253), 0.15))",
+  );
+  // LOCKED: a fainter grey under a veil, and nothing else. The grey is what
+  // pins the retint's scope — `--atom-fill-rgb` unset here is the difference
+  // between a locked switch staying grey and it fading to the accent.
+  const disabled = stateSurfaceDiff(spec, "disabled");
+  assert.deepEqual(Object.keys(disabled), ["background", "opacity"]);
+  assert.equal(disabled.background, "rgba(var(--atom-fill-rgb, 120, 120, 120), 0.15)");
+  assert.equal(disabled.opacity, 0.4);
+
+  // Neither state carries a shadow, which is why the ON glow and the locked
+  // `none` stay with the component: explicit layers are stateless, so there is
+  // no diff for them to ride in on.
+  assert.ok(!("boxShadow" in selected) && !("boxShadow" in disabled));
 });
 
 test("Tile emits exactly the CSS it shipped with before the migration", () => {
