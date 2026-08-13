@@ -41,6 +41,7 @@ export const dynamic = "force-dynamic";
 
 const MAX_PDF_BYTES = 20 * 1024 * 1024; // 20 MB — matches Documenso practical template limit
 const MAX_SIGNERS = 10; // field stacking compresses rows; past ~10 the last page gets crowded
+const MAX_CC = 10; // copy-only receivers of the completed document
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function slugify(s: string): string {
@@ -138,7 +139,13 @@ export async function POST(req: NextRequest) {
   // "Include certificate page?" (0079) — default true; false = the completion webhook
   // strips Documenso's appended certificate from the stored copy (sealed original kept).
   const includeCertificate = String(form.get("includeCertificate") ?? "true") !== "false";
+  // Sequential is the default: Documenso emails only the first signer, then advances the
+  // chain natively as each one signs. finalCopyAll = emailSettings.documentCompleted —
+  // document-wide (everyone or no one); the sender always gets the completed document.
+  const sequential = String(form.get("sequential") ?? "true") !== "false";
+  const finalCopyAll = String(form.get("finalCopyAll") ?? "true") !== "false";
   let signers: Array<{ email: string; name: string | null }> = [];
+  let ccRecipients: Array<{ email: string; name: string | null }> = [];
   if (kind === "multisig") {
     let parsed: unknown;
     try {
@@ -163,6 +170,28 @@ export async function POST(req: NextRequest) {
     if (signers.length > MAX_SIGNERS) {
       return NextResponse.json({ error: `At most ${MAX_SIGNERS} signers per document` }, { status: 400 });
     }
+
+    // Optional copy-only recipients (CC role): validated like signers, minus anyone
+    // already signing — a signer gets the completed document via finalCopyAll already.
+    let ccParsed: unknown = [];
+    try {
+      ccParsed = JSON.parse(String(form.get("ccRecipients") ?? "[]"));
+    } catch {
+      return NextResponse.json({ error: "ccRecipients must be a JSON array" }, { status: 400 });
+    }
+    for (const raw of Array.isArray(ccParsed) ? ccParsed : []) {
+      const email = String((raw as { email?: string })?.email ?? "").trim().toLowerCase();
+      const name = String((raw as { name?: string })?.name ?? "").trim() || null;
+      if (!EMAIL_RE.test(email)) {
+        return NextResponse.json({ error: `Invalid copy-recipient email: "${email}"` }, { status: 400 });
+      }
+      if (seen.has(email)) continue;
+      seen.add(email);
+      ccRecipients.push({ email, name });
+    }
+    if (ccRecipients.length > MAX_CC) {
+      return NextResponse.json({ error: `At most ${MAX_CC} copy recipients per document` }, { status: 400 });
+    }
   }
 
   // 1) Create the legal_documents row (Office origin).
@@ -183,6 +212,9 @@ export async function POST(req: NextRequest) {
         message:
           note ||
           `${auth.username} has sent you "${title}" to sign electronically. Each signer has their own signature box.`,
+        sequential,
+        emailCompletedToRecipients: finalCopyAll,
+        cc: ccRecipients,
       });
     } catch (err) {
       return NextResponse.json(
@@ -203,7 +235,9 @@ export async function POST(req: NextRequest) {
         signingOrder: i + 1,
         memberId: member?.id ?? null,
         documensoRecipientId: recipientByEmail.get(s.email) ?? null,
-        status: "sent",
+        // Sequential: only the first signer has actually been emailed; the webhook
+        // promotes each next signer pending → sent as Documenso advances the chain.
+        status: sequential && i > 0 ? "pending" : "sent",
       });
     }
     await insertLegalDocumentSigners(db, doc.id, signerInputs);
@@ -233,6 +267,8 @@ export async function POST(req: NextRequest) {
         sendable: false,
         shareUrl: null,
         signerCount: signers.length,
+        sequential,
+        ccCount: ccRecipients.length,
       },
     });
   }

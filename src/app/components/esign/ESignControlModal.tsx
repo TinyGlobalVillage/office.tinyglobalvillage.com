@@ -137,6 +137,12 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
   // signed PDF; unchecked = our stored/downloadable copy keeps only the document's own
   // pages (a sealed original is kept server-side for audit).
   const [includeCert, setIncludeCert] = useState(true);
+  // Multisig delivery: in-order chain (only the first signer is emailed; each signature
+  // triggers the next signer's email) + completed-copy fan-out + copy-only recipients.
+  const [inOrder, setInOrder] = useState(true);
+  const [finalCopyAll, setFinalCopyAll] = useState(true);
+  const [ccList, setCcList] = useState<Recipient[]>([]);
+  const [ccEmail, setCcEmail] = useState("");
   const [recordedUrl, setRecordedUrl] = useState<string | null>(null); // waiver link-channel result
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -199,9 +205,34 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
       for (const v of valid) if (!next.some((r) => r.email === v.email)) next.push(v);
       return next;
     });
+    // A signer already gets the completed copy — drop them from the copy-only list.
+    setCcList((prev) => prev.filter((c) => !valid.some((v) => v.email === c.email)));
     setMsg(bad ? `"${bad}" is not a valid email` : "");
   };
   const removeRecipient = (email: string) => setRecipients((prev) => prev.filter((r) => r.email !== email));
+
+  // Copy-only recipients (multisig): same add semantics; a signer never doubles as a CC.
+  const addCc = (email: string, name: string | null) => {
+    const parts = email.split(",").map((p) => p.trim()).filter(Boolean);
+    if (!parts.length) return;
+    let bad: string | null = null;
+    const valid: Recipient[] = [];
+    for (const p of parts) {
+      const e = p.toLowerCase();
+      if (!EMAIL_RE.test(e)) { bad = p; continue; }
+      valid.push({ email: e, name: parts.length === 1 ? name : null });
+    }
+    setCcList((prev) => {
+      const next = [...prev];
+      for (const v of valid) {
+        if (recipients.some((r) => r.email === v.email)) continue; // already signing
+        if (!next.some((r) => r.email === v.email)) next.push(v);
+      }
+      return next;
+    });
+    setMsg(bad ? `"${bad}" is not a valid email` : "");
+  };
+  const removeCc = (email: string) => setCcList((prev) => prev.filter((r) => r.email !== email));
 
   // Waiver post-upload dispatch: reuse the send route (records legal_sends + emails / returns url).
   const finishWaiverSend = async (documentId: string, title: string) => {
@@ -264,6 +295,9 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
     if (mode === "multisig") {
       fd.append("kind", "multisig");
       fd.append("signers", JSON.stringify(recipients));
+      fd.append("sequential", String(inOrder));
+      fd.append("finalCopyAll", String(finalCopyAll));
+      if (ccList.length) fd.append("ccRecipients", JSON.stringify(ccList));
       if (note.trim()) fd.append("note", note.trim());
     }
     fd.append("includeCertificate", String(includeCert));
@@ -288,13 +322,18 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
     };
     xhr.upload.onload = () => setUploadPct(null); // file fully sent → server now talking to Documenso
     xhr.onload = () => {
-      let d: { ok?: boolean; error?: string; document?: { id?: string; title?: string; kind?: string; signerCount?: number } } | null = null;
+      let d: { ok?: boolean; error?: string; document?: { id?: string; title?: string; kind?: string; signerCount?: number; sequential?: boolean; ccCount?: number } } | null = null;
       try { d = JSON.parse(xhr.responseText); } catch { /* non-JSON */ }
       if (xhr.status >= 200 && xhr.status < 300 && d?.ok) {
         const docTitle = d.document?.title ?? title;
         if (d.document?.kind === "multisig") {
-          done(`"${docTitle}" sent to ${d.document?.signerCount ?? recipients.length} signer(s) — each received their own signing link.`);
+          const n = d.document?.signerCount ?? recipients.length;
+          const first = recipients[0]?.name || recipients[0]?.email || "the first signer";
+          done(d.document?.sequential
+            ? `"${docTitle}" is on its way — ${first} signs first; each next signer is emailed automatically when the previous one finishes, and the completed document comes back to you.`
+            : `"${docTitle}" sent to ${n} signer(s) — each received their own signing link.`);
           setRecipients([]);
+          setCcList([]);
           setNote("");
           loadActivity();
         } else if (recipients.length > 0 && d.document?.id) {
@@ -404,7 +443,7 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
               <Hint>
                 {mode === "waiver"
                   ? "One reusable signing link — anyone who opens it signs their own copy. Recipients below are optional."
-                  : "Named signers on ONE document — each gets their own emailed link and their own signature box. Add signers in the order their signature lines appear in the document (top to bottom); the boxes stack in that order."}
+                  : "Named signers on ONE document — each gets their own emailed link and their own signature box. Add signers in the order their signature lines appear in the document (top to bottom); the boxes stack in that order, and with “Sign in order” on, that is also the order they are asked to sign."}
               </Hint>
 
               <Label>{mode === "multisig" ? "Signers (in document order)" : "Recipients (optional)"}</Label>
@@ -436,6 +475,64 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
                     </Chip>
                   ))}
                 </Chips>
+              )}
+
+              {mode === "multisig" && (
+                <>
+                  <CheckRow>
+                    <input
+                      type="checkbox"
+                      checked={inOrder}
+                      onChange={(e) => setInOrder(e.target.checked)}
+                    />
+                    Sign in order — one at a time
+                    <CheckHint>— only the first signer is emailed now; each signature automatically sends the next signer their link. Unchecked, everyone is emailed at once.</CheckHint>
+                  </CheckRow>
+                  <CheckRow>
+                    <input
+                      type="checkbox"
+                      checked={finalCopyAll}
+                      onChange={(e) => setFinalCopyAll(e.target.checked)}
+                    />
+                    Email everyone the signed document when complete
+                    <CheckHint>— all or none (signers + copy recipients); you always get the completed document back either way.</CheckHint>
+                  </CheckRow>
+
+                  {finalCopyAll && (
+                    <>
+                      <Label>Copy recipients (optional — receive the final signed copy, don&apos;t sign)</Label>
+                      <Row>
+                        <DDM
+                          label="Add staff"
+                          ariaLabel="Add a staff copy recipient"
+                          align="left"
+                          items={staff.map((s): DDMItem => ({
+                            key: s.username,
+                            label: `${s.username} · ${s.email}`,
+                            onClick: () => addCc(s.email, s.username),
+                          }))}
+                        />
+                        <Input
+                          placeholder="or type emails (comma-separated)"
+                          value={ccEmail}
+                          onChange={(e) => setCcEmail(e.target.value)}
+                          onKeyDown={(e) => { if (e.key === "Enter") { addCc(ccEmail, null); setCcEmail(""); } }}
+                        />
+                        <AddBtn type="button" onClick={() => { addCc(ccEmail, null); setCcEmail(""); }}>Add</AddBtn>
+                      </Row>
+                      {ccList.length > 0 && (
+                        <Chips>
+                          {ccList.map((r) => (
+                            <Chip key={r.email}>
+                              {r.name ? `${r.name} · ` : ""}{r.email}
+                              <ChipX type="button" onClick={() => removeCc(r.email)} aria-label="Remove"><XIcon size={12} /></ChipX>
+                            </Chip>
+                          ))}
+                        </Chips>
+                      )}
+                    </>
+                  )}
+                </>
               )}
 
               <Label>Message (optional{mode === "multisig" ? " — included in each signer's email" : ""})</Label>
@@ -505,7 +602,9 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
                   ? uploadPct !== null
                     ? "Sending file to the server"
                     : mode === "multisig"
-                    ? "Creating the document and emailing each signer their own link…"
+                    ? inOrder
+                      ? "Creating the document and emailing the first signer their link…"
+                      : "Creating the document and emailing each signer their own link…"
                     : "Creating signing template in Documenso…"
                   : uploadFile
                   ? "Staged — nothing happens until you press Send."
