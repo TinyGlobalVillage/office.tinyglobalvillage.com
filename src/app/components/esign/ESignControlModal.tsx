@@ -13,8 +13,12 @@
 //   Activity — the outbox (sent → signed per recipient; X removes an entry, log-only).
 //   Documents — the library w/ kind filter, per-signer status, copy-link, delete.
 //
-// Multisig boxes auto-stack on the last page IN THE ORDER SIGNERS ARE ADDED (top → bottom) —
-// the UI says so, because a real doc's printed signature lines have a fixed order.
+// Multisig boxes default to auto-stacking on the last page IN THE ORDER SIGNERS ARE ADDED —
+// but once a PDF is staged, the SignaturePlacer preview renders every page and the operator
+// DRAGS each signer's Sign + Date boxes exactly onto the document's printed signature lines.
+// The header gear (multisig only) opens Email settings: subject, message, reply-to. The FROM
+// identity is instance-wide Documenso SMTP env (Tiny Global Village · no-reply@…) — per-send
+// sender control is honestly only Reply-To, and the panel says so.
 //
 // Self-contained (styled-components, per Office's no-Tailwind rule). Inline SVGs — no emoji.
 
@@ -25,7 +29,9 @@ import DDM, { type DDMItem } from "@tgv/module-component-library/components/ui/D
 import InfoBubble from "@tgv/module-component-library/components/ui/InfoBubble";
 import PillBar from "@tgv/module-component-library/components/ui/PillBar";
 import ConfirmModal from "../frontdesk/ConfirmModal";
+import SettingsIcon from "../icons/SettingsIcon";
 import UploadDropzone from "../UploadDropzone";
+import SignaturePlacer, { type SignerPlacement } from "./SignaturePlacer";
 
 // ── types (mirror the API payloads) ────────────────────────────────────────────
 type DocKind = "waiver" | "multisig";
@@ -147,6 +153,13 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadPct, setUploadPct] = useState<number | null>(null); // 0–100 while sending; null = server processing
+  // Drag-placed field boxes per signer email (percent coords). Empty = auto-stack default.
+  const [placements, setPlacements] = useState<Record<string, SignerPlacement>>({});
+  // Gear panel (multisig): what the recipient's email looks like. Reply-to survives a send
+  // on purpose — it's operator identity, not per-document content.
+  const [showEmailSettings, setShowEmailSettings] = useState(false);
+  const [emailSubject, setEmailSubject] = useState("");
+  const [emailReplyTo, setEmailReplyTo] = useState("");
 
   // documents-tab kind filter (PillBar)
   const [docFilter, setDocFilter] = useState<KindFilter>("all");
@@ -271,9 +284,10 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
       return;
     }
     setUploadFile(f);
+    setPlacements({}); // a new document invalidates any box positions from the previous one
     setMsg("");
   };
-  const clearStaged = () => { if (!uploading) setUploadFile(null); };
+  const clearStaged = () => { if (!uploading) { setUploadFile(null); setPlacements({}); } };
 
   // SEND — create the document and dispatch it per the mode, in one click.
   // XHR (not fetch) so we get a real upload-progress %; plus a hard timeout so it can't hang.
@@ -285,7 +299,12 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
       return;
     }
     if (mode === "multisig" && recipients.length === 0) {
-      setMsg("Add the signers first — boxes stack in the order you add them (match the document, top to bottom).");
+      setMsg("Add the signers first — then drag each signer's Sign and Date boxes into place on the staged document.");
+      return;
+    }
+    const replyTo = emailReplyTo.trim().toLowerCase();
+    if (mode === "multisig" && replyTo && !EMAIL_RE.test(replyTo)) {
+      setMsg(`"${emailReplyTo.trim()}" is not a valid reply-to email — fix it in Email settings (gear icon).`);
       return;
     }
     const title = f.name.replace(/\.pdf$/i, "").trim() || f.name;
@@ -299,6 +318,17 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
       fd.append("finalCopyAll", String(finalCopyAll));
       if (ccList.length) fd.append("ccRecipients", JSON.stringify(ccList));
       if (note.trim()) fd.append("note", note.trim());
+      if (emailSubject.trim()) fd.append("emailSubject", emailSubject.trim());
+      if (replyTo) fd.append("emailReplyTo", replyTo);
+      const placed = recipients
+        .map((r, i) => {
+          const p = placements[r.email];
+          return p
+            ? { signerIndex: i, pageNumber: p.pageNumber, signature: p.signature, date: p.date, datePageNumber: p.datePageNumber }
+            : null;
+        })
+        .filter(Boolean);
+      if (placed.length) fd.append("placements", JSON.stringify(placed));
     }
     fd.append("includeCertificate", String(includeCert));
 
@@ -335,6 +365,8 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
           setRecipients([]);
           setCcList([]);
           setNote("");
+          setPlacements({});
+          setEmailSubject(""); // reply-to intentionally kept for the next send
           loadActivity();
         } else if (recipients.length > 0 && d.document?.id) {
           done(`"${docTitle}" added — dispatching…`);
@@ -409,7 +441,20 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
             <Title>E-Sign Documents</Title>
             <Sub>Send any document to any recipient for electronic signature.</Sub>
           </div>
-          <CloseBtn type="button" onClick={onClose} aria-label="Close"><XIcon /></CloseBtn>
+          <HeaderActions>
+            {tab === "new" && mode === "multisig" && (
+              <GearBtn
+                type="button"
+                onClick={() => setShowEmailSettings((v) => !v)}
+                aria-label="Email settings"
+                title="Email settings — subject, message, reply-to"
+                $active={showEmailSettings}
+              >
+                <SettingsIcon size={17} />
+              </GearBtn>
+            )}
+            <CloseBtn type="button" onClick={onClose} aria-label="Close"><XIcon /></CloseBtn>
+          </HeaderActions>
         </Header>
 
         {!configured && (
@@ -443,8 +488,33 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
               <Hint>
                 {mode === "waiver"
                   ? "One reusable signing link — anyone who opens it signs their own copy. Recipients below are optional."
-                  : "Named signers on ONE document — each gets their own emailed link and their own signature box. Add signers in the order their signature lines appear in the document (top to bottom); the boxes stack in that order, and with “Sign in order” on, that is also the order they are asked to sign."}
+                  : "Named signers on ONE document — each gets their own emailed link and their own signature box. Add signers in signing order, stage the PDF, then drag each signer's Sign and Date boxes exactly onto the document's printed lines in the preview below. The gear (top right) sets the email's subject, message and reply-to."}
               </Hint>
+
+              {mode === "multisig" && showEmailSettings && (
+                <GearPanel>
+                  <GearTitle><SettingsIcon size={14} /> Email settings</GearTitle>
+                  <Label>Subject</Label>
+                  <Input
+                    placeholder={uploadFile ? `Please sign: ${uploadFile.name.replace(/\.pdf$/i, "")}` : "Please sign: (document title)"}
+                    value={emailSubject}
+                    maxLength={200}
+                    onChange={(e) => setEmailSubject(e.target.value)}
+                  />
+                  <Label>Message — the body each signer sees</Label>
+                  <Textarea rows={3} value={note} onChange={(e) => setNote(e.target.value)} placeholder="A short note included in the email…" />
+                  <Label>Reply-to</Label>
+                  <Input
+                    placeholder="where replies land — e.g. your own address"
+                    value={emailReplyTo}
+                    onChange={(e) => setEmailReplyTo(e.target.value)}
+                  />
+                  <SenderLine>
+                    Emails are sent from <strong>Tiny Global Village &lt;no-reply@tinyglobalvillage.com&gt;</strong> —
+                    that identity is server-wide. Set Reply-to so a signer&apos;s response reaches you.
+                  </SenderLine>
+                </GearPanel>
+              )}
 
               <Label>{mode === "multisig" ? "Signers (in document order)" : "Recipients (optional)"}</Label>
               <Row>
@@ -535,8 +605,12 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
                 </>
               )}
 
-              <Label>Message (optional{mode === "multisig" ? " — included in each signer's email" : ""})</Label>
-              <Textarea rows={2} value={note} onChange={(e) => setNote(e.target.value)} placeholder="A short note included in the email…" />
+              {mode === "waiver" && (
+                <>
+                  <Label>Message (optional)</Label>
+                  <Textarea rows={2} value={note} onChange={(e) => setNote(e.target.value)} placeholder="A short note included in the email…" />
+                </>
+              )}
 
               <CheckRow>
                 <input
@@ -618,6 +692,15 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
                   </Track>
                 )}
               </UploadDropzone>
+
+              {mode === "multisig" && uploadFile && recipients.length > 0 && !uploading && (
+                <SignaturePlacer
+                  file={uploadFile}
+                  signers={recipients}
+                  placements={placements}
+                  onChange={setPlacements}
+                />
+              )}
 
               <Row>
                 {uploadFile && !uploading && (
@@ -756,6 +839,25 @@ const CloseBtn = styled.button`
   flex: 0 0 auto; background: transparent; border: none; color: rgba(232,232,239,0.6);
   cursor: pointer; padding: 4px; border-radius: 6px;
   &:hover { color: #fff; background: rgba(255,255,255,0.06); }
+`;
+const HeaderActions = styled.div`display: flex; align-items: center; gap: 6px; flex: 0 0 auto;`;
+const GearBtn = styled.button<{ $active: boolean }>`
+  flex: 0 0 auto; background: ${(p) => (p.$active ? "rgba(120,200,255,0.14)" : "transparent")};
+  border: 1px solid ${(p) => (p.$active ? "rgba(120,200,255,0.4)" : "transparent")};
+  color: ${(p) => (p.$active ? "#7fd0ff" : "rgba(232,232,239,0.6)")};
+  cursor: pointer; padding: 4px; border-radius: 6px; line-height: 0;
+  &:hover { color: #7fd0ff; background: rgba(120,200,255,0.1); }
+`;
+const GearPanel = styled.div`
+  display: flex; flex-direction: column; gap: 4px; padding: 12px 14px 14px; margin-top: 4px;
+  border: 1px solid rgba(120,200,255,0.25); border-radius: 10px; background: rgba(120,200,255,0.05);
+`;
+const GearTitle = styled.div`
+  display: flex; align-items: center; gap: 7px; font-size: 12.5px; font-weight: 650; color: #cfe9ff;
+`;
+const SenderLine = styled.p`
+  margin: 8px 0 0; font-size: 11.5px; line-height: 1.5; color: rgba(232,232,239,0.5);
+  strong { color: rgba(232,232,239,0.75); font-weight: 600; }
 `;
 const Warn = styled.div`margin: 12px 22px 0; padding: 10px 12px; border-radius: 8px; font-size: 12.5px; background: rgba(255,180,60,0.1); border: 1px solid rgba(255,180,60,0.3); color: #ffcf87;`;
 const TabsRow = styled.div`padding: 14px 22px 0;`;

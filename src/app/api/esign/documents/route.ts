@@ -144,6 +144,14 @@ export async function POST(req: NextRequest) {
   // document-wide (everyone or no one); the sender always gets the completed document.
   const sequential = String(form.get("sequential") ?? "true") !== "false";
   const finalCopyAll = String(form.get("finalCopyAll") ?? "true") !== "false";
+  // Email settings (gear panel): subject + reply-to for the signing-request emails.
+  // The FROM identity is the Documenso instance's (instance-wide SMTP env) — reply-to is
+  // the per-send control over where a recipient's reply actually lands.
+  const emailSubject = String(form.get("emailSubject") ?? "").trim().slice(0, 200);
+  const emailReplyTo = String(form.get("emailReplyTo") ?? "").trim().toLowerCase();
+  if (emailReplyTo && !EMAIL_RE.test(emailReplyTo)) {
+    return NextResponse.json({ error: `Invalid reply-to email: "${emailReplyTo}"` }, { status: 400 });
+  }
   let signers: Array<{ email: string; name: string | null }> = [];
   let ccRecipients: Array<{ email: string; name: string | null }> = [];
   if (kind === "multisig") {
@@ -194,6 +202,54 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // Operator-placed signature/date boxes (percent coords from the modal's preview).
+  // Optional — signers without an entry keep the auto-stacked default; the module
+  // clamps rects and page numbers again server-side.
+  type PlacementEntry = {
+    signerIndex: number;
+    pageNumber: number;
+    signature: { pageX: number; pageY: number; width: number; height: number };
+    date?: { pageX: number; pageY: number; width: number; height: number };
+    datePageNumber?: number;
+  };
+  const placements: PlacementEntry[] = [];
+  if (kind === "multisig") {
+    let pRaw: unknown = [];
+    try {
+      pRaw = JSON.parse(String(form.get("placements") ?? "[]"));
+    } catch {
+      return NextResponse.json({ error: "placements must be a JSON array" }, { status: 400 });
+    }
+    const rectOf = (v: unknown): PlacementEntry["signature"] | null => {
+      const r = v as { pageX?: unknown; pageY?: unknown; width?: unknown; height?: unknown };
+      const nums = [r?.pageX, r?.pageY, r?.width, r?.height].map(Number);
+      if (nums.some((n) => !Number.isFinite(n))) return null;
+      const [pageX, pageY, width, height] = nums;
+      if (width <= 0 || height <= 0 || pageX < 0 || pageY < 0 || pageX > 100 || pageY > 100) return null;
+      return { pageX, pageY, width, height };
+    };
+    const seenIdx = new Set<number>();
+    for (const raw of Array.isArray(pRaw) ? pRaw : []) {
+      const e = raw as PlacementEntry;
+      const idx = Number(e?.signerIndex);
+      const page = Number(e?.pageNumber);
+      const sig = rectOf(e?.signature);
+      if (!Number.isInteger(idx) || idx < 0 || idx >= signers.length) continue;
+      if (!Number.isInteger(page) || page < 1 || page > 5000) continue;
+      if (!sig || seenIdx.has(idx)) continue;
+      seenIdx.add(idx);
+      const date = e?.date ? rectOf(e.date) : null;
+      const datePage = Number(e?.datePageNumber);
+      placements.push({
+        signerIndex: idx,
+        pageNumber: page,
+        signature: sig,
+        ...(date ? { date } : {}),
+        ...(Number.isInteger(datePage) && datePage >= 1 && datePage <= 5000 ? { datePageNumber: datePage } : {}),
+      });
+    }
+  }
+
   // 1) Create the legal_documents row (Office origin).
   const slug = `${slugify(title)}-${Date.now().toString(36)}`;
   const doc = await createOfficeLegalDocument(db, { slug, title });
@@ -208,13 +264,15 @@ export async function POST(req: NextRequest) {
     let result;
     try {
       result = await createAndDistributeMultisigFromPdf(pdf, title, signers, {
-        subject: `Please sign: ${title}`,
+        subject: emailSubject || `Please sign: ${title}`,
         message:
           note ||
           `${auth.username} has sent you "${title}" to sign electronically. Each signer has their own signature box.`,
+        ...(emailReplyTo ? { emailReplyTo } : {}),
         sequential,
         emailCompletedToRecipients: finalCopyAll,
         cc: ccRecipients,
+        ...(placements.length ? { placements } : {}),
       });
     } catch (err) {
       return NextResponse.json(
