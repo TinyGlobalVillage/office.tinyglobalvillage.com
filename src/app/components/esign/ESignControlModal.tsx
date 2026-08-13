@@ -22,6 +22,7 @@ import { useEscapeToClose } from "@tgv/module-component-library/components/hooks
 import { useCallback, useEffect, useRef, useState } from "react";
 import styled, { keyframes, css } from "styled-components";
 import DDM, { type DDMItem } from "@tgv/module-component-library/components/ui/DDM";
+import InfoBubble from "@tgv/module-component-library/components/ui/InfoBubble";
 import PillBar from "@tgv/module-component-library/components/ui/PillBar";
 import ConfirmModal from "../frontdesk/ConfirmModal";
 import UploadDropzone from "../UploadDropzone";
@@ -458,6 +459,23 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
                     onChange={(k) => setChannel(k as "email" | "link")}
                     accent={ACCENT}
                     ariaLabel="Delivery"
+                  />
+                  <InfoBubble
+                    title="Delivery"
+                    theme="cyan"
+                    placement="popover"
+                    body={
+                      <>
+                        <p><strong>Email the link</strong> — when you press Send, Office emails every
+                        recipient the signing link from your own mailbox, and logs each send in Activity.</p>
+                        <p><strong>Just record &amp; copy</strong> — nothing is emailed. The same recipients
+                        are logged in Activity as expected signers, and the copy icon beside this bar
+                        hands you the link to deliver yourself — text, WhatsApp, in person.</p>
+                        <p>Both paths use the same signing page and track completed signatures the same
+                        way. This chooser only appears for waivers, which share one link; Multiple-signature
+                        documents always email each signer their own private link.</p>
+                      </>
+                    }
                   />
                   <CopyIconBtn
                     type="button"
