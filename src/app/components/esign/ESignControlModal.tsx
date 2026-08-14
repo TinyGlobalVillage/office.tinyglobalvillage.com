@@ -1111,7 +1111,11 @@ const Input = styled.input`${baseField} flex: 1 1 180px;`;
 // so the dialog's fields carry their own width and refuse to flex at all.
 const LineInput = styled.input`${baseField} flex: 0 0 auto; width: 100%;`;
 const HalfInput = styled(LineInput)`width: 50%;`;
-const Textarea = styled.textarea`${baseField} resize: vertical; width: 100%;`;
+// Same flex trap as LineInput, one axis further: a textarea in a flex COLUMN still
+// shrinks past its `rows`, which is what squashed the Message body down to one line.
+// `flex: 0 0 auto` makes `rows` mean what it says, and the min-height is the floor —
+// two of a single-line field (≈42px each), so Message is never shorter than Heading×2.
+const Textarea = styled.textarea`${baseField} resize: vertical; width: 100%; flex: 0 0 auto; min-height: 84px;`;
 const CheckRow = styled.label`
   display: flex; align-items: baseline; gap: 8px; margin-top: 8px;
   font-size: 12.5px; font-weight: 600; color: rgba(232,232,239,0.8); cursor: pointer;
