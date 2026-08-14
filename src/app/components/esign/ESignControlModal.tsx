@@ -155,6 +155,11 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
   const [ccList, setCcList] = useState<Recipient[]>([]);
   const [ccEmail, setCcEmail] = useState("");
   const deliveryTouched = useRef(false);
+  // The operator's own addresses (Fastmail sending identities + roster email) and which one
+  // is currently on the delivery list. Gio receives at four domains; the roster's single
+  // address was answering a question he hadn't been asked.
+  const [myAddresses, setMyAddresses] = useState<string[]>([]);
+  const [myAddress, setMyAddress] = useState("");
   const [recordedUrl, setRecordedUrl] = useState<string | null>(null); // waiver link-channel result
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -181,7 +186,12 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
         // Seed the delivery list with the operator once, on first load. Once they have
         // touched it — including emptying it — their choice stands.
         if (d.me?.email) {
-          setCcList((prev) => (deliveryTouched.current ? prev : [{ email: String(d.me.email).toLowerCase(), name: d.me.username ?? null }]));
+          const mine = String(d.me.email).toLowerCase();
+          setMyAddresses(Array.isArray(d.me.addresses) && d.me.addresses.length ? d.me.addresses.map(String) : [mine]);
+          if (!deliveryTouched.current) {
+            setMyAddress(mine);
+            setCcList([{ email: mine, name: d.me.username ?? null }]);
+          }
         }
       } else {
         setMsg(d?.error ?? "Failed to load documents");
@@ -262,6 +272,19 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
   const removeCc = (email: string) => {
     deliveryTouched.current = true;
     setCcList((prev) => prev.filter((r) => r.email !== email));
+    // Dropping the chip is how you say "not to me" — the picker follows it back to unset
+    // rather than claiming an address that is no longer on the list.
+    setMyAddress((cur) => (cur === email ? "" : cur));
+  };
+  /** Swap which of the operator's own addresses is on the list. Everyone else stays put. */
+  const pickMyAddress = (email: string) => {
+    const e = email.toLowerCase();
+    deliveryTouched.current = true;
+    setCcList((prev) => {
+      const others = prev.filter((r) => r.email !== myAddress && r.email !== e);
+      return [{ email: e, name: null }, ...others];
+    });
+    setMyAddress(e);
   };
 
   // Waiver post-upload dispatch: reuse the send route (records legal_sends + emails / returns url).
@@ -586,6 +609,18 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
                   </CheckRow>
                   <Label>Deliver the signed document to</Label>
                   <Row>
+                    {myAddresses.length > 1 && (
+                      <DDM
+                        label={myAddress ? `Me · ${myAddress}` : "Me · pick an address"}
+                        ariaLabel="Which of my addresses receives the signed document"
+                        align="left"
+                        items={myAddresses.map((a): DDMItem => ({
+                          key: a,
+                          label: a === myAddress ? `✓ ${a}` : a,
+                          onClick: () => pickMyAddress(a),
+                        }))}
+                      />
+                    )}
                     <DDM
                       label="Add staff"
                       ariaLabel="Add a staff delivery address"
@@ -853,10 +888,13 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
 
           <Label>Reply-to</Label>
           <HalfInput
-            placeholder="where replies land"
+            placeholder="support@tinyglobalvillage.com"
             value={emailReplyTo}
             onChange={(e) => setEmailReplyTo(e.target.value)}
           />
+          <FieldHint>Left blank, replies go to support@tinyglobalvillage.com — a real, monitored
+          mailbox. An invite nobody can reply to is a dead end for the signer and a spam signal
+          to their mail provider.</FieldHint>
 
           <GearFooter>
             <InfoBubble
@@ -868,8 +906,9 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
                   <p>Emails are sent from <strong>Tiny Global Village
                   &lt;no-reply@tinyglobalvillage.com&gt;</strong>. That identity is server-wide —
                   it is the Documenso instance&apos;s own mailer, not a per-send choice.</p>
-                  <p>Reply-to is the part you control: set it to your own address so a signer who
-                  hits reply reaches you rather than an unattended mailbox.</p>
+                  <p>Reply-to is the part you control, and it is never empty: left blank it is
+                  support@tinyglobalvillage.com. Set it to your own address when you want a
+                  signer&apos;s reply to reach you directly.</p>
                 </>
               }
             />
@@ -974,6 +1013,7 @@ const CheckRow = styled.label`
   input { flex: 0 0 auto; transform: translateY(1px); }
 `;
 const CheckHint = styled.span`font-size: 11.5px; font-weight: 400; color: rgba(232,232,239,0.45);`;
+const FieldHint = styled.p`margin: 6px 0 0; font-size: 11.5px; line-height: 1.5; color: rgba(232,232,239,0.45);`;
 // An empty delivery list is allowed but rarely meant — say so where the chips would be,
 // in warning amber rather than the muted grey the operator's eye already skips.
 const EmptyDelivery = styled.p`

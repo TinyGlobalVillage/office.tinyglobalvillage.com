@@ -37,13 +37,6 @@ import { colors, rgb } from "@/app/theme";
 
 let registered = false;
 
-/** Maps an Office username to its Fastmail bearer token (or null if user has no inbox access). */
-function tokenForUser(username: string): string | null {
-  if (username === "admin") return process.env.FASTMAIL_TOKEN_GIO ?? null;
-  if (username === "marmar") return process.env.FASTMAIL_TOKEN_MARMAR ?? null;
-  return null;
-}
-
 /** Wrap a JMAP-enumerated account in the resolver's ResolvedAccount shape. */
 function toResolvedAccount(accountId: string, email: string, token: string): ResolvedAccount {
   return {

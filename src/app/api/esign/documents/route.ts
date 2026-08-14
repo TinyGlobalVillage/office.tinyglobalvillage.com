@@ -14,6 +14,8 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { requireAdmin } from "@/lib/api-admin";
 import { db } from "@/lib/db-drizzle";
+import { listIdentities } from "@/lib/fastmail";
+import { tokenForUser } from "@/lib/fastmail-token";
 import {
   isDocumensoConfigured,
   createDirectLinkTemplateFromPdf,
@@ -50,6 +52,10 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // Documenso shows its own post-sign screen, which invites the signer to claim an account.
 const SIGN_COMPLETE_URL = process.env.ESIGN_SIGN_COMPLETE_URL || "https://tinyglobalvillage.com/sign/complete";
 
+// Where a recipient's reply lands when the operator doesn't name one. A monitored mailbox,
+// never no-reply@ — see the reply-to note at the POST parse below.
+const DEFAULT_REPLY_TO = process.env.ESIGN_REPLY_TO || "support@tinyglobalvillage.com";
+
 function slugify(s: string): string {
   return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 48) || "document";
 }
@@ -66,6 +72,28 @@ async function readStaff(): Promise<Array<{ username: string; email: string; rol
       .sort((a, b) => a.username.localeCompare(b.username));
   } catch {
     return [];
+  }
+}
+
+/**
+ * Every address this operator may put on the delivery list without typing it: their Fastmail
+ * sending identities plus their roster address, deduped, roster address first. Fastmail is
+ * the source of truth (Gio's 17 identities span four domains), so the picker never drifts
+ * from what he can actually receive at. Failures degrade to the roster address alone —
+ * an address picker is never worth failing a page load over.
+ */
+async function addressesForUser(username: string, rosterEmail: string): Promise<string[]> {
+  const primary = rosterEmail.toLowerCase();
+  const token = tokenForUser(username);
+  if (!token) return [primary];
+  try {
+    const identities = await listIdentities(token);
+    const seen = new Set([primary]);
+    const rest = identities.map((i) => i.email).filter((e) => !seen.has(e) && (seen.add(e), true));
+    rest.sort();
+    return [primary, ...rest];
+  } catch {
+    return [primary];
   }
 }
 
@@ -113,8 +141,12 @@ export async function GET(req: NextRequest) {
   });
   // `me` seeds the New Document delivery list: the operator sending a document is nearly
   // always one of the people the signed copy has to reach, and the list is only useful if
-  // the common case needs no typing.
-  const me = staff.find((s) => s.username === auth.username) ?? null;
+  // the common case needs no typing. `addresses` is every address they can pick as that
+  // seed — their Fastmail sending identities (the same list Fastmail's own compose window
+  // offers, so nothing to hand-maintain) unioned with the roster email, roster email first.
+  // No Fastmail token means no identities: the picker degrades to the one roster address.
+  const rosterMe = staff.find((s) => s.username === auth.username) ?? null;
+  const me = rosterMe ? { ...rosterMe, addresses: await addressesForUser(auth.username, rosterMe.email) } : null;
   return NextResponse.json({ ok: true, configured: isDocumensoConfigured(), documents, staff, me });
 }
 
@@ -159,10 +191,14 @@ export async function POST(req: NextRequest) {
   // The FROM identity is the Documenso instance's (instance-wide SMTP env) — reply-to is
   // the per-send control over where a recipient's reply actually lands.
   const emailSubject = String(form.get("emailSubject") ?? "").trim().slice(0, 200);
-  const emailReplyTo = String(form.get("emailReplyTo") ?? "").trim().toLowerCase();
-  if (emailReplyTo && !EMAIL_RE.test(emailReplyTo)) {
-    return NextResponse.json({ error: `Invalid reply-to email: "${emailReplyTo}"` }, { status: 400 });
+  const replyToInput = String(form.get("emailReplyTo") ?? "").trim().toLowerCase();
+  if (replyToInput && !EMAIL_RE.test(replyToInput)) {
+    return NextResponse.json({ error: `Invalid reply-to email: "${replyToInput}"` }, { status: 400 });
   }
+  // Left blank, reply-to still gets a real, monitored mailbox. An invite whose From is a
+  // no-reply address and which offers nowhere to reply is a dead end to a human and a
+  // spam signal to a filter; DEFAULT_REPLY_TO makes "just send it" the deliverable path.
+  const emailReplyTo = replyToInput || DEFAULT_REPLY_TO;
   let signers: Array<{ email: string; name: string | null }> = [];
   let deliveryEmails: string[] = [];
   if (kind === "multisig") {

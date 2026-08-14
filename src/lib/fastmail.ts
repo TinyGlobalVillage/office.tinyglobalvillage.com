@@ -383,12 +383,33 @@ export type SendEmailOpts = {
   to: { name?: string; email: string }[];
   cc?: { name?: string; email: string }[];
   bcc?: { name?: string; email: string }[];
+  /** Where replies go. Without one, a no-reply@ From is a dead end — a spam signal. */
+  replyTo?: { name?: string; email: string }[];
   subject: string;
   textBody?: string;
   htmlBody?: string;
   inReplyTo?: string;
   references?: string[];
 };
+
+/** One sending identity on the account (the addresses Fastmail will send as). */
+export type FastmailIdentity = { id: string; email: string; name?: string };
+
+/**
+ * Every address this token may send from. Used to populate operator-facing
+ * address pickers; Fastmail is the source of truth, so no list to hand-maintain.
+ */
+export async function listIdentities(token: string): Promise<FastmailIdentity[]> {
+  const session = await getSession(token);
+  const responses = await jmapRequest(token, [
+    ["Identity/get", { accountId: session.accountId, ids: null }, "id"],
+  ]);
+  const resp = responses.find(([name, , id]) => name === "Identity/get" && id === "id")?.[1];
+  const list = (resp as { list?: { id: string; email: string; name?: string }[] })?.list ?? [];
+  return list
+    .filter((i) => typeof i.email === "string" && i.email.includes("@"))
+    .map((i) => ({ id: i.id, email: i.email.toLowerCase(), name: i.name || undefined }));
+}
 
 export async function sendEmail(token: string, opts: SendEmailOpts): Promise<void> {
   const session = await getSession(token);
@@ -432,16 +453,24 @@ export async function sendEmail(token: string, opts: SendEmailOpts): Promise<voi
       ? bodyParts[0]
       : { type: "multipart/alternative", subParts: bodyParts };
 
+  // Message-ID: a draft created without one gets stamped with Fastmail's container
+  // hostname (e.g. <…@slotpi15m68>), which resolves nowhere and doesn't align with the
+  // From domain — a real spam heuristic. Stamp our own, on the sender's own domain.
+  const fromDomain = opts.from.email.split("@")[1] || "tinyglobalvillage.com";
+  const messageId = `<${crypto.randomUUID()}@${fromDomain}>`;
+
   const email: Record<string, unknown> = {
     from: [opts.from],
     to: opts.to,
     cc: opts.cc ?? [],
     bcc: opts.bcc ?? [],
     subject: opts.subject,
+    messageId: [messageId],
     bodyStructure,
     bodyValues,
     mailboxIds: sentId ? { [sentId]: true } : {},
   };
+  if (opts.replyTo?.length) email.replyTo = opts.replyTo;
   if (opts.inReplyTo) email.inReplyTo = [opts.inReplyTo];
   if (opts.references) email.references = opts.references;
 
