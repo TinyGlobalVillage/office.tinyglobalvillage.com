@@ -16,12 +16,14 @@
 // Multisig boxes default to auto-stacking on the last page IN THE ORDER SIGNERS ARE ADDED —
 // but once a PDF is staged, the SignaturePlacer preview renders every page and the operator
 // DRAGS each signer's Sign + Date boxes exactly onto the document's printed signature lines.
-// The header gear (multisig only) opens Email settings — subject, message, reply-to — as a
-// DIALOG LAYERED OVER the console (z 1100 above the console's 1000), and it opens itself
-// whenever a document is staged, so every send is a deliberate choice of what the recipient
-// reads. The FROM identity is instance-wide Documenso SMTP env (Tiny Global Village ·
-// no-reply@…) — per-send sender control is honestly only Reply-To, and the dialog's footer
-// QMBM says so.
+// The header gear (multisig only) opens Email settings as a DIALOG LAYERED OVER the console
+// (z 1100 above the console's 1000), and it opens itself whenever a document is staged, so
+// every send is a deliberate choice of what the recipient reads. Office WRITES AND SENDS the
+// signing invitation itself — Documenso is told to email nobody — so every line of it is a
+// field here: subject, heading, message, button label, footer, reply-to, with a live preview
+// of the card as the signer meets it. The FROM identity is the house mailbox
+// (SUPPORT_FROM_EMAIL, "Tiny Global Village"); per-send sender control is Reply-To, and the
+// dialog's footer QMBM says so.
 //
 // Self-contained (styled-components, per Office's no-Tailwind rule). Inline SVGs — no emoji.
 
@@ -118,6 +120,13 @@ const LinkIcon = ({ size = 15 }: { size?: number }) => (
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+// The invitation's defaults, mirrored from module-documenso/server/invite.ts so a blank
+// field can show the operator exactly what will be sent in its place. The module is still
+// the authority — these are placeholders, never submitted.
+const INVITE_DEFAULTS = { heading: "Your signature is needed", buttonLabel: "Review & sign", footer: "Sent by Tiny Global Village" };
+const inviteDefaultMessage = (title: string) =>
+  `You've been asked to sign "${title}".\n\nOpening the link below shows you the document and your own signature box — you can sign from your phone, and nothing else is required of you.`;
+
 type ConfirmState = {
   title: string;
   message: string;
@@ -166,10 +175,15 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
   const [uploadPct, setUploadPct] = useState<number | null>(null); // 0–100 while sending; null = server processing
   // Drag-placed field boxes per signer email (percent coords). Empty = auto-stack default.
   const [placements, setPlacements] = useState<Record<string, SignerPlacement>>({});
-  // Gear panel (multisig): what the recipient's email looks like. Reply-to survives a send
-  // on purpose — it's operator identity, not per-document content.
+  // Gear panel (multisig): the signing invitation, line by line. Every visible part of the
+  // email is here — Office sends it, not Documenso, so there is no wording left over from
+  // somewhere else. Blank means "use the default shown as the placeholder". Reply-to
+  // survives a send on purpose — it's operator identity, not per-document content.
   const [showEmailSettings, setShowEmailSettings] = useState(false);
   const [emailSubject, setEmailSubject] = useState("");
+  const [inviteHeading, setInviteHeading] = useState("");
+  const [inviteButtonLabel, setInviteButtonLabel] = useState("");
+  const [inviteFooter, setInviteFooter] = useState("");
   const [emailReplyTo, setEmailReplyTo] = useState("");
 
   // documents-tab kind filter (PillBar)
@@ -224,6 +238,9 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
   // the first Escape closes the settings, the next closes the console.
   const gearOpen = tab === "new" && mode === "multisig" && showEmailSettings;
   useEscapeToClose({ open: gearOpen, onClose: () => setShowEmailSettings(false) });
+  // The title the server will use — the staged filename, minus .pdf. Placeholders and the
+  // preview quote it so the defaults read as the real sentence, not a template.
+  const previewTitle = uploadFile ? uploadFile.name.replace(/\.pdf$/i, "") : "(document title)";
 
   // A recorded link belongs to one upload; switching mode invalidates it.
   useEffect(() => { setRecordedUrl(null); }, [mode]);
@@ -363,6 +380,9 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
       fd.append("deliveryEmails", JSON.stringify(ccList.map((c) => c.email)));
       if (note.trim()) fd.append("note", note.trim());
       if (emailSubject.trim()) fd.append("emailSubject", emailSubject.trim());
+      if (inviteHeading.trim()) fd.append("inviteHeading", inviteHeading.trim());
+      if (inviteButtonLabel.trim()) fd.append("inviteButtonLabel", inviteButtonLabel.trim());
+      if (inviteFooter.trim()) fd.append("inviteFooter", inviteFooter.trim());
       if (replyTo) fd.append("emailReplyTo", replyTo);
       const placed = recipients
         .map((r, i) => {
@@ -558,8 +578,10 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
                       <p>Add signers in signing order, stage the PDF, then drag each signer&apos;s
                       Sign and Date boxes exactly onto the document&apos;s printed lines in the
                       preview below. Either box resizes from its bottom-right corner.</p>
-                      <p>The gear at the top right sets the email&apos;s subject, message and
-                      reply-to; it opens on its own the moment you stage a document.</p>
+                      <p>The gear at the top right writes the invitation itself — subject,
+                      heading, message, button, footer, reply-to — with a preview of exactly
+                      what lands in their inbox. It opens on its own the moment you stage a
+                      document.</p>
                     </>
                   )}
                 />
@@ -877,14 +899,49 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
 
           <Label>Subject</Label>
           <LineInput
-            placeholder={uploadFile ? `Please sign: ${uploadFile.name.replace(/\.pdf$/i, "")}` : "Please sign: (document title)"}
+            placeholder={`Please sign: ${previewTitle}`}
             value={emailSubject}
             maxLength={200}
             onChange={(e) => setEmailSubject(e.target.value)}
           />
 
+          <Label>Heading — the one bold line at the top</Label>
+          <LineInput
+            placeholder={INVITE_DEFAULTS.heading}
+            value={inviteHeading}
+            maxLength={120}
+            onChange={(e) => setInviteHeading(e.target.value)}
+          />
+
           <Label>Message — the body each signer sees</Label>
-          <Textarea rows={8} value={note} onChange={(e) => setNote(e.target.value)} placeholder="A short note included in the email…" />
+          <Textarea
+            rows={7}
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder={inviteDefaultMessage(previewTitle)}
+          />
+          <FieldHint>A blank line starts a new paragraph.</FieldHint>
+
+          <TwoUp>
+            <div>
+              <Label>Button</Label>
+              <LineInput
+                placeholder={INVITE_DEFAULTS.buttonLabel}
+                value={inviteButtonLabel}
+                maxLength={40}
+                onChange={(e) => setInviteButtonLabel(e.target.value)}
+              />
+            </div>
+            <div>
+              <Label>Footer</Label>
+              <LineInput
+                placeholder={INVITE_DEFAULTS.footer}
+                value={inviteFooter}
+                maxLength={200}
+                onChange={(e) => setInviteFooter(e.target.value)}
+              />
+            </div>
+          </TwoUp>
 
           <Label>Reply-to</Label>
           <HalfInput
@@ -896,6 +953,21 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
           mailbox. An invite nobody can reply to is a dead end for the signer and a spam signal
           to their mail provider.</FieldHint>
 
+          {/* The email itself, at the size it arrives. Rendered from the same five fields the
+              server sends, so what is curated here is what the signer opens — no Documenso
+              wording survives anywhere in it. */}
+          <Label>Preview</Label>
+          <InvitePreview>
+            <PreviewWordmark>Tiny Global Village</PreviewWordmark>
+            <PreviewHeading>{inviteHeading.trim() || INVITE_DEFAULTS.heading}</PreviewHeading>
+            {(note.trim() || inviteDefaultMessage(previewTitle))
+              .split(/\n{2,}/)
+              .map((p, i) => <PreviewPara key={i}>{p}</PreviewPara>)}
+            <PreviewButton>{inviteButtonLabel.trim() || INVITE_DEFAULTS.buttonLabel}</PreviewButton>
+            <PreviewLink>Or paste this into your browser:<br />https://esign.tinyglobalvillage.com/sign/…</PreviewLink>
+            <PreviewFooter>{inviteFooter.trim() || INVITE_DEFAULTS.footer}</PreviewFooter>
+          </InvitePreview>
+
           <GearFooter>
             <InfoBubble
               title="Who the email comes from"
@@ -903,11 +975,12 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
               placement="popover"
               body={
                 <>
-                  <p>Emails are sent from <strong>Tiny Global Village
-                  &lt;no-reply@tinyglobalvillage.com&gt;</strong>. That identity is server-wide —
-                  it is the Documenso instance&apos;s own mailer, not a per-send choice.</p>
-                  <p>Reply-to is the part you control, and it is never empty: left blank it is
-                  support@tinyglobalvillage.com. Set it to your own address when you want a
+                  <p>Office writes and sends this email itself, from <strong>Tiny Global Village
+                  &lt;no-reply@tinyglobalvillage.com&gt;</strong>. Documenso emails nobody about
+                  a document sent from here — every line the signer reads is one of the five
+                  fields above.</p>
+                  <p>Reply-to is where their answer lands, and it is never empty: left blank it
+                  is support@tinyglobalvillage.com. Set it to your own address when you want a
                   signer&apos;s reply to reach you directly.</p>
                 </>
               }
@@ -986,6 +1059,38 @@ const GearTitle = styled.div`
 `;
 const GearFooter = styled.div`
   display: flex; align-items: center; gap: 10px; margin-top: 16px;
+`;
+const TwoUp = styled.div`
+  display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+  @media (max-width: 460px) { grid-template-columns: 1fr; }
+`;
+// The invitation as the signer meets it: a LIGHT card inside the dark console, because
+// that is the contrast their inbox will show and a dark mock would flatter copy that
+// reads differently on white.
+const InvitePreview = styled.div`
+  margin-top: 4px; padding: 18px 18px 16px; border-radius: 10px;
+  background: #ffffff; border: 1px solid rgba(255,255,255,0.14);
+`;
+const PreviewWordmark = styled.p`
+  margin: 0 0 12px; font-size: 10.5px; font-weight: 700; letter-spacing: 0.08em;
+  text-transform: uppercase; color: #5b6472;
+`;
+const PreviewHeading = styled.p`
+  margin: 0 0 10px; font-size: 16px; line-height: 1.3; font-weight: 700; color: #14161a;
+`;
+const PreviewPara = styled.p`
+  margin: 0 0 10px; font-size: 12.5px; line-height: 1.6; color: #2c2f36; white-space: pre-wrap;
+`;
+const PreviewButton = styled.span`
+  display: inline-block; margin-top: 2px; padding: 9px 18px; border-radius: 7px;
+  background: #14161a; color: #ffffff; font-size: 12.5px; font-weight: 600;
+`;
+const PreviewLink = styled.p`
+  margin: 10px 0 0; font-size: 10.5px; line-height: 1.5; color: #7b8494; word-break: break-all;
+`;
+const PreviewFooter = styled.p`
+  margin: 14px 0 0; padding-top: 12px; border-top: 1px solid #eceef1;
+  font-size: 10.5px; line-height: 1.5; color: #7b8494;
 `;
 const ModeRow = styled.div`display: flex; align-items: center; gap: 10px; flex-wrap: wrap;`;
 const Warn = styled.div`margin: 12px 22px 0; padding: 10px 12px; border-radius: 8px; font-size: 12.5px; background: rgba(255,180,60,0.1); border: 1px solid rgba(255,180,60,0.3); color: #ffcf87;`;

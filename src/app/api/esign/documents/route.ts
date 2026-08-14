@@ -4,9 +4,11 @@
 //          multisig — the per-signer roster) + the staff roster (recipient picker source).
 //   POST → upload a PDF (multipart: file + title [+ kind + signers]). kind='waiver' (default):
 //          create a Documenso direct-link template (one reusable link). kind='multisig':
-//          Documenso DOCUMENT flow — named recipients each get their own emailed signing link
-//          at upload time (create → recipients → fields → distribute), roster tracked in
-//          public.legal_document_signers. Admin-only.
+//          Documenso DOCUMENT flow — named recipients each get their own signing link at
+//          upload time (create → recipients → fields → distribute NONE), roster tracked in
+//          public.legal_document_signers. OFFICE sends the invitation, not Documenso: its
+//          own invite email is a compiled template the operator cannot curate, so we
+//          distribute silently and mail the message written in the gear panel. Admin-only.
 //
 // Reuses the @tgv/module-legal/module-documenso engine wholesale — Office just scopes by origin.
 import { type NextRequest, NextResponse } from "next/server";
@@ -30,14 +32,22 @@ import {
 } from "@tgv/module-documenso";
 import { createAndDistributeMultisigFromPdf } from "@tgv/module-documenso/server/multisig";
 import {
+  inviteTemplateFrom,
+  renderSigningInvite,
+  signingUrl,
+} from "@tgv/module-documenso/server/invite";
+import {
   markLegalDocumentMultisig,
   insertLegalDocumentSigners,
   listLegalDocumentKinds,
   listSignersForDocuments,
+  markSignerSentByEmail,
   setLegalDocumentCertPrefs,
   setLegalDocumentDelivery,
+  setLegalDocumentInvite,
   type InsertSignerInput,
 } from "@tgv/module-documenso/db/multisig-queries";
+import { sendMail } from "@/lib/email/sendMail";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -187,10 +197,17 @@ export async function POST(req: NextRequest) {
   // document, and copyToSigners folds the whole roster into that list.
   const sequential = String(form.get("sequential") ?? "true") !== "false";
   const copyToSigners = String(form.get("finalCopyAll") ?? "false") === "true";
-  // Email settings (gear panel): subject + reply-to for the signing-request emails.
-  // The FROM identity is the Documenso instance's (instance-wide SMTP env) — reply-to is
-  // the per-send control over where a recipient's reply actually lands.
+  // Email settings (gear panel): the whole signing invitation, subject to footer.
+  //
+  // Multisig invitations are OURS now. Documenso's invite is a compiled template — its
+  // wordmark, "{sender} has invited you to sign …", "Continue by signing the document."
+  // and the button label are not settings — so the document is distributed with
+  // distributionMethod NONE and Office renders and sends the message the operator wrote.
+  // These five fields ARE the email; blanks fall back to the module's defaults.
   const emailSubject = String(form.get("emailSubject") ?? "").trim().slice(0, 200);
+  const inviteHeading = String(form.get("inviteHeading") ?? "").trim().slice(0, 120);
+  const inviteButtonLabel = String(form.get("inviteButtonLabel") ?? "").trim().slice(0, 40);
+  const inviteFooter = String(form.get("inviteFooter") ?? "").trim().slice(0, 200);
   const replyToInput = String(form.get("emailReplyTo") ?? "").trim().toLowerCase();
   if (replyToInput && !EMAIL_RE.test(replyToInput)) {
     return NextResponse.json({ error: `Invalid reply-to email: "${replyToInput}"` }, { status: 400 });
@@ -324,17 +341,29 @@ export async function POST(req: NextRequest) {
   const pageCount = await getPdfPageCount(pdf).catch(() => null);
   await setLegalDocumentCertPrefs(db, doc.id, includeCertificate, pageCount).catch(() => {});
 
-  // ── multisig: document flow — Documenso emails each named signer their own link NOW ──
+  // ── multisig: document flow — Office emails each named signer their own link NOW ──
   if (kind === "multisig") {
+    // The invitation, exactly as it will arrive. Built before the send so the same object
+    // is both what we mail and what we store — the later signers in a sequential chain are
+    // invited by the completion webhook, days later, and must read these same words.
+    const invite = inviteTemplateFrom(title, {
+      subject: emailSubject,
+      heading: inviteHeading,
+      message: note,
+      buttonLabel: inviteButtonLabel,
+      footer: inviteFooter,
+      replyTo: emailReplyTo,
+    });
     let result;
     try {
       result = await createAndDistributeMultisigFromPdf(pdf, title, signers, {
-        subject: emailSubject || `Please sign: ${title}`,
-        message:
-          note ||
-          `${auth.username} has sent you "${title}" to sign electronically. Each signer has their own signature box.`,
+        // Recorded on the document so Documenso's own remaining surfaces (its reminder,
+        // its signing page) say what the signer was actually told — but it emails nobody.
+        subject: invite.subject,
+        message: invite.message,
         ...(emailReplyTo ? { emailReplyTo } : {}),
         sequential,
+        selfDistribute: true,
         redirectUrl: SIGN_COMPLETE_URL,
         ...(placements.length ? { placements } : {}),
       });
@@ -348,6 +377,9 @@ export async function POST(req: NextRequest) {
     await markLegalDocumentMultisig(db, doc.id, result.documensoDocumentId);
     // The completion webhook reads this list and mails the signed PDF to exactly it.
     await setLegalDocumentDelivery(db, doc.id, deliveryEmails).catch(() => {});
+    // Store the invitation BEFORE anything is mailed: it is also the flag that says we own
+    // this chain, and the webhook must never advance a document it thinks Documenso runs.
+    await setLegalDocumentInvite(db, doc.id, invite);
 
     const recipientByEmail = new Map(result.recipients.map((r) => [r.email, r.recipientId]));
     const signerInputs: InsertSignerInput[] = [];
@@ -359,15 +391,56 @@ export async function POST(req: NextRequest) {
         signingOrder: i + 1,
         memberId: member?.id ?? null,
         documensoRecipientId: recipientByEmail.get(s.email) ?? null,
-        // Sequential: only the first signer has actually been emailed; the webhook
-        // promotes each next signer pending → sent as Documenso advances the chain.
-        status: sequential && i > 0 ? "pending" : "sent",
+        // Everyone starts 'pending'. The roster has to exist before a single invitation
+        // goes out — a signer could open their link and sign in the next second — and
+        // 'sent' is then written per address, by the send that actually succeeded.
+        status: "pending",
       });
     }
     await insertLegalDocumentSigners(db, doc.id, signerInputs);
 
-    // Outbox rows so the Activity view shows each dispatch (Documenso did the emailing).
+    // Who gets invited now: everyone on a parallel document, only the first signer on a
+    // sequential one (the completion webhook invites each next signer as their turn comes).
+    const tokenByEmail = new Map(
+      result.recipients.filter((r) => r.token).map((r) => [r.email, r.token as string]),
+    );
+    const byOrder = [...signers.entries()].sort(([a], [b]) => a - b);
+    const inviteNow = sequential ? byOrder.slice(0, 1) : byOrder;
+    const invited: string[] = [];
+    const failed: string[] = [];
+    for (const [, s] of inviteNow) {
+      const token = tokenByEmail.get(s.email);
+      if (!token) {
+        failed.push(s.email);
+        continue;
+      }
+      const rendered = renderSigningInvite({
+        template: invite,
+        url: signingUrl(token),
+        signerName: s.name,
+      });
+      try {
+        await sendMail({
+          to: s.email,
+          ...(s.name ? { toName: s.name } : {}),
+          subject: rendered.subject,
+          text: rendered.text,
+          html: rendered.html,
+          ...(invite.replyTo ? { replyTo: invite.replyTo } : {}),
+        });
+      } catch {
+        // The row stays 'pending' — but a mailer can fail AFTER the message left, so this
+        // is reported, not retried. Re-inviting is the operator's call, never ours.
+        failed.push(s.email);
+        continue;
+      }
+      await markSignerSentByEmail(db, result.documensoDocumentId, s.email).catch(() => {});
+      invited.push(s.email);
+    }
+
+    // Outbox rows so the Activity view shows each dispatch that actually happened.
     for (const s of signerInputs) {
+      if (!invited.includes(s.signerEmail)) continue;
       await insertLegalSend(db, {
         legalDocumentId: doc.id,
         recipientEmail: s.signerEmail,
@@ -393,6 +466,8 @@ export async function POST(req: NextRequest) {
         signerCount: signers.length,
         sequential,
         deliveryCount: deliveryEmails.length,
+        invitedCount: invited.length,
+        ...(failed.length ? { inviteFailed: failed } : {}),
       },
     });
   }

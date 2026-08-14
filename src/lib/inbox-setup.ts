@@ -33,6 +33,7 @@ import {
 } from "@tgv/module-inbox";
 import { enumerateAccounts } from "@tgv/module-inbox/fastmail/client";
 import { requireAuth, requirePersonalAccess } from "@/lib/api-auth";
+import { tokenForUser } from "@/lib/fastmail-token";
 import { colors, rgb } from "@/app/theme";
 
 let registered = false;
