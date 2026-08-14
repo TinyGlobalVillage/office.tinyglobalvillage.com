@@ -33,6 +33,7 @@ import {
   listLegalDocumentKinds,
   listSignersForDocuments,
   setLegalDocumentCertPrefs,
+  setLegalDocumentDelivery,
   type InsertSignerInput,
 } from "@tgv/module-documenso/db/multisig-queries";
 
@@ -41,8 +42,13 @@ export const dynamic = "force-dynamic";
 
 const MAX_PDF_BYTES = 20 * 1024 * 1024; // 20 MB — matches Documenso practical template limit
 const MAX_SIGNERS = 10; // field stacking compresses rows; past ~10 the last page gets crowded
-const MAX_CC = 10; // copy-only receivers of the completed document
+const MAX_DELIVERY = 10; // addresses the signed document is delivered to on completion
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// Where a signer lands after signing. Must be PUBLIC — Office is proxy-gated behind a member
+// session, so a signer sent here would meet a login wall; the page lives on tgv.com. Unset,
+// Documenso shows its own post-sign screen, which invites the signer to claim an account.
+const SIGN_COMPLETE_URL = process.env.ESIGN_SIGN_COMPLETE_URL || "https://tinyglobalvillage.com/sign/complete";
 
 function slugify(s: string): string {
   return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 48) || "document";
@@ -105,7 +111,11 @@ export async function GET(req: NextRequest) {
       updatedAt: d.updatedAt,
     };
   });
-  return NextResponse.json({ ok: true, configured: isDocumensoConfigured(), documents, staff });
+  // `me` seeds the New Document delivery list: the operator sending a document is nearly
+  // always one of the people the signed copy has to reach, and the list is only useful if
+  // the common case needs no typing.
+  const me = staff.find((s) => s.username === auth.username) ?? null;
+  return NextResponse.json({ ok: true, configured: isDocumensoConfigured(), documents, staff, me });
 }
 
 export async function POST(req: NextRequest) {
@@ -140,10 +150,11 @@ export async function POST(req: NextRequest) {
   // strips Documenso's appended certificate from the stored copy (sealed original kept).
   const includeCertificate = String(form.get("includeCertificate") ?? "true") !== "false";
   // Sequential is the default: Documenso emails only the first signer, then advances the
-  // chain natively as each one signs. finalCopyAll = emailSettings.documentCompleted —
-  // document-wide (everyone or no one); the sender always gets the completed document.
+  // chain natively as each one signs. Completion mail is OURS now — Documenso sends none
+  // (COMPLETION_EMAIL_SETTINGS); deliveryEmails below is who actually receives the signed
+  // document, and copyToSigners folds the whole roster into that list.
   const sequential = String(form.get("sequential") ?? "true") !== "false";
-  const finalCopyAll = String(form.get("finalCopyAll") ?? "true") !== "false";
+  const copyToSigners = String(form.get("finalCopyAll") ?? "false") === "true";
   // Email settings (gear panel): subject + reply-to for the signing-request emails.
   // The FROM identity is the Documenso instance's (instance-wide SMTP env) — reply-to is
   // the per-send control over where a recipient's reply actually lands.
@@ -153,7 +164,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: `Invalid reply-to email: "${emailReplyTo}"` }, { status: 400 });
   }
   let signers: Array<{ email: string; name: string | null }> = [];
-  let ccRecipients: Array<{ email: string; name: string | null }> = [];
+  let deliveryEmails: string[] = [];
   if (kind === "multisig") {
     let parsed: unknown;
     try {
@@ -179,26 +190,38 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: `At most ${MAX_SIGNERS} signers per document` }, { status: 400 });
     }
 
-    // Optional copy-only recipients (CC role): validated like signers, minus anyone
-    // already signing — a signer gets the completed document via finalCopyAll already.
-    let ccParsed: unknown = [];
+    // Who receives the signed document when everyone has signed. Deliberately NOT deduped
+    // against the signer roster: the operator is very often a signer AND the person the
+    // finished document has to reach, which is the exact case the old CC list dropped.
+    let deliveryParsed: unknown = [];
     try {
-      ccParsed = JSON.parse(String(form.get("ccRecipients") ?? "[]"));
+      deliveryParsed = JSON.parse(String(form.get("deliveryEmails") ?? form.get("ccRecipients") ?? "[]"));
     } catch {
-      return NextResponse.json({ error: "ccRecipients must be a JSON array" }, { status: 400 });
+      return NextResponse.json({ error: "deliveryEmails must be a JSON array" }, { status: 400 });
     }
-    for (const raw of Array.isArray(ccParsed) ? ccParsed : []) {
-      const email = String((raw as { email?: string })?.email ?? "").trim().toLowerCase();
-      const name = String((raw as { name?: string })?.name ?? "").trim() || null;
+    const seenDelivery = new Set<string>();
+    for (const raw of Array.isArray(deliveryParsed) ? deliveryParsed : []) {
+      const email = String(
+        typeof raw === "string" ? raw : (raw as { email?: string })?.email ?? "",
+      ).trim().toLowerCase();
       if (!EMAIL_RE.test(email)) {
-        return NextResponse.json({ error: `Invalid copy-recipient email: "${email}"` }, { status: 400 });
+        return NextResponse.json({ error: `Invalid delivery email: "${email}"` }, { status: 400 });
       }
-      if (seen.has(email)) continue;
-      seen.add(email);
-      ccRecipients.push({ email, name });
+      if (seenDelivery.has(email)) continue;
+      seenDelivery.add(email);
+      deliveryEmails.push(email);
     }
-    if (ccRecipients.length > MAX_CC) {
-      return NextResponse.json({ error: `At most ${MAX_CC} copy recipients per document` }, { status: 400 });
+    // "Also send it to everyone who signed" folds the roster into the same one list, so
+    // there is a single answer to "who gets this document" rather than two half-answers.
+    if (copyToSigners) {
+      for (const s of signers) {
+        if (seenDelivery.has(s.email)) continue;
+        seenDelivery.add(s.email);
+        deliveryEmails.push(s.email);
+      }
+    }
+    if (deliveryEmails.length > MAX_DELIVERY) {
+      return NextResponse.json({ error: `At most ${MAX_DELIVERY} delivery addresses per document` }, { status: 400 });
     }
   }
 
@@ -276,8 +299,7 @@ export async function POST(req: NextRequest) {
           `${auth.username} has sent you "${title}" to sign electronically. Each signer has their own signature box.`,
         ...(emailReplyTo ? { emailReplyTo } : {}),
         sequential,
-        emailCompletedToRecipients: finalCopyAll,
-        cc: ccRecipients,
+        redirectUrl: SIGN_COMPLETE_URL,
         ...(placements.length ? { placements } : {}),
       });
     } catch (err) {
@@ -288,6 +310,8 @@ export async function POST(req: NextRequest) {
     }
 
     await markLegalDocumentMultisig(db, doc.id, result.documensoDocumentId);
+    // The completion webhook reads this list and mails the signed PDF to exactly it.
+    await setLegalDocumentDelivery(db, doc.id, deliveryEmails).catch(() => {});
 
     const recipientByEmail = new Map(result.recipients.map((r) => [r.email, r.recipientId]));
     const signerInputs: InsertSignerInput[] = [];
@@ -332,7 +356,7 @@ export async function POST(req: NextRequest) {
         shareUrl: null,
         signerCount: signers.length,
         sequential,
-        ccCount: ccRecipients.length,
+        deliveryCount: deliveryEmails.length,
       },
     });
   }

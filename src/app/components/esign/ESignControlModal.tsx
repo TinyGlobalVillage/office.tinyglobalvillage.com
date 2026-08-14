@@ -147,11 +147,14 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
   // pages (a sealed original is kept server-side for audit).
   const [includeCert, setIncludeCert] = useState(true);
   // Multisig delivery: in-order chain (only the first signer is emailed; each signature
-  // triggers the next signer's email) + completed-copy fan-out + copy-only recipients.
+  // triggers the next signer's email), then the delivery list — who receives the finished
+  // document. The list is the ONLY answer to "where does this land": it is always on screen,
+  // it is never inferred, and copyToSigners just folds the roster into it.
   const [inOrder, setInOrder] = useState(true);
-  const [finalCopyAll, setFinalCopyAll] = useState(true);
+  const [copyToSigners, setCopyToSigners] = useState(false);
   const [ccList, setCcList] = useState<Recipient[]>([]);
   const [ccEmail, setCcEmail] = useState("");
+  const deliveryTouched = useRef(false);
   const [recordedUrl, setRecordedUrl] = useState<string | null>(null); // waiver link-channel result
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -175,6 +178,11 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
         setConfigured(Boolean(d.configured));
         setDocuments(d.documents ?? []);
         setStaff(d.staff ?? []);
+        // Seed the delivery list with the operator once, on first load. Once they have
+        // touched it — including emptying it — their choice stands.
+        if (d.me?.email) {
+          setCcList((prev) => (deliveryTouched.current ? prev : [{ email: String(d.me.email).toLowerCase(), name: d.me.username ?? null }]));
+        }
       } else {
         setMsg(d?.error ?? "Failed to load documents");
       }
@@ -226,13 +234,13 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
       for (const v of valid) if (!next.some((r) => r.email === v.email)) next.push(v);
       return next;
     });
-    // A signer already gets the completed copy — drop them from the copy-only list.
-    setCcList((prev) => prev.filter((c) => !valid.some((v) => v.email === c.email)));
     setMsg(bad ? `"${bad}" is not a valid email` : "");
   };
   const removeRecipient = (email: string) => setRecipients((prev) => prev.filter((r) => r.email !== email));
 
-  // Copy-only recipients (multisig): same add semantics; a signer never doubles as a CC.
+  // Delivery list (multisig): who receives the signed document. A signer belongs here as
+  // readily as anyone else — the operator is usually both, and the old copy-only list
+  // silently dropped them, which is how a finished document reached nobody who asked for it.
   const addCc = (email: string, name: string | null) => {
     const parts = email.split(",").map((p) => p.trim()).filter(Boolean);
     if (!parts.length) return;
@@ -243,17 +251,18 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
       if (!EMAIL_RE.test(e)) { bad = p; continue; }
       valid.push({ email: e, name: parts.length === 1 ? name : null });
     }
+    deliveryTouched.current = true;
     setCcList((prev) => {
       const next = [...prev];
-      for (const v of valid) {
-        if (recipients.some((r) => r.email === v.email)) continue; // already signing
-        if (!next.some((r) => r.email === v.email)) next.push(v);
-      }
+      for (const v of valid) if (!next.some((r) => r.email === v.email)) next.push(v);
       return next;
     });
     setMsg(bad ? `"${bad}" is not a valid email` : "");
   };
-  const removeCc = (email: string) => setCcList((prev) => prev.filter((r) => r.email !== email));
+  const removeCc = (email: string) => {
+    deliveryTouched.current = true;
+    setCcList((prev) => prev.filter((r) => r.email !== email));
+  };
 
   // Waiver post-upload dispatch: reuse the send route (records legal_sends + emails / returns url).
   const finishWaiverSend = async (documentId: string, title: string) => {
@@ -327,8 +336,8 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
       fd.append("kind", "multisig");
       fd.append("signers", JSON.stringify(recipients));
       fd.append("sequential", String(inOrder));
-      fd.append("finalCopyAll", String(finalCopyAll));
-      if (ccList.length) fd.append("ccRecipients", JSON.stringify(ccList));
+      fd.append("finalCopyAll", String(copyToSigners));
+      fd.append("deliveryEmails", JSON.stringify(ccList.map((c) => c.email)));
       if (note.trim()) fd.append("note", note.trim());
       if (emailSubject.trim()) fd.append("emailSubject", emailSubject.trim());
       if (replyTo) fd.append("emailReplyTo", replyTo);
@@ -368,18 +377,21 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
     };
     xhr.upload.onload = () => setUploadPct(null); // file fully sent → server now talking to Documenso
     xhr.onload = () => {
-      let d: { ok?: boolean; error?: string; document?: { id?: string; title?: string; kind?: string; signerCount?: number; sequential?: boolean; ccCount?: number } } | null = null;
+      let d: { ok?: boolean; error?: string; document?: { id?: string; title?: string; kind?: string; signerCount?: number; sequential?: boolean; deliveryCount?: number } } | null = null;
       try { d = JSON.parse(xhr.responseText); } catch { /* non-JSON */ }
       if (xhr.status >= 200 && xhr.status < 300 && d?.ok) {
         const docTitle = d.document?.title ?? title;
         if (d.document?.kind === "multisig") {
           const n = d.document?.signerCount ?? recipients.length;
           const first = recipients[0]?.name || recipients[0]?.email || "the first signer";
-          done(d.document?.sequential
-            ? `"${docTitle}" is on its way — ${first} signs first; each next signer is emailed automatically when the previous one finishes, and the completed document comes back to you.`
-            : `"${docTitle}" sent to ${n} signer(s) — each received their own signing link.`);
+          const delivery = d.document?.deliveryCount ?? ccList.length;
+          const ending = delivery
+            ? ` The signed document goes to ${delivery === 1 ? ccList[0]?.email ?? "1 address" : `${delivery} addresses`} once everyone has signed.`
+            : " Nobody is set to receive the finished document.";
+          done((d.document?.sequential
+            ? `"${docTitle}" is on its way — ${first} signs first; each next signer is emailed automatically when the previous one finishes.`
+            : `"${docTitle}" sent to ${n} signer(s) — each received their own signing link.`) + ending);
           setRecipients([]);
-          setCcList([]);
           setNote("");
           setPlacements({});
           setEmailSubject(""); // reply-to intentionally kept for the next send
@@ -572,50 +584,50 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
                     Sign in order — one at a time
                     <CheckHint>— only the first signer is emailed now; each signature automatically sends the next signer their link. Unchecked, everyone is emailed at once.</CheckHint>
                   </CheckRow>
+                  <Label>Deliver the signed document to</Label>
+                  <Row>
+                    <DDM
+                      label="Add staff"
+                      ariaLabel="Add a staff delivery address"
+                      align="left"
+                      items={staff.map((s): DDMItem => ({
+                        key: s.username,
+                        label: `${s.username} · ${s.email}`,
+                        onClick: () => addCc(s.email, s.username),
+                      }))}
+                    />
+                    <Input
+                      placeholder="or type emails (comma-separated)"
+                      value={ccEmail}
+                      onChange={(e) => setCcEmail(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === "Enter") { addCc(ccEmail, null); setCcEmail(""); } }}
+                    />
+                    <AddBtn type="button" onClick={() => { addCc(ccEmail, null); setCcEmail(""); }}>Add</AddBtn>
+                  </Row>
+                  {ccList.length > 0 ? (
+                    <Chips>
+                      {ccList.map((r) => (
+                        <Chip key={r.email}>
+                          {r.name ? `${r.name} · ` : ""}{r.email}
+                          <ChipX type="button" onClick={() => removeCc(r.email)} aria-label="Remove"><XIcon size={12} /></ChipX>
+                        </Chip>
+                      ))}
+                    </Chips>
+                  ) : (
+                    <EmptyDelivery>
+                      No one receives the finished document — including you. Add an address above if
+                      that isn&apos;t what you want.
+                    </EmptyDelivery>
+                  )}
                   <CheckRow>
                     <input
                       type="checkbox"
-                      checked={finalCopyAll}
-                      onChange={(e) => setFinalCopyAll(e.target.checked)}
+                      checked={copyToSigners}
+                      onChange={(e) => setCopyToSigners(e.target.checked)}
                     />
-                    Email everyone the signed document when complete
-                    <CheckHint>— all or none (signers + copy recipients); you always get the completed document back either way.</CheckHint>
+                    Also send it to everyone who signed
+                    <CheckHint>— adds each signer to the list above when the document completes.</CheckHint>
                   </CheckRow>
-
-                  {finalCopyAll && (
-                    <>
-                      <Label>Copy recipients (optional — receive the final signed copy, don&apos;t sign)</Label>
-                      <Row>
-                        <DDM
-                          label="Add staff"
-                          ariaLabel="Add a staff copy recipient"
-                          align="left"
-                          items={staff.map((s): DDMItem => ({
-                            key: s.username,
-                            label: `${s.username} · ${s.email}`,
-                            onClick: () => addCc(s.email, s.username),
-                          }))}
-                        />
-                        <Input
-                          placeholder="or type emails (comma-separated)"
-                          value={ccEmail}
-                          onChange={(e) => setCcEmail(e.target.value)}
-                          onKeyDown={(e) => { if (e.key === "Enter") { addCc(ccEmail, null); setCcEmail(""); } }}
-                        />
-                        <AddBtn type="button" onClick={() => { addCc(ccEmail, null); setCcEmail(""); }}>Add</AddBtn>
-                      </Row>
-                      {ccList.length > 0 && (
-                        <Chips>
-                          {ccList.map((r) => (
-                            <Chip key={r.email}>
-                              {r.name ? `${r.name} · ` : ""}{r.email}
-                              <ChipX type="button" onClick={() => removeCc(r.email)} aria-label="Remove"><XIcon size={12} /></ChipX>
-                            </Chip>
-                          ))}
-                        </Chips>
-                      )}
-                    </>
-                  )}
                 </>
               )}
 
@@ -962,6 +974,11 @@ const CheckRow = styled.label`
   input { flex: 0 0 auto; transform: translateY(1px); }
 `;
 const CheckHint = styled.span`font-size: 11.5px; font-weight: 400; color: rgba(232,232,239,0.45);`;
+// An empty delivery list is allowed but rarely meant — say so where the chips would be,
+// in warning amber rather than the muted grey the operator's eye already skips.
+const EmptyDelivery = styled.p`
+  margin: 6px 0 0; font-size: 11.5px; line-height: 1.5; color: rgba(255,196,120,0.85);
+`;
 const Chips = styled.div`display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px;`;
 const Chip = styled.span`display: inline-flex; align-items: center; gap: 6px; background: rgba(120,200,255,0.1); border: 1px solid rgba(120,200,255,0.28); border-radius: 999px; padding: 4px 10px; font-size: 12px;`;
 const ChipX = styled.button`background: transparent; border: none; color: inherit; cursor: pointer; display: inline-flex; padding: 0; opacity: 0.7; &:hover { opacity: 1; }`;
