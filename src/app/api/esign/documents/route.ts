@@ -289,18 +289,19 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // Operator-placed signature/date boxes (percent coords from the modal's preview).
-  // Optional — signers without an entry keep the auto-stacked default; the module
-  // clamps rects and page numbers again server-side.
+  // Operator-placed boxes (percent coords from the modal's preview): each signer's own
+  // list of signature / initials / full-name / date fields, on whichever pages they drew
+  // them. Optional — a signer without an entry keeps the auto-stacked signature+date pair;
+  // the module clamps rects and page numbers again server-side.
+  type PlacedRect = { pageX: number; pageY: number; width: number; height: number };
+  type FieldKind = "signature" | "initials" | "name" | "date";
   type PlacementEntry = {
     signerIndex: number;
-    pageNumber: number;
-    signature: { pageX: number; pageY: number; width: number; height: number };
-    date?: { pageX: number; pageY: number; width: number; height: number };
-    datePageNumber?: number;
-    /** Operator X'd this signer's date box out — they sign, and date nothing. */
-    noDate?: boolean;
+    fields: Array<PlacedRect & { kind: FieldKind; pageNumber: number }>;
   };
+  /** Ceilings, so a runaway client cannot ask Documenso for thousands of fields. */
+  const MAX_FIELDS_PER_SIGNER = 200;
+  const FIELD_KINDS: readonly FieldKind[] = ["signature", "initials", "name", "date"];
   const placements: PlacementEntry[] = [];
   if (kind === "multisig") {
     let pRaw: unknown = [];
@@ -309,7 +310,7 @@ export async function POST(req: NextRequest) {
     } catch {
       return NextResponse.json({ error: "placements must be a JSON array" }, { status: 400 });
     }
-    const rectOf = (v: unknown): PlacementEntry["signature"] | null => {
+    const rectOf = (v: unknown): PlacedRect | null => {
       const r = v as { pageX?: unknown; pageY?: unknown; width?: unknown; height?: unknown };
       const nums = [r?.pageX, r?.pageY, r?.width, r?.height].map(Number);
       if (nums.some((n) => !Number.isFinite(n))) return null;
@@ -319,27 +320,28 @@ export async function POST(req: NextRequest) {
     };
     const seenIdx = new Set<number>();
     for (const raw of Array.isArray(pRaw) ? pRaw : []) {
-      const e = raw as PlacementEntry;
+      const e = raw as { signerIndex?: unknown; fields?: unknown };
       const idx = Number(e?.signerIndex);
-      const page = Number(e?.pageNumber);
-      const sig = rectOf(e?.signature);
       if (!Number.isInteger(idx) || idx < 0 || idx >= signers.length) continue;
-      if (!Number.isInteger(page) || page < 1 || page > 5000) continue;
-      if (!sig || seenIdx.has(idx)) continue;
+      if (seenIdx.has(idx)) continue;
+      const fields: PlacementEntry["fields"] = [];
+      for (const fRaw of Array.isArray(e?.fields) ? e.fields : []) {
+        const f = fRaw as { kind?: unknown; pageNumber?: unknown };
+        const k = String(f?.kind) as FieldKind;
+        const page = Number(f?.pageNumber);
+        const rect = rectOf(fRaw);
+        if (!FIELD_KINDS.includes(k)) continue;
+        if (!Number.isInteger(page) || page < 1 || page > 5000) continue;
+        if (!rect) continue;
+        fields.push({ kind: k, pageNumber: page, ...rect });
+        if (fields.length >= MAX_FIELDS_PER_SIGNER) break;
+      }
+      // A signer with nothing left to fill in could never finish signing, and a stalled
+      // signer stalls the whole chain — so an empty list falls back to the auto-stack
+      // rather than being sent as-is.
+      if (!fields.length) continue;
       seenIdx.add(idx);
-      // noDate is carried on its own rather than inferred from a missing rect: absent
-      // means "derive one" downstream, so only the explicit flag removes the field.
-      const noDate = e?.noDate === true;
-      const date = !noDate && e?.date ? rectOf(e.date) : null;
-      const datePage = Number(e?.datePageNumber);
-      placements.push({
-        signerIndex: idx,
-        pageNumber: page,
-        signature: sig,
-        ...(noDate ? { noDate: true } : {}),
-        ...(date ? { date } : {}),
-        ...(!noDate && Number.isInteger(datePage) && datePage >= 1 && datePage <= 5000 ? { datePageNumber: datePage } : {}),
-      });
+      placements.push({ signerIndex: idx, fields });
     }
   }
 

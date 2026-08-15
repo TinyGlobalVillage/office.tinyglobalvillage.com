@@ -8,14 +8,15 @@
 // THREE views on a PillBar (2026-07-02 redesign — Upload+Send folded into one):
 //   New Document — pick the mode (waiver = one shared /d/{token} link; multiple signatures =
 //     Documenso document flow, each named signer gets their own emailed link + their own
-//     SIGNATURE/DATE boxes), add recipients/signers, stage the PDF, then press SEND — nothing
+//     fields), add recipients/signers, stage the PDF, then press SEND — nothing
 //     dispatches until the button. Waiver recipients are optional (skip them to just get the link).
 //   Activity — the outbox (sent → signed per recipient; X removes an entry, log-only).
 //   Documents — the library w/ kind filter, per-signer status, copy-link, delete.
 //
 // Multisig boxes default to auto-stacking on the last page IN THE ORDER SIGNERS ARE ADDED —
-// but once a PDF is staged, the SignaturePlacer preview renders every page and the operator
-// DRAGS each signer's Sign + Date boxes exactly onto the document's printed signature lines.
+// but once a PDF is staged, the FieldPlacer preview renders every page: the operator TICKS
+// what each person is asked for (sign · initials · full name · date) and DRAGS those boxes
+// onto the document's printed lines, one initials box per page where a contract wants them.
 // The header gear (multisig only) opens Email settings as a DIALOG LAYERED OVER the console
 // (z 1100 above the console's 1000), and it opens itself whenever a document is staged, so
 // every send is a deliberate choice of what the recipient reads. Office WRITES AND SENDS the
@@ -36,7 +37,7 @@ import PillBar from "@tgv/module-component-library/components/ui/PillBar";
 import ConfirmModal from "../frontdesk/ConfirmModal";
 import SettingsIcon from "../icons/SettingsIcon";
 import UploadDropzone from "../UploadDropzone";
-import SignaturePlacer, { type SignerPlacement } from "./SignaturePlacer";
+import FieldPlacer, { type SignerPlacement } from "./FieldPlacer";
 
 // ── types (mirror the API payloads) ────────────────────────────────────────────
 type DocKind = "waiver" | "multisig";
@@ -432,16 +433,17 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
       fd.append("signEyebrow", signEyebrow.trim());
       fd.append("signTitle", signPageTitle.trim());
       if (replyTo) fd.append("emailReplyTo", replyTo);
+      // The whole set, exactly as it was drawn: what each signer is asked for, how many of
+      // each, and which page every box sits on. The server replaces that signer's default
+      // pair with this list, so a kind the operator un-ticked is simply not in it.
       const placed = recipients
         .map((r, i) => {
           const p = placements[r.email];
-          if (!p) return null;
-          // An X'd-out date is sent as an explicit noDate, never as a missing rect —
-          // the server DERIVES a date box when one is absent, so silence would put the
-          // field back rather than remove it.
-          return p.noDate
-            ? { signerIndex: i, pageNumber: p.pageNumber, signature: p.signature, noDate: true }
-            : { signerIndex: i, pageNumber: p.pageNumber, signature: p.signature, date: p.date, datePageNumber: p.datePageNumber };
+          if (!p?.fields.length) return null;
+          return {
+            signerIndex: i,
+            fields: p.fields.map((f) => ({ kind: f.kind, pageNumber: f.pageNumber, ...f.rect })),
+          };
         })
         .filter(Boolean);
       if (placed.length) fd.append("placements", JSON.stringify(placed));
@@ -825,7 +827,7 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
               </UploadDropzone>
 
               {mode === "multisig" && uploadFile && recipients.length > 0 && !uploading && (
-                <SignaturePlacer
+                <FieldPlacer
                   file={uploadFile}
                   signers={recipients}
                   placements={placements}
