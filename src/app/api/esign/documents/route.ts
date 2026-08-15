@@ -45,6 +45,7 @@ import {
   setLegalDocumentCertPrefs,
   setLegalDocumentDelivery,
   setLegalDocumentInvite,
+  rememberSigningToken,
   type InsertSignerInput,
 } from "@tgv/module-documenso/db/multisig-queries";
 import { sendMail } from "@/lib/email/sendMail";
@@ -208,6 +209,16 @@ export async function POST(req: NextRequest) {
   const inviteHeading = String(form.get("inviteHeading") ?? "").trim().slice(0, 120);
   const inviteButtonLabel = String(form.get("inviteButtonLabel") ?? "").trim().slice(0, 40);
   const inviteFooter = String(form.get("inviteFooter") ?? "").trim().slice(0, 200);
+  // The signing page's two identity lines (gear → Signing page). A cleared field means
+  // "leave that line off the page", so presence is read from the FIELD, never from its
+  // value — an absent pair falls back to the house wording, an empty string does not.
+  const journey =
+    form.has("signEyebrow") || form.has("signTitle")
+      ? {
+          eyebrow: String(form.get("signEyebrow") ?? "").trim().slice(0, 60),
+          title: String(form.get("signTitle") ?? "").trim().slice(0, 120),
+        }
+      : null;
   const replyToInput = String(form.get("emailReplyTo") ?? "").trim().toLowerCase();
   if (replyToInput && !EMAIL_RE.test(replyToInput)) {
     return NextResponse.json({ error: `Invalid reply-to email: "${replyToInput}"` }, { status: 400 });
@@ -353,6 +364,7 @@ export async function POST(req: NextRequest) {
       buttonLabel: inviteButtonLabel,
       footer: inviteFooter,
       replyTo: emailReplyTo,
+      ...(journey ? { journey } : {}),
     });
     let result;
     try {
@@ -404,6 +416,13 @@ export async function POST(req: NextRequest) {
     const tokenByEmail = new Map(
       result.recipients.filter((r) => r.token).map((r) => [r.email, r.token as string]),
     );
+    // Every token the document was created with, hashed onto its signer row — including the
+    // ones nobody is mailed yet, since a sequential chain's later links already exist and are
+    // valid. The hash is all that is kept; it is what lets each signer's own page name their
+    // document and greet them instead of rendering an anonymous frame around a stranger's PDF.
+    for (const [email, token] of tokenByEmail) {
+      await rememberSigningToken(db, result.documensoDocumentId, email, token).catch(() => {});
+    }
     const byOrder = [...signers.entries()].sort(([a], [b]) => a - b);
     const inviteNow = sequential ? byOrder.slice(0, 1) : byOrder;
     const invited: string[] = [];

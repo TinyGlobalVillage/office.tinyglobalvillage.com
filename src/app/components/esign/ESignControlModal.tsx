@@ -124,6 +124,21 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // field can show the operator exactly what will be sent in its place. The module is still
 // the authority — these are placeholders, never submitted.
 const INVITE_DEFAULTS = { heading: "Your signature is needed", buttonLabel: "Review & sign", footer: "Sent by Tiny Global Village" };
+// The signing page's two identity lines, mirrored from the journey page's own copy file
+// (tinyglobalvillage.com/src/app/[lang]/sign/[token]/journey-copy.ts). These are seeded
+// INTO the fields rather than shown as placeholders: here a cleared field means "drop
+// that line", and a placeholder cannot say the difference between empty and unset.
+const JOURNEY_DEFAULTS = { eyebrow: "Tiny Global Village", title: "Your signature is needed" };
+// Where the signer's page lives. Office frames the real route so what an operator judges
+// is the page itself, not a copy of it drawn here that would drift on the first edit.
+const SIGN_PAGE_ORIGIN = process.env.NEXT_PUBLIC_TGV_ORIGIN || "https://tinyglobalvillage.com";
+const PREVIEW_SEGMENTS = [
+  { key: "email", label: "Email" },
+  { key: "page", label: "Signing page" },
+];
+// A laptop's screen, scaled to fit the dialog — the shape most signers open the link on.
+const SIGN_FRAME_W = 1120;
+const SIGN_FRAME_H = 760;
 const inviteDefaultMessage = (title: string) =>
   `You've been asked to sign "${title}".\n\nOpening the link below shows you the document and your own signature box — you can sign from your phone, and nothing else is required of you.`;
 
@@ -185,6 +200,12 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
   const [inviteButtonLabel, setInviteButtonLabel] = useState("");
   const [inviteFooter, setInviteFooter] = useState("");
   const [emailReplyTo, setEmailReplyTo] = useState("");
+  // The signing page's header, seeded with the house wording so it can be edited or
+  // emptied. Empty is a real answer here — that line simply isn't rendered — which is
+  // why these two are always submitted, blank included, unlike the email fields above.
+  const [signEyebrow, setSignEyebrow] = useState(JOURNEY_DEFAULTS.eyebrow);
+  const [signPageTitle, setSignPageTitle] = useState(JOURNEY_DEFAULTS.title);
+  const [previewFace, setPreviewFace] = useState<"email" | "page">("email");
 
   // documents-tab kind filter (PillBar)
   const [docFilter, setDocFilter] = useState<KindFilter>("all");
@@ -241,6 +262,29 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
   // The title the server will use — the staged filename, minus .pdf. Placeholders and the
   // preview quote it so the defaults read as the real sentence, not a template.
   const previewTitle = uploadFile ? uploadFile.name.replace(/\.pdf$/i, "") : "(document title)";
+
+  // The signing-page preview is the REAL page in an iframe, so its src is debounced —
+  // typing a title should curate a screen, not fire a page load per keystroke.
+  const [signPreviewSrc, setSignPreviewSrc] = useState("");
+  useEffect(() => {
+    const q = new URLSearchParams({ eyebrow: signEyebrow.trim(), title: signPageTitle.trim() });
+    const t = setTimeout(() => setSignPreviewSrc(`${SIGN_PAGE_ORIGIN}/sign/preview/?${q.toString()}`), 350);
+    return () => clearTimeout(t);
+  }, [signEyebrow, signPageTitle]);
+  // …and it is rendered at a real screen's width, then scaled down to whatever the dialog
+  // gives it. A phone-width iframe would preview a layout no signer is going to meet.
+  const frameBoxRef = useRef<HTMLDivElement | null>(null);
+  const [frameScale, setFrameScale] = useState(0.42);
+  useEffect(() => {
+    const el = frameBoxRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([entry]) => {
+      const w = entry.contentRect.width;
+      if (w > 0) setFrameScale(w / SIGN_FRAME_W);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [gearOpen, previewFace]);
 
   // A recorded link belongs to one upload; switching mode invalidates it.
   useEffect(() => { setRecordedUrl(null); }, [mode]);
@@ -383,6 +427,10 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
       if (inviteHeading.trim()) fd.append("inviteHeading", inviteHeading.trim());
       if (inviteButtonLabel.trim()) fd.append("inviteButtonLabel", inviteButtonLabel.trim());
       if (inviteFooter.trim()) fd.append("inviteFooter", inviteFooter.trim());
+      // Always sent, blank included: the server reads PRESENCE, so an empty line arrives
+      // as the operator's decision to drop it rather than as "use the default".
+      fd.append("signEyebrow", signEyebrow.trim());
+      fd.append("signTitle", signPageTitle.trim());
       if (replyTo) fd.append("emailReplyTo", replyTo);
       const placed = recipients
         .map((r, i) => {
@@ -953,20 +1001,71 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
           mailbox. An invite nobody can reply to is a dead end for the signer and a spam signal
           to their mail provider.</FieldHint>
 
-          {/* The email itself, at the size it arrives. Rendered from the same five fields the
-              server sends, so what is curated here is what the signer opens — no Documenso
-              wording survives anywhere in it. */}
-          <Label>Preview</Label>
-          <InvitePreview>
-            <PreviewWordmark>Tiny Global Village</PreviewWordmark>
-            <PreviewHeading>{inviteHeading.trim() || INVITE_DEFAULTS.heading}</PreviewHeading>
-            {(note.trim() || inviteDefaultMessage(previewTitle))
-              .split(/\n{2,}/)
-              .map((p, i) => <PreviewPara key={i}>{p}</PreviewPara>)}
-            <PreviewButton>{inviteButtonLabel.trim() || INVITE_DEFAULTS.buttonLabel}</PreviewButton>
-            <PreviewLink>Or paste this into your browser:<br />https://esign.tinyglobalvillage.com/sign/…</PreviewLink>
-            <PreviewFooter>{inviteFooter.trim() || INVITE_DEFAULTS.footer}</PreviewFooter>
-          </InvitePreview>
+          {/* Where the button leads. These two lines head the screen the signer signs on, and
+              unlike the email fields they are seeded rather than hinted: clearing one drops
+              that line from the page, which a placeholder could never express. */}
+          <Label>Signing page — the two lines above the document</Label>
+          <TwoUp>
+            <div>
+              <SubLabel>Small line</SubLabel>
+              <LineInput
+                value={signEyebrow}
+                maxLength={60}
+                onChange={(e) => setSignEyebrow(e.target.value)}
+                aria-label="Signing page small line"
+              />
+            </div>
+            <div>
+              <SubLabel>Title</SubLabel>
+              <LineInput
+                value={signPageTitle}
+                maxLength={120}
+                onChange={(e) => setSignPageTitle(e.target.value)}
+                aria-label="Signing page title"
+              />
+            </div>
+          </TwoUp>
+          <FieldHint>Empty a field and that line is left off the page entirely.</FieldHint>
+
+          {/* Both halves of what you are about to send, in one place: the email at the size
+              it arrives, and the page its button opens. The signing face frames the real
+              route rather than a mock of it, so it cannot drift from what the signer meets. */}
+          <PreviewHead>
+            <Label>Preview</Label>
+            <PillBar variant="flat"
+              segments={PREVIEW_SEGMENTS}
+              active={previewFace}
+              onChange={(k) => setPreviewFace(k as "email" | "page")}
+              accent={ACCENT}
+              ariaLabel="Preview which surface"
+            />
+          </PreviewHead>
+          {previewFace === "email" ? (
+            <InvitePreview>
+              <PreviewWordmark>Tiny Global Village</PreviewWordmark>
+              <PreviewHeading>{inviteHeading.trim() || INVITE_DEFAULTS.heading}</PreviewHeading>
+              {(note.trim() || inviteDefaultMessage(previewTitle))
+                .split(/\n{2,}/)
+                .map((p, i) => <PreviewPara key={i}>{p}</PreviewPara>)}
+              <PreviewButton>{inviteButtonLabel.trim() || INVITE_DEFAULTS.buttonLabel}</PreviewButton>
+              <PreviewLink>Or paste this into your browser:<br />{SIGN_PAGE_ORIGIN}/sign/…</PreviewLink>
+              <PreviewFooter>{inviteFooter.trim() || INVITE_DEFAULTS.footer}</PreviewFooter>
+            </InvitePreview>
+          ) : (
+            <>
+              <SignFrameBox ref={frameBoxRef}>
+                {signPreviewSrc && (
+                  <SignFrame
+                    src={signPreviewSrc}
+                    title="Signing page preview"
+                    style={{ transform: `scale(${frameScale})` }}
+                  />
+                )}
+              </SignFrameBox>
+              <FieldHint>The document itself appears in the empty panel — this is the frame
+              around it, with no signer and nothing to sign.</FieldHint>
+            </>
+          )}
 
           <GearFooter>
             <InfoBubble
@@ -1046,7 +1145,9 @@ const GearBackdrop = styled.div`
   display: flex; align-items: center; justify-content: center; padding: 24px;
 `;
 const GearDialog = styled.div`
-  width: min(520px, 100%); max-height: 86vh; overflow-y: auto;
+  /* Wide enough that the framed signing page is judged at a readable scale — under
+     ~520px the whole screen shrinks past the point where its copy can be curated. */
+  width: min(600px, 100%); max-height: 86vh; overflow-y: auto;
   display: flex; flex-direction: column; gap: 4px; padding: 16px 18px 18px;
   background: #11141b; border: 1px solid rgba(120,200,255,0.3); border-radius: 13px;
   box-shadow: 0 24px 70px rgba(0,0,0,0.65); color: #e8e8ef;
@@ -1063,6 +1164,27 @@ const GearFooter = styled.div`
 const TwoUp = styled.div`
   display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
   @media (max-width: 460px) { grid-template-columns: 1fr; }
+`;
+const SubLabel = styled.span`
+  display: block; margin-bottom: 5px; font-size: 11px; font-weight: 600;
+  color: rgba(232,232,239,0.6);
+`;
+const PreviewHead = styled.div`
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  flex-wrap: wrap; margin-top: 4px;
+`;
+// The signing page at a laptop's width, scaled into whatever the dialog can spare. The
+// frame keeps its real proportions so the operator judges the layout a signer meets,
+// not a squeezed one that only exists inside this box.
+const SignFrameBox = styled.div`
+  position: relative; margin-top: 4px; width: 100%;
+  aspect-ratio: ${SIGN_FRAME_W} / ${SIGN_FRAME_H};
+  border-radius: 10px; overflow: hidden; background: #f4f5f7;
+  border: 1px solid rgba(255,255,255,0.14);
+`;
+const SignFrame = styled.iframe`
+  position: absolute; top: 0; left: 0; border: 0; transform-origin: top left;
+  width: ${SIGN_FRAME_W}px; height: ${SIGN_FRAME_H}px;
 `;
 // The invitation as the signer meets it: a LIGHT card inside the dark console, because
 // that is the contrast their inbox will show and a dark mock would flatter copy that

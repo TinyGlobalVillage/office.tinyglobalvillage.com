@@ -77,9 +77,19 @@ SET "brandingEnabled"        = true,
       'radius',               '8px'
     );
 
--- The signing footer's "Powered by" is a claim flag, not a settings column.
+-- The signing footer's "Powered by" is a claim flag, not a settings column. The embed flags
+-- sit beside it in the same jsonb (packages/lib/types/subscription.js names them): they open
+-- /embed/sign/{token} — Documenso's own signing widget, hosted inside OUR page — and drop the
+-- remaining Documenso identity from it. Upstream these are paid-plan claims; on a self-hosted
+-- instance with billing off they are ours to grant, and several gates read
+-- `!IS_BILLING_ENABLED() || flag`, so setting them explicitly only makes the intent legible.
 UPDATE "OrganisationClaim"
-SET flags = COALESCE(flags, '{}'::jsonb) || '{"hidePoweredBy": true}'::jsonb;
+SET flags = COALESCE(flags, '{}'::jsonb) || '{
+  "hidePoweredBy": true,
+  "allowCustomBranding": true,
+  "embedSigning": true,
+  "embedSigningWhiteLabel": true
+}'::jsonb;
 
 COMMIT;
 
