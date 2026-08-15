@@ -1,8 +1,13 @@
 "use client";
 
 // FieldPlacer — build each signer's set of fields on a rendered preview of the staged PDF:
-// tick the marks this document asks that person for (sign · initials · full name · date),
-// then drag each box onto the printed line it belongs on.
+// start from a baked-in layout, tick the marks this document asks that person for
+// (sign · initials · full name · date), then drag each box onto the printed line it belongs on.
+//
+// The layouts are the fast path, because paper repeats itself: sign and date at the foot of
+// the last page, or initials down every margin with the signature at the end. One click lays
+// that over the whole roster, each signer on their own row; dragging is what the document
+// that doesn't fit them needs.
 //
 // Four kinds, because those are the marks that make a contract signed. A multi-page
 // agreement wants initials in the corner of every page and the signature only on the last,
@@ -88,15 +93,77 @@ function defaultRect(kind: FieldKind, y: number): PlacedRect {
   }
 }
 
+/** The margin stamp, one lane per signer so two people initialling the same page don't
+ *  land on top of each other. Lanes run up from the bottom corner. */
+function initialsRect(index: number): PlacedRect {
+  return { pageX: 86, pageY: Math.max(3, 90 - index * 7), width: 10, height: 5 };
+}
+
+/**
+ * The baked-in layouts — how paper actually asks. An operator opens the placer on a
+ * contract they have read once, and the fastest true answer is almost always one of these
+ * four; dragging is for the document that doesn't fit them. Applying one REPLACES every
+ * signer's boxes (each on their own stacked row), which is why they read as a starting
+ * point rather than a toggle: after this, the operator drags.
+ */
+type Layout = {
+  id: string;
+  label: string;
+  hint: string;
+  /** One signer's boxes. index/count position their row; pages is the preview's reach. */
+  build: (index: number, count: number, lastPage: number, pages: number) => PlacedField[];
+};
+
+const LAYOUTS: readonly Layout[] = [
+  {
+    id: "sign-date",
+    label: "Sign & date",
+    hint: "A signature and the date at the foot of the last page. The house default.",
+    build: (i, n, last) => {
+      const y = rowY(i, n);
+      return [
+        mkField("signature", last, defaultRect("signature", y)),
+        mkField("date", last, defaultRect("date", y)),
+      ];
+    },
+  },
+  {
+    id: "sign-only",
+    label: "Sign only",
+    hint: "One signature and nothing else — for a form that already carries its own date.",
+    build: (i, n, last) => [mkField("signature", last, defaultRect("signature", rowY(i, n)))],
+  },
+  {
+    id: "name-sign-date",
+    label: "Name, sign & date",
+    hint: "The name spelled out above the signature, then the date. How a witnessed form asks.",
+    build: (i, n, last) => {
+      const y = rowY(i, n);
+      return [
+        mkField("name", last, defaultRect("name", y)),
+        mkField("signature", last, defaultRect("signature", y)),
+        mkField("date", last, defaultRect("date", y)),
+      ];
+    },
+  },
+  {
+    id: "initial-throughout",
+    label: "Initial every page, sign at the end",
+    hint: "Initials in the margin of every page with the signature and date on the last — the multi-page contract.",
+    build: (i, n, last, pages) => {
+      const y = rowY(i, n);
+      const out: PlacedField[] = [];
+      for (let p = 1; p <= pages; p++) out.push(mkField("initials", p, initialsRect(i)));
+      out.push(mkField("signature", last, defaultRect("signature", y)));
+      out.push(mkField("date", last, defaultRect("date", y)));
+      return out;
+    },
+  },
+];
+
 /** Client mirror of the module's stackedFieldPlacements (signature + date, last page). */
 function seedDefault(index: number, count: number, lastPage: number): SignerPlacement {
-  const y = rowY(index, count);
-  return {
-    fields: [
-      mkField("signature", lastPage, defaultRect("signature", y)),
-      mkField("date", lastPage, defaultRect("date", y)),
-    ],
-  };
+  return { fields: LAYOUTS[0].build(index, count, lastPage, lastPage) };
 }
 
 type DragState = {
@@ -235,13 +302,13 @@ export default function FieldPlacer({
 
   /** One initials box in the corner of every page that hasn't got one yet — the whole
    *  reason a multi-page contract is tedious to prepare by hand. */
-  const initialEveryPage = (email: string) => {
+  const initialEveryPage = (email: string, index: number) => {
     const cur = placements[email]?.fields ?? [];
     const taken = new Set(cur.filter((f) => f.kind === "initials").map((f) => f.pageNumber));
     const added: PlacedField[] = [];
     for (let n = 1; n <= shownPages; n++) {
       if (taken.has(n)) continue;
-      added.push(mkField("initials", n, { pageX: 86, pageY: 90, width: 10, height: 5 }));
+      added.push(mkField("initials", n, initialsRect(index)));
     }
     if (added.length) setFields(email, [...cur, ...added]);
   };
@@ -330,10 +397,14 @@ export default function FieldPlacer({
 
   const onPointerUp = () => { dragRef.current = null; };
 
-  const resetAll = () => {
+  /** Lay a baked-in layout over the whole roster — everyone asked for the same marks, each
+   *  on their own row. One click, then drag whatever the document puts somewhere unusual. */
+  const applyLayout = (layout: Layout) => {
     if (status !== "ready" || !numPages) return;
     const next: Record<string, SignerPlacement> = {};
-    signers.forEach((s, i) => { next[s.email] = seedDefault(i, signers.length, lastPage); });
+    signers.forEach((s, i) => {
+      next[s.email] = { fields: layout.build(i, signers.length, lastPage, shownPages) };
+    });
     onChange(next);
   };
 
@@ -343,6 +414,20 @@ export default function FieldPlacer({
 
   return (
     <Wrap ref={containerRef}>
+      <Layouts>
+        <LayoutsLabel>Start from</LayoutsLabel>
+        {LAYOUTS.map((l) => (
+          <LayoutBtn
+            key={l.id}
+            type="button"
+            title={`${l.hint} Replaces every signer's boxes.`}
+            disabled={status !== "ready"}
+            onClick={() => applyLayout(l)}
+          >
+            {l.label}
+          </LayoutBtn>
+        ))}
+      </Layouts>
       <Roster>
         {signers.map((s, i) => {
           const c = COLORS[i % COLORS.length];
@@ -399,7 +484,7 @@ export default function FieldPlacer({
                 <GhostBtn
                   type="button"
                   title="Put an initials box in the corner of every page"
-                  onClick={() => initialEveryPage(s.email)}
+                  onClick={() => initialEveryPage(s.email, i)}
                 >
                   initial every page
                 </GhostBtn>
@@ -409,10 +494,9 @@ export default function FieldPlacer({
         })}
       </Roster>
       <Note>
-        Tick what this document asks each person for, then drag their boxes onto the printed lines —
-        recipients only ever see their own. Drag a corner to resize, X a box to drop it, and use
-        <strong> initial every page</strong> for a contract that wants initials throughout.
-        <ResetBtn type="button" onClick={resetAll}>Reset boxes</ResetBtn>
+        Start from a layout, or tick what this document asks each person for — then drag their boxes
+        onto the printed lines; recipients only ever see their own. Drag a corner to resize, X a box
+        to drop it, and use <strong>initial every page</strong> for one signer at a time.
       </Note>
       {status === "loading" && <Note>Rendering preview…</Note>}
       {status === "ready" && (
@@ -560,10 +644,17 @@ const GhostBtn = styled.button`
   color: rgba(232,232,239,0.75); font-size: 10.5px; line-height: 1.5; padding: 3px 9px; cursor: pointer;
   &:hover { color: #fff; border-color: rgba(120,200,255,0.6); }
 `;
-const ResetBtn = styled.button`
-  margin-left: 8px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.12);
-  border-radius: 8px; color: #e8e8ef; padding: 2px 9px; font-size: 11px; cursor: pointer;
-  &:hover { border-color: rgba(120,200,255,0.5); }
+const Layouts = styled.div`display: flex; flex-wrap: wrap; align-items: center; gap: 5px;`;
+const LayoutsLabel = styled.span`
+  font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase;
+  color: rgba(232,232,239,0.45); margin-right: 2px;
+`;
+const LayoutBtn = styled.button`
+  background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 999px; color: #e8e8ef; padding: 3px 10px; font-size: 11px; line-height: 1.5;
+  cursor: pointer;
+  &:hover:not(:disabled) { border-color: rgba(120,200,255,0.55); background: rgba(120,200,255,0.12); }
+  &:disabled { opacity: 0.45; cursor: default; }
 `;
 const Note = styled.p`margin: 0; font-size: 11.5px; line-height: 1.5; color: rgba(232,232,239,0.5);`;
 const Pages = styled.div`
