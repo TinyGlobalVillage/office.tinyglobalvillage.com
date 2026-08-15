@@ -46,6 +46,7 @@ import {
   setLegalDocumentDelivery,
   setLegalDocumentInvite,
   rememberSigningToken,
+  rememberSignerFieldPlan,
   type InsertSignerInput,
 } from "@tgv/module-documenso/db/multisig-queries";
 import { sendMail } from "@/lib/email/sendMail";
@@ -424,6 +425,16 @@ export async function POST(req: NextRequest) {
     // document and greet them instead of rendering an anonymous frame around a stranger's PDF.
     for (const [email, token] of tokenByEmail) {
       await rememberSigningToken(db, result.documensoDocumentId, email, token).catch(() => {});
+    }
+    // And what each of them was asked for, in the order they will meet it. The send just
+    // resolved those boxes — the operator's placement or the auto-stacked default — and this
+    // is the only moment they are known here, so the signer's page can say "2 of 5 filled"
+    // instead of counting into the dark. Best-effort: a document still sends without it.
+    for (const r of result.recipients) {
+      if (!r.fieldPlan?.length) continue;
+      await rememberSignerFieldPlan(db, result.documensoDocumentId, r.email, r.fieldPlan).catch(
+        () => {},
+      );
     }
     const byOrder = [...signers.entries()].sort(([a], [b]) => a - b);
     const inviteNow = sequential ? byOrder.slice(0, 1) : byOrder;
