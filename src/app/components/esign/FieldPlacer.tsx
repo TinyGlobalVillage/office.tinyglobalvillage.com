@@ -223,16 +223,49 @@ type DragState = {
   offY: number;
 };
 
-/** Resize floor/ceiling per kind, in percent of the page. Initials are a corner stamp;
- *  a signature is a line across the page — both have a range, and they aren't the same. */
-const LIMITS: Record<FieldKind, { minW: number; maxW: number; minH: number; maxH: number }> = {
-  signature: { minW: 8, maxW: 95, minH: 3, maxH: 40 },
-  initials: { minW: 4, maxW: 40, minH: 2, maxH: 20 },
-  name: { minW: 6, maxW: 80, minH: 2, maxH: 20 },
-  date: { minW: 5, maxW: 60, minH: 2, maxH: 20 },
-  text: { minW: 6, maxW: 95, minH: 2, maxH: 30 },
-  number: { minW: 4, maxW: 50, minH: 2, maxH: 20 },
+/**
+ * Resize FLOORS, in points of the real page — not percent. What the operator is aiming at is
+ * a printed line, and a line is about ten points tall on every paper size there is; a percent
+ * floor is a different physical size on A4 than on Legal, and the old flat 2% floor (≈16pt on
+ * Letter) was taller than the ruled line most forms leave for a name or a date, so a text box
+ * could not be shrunk onto its own line. Percent is what Documenso stores, so the floor is
+ * converted through the page's own dimensions at the moment of the resize.
+ */
+const MIN_PT: Record<FieldKind, { w: number; h: number }> = {
+  // A signature is drawn, not typed, so it keeps more room than the typed kinds.
+  signature: { w: 46, h: 12 },
+  initials: { w: 14, h: 9 },
+  name: { w: 32, h: 9 },
+  date: { w: 28, h: 9 },
+  text: { w: 18, h: 9 },
+  number: { w: 14, h: 9 },
 };
+/** Ceilings stay in percent — "no wider than the page" is a percent-shaped idea. */
+const MAX_PCT: Record<FieldKind, { w: number; h: number }> = {
+  signature: { w: 95, h: 40 },
+  initials: { w: 40, h: 20 },
+  name: { w: 80, h: 20 },
+  date: { w: 60, h: 20 },
+  text: { w: 95, h: 30 },
+  number: { w: 50, h: 20 },
+};
+/** US Letter — what a page is assumed to be until it has reported its own size. */
+const DEFAULT_PT = { w: 612, h: 792 };
+/** Below this the box IS a line rather than a panel, and its label moves above it so the
+ *  operator can still see the rectangle they are aiming at. */
+const TIGHT_PT = 17;
+
+/** The floor and ceiling for one box, given the size of the page it sits on. */
+function limitsFor(kind: FieldKind, pt: { w: number; h: number }) {
+  const min = MIN_PT[kind];
+  const max = MAX_PCT[kind];
+  return {
+    minW: Math.min(max.w, (min.w / pt.w) * 100),
+    minH: Math.min(max.h, (min.h / pt.h) * 100),
+    maxW: max.w,
+    maxH: max.h,
+  };
+}
 
 export default function FieldPlacer({
   file,
@@ -259,6 +292,16 @@ export default function FieldPlacer({
   const [activeId, setActiveId] = useState<string | null>(null);
   /** Index the row drag started from; reordering happens live as it passes each row. */
   const rowDragRef = useRef<number | null>(null);
+  /** Each page's real size in points, as its canvas reports it. The resize floor is a
+   *  physical size (a printed line), so it has to be converted through the page it is on —
+   *  and one document can mix paper sizes, hence a map rather than one number. */
+  const [pageSizes, setPageSizes] = useState<Record<number, { w: number; h: number }>>({});
+  const sizeFor = useCallback((n: number) => pageSizes[n] ?? DEFAULT_PT, [pageSizes]);
+  const notePageSize = useCallback((n: number, size: { w: number; h: number }) => {
+    setPageSizes((prev) =>
+      prev[n]?.w === size.w && prev[n]?.h === size.h ? prev : { ...prev, [n]: size },
+    );
+  }, []);
 
   // ── load the PDF whenever the staged file changes ─────────────────────────────
   useEffect(() => {
@@ -266,6 +309,7 @@ export default function FieldPlacer({
     let doc: PdfDoc | null = null;
     setStatus("loading");
     setNumPages(0);
+    setPageSizes({});
     (async () => {
       try {
         const pdfjs = (await import("pdfjs-dist")) as unknown as {
@@ -473,7 +517,7 @@ export default function FieldPlacer({
     let updated: PlacedField;
     if (drag.mode === "resize") {
       // bottom-right handle: the box grows toward the pointer; page never changes here
-      const lim = LIMITS[field.kind];
+      const lim = limitsFor(field.kind, sizeFor(field.pageNumber));
       const width = Math.min(lim.maxW, Math.max(lim.minW, ptrX - field.rect.pageX));
       const height = Math.min(lim.maxH, Math.max(lim.minH, ptrY - field.rect.pageY));
       updated = { ...field, rect: { ...field.rect, width, height } };
@@ -728,7 +772,7 @@ export default function FieldPlacer({
                 else wrapRefs.current.delete(n);
               }}
             >
-              <PageCanvas doc={docRef.current} pageNumber={n} />
+              <PageCanvas doc={docRef.current} pageNumber={n} onSize={notePageSize} />
               <PageNo>{n} / {numPages}</PageNo>
               {signers.map((s, i) => {
                 const c = COLORS[i % COLORS.length];
@@ -736,7 +780,11 @@ export default function FieldPlacer({
                 const only = fields.length <= 1;
                 return fields
                   .filter((f) => f.pageNumber === n)
-                  .map((f) => (
+                  .map((f) => {
+                  // A box shrunk to a printed line is smaller than the two controls that
+                  // hang off it — everything that has to step outside keys off this.
+                  const tight = (f.rect.height / 100) * sizeFor(f.pageNumber).h < TIGHT_PT;
+                  return (
                     <Box
                       key={f.id}
                       $c={c}
@@ -753,7 +801,7 @@ export default function FieldPlacer({
                       {/* A star means the signer cannot finish without it — the same mark a
                           paper form uses, so the operator reads their own document the way
                           the signer will. Optional boxes say so instead. */}
-                      <BoxLabel>
+                      <BoxLabel $tight={tight}>
                         {i + 1} ·{" "}
                         {f.kind === "signature" && !f.label
                           ? `${s.name || s.email} — sign`
@@ -765,6 +813,7 @@ export default function FieldPlacer({
                           pointer after the removal. */}
                       {!only && (
                         <BoxX
+                          $tight={tight}
                           type="button"
                           title={`Remove this ${KIND_NOUN[f.kind]} box`}
                           aria-label={`Remove a ${KIND_NOUN[f.kind]} box for signer ${i + 1}`}
@@ -776,9 +825,10 @@ export default function FieldPlacer({
                           </svg>
                         </BoxX>
                       )}
-                      <ResizeHandle $c={c} onPointerDown={(e) => onBoxPointerDown(e, s.email, f, "resize")} />
+                      <ResizeHandle $c={c} $tight={tight} onPointerDown={(e) => onBoxPointerDown(e, s.email, f, "resize")} />
                     </Box>
-                  ));
+                  );
+                  });
               })}
             </PageWrap>
           ))}
@@ -793,7 +843,15 @@ export default function FieldPlacer({
 
 // Each page renders itself once into its own canvas (sequential enough in practice —
 // pdfjs queues page work internally; docs here are a handful of pages).
-function PageCanvas({ doc, pageNumber }: { doc: PdfDoc | null; pageNumber: number }) {
+function PageCanvas({
+  doc,
+  pageNumber,
+  onSize,
+}: {
+  doc: PdfDoc | null;
+  pageNumber: number;
+  onSize: (n: number, size: { w: number; h: number }) => void;
+}) {
   const ref = useRef<HTMLCanvasElement | null>(null);
   useEffect(() => {
     let cancelled = false;
@@ -805,6 +863,9 @@ function PageCanvas({ doc, pageNumber }: { doc: PdfDoc | null; pageNumber: numbe
         if (cancelled) return;
         const cssW = canvas.parentElement?.clientWidth || 680;
         const base = page.getViewport({ scale: 1 });
+        // scale 1 IS the page in points — the one place this component learns what size
+        // paper it is drawing, and what a printed line is worth in percent.
+        onSize(pageNumber, { w: base.width, h: base.height });
         const scale = cssW / base.width;
         const dpr = Math.min(window.devicePixelRatio || 1, 2);
         const vp = page.getViewport({ scale: scale * dpr });
@@ -820,7 +881,7 @@ function PageCanvas({ doc, pageNumber }: { doc: PdfDoc | null; pageNumber: numbe
       }
     })();
     return () => { cancelled = true; };
-  }, [doc, pageNumber]);
+  }, [doc, pageNumber, onSize]);
   return <canvas ref={ref} />;
 }
 
@@ -1004,21 +1065,36 @@ const Box = styled.div<{ $c: string; $dashed?: boolean; $active?: boolean }>`
 `;
 const Star = styled.span`font-weight: 800; padding-left: 1px;`;
 const Opt = styled.span`font-weight: 500; opacity: 0.75;`;
-const BoxLabel = styled.span`
+const BoxLabel = styled.span<{ $tight?: boolean }>`
   position: absolute; left: 3px; top: 2px; right: 3px; font-size: 10px; line-height: 1.2;
   font-weight: 650; color: rgba(10,14,22,0.9); pointer-events: none; overflow: hidden;
   white-space: nowrap; text-overflow: ellipsis; text-shadow: 0 0 3px rgba(255,255,255,0.7);
+  /* Shrunk onto a printed line, a box is thinner than its own name — so the name lifts out
+     and sits above the rectangle instead of covering the line it is aiming at. */
+  ${(p) =>
+    p.$tight
+      ? "top: auto; bottom: calc(100% + 2px); left: 0; right: auto; width: max-content; max-width: 240px; font-size: 9px;"
+      : ""}
 `;
-const BoxX = styled.button`
+const BoxX = styled.button<{ $tight?: boolean }>`
   /* Sits on the box's top-right corner, opposite the resize handle, so the two gestures
-     can never be aimed at each other. */
-  position: absolute; right: -7px; top: -7px; width: 15px; height: 15px; padding: 0;
+     can never be aimed at each other. Shrunk onto a line, the box is smaller than its own
+     two controls — so the X steps outside it, to the left, and the rectangle stays a
+     rectangle the operator can still pick up and carry. */
+  ${(p) =>
+    p.$tight
+      ? "right: calc(100% + 4px); top: 50%; margin-top: -7.5px;"
+      : "right: -7px; top: -7px;"}
+  position: absolute; width: 15px; height: 15px; padding: 0;
   display: flex; align-items: center; justify-content: center; border-radius: 50%;
   background: #0d0d12; border: 1.5px solid rgba(255,255,255,0.55); color: rgba(255,255,255,0.85);
   cursor: pointer; touch-action: none;
   &:hover { background: #d94a5a; border-color: #d94a5a; color: #fff; }
 `;
-const ResizeHandle = styled.span<{ $c: string }>`
-  position: absolute; right: -6px; bottom: -6px; width: 12px; height: 12px; border-radius: 3px;
+const ResizeHandle = styled.span<{ $c: string; $tight?: boolean }>`
+  /* Half in, half out at normal sizes. On a line-height box it clears the rectangle entirely,
+     for the same reason the X does — the body of the box has to stay grabbable. */
+  ${(p) => (p.$tight ? "right: -11px; bottom: -11px;" : "right: -6px; bottom: -6px;")}
+  position: absolute; width: 12px; height: 12px; border-radius: 3px;
   background: ${(p) => p.$c}; border: 2px solid #0d0d12; cursor: nwse-resize; touch-action: none;
 `;
