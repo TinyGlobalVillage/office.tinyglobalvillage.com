@@ -295,14 +295,23 @@ export async function POST(req: NextRequest) {
   // them. Optional — a signer without an entry keeps the auto-stacked signature+date pair;
   // the module clamps rects and page numbers again server-side.
   type PlacedRect = { pageX: number; pageY: number; width: number; height: number };
-  type FieldKind = "signature" | "initials" | "name" | "date";
-  type PlacementEntry = {
-    signerIndex: number;
-    fields: Array<PlacedRect & { kind: FieldKind; pageNumber: number }>;
+  type FieldKind = "signature" | "initials" | "name" | "date" | "text" | "number";
+  type PlacedBox = PlacedRect & {
+    kind: FieldKind;
+    pageNumber: number;
+    required?: boolean;
+    label?: string;
+    order?: number;
   };
+  type PlacementEntry = { signerIndex: number; fields: PlacedBox[] };
   /** Ceilings, so a runaway client cannot ask Documenso for thousands of fields. */
   const MAX_FIELDS_PER_SIGNER = 200;
-  const FIELD_KINDS: readonly FieldKind[] = ["signature", "initials", "name", "date"];
+  const MAX_FIELD_LABEL = 120;
+  const FIELD_KINDS: readonly FieldKind[] = ["signature", "initials", "name", "date", "text", "number"];
+  /** Documenso only honours required:false on these two (its own optional-capable list) —
+   *  a signature or a date is always required there, so `false` on one is dropped here
+   *  rather than sent and silently ignored. */
+  const OPTIONAL_CAPABLE: readonly FieldKind[] = ["text", "number"];
   const placements: PlacementEntry[] = [];
   if (kind === "multisig") {
     let pRaw: unknown = [];
@@ -327,14 +336,32 @@ export async function POST(req: NextRequest) {
       if (seenIdx.has(idx)) continue;
       const fields: PlacementEntry["fields"] = [];
       for (const fRaw of Array.isArray(e?.fields) ? e.fields : []) {
-        const f = fRaw as { kind?: unknown; pageNumber?: unknown };
+        const f = fRaw as {
+          kind?: unknown;
+          pageNumber?: unknown;
+          required?: unknown;
+          label?: unknown;
+          order?: unknown;
+        };
         const k = String(f?.kind) as FieldKind;
         const page = Number(f?.pageNumber);
         const rect = rectOf(fRaw);
         if (!FIELD_KINDS.includes(k)) continue;
         if (!Number.isInteger(page) || page < 1 || page > 5000) continue;
         if (!rect) continue;
-        fields.push({ kind: k, pageNumber: page, ...rect });
+        const optional = f?.required === false && OPTIONAL_CAPABLE.includes(k);
+        const label = typeof f?.label === "string" ? f.label.trim().slice(0, MAX_FIELD_LABEL) : "";
+        const order = Number(f?.order);
+        fields.push({
+          kind: k,
+          pageNumber: page,
+          ...rect,
+          ...(optional ? { required: false } : {}),
+          ...(label ? { label } : {}),
+          ...(Number.isInteger(order) && order >= 0 && order < MAX_FIELDS_PER_SIGNER
+            ? { order }
+            : {}),
+        });
         if (fields.length >= MAX_FIELDS_PER_SIGNER) break;
       }
       // A signer with nothing left to fill in could never finish signing, and a stalled

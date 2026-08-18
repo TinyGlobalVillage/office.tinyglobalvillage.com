@@ -9,10 +9,19 @@
 // that over the whole roster, each signer on their own row; dragging is what the document
 // that doesn't fit them needs.
 //
-// Four kinds, because those are the marks that make a contract signed. A multi-page
-// agreement wants initials in the corner of every page and the signature only on the last,
-// so a signer's placement is a LIST of boxes — any number, any kind, any page — not the one
-// signature+date pair the first cut allowed.
+// Six kinds. Four are the marks that make a contract signed (sign · initials · name · date);
+// Text and Number are the data-entry boxes a real form also asks for, and they carry the one
+// property the marks cannot — Documenso only honours "optional" on TEXT/NUMBER, so the middle
+// name nobody has has to be a Text box. A multi-page agreement wants initials in the corner of
+// every page and the signature only on the last, so a signer's placement is a LIST of boxes —
+// any number, any kind, any page — not the one signature+date pair the first cut allowed.
+//
+// The list is also the EDITOR: every box a signer has gets a row in that signer's field-list
+// ADDM, where it can be named ("Middle name (if you have one)"), marked optional, revealed on
+// the page, dropped, or dragged into the sequence the signer will be walked through. Ticking a
+// kind adds a row; the rows are the truth, the boxes on the page are the same fields seen from
+// above. Row order IS signer order — the operator drags it when the form reads in an order the
+// page geometry gets wrong.
 //
 // Rendering: pdfjs-dist, loaded lazily inside an effect (never at module scope — the
 // package is Mac-build-bundled client code; RCS's server runtime must never import it).
@@ -27,8 +36,22 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 
 export type PlacedRect = { pageX: number; pageY: number; width: number; height: number };
-export type FieldKind = "signature" | "initials" | "name" | "date";
-export type PlacedField = { id: string; kind: FieldKind; pageNumber: number; rect: PlacedRect };
+export type FieldKind = "signature" | "initials" | "name" | "date" | "text" | "number";
+export type PlacedField = {
+  id: string;
+  kind: FieldKind;
+  pageNumber: number;
+  rect: PlacedRect;
+  /**
+   * Must the signer fill this in before the document can complete? Default true (absent).
+   * Only meaningful on text/number — Documenso treats a signature, initials, name or date as
+   * required whatever we send, so the checkbox is locked on for those rather than promising a
+   * signer something the service will not honour.
+   */
+  required?: boolean;
+  /** The operator's own words for the box — what to type. Essential on text/number. */
+  label?: string;
+};
 /** Everything ONE signer is asked to fill in. Empty is never sent — see the parent. */
 export type SignerPlacement = { fields: PlacedField[] };
 
@@ -38,13 +61,15 @@ type Signer = { email: string; name: string | null };
 const COLORS = ["#3aa0ff", "#ff4ecb", "#ffc24e", "#6ee7a0", "#b39bff", "#ff8a5c", "#5ce1e6", "#f2f261", "#ff9ab8", "#9adcff"];
 const MAX_PREVIEW_PAGES = 40;
 
-const KINDS: readonly FieldKind[] = ["signature", "initials", "name", "date"];
-/** Pill text — short, because four of them sit on one chip row per signer. */
+const KINDS: readonly FieldKind[] = ["signature", "initials", "name", "date", "text", "number"];
+/** Pill text — short, because six of them sit on one chip row per signer. */
 const KIND_PILL: Record<FieldKind, string> = {
   signature: "Sign",
   initials: "Initials",
   name: "Name",
   date: "Date",
+  text: "Text",
+  number: "Number",
 };
 /** What the box itself says, and what the tooltips call the field. */
 const KIND_NOUN: Record<FieldKind, string> = {
@@ -52,7 +77,21 @@ const KIND_NOUN: Record<FieldKind, string> = {
   initials: "initials",
   name: "full name",
   date: "date",
+  text: "text",
+  number: "number",
 };
+/**
+ * The only two kinds that can be optional. Verified in the running Documenso (v2.14.0):
+ * isRequiredField() short-circuits to TRUE for every type outside its
+ * ADVANCED_FIELD_TYPES_WITH_OPTIONAL_SETTING list (NUMBER · TEXT · DROPDOWN · RADIO ·
+ * CHECKBOX), so "optional" on a signature box would be a promise the service breaks.
+ */
+const OPTIONAL_CAPABLE: readonly FieldKind[] = ["text", "number"];
+const canBeOptional = (kind: FieldKind) => OPTIONAL_CAPABLE.includes(kind);
+/** What the wire will actually enforce for this box. */
+const isRequired = (f: PlacedField) => (canBeOptional(f.kind) ? f.required !== false : true);
+/** The row's own words: the operator's label when they wrote one, else the kind. */
+const fieldTitle = (f: PlacedField) => f.label?.trim() || KIND_NOUN[f.kind];
 
 // Minimal structural typing for the slice of pdfjs we use — keeps us off its shifting
 // published types while the caret range floats within 5.x.
@@ -90,6 +129,12 @@ function defaultRect(kind: FieldKind, y: number): PlacedRect {
       return { pageX: 12, pageY: Math.max(0, y - 8), width: 34, height: 6 };
     case "initials":
       return { pageX: 88, pageY: y, width: 9, height: 6 };
+    // The two data-entry boxes land ABOVE the signing row, where a form's questions print —
+    // a text line across the left, a short number field beside it.
+    case "text":
+      return { pageX: 12, pageY: Math.max(0, y - 16), width: 40, height: 6 };
+    case "number":
+      return { pageX: 58, pageY: Math.max(0, y - 16), width: 18, height: 6 };
   }
 }
 
@@ -185,6 +230,8 @@ const LIMITS: Record<FieldKind, { minW: number; maxW: number; minH: number; maxH
   initials: { minW: 4, maxW: 40, minH: 2, maxH: 20 },
   name: { minW: 6, maxW: 80, minH: 2, maxH: 20 },
   date: { minW: 5, maxW: 60, minH: 2, maxH: 20 },
+  text: { minW: 6, maxW: 95, minH: 2, maxH: 30 },
+  number: { minW: 4, maxW: 50, minH: 2, maxH: 20 },
 };
 
 export default function FieldPlacer({
@@ -205,6 +252,13 @@ export default function FieldPlacer({
   const wrapRefs = useRef<Map<number, HTMLDivElement>>(new Map());
   const containerRef = useRef<HTMLDivElement | null>(null);
   const dragRef = useRef<DragState | null>(null);
+  /** Which signers' field lists are open. Absent = open (ADDM canon: content on first paint). */
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  /** The row the operator last touched — its box flashes on the page so a long document
+   *  does not make them hunt for which rectangle they are editing. */
+  const [activeId, setActiveId] = useState<string | null>(null);
+  /** Index the row drag started from; reordering happens live as it passes each row. */
+  const rowDragRef = useRef<number | null>(null);
 
   // ── load the PDF whenever the staged file changes ─────────────────────────────
   useEffect(() => {
@@ -317,6 +371,45 @@ export default function FieldPlacer({
     const cur = placements[email]?.fields ?? [];
     if (cur.length <= 1) return;
     setFields(email, cur.filter((f) => f.id !== id));
+  };
+
+  /** Patch one box in place — the field list's rows all edit through here. */
+  const patchField = (email: string, id: string, patch: Partial<PlacedField>) => {
+    const cur = placements[email]?.fields ?? [];
+    setFields(email, cur.map((f) => (f.id === id ? { ...f, ...patch } : f)));
+  };
+
+  /**
+   * Move a row within the signer's list. Row order IS the order the signer meets their boxes,
+   * so this is the operator saying "ask for the middle name after the last name" about a form
+   * whose printed layout says otherwise.
+   */
+  const moveRow = (email: string, from: number, to: number) => {
+    const cur = placements[email]?.fields ?? [];
+    if (from === to || from < 0 || to < 0 || from >= cur.length || to >= cur.length) return;
+    const next = [...cur];
+    const [moved] = next.splice(from, 1);
+    next.splice(to, 0, moved);
+    setFields(email, next);
+  };
+
+  /** Put the list back in reading order — page by page, down each page. The order Documenso
+   *  itself walks a signer through, and the right answer after boxes have been dragged about. */
+  const sortReadingOrder = (email: string) => {
+    const cur = placements[email]?.fields ?? [];
+    setFields(
+      email,
+      [...cur].sort(
+        (a, b) =>
+          a.pageNumber - b.pageNumber || a.rect.pageY - b.rect.pageY || a.rect.pageX - b.rect.pageX,
+      ),
+    );
+  };
+
+  /** Bring a row's box into view and flash it. */
+  const revealField = (f: PlacedField) => {
+    setActiveId(f.id);
+    wrapRefs.current.get(f.pageNumber)?.scrollIntoView({ block: "nearest", behavior: "smooth" });
   };
 
   // ── drag / resize ─────────────────────────────────────────────────────────────
@@ -433,63 +526,189 @@ export default function FieldPlacer({
           const c = COLORS[i % COLORS.length];
           const fields = placements[s.email]?.fields ?? [];
           const only = fields.length <= 1;
+          const open = !collapsed[s.email];
           return (
-            <SignerRow key={s.email} $c={c}>
-              <Dot $c={c} />
-              <Who title={s.email}>{i + 1}. {s.name || s.email}</Who>
-              {KINDS.map((k) => {
-                const n = fields.filter((f) => f.kind === k).length;
-                const locked = n > 0 && only;
-                return (
-                  <PillGroup key={k} $c={c} $on={n > 0}>
-                    <PillMain
-                      type="button"
-                      $on={n > 0}
-                      disabled={locked}
-                      title={
-                        locked
-                          ? "Every signer needs at least one field — add another before removing this one"
-                          : n > 0
-                            ? `Remove this signer's ${KIND_NOUN[k]} ${n > 1 ? "boxes" : "box"}`
-                            : `Ask this signer for their ${KIND_NOUN[k]}`
-                      }
-                      onClick={() => toggleKind(s.email, i, k)}
-                    >
-                      <Tick $on={n > 0} aria-hidden="true">
-                        {n > 0 ? (
-                          <svg viewBox="0 0 12 12" width="9" height="9">
-                            <path d="M2 6.3 L4.7 9 L10 3" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-                          </svg>
-                        ) : null}
-                      </Tick>
-                      {KIND_PILL[k]}
-                      {n > 1 && <Count>{n}</Count>}
-                    </PillMain>
-                    {n > 0 && (
-                      <PillAdd
+            <SignerCard key={s.email} $c={c}>
+              <SignerHead>
+                <Dot $c={c} />
+                <Who title={s.email}>{i + 1}. {s.name || s.email}</Who>
+                {KINDS.map((k) => {
+                  const n = fields.filter((f) => f.kind === k).length;
+                  const locked = n > 0 && only;
+                  return (
+                    <PillGroup key={k} $c={c} $on={n > 0}>
+                      <PillMain
                         type="button"
-                        title={`Add another ${KIND_NOUN[k]} box for this signer`}
-                        aria-label={`Add another ${KIND_NOUN[k]} box for signer ${i + 1}`}
-                        onClick={() => addField(s.email, i, k)}
+                        $on={n > 0}
+                        disabled={locked}
+                        title={
+                          locked
+                            ? "Every signer needs at least one field — add another before removing this one"
+                            : n > 0
+                              ? `Remove this signer's ${KIND_NOUN[k]} ${n > 1 ? "boxes" : "box"}`
+                              : `Ask this signer for their ${KIND_NOUN[k]}`
+                        }
+                        onClick={() => toggleKind(s.email, i, k)}
                       >
-                        <svg viewBox="0 0 12 12" width="9" height="9" aria-hidden="true">
-                          <path d="M6 2 V10 M2 6 H10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" fill="none" />
-                        </svg>
-                      </PillAdd>
-                    )}
-                  </PillGroup>
-                );
-              })}
-              {shownPages > 1 && (
-                <GhostBtn
-                  type="button"
-                  title="Put an initials box in the corner of every page"
-                  onClick={() => initialEveryPage(s.email, i)}
-                >
-                  initial every page
-                </GhostBtn>
-              )}
-            </SignerRow>
+                        <Tick $on={n > 0} aria-hidden="true">
+                          {n > 0 ? (
+                            <svg viewBox="0 0 12 12" width="9" height="9">
+                              <path d="M2 6.3 L4.7 9 L10 3" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                          ) : null}
+                        </Tick>
+                        {KIND_PILL[k]}
+                        {n > 1 && <Count>{n}</Count>}
+                      </PillMain>
+                      {n > 0 && (
+                        <PillAdd
+                          type="button"
+                          title={`Add another ${KIND_NOUN[k]} box for this signer`}
+                          aria-label={`Add another ${KIND_NOUN[k]} box for signer ${i + 1}`}
+                          onClick={() => addField(s.email, i, k)}
+                        >
+                          <svg viewBox="0 0 12 12" width="9" height="9" aria-hidden="true">
+                            <path d="M6 2 V10 M2 6 H10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" fill="none" />
+                          </svg>
+                        </PillAdd>
+                      )}
+                    </PillGroup>
+                  );
+                })}
+                {shownPages > 1 && (
+                  <GhostBtn
+                    type="button"
+                    title="Put an initials box in the corner of every page"
+                    onClick={() => initialEveryPage(s.email, i)}
+                  >
+                    initial every page
+                  </GhostBtn>
+                )}
+              </SignerHead>
+                <FieldList>
+                  <AddmHead
+                    type="button"
+                    $c={c}
+                    $open={open}
+                    aria-expanded={open}
+                    onClick={() => setCollapsed((m) => ({ ...m, [s.email]: open }))}
+                  >
+                    <AddmLabel $c={c} $open={open}>
+                      Fields for this signer
+                    </AddmLabel>
+                    <AddmCount $c={c}>{fields.length}</AddmCount>
+                    <AddmToggle $open={open} aria-hidden="true" />
+                  </AddmHead>
+                  {open && (
+                    <AddmBody>
+                      {fields.map((f, fi) => {
+                        const req = isRequired(f);
+                        const lockedReq = !canBeOptional(f.kind);
+                        return (
+                          <FieldRow
+                            key={f.id}
+                            $c={c}
+                            $active={activeId === f.id}
+                            draggable
+                            onDragStart={() => { rowDragRef.current = fi; }}
+                            onDragOver={(e) => e.preventDefault()}
+                            onDragEnter={() => {
+                              const from = rowDragRef.current;
+                              if (from === null || from === fi) return;
+                              moveRow(s.email, from, fi);
+                              rowDragRef.current = fi;
+                            }}
+                            onDragEnd={() => { rowDragRef.current = null; }}
+                            onClick={() => revealField(f)}
+                          >
+                            {/* The grip is the drag target AND the keyboard one — arrow keys
+                                move the row, because a sequence an operator can only set by
+                                mouse is a sequence some operators cannot set. */}
+                            <Grip
+                              title="Drag to reorder — this is the order the signer is walked through"
+                              aria-label={`Move ${fieldTitle(f)}: step ${fi + 1} of ${fields.length}`}
+                              tabIndex={0}
+                              onKeyDown={(e) => {
+                                if (e.key === "ArrowUp") { e.preventDefault(); moveRow(s.email, fi, fi - 1); }
+                                if (e.key === "ArrowDown") { e.preventDefault(); moveRow(s.email, fi, fi + 1); }
+                              }}
+                            >
+                              <svg viewBox="0 0 10 12" width="10" height="12" aria-hidden="true">
+                                <path
+                                  d="M2 2.5h6M2 6h6M2 9.5h6"
+                                  stroke="currentColor"
+                                  strokeWidth="1.6"
+                                  strokeLinecap="round"
+                                  fill="none"
+                                />
+                              </svg>
+                            </Grip>
+                            <Step>{fi + 1}</Step>
+                            <KindChip $c={c}>{KIND_PILL[f.kind]}</KindChip>
+                            {canBeOptional(f.kind) ? (
+                              <LabelInput
+                                value={f.label ?? ""}
+                                placeholder={f.kind === "number" ? "What number? e.g. Policy no." : "What to type? e.g. Middle name"}
+                                maxLength={120}
+                                onClick={(e) => e.stopPropagation()}
+                                onChange={(e) => patchField(s.email, f.id, { label: e.target.value })}
+                              />
+                            ) : (
+                              <RowNoun>{KIND_NOUN[f.kind]}</RowNoun>
+                            )}
+                            <PageChip title={`Sits on page ${f.pageNumber}`}>p{f.pageNumber}</PageChip>
+                            <ReqLabel
+                              $on={req}
+                              $locked={lockedReq}
+                              title={
+                                lockedReq
+                                  ? `A ${KIND_NOUN[f.kind]} field is always required — only Text and Number boxes can be left blank`
+                                  : req
+                                    ? "Required — the signer cannot finish without it"
+                                    : "Optional — the signer may leave this blank"
+                              }
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <ReqBox
+                                type="checkbox"
+                                checked={req}
+                                disabled={lockedReq}
+                                onChange={(e) => patchField(s.email, f.id, { required: e.target.checked })}
+                              />
+                              required
+                            </ReqLabel>
+                            {fields.length > 1 && (
+                              <RowX
+                                type="button"
+                                title={`Remove this ${fieldTitle(f)} box`}
+                                aria-label={`Remove this ${fieldTitle(f)} box`}
+                                onClick={(e) => { e.stopPropagation(); removeField(s.email, f.id); }}
+                              >
+                                <svg viewBox="0 0 12 12" width="9" height="9" aria-hidden="true">
+                                  <path d="M2 2 L10 10 M10 2 L2 10" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" fill="none" />
+                                </svg>
+                              </RowX>
+                            )}
+                          </FieldRow>
+                        );
+                      })}
+                      <RowFoot>
+                        <GhostBtn
+                          type="button"
+                          title="Put the list back in reading order — page by page, down each page"
+                          onClick={() => sortReadingOrder(s.email)}
+                        >
+                          reading order
+                        </GhostBtn>
+                        <Note>
+                          Drag a row to set the order this signer is walked through. A starred box on
+                          the page is one they must fill in.
+                        </Note>
+                      </RowFoot>
+                    </AddmBody>
+                  )}
+                </FieldList>
+            </SignerCard>
           );
         })}
       </Roster>
@@ -522,6 +741,7 @@ export default function FieldPlacer({
                       key={f.id}
                       $c={c}
                       $dashed={f.kind !== "signature"}
+                      $active={activeId === f.id}
                       style={{
                         left: `${f.rect.pageX}%`,
                         top: `${f.rect.pageY}%`,
@@ -530,8 +750,15 @@ export default function FieldPlacer({
                       }}
                       onPointerDown={(e) => onBoxPointerDown(e, s.email, f, "move")}
                     >
+                      {/* A star means the signer cannot finish without it — the same mark a
+                          paper form uses, so the operator reads their own document the way
+                          the signer will. Optional boxes say so instead. */}
                       <BoxLabel>
-                        {i + 1} · {f.kind === "signature" ? `${s.name || s.email} — sign` : KIND_NOUN[f.kind]}
+                        {i + 1} ·{" "}
+                        {f.kind === "signature" && !f.label
+                          ? `${s.name || s.email} — sign`
+                          : fieldTitle(f)}
+                        {isRequired(f) ? <Star aria-hidden="true">*</Star> : <Opt> (optional)</Opt>}
                       </BoxLabel>
                       {/* pointerdown is where a drag starts, so the X has to stop it there —
                           stopping the click alone would leave the box travelling with the
@@ -600,11 +827,97 @@ function PageCanvas({ doc, pageNumber }: { doc: PdfDoc | null; pageNumber: numbe
 // ── styled ──────────────────────────────────────────────────────────────────────
 const Wrap = styled.div`display: flex; flex-direction: column; gap: 6px; margin-top: 4px;`;
 const Roster = styled.div`display: flex; flex-direction: column; gap: 5px;`;
-const SignerRow = styled.div<{ $c: string }>`
-  display: flex; flex-wrap: wrap; align-items: center; gap: 5px;
+const SignerCard = styled.div<{ $c: string }>`
+  display: flex; flex-direction: column; gap: 5px;
   padding: 5px 8px; border-radius: 10px;
   border: 1px solid ${(p) => p.$c}44; background: ${(p) => p.$c}10;
 `;
+const SignerHead = styled.div`display: flex; flex-wrap: wrap; align-items: center; gap: 5px;`;
+
+/* ── the field-list ADDM (Accordion Dropdown, per vocabulary/ADDM.md): accent-tinted
+   uppercase label + count chip + a bold +/− toggle, whole row is the hit target, default
+   open. One per signer, and the accent is that signer's own color. ─────────────────── */
+const FieldList = styled.div`display: flex; flex-direction: column;`;
+const AddmHead = styled.button<{ $c: string; $open: boolean }>`
+  display: flex; align-items: center; gap: 6px; width: 100%; text-align: left;
+  padding: 4px 8px; border-radius: 8px; cursor: pointer;
+  background: ${(p) => (p.$open ? `${p.$c}1a` : `${p.$c}0d`)};
+  border: 1px solid ${(p) => (p.$open ? `${p.$c}80` : `${p.$c}33`)};
+  &:hover { background: ${(p) => p.$c}20; border-color: ${(p) => p.$c}aa; }
+`;
+const AddmLabel = styled.span<{ $c: string; $open: boolean }>`
+  flex: 1 1 auto; font-size: 9.5px; letter-spacing: 0.09em; text-transform: uppercase;
+  color: ${(p) => (p.$open ? p.$c : `${p.$c}a6`)};
+`;
+const AddmCount = styled.span<{ $c: string }>`
+  font-size: 9.5px; font-weight: 700; line-height: 1; padding: 2px 5px; border-radius: 999px;
+  background: ${(p) => p.$c}2e; color: #f2f3f8;
+`;
+/** The +/− indicator: a bar always, plus the upright only when closed (no glyph characters). */
+function AddmToggle({ $open, ...rest }: { $open: boolean } & React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 18 18" width="14" height="14" {...rest}>
+      <path d="M4 9h10" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" fill="none" />
+      {!$open && (
+        <path d="M9 4v10" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" fill="none" />
+      )}
+    </svg>
+  );
+}
+const AddmBody = styled.div`display: flex; flex-direction: column; gap: 3px; padding: 4px 0 2px;`;
+const FieldRow = styled.div<{ $c: string; $active: boolean }>`
+  display: flex; align-items: center; gap: 5px; padding: 3px 6px; border-radius: 8px;
+  cursor: pointer;
+  border: 1px solid ${(p) => (p.$active ? `${p.$c}cc` : "rgba(255,255,255,0.09)")};
+  background: ${(p) => (p.$active ? `${p.$c}1f` : "rgba(255,255,255,0.03)")};
+  &:hover { border-color: ${(p) => p.$c}88; }
+`;
+const Grip = styled.span`
+  display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto;
+  width: 14px; color: rgba(232,232,239,0.5); cursor: grab;
+  &:hover, &:focus-visible { color: #fff; outline: none; }
+  &:focus-visible { box-shadow: 0 0 0 2px rgba(120,200,255,0.65); border-radius: 3px; }
+`;
+const Step = styled.span`
+  flex: 0 0 auto; min-width: 14px; text-align: center; font-size: 9.5px; font-weight: 700;
+  color: rgba(232,232,239,0.55); font-variant-numeric: tabular-nums;
+`;
+const KindChip = styled.span<{ $c: string }>`
+  flex: 0 0 auto; font-size: 10px; line-height: 1.5; padding: 1px 7px; border-radius: 999px;
+  background: ${(p) => p.$c}2e; border: 1px solid ${(p) => p.$c}77; color: #f2f3f8;
+`;
+const RowNoun = styled.span`
+  flex: 1 1 auto; font-size: 11px; color: rgba(232,232,239,0.72);
+  overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+`;
+const LabelInput = styled.input`
+  flex: 1 1 90px; min-width: 0; font: inherit; font-size: 11px; line-height: 1.5;
+  padding: 2px 7px; border-radius: 6px; color: #f2f3f8;
+  background: rgba(0,0,0,0.28); border: 1px solid rgba(255,255,255,0.14);
+  &::placeholder { color: rgba(232,232,239,0.38); }
+  &:focus { outline: none; border-color: rgba(120,200,255,0.7); }
+`;
+const PageChip = styled.span`
+  flex: 0 0 auto; font-size: 9.5px; line-height: 1; padding: 2px 5px; border-radius: 999px;
+  background: rgba(0,0,0,0.3); color: rgba(232,232,239,0.65); font-variant-numeric: tabular-nums;
+`;
+const ReqLabel = styled.label<{ $on: boolean; $locked: boolean }>`
+  flex: 0 0 auto; display: inline-flex; align-items: center; gap: 4px; font-size: 10px;
+  color: ${(p) => (p.$on ? "rgba(232,232,239,0.85)" : "rgba(232,232,239,0.45)")};
+  cursor: ${(p) => (p.$locked ? "default" : "pointer")};
+  opacity: ${(p) => (p.$locked ? 0.55 : 1)};
+`;
+const ReqBox = styled.input`
+  width: 12px; height: 12px; margin: 0; accent-color: #3aa0ff; cursor: inherit;
+`;
+const RowX = styled.button`
+  flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center;
+  width: 16px; height: 16px; padding: 0; border-radius: 50%;
+  background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2);
+  color: rgba(255,255,255,0.75); cursor: pointer;
+  &:hover { background: #d94a5a; border-color: #d94a5a; color: #fff; }
+`;
+const RowFoot = styled.div`display: flex; align-items: center; gap: 8px; padding: 2px 0 0;`;
 const Who = styled.span`
   font-size: 11.5px; color: #e8e8ef; margin-right: 4px; max-width: 34%;
   overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
@@ -680,12 +993,17 @@ const PageNo = styled.span`
   position: absolute; right: 6px; top: 6px; font-size: 10px; line-height: 1; padding: 3px 7px;
   border-radius: 999px; background: rgba(0,0,0,0.55); color: rgba(255,255,255,0.8); pointer-events: none;
 `;
-const Box = styled.div<{ $c: string; $dashed?: boolean }>`
+const Box = styled.div<{ $c: string; $dashed?: boolean; $active?: boolean }>`
   position: absolute; box-sizing: border-box; cursor: grab; touch-action: none;
   border: 2px ${(p) => (p.$dashed ? "dashed" : "solid")} ${(p) => p.$c};
   background: ${(p) => p.$c}2e; border-radius: 3px;
+  /* The row that was last touched in the field list lights up here, so the operator never
+     has to work out which of nine rectangles they are naming. */
+  box-shadow: ${(p) => (p.$active ? `0 0 0 3px ${p.$c}66, 0 0 14px ${p.$c}88` : "none")};
   &:active { cursor: grabbing; }
 `;
+const Star = styled.span`font-weight: 800; padding-left: 1px;`;
+const Opt = styled.span`font-weight: 500; opacity: 0.75;`;
 const BoxLabel = styled.span`
   position: absolute; left: 3px; top: 2px; right: 3px; font-size: 10px; line-height: 1.2;
   font-weight: 650; color: rgba(10,14,22,0.9); pointer-events: none; overflow: hidden;
