@@ -10,15 +10,16 @@
  * Storage: data/utils-defaults.json. Shape:
  *   { "<actionId>": { "<fieldKey>": <string | string[]> } }
  *
- * Admins are users with role === "admin" in data/users.json.
+ * Admins resolve through getOfficeRole — roster-first (data/office-staff.json),
+ * with data/users.json only as the legacy fallback.
  */
 import { type NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/api-auth";
+import { getOfficeRole } from "@/lib/member-auth/bridge";
 import fs from "fs";
 import path from "path";
 
 const DEFAULTS_FILE = path.join(process.cwd(), "data", "utils-defaults.json");
-const USERS_FILE = path.join(process.cwd(), "data", "users.json");
 
 type FieldValue = string | string[];
 type DefaultsOverlay = Record<string, Record<string, FieldValue>>;
@@ -36,12 +37,7 @@ function writeOverlay(o: DefaultsOverlay) {
 }
 
 function isAdmin(username: string): boolean {
-  try {
-    const db = JSON.parse(fs.readFileSync(USERS_FILE, "utf8")) as Record<string, { role?: string }>;
-    return db[username]?.role === "admin";
-  } catch {
-    return false;
-  }
+  return getOfficeRole(username) === "admin";
 }
 
 export async function GET(req: NextRequest) {

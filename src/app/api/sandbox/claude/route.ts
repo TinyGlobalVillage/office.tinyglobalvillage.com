@@ -1,20 +1,17 @@
 import { type NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { requireAuth } from "@/lib/api-auth";
+import { getOfficeRole } from "@/lib/member-auth/bridge";
 import { loadSandboxContext } from "@/lib/claude-context";
-import fs from "fs";
-import path from "path";
 
 export const runtime = "nodejs";
 
-const USERS_FILE = path.join(process.cwd(), "data", "users.json");
 
+// Roster-first (data/office-staff.json), legacy users.json only as fallback —
+// same resolver every other admin surface uses, so an admin who exists solely
+// on the roster isn't refused here.
 function isAdmin(username: string | undefined): boolean {
-  if (!username) return false;
-  try {
-    const db = JSON.parse(fs.readFileSync(USERS_FILE, "utf8"));
-    return db[username]?.role === "admin";
-  } catch { return false; }
+  return getOfficeRole(username) === "admin";
 }
 
 type Message = { role: "user" | "assistant"; content: string };

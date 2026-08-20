@@ -1,17 +1,20 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { exec } from "child_process";
 import { promisify } from "util";
-import fs from "fs";
-import path from "path";
-import { requireAuth } from "@/lib/api-auth";
+import { requireAdmin } from "@/lib/api-admin";
 import { recordKillswitchAction } from "@/lib/system/killswitch-log";
 
 // Office UI killswitch endpoint — telephony-security Item 5 (2026-05-02).
 //
 // Wraps `/usr/local/bin/sip-killswitch` (the on-disk script that toggles
-// UFW + Sofia profiles in one command). Admin-only: replays requireAuth()
-// then checks the user's role against data/users.json. Voice goes OFFLINE
-// on `engage`, comes back ONLINE on `restore`. `status` is read-only.
+// UFW + Sofia profiles in one command). Admin-only via the shared
+// `requireAdmin` — it resolves the role roster-first (office-staff.json,
+// legacy users.json only as a fallback), so an admin who exists solely on
+// the roster isn't refused here while every other admin surface lets them
+// in. This route used to carry its own users.json-only copy of the gate,
+// which pre-dated the roster and silently drifted from it. Voice goes
+// OFFLINE on `engage`, comes back ONLINE on `restore`. `status` is
+// read-only.
 //
 // The whole point is that the operator can lock SIP from any browser,
 // from anywhere, in 60 seconds — no SSH, no script paths to remember.
@@ -19,28 +22,6 @@ import { recordKillswitchAction } from "@/lib/system/killswitch-log";
 const execAsync = promisify(exec);
 
 const KILLSWITCH = "/usr/local/bin/sip-killswitch";
-
-type UsersDb = Record<string, { role?: string }>;
-
-function isAdminUsername(username: string): boolean {
-  try {
-    const p = path.join(process.cwd(), "data", "users.json");
-    const db = JSON.parse(fs.readFileSync(p, "utf8")) as UsersDb;
-    return db[username]?.role === "admin";
-  } catch {
-    return false;
-  }
-}
-
-async function requireAdmin(req: NextRequest): Promise<{ ok: true; username: string } | NextResponse> {
-  const token = await requireAuth(req);
-  if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const username = token.username ?? token.sub ?? "";
-  if (!username || !isAdminUsername(username)) {
-    return NextResponse.json({ error: "Admin only" }, { status: 403 });
-  }
-  return { ok: true, username };
-}
 
 // GET — current killswitch + gateway state. Used by SystemToolsModal to
 // render the engaged/restored pill.
