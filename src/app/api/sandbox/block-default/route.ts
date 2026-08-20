@@ -6,11 +6,17 @@
 //
 // Storage: the existing `content_overrides` table in tgv_db (NO migration —
 // key varchar(64)/data jsonb/mode/user_id already fit), keyed
-// `block-default:<catalogId>`. PLATFORM defaults only — `user_id IS NULL AND tenant_id IS NULL`.
+// `block-default:<catalogId>`. PLATFORM defaults only —
+// `user_id IS NULL AND tenant_id IS NULL AND site IS NULL`.
 // (The `tenant_id IS NULL` guard is REQUIRED: Phase 4.3 tenant overlays are also `user_id IS NULL`
-//  but carry a `tenant_id`, so filtering on user_id alone would read/write/delete tenant rows.)
+//  but carry a `tenant_id`, so filtering on user_id alone would read/write/delete tenant rows.
+//  `site IS NULL` likewise: 0110 made the table site-scoped, and a scope-less query
+//  is a wildcard over every tenant's site rows — scope-architecture P4, 2026-08-19.)
 // Raw parameterized SQL via pgPool — no drizzle table handle (content_overrides
-// is not in @tgv/module-registry/db; this also dodges the cross-bundle Column bug).
+// is not in @tgv/module-registry/db; this also dodges the cross-bundle Column bug),
+// which is also why this stays off the module-page-editor overrideStore accessor
+// (P6 allowlist): Office has no injected drizzle schema for this table. These are
+// the accessor's sandbox (actor-less platform draft) semantics, spelled in SQL.
 //
 //   GET  ?id=<catalogId>&mode=draft|published&lang=en  → the override row (or {exists:false})
 //   PUT  {id, lang?, data}                              → save/replace the DRAFT (persist, no deploy)
@@ -52,13 +58,13 @@ async function upsertOverride(
     await client.query("BEGIN");
     const upd = await client.query(
       `UPDATE content_overrides SET data = $1::jsonb, updated_at = now()
-         WHERE key = $2 AND lang = $3 AND mode = $4 AND user_id IS NULL AND tenant_id IS NULL`,
+         WHERE key = $2 AND lang = $3 AND mode = $4 AND user_id IS NULL AND tenant_id IS NULL AND site IS NULL`,
       [json, key, lang, mode],
     );
     if (upd.rowCount === 0) {
       await client.query(
-        `INSERT INTO content_overrides (key, lang, mode, user_id, tenant_id, data, updated_at)
-           VALUES ($1, $2, $3, NULL, NULL, $4::jsonb, now())`,
+        `INSERT INTO content_overrides (key, lang, mode, user_id, tenant_id, site, data, updated_at)
+           VALUES ($1, $2, $3, NULL, NULL, NULL, $4::jsonb, now())`,
         [key, lang, mode, json],
       );
     }
@@ -78,7 +84,7 @@ async function readOverride(
 ): Promise<{ data: unknown; updatedAt: string } | null> {
   const r = await pgPool.query(
     `SELECT data, updated_at FROM content_overrides
-       WHERE key = $1 AND lang = $2 AND mode = $3 AND user_id IS NULL AND tenant_id IS NULL
+       WHERE key = $1 AND lang = $2 AND mode = $3 AND user_id IS NULL AND tenant_id IS NULL AND site IS NULL
        ORDER BY updated_at DESC LIMIT 1`,
     [key, lang, mode],
   );
@@ -152,11 +158,11 @@ export async function DELETE(req: NextRequest) {
 
   const r = mode
     ? await pgPool.query(
-        `DELETE FROM content_overrides WHERE key=$1 AND lang=$2 AND mode=$3 AND user_id IS NULL AND tenant_id IS NULL`,
+        `DELETE FROM content_overrides WHERE key=$1 AND lang=$2 AND mode=$3 AND user_id IS NULL AND tenant_id IS NULL AND site IS NULL`,
         [keyFor(id), lang, mode],
       )
     : await pgPool.query(
-        `DELETE FROM content_overrides WHERE key=$1 AND lang=$2 AND user_id IS NULL AND tenant_id IS NULL`,
+        `DELETE FROM content_overrides WHERE key=$1 AND lang=$2 AND user_id IS NULL AND tenant_id IS NULL AND site IS NULL`,
         [keyFor(id), lang],
       );
   return NextResponse.json({ id, lang, deleted: r.rowCount ?? 0, revertedToInCodeDefault: true });
