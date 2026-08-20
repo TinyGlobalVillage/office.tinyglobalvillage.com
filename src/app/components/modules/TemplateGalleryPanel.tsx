@@ -13,6 +13,15 @@
 // Moving a template to Drafts is how TGV stops marketing a vertical it isn't
 // ready to support — see the therapist template and the HIPAA work.
 //
+// NEW TEMPLATE (canon P4) is the other end of that same door. Until now a
+// template could only be born as a SNAPSHOT of a page that already existed —
+// the studio overlay's Save-to-template — so there was no way to start one from
+// nothing. Marthe's loop runs the other way: create the row here (born Drafts,
+// empty model), open it in the editor, compose it out of the ratified library,
+// then Move to Live when it earns it. The create writes straight to
+// shared_templates through Office's own Drizzle client, like every other action
+// in this module; the compose step is the real page editor, one tab away.
+//
 // Edit opens the REAL page editor on tgv.com in a new tab: the template's
 // model is checked out into a scratch draft, edited with the full editor, and
 // checked back in from the Studio overlay's "Save to template". New tab, not
@@ -119,6 +128,7 @@ export default function TemplateGalleryPanel() {
   const [confirmDelete, setConfirmDelete] = useState<Template | null>(null);
   const [canonRows, setCanonRows] = useState<CanonRow[] | null>(null);
   const [openProposal, setOpenProposal] = useState<Proposal | null>(null);
+  const [newOpen, setNewOpen] = useState(false);
 
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(12);
@@ -178,6 +188,17 @@ export default function TemplateGalleryPanel() {
       })
       .sort((a, b) => a.label.localeCompare(b.label));
   }, [canonRows]);
+
+  // The categories that already exist, offered as a datalist rather than a
+  // fixed enum: the column is free text and the Sandbox's Templates column
+  // creates new groups by name, so a closed list here would immediately lie.
+  const categories = useMemo(
+    () =>
+      Array.from(new Set((templates ?? []).map((t) => t.category).filter(Boolean))).sort(
+        (a, b) => a.localeCompare(b),
+      ),
+    [templates],
+  );
 
   const counts = useMemo(() => {
     const all = templates ?? [];
@@ -335,6 +356,14 @@ export default function TemplateGalleryPanel() {
             { key: "all", label: "All", count: counts.all },
           ]}
         />
+        {/* Not offered on the Proposed lane: that lane's rows are catalog
+            entries, and "New template" there would read as "new atom group",
+            which is a thing only the code adds. */}
+        {filter !== "proposed" && (
+          <NewBtn type="button" onClick={() => setNewOpen(true)}>
+            + New template
+          </NewBtn>
+        )}
       </BarRow>
 
       {error && <ErrorBox role="alert">{error}</ErrorBox>}
@@ -593,6 +622,23 @@ export default function TemplateGalleryPanel() {
         </ModalRoot>
       )}
 
+      {newOpen && (
+        <NewTemplateModal
+          categories={categories}
+          editHref={(templateId) =>
+            `${TGV_BASE}/${LANG}/editor/template/${encodeURIComponent(templateId)}`
+          }
+          onClose={() => setNewOpen(false)}
+          onCreated={() => {
+            // The new row is a draft, so show the lane it landed in — otherwise
+            // "created" is followed by a gallery that looks unchanged.
+            setFilter("sandbox");
+            setPage(1);
+            void load();
+          }}
+        />
+      )}
+
       <ConfirmModal
         open={confirmDelete !== null}
         intent="danger"
@@ -612,12 +658,230 @@ export default function TemplateGalleryPanel() {
   );
 }
 
+/** New template — name it, then go compose it.
+ *
+ *  Deliberately two steps and not one: the row has to exist before the editor
+ *  has anything to check out, and the hand-off is a real anchor rather than a
+ *  programmatic window.open, for the same reason Edit is (see above — a blocked
+ *  popup reads as "the button does nothing", and there is no error to show).
+ *  So the modal's success state IS the hand-off: a link the operator clicks. */
+function NewTemplateModal({
+  categories,
+  editHref,
+  onClose,
+  onCreated,
+}: {
+  categories: string[];
+  editHref: (templateId: string) => string;
+  onClose: () => void;
+  onCreated: (t: Template) => void;
+}) {
+  const [label, setLabel] = useState("");
+  const [category, setCategory] = useState("");
+  const [description, setDescription] = useState("");
+  const [tags, setTags] = useState("");
+  const [slug, setSlug] = useState("");
+  const [slugTouched, setSlugTouched] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const [made, setMade] = useState<Template | null>(null);
+
+  // The page slug follows the name until someone edits it, then it stops
+  // moving: a field that keeps overwriting what you typed is worse than one
+  // that never filled itself in.
+  const suggestedSlug = slugTouched ? slug : slugify(label);
+
+  const submit = async () => {
+    if (!label.trim() || busy) return;
+    setBusy(true);
+    setErr(null);
+    try {
+      const r = await fetch("/api/editor/shared-templates", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          label: label.trim(),
+          category: category.trim(),
+          description: description.trim(),
+          tags,
+          suggestedSlug,
+          suggestedTitle: label.trim(),
+        }),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(j.error ?? `HTTP ${r.status}`);
+      const t = j.template as Template;
+      setMade(t);
+      onCreated(t);
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Create failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <ModalRoot onClose={onClose}>
+      <FormShell onMouseDown={(e) => e.stopPropagation()}>
+        <ProposalHead>
+          <div>
+            <ProposalHeadTitle>{made ? "Template created" : "New template"}</ProposalHeadTitle>
+            <ProposalHeadId>{made ? made.templateId : "starts empty, in Drafts"}</ProposalHeadId>
+          </div>
+          <CloseBtn type="button" aria-label="Close" onClick={onClose}>
+            ✕
+          </CloseBtn>
+        </ProposalHead>
+
+        <FormBody>
+          {made ? (
+            <>
+              <Note>
+                <strong>{made.label}</strong> is in Drafts with an empty canvas. Open it in the
+                page editor to compose it from the library, then use the Studio overlay&rsquo;s
+                Save to template on the way out. Move it to Live from this gallery when it&rsquo;s
+                ready for members.
+              </Note>
+              <FormRow>
+                <PrimaryLink
+                  href={editHref(made.templateId)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Open in the editor →
+                </PrimaryLink>
+                <GhostBtn type="button" onClick={onClose}>
+                  Done
+                </GhostBtn>
+              </FormRow>
+            </>
+          ) : (
+            <>
+              <Field>
+                <FieldLabel htmlFor="tpl-label">Name</FieldLabel>
+                <TextInput
+                  id="tpl-label"
+                  value={label}
+                  autoFocus
+                  placeholder="Therapist landing"
+                  onChange={(e) => setLabel(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") void submit();
+                  }}
+                />
+                <FieldHint>
+                  The id is made from this — {suggestedSlug ? <code>{slugify(label)}</code> : "a-name-like-this"} —
+                  and a number is added if it is taken.
+                </FieldHint>
+              </Field>
+
+              <Field>
+                <FieldLabel htmlFor="tpl-category">Category</FieldLabel>
+                <TextInput
+                  id="tpl-category"
+                  list="tpl-categories"
+                  value={category}
+                  placeholder="misc"
+                  onChange={(e) => setCategory(e.target.value)}
+                />
+                <datalist id="tpl-categories">
+                  {categories.map((c) => (
+                    <option key={c} value={c} />
+                  ))}
+                </datalist>
+              </Field>
+
+              <Field>
+                <FieldLabel htmlFor="tpl-desc">Description</FieldLabel>
+                <TextArea
+                  id="tpl-desc"
+                  rows={2}
+                  value={description}
+                  placeholder="What kind of site is this for?"
+                  onChange={(e) => setDescription(e.target.value)}
+                />
+                <FieldHint>Members read this in the picker and the onboarding wizard.</FieldHint>
+              </Field>
+
+              <Field>
+                <FieldLabel htmlFor="tpl-tags">Tags</FieldLabel>
+                <TextInput
+                  id="tpl-tags"
+                  value={tags}
+                  placeholder="wellness, booking"
+                  onChange={(e) => setTags(e.target.value)}
+                />
+                <FieldHint>Comma-separated. The wizard&rsquo;s curated gallery filters on these.</FieldHint>
+              </Field>
+
+              <Field>
+                <FieldLabel htmlFor="tpl-slug">Suggested page slug</FieldLabel>
+                <TextInput
+                  id="tpl-slug"
+                  value={suggestedSlug}
+                  placeholder="home"
+                  onChange={(e) => {
+                    setSlugTouched(true);
+                    setSlug(e.target.value);
+                  }}
+                />
+                <FieldHint>What the member&rsquo;s page is called when they use this template.</FieldHint>
+              </Field>
+
+              {err && <ErrorBox role="alert">{err}</ErrorBox>}
+
+              <FormRow>
+                <PrimaryBtn type="button" disabled={!label.trim() || busy} onClick={() => void submit()}>
+                  {busy ? "Creating…" : "Create draft"}
+                </PrimaryBtn>
+                <GhostBtn type="button" onClick={onClose}>
+                  Cancel
+                </GhostBtn>
+              </FormRow>
+            </>
+          )}
+        </FormBody>
+      </FormShell>
+    </ModalRoot>
+  );
+}
+
+/** Mirrors the server's slugifyTemplateId so the hint shows the id it will
+ *  actually get. The server is still the one that decides — this only previews. */
+function slugify(input: string): string {
+  return (
+    input
+      .toLowerCase()
+      .normalize("NFKD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 48)
+      .replace(/-+$/g, "") || ""
+  );
+}
+
 /* ── Styled ─────────────────────────────────────────────────────── */
 
 const BarRow = styled.div`
   display: flex;
-  justify-content: flex-start;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
   margin-bottom: 1rem;
+`;
+const NewBtn = styled.button`
+  flex: 0 0 auto;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  color: ${colors.violet};
+  background: rgba(${rgb.violet}, 0.12);
+  border: 1px solid rgba(${rgb.violet}, 0.5);
+  &:hover { background: rgba(${rgb.violet}, 0.2); }
 `;
 
 const Grid = styled.div`
@@ -994,4 +1258,95 @@ const ProposalBody = styled.div`
   min-height: 0;
   padding: 14px 16px;
   overflow: hidden;
+`;
+
+const FormShell = styled.div`
+  display: flex;
+  flex-direction: column;
+  width: min(520px, 94vw);
+  max-height: 88vh;
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--t-surface, #12121a);
+  border: 1px solid var(--t-border);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.6);
+`;
+const FormBody = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 16px 16px;
+  overflow-y: auto;
+`;
+const Field = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+`;
+const FieldLabel = styled.label`
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--t-textFaint);
+`;
+const FieldHint = styled.div`
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--t-textFaint);
+  code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    color: var(--t-text);
+  }
+`;
+const TextInput = styled.input`
+  padding: 7px 10px;
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--t-text);
+  background: var(--t-inputBg);
+  border: 1px solid var(--t-border);
+  &:focus-visible { outline: 1px solid rgba(${rgb.violet}, 0.7); outline-offset: 1px; }
+`;
+const TextArea = styled.textarea`
+  padding: 7px 10px;
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.5;
+  resize: vertical;
+  color: var(--t-text);
+  background: var(--t-inputBg);
+  border: 1px solid var(--t-border);
+  &:focus-visible { outline: 1px solid rgba(${rgb.violet}, 0.7); outline-offset: 1px; }
+`;
+const FormRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 2px;
+`;
+const PrimaryBtn = styled.button`
+  padding: 7px 14px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  color: ${colors.violet};
+  background: rgba(${rgb.violet}, 0.14);
+  border: 1px solid rgba(${rgb.violet}, 0.55);
+  &:hover:not(:disabled) { background: rgba(${rgb.violet}, 0.22); }
+  &:disabled { opacity: 0.45; cursor: default; }
+`;
+const PrimaryLink = styled(PrimaryBtn).attrs({ as: "a" })`
+  text-decoration: none;
+`;
+const GhostBtn = styled.button`
+  padding: 7px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  cursor: pointer;
+  color: var(--t-textFaint);
+  background: transparent;
+  border: 1px solid var(--t-border);
+  &:hover { color: var(--t-text); }
 `;

@@ -14,7 +14,7 @@ import {
   jsonb,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
-import { and, asc, desc, eq, isNull } from "drizzle-orm";
+import { and, asc, desc, eq, isNull, like, or } from "drizzle-orm";
 import { db } from "./db-drizzle";
 
 export const sharedTemplates = pgTable(
@@ -275,4 +275,103 @@ export async function patchSharedTemplate(args: {
     );
 
   return getSharedTemplate(templateId);
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Create — the Template Gallery's "New template" (canon P4).
+//
+// Everything else in this file edits a row that already exists, because until
+// now a template could only be BORN from an existing page: the studio overlay
+// snapshotted a draft. Marthe's loop starts the other way round — an empty
+// canvas she composes from the ratified library — so the gallery needs a row to
+// exist before there is anything to compose into.
+//
+// The row is born `sandbox`. There is no create-as-Live: publishing is a
+// separate decision with its own route, and a template nobody has laid a single
+// section into is not one the wizard should be offering members.
+// ────────────────────────────────────────────────────────────────────────────
+
+/** A template id is a URL path segment on both apps — keep it to that alphabet. */
+export function slugifyTemplateId(input: string): string {
+  const base = input
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 48)
+    .replace(/-+$/g, "");
+  return base || "template";
+}
+
+/** `template_id` is UNIQUE across the whole table — soft-deleted rows included,
+ *  since the index carries no predicate. So the suffix search must see deleted
+ *  rows too, or naming a template after one Marthe threw away fails the insert
+ *  with a constraint error nobody can read. */
+async function uniqueTemplateId(base: string): Promise<string> {
+  const taken = await db
+    .select({ templateId: sharedTemplates.templateId })
+    .from(sharedTemplates)
+    .where(
+      or(
+        eq(sharedTemplates.templateId, base),
+        like(sharedTemplates.templateId, `${base}-%`),
+      ),
+    );
+  const set = new Set(taken.map((r) => r.templateId));
+  if (!set.has(base)) return base;
+  for (let n = 2; n < 500; n += 1) {
+    const candidate = `${base}-${n}`;
+    if (!set.has(candidate)) return candidate;
+  }
+  throw new Error(`Too many templates named "${base}".`);
+}
+
+/** An empty PageModel — the same `{ id, sections: [] }` shape the editor makes
+ *  for a brand-new page (`createEmptyPageModel`). Checkout rewrites `slug` and
+ *  `title` onto the scratch draft, so those two are a convenience here, not a
+ *  contract. */
+function emptyTemplateModel(templateId: string, title: string) {
+  return {
+    id: `page_tmpl-${templateId}_${Date.now()}`,
+    slug: `tmpl-${templateId}`,
+    title,
+    sections: [] as unknown[],
+  };
+}
+
+export async function createSharedTemplate(args: {
+  label: string;
+  description?: string;
+  category?: string;
+  tags?: string[];
+  suggestedSlug?: string;
+  suggestedTitle?: string;
+  createdBy?: string | null;
+}): Promise<SharedTemplateFull> {
+  const label = args.label.trim();
+  if (!label) throw new Error("A template needs a name.");
+
+  const templateId = await uniqueTemplateId(slugifyTemplateId(label));
+  const suggestedSlug = slugifyTemplateId(args.suggestedSlug?.trim() || label);
+  const suggestedTitle = (args.suggestedTitle ?? "").trim() || label;
+
+  const [row] = await db
+    .insert(sharedTemplates)
+    .values({
+      templateId,
+      label,
+      description: (args.description ?? "").trim(),
+      category: (args.category ?? "").trim() || "misc",
+      tags: (args.tags ?? []).map((t) => t.trim()).filter(Boolean),
+      suggestedSlug,
+      suggestedTitle,
+      status: "sandbox",
+      kind: "page",
+      model: emptyTemplateModel(templateId, suggestedTitle),
+      createdBy: args.createdBy ?? null,
+    })
+    .returning();
+
+  return { ...rowToSummary(row), model: row.model };
 }
