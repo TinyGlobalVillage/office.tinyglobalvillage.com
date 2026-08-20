@@ -106,6 +106,10 @@ export default function MemberLookupModal({ onClose }: { onClose: () => void }) 
   // Editor layers gate — null = still loading the grant list for this member.
   const [layerGrant, setLayerGrant] = useState<boolean | null>(null);
   const [layerBusy, setLayerBusy] = useState(false);
+  // Page-editor permission list (Gio 2026-08-19) — house-page 'edit'/'publish'
+  // grants for role='editor' members. null = still loading.
+  const [pageGrants, setPageGrants] = useState<{ edit: boolean; publish: boolean } | null>(null);
+  const [pageGrantBusy, setPageGrantBusy] = useState<"edit" | "publish" | null>(null);
   const [cards, setCards] = useState<SavedCard[] | null>(null);
   // Invoices ALREADY issued to this villager (opens MemberBillingModal, pre-scoped).
   const [invoicesOpen, setInvoicesOpen] = useState(false);
@@ -160,6 +164,7 @@ export default function MemberLookupModal({ onClose }: { onClose: () => void }) 
     setTickets(null);
     setOpenTicket(null);
     setLayerGrant(null);
+    setPageGrants(null);
     setMsg(null);
     const res = await fetch(
       `/api/admin/villagers/member-profile?memberId=${memberId}`,
@@ -212,6 +217,21 @@ export default function MemberLookupModal({ onClose }: { onClose: () => void }) 
         );
       } catch {
         setLayerGrant(false);
+      }
+      // Page-editor permission list — best-effort; never blocks the profile.
+      try {
+        const pRes = await fetch("/api/admin/villagers/page-grant", {
+          cache: "no-store",
+        });
+        const pd = await pRes.json().catch(() => ({}));
+        const rows: Array<{ memberId: string; perm: string }> =
+          pRes.ok && pd.ok && Array.isArray(pd.grants) ? pd.grants : [];
+        setPageGrants({
+          edit: rows.some((g) => g.memberId === memberId && g.perm === "edit"),
+          publish: rows.some((g) => g.memberId === memberId && g.perm === "publish"),
+        });
+      } catch {
+        setPageGrants({ edit: false, publish: false });
       }
     } else {
       setMsg({ kind: "err", text: d.error ?? `Couldn't load member (HTTP ${res.status}).` });
@@ -336,6 +356,34 @@ export default function MemberLookupModal({ onClose }: { onClose: () => void }) 
       setMsg({ kind: "err", text: "Editor layers toggle failed — couldn't reach the server." });
     } finally {
       setLayerBusy(false);
+    }
+  };
+
+  // Page-editor permission list — optimistic flip per perm, revert on error.
+  const togglePageGrant = async (perm: "edit" | "publish") => {
+    if (!selected || pageGrants === null || pageGrantBusy) return;
+    const next = !pageGrants[perm];
+    setPageGrants({ ...pageGrants, [perm]: next });
+    setPageGrantBusy(perm);
+    try {
+      const res = await fetch("/api/admin/villagers/page-grant", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ memberId: selected.id, perm, granted: next }),
+      });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok || d.ok !== true) {
+        setPageGrants((g) => (g ? { ...g, [perm]: !next } : g));
+        setMsg({
+          kind: "err",
+          text: d.error ?? `Page ${perm} toggle failed (HTTP ${res.status}).`,
+        });
+      }
+    } catch {
+      setPageGrants((g) => (g ? { ...g, [perm]: !next } : g));
+      setMsg({ kind: "err", text: `Page ${perm} toggle failed — couldn't reach the server.` });
+    } finally {
+      setPageGrantBusy(null);
     }
   };
 
@@ -484,10 +532,56 @@ export default function MemberLookupModal({ onClose }: { onClose: () => void }) 
                       onChange={() => void toggleLayerGrant()}
                     />
                   </SiteRow>
+
+                  {/* Page-editor permission list (Gio 2026-08-19): house-page
+                      edit/publish grants. Admin+ never needs one; the grants
+                      admit role='editor' members only. */}
+                  {(["edit", "publish"] as const).map((perm) => {
+                    const isAdminPlus =
+                      profile.member.role === "admin" || profile.member.role === "superadmin";
+                    const on = isAdminPlus || pageGrants?.[perm] === true;
+                    return (
+                      <SiteRow key={perm}>
+                        <SiteLeft>
+                          <SiteName>
+                            {perm === "edit" ? "House pages — edit" : "House pages — publish"}
+                          </SiteName>
+                          <SiteMeta>
+                            {isAdminPlus
+                              ? "admins and superadmins always can"
+                              : pageGrants === null
+                                ? "Loading grant…"
+                                : profile.member.role !== "editor"
+                                  ? "applies only to members with the editor role"
+                                  : pageGrants[perm]
+                                    ? perm === "edit"
+                                      ? "Granted — can open the TGV editor and save drafts"
+                                      : "Granted — can publish edited pages live"
+                                    : "Off"}
+                          </SiteMeta>
+                        </SiteLeft>
+                        <Lightswitch
+                          on={on}
+                          disabled={isAdminPlus || pageGrants === null || pageGrantBusy !== null}
+                          title={
+                            isAdminPlus
+                              ? "admins and superadmins always can"
+                              : pageGrants?.[perm]
+                                ? `Granted — click to revoke ${perm}`
+                                : `Click to grant ${perm}`
+                          }
+                          onChange={() => void togglePageGrant(perm)}
+                        />
+                      </SiteRow>
+                    );
+                  })}
+
                   <HelpNote>
                     Members get the Regular (content) editor by default. Granting design mode
-                    unlocks full layer manipulation in the TGV page editor. Grants are audited;
-                    revoking returns the member to content-only.
+                    unlocks full layer manipulation in the TGV page editor. The edit/publish
+                    switches are the house-page permission list: an editor-role member needs
+                    “edit” to open the TGV editor and save drafts, and “publish” to push a page
+                    live (or flip its public eye). Grants are audited; revoking is immediate.
                   </HelpNote>
                 </Card>
 
