@@ -21,6 +21,7 @@ type JailSummary = {
   currentlyBanned: number;
   totalBanned: number;
   bannedIps: string[];
+  ignoreIps: string[];
 };
 
 const Wrap = styled.div`
@@ -73,6 +74,48 @@ const Unban = styled.button`
   &:hover { opacity: 0.7; }
 `;
 
+const AllowChip = styled.span`
+  display: inline-flex; align-items: center; gap: 0.3rem;
+  padding: 0.15rem 0.4rem 0.15rem 0.5rem;
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 0.6875rem;
+  background: rgba(${rgb.green}, 0.08);
+  border: 1px solid rgba(${rgb.green}, 0.35);
+  color: ${colors.green};
+  border-radius: 999px;
+`;
+
+const RowLabel = styled.div`
+  font-size: 0.625rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--t-textFaint);
+  margin-top: 0.35rem;
+`;
+
+/* The ignore list only survives until fail2ban restarts, and an operator who
+   does not know that will trust a chip that is about to disappear. */
+const Note = styled.div`
+  font-size: 0.625rem;
+  color: var(--t-textFaint);
+  font-style: italic;
+`;
+
+const AllowBtn = styled.button`
+  padding: 0.3rem 0.6rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  border-radius: 0.375rem;
+  background: rgba(${rgb.green}, 0.1);
+  color: ${colors.green};
+  border: 1px solid rgba(${rgb.green}, 0.45);
+  &:hover:not(:disabled) { background: rgba(${rgb.green}, 0.2); }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+`;
+
 const ManualBan = styled.div`
   display: flex; gap: 0.4rem; align-items: center;
   margin-top: 0.4rem;
@@ -123,6 +166,7 @@ export default function Fail2banGlobalView({ highlightJail }: Fail2banGlobalView
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [manualIp, setManualIp] = useState<Record<string, string>>({});
+  const [manualCidr, setManualCidr] = useState<Record<string, string>>({});
 
   const refresh = useCallback(async () => {
     setBusy(true); setError(null);
@@ -171,6 +215,38 @@ export default function Fail2banGlobalView({ highlightJail }: Fail2banGlobalView
     }
   }, [refresh]);
 
+  const allow = useCallback(async (jail: string, cidr: string, action: "add" | "remove") => {
+    if (!cidr) return;
+    if (
+      action === "remove" &&
+      !(await askConfirm({
+        title: "Drop from allowlist?",
+        message: `${cidr} would become bannable again in jail ${jail}. On a permaban jail that has no expiry.`,
+        confirmLabel: "Drop",
+      }))
+    ) return;
+    setBusy(true); setError(null);
+    try {
+      const res = await fetch("/api/admin/system/fail2ban/allowlist", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ jail, cidr, action }),
+      });
+      if (!res.ok) {
+        const b = await res.json().catch(() => ({}));
+        setError(b.error ?? `HTTP ${res.status}`);
+        return;
+      }
+      await refresh();
+      setManualCidr(prev => ({ ...prev, [jail]: "" }));
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }, [refresh]);
+
   return (
     <Wrap>
       {error && <ErrorText>fail2ban: {error}</ErrorText>}
@@ -202,6 +278,41 @@ export default function Fail2banGlobalView({ highlightJail }: Fail2banGlobalView
                 ))}
               </BannedList>
             )}
+            <RowLabel>Never ban ({j.ignoreIps.length})</RowLabel>
+            {j.ignoreIps.length > 0 ? (
+              <BannedList>
+                {j.ignoreIps.map(cidr => (
+                  <AllowChip key={cidr}>
+                    {cidr}
+                    <Unban
+                      type="button"
+                      title={`Drop ${cidr} from the allowlist`}
+                      onClick={() => allow(j.name, cidr, "remove")}
+                      disabled={busy}
+                    >×</Unban>
+                  </AllowChip>
+                ))}
+              </BannedList>
+            ) : (
+              <Empty>Nothing is exempt — every source can be banned.</Empty>
+            )}
+            <ManualBan>
+              <Input
+                placeholder="Never ban: address or CIDR"
+                value={manualCidr[j.name] ?? ""}
+                onChange={e => setManualCidr(prev => ({ ...prev, [j.name]: e.target.value }))}
+                disabled={busy}
+              />
+              <AllowBtn
+                type="button"
+                disabled={busy || !(manualCidr[j.name] ?? "").trim()}
+                onClick={() => allow(j.name, (manualCidr[j.name] ?? "").trim(), "add")}
+              >Allow</AllowBtn>
+            </ManualBan>
+            <Note>
+              Allowlist edits here last until fail2ban restarts. The durable list is
+              the jail&apos;s <code>ignoreip</code> line in /etc/fail2ban/jail.d/.
+            </Note>
             <ManualBan>
               <Input
                 placeholder="Manual ban: IPv4/IPv6 address"
