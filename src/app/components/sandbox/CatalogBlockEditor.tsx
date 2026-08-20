@@ -10,7 +10,10 @@
 //   • Scope & Deploy — scope SBDM (Platform default vs a tenant) + version + update badge +
 //                      Save / Deploy / Reset / Remove
 //   • Preview        — the live render from the working props
-//   • Edit           — the block's own EditorPanel (data) ⇄ StyleToggles (look), on a PillBar
+//   • Edit           — the block's own EditorPanel (data) ⇄ StyleToggles (look) ⇄ JSON, on a PillBar.
+//                      An entry with NO hand-written panel gets AutoPanel instead: controls derived
+//                      from its defaultProps (P5), so a brand-new entry arrives ratifiable without
+//                      anyone hand-writing a panel first. JSON stays a face, not a fallback.
 // Collapse state persists per-section in localStorage. Scope is a searchable SBDM.
 //
 //   load   → GET   ?id=[&tenantId=]&mode=draft → published → in-code
@@ -33,6 +36,7 @@ import { versionFor } from "@/lib/domains/editor/component-library/versions";
 import ADDM from "@tgv/module-component-library/components/ui/ADDM";
 import PillBar from "@tgv/module-component-library/components/ui/PillBar";
 import SBDM, { type SBDMItem } from "@tgv/module-component-library/components/ui/SBDM";
+import AutoPanel from "@/lib/domains/editor/component-library/AutoPanel";
 import ComponentUpdateModal from "./ComponentUpdateModal";
 
 const BLOCK_API = "/api/sandbox/block-default";
@@ -41,7 +45,7 @@ const CANON_API = "/api/sandbox/catalog-status";
 
 type Scope = { kind: "platform" } | { kind: "tenant"; id: string; label: string };
 type Member = { id: string; label: string };
-type Face = "data" | "style";
+type Face = "data" | "style" | "json";
 
 /** One stored ruling from `catalog_entries`. Absent ⇒ the entry's birth state from code. */
 type CanonRow = {
@@ -334,12 +338,20 @@ export default function CatalogBlockEditor({
   const StyleToggles = entry.StyleToggles as
     | React.FC<{ props: Record<string, unknown>; onChange: (n: Record<string, unknown>) => void }>
     | undefined;
-  // Both faces edit the SAME props object, so the preview above stays live either way.
+  // Every face edits the SAME props object, so the preview above stays live whichever is open.
+  // Content is EditorPanel when the entry ships one and AutoPanel when it doesn't; JSON is always
+  // offered, because a generated panel can honestly say "I can't edit this" (an empty object list,
+  // a hidden key) and the admin tuning defaults before ratification still needs a way in.
+  const hasProps = Object.keys(props ?? {}).length > 0;
   const faces: { key: Face; label: string }[] = [
-    { key: "data", label: "Content" },
+    ...(EditorPanel || hasProps ? [{ key: "data" as Face, label: "Content" }] : []),
     ...(StyleToggles ? [{ key: "style" as Face, label: "Style" }] : []),
+    { key: "json", label: "JSON" },
   ];
   const showStyle = face === "style" && !!StyleToggles;
+  // A face that no longer exists (entry switched, props emptied) falls back to JSON rather than
+  // rendering nothing at all.
+  const showData = face === "data" && (!!EditorPanel || hasProps);
 
   // Code is the birth state; a stored row supersedes it (see ratification.ts).
   const canonStatus: "proposed" | "ratified" =
@@ -523,7 +535,7 @@ export default function CatalogBlockEditor({
       {/* Edit — shown/hidden by the modal's header Content button. */}
       {showEdit && (
       <ADDM
-        label={EditorPanel ? "Edit · defaults" : "Edit · defaults (JSON)"}
+        label="Edit · defaults"
         accent="gold"
         open={open.edit}
         onOpenChange={(o) => toggle("edit", o)}
@@ -544,8 +556,12 @@ export default function CatalogBlockEditor({
         <EditorScroll>
           {showStyle && StyleToggles ? (
             <StyleToggles props={props} onChange={onPanelChange} />
-          ) : EditorPanel ? (
-            <EditorPanel props={props} onChange={onPanelChange} />
+          ) : showData ? (
+            EditorPanel ? (
+              <EditorPanel props={props} onChange={onPanelChange} />
+            ) : (
+              <AutoPanel props={props} onChange={onPanelChange} hints={entry.controls} title="Defaults" />
+            )
           ) : (
             <>
               <JsonArea spellCheck={false} value={json} onChange={(e) => onJsonChange(e.target.value)} />
