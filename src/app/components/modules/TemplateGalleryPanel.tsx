@@ -27,16 +27,39 @@
 // one. If the operator isn't signed in there as an admin, the tgv.com route
 // says so on the page — it must never bounce to "/", which looks like Edit
 // opened the live site.
+//
+// PROPOSED (component-library canon, P3) is the one lane that does NOT list
+// templates. Gio 2026-08-02: a new atom group "goes in the follow-up for us to
+// go over and ratify before we canonize it — that will take place in the page
+// editor off template gallery in office". So the lane lives beside Live/Drafts,
+// but its rows are catalog ENTRIES: opening one mounts CatalogBlockEditor with
+// the entry's own EditorPanel + StyleToggles live over its real render, and the
+// Canon section in there is where Ratify / Send back happen. Two gates, two
+// meanings — a template is published, an atom group is ratified once, ever.
+// An entry with no `catalog_entries` row takes its state from code
+// (`entry.proposed`), which grandfathers everything that predates the gate.
 
+import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
 
 import PillBar from "@tgv/module-component-library/components/ui/PillBar";
 import TPG from "@tgv/module-component-library/components/ui/TPG";
 
+import { CATALOG } from "@/lib/domains/editor/component-library/registry";
+
 import { colors, rgb } from "../../theme";
 import { EditIcon, EyeIcon, MoreIcon, TrashIcon } from "../icons";
 import ConfirmModal from "../frontdesk/ConfirmModal";
+import ModalRoot from "../ModalRoot";
+
+// Loaded on open, not on mount: the ruling surface drags in the whole catalog
+// editor (preview render, update modal, per-entry panels) and most visits to the
+// gallery never open a proposal.
+const CatalogBlockEditor = dynamic(() => import("../sandbox/CatalogBlockEditor"), {
+  ssr: false,
+  loading: () => <Note>Loading the block…</Note>,
+});
 
 type TemplateStatus = "sandbox" | "published";
 
@@ -54,7 +77,26 @@ type Template = {
   updatedAt: string;
 };
 
-type Filter = "published" | "sandbox" | "submitted" | "all";
+type Filter = "published" | "sandbox" | "submitted" | "proposed" | "all";
+
+/** A stored ruling from `catalog_entries` (P3). No row ⇒ birth state from code. */
+type CanonRow = {
+  catalogId: string;
+  status: "proposed" | "ratified";
+  proposedAt: string | null;
+  sentBackAt: string | null;
+  note: string | null;
+};
+
+/** One row of the Proposed lane — a catalog entry, not a template. */
+type Proposal = {
+  id: string;
+  label: string;
+  description: string;
+  category: string;
+  note: string | null;
+  since: string | null;
+};
 
 const TGV_BASE =
   process.env.NEXT_PUBLIC_TGV_URL ?? "https://tinyglobalvillage.com";
@@ -75,6 +117,8 @@ export default function TemplateGalleryPanel() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<Template | null>(null);
+  const [canonRows, setCanonRows] = useState<CanonRow[] | null>(null);
+  const [openProposal, setOpenProposal] = useState<Proposal | null>(null);
 
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(12);
@@ -96,9 +140,44 @@ export default function TemplateGalleryPanel() {
     }
   }, []);
 
+  // The stored rulings. A failure here is not fatal: the lane still shows the
+  // code-flagged proposals, which is the honest floor.
+  const loadCanon = useCallback(async () => {
+    try {
+      const r = await fetch("/api/sandbox/catalog-status", { cache: "no-store" });
+      const j = await r.json().catch(() => ({}));
+      setCanonRows((j?.rows as CanonRow[]) ?? []);
+    } catch {
+      setCanonRows([]);
+    }
+  }, []);
+
   useEffect(() => {
     void load();
-  }, [load]);
+    void loadCanon();
+  }, [load, loadCanon]);
+
+  // The lane = every catalog entry whose CURRENT state is "proposed": born
+  // proposed in code and not yet ratified, or ruled back out by a stored row.
+  const proposals = useMemo<Proposal[]>(() => {
+    const byId = new Map((canonRows ?? []).map((r) => [r.catalogId, r]));
+    return CATALOG.filter((e) => {
+      const row = byId.get(e.id);
+      return row ? row.status === "proposed" : e.proposed === true;
+    })
+      .map((e) => {
+        const row = byId.get(e.id);
+        return {
+          id: e.id,
+          label: e.label,
+          description: e.description,
+          category: `${e.zone.toLowerCase()} · ${e.category}`,
+          note: row?.note ?? null,
+          since: row?.sentBackAt ?? row?.proposedAt ?? null,
+        };
+      })
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }, [canonRows]);
 
   const counts = useMemo(() => {
     const all = templates ?? [];
@@ -252,6 +331,7 @@ export default function TemplateGalleryPanel() {
             { key: "published", label: "Live", count: counts.published },
             { key: "sandbox", label: "Drafts", count: counts.sandbox },
             { key: "submitted", label: "Submitted", count: counts.submitted },
+            { key: "proposed", label: "Proposed", count: proposals.length },
             { key: "all", label: "All", count: counts.all },
           ]}
         />
@@ -259,9 +339,42 @@ export default function TemplateGalleryPanel() {
 
       {error && <ErrorBox role="alert">{error}</ErrorBox>}
 
-      {templates === null && <Note>Loading templates…</Note>}
+      {/* Proposed — catalog entries awaiting ratification. A different object
+          than a template, so it gets its own list rather than borrowing the
+          thumbnail grid: these have no thumbnail, and their action is a ruling. */}
+      {filter === "proposed" && (
+        <>
+          {canonRows === null ? (
+            <Note>Loading proposals…</Note>
+          ) : proposals.length === 0 ? (
+            <Note>
+              Nothing awaiting ratification — every block in the library is canon. New atom
+              groups land here automatically when Claude adds one.
+            </Note>
+          ) : (
+            <ProposalList>
+              {proposals.map((p) => (
+                <ProposalRow key={p.id} type="button" onClick={() => setOpenProposal(p)}>
+                  <ProposalMain>
+                    <ProposalTitle>{p.label}</ProposalTitle>
+                    <ProposalMeta>
+                      {p.category}
+                      {p.since ? ` · ${new Date(p.since).toLocaleDateString()}` : ""}
+                    </ProposalMeta>
+                    <ProposalDesc>{p.description}</ProposalDesc>
+                    {p.note && <ProposalNote>Sent back with: {p.note}</ProposalNote>}
+                  </ProposalMain>
+                  <ProposalChip>Review →</ProposalChip>
+                </ProposalRow>
+              ))}
+            </ProposalList>
+          )}
+        </>
+      )}
 
-      {templates !== null && filtered.length === 0 && (
+      {filter !== "proposed" && templates === null && <Note>Loading templates…</Note>}
+
+      {filter !== "proposed" && templates !== null && filtered.length === 0 && (
         <Note>
           {filter === "sandbox"
             ? "No drafted templates. Everything in the library is live to members."
@@ -273,7 +386,7 @@ export default function TemplateGalleryPanel() {
         </Note>
       )}
 
-      {visible.length > 0 && (
+      {filter !== "proposed" && visible.length > 0 && (
         <Grid>
           {visible.map((t) => {
             const thumb = thumbnailUrl(t.thumbnail);
@@ -432,7 +545,7 @@ export default function TemplateGalleryPanel() {
         </Grid>
       )}
 
-      {filtered.length > pageSize && (
+      {filter !== "proposed" && filtered.length > pageSize && (
         <PagerRow>
           <TPG
             total={filtered.length}
@@ -445,6 +558,39 @@ export default function TemplateGalleryPanel() {
             onPageSizeChange={setPageSize}
           />
         </PagerRow>
+      )}
+
+      {/* The ruling surface: the entry's own panels, live over its real render.
+          Closing re-reads the rulings so the lane empties as things are ratified. */}
+      {openProposal && (
+        <ModalRoot
+          onClose={() => {
+            setOpenProposal(null);
+            void loadCanon();
+          }}
+        >
+          <ProposalShell onMouseDown={(e) => e.stopPropagation()}>
+            <ProposalHead>
+              <div>
+                <ProposalHeadTitle>{openProposal.label}</ProposalHeadTitle>
+                <ProposalHeadId>{openProposal.id}</ProposalHeadId>
+              </div>
+              <CloseBtn
+                type="button"
+                aria-label="Close"
+                onClick={() => {
+                  setOpenProposal(null);
+                  void loadCanon();
+                }}
+              >
+                ✕
+              </CloseBtn>
+            </ProposalHead>
+            <ProposalBody>
+              <CatalogBlockEditor catalogId={openProposal.id} />
+            </ProposalBody>
+          </ProposalShell>
+        </ModalRoot>
       )}
 
       <ConfirmModal
@@ -735,4 +881,117 @@ const ErrorBox = styled.div`
   background: rgba(${rgb.pink}, 0.08);
   border: 1px solid rgba(${rgb.pink}, 0.45);
   border-radius: 0.45rem;
+`;
+
+/* ── Proposed lane (component-library canon, P3) ─────────────────── */
+const ProposalList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+`;
+const ProposalRow = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  text-align: left;
+  padding: 12px 14px;
+  border-radius: 10px;
+  cursor: pointer;
+  color: inherit;
+  background: rgba(255, 184, 107, 0.05);
+  border: 1px solid rgba(255, 184, 107, 0.32);
+  transition: background 0.15s ease, border-color 0.15s ease;
+  &:hover {
+    background: rgba(255, 184, 107, 0.1);
+    border-color: rgba(255, 184, 107, 0.6);
+  }
+`;
+const ProposalMain = styled.div`
+  flex: 1 1 auto;
+  min-width: 0;
+`;
+const ProposalTitle = styled.div`
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--t-text);
+`;
+const ProposalMeta = styled.div`
+  margin-top: 2px;
+  font-size: 11px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--t-textFaint);
+`;
+const ProposalDesc = styled.div`
+  margin-top: 6px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--t-textFaint);
+`;
+const ProposalNote = styled.div`
+  margin-top: 8px;
+  padding-left: 8px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #ffb86b;
+  border-left: 2px solid #ffb86b;
+`;
+const ProposalChip = styled.span`
+  flex: 0 0 auto;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 999px;
+  color: #ffb86b;
+  background: rgba(255, 184, 107, 0.12);
+  border: 1px solid rgba(255, 184, 107, 0.5);
+`;
+const ProposalShell = styled.div`
+  display: flex;
+  flex-direction: column;
+  width: min(980px, 94vw);
+  max-height: 88vh;
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--t-surface, #12121a);
+  border: 1px solid var(--t-border);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.6);
+`;
+const ProposalHead = styled.div`
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--t-border);
+`;
+const ProposalHeadTitle = styled.div`
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--t-text);
+`;
+const ProposalHeadId = styled.div`
+  margin-top: 2px;
+  font-size: 11px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--t-textFaint);
+`;
+const CloseBtn = styled.button`
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--t-textFaint);
+  background: var(--t-inputBg);
+  border: 1px solid var(--t-border);
+  &:hover { color: var(--t-text); }
+`;
+const ProposalBody = styled.div`
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 14px 16px;
+  overflow: hidden;
 `;
