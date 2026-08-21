@@ -290,12 +290,28 @@ export default function TemplateGalleryPanel() {
   );
 
   // ESC always closes the menu, even from inside a focused control.
+  //
+  // The outside-click close asks WHERE the press landed instead of relying on
+  // the menu's own onMouseDown to stop it (Gio 2026-08-20: "i just tried to
+  // delete the template draft ... and it didn't work"). That guard could never
+  // have worked here: the App Router hydrates React onto `document` itself, so
+  // React's listener and this one sit on the SAME node, and stopPropagation()
+  // does nothing to a sibling listener on the node it is already at. Every
+  // press inside the menu therefore closed it on MOUSEDOWN, the item unmounted
+  // before mouseup, and the browser never fired a click at all — so no menu
+  // item ever ran its handler. Verified in prod with a capture-phase log:
+  // mousedown on the Delete button, mouseup on the tile behind it, no click.
   useEffect(() => {
     if (!openMenuId) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") setOpenMenuId(null);
     };
-    const onDown = () => setOpenMenuId(null);
+    const onDown = (e: MouseEvent) => {
+      const el = e.target instanceof Element ? e.target : null;
+      // Inside the open menu, or on the button that owns it → leave it alone.
+      if (el?.closest("[data-tile-menu]")) return;
+      setOpenMenuId(null);
+    };
     document.addEventListener("keydown", onKey);
     document.addEventListener("mousedown", onDown);
     return () => {
@@ -487,9 +503,7 @@ export default function TemplateGalleryPanel() {
                   aria-label={`Actions for ${t.label}`}
                   title="Actions"
                   disabled={busyId === t.templateId}
-                  // Stop the document mousedown listener from closing the menu
-                  // in the same gesture that opens it.
-                  onMouseDown={(e) => e.stopPropagation()}
+                  data-tile-menu=""
                   onClick={() =>
                     setOpenMenuId((k) =>
                       k === t.templateId ? null : t.templateId,
@@ -536,10 +550,7 @@ export default function TemplateGalleryPanel() {
                 )}
 
                 {openMenuId === t.templateId && (
-                  <Menu
-                    role="menu"
-                    onMouseDown={(e) => e.stopPropagation()}
-                  >
+                  <Menu role="menu" data-tile-menu="">
                     <MenuLabel>Move to</MenuLabel>
                     {/* Disable the destination you are ALREADY on — the pair was
                         inverted, which left every template stuck in its status. */}
