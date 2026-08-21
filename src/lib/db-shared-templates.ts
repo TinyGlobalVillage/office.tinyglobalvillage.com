@@ -14,7 +14,7 @@ import {
   jsonb,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
-import { and, asc, desc, eq, isNull, like, or } from "drizzle-orm";
+import { and, asc, desc, eq, isNull, like, or, sql } from "drizzle-orm";
 import { db } from "./db-drizzle";
 import { blankCanvasSection } from "@tgv/module-page-editor/editor/helpers/blankCanvasSection";
 
@@ -189,7 +189,17 @@ export async function softDeleteSharedTemplate(
     )
     .returning({ id: sharedTemplates.id });
 
-  return rows.length > 0;
+  if (rows.length === 0) return false;
+
+  // The workbench page dies with the template (Gio 2026-08-20) — same rule the
+  // TGV-side DELETE applies, kept here because Office writes these rows
+  // directly rather than through that route. `tmpl-<id>` is a reserved slug
+  // namespace (templateScratch.ts), so this can never touch a real page.
+  await db.execute(
+    sql`DELETE FROM page_models WHERE slug = ${`tmpl-${templateId}`}`,
+  );
+
+  return true;
 }
 
 export async function getSharedTemplate(

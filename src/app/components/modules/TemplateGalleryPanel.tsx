@@ -88,6 +88,26 @@ type Template = {
 
 type Filter = "published" | "sandbox" | "submitted" | "proposed" | "all";
 
+const FILTERS: readonly Filter[] = [
+  "published",
+  "sandbox",
+  "submitted",
+  "proposed",
+  "all",
+] as const;
+
+/** `?status=sandbox` opens the gallery on that pill. The editor's "delete this
+ *  template" lands here (Gio 2026-08-20: "it closes and redirects the user back
+ *  to the template gallery drafts view"), and it makes every pill linkable.
+ *  Read AFTER mount, never as the initial state: the server has no query-string
+ *  view of this component and a different first paint is a hydration mismatch. */
+function filterFromUrl(): Filter | null {
+  const raw = new URLSearchParams(window.location.search).get("status");
+  return (FILTERS as readonly string[]).includes(raw ?? "")
+    ? (raw as Filter)
+    : null;
+}
+
 /** A stored ruling from `catalog_entries` (P3). No row ⇒ birth state from code. */
 type CanonRow = {
   catalogId: string;
@@ -166,6 +186,12 @@ export default function TemplateGalleryPanel() {
     void load();
     void loadCanon();
   }, [load, loadCanon]);
+
+  // Deep link (?status=): once, on mount.
+  useEffect(() => {
+    const f = filterFromUrl();
+    if (f) setFilter(f);
+  }, []);
 
   // The lane = every catalog entry whose CURRENT state is "proposed": born
   // proposed in code and not yet ratified, or ruled back out by a stored row.
