@@ -16,6 +16,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { and, asc, desc, eq, isNull, like, or } from "drizzle-orm";
 import { db } from "./db-drizzle";
+import { blankCanvasSection } from "@tgv/module-page-editor/editor/helpers/blankCanvasSection";
 
 export const sharedTemplates = pgTable(
   "shared_templates",
@@ -327,16 +328,28 @@ async function uniqueTemplateId(base: string): Promise<string> {
   throw new Error(`Too many templates named "${base}".`);
 }
 
-/** An empty PageModel — the same `{ id, sections: [] }` shape the editor makes
- *  for a brand-new page (`createEmptyPageModel`). Checkout rewrites `slug` and
- *  `title` onto the scratch draft, so those two are a convenience here, not a
- *  contract. */
+/** A brand-new template's model: one BLANK CANVAS and nothing else.
+ *
+ *  It used to be `sections: []`, which sounds right and isn't — the editor
+ *  invents a default page for a slug it has never seen, so an empty list came
+ *  back as a legacy blocks-section with an H1 reading `tmpl-<id>`, sitting on
+ *  the canvas and refusing to be edited (Gio, 2026-08-20). One empty atomic
+ *  section is the shape that means "blank AND drawable".
+ *
+ *  Note what is NOT here: no `chrome` key. A template describes a page's body;
+ *  the nav and footer belong to whichever site it is applied to, and stamping
+ *  `{navEnabled:false}` in here would switch off that site's chrome. The
+ *  template WORKBENCH hides chrome (see checkoutTemplateToScratch), which is a
+ *  property of the workbench, not of the template.
+ *
+ *  Checkout rewrites `slug` and `title` onto the scratch draft, so those two are
+ *  a convenience here, not a contract. */
 function emptyTemplateModel(templateId: string, title: string) {
   return {
     id: `page_tmpl-${templateId}_${Date.now()}`,
     slug: `tmpl-${templateId}`,
     title,
-    sections: [] as unknown[],
+    sections: [blankCanvasSection()] as unknown[],
   };
 }
 
