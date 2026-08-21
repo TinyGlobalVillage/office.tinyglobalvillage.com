@@ -1,11 +1,14 @@
 // /api/sandbox/component-update-apply — Phase 4.4 (preview) + 4.5 (apply) of office-sandbox-catalog-mirror.
 //
-// Rebase a tenant's overlay onto a NEW component version ("update available → apply"). Runs the
+// Rebase a site's overlay onto a NEW component version ("update available → apply"). Runs the
 // 3-way merge ENTIRELY SERVER-SIDE from DB data (no catalog needed — 4.2 stores default VALUES per
 // version in component_versions): base = vFrom snapshot, incoming = vTo snapshot, theirs = the
-// tenant's overlay. See @tgv/module-page-editor editor/defaults/reconcile.ts for the outcomes.
+// site's overlay. See @tgv/module-page-editor editor/defaults/reconcile.ts for the outcomes.
 //
-//   POST { mode:'preview', catalogId, tenantId, lang?, fromVersion, toVersion }
+// The overlay's scope key is the SUBDOMAIN since D2 (2026-08-20) retired content_overrides
+// .tenant_id; requireKnownSite() stands in for the FK that column carried.
+//
+//   POST { mode:'preview', catalogId, site, lang?, fromVersion, toVersion }
 //        → { outcome, classification, reconciled, preservedFields, flaggedFields, blastRadius }
 //   POST { mode:'apply',   ... }
 //        → writes the reconciled overlay (published+draft @ toVersion) + audits to data/reconcile/*.jsonl
@@ -27,7 +30,7 @@ import { reconcile } from "@/lib/domains/editor/defaults/reconcile";
 export const runtime = "nodejs";
 
 const poolQuery: QueryFn = (text, params) => pgPool.query(text, params as unknown[]);
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const SITE_RE = /^[a-z0-9][a-z0-9-]{0,62}$/i;
 const ID_RE = /^[a-z0-9][a-z0-9-]{0,79}$/i;
 const LANG_RE = /^[a-z]{2}(-[a-z]{2})?$/i;
 
@@ -40,11 +43,12 @@ async function withClient<T>(fn: (q: QueryFn) => Promise<T>): Promise<T> {
   }
 }
 
-/** Map a Postgres FK violation (23503 — tenantId isn't a real members.id) to a clean 400. */
-function fkErrorResponse(e: unknown): NextResponse | null {
-  if ((e as { code?: string })?.code === "23503")
-    return NextResponse.json({ error: "invalid tenantId (not a member)" }, { status: 400 });
-  return null;
+/** The FK that `tenant_id` carried, restated in code: refuse a subdomain no villager site has. */
+async function requireKnownSite(site: string): Promise<NextResponse | null> {
+  const r = await poolQuery(`SELECT 1 FROM villager_sites WHERE subdomain = $1 LIMIT 1`, [site]);
+  return (r.rowCount ?? 0)
+    ? null
+    : NextResponse.json({ error: "invalid site (no such villager site)" }, { status: 400 });
 }
 
 /** Pages that render this block (informational blast radius). Component-global. */
@@ -93,15 +97,17 @@ export async function POST(req: NextRequest) {
   const b = (await req.json().catch(() => null)) as Record<string, unknown> | null;
   const mode = b?.mode === "apply" ? "apply" : "preview";
   const catalogId = String(b?.catalogId ?? "");
-  const tenantId = String(b?.tenantId ?? "");
+  const site = String(b?.site ?? "");
   const lang = String(b?.lang ?? "en");
   const fromVersion = Number(b?.fromVersion);
   const toVersion = Number(b?.toVersion);
 
   if (!ID_RE.test(catalogId)) return NextResponse.json({ error: "bad catalogId" }, { status: 400 });
-  if (!UUID_RE.test(tenantId)) return NextResponse.json({ error: "bad tenantId" }, { status: 400 });
+  if (!SITE_RE.test(site)) return NextResponse.json({ error: "bad site" }, { status: 400 });
   if (!LANG_RE.test(lang)) return NextResponse.json({ error: "bad lang" }, { status: 400 });
   if (!Number.isInteger(toVersion) || toVersion < 1) return NextResponse.json({ error: "bad toVersion" }, { status: 400 });
+  const unknownSite = await requireKnownSite(site);
+  if (unknownSite) return unknownSite;
   // fromVersion is advisory: a stale overlay can carry version 0 (pre-versioning / older than any
   // tracked snapshot). Don't 400 on a low value — effectiveFrom below falls back to the overlay's
   // own version and reconcile() degrades safely when the base snapshot is missing. Only reject a
@@ -118,12 +124,12 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // The tenant's current overlay (what we're rebasing). None → nothing to reconcile; they ride the cascade.
-  const overlay = await readTenantOverlay(poolQuery, { catalogId, tenantId, lang, mode: "published" });
+  // The site's current overlay (what we're rebasing). None → nothing to reconcile; it rides the cascade.
+  const overlay = await readTenantOverlay(poolQuery, { catalogId, site, lang, mode: "published" });
   if (!overlay) {
     return NextResponse.json({
       outcome: "NO_OVERLAY",
-      message: "Tenant has no overlay for this block — the new version's default applies automatically.",
+      message: "This site has no overlay for this block — the new version's default applies automatically.",
       blastRadius: await blastRadius(catalogId),
       fromVersion: fromVersion || null,
       toVersion,
@@ -161,7 +167,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       mode: "preview",
       catalogId,
-      tenantId,
+      site,
       lang,
       fromVersion: effectiveFrom,
       toVersion,
@@ -177,18 +183,18 @@ export async function POST(req: NextRequest) {
     await withClient((q) =>
       writeTenantOverlayModes(
         q,
-        { catalogId, tenantId, lang, version: toVersion, data: result.reconciled },
+        { catalogId, site, lang, version: toVersion, data: result.reconciled },
         ["published", "draft"],
       ),
     );
-  } catch (e) {
-    return fkErrorResponse(e) ?? NextResponse.json({ error: "failed to persist reconciled overlay" }, { status: 500 });
+  } catch {
+    return NextResponse.json({ error: "failed to persist reconciled overlay" }, { status: 500 });
   }
   await audit({
     ts: new Date().toISOString(),
     actor,
     catalogId,
-    tenantId,
+    site,
     lang,
     fromVersion: effectiveFrom,
     toVersion,
@@ -203,7 +209,7 @@ export async function POST(req: NextRequest) {
     mode: "apply",
     applied: true,
     catalogId,
-    tenantId,
+    site,
     lang,
     fromVersion: effectiveFrom,
     toVersion,

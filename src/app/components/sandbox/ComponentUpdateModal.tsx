@@ -29,7 +29,7 @@ type Preview = {
 
 export default function ComponentUpdateModal({
   catalogId,
-  tenantId,
+  site,
   tenantLabel,
   fromVersion,
   toVersion,
@@ -38,7 +38,8 @@ export default function ComponentUpdateModal({
   onApplied,
 }: {
   catalogId: string;
-  tenantId: string;
+  /** The villager subdomain whose overlay is being rebased (content_overrides.site). */
+  site: string;
   tenantLabel: string;
   fromVersion: number;
   toVersion: number;
@@ -58,13 +59,13 @@ export default function ComponentUpdateModal({
       const res = await fetch(ENDPOINT, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ mode, catalogId, tenantId, lang, fromVersion, toVersion }),
+        body: JSON.stringify({ mode, catalogId, site, lang, fromVersion, toVersion }),
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(json?.error ?? `HTTP ${res.status}`);
       return json as Preview & { applied?: boolean };
     },
-    [catalogId, tenantId, lang, fromVersion, toVersion],
+    [catalogId, site, lang, fromVersion, toVersion],
   );
 
   React.useEffect(() => {

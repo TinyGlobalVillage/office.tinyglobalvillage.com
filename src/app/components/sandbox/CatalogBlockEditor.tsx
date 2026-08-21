@@ -16,7 +16,7 @@
 //                      anyone hand-writing a panel first. JSON stays a face, not a fallback.
 // Collapse state persists per-section in localStorage. Scope is a searchable SBDM.
 //
-//   load   → GET   ?id=[&tenantId=]&mode=draft → published → in-code
+//   load   → GET   ?id=[&site=]&mode=draft → published → in-code
 //   deploy → PUT then POST (double-verified): "cascade to all" (platform) / "save for <tenant>"
 // A tenant overlay older than the block's current version surfaces an "update available" badge
 // → the Phase 4.6 ComponentUpdateModal (blast-radius + reconcile).
@@ -43,8 +43,11 @@ const BLOCK_API = "/api/sandbox/block-default";
 const TENANT_API = "/api/sandbox/tenant-overlay";
 const CANON_API = "/api/sandbox/catalog-status";
 
-type Scope = { kind: "platform" } | { kind: "tenant"; id: string; label: string };
-type Member = { id: string; label: string };
+// A tenant scope is addressed by SUBDOMAIN — content_overrides.site is the only
+// scope column since D2, so a site with no subdomain has nowhere to store an
+// overlay and is left out of the picker below.
+type Scope = { kind: "platform" } | { kind: "tenant"; site: string; label: string };
+type Member = { site: string; label: string };
 type Face = "data" | "style" | "json";
 
 /** One stored ruling from `catalog_entries`. Absent ⇒ the entry's birth state from code. */
@@ -140,7 +143,7 @@ export default function CatalogBlockEditor({
       return next;
     });
 
-  const tenantId = scope.kind === "tenant" ? scope.id : null;
+  const tenantSite = scope.kind === "tenant" ? scope.site : null;
 
   // Member list for the scope SBDM (best-effort; admin-gated endpoint).
   React.useEffect(() => {
@@ -150,10 +153,12 @@ export default function CatalogBlockEditor({
       .then((j) => {
         if (!alive) return;
         setMembers(
-          (j?.members ?? []).map((m: Record<string, unknown>) => ({
-            id: String(m.id),
-            label: String(m.clientName || m.domain || m.subdomain || m.id),
-          })),
+          (j?.members ?? [])
+            .filter((m: Record<string, unknown>) => String(m.subdomain ?? "").trim())
+            .map((m: Record<string, unknown>) => ({
+              site: String(m.subdomain).trim(),
+              label: String(m.clientName || m.domain || m.subdomain),
+            })),
         );
       })
       .catch(() => {});
@@ -172,16 +177,16 @@ export default function CatalogBlockEditor({
   React.useEffect(() => { loadCanon(); }, [loadCanon]);
 
   const scopeItems: SBDMItem[] = React.useMemo(
-    () => [{ key: "", label: "Platform default (cascade)" }, ...members.map((m) => ({ key: m.id, label: m.label }))],
+    () => [{ key: "", label: "Platform default (cascade)" }, ...members.map((m) => ({ key: m.site, label: m.label }))],
     [members],
   );
 
   const loadUrl = React.useCallback(
     (mode: "draft" | "published") => {
       const q = `id=${encodeURIComponent(catalogId)}&mode=${mode}`;
-      return tenantId ? `${TENANT_API}?${q}&tenantId=${tenantId}` : `${BLOCK_API}?${q}`;
+      return tenantSite ? `${TENANT_API}?${q}&site=${encodeURIComponent(tenantSite)}` : `${BLOCK_API}?${q}`;
     },
-    [catalogId, tenantId],
+    [catalogId, tenantSite],
   );
 
   React.useEffect(() => {
@@ -202,7 +207,7 @@ export default function CatalogBlockEditor({
         const initial = data ?? inCode;
         setProps(initial);
         setJson(JSON.stringify(initial, null, 2));
-        setLoadedVersion(tenantId ? ver : null);
+        setLoadedVersion(tenantSite ? ver : null);
         setStatus({ kind: "idle" });
       } catch {
         if (!alive) return;
@@ -212,7 +217,7 @@ export default function CatalogBlockEditor({
       }
     })();
     return () => { alive = false; };
-  }, [catalogId, inCode, loadUrl, tenantId]);
+  }, [catalogId, inCode, loadUrl, tenantSite]);
 
   const onPanelChange = React.useCallback((next: Record<string, unknown>) => {
     setProps(next);
@@ -236,15 +241,15 @@ export default function CatalogBlockEditor({
   };
 
   const putBody = () =>
-    tenantId
-      ? { catalogId, tenantId, lang: "en", version: currentVersion, data: props }
+    tenantSite
+      ? { catalogId, site: tenantSite, lang: "en", version: currentVersion, data: props }
       : { id: catalogId, data: props };
 
   async function saveDraft(): Promise<boolean> {
     if (jsonErr) { setStatus({ kind: "error", msg: "Fix the JSON before saving." }); return false; }
     setStatus({ kind: "saving" });
     try {
-      const r = await fetch(tenantId ? TENANT_API : BLOCK_API, {
+      const r = await fetch(tenantSite ? TENANT_API : BLOCK_API, {
         method: "PUT",
         headers: { "content-type": "application/json" },
         body: JSON.stringify(putBody()),
@@ -261,21 +266,21 @@ export default function CatalogBlockEditor({
   async function publish() {
     setStatus({ kind: "publishing" });
     try {
-      const api = tenantId ? TENANT_API : BLOCK_API;
+      const api = tenantSite ? TENANT_API : BLOCK_API;
       const put = await fetch(api, {
         method: "PUT",
         headers: { "content-type": "application/json" },
         body: JSON.stringify(putBody()),
       });
       if (!put.ok) throw new Error("draft save failed");
-      const postBody = tenantId ? { catalogId, tenantId, lang: "en" } : { id: catalogId };
+      const postBody = tenantSite ? { catalogId, site: tenantSite, lang: "en" } : { id: catalogId };
       const r = await fetch(api, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify(postBody),
       });
       if (!r.ok) throw new Error((await r.json().catch(() => ({})))?.error ?? `HTTP ${r.status}`);
-      setLoadedVersion(tenantId ? currentVersion : null);
+      setLoadedVersion(tenantSite ? currentVersion : null);
       setStatus({ kind: "published" });
     } catch (e) {
       setStatus({ kind: "error", msg: (e as Error).message });
@@ -292,8 +297,8 @@ export default function CatalogBlockEditor({
   async function removeOverride() {
     setStatus({ kind: "publishing" });
     try {
-      const url = tenantId
-        ? `${TENANT_API}?id=${encodeURIComponent(catalogId)}&tenantId=${tenantId}`
+      const url = tenantSite
+        ? `${TENANT_API}?id=${encodeURIComponent(catalogId)}&site=${encodeURIComponent(tenantSite)}`
         : `${BLOCK_API}?id=${encodeURIComponent(catalogId)}`;
       const r = await fetch(url, { method: "DELETE" });
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
@@ -475,12 +480,12 @@ export default function CatalogBlockEditor({
           <span style={{ ["--ddm-accent" as string]: "#ff4ecb", ["--ddm-accent-rgb" as string]: "255, 78, 203" }}>
             <SBDM
               items={scopeItems}
-              value={scope.kind === "platform" ? "" : scope.id}
+              value={scope.kind === "platform" ? "" : scope.site}
               onSelect={(key) => {
                 if (!key) setScope({ kind: "platform" });
                 else {
-                  const m = members.find((x) => x.id === key);
-                  setScope({ kind: "tenant", id: key, label: m?.label ?? key });
+                  const m = members.find((x) => x.site === key);
+                  setScope({ kind: "tenant", site: key, label: m?.label ?? key });
                 }
               }}
               placeholder="Platform default (cascade)"
@@ -575,7 +580,7 @@ export default function CatalogBlockEditor({
       {showUpdate && scope.kind === "tenant" && loadedVersion != null && (
         <ComponentUpdateModal
           catalogId={catalogId}
-          tenantId={scope.id}
+          site={scope.site}
           tenantLabel={scope.label}
           fromVersion={loadedVersion}
           toVersion={currentVersion}
