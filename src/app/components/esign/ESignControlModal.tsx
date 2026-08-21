@@ -563,7 +563,7 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
       title: "Delete document",
       message: `Delete “${d.title}”?`,
       detail: d.kind === "multisig"
-        ? "It leaves the library. Signer links already emailed stop mattering once removed; signed consent records are kept for audit."
+        ? "It leaves the library and the envelope is retired at the signing service — signing links already sent stop working, and nobody is emailed about the removal. A document that already completed keeps its signed copy; consent records are kept for audit."
         : "It leaves the library and the recipient pickers. Any signed consent records are kept for audit.",
       confirmLabel: "Delete",
       run: () => performDeleteDoc(d),
