@@ -5,9 +5,14 @@
 // Persists to localStorage (tgv-module-dashboard-cfg); the tile reads it to build the
 // popout URL. Language and the tgv.com base URL are configurable so the same tile can
 // point at prod / a staging Village / a lane preview without a code change.
+//
+// The "Dashboard behaviour" ADDM below is different: those are FLEET runtime
+// tunables persisted to dashboard_runtime_settings via /api/admin/dashboard-settings
+// (audited), which every tenant dashboard reads server-side — no code deploy.
 
 import { useEffect, useState } from "react";
 import styled from "styled-components";
+import ADDM from "@tgv/module-component-library/components/ui/ADDM";
 import { rgb, colors } from "../../theme";
 
 const TGV_BASE =
@@ -17,6 +22,10 @@ export default function ModuleDashboardConfigModal({ onClose }: { onClose: () =>
   const [lang, setLang] = useState("en");
   const [base, setBase] = useState(TGV_BASE);
   const [saved, setSaved] = useState(false);
+  const [behaviourOpen, setBehaviourOpen] = useState(false);
+  const [undoDepth, setUndoDepth] = useState<number>(10);
+  const [undoDepthSaved, setUndoDepthSaved] = useState<number>(10);
+  const [settingsErr, setSettingsErr] = useState<string | null>(null);
 
   useEffect(() => {
     try {
@@ -29,9 +38,25 @@ export default function ModuleDashboardConfigModal({ onClose }: { onClose: () =>
     } catch {
       /* ignore */
     }
+    void (async () => {
+      try {
+        const res = await fetch("/api/admin/dashboard-settings");
+        const data = (await res.json()) as {
+          ok?: boolean;
+          settings?: { setting_key: string; value: unknown }[];
+        };
+        const row = data.settings?.find((s) => s.setting_key === "undo_depth");
+        if (typeof row?.value === "number") {
+          setUndoDepth(row.value);
+          setUndoDepthSaved(row.value);
+        }
+      } catch {
+        setSettingsErr("Could not load fleet settings");
+      }
+    })();
   }, []);
 
-  const save = () => {
+  const save = async () => {
     const cfg = {
       lang: lang.trim() || "en",
       base: base.trim() || TGV_BASE,
@@ -40,6 +65,25 @@ export default function ModuleDashboardConfigModal({ onClose }: { onClose: () =>
       localStorage.setItem("tgv-module-dashboard-cfg", JSON.stringify(cfg));
     } catch {
       /* ignore */
+    }
+    setSettingsErr(null);
+    if (undoDepth !== undoDepthSaved) {
+      try {
+        const res = await fetch("/api/admin/dashboard-settings", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ settingKey: "undo_depth", value: undoDepth }),
+        });
+        const data = (await res.json()) as { ok?: boolean; error?: string };
+        if (!data.ok) {
+          setSettingsErr(data.error ?? "Save failed");
+          return;
+        }
+        setUndoDepthSaved(undoDepth);
+      } catch {
+        setSettingsErr("Save failed — network error");
+        return;
+      }
     }
     setSaved(true);
     setTimeout(() => setSaved(false), 1600);
@@ -57,7 +101,33 @@ export default function ModuleDashboardConfigModal({ onClose }: { onClose: () =>
           <Label>Village base URL</Label>
           <Input value={base} onChange={(e) => setBase(e.target.value)} placeholder={TGV_BASE} />
         </Field>
+        <ADDM
+          label="Dashboard behaviour"
+          accent="cyan"
+          contained
+          open={behaviourOpen}
+          onOpenChange={setBehaviourOpen}
+        >
+          <Field>
+            <Label>Undo depth (per session)</Label>
+            <Input
+              type="number"
+              min={1}
+              max={100}
+              value={undoDepth}
+              onChange={(e) => {
+                const n = Number(e.target.value);
+                if (Number.isInteger(n)) setUndoDepth(Math.max(1, Math.min(100, n)));
+              }}
+            />
+            <Hint>
+              How many destructive actions (deletes, overwrites) a member can reverse with
+              cmd/ctrl+Z in one dashboard session. Fleet-wide, applies on next dashboard load.
+            </Hint>
+          </Field>
+        </ADDM>
         <Actions>
+          {settingsErr && <Err>{settingsErr}</Err>}
           {saved && <Saved>Saved</Saved>}
           <Btn type="button" onClick={save}>
             Save settings
@@ -137,6 +207,19 @@ const Saved = styled.span`
   margin-right: auto;
   font-size: 0.75rem;
   color: ${colors.violet};
+`;
+
+const Err = styled.span`
+  margin-right: auto;
+  font-size: 0.75rem;
+  color: #ff7b7b;
+`;
+
+const Hint = styled.div`
+  margin-top: 0.35rem;
+  font-size: 0.7rem;
+  line-height: 1.4;
+  color: var(--t-textFaint);
 `;
 
 const Btn = styled.button`
