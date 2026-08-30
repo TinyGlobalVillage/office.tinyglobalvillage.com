@@ -10,7 +10,10 @@
 // own superadmin gate is the final wall. Lang/base live behind the tile gear
 // (ModuleDashboardConfigModal, localStorage tgv-module-dashboard-cfg).
 //
-// Future siblings (Module-Storefront, Module-Course, …) slot in as more tiles here.
+// Module Storefront (2026-08-30) curates the fleet's STORE pages — the
+// 'storefront' category of shared_templates (confirmation / product / cart),
+// each card carrying a Deploy | Unpublish pillbar. Future siblings
+// (Module-Course, …) slot in as more tiles here.
 
 import { useCallback, useEffect, useState } from "react";
 import styled from "styled-components";
@@ -19,6 +22,7 @@ import TopNav from "../../components/TopNav";
 import { ModulesIcon, EditorIcon, SettingsIcon, PhotosIcon } from "../../components/icons";
 import ModuleDashboardConfigModal from "../../components/modules/ModuleDashboardConfigModal";
 import TemplateGalleryPanel from "../../components/modules/TemplateGalleryPanel";
+import ModuleStorefrontPanel from "../../components/modules/ModuleStorefrontPanel";
 import { EmailCampaignsPanel } from "@tgv/module-email-campaigns";
 
 /* ── Styled (Villagers tile canon, violet accent) ─────────────────── */
@@ -161,8 +165,8 @@ const BackBtn = styled.button`
 
 /* ── Page ──────────────────────────────────────────────────────── */
 
-type ModulesView = "grid" | "email" | "templates";
-const VIEWS: ModulesView[] = ["grid", "email", "templates"];
+type ModulesView = "grid" | "email" | "templates" | "storefront";
+const VIEWS: ModulesView[] = ["grid", "email", "templates", "storefront"];
 
 export default function ModulesClient() {
   const [openMdConfig, setOpenMdConfig] = useState(false);
@@ -276,6 +280,35 @@ export default function ModulesClient() {
     );
   }
 
+  // Module Storefront opens INLINE like its siblings — a platform-library
+  // surface curating the fleet's store pages. Edit hops out to the tgv.com
+  // editor in a new tab (see ModuleStorefrontPanel's header).
+  if (view === "storefront") {
+    return (
+      <>
+        <TopNav />
+        <PageMain>
+          <HeaderRow>
+            <BackBtn type="button" onClick={() => setView("grid")}>← Modules</BackBtn>
+            <TitleWrap>
+              <span style={{ fontSize: 22 }} aria-hidden>🛍️</span>
+              <PageTitle>Module Storefront</PageTitle>
+            </TitleWrap>
+          </HeaderRow>
+          <PageSubtitle style={{ marginBottom: "1.25rem" }}>
+            The store pages every tenant&apos;s storefront ships with — order
+            confirmation, product catalog, cart &amp; checkout.
+            <strong> Deploy</strong> makes a template member-pickable and the model
+            future stores are seeded with; <strong>Unpublish</strong> hides it and
+            seeds fall back to the built-in default, so a new store never lands on
+            a missing page. Edits govern future stores only.
+          </PageSubtitle>
+          <ModuleStorefrontPanel />
+        </PageMain>
+      </>
+    );
+  }
+
   return (
     <>
       <TopNav />
@@ -318,6 +351,18 @@ export default function ModulesClient() {
                 Branded outbound-email templates — edit the system-wide copies every member
                 site inherits (welcome, receipts, domain reminders…). Preview live and send
                 yourself a test.
+              </TileSub>
+            </Tile>
+          </TileWrap>
+
+          <TileWrap>
+            <Tile type="button" onClick={() => setView("storefront")}>
+              <TileTop><span style={{ fontSize: 18 }} aria-hidden>🛍️</span> Module Storefront</TileTop>
+              <TileSub>
+                The store pages every tenant ships with — confirmation, product
+                catalog, cart &amp; checkout. Deploy or unpublish each template;
+                edit them in the real editor, and future stores are seeded with
+                what you publish.
               </TileSub>
             </Tile>
           </TileWrap>
