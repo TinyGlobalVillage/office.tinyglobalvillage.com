@@ -303,7 +303,7 @@ export default function MembersPage() {
             <Title>Members</Title>
             <Sub>TGV platform tenants — every deployed client site.</Sub>
           </div>
-          <NewLink href="/dashboard/new-client">+ New client</NewLink>
+          <NewLink href="/dashboard/villagers">+ Onboard villager</NewLink>
         </HeaderRow>
 
         {error && <ErrorBox>Error loading members: {error}</ErrorBox>}
@@ -312,7 +312,7 @@ export default function MembersPage() {
 
         {rows && rows.length === 0 && (
           <Empty>
-            No members yet. Submit the <Link href="/dashboard/new-client">new-client wizard</Link> to create one.
+            No members yet. Use <Link href="/dashboard/villagers">Onboard villager</Link> to create one.
           </Empty>
         )}
 

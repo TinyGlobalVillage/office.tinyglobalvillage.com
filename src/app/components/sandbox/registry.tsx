@@ -4233,7 +4233,7 @@ import LDM from "./LDM";
     summary:
       "The signature control of an *Admin Wizard* — an operator wizard on a TGV Office surface that provisions something ON A TENANT'S BEHALF (auto-populating the tenant's own dashboard). The Preview toggle, when ON, runs the WHOLE pipeline in TEST mode with auto-filled fixtures so any pathway can be walked end-to-end without touching live money or state. Preview is the safe default for irreversible flows; flip OFF to act for real. Test-lane artifacts are filtered out of live dashboards and torn down.",
     usage:
-      "Use on any operator surface that sets something up for a tenant (managed Stripe onboarding, new-client deploy). Default the toggle to Preview/test. Office holds no privileged keys — proxy to the owning app over the internal-secret seam, which stays the authoritative boundary (re-validates everything, enforces hard rules). Audit every mutating action. Canonical: Villagers → Managed Onboarding (ManagedOnboardingModal.tsx) + the new-client wizard.",
+      "Use on any operator surface that sets something up for a tenant (managed Stripe onboarding, new-client deploy). Default the toggle to Preview/test. Office holds no privileged keys — proxy to the owning app over the internal-secret seam, which stays the authoritative boundary (re-validates everything, enforces hard rules). Audit every mutating action. Canonical: Villagers → Managed Onboarding (ManagedOnboardingModal.tsx) + the Onboard Villager modal (which absorbed the retired new-client wizard).",
     code: `const [preview, setPreview] = useState(true);  // safe default for irreversible flows
 const env = preview ? "test" : "live";
 

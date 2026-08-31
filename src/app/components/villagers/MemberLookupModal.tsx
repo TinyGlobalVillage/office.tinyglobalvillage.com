@@ -110,6 +110,11 @@ export default function MemberLookupModal({ onClose }: { onClose: () => void }) 
   // grants for role='editor' members. null = still loading.
   const [pageGrants, setPageGrants] = useState<{ edit: boolean; publish: boolean } | null>(null);
   const [pageGrantBusy, setPageGrantBusy] = useState<"edit" | "publish" | null>(null);
+  // TGV editing service revoke (checklist #14) — the button shows only when the
+  // looked-up member is TGV staff (email in the Office roster) AND their row on
+  // a site is owner-equivalent. Roster emails load once, best-effort.
+  const [staffEmails, setStaffEmails] = useState<Set<string>>(new Set());
+  const [revokeBusy, setRevokeBusy] = useState<string | null>(null);
   const [cards, setCards] = useState<SavedCard[] | null>(null);
   // Invoices ALREADY issued to this villager (opens MemberBillingModal, pre-scoped).
   const [invoicesOpen, setInvoicesOpen] = useState(false);
@@ -128,6 +133,31 @@ export default function MemberLookupModal({ onClose }: { onClose: () => void }) 
   const [notifyToPay, setNotifyToPay] = useState(false);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
+
+  // Staff roster emails (for the revoke button's staff check). Best-effort.
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const res = await fetch("/api/admin/office-staff/list", { cache: "no-store" });
+        const d = await res.json().catch(() => ({}));
+        if (alive && res.ok && Array.isArray(d.staff)) {
+          setStaffEmails(
+            new Set(
+              (d.staff as { email?: string }[])
+                .map((s) => (s.email ?? "").toLowerCase())
+                .filter(Boolean),
+            ),
+          );
+        }
+      } catch {
+        /* roster unavailable — revoke button simply stays hidden */
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   // Debounced member search (same pattern as MemberWalletModal).
   useEffect(() => {
@@ -359,6 +389,42 @@ export default function MemberLookupModal({ onClose }: { onClose: () => void }) 
     }
   };
 
+  // TGV editing service revoke — true DELETE of the staffer's owner row (Gio
+  // 2026-08-31 ruling). Re-granting afterwards must walk the dashboard_link
+  // consent flow (staffer requests from their own dashboard, client approves).
+  const revokeStaffOwner = async (site: Site) => {
+    if (!selected || revokeBusy) return;
+    const label = site.client_name ?? site.domain ?? site.id.slice(0, 8);
+    if (
+      !window.confirm(
+        `Revoke ${selected.email}'s TGV editing access on “${label}”?\n\n` +
+          "This DELETES their owner access. Re-granting later requires the " +
+          "client's consent (dashboard link request + approval).",
+      )
+    )
+      return;
+    setRevokeBusy(site.id);
+    setMsg(null);
+    try {
+      const res = await fetch("/api/admin/villagers/staff-owner-revoke", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ memberId: selected.id, siteId: site.id }),
+      });
+      const d = await res.json().catch(() => ({}));
+      if (res.ok && d.ok) {
+        setMsg({ kind: "ok", text: `TGV editing access revoked on ${label}.` });
+        await loadProfile(selected.id);
+      } else {
+        setMsg({ kind: "err", text: d.error ?? `Revoke failed (HTTP ${res.status}).` });
+      }
+    } catch {
+      setMsg({ kind: "err", text: "Revoke failed — couldn't reach the server." });
+    } finally {
+      setRevokeBusy(null);
+    }
+  };
+
   // Page-editor permission list — optimistic flip per perm, revert on error.
   const togglePageGrant = async (perm: "edit" | "publish") => {
     if (!selected || pageGrants === null || pageGrantBusy) return;
@@ -475,22 +541,35 @@ export default function MemberLookupModal({ onClose }: { onClose: () => void }) 
                               {s.junction_status ? ` (${s.junction_status})` : ""}
                             </SiteMeta>
                           </SiteLeft>
-                          <FoundingBtn
-                            type="button"
-                            $on={s.founding_active}
-                            disabled={foundingBusy === s.id}
-                            onClick={() => void toggleFounding(s)}
-                            title="Yellow Pages founding member — unlimited free listings"
-                          >
-                            {foundingBusy === s.id ? (
-                              "…"
-                            ) : (
-                              <>
-                                <StarIcon size={12} />
-                                {s.founding_active ? "Founding" : "Make founding"}
-                              </>
-                            )}
-                          </FoundingBtn>
+                          <SiteBtns>
+                            {s.junction_role === "owner" &&
+                              staffEmails.has(profile.member.email.toLowerCase()) && (
+                                <RevokeBtn
+                                  type="button"
+                                  disabled={revokeBusy === s.id}
+                                  onClick={() => void revokeStaffOwner(s)}
+                                  title="End the TGV editing service on this site — deletes this staffer's owner access; re-granting needs the client's consent"
+                                >
+                                  {revokeBusy === s.id ? "…" : "Revoke editing"}
+                                </RevokeBtn>
+                              )}
+                            <FoundingBtn
+                              type="button"
+                              $on={s.founding_active}
+                              disabled={foundingBusy === s.id}
+                              onClick={() => void toggleFounding(s)}
+                              title="Yellow Pages founding member — unlimited free listings"
+                            >
+                              {foundingBusy === s.id ? (
+                                "…"
+                              ) : (
+                                <>
+                                  <StarIcon size={12} />
+                                  {s.founding_active ? "Founding" : "Make founding"}
+                                </>
+                              )}
+                            </FoundingBtn>
+                          </SiteBtns>
                         </SiteRow>
                       ))}
                     </SiteList>
@@ -1165,6 +1244,32 @@ const FoundingBtn = styled.button<{ $on: boolean }>`
   &:hover:not(:disabled) {
     border-color: rgba(${rgb.gold}, 0.55);
     color: ${colors.gold};
+  }
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+`;
+const SiteBtns = styled.div`
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+`;
+const RevokeBtn = styled.button`
+  flex: 0 0 auto;
+  padding: 0.3rem 0.7rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  border-radius: 999px;
+  cursor: pointer;
+  background: transparent;
+  color: rgba(${rgb.red}, 0.85);
+  border: 1px solid rgba(${rgb.red}, 0.45);
+  &:hover:not(:disabled) {
+    background: rgba(${rgb.red}, 0.12);
+    border-color: rgba(${rgb.red}, 0.7);
+    color: ${colors.red};
   }
   &:disabled {
     opacity: 0.6;

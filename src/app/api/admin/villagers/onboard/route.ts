@@ -6,6 +6,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/api-admin";
 import { resolveAdminActorId } from "@/lib/admin-actor";
+import { readRoster } from "@/lib/member-auth/bridge";
 import { db, schema } from "@/lib/db-drizzle";
 
 export const runtime = "nodejs";
@@ -24,7 +25,34 @@ export async function POST(req: NextRequest) {
   const actorId = await resolveAdminActorId(gate.username);
   if (!actorId) return NextResponse.json({ error: "no_actor_for_audit" }, { status: 500 });
 
-  const bodyText = await req.text();
+  let bodyText = await req.text();
+
+  // Staff-superadmin-on-tenant grant (checklist #14): the modal names a staff
+  // member by roster USERNAME; only Office holds the roster, so the
+  // username→email resolution happens here — HQ receives {username, email} and
+  // an unknown username never crosses the seam. Plain onboards (no staffGrant)
+  // forward byte-identical.
+  let staffGrant: { username: string; email: string } | null = null;
+  try {
+    const parsed = JSON.parse(bodyText) as Record<string, unknown>;
+    const sg = parsed.staffGrant as { username?: unknown } | null | undefined;
+    if (sg && typeof sg.username === "string" && sg.username.trim()) {
+      const username = sg.username.trim();
+      const roster = readRoster();
+      const entry = roster[username];
+      if (!entry) {
+        return NextResponse.json(
+          { error: `staff_not_in_roster:${username}` },
+          { status: 400 },
+        );
+      }
+      staffGrant = { username, email: entry.email };
+      parsed.staffGrant = staffGrant;
+      bodyText = JSON.stringify(parsed);
+    }
+  } catch {
+    /* not JSON — let HQ answer invalid_json */
+  }
 
   let res: Response;
   try {
@@ -60,6 +88,9 @@ export async function POST(req: NextRequest) {
           template: data.templatePicked ?? null,
           waiverUntil: intent.waiverUntil ?? null,
           enrollmentSent: data.enrollmentSent ?? false,
+          staffGrant: staffGrant
+            ? { ...staffGrant, granted: !!data.staffGranted, error: data.staffGrantError ?? null }
+            : null,
         },
         note: `Villager onboarded from Office by ${gate.username}`,
       });
