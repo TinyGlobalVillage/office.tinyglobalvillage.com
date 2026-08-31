@@ -20,6 +20,9 @@ import styled from "styled-components";
 import { colors, rgb } from "../../theme";
 import TopNav from "../../components/TopNav";
 import { ModulesIcon, EditorIcon, SettingsIcon, PhotosIcon } from "../../components/icons";
+// The same glyphs the member dashboard wears for these features — never emoji.
+import { IconEmail } from "@tgv/module-component-library/components/icons/EmailIcon";
+import { IconStorefront } from "@tgv/module-component-library/components/icons/StorefrontIcon";
 import ModuleDashboardConfigModal from "../../components/modules/ModuleDashboardConfigModal";
 import TemplateGalleryPanel from "../../components/modules/TemplateGalleryPanel";
 import ModuleStorefrontPanel from "../../components/modules/ModuleStorefrontPanel";
@@ -237,7 +240,7 @@ export default function ModulesClient() {
           <HeaderRow>
             <BackBtn type="button" onClick={() => setView("grid")}>← Modules</BackBtn>
             <TitleWrap>
-              <span style={{ fontSize: 22 }} aria-hidden>✉️</span>
+              <IconEmail width={22} height={22} style={{ color: colors.violet }} aria-hidden />
               <PageTitle>Email Campaigns</PageTitle>
             </TitleWrap>
           </HeaderRow>
@@ -291,7 +294,7 @@ export default function ModulesClient() {
           <HeaderRow>
             <BackBtn type="button" onClick={() => setView("grid")}>← Modules</BackBtn>
             <TitleWrap>
-              <span style={{ fontSize: 22 }} aria-hidden>🛍️</span>
+              <IconStorefront width={22} height={22} style={{ color: colors.violet }} aria-hidden />
               <PageTitle>Module Storefront</PageTitle>
             </TitleWrap>
           </HeaderRow>
@@ -346,7 +349,7 @@ export default function ModulesClient() {
 
           <TileWrap>
             <Tile type="button" onClick={() => setView("email")}>
-              <TileTop><span style={{ fontSize: 18 }} aria-hidden>✉️</span> Email Campaigns</TileTop>
+              <TileTop><IconEmail width={18} height={18} aria-hidden /> Email Campaigns</TileTop>
               <TileSub>
                 Branded outbound-email templates — edit the system-wide copies every member
                 site inherits (welcome, receipts, domain reminders…). Preview live and send
@@ -357,7 +360,7 @@ export default function ModulesClient() {
 
           <TileWrap>
             <Tile type="button" onClick={() => setView("storefront")}>
-              <TileTop><span style={{ fontSize: 18 }} aria-hidden>🛍️</span> Module Storefront</TileTop>
+              <TileTop><IconStorefront width={18} height={18} aria-hidden /> Module Storefront</TileTop>
               <TileSub>
                 The store pages every tenant ships with — confirmation, product
                 catalog, cart &amp; checkout. Deploy or unpublish each template;
