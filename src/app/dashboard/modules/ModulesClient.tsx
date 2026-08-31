@@ -249,7 +249,10 @@ export default function ModulesClient() {
             preview it live, and send yourself a test. Members edit their own site&apos;s copies
             from their dashboard Support tab.
           </PageSubtitle>
-          <EmailCampaignsPanel apiBase="/api/email-campaigns" scopeLabel="System" assetOrigin="https://tinyglobalvillage.com" />
+          {/* manageMergeFields: the merge-fields gear (Gio 2026-08-31) — the SAME
+              gear + MergeFieldsModal will be re-used on the coming
+              forms/newsletters module; one registry, listed on both. */}
+          <EmailCampaignsPanel apiBase="/api/email-campaigns" scopeLabel="System" assetOrigin="https://tinyglobalvillage.com" manageMergeFields />
         </PageMain>
       </>
     );

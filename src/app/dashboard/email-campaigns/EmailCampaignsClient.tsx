@@ -64,7 +64,9 @@ export default function EmailCampaignsClient() {
           it live, and send yourself a test. Unedited templates fall back to the code builder. Members
           edit their own site&apos;s copies from their dashboard Support tab.
         </PageSubtitle>
-        <EmailCampaignsPanel apiBase="/api/email-campaigns" scopeLabel="System" assetOrigin="https://tinyglobalvillage.com" />
+        {/* manageMergeFields: the merge-fields gear (Gio 2026-08-31) — to be
+            re-used on the coming forms/newsletters module; one shared registry. */}
+        <EmailCampaignsPanel apiBase="/api/email-campaigns" scopeLabel="System" assetOrigin="https://tinyglobalvillage.com" manageMergeFields />
       </PageMain>
     </>
   );
