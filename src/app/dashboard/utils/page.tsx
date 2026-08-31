@@ -13,6 +13,7 @@ import SettingsIcon from "../../components/icons/SettingsIcon";
 // only when opened, so the Utils page's initial JS doesn't carry all 12 modals up front.
 const TelephonyControlModal = dynamic(() => import("../../components/hardening/telephony/TelephonyControlModal"), { ssr: false });
 const TenantAppsControlModal = dynamic(() => import("../../components/hardening/tenant-apps/TenantAppsControlModal"), { ssr: false });
+const CommerceReadinessControlModal = dynamic(() => import("../../components/hardening/commerce-readiness/CommerceReadinessControlModal"), { ssr: false });
 const MemberAuthControlModal = dynamic(() => import("../../components/hardening/member-auth/MemberAuthControlModal"), { ssr: false });
 const OfficeStaffControlModal = dynamic(() => import("../../components/hardening/office-staff/OfficeStaffControlModal"), { ssr: false });
 const MeshVpnControlModal = dynamic(() => import("../../components/hardening/mesh-vpn/MeshVpnControlModal"), { ssr: false });
@@ -1818,6 +1819,16 @@ function UtilsAdlSurface({
                         </HardeningTileSub>
                       </HardeningTile>
                     );
+                    if (tile.type === "commerce-readiness") return (
+                      <HardeningTile key={i} type="button" onClick={() => onOpenHardening("commerce-readiness")}>
+                        <HardeningTileTop>🛒 Commerce Readiness</HardeningTileTop>
+                        <HardeningTileSub>
+                          Fleet-wide store audit: every tenant&apos;s green/amber/red readiness
+                          badge + can-transact, the seven per-check rows, and the two email/webhook
+                          env levers (state + flip recipe).
+                        </HardeningTileSub>
+                      </HardeningTile>
+                    );
                     if (tile.type === "member-auth") return (
                       <HardeningTile key={i} type="button" onClick={() => onOpenHardening("member-auth")}>
                         <HardeningTileTop>🔐 Member Auth</HardeningTileTop>
@@ -2108,7 +2119,7 @@ type DefaultsOverlay = Record<string, Record<string, FieldValue>>;
 
 // Runtime list, not just a union: the ?view= deep-link reader has to validate a
 // string off the URL, and a second hand-kept list would drift.
-const HARDENING_KINDS = ["telephony", "tenant-apps", "member-auth", "office-staff", "mesh-vpn", "invitations", "firewall", "build-guard", "tsserver", "keycloak", "demo-mode", "domain-dns", "box-usage", "meet-captions"] as const;  // | "postgres" | "ssh" | "nginx" — future
+const HARDENING_KINDS = ["telephony", "tenant-apps", "member-auth", "office-staff", "mesh-vpn", "invitations", "firewall", "build-guard", "tsserver", "keycloak", "demo-mode", "domain-dns", "box-usage", "meet-captions", "commerce-readiness"] as const;  // | "postgres" | "ssh" | "nginx" — future
 type HardeningKind = (typeof HARDENING_KINDS)[number];
 
 // ── Link Tools (TinyURL + QR generators) ──────────────────────────────────
@@ -2143,6 +2154,7 @@ type TileSpec =
   | { type: "domain-console" }
   | { type: "telephony" }
   | { type: "tenant-apps" }
+  | { type: "commerce-readiness" }
   | { type: "member-auth" }
   | { type: "office-staff" }
   | { type: "mesh-vpn" }
@@ -2203,7 +2215,7 @@ const SECTIONS: Section[] = [
     kind: "actions", actionIds: ["gitrepo", "gitdelrepo"] },
   { id: "hardening", title: "Hardening", accent: "cyan",
     subtitle: "defensive mechanisms installed on RCS — controls + status + audit log",
-    kind: "tiles", tiles: [{ type: "firewall" }, { type: "telephony" }, { type: "tenant-apps" }, { type: "member-auth" }, { type: "keycloak" }, { type: "office-staff" }, { type: "mesh-vpn" }, { type: "invitations" }, { type: "build-guard" }, { type: "tsserver" }, { type: "box-usage" }, { type: "domain-dns" }] },
+    kind: "tiles", tiles: [{ type: "firewall" }, { type: "telephony" }, { type: "tenant-apps" }, { type: "commerce-readiness" }, { type: "member-auth" }, { type: "keycloak" }, { type: "office-staff" }, { type: "mesh-vpn" }, { type: "invitations" }, { type: "build-guard" }, { type: "tsserver" }, { type: "box-usage" }, { type: "domain-dns" }] },
   { id: "linktools", title: "Link Tools", accent: "cyan",
     subtitle: "shorten URLs and generate scannable QR codes — pair them for printable mini-flyers",
     kind: "tiles", tiles: [{ type: "tinyurl" }, { type: "qrcode" }] },
@@ -2733,6 +2745,9 @@ export default function UtilsPage() {
         <TelephonyControlModal onClose={() => setOpenHardening(null)} />
       )}
 
+      {openHardening === "commerce-readiness" && (
+        <CommerceReadinessControlModal onClose={() => setOpenHardening(null)} />
+      )}
       {openHardening === "tenant-apps" && (
         <TenantAppsControlModal onClose={() => setOpenHardening(null)} />
       )}
