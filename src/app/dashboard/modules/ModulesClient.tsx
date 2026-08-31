@@ -249,7 +249,7 @@ export default function ModulesClient() {
             preview it live, and send yourself a test. Members edit their own site&apos;s copies
             from their dashboard Support tab.
           </PageSubtitle>
-          <EmailCampaignsPanel apiBase="/api/email-campaigns" scopeLabel="System" />
+          <EmailCampaignsPanel apiBase="/api/email-campaigns" scopeLabel="System" assetOrigin="https://tinyglobalvillage.com" />
         </PageMain>
       </>
     );

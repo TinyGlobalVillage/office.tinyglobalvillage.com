@@ -64,7 +64,7 @@ export default function EmailCampaignsClient() {
           it live, and send yourself a test. Unedited templates fall back to the code builder. Members
           edit their own site&apos;s copies from their dashboard Support tab.
         </PageSubtitle>
-        <EmailCampaignsPanel apiBase="/api/email-campaigns" scopeLabel="System" />
+        <EmailCampaignsPanel apiBase="/api/email-campaigns" scopeLabel="System" assetOrigin="https://tinyglobalvillage.com" />
       </PageMain>
     </>
   );
