@@ -33,6 +33,7 @@
     "@tgv/module-email-campaigns": "workspace:*",
     "@tgv/module-consent": "workspace:*",
     "@tgv/module-documenso": "workspace:*",
+    "@tgv/module-domain-console": "workspace:*",
     "@tgv/module-inbox": "workspace:*",
     "@tgv/module-page-editor": "workspace:*",
     "@tgv/module-payroll": "workspace:*",

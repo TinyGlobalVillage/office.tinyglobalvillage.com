@@ -7,6 +7,7 @@
 import styled from "styled-components";
 import TopNav from "../../components/TopNav";
 import { EmailCampaignsPanel } from "@tgv/module-email-campaigns";
+import TransferFunnelGuide from "@tgv/module-domain-console/components/TransferFunnelGuide";
 
 const ACCENT = "#ff4ecb";
 
@@ -65,8 +66,21 @@ export default function EmailCampaignsClient() {
           edit their own site&apos;s copies from their dashboard Support tab.
         </PageSubtitle>
         {/* manageMergeFields: the merge-fields gear (Gio 2026-08-31) — to be
-            re-used on the coming forms/newsletters module; one shared registry. */}
-        <EmailCampaignsPanel apiBase="/api/email-campaigns" scopeLabel="System" assetOrigin="https://tinyglobalvillage.com" manageMergeFields />
+            re-used on the coming forms/newsletters module; one shared registry.
+            systemScope: arms the Publish button's dropdown half — which TENANTS
+            a campaign is published to. categoryGuide: the domain funnel, drawn
+            from the one table that also drives the sends, so the picture and
+            the wiring cannot drift (Gio 2026-09-01). */}
+        <EmailCampaignsPanel
+          apiBase="/api/email-campaigns"
+          scopeLabel="System"
+          assetOrigin="https://tinyglobalvillage.com"
+          manageMergeFields
+          systemScope
+          categoryGuide={(cat, openCampaign) =>
+            cat === "domains" ? <TransferFunnelGuide onOpenCampaign={openCampaign} /> : null
+          }
+        />
       </PageMain>
     </>
   );
