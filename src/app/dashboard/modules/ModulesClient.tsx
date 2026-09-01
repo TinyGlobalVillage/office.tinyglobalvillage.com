@@ -26,7 +26,7 @@ import { IconStorefront } from "@tgv/module-component-library/components/icons/S
 import ModuleDashboardConfigModal from "../../components/modules/ModuleDashboardConfigModal";
 import TemplateGalleryPanel from "../../components/modules/TemplateGalleryPanel";
 import ModuleStorefrontPanel from "../../components/modules/ModuleStorefrontPanel";
-import { EmailCampaignsPanel } from "@tgv/module-email-campaigns";
+import SystemEmailCampaigns from "../email-campaigns/SystemEmailCampaigns";
 
 /* ── Styled (Villagers tile canon, violet accent) ─────────────────── */
 
@@ -249,10 +249,11 @@ export default function ModulesClient() {
             preview it live, and send yourself a test. Members edit their own site&apos;s copies
             from their dashboard Support tab.
           </PageSubtitle>
-          {/* manageMergeFields: the merge-fields gear (Gio 2026-08-31) — the SAME
-              gear + MergeFieldsModal will be re-used on the coming
-              forms/newsletters module; one registry, listed on both. */}
-          <EmailCampaignsPanel apiBase="/api/email-campaigns" scopeLabel="System" assetOrigin="https://tinyglobalvillage.com" manageMergeFields />
+          {/* The SAME mount the /dashboard/email-campaigns page renders. It used
+              to be a second, hand-written <EmailCampaignsPanel> here, and it
+              silently fell behind: no systemScope, so no Publish caret and no
+              funnel guide for anyone arriving through the Modules grid. */}
+          <SystemEmailCampaigns />
         </PageMain>
       </>
     );
