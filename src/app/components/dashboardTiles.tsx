@@ -209,6 +209,7 @@ export const OFFICE_CHILDREN: OfficeChildDef[] = [
   { key: "VillagersDns", title: "DNS", subtitle: "in Villagers · member site records", parent: "Villagers", detail: "dns" },
   { key: "VillagersEcosystemAnalytics", title: "Ecosystem Analytics", subtitle: "in Villagers · cross-site numbers", parent: "Villagers", detail: "ecosystemAnalytics" },
   { key: "VillagersGuestClaims", title: "Guest Claims", subtitle: "in Villagers · guest → member", parent: "Villagers", detail: "guestClaims" },
+  { key: "VillagersHandshake", title: "Handshake", subtitle: "in Villagers · HNS wallet + TLDs", parent: "Villagers", detail: "handshake" },
   { key: "VillagersMemberLookup", title: "Member Lookup", subtitle: "in Villagers · find a villager", parent: "Villagers", detail: "memberLookup" },
   { key: "VillagersMemberWallet", title: "Member Wallet", subtitle: "in Villagers · balances + ledger", parent: "Villagers", detail: "memberWallet" },
   { key: "VillagersMoneyStores", title: "Money & Stores", subtitle: "in Villagers · storefront money", parent: "Villagers", detail: "moneyStores" },
