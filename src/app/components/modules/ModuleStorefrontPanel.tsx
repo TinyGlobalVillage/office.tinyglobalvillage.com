@@ -22,11 +22,21 @@
 //
 // Edit/Preview are plain anchors, never window.open — a blocked popup reads as
 // "the button does nothing" (Template Gallery's lesson, kept).
+//
+// The desk has a SECOND half, behind the Product Funnels button: the
+// platform-canon funnel templates (Gio 2026-09-01 — "it belongs on its own modal
+// on module storefront on office as product funnels", and that modal "manages
+// the platform-canon funnel templates"). Store pages are what a tenant's store
+// LOOKS like; funnels are the order a customer walks through it. Same module,
+// same desk, different question — hence one panel with a modal, not two tiles.
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 
 import PillBar from "@tgv/module-component-library/components/ui/PillBar";
+import ContainerModal from "@tgv/module-storefront/components/ContainerModal";
+import CanonFunnelsPanel from "@tgv/module-storefront/components/CanonFunnelsPanel";
+import TransferFunnelGuide from "@tgv/module-domain-console/components/TransferFunnelGuide";
 
 import { colors, rgb } from "../../theme";
 import { EyeIcon } from "../icons";
@@ -72,6 +82,7 @@ export default function ModuleStorefrontPanel() {
   const [templates, setTemplates] = useState<Template[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [funnelsOpen, setFunnelsOpen] = useState(false);
 
   const load = useCallback(async () => {
     setError(null);
@@ -132,6 +143,38 @@ export default function ModuleStorefrontPanel() {
 
   return (
     <>
+      {/* The desk's other half. A button rather than a second tile: funnels and
+          store pages are the same module's two questions, and an operator who
+          opens one usually wants the other in reach. */}
+      <DeskBar>
+        <DeskBlurb>
+          Store pages below. The order a customer walks them in lives in
+          <strong> Product Funnels</strong>.
+        </DeskBlurb>
+        <FunnelsButton type="button" onClick={() => setFunnelsOpen(true)}>
+          Product Funnels
+        </FunnelsButton>
+      </DeskBar>
+
+      {funnelsOpen && (
+        <ContainerModal
+          title="Product Funnels"
+          accentRgb={rgb.violet}
+          onClose={() => setFunnelsOpen(false)}
+        >
+          {/* The worked example first — a real funnel, wired to real sends,
+              shown before the abstract editor for making more of them. Its
+              rows link into the email workbench by campaign key; Office reads
+              that key back off the URL (see SystemEmailCampaigns). */}
+          <TransferFunnelGuide
+            onOpenCampaign={(key: string) => {
+              window.location.href = `/dashboard/email-campaigns?campaign=${encodeURIComponent(key)}`;
+            }}
+          />
+          <CanonFunnelsPanel apiBase="/api/storefront" />
+        </ContainerModal>
+      )}
+
       {error && <ErrorBox role="alert">{error}</ErrorBox>}
 
       {templates === null && <Note>Loading store pages…</Note>}
@@ -240,6 +283,47 @@ export default function ModuleStorefrontPanel() {
 }
 
 /* ── Styled (Modules violet canon — Template Gallery tile idiom) ────────── */
+
+const DeskBar = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.85rem;
+`;
+
+const DeskBlurb = styled.div`
+  flex: 1 1 14rem;
+  font-size: 0.72rem;
+  line-height: 1.5;
+  color: var(--t-textFaint);
+
+  strong {
+    color: ${colors.violet};
+    font-weight: 700;
+  }
+`;
+
+const FunnelsButton = styled.button`
+  flex: none;
+  padding: 0.42rem 0.85rem;
+  border-radius: 0.45rem;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  color: ${colors.violet};
+  background: rgba(${rgb.violet}, 0.09);
+  border: 1px solid rgba(${rgb.violet}, 0.45);
+  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+
+  &:hover {
+    background: rgba(${rgb.violet}, 0.16);
+    border-color: rgba(${rgb.violet}, 0.75);
+    box-shadow: 0 0 14px rgba(${rgb.violet}, 0.18);
+  }
+`;
 
 const Grid = styled.div`
   display: grid;
