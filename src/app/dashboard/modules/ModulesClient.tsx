@@ -27,6 +27,7 @@ import ModuleDashboardConfigModal from "../../components/modules/ModuleDashboard
 import TemplateGalleryPanel from "../../components/modules/TemplateGalleryPanel";
 import ModuleStorefrontPanel from "../../components/modules/ModuleStorefrontPanel";
 import SystemEmailCampaigns from "../email-campaigns/SystemEmailCampaigns";
+import WizardsPanelHost from "../../components/modules/WizardsPanelHost";
 
 /* ── Styled (Villagers tile canon, violet accent) ─────────────────── */
 
@@ -168,8 +169,8 @@ const BackBtn = styled.button`
 
 /* ── Page ──────────────────────────────────────────────────────── */
 
-type ModulesView = "grid" | "email" | "templates" | "storefront";
-const VIEWS: ModulesView[] = ["grid", "email", "templates", "storefront"];
+type ModulesView = "grid" | "email" | "templates" | "storefront" | "wizards";
+const VIEWS: ModulesView[] = ["grid", "email", "templates", "storefront", "wizards"];
 
 export default function ModulesClient() {
   const [openMdConfig, setOpenMdConfig] = useState(false);
@@ -254,6 +255,32 @@ export default function ModulesClient() {
               silently fell behind: no systemScope, so no Publish caret and no
               funnel guide for anyone arriving through the Modules grid. */}
           <SystemEmailCampaigns />
+        </PageMain>
+      </>
+    );
+  }
+
+  // Wizards opens INLINE too — the same panel a Villager will mount tenant-scoped.
+  // The board is the surface: every slide of the selected wizard as an artboard you
+  // can zoom out of, pan around, and click into.
+  if (view === "wizards") {
+    return (
+      <>
+        <TopNav />
+        <PageMain>
+          <HeaderRow>
+            <BackBtn type="button" onClick={() => setView("grid")}>← Modules</BackBtn>
+            <TitleWrap>
+              <span style={{ fontSize: 22 }} aria-hidden>🪄</span>
+              <PageTitle>Wizards</PageTitle>
+            </TitleWrap>
+          </HeaderRow>
+          <PageSubtitle style={{ marginBottom: "1.25rem" }}>
+            Every guided flow the fleet runs, in one register — signup, machine setup, domain
+            register/transfer, Stripe Connect and the rest. Pick one to see all of its slides
+            on the board at once. Members will build their own from the same panel.
+          </PageSubtitle>
+          <WizardsPanelHost />
         </PageMain>
       </>
     );
@@ -381,6 +408,17 @@ export default function ModulesClient() {
                 The page templates members can start a site from — Live, Drafts, or All.
                 Preview each one, edit it in the real editor, or move it to Drafts to pull
                 a vertical out of circulation without deleting the work.
+              </TileSub>
+            </Tile>
+          </TileWrap>
+
+          <TileWrap>
+            <Tile type="button" onClick={() => setView("wizards")}>
+              <TileTop><span style={{ fontSize: 18 }} aria-hidden>🪄</span> Wizards</TileTop>
+              <TileSub>
+                Every guided flow the fleet runs, tracked in one place. See all of a wizard&apos;s
+                slides at once on the board, zoom into one, and edit it in the real editor —
+                then hand the same panel to members for their own.
               </TileSub>
             </Tile>
           </TileWrap>

@@ -173,6 +173,7 @@ export const OFFICE_CHILDREN: OfficeChildDef[] = [
   // Modules → its panels
   { key: "TemplateGallery", title: "Template Gallery", subtitle: "in Modules · browse + review", parent: "Modules", detail: "templates" },
   { key: "EmailCampaigns", title: "Email Campaigns", subtitle: "in Modules · sends & lists", parent: "Modules", detail: "email" },
+  { key: "Wizards", title: "Wizards", subtitle: "in Modules · every guided flow, on a board", parent: "Modules", detail: "wizards" },
 
   // Utils → every modal tile in the ADDM sections. `detail` is the TileSpec
   // type / HardeningKind the Utils page already switches on, so the ?view=
