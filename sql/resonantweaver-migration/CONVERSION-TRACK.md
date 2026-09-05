@@ -26,11 +26,34 @@ enough for anyone else.
 | **Bucket A** — her twenty-odd content pages (doors, offers, archive, FAQ, testimonials, hero, accordion) | `page_models` rows keyed `site='resonantweaver'`, rendered by the shared `rf-*` catalog | **L4** | Nothing. They arrived at L1 and reached L4 by construction: they are catalog entries any tenant can drop, and three of them (`rf-offer-card`, `rf-testimonials`, the orbs backdrop) were ADDED to the catalog to carry her, so the platform gained what she needed. |
 | **rf-journey** — The Seven Gates | `@tgv/module-page-editor` catalog section, `page_models` row | **L1→L2** | See below. The typeface is freed; per-stop editing is the rest of L2, and the choreography (what scroll drives what) is L3. |
 | **RitualButton** — the CTA plate | `@tgv/module-component-library/components/ui` | **L1** | Shared by the journey and (later) the oracle. Colours follow the theme roles, face follows `--ritual-font`. Its L4 twin already exists — `RfCta`'s `ritual` variant, themed from props — and they meet when the oracle climbs. |
-| **The Sun Walk** | `@tgv/module-starseed/sunwalk`, app route + `SITE_SURFACES` grant | **L1** | See below. Its palette is freed; its CONTENT is still compiled in — the eight currents, the 52-week walk and the four reference popups are `engine/sunwalk.ts`, not rows. |
-| **The Galactic Field Guide** | `@tgv/module-starseed/fieldguide`, app route + grant | **L0** | The registry, the dossiers and the constellation geometry are `engine/fieldguide/*.ts`. It reads no site palette at all — it is typed and coloured entirely by the `--gfg-*` font module and its own literals. |
+| **The Sun Walk** | `@tgv/module-starseed/sunwalk`, driven by the `rf-sun-walk` catalog section from her `sun-walk` page row | **L3** | L4, and only that. Content freed at W9, parameters declared at W11 (10 knobs), choreography wired at W12 (`highlight` structural + `rotation`, scrubbable). The app route and its `SITE_SURFACES` grant came out at W13. It does not climb to L4: the catalog entry is site-private by [the consent rule](#the-consent-rule), and lifting it to the fleet is Marthe's call, not ours. |
+| **The Galactic Field Guide** | `@tgv/module-starseed/fieldguide`, driven by the `rf-field-guide` catalog section from her `galactic-field-guide` page row | **L3** | L4, and only that. It went L0→L3 inside this sweep: W10 split prose from geometry and moved 42 dossiers + 62 star cards into the row (838 B → 171 kB), W11 declared 12 parameters, W12 gave it a `tour` progress value and two wires (`camera` structural + curved, `dossier` off by default). Route and grant out at W13. Same consent gate as the Sun Walk. |
 | **The Starseed profile panel** | `@tgv/module-starseed/panel`, mounted in the dashboard through `PROFILE_ENGINES` | **L0** | Its own `panel/tokens.ts` blends her palette with a mockup's; L4 is questionable for an engine UI and should not be assumed (PHASE-0's own caveat). |
 | **The course space** (`/landing-star-preview/course`) | HQ route, `SITE_SURFACES` grant | **L1** | Four tabs of inputs over React state. Its palette is freed with starseed's; its copy is `content.ts` in HQ, byte-identical to hers. |
 | **`/open-your-journey`** | HQ route + grant, `src/lib/journey/config.ts` | **L1** | A funnel, not a component: an email in, a secret link out. The words are config keyed by site; the secret is why it cannot be a row. |
+
+---
+
+## The consent rule
+
+> *"All of these entries are to live gated solely on her page editor and not
+> lifted onto the full fleet component library. I'm going to let her decide to
+> publish them to the fleet or not later."* — Gio, 2026-09-03
+
+This is why L3 is a **terminus** on this file's newer rows and not a way-station.
+L4 is defined above as *"not hers any more — the platform's"*, and that sentence
+turns out to describe an act of publishing, not a measurement of generality. A
+component can be perfectly theme-neutral and perfectly droppable and still not be
+the platform's, because nobody asked its author.
+
+So the mechanism is a switch, not a promotion. `library_components.site` (W0,
+migration 0143) scopes a catalog entry to one subdomain; the lift-to-fleet action
+exists beside it and ships **OFF**. Every twin from W3–W6 and both star sections
+from W8 are seeded site-private. When Marthe wants one of them in the fleet
+catalog she flips it, and the row's level moves to L4 that day.
+
+Read the ledger accordingly: **L3 with the consent gate** is finished work, and a
+component sitting there is not waiting on us.
 
 ---
 
@@ -182,26 +205,57 @@ That bug is the same family as the four already fixed — the tenant chrome, the
 rung for everything below L2 on the two star surfaces, and it is not this file's
 to fix.
 
+**Resolved for these two surfaces on 2026-09-05, by leaving the room rather than
+fixing it.** The Sun Walk and the Galactic Field Guide are page rows now, so they
+render inside `PublicTenantLanding.client.tsx` and get the theme scope and
+`<SiteFonts>` that every other row on her site has always had. The measurement
+above is still true of the surface it names; it is simply no longer a surface she
+has. The bug stays open at full severity for what it was always really about —
+`/book/`, `/session/`, `/meet/`, `/performers/`, `/studio/`, allowlisted onto
+**every** tenant host and still rendering in the platform's type on a customer's
+own domain. That is the platform's debt, not hers.
+
 ---
 
 ## The queue, in order
 
-1. **The theme + fonts reach granted app surfaces.** The bug above. Everything
-   else on this page is blocked behind it or unaffected by it.
-2. **A third font role on `SiteTheme`** (`fonts.display`), so `rf-journey`'s
-   default stops being Cormorant. Small — a type, a validator, one pair in
-   `themeToPairs` — but it touches the shared theme schema and the panel that
-   edits it.
+Rewritten 2026-09-05, at the end of the starseed sweep. Two entries came off it
+by being built and one by being left behind; what is here is what is actually
+left.
+
+1. **The theme + fonts reach granted app surfaces.** Still open, and still a
+   white-label defect (`~/.claude/bugs/tenant-app-surfaces-have-no-theme.md`) —
+   but it is no longer the thing everything else waits on. It stopped blocking
+   the Sun Walk and the Galactic Field Guide when they stopped being app routes,
+   and it never touched the page rows. What it still spoils is `/book/`,
+   `/session/`, `/meet/`, `/performers/` and `/studio/` on every tenant host.
+2. ~~**A third font role on `SiteTheme`**~~ — **done.** `FONT_ROLES` is six
+   (`display`, `heading`, `body`, `serif`, `mono`, `accent`), and the section
+   panel's "Font role" select reads back which of them the theme actually names,
+   so a role that resolves to nothing says so instead of looking broken.
 3. **`rf-journey` L2**: the per-stop editor. Palette, element, mantra, breath
    phases with durations, watercolour blob geometry, four content tabs, five
    resonance labels. A form of its own, and the reason it is absent rather than
    half-built is that a stop editor which lets someone set a blur to 9000 is
-   worse than none.
-4. **`rf-journey` L3**: the choreography. Which scroll position drives which
-   step, and the crossfade — `docs/artifacts/canvas-mode-parameters-and-choreography.html`
-   is the design for it.
-5. **The Sun Walk L2**: its content is `engine/sunwalk.ts`. The eight currents
-   and the 52-week walk are a fixed astronomical model and arguably belong in
-   code forever; the four reference popups' COPY does not.
-6. **The field guide and the profile panel** stay at L0 until something needs
-   them to move. L4 for an engine UI is questionable and should not be assumed.
+   worse than none. **Cheaper now than when this line was written:** the bounded
+   declaration language it needed exists — `params/spec.ts`, sanitizing through
+   the same `atoms/clamp.ts` primitives the atoms use — so the work is a spec and
+   a panel, not a panel and the idea of a panel.
+4. **`rf-journey` L3**: the choreography — which scroll position drives which
+   step, and the crossfade. Also cheaper: `params/choreography.ts` and the
+   scrubber shipped at W12 and are component-agnostic. What the journey still
+   owes is the prerequisite both star surfaces had to pay first — **its progress
+   must become a value the section owns** rather than a scroll listener's private
+   state. That is the whole job; the wiring after it is a list.
+5. **The Sun Walk and the Galactic Field Guide are done at L3.** Words freed
+   (W9/W10), parameters declared (W11), choreography wired (W12), routes and
+   grants removed (W13). What is deliberately NOT freed is the astronomy: the
+   eight currents and the 52-week walk in `engine/sunwalk.ts`, and the
+   constellation geometry in `engine/fieldguide/*.ts`, are a fixed model and
+   belong in code. Their WORDS all left. The only rung above them is L4, and
+   that one is Marthe's — see [the consent rule](#the-consent-rule).
+6. **The Starseed profile panel** stays at L0 until something needs it to move.
+   L4 for an engine UI is questionable and should not be assumed.
+7. **Chrome — `rf-pill-nav` and `rf-site-footer`** — is a different seam
+   (`navLayers` / `footerLayers`) and was explicitly out of this sweep. It is the
+   last part of her site that is not a row.
