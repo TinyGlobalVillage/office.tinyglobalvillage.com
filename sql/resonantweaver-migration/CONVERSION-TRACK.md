@@ -57,6 +57,26 @@ component sitting there is not waiting on us.
 
 ---
 
+## Live in production — 2026-09-05
+
+Both star surfaces are served from her `page_models` rows on the live site. The
+app routes that used to answer `/sun-walk/` and `/galactic-field-guide/` are
+deleted, their `SITE_SURFACES` and `SITEMAP_SURFACES` grants are dropped, and the
+addresses are unchanged — there was no redirect and no parallel bake, because the
+route and the row resolve the same path and the route simply stopped being there.
+
+Deployed at monorepo `d5dac0dc` / client `07660e4e`. Production is **0.0000%
+different** from the verified row-served captures on both surfaces at 390, 768 and
+1440; the current-page underline still lights on `/sun-walk/`; both pages carry her
+theme and fonts, which as app routes they did not.
+
+Full evidence — the pixel counts, the production-only `DataCloneError` the deploy
+caught, and the console finding that this work did **not** cause — lives in
+`~/.claude/checklist/starseed-surfaces-onto-the-editor.md` §10, "Deployed and
+verified in production". It is not copied here.
+
+---
+
 ## Rung 1 — the palette, done 2026-08-07
 
 §7 named this: *"`journey/tokens.ts` and `starseed/ui/tokens.ts` are byte copies
