@@ -23,6 +23,7 @@
  */
 import { useCallback } from "react";
 import { WizardsPanel, type WizardStep } from "@tgv/module-wizards";
+import { slideSectionId } from "@tgv/module-wizards/slides";
 import LayerRenderer from "@tgv/module-page-editor/editor/renderer/LayerRenderer";
 import type { LayersFrame } from "@tgv/module-component-library/types/editor/LayerNodeType";
 
@@ -60,7 +61,7 @@ export default function WizardsPanelHost() {
       const frame: LayersFrame = doc.frame ?? { desktop: { h: ctx.height } };
       return (
         <div style={{ width: ctx.width, minHeight: ctx.height, pointerEvents: "none" }}>
-          <LayerRenderer sectionId={`wizard_slide_${step.key}`} layers={doc.layers} frame={frame} bp="desktop" />
+          <LayerRenderer sectionId={slideSectionId(step.key)} layers={doc.layers} frame={frame} bp="desktop" />
         </div>
       );
     },
