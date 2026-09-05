@@ -16,8 +16,21 @@ parity and the cutover — is `CUTOVER-PLAN.md`**, in the order it has to happen
 | `03-journey-preview.sql` | **GENERATED.** The journey as an `rf-journey` section at slug `journey-preview`, so it could be driven beside the package still serving `/journey`. |
 | `04-journey-row.sql` | The journey takes its real URL, once the preview matched. |
 | `05-journey-signups.sql` | **HAND-WRITTEN.** `public.journey_signups` + her 2 rows, forced onto her site key. The one part of her funnel that is an application, not content — see CUTOVER-PLAN §2. |
+| `06-cutover-features.sql` | **HAND-WRITTEN.** The per-site feature flags the cutover turns on. |
+| `07-chrome.sql` | **GENERATED** by `gen-chrome-rows.mjs`. Her nav and footer as chrome rows. |
+| `08-form-notify.sql` | **HAND-WRITTEN.** Where her contact form sends. |
+| `08-standalone-kit-columns.sql` | **HAND-WRITTEN.** The columns the standalone kit needs. |
+| `09-journey-chrome.sql` | **HAND-WRITTEN.** The journey page's own nav/footer decision. |
+| `10-nav-one-store.sql` | **HAND-WRITTEN.** One nav, one store — see `NAV-ONE-STORE.md`. |
+| `11-starseed-rows.sql` | **GENERATED** by `gen-starseed-rows.mjs`. `/sun-walk` and `/galactic-field-guide` as `page_models` rows at the same two slugs, so the links never move. Replaces the row wholesale — safe only before she has edited one. |
+| `12-starseed-sunwalk-words.sql` | **GENERATED** by the same script, and an ADDITIVE patch for a site that already has row 11: it merges the shipped currents and reference essays into an existing `rf-sun-walk` section. The merge is `<shipped words> \|\| <the row's own props>`, so **the row wins on every key it already carries** — idempotent, and it can never overwrite something she has written. |
 
 Do not hand-edit the SQL. Change her source or `copy.mjs`, then re-run.
+
+`gen-starseed-rows.mjs` is the exception to "generated from her source": the Sun
+Walk's words are the PACKAGE's, so it bundles `@tgv/module-starseed`'s own
+`sunwalk/copy.ts` and asserts on the way past that all eight currents and both
+reference essays came through non-empty.
 
 ## Running it
 

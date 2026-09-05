@@ -2,23 +2,33 @@
 // so the section and the route say the same words and any difference in the
 // browser is the mechanism rather than the content.
 //
-// Forked from `gen-journey-row.mjs`, and thinner than it: the journey's stops
-// are ~8 KB of authored content that had to be lifted out of a client app,
-// whereas the Sun Walk's 52-week grid and the Field Guide's 42 systems are
-// COMPILED IN and stay that way through W8. What a row carries today is the
-// small surface a host is allowed to differ on:
+// Forked from `gen-journey-row.mjs`. What a row carries:
 //
-//   rf-sun-walk    — the three strings above the calendar
-//   rf-field-guide — paper stock, reading size, and WHOSE photographs
+//   rf-sun-walk    — EVERY word on the page: the three strings above the
+//                    calendar, the eight currents' descriptions, and the two
+//                    reference essays. Not the 52-week grid, which is Swiss
+//                    Ephemeris output and stays compiled in forever.
+//   rf-field-guide — paper stock, reading size, and WHOSE photographs. Its own
+//                    42 systems' prose is still compiled in; that is W10.
 //
-// Two things are still read from source rather than retyped here, because those
-// are the two the row could silently disagree with the route about:
+// Nothing is retyped here. Every string is read from the source the ROUTE
+// renders, because a retyped string is exactly how a row and a route come to
+// disagree about what the page says:
 //
-//   SUN_WALK_COPY          — `@tgv/module-starseed/starseed/sunwalk/copy.ts`
-//   fieldGuidePlatesForSite — tinyglobalvillage.com's `lib/starseed/fieldGuidePlates.ts`
+//   SUN_WALK_COPY           ─┐
+//   CURRENT_INFO             ├─ `@tgv/module-starseed/starseed/sunwalk/copy.ts`
+//   SUN_WALK_REFERENCE      ─┘
+//   fieldGuidePlatesForSite  — tinyglobalvillage.com's `lib/starseed/fieldGuidePlates.ts`
 //
-// Both are dependency-free modules, so esbuild bundles them without dragging in
-// React or styled-components.
+// Both are dependency-free modules (copy.ts's one `import type` is erased before
+// esbuild resolves it), so esbuild bundles them without dragging in React or
+// styled-components.
+//
+// IT WRITES TWO FILES. `11-…sql` seeds a fresh environment with complete rows.
+// `12-…sql` patches an environment where the rows were already seeded WITHOUT
+// the words — which is every environment, because W8 seeded them and W9 is what
+// freed the prose. The patch adds only keys the row does not already have, so it
+// can never overwrite something Marthe has since written.
 //
 //   node clients/office.tinyglobalvillage.com/sql/resonantweaver-migration/gen-starseed-rows.mjs
 import { execFileSync } from "node:child_process";
@@ -40,7 +50,7 @@ const out = path.join(tmp, "d.mjs");
 fs.writeFileSync(
   entry,
   [
-    "export { SUN_WALK_COPY } from " +
+    "export { SUN_WALK_COPY, CURRENT_INFO, SUN_WALK_REFERENCE } from " +
       JSON.stringify(
         path.join(ROOT, "packages/@tgv/module-orakle/module-starseed/starseed/sunwalk/copy"),
       ) +
@@ -60,7 +70,8 @@ execFileSync(path.join(ROOT, "node_modules/.bin/esbuild"), [
   "--outfile=" + out,
   "--log-level=error",
 ]);
-const { SUN_WALK_COPY, fieldGuidePlatesForSite } = await import(pathToFileURL(out).href);
+const { SUN_WALK_COPY, CURRENT_INFO, SUN_WALK_REFERENCE, fieldGuidePlatesForSite } =
+  await import(pathToFileURL(out).href);
 fs.rmSync(tmp, { recursive: true, force: true });
 
 const plates = fieldGuidePlatesForSite(SITE);
@@ -82,6 +93,51 @@ for (const [system, pair] of Object.entries(plates)) {
 }
 for (const [k, v] of Object.entries(SUN_WALK_COPY)) {
   if (typeof v !== "string" || !v.trim()) throw new Error("SUN_WALK_COPY." + k + " is empty");
+}
+
+// Eight currents, three strings each. A missing one would not fail — the
+// component falls through per field to the shipped words — which is exactly why
+// it has to be caught here: the row would look complete and quietly be short.
+const CURRENT_COUNT = Object.keys(CURRENT_INFO).length;
+if (CURRENT_COUNT !== 8) {
+  throw new Error("CURRENT_INFO has " + CURRENT_COUNT + " currents, expected 8");
+}
+for (const [name, info] of Object.entries(CURRENT_INFO)) {
+  for (const field of ["definition", "use", "distortion"]) {
+    if (typeof info?.[field] !== "string" || !info[field].trim()) {
+      throw new Error("CURRENT_INFO." + name + "." + field + " is empty");
+    }
+  }
+}
+
+// Marthe's two reference essays. Counted rather than spot-checked, because the
+// failure this guards against is an essay arriving with its blocks dropped.
+const blockWords = (blocks) =>
+  (blocks ?? []).reduce((n, b) => {
+    if (b.kind === "p") return n + (b.text?.trim() ? 1 : 0);
+    if (b.kind === "ul") return n + (b.items ?? []).filter((i) => i.trim()).length;
+    return n + (b.steps ?? []).filter((st) => st.text?.trim()).length;
+  }, 0);
+const REF = SUN_WALK_REFERENCE;
+const anchorBlocks = REF.anchorWeeks.sections.reduce((n, s) => n + blockWords(s.blocks), 0);
+const typeBlocks = REF.weekTypes.cards.reduce((n, c) => n + blockWords(c.blocks), 0);
+if (REF.anchorWeeks.sections.length !== 3 || anchorBlocks < 12) {
+  throw new Error(
+    "anchor-week essay came through short: " +
+      REF.anchorWeeks.sections.length +
+      " sections, " +
+      anchorBlocks +
+      " written blocks",
+  );
+}
+if (REF.weekTypes.cards.length !== 3 || typeBlocks < 8 || !REF.weekTypes.summary.trim()) {
+  throw new Error(
+    "week-types essay came through short: " +
+      REF.weekTypes.cards.length +
+      " cards, " +
+      typeBlocks +
+      " written blocks",
+  );
 }
 
 // CHROME IS ON FOR BOTH, measured rather than assumed — `rf-journey`'s row was
@@ -113,14 +169,17 @@ const ROWS = [
           label: "The Sun Walk",
           blocks: [],
           enabled: true,
-          // Straight from the package. The grid, the eight currents' prose and
-          // the four reference essays are NOT here: the grid never will be
-          // (Swiss Ephemeris output), the prose arrives in W9.
-          config: { props: { ...SUN_WALK_COPY } },
+          // Straight from the package — every word the page says. The grid is
+          // NOT here and never will be: `SUN_WALK` is Swiss Ephemeris output,
+          // and a row that carried a star's crossing date would be a place for
+          // the sky to be wrong.
+          config: {
+            props: { ...SUN_WALK_COPY, currents: CURRENT_INFO, reference: SUN_WALK_REFERENCE },
+          },
         },
       ],
     },
-    assert: { type: "rf-sun-walk", note: "the three header strings" },
+    assert: { type: "rf-sun-walk", note: "every word on the page" },
   },
   {
     slug: "galactic-field-guide",
@@ -226,9 +285,14 @@ sql.push(
   "    FROM public.page_models p, LATERAL jsonb_array_elements(p.model_json->'sections') s",
   "   WHERE p.site = " + q(SITE) + " AND p.slug = 'sun-walk' AND p.mode = 'published'",
   "     AND s->>'type' = 'rf-sun-walk'",
-  "     AND s->'config'->'props'->>'title' = " + q(SUN_WALK_COPY.title) + ";",
+  "     AND s->'config'->'props'->>'title' = " + q(SUN_WALK_COPY.title),
+  // The words, counted rather than assumed present: a row seeded before W9 has
+  // the title and none of the prose, and would otherwise pass this untouched.
+  "     AND (SELECT count(*) FROM jsonb_object_keys(s->'config'->'props'->'currents')) = 8",
+  "     AND jsonb_array_length(s->'config'->'props'->'reference'->'anchorWeeks'->'sections') = 3",
+  "     AND jsonb_array_length(s->'config'->'props'->'reference'->'weekTypes'->'cards') = 3;",
   "  IF n <> 1 THEN",
-  "    RAISE EXCEPTION 'assert: expected one rf-sun-walk section titled %, found %', " +
+  "    RAISE EXCEPTION 'assert: expected one rf-sun-walk section titled % carrying 8 currents and both reference essays, found %', " +
     q(SUN_WALK_COPY.title) +
     ", n;",
   "  END IF;",
@@ -260,16 +324,114 @@ function q(s) {
   return "'" + String(s).replace(/'/g, "''") + "'";
 }
 
-const dest = path.join(
-  ROOT,
-  "clients/office.tinyglobalvillage.com/sql/resonantweaver-migration/11-starseed-rows.sql",
-);
-const text = sql.join("\n");
-fs.writeFileSync(dest, text);
+// ── 12 — the same words, into a row that already exists ────────────────────
+// W8 seeded both rows with the small surface it had freed; W9 freed the prose.
+// Every environment therefore holds an rf-sun-walk section that predates the
+// words, and the INSERT above is `WHERE NOT EXISTS`, so it will not touch them.
+//
+// ADDITIVE, NEVER OVERWRITING: the merge is `<words> || <what the row has>`, so
+// the row's own value wins on every key it already carries. Run it twice and the
+// second run changes nothing; run it after Marthe has rewritten a current and
+// her words stay hers. The price is that a later change to the SHIPPED defaults
+// does not reach a row that has already been patched — which is correct. Once
+// the words are in her row they are hers, not the build's.
+const WORDS = { currents: CURRENT_INFO, reference: SUN_WALK_REFERENCE };
+const wordsJson = JSON.stringify(WORDS, null, 2);
+if (wordsJson.includes(TAG)) throw new Error("dollar-quote tag collision in the words");
+
+const patch = [
+  "-- 12-starseed-sunwalk-words.sql — GENERATED. See gen-starseed-rows.mjs; do not hand-edit.",
+  "--",
+  "-- The Sun Walk's writing, into the row 11-starseed-rows.sql already seeded.",
+  "--",
+  "-- The eight currents' descriptions and the two reference essays (the ★",
+  "-- anchor-week explainer and the week-types comparison) were compiled into",
+  "-- @tgv/module-starseed until W9. They are content — Marthe's words — so they",
+  "-- belong in a row she can edit, and this is the migration that moves them.",
+  "-- What did NOT move, and never will: `SUN_WALK`, the 52-week grid. It is",
+  "-- Swiss Ephemeris output. A current's name and its star's crossing date are",
+  "-- astronomy; a current's description is writing.",
+  "--",
+  "-- Idempotent and non-destructive. The merge is <shipped words> || <the row's",
+  "-- own props>, so a key the row already carries wins: re-running changes",
+  "-- nothing, and a value she has since rewritten is never clobbered.",
+  "--",
+  "-- Nothing on screen changes when this runs. The component falls through per",
+  "-- field to the same shipped words, so the page said all of this already — the",
+  "-- difference is only that from now on it says it because the row does.",
+  "--",
+  "--   psql -v ON_ERROR_STOP=1 -d tgv_db -f sql/resonantweaver-migration/12-starseed-sunwalk-words.sql",
+  "",
+  "\\set ON_ERROR_STOP on",
+  "",
+  "BEGIN;",
+  "",
+  "SELECT set_config('app.actor', 'migration:resonantweaver-sunwalk-words', true);",
+  "",
+  "UPDATE public.page_models p",
+  "   SET model_json = jsonb_set(",
+  "         p.model_json,",
+  "         '{sections}',",
+  "         (SELECT jsonb_agg(",
+  "                   CASE WHEN s->>'type' = 'rf-sun-walk'",
+  "                        THEN jsonb_set(",
+  "                               s,",
+  "                               '{config,props}',",
+  "                               " + TAG + wordsJson + TAG + "::jsonb || (s->'config'->'props')",
+  "                             )",
+  "                        ELSE s END",
+  "                   ORDER BY ord)",
+  "            FROM jsonb_array_elements(p.model_json->'sections')",
+  "                 WITH ORDINALITY AS t(s, ord))",
+  "       ),",
+  "       updated_at = now()",
+  " WHERE p.site = " + q(SITE) + " AND p.slug = 'sun-walk' AND p.lang = 'en'",
+  "   AND p.mode = 'published' AND p.user_id IS NOT DISTINCT FROM NULL",
+  "   AND p.deleted_at IS NULL",
+  "   AND EXISTS (",
+  "     SELECT 1 FROM jsonb_array_elements(p.model_json->'sections') s",
+  "      WHERE s->>'type' = 'rf-sun-walk'",
+  "   );",
+  "",
+  "-- Assert the row can now say the whole page by itself. This is the check that",
+  "-- would have caught a merge that landed the words one level too deep.",
+  "DO $$",
+  "DECLARE n int;",
+  "BEGIN",
+  "  SELECT count(*) INTO n",
+  "    FROM public.page_models p, LATERAL jsonb_array_elements(p.model_json->'sections') s",
+  "   WHERE p.site = " + q(SITE) + " AND p.slug = 'sun-walk' AND p.mode = 'published'",
+  "     AND s->>'type' = 'rf-sun-walk'",
+  "     AND (SELECT count(*) FROM jsonb_object_keys(s->'config'->'props'->'currents')) = 8",
+  "     AND jsonb_array_length(s->'config'->'props'->'reference'->'anchorWeeks'->'sections') = 3",
+  "     AND jsonb_array_length(s->'config'->'props'->'reference'->'weekTypes'->'cards') = 3",
+  "     AND length(s->'config'->'props'->'reference'->'weekTypes'->>'summary') > 40;",
+  "  IF n <> 1 THEN",
+  "    RAISE EXCEPTION 'assert: expected one rf-sun-walk section carrying 8 currents and both reference essays, found %', n;",
+  "  END IF;",
+  "  RAISE NOTICE 'assertions passed';",
+  "END $$;",
+  "",
+  "COMMIT;",
+  "",
+];
+
+const write = (name, lines) => {
+  const dest = path.join(ROOT, "clients/office.tinyglobalvillage.com/sql/resonantweaver-migration", name);
+  const text = lines.join("\n");
+  fs.writeFileSync(dest, text);
+  return Math.round(text.length / 1024);
+};
+
 console.log(
   "wrote 11-starseed-rows.sql — 2 rows, " +
     plateCount +
-    " plate pairs, " +
-    Math.round(text.length / 1024) +
+    " plate pairs, 8 currents, 2 reference essays, " +
+    write("11-starseed-rows.sql", sql) +
+    " KB",
+);
+console.log(
+  "wrote 12-starseed-sunwalk-words.sql — 8 currents + 2 reference essays, additive, " +
+    write("12-starseed-sunwalk-words.sql", patch) +
     " KB",
 );

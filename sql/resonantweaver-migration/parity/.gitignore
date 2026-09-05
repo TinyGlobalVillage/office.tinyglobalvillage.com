@@ -1,0 +1,6 @@
+# Captures, not baselines. A parity run shoots BOTH sides in one sitting and
+# compares them there and then — there is no long-lived reference image to keep,
+# and a shot from last month would only be compared against a page that has
+# legitimately moved since. What survives a run is the verdict, in the wave's
+# commit message or in a bug file. Regenerate with capture-sunwalk.mjs.
+shots/

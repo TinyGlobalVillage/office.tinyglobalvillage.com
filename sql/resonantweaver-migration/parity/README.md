@@ -11,6 +11,35 @@ viewport, same auth, same moment.
 |---|---|---|
 | `token-parity.mjs` | Same words, same elements — the multiset of visible text and of tag names. | Layout. Everything Marthe listed on 2026-08-07 except the menu. |
 | `pixel-diff.mjs` | Same page. Every pixel, plus a bounding box on the first that isn't. | Why. It says where, and you go look. |
+| `capture-sunwalk.mjs` | Produces the pair, for a surface whose words are behind a click. | Nothing on its own — it shoots, it does not compare. |
+
+### …and why the Sun Walk needed a third one
+
+A page screenshot would have passed W9 with every popup rendering blank. All
+twenty-four of the currents' strings and both reference essays are behind a
+click, so `capture-sunwalk.mjs` opens each of the four dialogs in turn and
+writes a PNG *and* the dialog's `innerText` — five captures per mode, in a fixed
+order, which is not a thing to do twice by hand and get right.
+
+It earned its keep immediately: the page matched to the pixel and all four
+popups came out in the wrong typeface, because they portal to `<body>` and a
+section's host supplies the fonts by inherited custom property.
+
+```bash
+node parity/capture-sunwalk.mjs route            # grant in place: the route answers
+# ... comment the grant out, restart ...
+node parity/capture-sunwalk.mjs row              # the row answers
+for n in page current anchor weektypes dossier; do
+  diff shots/route-$n.txt shots/row-$n.txt        # words (popups only)
+  node parity/pixel-diff.mjs shots/route-$n.png shots/row-$n.png
+done
+```
+
+Playwright is resolved from wherever a copy already exists on this machine,
+npx's cache included, and each is tried until one launches — the newest in that
+cache wants a chromium build nobody downloaded. It is never installed into this
+worktree: two client `package.json` files live here and a bare install rewrites
+the lockfile for the whole fleet.
 
 Run the tokens first — a text difference is a content bug and names itself.
 Run the pixels second, because that is the one that catches a correct page in
