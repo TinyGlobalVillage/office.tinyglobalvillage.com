@@ -8,27 +8,33 @@
 //                    calendar, the eight currents' descriptions, and the two
 //                    reference essays. Not the 52-week grid, which is Swiss
 //                    Ephemeris output and stays compiled in forever.
-//   rf-field-guide — paper stock, reading size, and WHOSE photographs. Its own
-//                    42 systems' prose is still compiled in; that is W10.
+//   rf-field-guide — paper stock, reading size, WHOSE photographs, and — since
+//                    W10 — every word in the guide: 42 system dossiers and 62
+//                    star cards. Not the sky: positions, star tuples,
+//                    constellation lines and catalogue designations stay in
+//                    `engine/fieldguide/data.ts` where a pipeline owns them.
 //
 // Nothing is retyped here. Every string is read from the source the ROUTE
 // renders, because a retyped string is exactly how a row and a route come to
 // disagree about what the page says:
 //
-//   SUN_WALK_COPY           ─┐
-//   CURRENT_INFO             ├─ `@tgv/module-starseed/starseed/sunwalk/copy.ts`
-//   SUN_WALK_REFERENCE      ─┘
-//   fieldGuidePlatesForSite  — tinyglobalvillage.com's `lib/starseed/fieldGuidePlates.ts`
+//   SUN_WALK_COPY            ─┐
+//   CURRENT_INFO              ├─ `@tgv/module-starseed/starseed/sunwalk/copy.ts`
+//   SUN_WALK_REFERENCE       ─┘
+//   FIELD_GUIDE_SYSTEM_PROSE ─┬─ `@tgv/module-starseed/starseed/fieldguide/copy.ts`
+//   FIELD_GUIDE_STAR_PROSE   ─┘
+//   fieldGuidePlatesForSite   — tinyglobalvillage.com's `lib/starseed/fieldGuidePlates.ts`
 //
 // Both are dependency-free modules (copy.ts's one `import type` is erased before
 // esbuild resolves it), so esbuild bundles them without dragging in React or
 // styled-components.
 //
-// IT WRITES TWO FILES. `11-…sql` seeds a fresh environment with complete rows.
-// `12-…sql` patches an environment where the rows were already seeded WITHOUT
-// the words — which is every environment, because W8 seeded them and W9 is what
-// freed the prose. The patch adds only keys the row does not already have, so it
-// can never overwrite something Marthe has since written.
+// IT WRITES THREE FILES. `11-…sql` seeds a fresh environment with complete rows.
+// `12-…sql` and `13-…sql` patch an environment where the rows were already
+// seeded WITHOUT the words — which is every environment, because W8 seeded them,
+// W9 freed the Sun Walk's prose and W10 freed the field guide's. Both patches
+// add only keys the row does not already have, so neither can overwrite
+// something Marthe has since written.
 //
 //   node clients/office.tinyglobalvillage.com/sql/resonantweaver-migration/gen-starseed-rows.mjs
 import { execFileSync } from "node:child_process";
@@ -55,6 +61,11 @@ fs.writeFileSync(
         path.join(ROOT, "packages/@tgv/module-orakle/module-starseed/starseed/sunwalk/copy"),
       ) +
       ";",
+    "export { FIELD_GUIDE_SYSTEM_PROSE, FIELD_GUIDE_STAR_PROSE } from " +
+      JSON.stringify(
+        path.join(ROOT, "packages/@tgv/module-orakle/module-starseed/starseed/fieldguide/copy"),
+      ) +
+      ";",
     "export { fieldGuidePlatesForSite } from " +
       JSON.stringify(
         path.join(ROOT, "clients/tinyglobalvillage.com/src/lib/starseed/fieldGuidePlates"),
@@ -70,8 +81,14 @@ execFileSync(path.join(ROOT, "node_modules/.bin/esbuild"), [
   "--outfile=" + out,
   "--log-level=error",
 ]);
-const { SUN_WALK_COPY, CURRENT_INFO, SUN_WALK_REFERENCE, fieldGuidePlatesForSite } =
-  await import(pathToFileURL(out).href);
+const {
+  SUN_WALK_COPY,
+  CURRENT_INFO,
+  SUN_WALK_REFERENCE,
+  FIELD_GUIDE_SYSTEM_PROSE,
+  FIELD_GUIDE_STAR_PROSE,
+  fieldGuidePlatesForSite,
+} = await import(pathToFileURL(out).href);
 fs.rmSync(tmp, { recursive: true, force: true });
 
 const plates = fieldGuidePlatesForSite(SITE);
@@ -140,6 +157,56 @@ if (REF.weekTypes.cards.length !== 3 || typeBlocks < 8 || !REF.weekTypes.summary
   );
 }
 
+// The field guide's writing. Forty-two dossiers of nine paragraphs and sixty-two
+// star cards of six — counted, and every field checked non-empty, because the
+// component falls through per FIELD to the shipped words and a row that arrived
+// with half a dossier missing would render exactly like a complete one.
+const SYSTEM_PROSE_FIELDS = [
+  "note", "landscape", "traits", "mission", "mythology", "frequency", "passage", "margin",
+];
+const SYSTEM_COUNT = Object.keys(FIELD_GUIDE_SYSTEM_PROSE).length;
+if (SYSTEM_COUNT !== 42) {
+  throw new Error("FIELD_GUIDE_SYSTEM_PROSE has " + SYSTEM_COUNT + " systems, expected 42");
+}
+for (const [id, words] of Object.entries(FIELD_GUIDE_SYSTEM_PROSE)) {
+  for (const field of SYSTEM_PROSE_FIELDS) {
+    if (typeof words?.[field] !== "string" || !words[field].trim()) {
+      throw new Error("FIELD_GUIDE_SYSTEM_PROSE." + id + "." + field + " is empty");
+    }
+  }
+  // A system is either inhabited or rumoured about, never neither: the dossier
+  // prints one of the two under its `01` heading and would print a blank.
+  const inhabited = typeof words.inhabitants === "string" && words.inhabitants.trim();
+  const rumoured = typeof words.rumour === "string" && words.rumour.trim();
+  if (!inhabited && !rumoured) {
+    throw new Error("FIELD_GUIDE_SYSTEM_PROSE." + id + " has neither inhabitants nor rumour");
+  }
+}
+
+const STAR_PROSE_FIELDS = ["councilSeat", "coreFunction", "gift", "shadowGate", "councilMessage"];
+let STAR_COUNT = 0;
+for (const [systemId, cards] of Object.entries(FIELD_GUIDE_STAR_PROSE)) {
+  for (const [cardId, words] of Object.entries(cards)) {
+    STAR_COUNT += 1;
+    for (const field of STAR_PROSE_FIELDS) {
+      if (typeof words?.[field] !== "string" || !words[field].trim()) {
+        throw new Error("FIELD_GUIDE_STAR_PROSE." + systemId + "." + cardId + "." + field + " is empty");
+      }
+    }
+    if (!Array.isArray(words.keywords) || words.keywords.length === 0) {
+      throw new Error("FIELD_GUIDE_STAR_PROSE." + systemId + "." + cardId + ".keywords is empty");
+    }
+  }
+}
+if (STAR_COUNT !== 62) {
+  throw new Error("FIELD_GUIDE_STAR_PROSE has " + STAR_COUNT + " cards, expected 62");
+}
+
+const FIELD_GUIDE_PROSE = {
+  systems: FIELD_GUIDE_SYSTEM_PROSE,
+  stars: FIELD_GUIDE_STAR_PROSE,
+};
+
 // CHROME IS ON FOR BOTH, measured rather than assumed — `rf-journey`'s row was
 // authored with it off on the reasoning that "the section owns the viewport",
 // and that was wrong. Both of these routes live under `app/[lang]/**`, and
@@ -206,12 +273,19 @@ const ROWS = [
               // at `/images/galacticfieldguide/…` — a shared path, and a shared
               // path is how one customer's artwork reaches another's domain.
               plates,
+              // Every word in the guide. A fresh environment seeded from this
+              // file gets a complete row; an environment seeded before W10 gets
+              // the same words from 13-…sql instead.
+              prose: FIELD_GUIDE_PROSE,
             },
           },
         },
       ],
     },
-    assert: { type: "rf-field-guide", note: plateCount + " plate pairs" },
+    assert: {
+      type: "rf-field-guide",
+      note: plateCount + " plate pairs, " + SYSTEM_COUNT + " dossiers, " + STAR_COUNT + " star cards",
+    },
   },
 ];
 
@@ -303,12 +377,22 @@ sql.push(
   "     AND s->>'type' = 'rf-field-guide'",
   "     AND s->'config'->'props'->>'theme' = 'nocturne'",
   "     AND (SELECT count(*) FROM jsonb_object_keys(s->'config'->'props'->'plates')) = " +
-    plateCount +
+    plateCount,
+  "     AND (SELECT count(*) FROM jsonb_object_keys(s->'config'->'props'->'prose'->'systems')) = " +
+    SYSTEM_COUNT,
+  "     AND (SELECT coalesce(sum(k.n), 0)",
+  "            FROM jsonb_each(s->'config'->'props'->'prose'->'stars') e,",
+  "                 LATERAL (SELECT count(*) AS n FROM jsonb_object_keys(e.value)) k) = " +
+    STAR_COUNT +
     ";",
   "  IF n <> 1 THEN",
   "    RAISE EXCEPTION 'assert: expected one rf-field-guide section carrying " +
     plateCount +
-    " plate pairs, found %', n;",
+    " plate pairs, " +
+    SYSTEM_COUNT +
+    " dossiers and " +
+    STAR_COUNT +
+    " star cards, found %', n;",
   "  END IF;",
   "",
   "  RAISE NOTICE 'assertions passed';",
@@ -416,6 +500,114 @@ const patch = [
   "",
 ];
 
+// ── 13 — the field guide's writing, into a row that already exists ─────────
+// Same shape as 12, one wave later and about twenty times the size: 42 dossiers
+// and 62 star cards, roughly 170 KB against the 838 bytes the row held before.
+// That is the price of the ruling this wave implements — the words have to live
+// somewhere a pipeline re-run cannot reach, and the row is that place.
+//
+// The size is fine and was measured rather than hoped: jsonb TOASTs a value this
+// large out of the row proper, the realtime wire chunks at about a megabyte, and
+// the editor's history stack shares structure instead of deep-copying, so an
+// undo step costs one reference and not another copy of the guide.
+//
+// ADDITIVE, exactly like 12: `{prose} || <the row's own props>`, so a row that
+// already carries a `prose` key keeps every word of it. Re-running changes
+// nothing.
+const fieldGuideWordsJson = JSON.stringify({ prose: FIELD_GUIDE_PROSE }, null, 2);
+if (fieldGuideWordsJson.includes(TAG)) {
+  throw new Error("dollar-quote tag collision in the field guide's words");
+}
+
+const fieldGuidePatch = [
+  "-- 13-starseed-fieldguide-words.sql — GENERATED. See gen-starseed-rows.mjs; do not hand-edit.",
+  "--",
+  "-- The Galactic Field Guide's writing, into the row 11-starseed-rows.sql",
+  "-- already seeded: 42 star-system dossiers and 62 star cards.",
+  "--",
+  "-- WHAT MOVED AND WHAT DID NOT. Everything a person wrote moves: inhabitants,",
+  "-- rumour, landscape, disposition, directive, terrestrial record, carrier",
+  "-- signature, the decoded transmission and the margin note on each system, and",
+  "-- each star card's council seat, core function, gift, shadow gate, council",
+  "-- transmission and keywords. Nothing a telescope produced moves: positions,",
+  "-- star tuples, the lines drawn between them, catalogue designations,",
+  "-- distances and magnitudes stay in `engine/fieldguide/data.ts`, where the",
+  "-- pipeline can rewrite them on any day of the week without touching a word of",
+  "-- hers. Before this migration those two lived in one object and whichever the",
+  "-- render preferred, somebody's work disappeared without an error.",
+  "--",
+  "-- Idempotent and non-destructive. The merge is <shipped words> || <the row's",
+  "-- own props>, so a `prose` key the row already carries wins outright.",
+  "--",
+  "-- Nothing on screen changes when this runs. The component falls through per",
+  "-- field to the same shipped words, so the guide said all of this already — the",
+  "-- difference is only that from now on it says it because the row does.",
+  "--",
+  "--   psql -v ON_ERROR_STOP=1 -d tgv_db -f sql/resonantweaver-migration/13-starseed-fieldguide-words.sql",
+  "",
+  "\\set ON_ERROR_STOP on",
+  "",
+  "BEGIN;",
+  "",
+  "SELECT set_config('app.actor', 'migration:resonantweaver-fieldguide-words', true);",
+  "",
+  "UPDATE public.page_models p",
+  "   SET model_json = jsonb_set(",
+  "         p.model_json,",
+  "         '{sections}',",
+  "         (SELECT jsonb_agg(",
+  "                   CASE WHEN s->>'type' = 'rf-field-guide'",
+  "                        THEN jsonb_set(",
+  "                               s,",
+  "                               '{config,props}',",
+  "                               " + TAG + fieldGuideWordsJson + TAG + "::jsonb || (s->'config'->'props')",
+  "                             )",
+  "                        ELSE s END",
+  "                   ORDER BY ord)",
+  "            FROM jsonb_array_elements(p.model_json->'sections')",
+  "                 WITH ORDINALITY AS t(s, ord))",
+  "       ),",
+  "       updated_at = now()",
+  " WHERE p.site = " + q(SITE) + " AND p.slug = 'galactic-field-guide' AND p.lang = 'en'",
+  "   AND p.mode = 'published' AND p.user_id IS NOT DISTINCT FROM NULL",
+  "   AND p.deleted_at IS NULL",
+  "   AND EXISTS (",
+  "     SELECT 1 FROM jsonb_array_elements(p.model_json->'sections') s",
+  "      WHERE s->>'type' = 'rf-field-guide'",
+  "   );",
+  "",
+  "-- Assert the row can now say the whole guide by itself, counted on both axes:",
+  "-- a merge that landed one level too deep would leave both counts at zero, and",
+  "-- a truncated bundle would leave them short.",
+  "DO $$",
+  "DECLARE n int;",
+  "BEGIN",
+  "  SELECT count(*) INTO n",
+  "    FROM public.page_models p, LATERAL jsonb_array_elements(p.model_json->'sections') s",
+  "   WHERE p.site = " + q(SITE) + " AND p.slug = 'galactic-field-guide' AND p.mode = 'published'",
+  "     AND s->>'type' = 'rf-field-guide'",
+  "     AND (SELECT count(*) FROM jsonb_object_keys(s->'config'->'props'->'prose'->'systems')) = " +
+    SYSTEM_COUNT,
+  "     AND (SELECT coalesce(sum(k.n), 0)",
+  "            FROM jsonb_each(s->'config'->'props'->'prose'->'stars') e,",
+  "                 LATERAL (SELECT count(*) AS n FROM jsonb_object_keys(e.value)) k) = " +
+    STAR_COUNT,
+  // One string read all the way through, so the check is not only structural.
+  "     AND length(s->'config'->'props'->'prose'->'systems'->'lyra'->>'landscape') > 40;",
+  "  IF n <> 1 THEN",
+  "    RAISE EXCEPTION 'assert: expected one rf-field-guide section carrying " +
+    SYSTEM_COUNT +
+    " dossiers and " +
+    STAR_COUNT +
+    " star cards, found %', n;",
+  "  END IF;",
+  "  RAISE NOTICE 'assertions passed';",
+  "END $$;",
+  "",
+  "COMMIT;",
+  "",
+];
+
 const write = (name, lines) => {
   const dest = path.join(ROOT, "clients/office.tinyglobalvillage.com/sql/resonantweaver-migration", name);
   const text = lines.join("\n");
@@ -433,5 +625,14 @@ console.log(
 console.log(
   "wrote 12-starseed-sunwalk-words.sql — 8 currents + 2 reference essays, additive, " +
     write("12-starseed-sunwalk-words.sql", patch) +
+    " KB",
+);
+console.log(
+  "wrote 13-starseed-fieldguide-words.sql — " +
+    SYSTEM_COUNT +
+    " dossiers + " +
+    STAR_COUNT +
+    " star cards, additive, " +
+    write("13-starseed-fieldguide-words.sql", fieldGuidePatch) +
     " KB",
 );

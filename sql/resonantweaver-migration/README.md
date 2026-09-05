@@ -24,13 +24,22 @@ parity and the cutover — is `CUTOVER-PLAN.md`**, in the order it has to happen
 | `10-nav-one-store.sql` | **HAND-WRITTEN.** One nav, one store — see `NAV-ONE-STORE.md`. |
 | `11-starseed-rows.sql` | **GENERATED** by `gen-starseed-rows.mjs`. `/sun-walk` and `/galactic-field-guide` as `page_models` rows at the same two slugs, so the links never move. Replaces the row wholesale — safe only before she has edited one. |
 | `12-starseed-sunwalk-words.sql` | **GENERATED** by the same script, and an ADDITIVE patch for a site that already has row 11: it merges the shipped currents and reference essays into an existing `rf-sun-walk` section. The merge is `<shipped words> \|\| <the row's own props>`, so **the row wins on every key it already carries** — idempotent, and it can never overwrite something she has written. |
+| `13-starseed-fieldguide-words.sql` | **GENERATED** by the same script, and the same additive shape for the guide: 42 system dossiers and 62 star cards merged into an existing `rf-field-guide` section, `<shipped words> \|\| <the row's own props>`, the row winning on every key. It is the big one — ~188 KB — because W10 moved every word of the guide out of the package and into her row. |
 
 Do not hand-edit the SQL. Change her source or `copy.mjs`, then re-run.
 
 `gen-starseed-rows.mjs` is the exception to "generated from her source": the Sun
-Walk's words are the PACKAGE's, so it bundles `@tgv/module-starseed`'s own
-`sunwalk/copy.ts` and asserts on the way past that all eight currents and both
-reference essays came through non-empty.
+Walk's and the field guide's words are the PACKAGE's, so it bundles
+`@tgv/module-starseed`'s own `sunwalk/copy.ts` and `fieldguide/copy.ts` and
+asserts on the way past that all eight currents, both reference essays, all 42
+system dossiers (every field non-empty) and all 62 star cards (every field
+non-empty, keywords a non-empty array) came through.
+
+That seed happens **once**. After it, the words live in her row and the package
+copy is only a fallback for a site that has never been seeded — the field
+guide's generators emit geometry and identity, never prose, and re-running the
+pipeline can no longer reach her writing. See the headers of
+`engine/fieldguide/data.ts` and `engine/fieldguide/starCards.ts`.
 
 ## Running it
 
