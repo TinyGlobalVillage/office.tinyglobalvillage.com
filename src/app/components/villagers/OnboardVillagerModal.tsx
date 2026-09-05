@@ -14,6 +14,20 @@
 import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 import { useEscapeToClose } from "@tgv/module-component-library/components/hooks/useEscapeToClose";
+import {
+  VERTICALS,
+  VERTICAL_IDS,
+  MODULES,
+  MODULE_IDS,
+  TIERS,
+  TIER_IDS,
+  STORAGE,
+  getPrice,
+  validateModuleCompatibility,
+  type VerticalId,
+  type ModuleId,
+  type TierId,
+} from "@tgv/module-registry";
 import { colors, rgb } from "@/app/theme";
 import {
   ModalBackdrop,
@@ -52,13 +66,21 @@ type Result = {
   reservedSites?: ReservedSite[];
   reservedUntilHours?: number;
   enrollmentSent?: boolean;
+  specWarnings?: string[];
+  staffGranted?: { username: string | null; email: string; siteCount: number } | null;
+  staffGrantError?: string | null;
 };
+
+type StaffRow = { username: string; displayName: string; email: string; role: string };
 
 type MemberLookup = { exists: boolean; name?: string | null; siteCount?: number; reservationGated?: boolean };
 
 /** One site's design fields — shared by the first site and each reserved
  *  additional-site tile. subTouched tracks whether the operator hand-edited the
- *  subdomain (so the name→subdomain auto-fill stops). */
+ *  subdomain (so the name→subdomain auto-fill stops). The business-spec half
+ *  (domain/vertical/tier/modules/storage/custom/branding) is the retired
+ *  new-client wizard, folded in per Gio 2026-08-31 — every field optional, and
+ *  an untouched spec ships nothing (plain onboards are unchanged). */
 type SiteForm = {
   clientName: string;
   subdomain: string;
@@ -66,6 +88,17 @@ type SiteForm = {
   sharedId: string | null;
   migrateUrl: string;
   rights: boolean;
+  specOpen: boolean;
+  domain: string;
+  vertical: VerticalId | "";
+  tier: TierId | "";
+  modules: ModuleId[];
+  storageGB: number;
+  customFlag: boolean;
+  customDescription: string;
+  primaryColor: string;
+  accentColor: string;
+  logoUrl: string;
 };
 
 const emptySite = (): SiteForm => ({
@@ -75,7 +108,49 @@ const emptySite = (): SiteForm => ({
   sharedId: null,
   migrateUrl: "",
   rights: false,
+  specOpen: false,
+  domain: "",
+  vertical: "",
+  tier: "",
+  modules: [],
+  storageGB: STORAGE.includedGB,
+  customFlag: false,
+  customDescription: "",
+  primaryColor: "",
+  accentColor: "",
+  logoUrl: "",
 });
+
+const HEX_COLOR = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
+
+const isHttpUrl = (v: string): boolean => {
+  try {
+    const u = new URL(v);
+    return u.protocol === "http:" || u.protocol === "https:";
+  } catch {
+    return false;
+  }
+};
+
+/** The wire spec for one site — only fields the operator actually set. */
+function buildSpec(s: SiteForm): Record<string, unknown> | undefined {
+  const spec: Record<string, unknown> = {};
+  if (s.domain.trim()) spec.domain = s.domain.trim();
+  if (s.vertical) spec.vertical = s.vertical;
+  if (s.tier) spec.tier = s.tier;
+  if (s.modules.length) spec.modules = s.modules;
+  if (s.storageGB > STORAGE.includedGB) spec.storageGB = s.storageGB;
+  if (s.customFlag) {
+    spec.customFlag = true;
+    if (s.customDescription.trim()) spec.customDescription = s.customDescription.trim();
+  }
+  const branding: Record<string, string> = {};
+  if (s.primaryColor.trim()) branding.primaryColor = s.primaryColor.trim();
+  if (s.accentColor.trim()) branding.accentColor = s.accentColor.trim();
+  if (s.logoUrl.trim()) branding.logoUrl = s.logoUrl.trim();
+  if (Object.keys(branding).length) spec.branding = branding;
+  return Object.keys(spec).length ? spec : undefined;
+}
 
 type Plan = {
   id: string;
@@ -115,6 +190,192 @@ function waiverIso(preset: WaivePreset, customDate: string): string | null {
 
 const subFromName = (s: string) =>
   s.toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40);
+
+/** The folded new-client wizard: vertical → tier → modules → storage/custom →
+ *  branding, collapsed behind one toggle per site. Picking a vertical seeds its
+ *  default tier + modules (same behaviour the stepped wizard had); "Default"
+ *  tier means "record nothing — provisionSite's standard row". */
+function SpecFields({ value, onPatch }: { value: SiteForm; onPatch: (patch: Partial<SiteForm>) => void }) {
+  // Widened by hand: the shipped registry stub declares only {ok:true}, but the
+  // contract (and the retired wizard) carry a refusal shape too.
+  const compat = useMemo<{ ok: true } | { ok: false; reason: string; offending: string[] }>(
+    () =>
+      value.tier
+        ? validateModuleCompatibility({ tier: value.tier, modules: value.modules })
+        : ({ ok: true } as const),
+    [value.tier, value.modules],
+  );
+  const price = useMemo(
+    () =>
+      value.tier
+        ? getPrice({ tier: value.tier, modules: value.modules, storageGB: value.storageGB })
+        : null,
+    [value.tier, value.modules, value.storageGB],
+  );
+  const overage = Math.max(0, value.storageGB - STORAGE.includedGB);
+  const badPrimary = !!value.primaryColor.trim() && !HEX_COLOR.test(value.primaryColor.trim());
+  const badAccent = !!value.accentColor.trim() && !HEX_COLOR.test(value.accentColor.trim());
+  const badLogo = !!value.logoUrl.trim() && !isHttpUrl(value.logoUrl.trim());
+
+  const applyVertical = (id: VerticalId) => {
+    const v = VERTICALS[id];
+    onPatch({ vertical: id, tier: v.defaultTier, modules: [...v.defaultModules] });
+  };
+  const toggleModule = (id: ModuleId) =>
+    onPatch({
+      modules: value.modules.includes(id)
+        ? value.modules.filter((m) => m !== id)
+        : [...value.modules, id],
+    });
+
+  if (!value.specOpen) {
+    return (
+      <SpecToggle type="button" onClick={() => onPatch({ specOpen: true })}>
+        ▸ Business spec — vertical · tier · modules · storage · branding (optional)
+      </SpecToggle>
+    );
+  }
+
+  return (
+    <SpecBox>
+      <SpecToggle type="button" onClick={() => onPatch({ specOpen: false })}>
+        ▾ Business spec (optional — untouched fields keep the standard provisioning)
+      </SpecToggle>
+
+      <FLabel>Custom domain (their own apex — optional)</FLabel>
+      <TextInput
+        value={value.domain}
+        onChange={(e) => onPatch({ domain: e.target.value })}
+        placeholder="acme-yoga.com"
+      />
+
+      <FLabel style={{ marginTop: "0.35rem" }}>Vertical (seeds tier + modules)</FLabel>
+      <Pills>
+        <Pill type="button" $on={value.vertical === ""} onClick={() => onPatch({ vertical: "" })}>
+          None
+        </Pill>
+        {VERTICAL_IDS.map((id) => (
+          <Pill
+            key={id}
+            type="button"
+            $on={value.vertical === id}
+            onClick={() => applyVertical(id)}
+            title={VERTICALS[id].tagline}
+          >
+            {VERTICALS[id].name}
+          </Pill>
+        ))}
+      </Pills>
+
+      <FLabel>Tier</FLabel>
+      <Pills>
+        <Pill type="button" $on={value.tier === ""} onClick={() => onPatch({ tier: "" })}>
+          Default
+        </Pill>
+        {TIER_IDS.map((id) => (
+          <Pill key={id} type="button" $on={value.tier === id} onClick={() => onPatch({ tier: id })}>
+            {TIERS[id].name} — ${TIERS[id].monthlyUsd}/mo
+          </Pill>
+        ))}
+      </Pills>
+
+      <FLabel>Modules (one-time fees)</FLabel>
+      <SpecModuleList>
+        {MODULE_IDS.map((id) => {
+          const m = MODULES[id];
+          const checked = value.modules.includes(id);
+          // requiresTier lived on Module in the wizard's day; today's registry
+          // type dropped it, so read it defensively — pill only when present.
+          const requiresTier = (m as { requiresTier?: string }).requiresTier;
+          return (
+            <SpecModuleRow key={id} $checked={checked}>
+              <input type="checkbox" checked={checked} onChange={() => toggleModule(id)} />
+              <span title={m.summary}>
+                {m.name}
+                {requiresTier ? <GoldPill>requires {requiresTier}</GoldPill> : null}
+              </span>
+              <ModPrice>${m.oneTimeFeeUsd}</ModPrice>
+            </SpecModuleRow>
+          );
+        })}
+      </SpecModuleList>
+      {!compat.ok && <SpecWarn>{compat.reason}</SpecWarn>}
+
+      <FLabel style={{ marginTop: "0.35rem" }}>Storage — {value.storageGB} GB</FLabel>
+      <RangeInput
+        type="range"
+        min={STORAGE.includedGB}
+        max={STORAGE.maxGB}
+        value={value.storageGB}
+        onChange={(e) => onPatch({ storageGB: parseInt(e.target.value, 10) })}
+      />
+      <Note>
+        Included: {STORAGE.includedGB} GB · Overage: ${STORAGE.overageUsdPerGB}/GB · Current
+        overage: {overage} GB = ${overage * STORAGE.overageUsdPerGB}/mo
+      </Note>
+
+      <CheckRow style={{ marginTop: "0.35rem" }}>
+        <label>
+          <input
+            type="checkbox"
+            checked={value.customFlag}
+            onChange={(e) => onPatch({ customFlag: e.target.checked })}
+          />
+          <span>Custom / RFP client</span>
+        </label>
+      </CheckRow>
+      {value.customFlag && (
+        <SpecTextarea
+          rows={3}
+          value={value.customDescription}
+          onChange={(e) => onPatch({ customDescription: e.target.value })}
+          placeholder="Scope, special features, deadlines — what the RFP record should capture."
+        />
+      )}
+
+      <FLabel style={{ marginTop: "0.35rem" }}>Branding (optional — valid hex / full URL if filled)</FLabel>
+      <FieldRow>
+        <Field $narrow>
+          <FLabel>Primary hex</FLabel>
+          <TextInput
+            value={value.primaryColor}
+            onChange={(e) => onPatch({ primaryColor: e.target.value })}
+            placeholder="#5ec8ff"
+            style={badPrimary ? { borderColor: colors.pink } : undefined}
+          />
+          {badPrimary && <SpecErr>Use a hex color like #5ec8ff, or leave blank.</SpecErr>}
+        </Field>
+        <Field $narrow>
+          <FLabel>Accent hex</FLabel>
+          <TextInput
+            value={value.accentColor}
+            onChange={(e) => onPatch({ accentColor: e.target.value })}
+            placeholder="#ff4ecb"
+            style={badAccent ? { borderColor: colors.pink } : undefined}
+          />
+          {badAccent && <SpecErr>Use a hex color like #ff4ecb, or leave blank.</SpecErr>}
+        </Field>
+        <Field>
+          <FLabel>Logo URL</FLabel>
+          <TextInput
+            value={value.logoUrl}
+            onChange={(e) => onPatch({ logoUrl: e.target.value })}
+            placeholder="https://…"
+            style={badLogo ? { borderColor: colors.pink } : undefined}
+          />
+          {badLogo && <SpecErr>Use a full URL starting with https://, or leave blank.</SpecErr>}
+        </Field>
+      </FieldRow>
+
+      {price && (
+        <Note style={{ marginTop: "0.3rem" }}>
+          Spec pricing: <strong>${price.monthlyUsd}/mo</strong> · one-time{" "}
+          <strong>${price.oneTimeUsd}</strong> (advisory — billing stays on the comp levers below).
+        </Note>
+      )}
+    </SpecBox>
+  );
+}
 
 /** The name / subdomain / landing-template / migrate fields for ONE site.
  *  Shared by the first site and every additional-site tile. */
@@ -222,6 +483,7 @@ function SiteFields({
           </>
         )}
       </MigrateBox>
+      <SpecFields value={value} onPatch={onPatch} />
     </>
   );
 }
@@ -231,8 +493,16 @@ export default function OnboardVillagerModal({ onClose }: { onClose: () => void 
 
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
 
   const [templates, setTemplates] = useState<Template[]>([]);
+
+  // TGV editing service (customization retainer, checklist #14): opt-in grant
+  // of owner-equivalent access to ONE picked TGV staff member, on every site
+  // this run creates. Revoke lives in Member Lookup → Sites.
+  const [grantStaff, setGrantStaff] = useState(false);
+  const [staffList, setStaffList] = useState<StaffRow[]>([]);
+  const [staffPick, setStaffPick] = useState<string | null>(null);
 
   // The FIRST site (always provisioned, never reserved) + N additional sites
   // (24h reservations — see below). Both use the shared SiteFields component.
@@ -298,6 +568,10 @@ export default function OnboardVillagerModal({ onClose }: { onClose: () => void 
         setAddons(Array.isArray(d?.addons) ? d.addons : []);
       })
       .catch(() => {});
+    fetch("/api/admin/office-staff/list")
+      .then((r) => r.json())
+      .then((d) => setStaffList(Array.isArray(d?.staff) ? d.staff : []))
+      .catch(() => setStaffList([]));
   }, []);
 
   const lookupMember = async () => {
@@ -323,7 +597,13 @@ export default function OnboardVillagerModal({ onClose }: { onClose: () => void 
   );
 
   const siteValid = (s: SiteForm) =>
-    s.subdomain.trim().length > 0 && (!s.migrateUrl.trim() || s.rights);
+    s.subdomain.trim().length > 0 &&
+    (!s.migrateUrl.trim() || s.rights) &&
+    // Folded spec fields: optional to fill, but valid if filled.
+    (!s.primaryColor.trim() || HEX_COLOR.test(s.primaryColor.trim())) &&
+    (!s.accentColor.trim() || HEX_COLOR.test(s.accentColor.trim())) &&
+    (!s.logoUrl.trim() || isHttpUrl(s.logoUrl.trim())) &&
+    (!s.customFlag || s.customDescription.trim().length > 0);
 
   const canSubmit =
     /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) &&
@@ -331,6 +611,7 @@ export default function OnboardVillagerModal({ onClose }: { onClose: () => void 
     siteValid(firstSite) &&
     additionalSites.every(siteValid) &&
     (waive !== "custom" || !!customDate) &&
+    (!grantStaff || !!staffPick) &&
     !busy;
 
   const submit = async () => {
@@ -350,11 +631,14 @@ export default function OnboardVillagerModal({ onClose }: { onClose: () => void 
         body: JSON.stringify({
           email: email.trim(),
           name: name.trim() || undefined,
+          phone: phone.trim() || undefined,
           clientName: firstSite.clientName.trim(),
           subdomain: firstSite.subdomain.trim(),
           sharedId: firstSite.sharedId,
           migrateUrl: firstSite.migrateUrl.trim() || undefined,
           rightsConfirmed: firstSite.migrateUrl.trim() ? firstSite.rights : undefined,
+          spec: buildSpec(firstSite),
+          staffGrant: grantStaff && staffPick ? { username: staffPick } : undefined,
           payWithin24h: additionalSites.length > 0 ? payWithin24h : undefined,
           additionalSites: additionalSites.length > 0
             ? additionalSites.map((s) => ({
@@ -363,6 +647,7 @@ export default function OnboardVillagerModal({ onClose }: { onClose: () => void 
                 sharedId: s.sharedId,
                 migrateUrl: s.migrateUrl.trim() || undefined,
                 rightsConfirmed: s.migrateUrl.trim() ? s.rights : undefined,
+                spec: buildSpec(s),
               }))
             : undefined,
           waiverUntil: waiverIso(waive, customDate),
@@ -439,6 +724,25 @@ export default function OnboardVillagerModal({ onClose }: { onClose: () => void 
                     within the window — after which all but their first site are removed.
                   </Note>
                 )}
+                {result.staffGranted && (
+                  <Note>
+                    🛠 TGV editing granted — {result.staffGranted.username ?? result.staffGranted.email} now has
+                    owner-level access to {result.staffGranted.siteCount === 1 ? "the new site" : `all ${result.staffGranted.siteCount} new sites`}.
+                    Revoke any time from Member Lookup → Sites.
+                  </Note>
+                )}
+                {result.staffGrantError && (
+                  <Note style={{ color: "#f59e0b" }}>
+                    ⚠ Staff grant didn&apos;t apply ({result.staffGrantError}) — the sites are live;
+                    grant access later via the consent flow (staffer requests a dashboard link, owner approves).
+                  </Note>
+                )}
+                {result.specWarnings && result.specWarnings.length > 0 && (
+                  <Note style={{ color: "#f59e0b" }}>
+                    ⚠ Spec notes: {result.specWarnings.join(" · ")} — the site is live on its
+                    subdomain; adjust the flagged fields from Member Lookup.
+                  </Note>
+                )}
                 <Note>
                   Own domain? They (or you) can bring it in from their dashboard:
                   Site Settings → Domain Console → <strong>Transfer a Domain In</strong> (needs the
@@ -476,6 +780,10 @@ export default function OnboardVillagerModal({ onClose }: { onClose: () => void 
                   <Field>
                     <FLabel>Name (optional)</FLabel>
                     <TextInput value={name} onChange={(e) => setName(e.target.value)} placeholder="NEVLO Project" />
+                  </Field>
+                  <Field $narrow>
+                    <FLabel>Phone (optional)</FLabel>
+                    <TextInput value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+1 555 000 0000" />
                   </Field>
                 </FieldRow>
               </div>
@@ -658,6 +966,65 @@ export default function OnboardVillagerModal({ onClose }: { onClose: () => void 
                 </CheckRow>
               </div>
 
+              {/* TGV editing service (customization retainer, checklist #14):
+                  opt-in owner-equivalent access for ONE TGV staff member on
+                  every site this run creates. Revoke = Member Lookup → Sites. */}
+              <div>
+                <Label>
+                  TGV editing service (customization retainer)
+                  <QmbmBubble
+                    type="button"
+                    style={{ marginLeft: "0.4rem" }}
+                    onClick={() => setAddonInfo(addonInfo === "__staff__" ? null : "__staff__")}
+                    aria-label="Explain the TGV editing service"
+                    title="Explain the TGV editing service"
+                  >
+                    ?
+                  </QmbmBubble>
+                </Label>
+                {addonInfo === "__staff__" && (
+                  <QmbmCard>
+                    The paid customization service: the client retains TGV to build and edit their
+                    site for them, so the picked staff member gets owner-level access to every site
+                    created here. Revoke it any time from Member Lookup → Sites (one click). After a
+                    revoke, re-granting requires the client&apos;s consent — the staffer requests a
+                    dashboard link and the owner approves it with a code.
+                  </QmbmCard>
+                )}
+                <CheckRow>
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={grantStaff}
+                      onChange={(e) => {
+                        setGrantStaff(e.target.checked);
+                        if (!e.target.checked) setStaffPick(null);
+                      }}
+                    />
+                    <span>Client purchased TGV customization — grant a staff member editing access</span>
+                  </label>
+                </CheckRow>
+                {grantStaff && (
+                  staffList.length === 0 ? (
+                    <Note style={{ marginTop: "0.4rem" }}>Couldn&apos;t load the staff roster — try reopening the modal.</Note>
+                  ) : (
+                    <Pills style={{ marginTop: "0.5rem" }}>
+                      {staffList.map((s) => (
+                        <Pill
+                          key={s.username}
+                          type="button"
+                          $on={staffPick === s.username}
+                          onClick={() => setStaffPick(s.username)}
+                          title={`${s.email} · ${s.role}`}
+                        >
+                          {s.displayName}
+                        </Pill>
+                      ))}
+                    </Pills>
+                  )
+                )}
+              </div>
+
               {err && <ErrText>{err}</ErrText>}
 
               <Actions>
@@ -755,6 +1122,47 @@ const Actions = styled.div`display: flex; gap: 0.5rem; flex-wrap: wrap;`;
 const PrimaryBtn = styled.button`padding: 0.45rem 1rem; font-size: 0.8rem; border-radius: 0.4rem; cursor: pointer; background: rgba(${rgb.cyan}, 0.14); border: 1px solid rgba(${rgb.cyan}, 0.55); color: ${colors.cyan}; &:hover:not(:disabled) { background: rgba(${rgb.cyan}, 0.24); } &:disabled { opacity: 0.5; cursor: not-allowed; }`;
 const SecondaryBtn = styled.button`padding: 0.4rem 0.85rem; font-size: 0.78rem; border-radius: 0.4rem; cursor: pointer; background: transparent; border: 1px solid var(--t-border); color: var(--t-text); &:hover:not(:disabled) { border-color: rgba(${rgb.cyan}, 0.5); }`;
 const ErrText = styled.div`font-size: 0.75rem; color: ${colors.pink};`;
+/* Folded business-spec section (retired new-client wizard, Gio 2026-08-31) */
+const SpecToggle = styled.button`
+  margin-top: 0.55rem; padding: 0.4rem 0.6rem; width: 100%; text-align: left;
+  font-size: 0.72rem; font-weight: 600; letter-spacing: 0.04em; cursor: pointer;
+  background: transparent; border: 1px dashed var(--t-border); border-radius: 0.5rem;
+  color: var(--t-textFaint);
+  &:hover { border-color: rgba(${rgb.cyan}, 0.45); color: ${colors.cyan}; }
+`;
+const SpecBox = styled.div`
+  display: flex; flex-direction: column; gap: 0.45rem;
+  margin-top: 0.55rem; padding: 0.7rem 0.85rem;
+  border: 1px solid rgba(${rgb.cyan}, 0.18); border-radius: 0.55rem;
+  background: rgba(0,0,0,0.15);
+  ${SpecToggle} { margin-top: 0; border: none; padding: 0 0 0.2rem; }
+`;
+const SpecModuleList = styled.div`display: flex; flex-direction: column; gap: 0.25rem;`;
+const SpecModuleRow = styled.label<{ $checked: boolean }>`
+  display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 0.5rem;
+  padding: 0.35rem 0.55rem; font-size: 0.75rem; cursor: pointer; color: var(--t-text);
+  background: ${(p) => (p.$checked ? `rgba(${rgb.cyan}, 0.08)` : "rgba(0,0,0,0.2)")};
+  border: 1px solid ${(p) => (p.$checked ? `rgba(${rgb.cyan}, 0.5)` : "var(--t-border)")};
+  border-radius: 0.4rem;
+  input { accent-color: ${colors.cyan}; }
+`;
+const GoldPill = styled.span`
+  display: inline-block; margin-left: 0.4rem; padding: 0 0.35rem; font-size: 0.62rem;
+  background: rgba(${rgb.gold}, 0.18); border: 1px solid ${colors.gold}; border-radius: 0.25rem;
+`;
+const ModPrice = styled.span`color: ${colors.cyan}; font-weight: 700; font-size: 0.72rem;`;
+const SpecWarn = styled.div`
+  padding: 0.4rem 0.6rem; font-size: 0.72rem;
+  background: rgba(255,110,110,0.12); border: 1px solid rgba(255,110,110,0.45); border-radius: 0.4rem;
+`;
+const RangeInput = styled.input`width: 100%; accent-color: ${colors.cyan};`;
+const SpecTextarea = styled.textarea`
+  width: 100%; padding: 0.4rem 0.55rem; background: rgba(0,0,0,0.3);
+  border: 1px solid var(--t-border); border-radius: 0.375rem; color: var(--t-text);
+  font: inherit; font-size: 0.78rem; resize: vertical;
+  &:focus { outline: none; border-color: rgba(${rgb.cyan}, 0.6); }
+`;
+const SpecErr = styled.span`color: ${colors.pink}; font-size: 0.68rem;`;
 const OkCard = styled.div`display: flex; flex-direction: column; gap: 0.55rem; padding: 0.85rem 1rem; border: 1px solid rgba(74,222,128,0.4); border-radius: 0.625rem; background: rgba(74,222,128,0.06);`;
 const OkTitle = styled.div`font-size: 0.9rem; font-weight: 700; color: #4ade80;`;
 const A = styled.a`color: ${colors.cyan}; text-decoration: none; &:hover { text-decoration: underline; }`;

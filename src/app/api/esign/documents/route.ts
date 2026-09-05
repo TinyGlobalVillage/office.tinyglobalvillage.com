@@ -30,7 +30,10 @@ import {
   insertLegalSend,
   getPdfPageCount,
 } from "@tgv/module-documenso";
-import { createAndDistributeMultisigFromPdf } from "@tgv/module-documenso/server/multisig";
+import {
+  createAndDistributeMultisigFromPdf,
+  retireMultisigDocument,
+} from "@tgv/module-documenso/server/multisig";
 import {
   inviteTemplateFrom,
   renderSigningInvite,
@@ -195,7 +198,7 @@ export async function POST(req: NextRequest) {
   const includeCertificate = String(form.get("includeCertificate") ?? "true") !== "false";
   // Sequential is the default: Documenso emails only the first signer, then advances the
   // chain natively as each one signs. Completion mail is OURS now — Documenso sends none
-  // (COMPLETION_EMAIL_SETTINGS); deliveryEmails below is who actually receives the signed
+  // (DOCUMENT_EMAIL_SETTINGS); deliveryEmails below is who actually receives the signed
   // document, and copyToSigners folds the whole roster into that list.
   const sequential = String(form.get("sequential") ?? "true") !== "false";
   const copyToSigners = String(form.get("finalCopyAll") ?? "false") === "true";
@@ -564,6 +567,15 @@ export async function POST(req: NextRequest) {
 // DELETE /api/esign/documents?id=<uuid> — soft-delete (deactivate) an Office document so it
 // leaves the library, Send picker, and Documents gallery. Signed consent rows (legal_signatures)
 // are preserved as an audit record — this hides the doc, it does not erase signatures.
+//
+// A multisig document also has to be retired at Documenso. Flipping `active` alone leaves the
+// envelope PENDING there, and Documenso's own reminder sweep goes on mailing whoever has not
+// signed, every two days, for as long as ninety days — a document the operator can no longer
+// see, still chasing people (bug `esign-abandoned-envelope-keeps-reminding`).
+// `retireMultisigDocument` silences the envelope before deleting it, refuses anything that is
+// not DRAFT/PENDING (a COMPLETED envelope only soft-deletes there, which would hide the signed
+// original), and never mails anyone. A Documenso failure must not fail the delete: our row is
+// already retired, and the operator's next click cannot undo that — log it and carry on.
 export async function DELETE(req: NextRequest) {
   const auth = await requireAdmin(req);
   if (auth instanceof NextResponse) return auth;
@@ -574,5 +586,23 @@ export async function DELETE(req: NextRequest) {
   }
   const removed = await deactivateOfficeLegalDocument(db, id);
   if (!removed) return NextResponse.json({ error: "Document not found" }, { status: 404 });
-  return NextResponse.json({ ok: true, id: removed.id });
+
+  let envelopeRetired = false;
+  if (removed.documensoDocumentId) {
+    try {
+      const outcome = await retireMultisigDocument(removed.documensoDocumentId);
+      envelopeRetired = outcome.retired;
+      if (!outcome.retired) {
+        console.warn(
+          `[esign] document ${id}: left Documenso envelope ${removed.documensoDocumentId} standing — ${outcome.reason}`,
+        );
+      }
+    } catch (e) {
+      console.error(
+        `[esign] document ${id}: could not retire Documenso envelope ${removed.documensoDocumentId}`,
+        e,
+      );
+    }
+  }
+  return NextResponse.json({ ok: true, id: removed.id, envelopeRetired });
 }

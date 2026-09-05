@@ -1,0 +1,30 @@
+{
+  "withdrawalsEnabled": false,
+  "hsdUrl": "https://api.handshakeapi.com/hsd",
+  "coins": [
+    {
+      "symbol": "HNS",
+      "name": "Handshake",
+      "decimals": 6,
+      "addresses": [],
+      "source": "hsd",
+      "note": "Paste the receive address from your wallet. Office reads it; it never spends it."
+    },
+    {
+      "symbol": "BTC",
+      "name": "Bitcoin",
+      "decimals": 8,
+      "addresses": [],
+      "source": "none",
+      "note": "Deposit address only — no Bitcoin chain source is wired."
+    }
+  ],
+  "names": [
+    "folkbazaar",
+    "nevloproject",
+    "refusalism",
+    "refusionist",
+    "talismanic",
+    "tinyglobalvillage"
+  ]
+}

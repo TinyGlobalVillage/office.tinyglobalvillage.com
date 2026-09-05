@@ -10,16 +10,24 @@
 // own superadmin gate is the final wall. Lang/base live behind the tile gear
 // (ModuleDashboardConfigModal, localStorage tgv-module-dashboard-cfg).
 //
-// Future siblings (Module-Storefront, Module-Course, …) slot in as more tiles here.
+// Module Storefront (2026-08-30) curates the fleet's STORE pages — the
+// 'storefront' category of shared_templates (confirmation / product / cart),
+// each card carrying a Deploy | Unpublish pillbar. Future siblings
+// (Module-Course, …) slot in as more tiles here.
 
 import { useCallback, useEffect, useState } from "react";
 import styled from "styled-components";
 import { colors, rgb } from "../../theme";
 import TopNav from "../../components/TopNav";
 import { ModulesIcon, EditorIcon, SettingsIcon, PhotosIcon } from "../../components/icons";
+// The same glyphs the member dashboard wears for these features — never emoji.
+import { IconEmail } from "@tgv/module-component-library/components/icons/EmailIcon";
+import { IconStorefront } from "@tgv/module-component-library/components/icons/StorefrontIcon";
 import ModuleDashboardConfigModal from "../../components/modules/ModuleDashboardConfigModal";
 import TemplateGalleryPanel from "../../components/modules/TemplateGalleryPanel";
-import { EmailCampaignsPanel } from "@tgv/module-email-campaigns";
+import ModuleStorefrontPanel from "../../components/modules/ModuleStorefrontPanel";
+import SystemEmailCampaigns from "../email-campaigns/SystemEmailCampaigns";
+import WizardsPanelHost from "../../components/modules/WizardsPanelHost";
 
 /* ── Styled (Villagers tile canon, violet accent) ─────────────────── */
 
@@ -161,8 +169,8 @@ const BackBtn = styled.button`
 
 /* ── Page ──────────────────────────────────────────────────────── */
 
-type ModulesView = "grid" | "email" | "templates";
-const VIEWS: ModulesView[] = ["grid", "email", "templates"];
+type ModulesView = "grid" | "email" | "templates" | "storefront" | "wizards";
+const VIEWS: ModulesView[] = ["grid", "email", "templates", "storefront", "wizards"];
 
 export default function ModulesClient() {
   const [openMdConfig, setOpenMdConfig] = useState(false);
@@ -233,7 +241,7 @@ export default function ModulesClient() {
           <HeaderRow>
             <BackBtn type="button" onClick={() => setView("grid")}>← Modules</BackBtn>
             <TitleWrap>
-              <span style={{ fontSize: 22 }} aria-hidden>✉️</span>
+              <IconEmail width={22} height={22} style={{ color: colors.violet }} aria-hidden />
               <PageTitle>Email Campaigns</PageTitle>
             </TitleWrap>
           </HeaderRow>
@@ -242,7 +250,37 @@ export default function ModulesClient() {
             preview it live, and send yourself a test. Members edit their own site&apos;s copies
             from their dashboard Support tab.
           </PageSubtitle>
-          <EmailCampaignsPanel apiBase="/api/email-campaigns" scopeLabel="System" />
+          {/* The SAME mount the /dashboard/email-campaigns page renders. It used
+              to be a second, hand-written <EmailCampaignsPanel> here, and it
+              silently fell behind: no systemScope, so no Publish caret and no
+              funnel guide for anyone arriving through the Modules grid. */}
+          <SystemEmailCampaigns />
+        </PageMain>
+      </>
+    );
+  }
+
+  // Wizards opens INLINE too — the same panel a Villager will mount tenant-scoped.
+  // The board is the surface: every slide of the selected wizard as an artboard you
+  // can zoom out of, pan around, and click into.
+  if (view === "wizards") {
+    return (
+      <>
+        <TopNav />
+        <PageMain>
+          <HeaderRow>
+            <BackBtn type="button" onClick={() => setView("grid")}>← Modules</BackBtn>
+            <TitleWrap>
+              <span style={{ fontSize: 22 }} aria-hidden>🪄</span>
+              <PageTitle>Wizards</PageTitle>
+            </TitleWrap>
+          </HeaderRow>
+          <PageSubtitle style={{ marginBottom: "1.25rem" }}>
+            Every guided flow the fleet runs, in one register — signup, machine setup, domain
+            register/transfer, Stripe Connect and the rest. Pick one to see all of its slides
+            on the board at once. Members will build their own from the same panel.
+          </PageSubtitle>
+          <WizardsPanelHost />
         </PageMain>
       </>
     );
@@ -271,6 +309,35 @@ export default function ModulesClient() {
             immediately, no code release.
           </PageSubtitle>
           <TemplateGalleryPanel />
+        </PageMain>
+      </>
+    );
+  }
+
+  // Module Storefront opens INLINE like its siblings — a platform-library
+  // surface curating the fleet's store pages. Edit hops out to the tgv.com
+  // editor in a new tab (see ModuleStorefrontPanel's header).
+  if (view === "storefront") {
+    return (
+      <>
+        <TopNav />
+        <PageMain>
+          <HeaderRow>
+            <BackBtn type="button" onClick={() => setView("grid")}>← Modules</BackBtn>
+            <TitleWrap>
+              <IconStorefront width={22} height={22} style={{ color: colors.violet }} aria-hidden />
+              <PageTitle>Module Storefront</PageTitle>
+            </TitleWrap>
+          </HeaderRow>
+          <PageSubtitle style={{ marginBottom: "1.25rem" }}>
+            The store pages every tenant&apos;s storefront ships with — order
+            confirmation, product catalog, cart &amp; checkout.
+            <strong> Deploy</strong> makes a template member-pickable and the model
+            future stores are seeded with; <strong>Unpublish</strong> hides it and
+            seeds fall back to the built-in default, so a new store never lands on
+            a missing page. Edits govern future stores only.
+          </PageSubtitle>
+          <ModuleStorefrontPanel />
         </PageMain>
       </>
     );
@@ -313,11 +380,23 @@ export default function ModulesClient() {
 
           <TileWrap>
             <Tile type="button" onClick={() => setView("email")}>
-              <TileTop><span style={{ fontSize: 18 }} aria-hidden>✉️</span> Email Campaigns</TileTop>
+              <TileTop><IconEmail width={18} height={18} aria-hidden /> Email Campaigns</TileTop>
               <TileSub>
                 Branded outbound-email templates — edit the system-wide copies every member
                 site inherits (welcome, receipts, domain reminders…). Preview live and send
                 yourself a test.
+              </TileSub>
+            </Tile>
+          </TileWrap>
+
+          <TileWrap>
+            <Tile type="button" onClick={() => setView("storefront")}>
+              <TileTop><IconStorefront width={18} height={18} aria-hidden /> Module Storefront</TileTop>
+              <TileSub>
+                The store pages every tenant ships with — confirmation, product
+                catalog, cart &amp; checkout. Deploy or unpublish each template;
+                edit them in the real editor, and future stores are seeded with
+                what you publish.
               </TileSub>
             </Tile>
           </TileWrap>
@@ -329,6 +408,17 @@ export default function ModulesClient() {
                 The page templates members can start a site from — Live, Drafts, or All.
                 Preview each one, edit it in the real editor, or move it to Drafts to pull
                 a vertical out of circulation without deleting the work.
+              </TileSub>
+            </Tile>
+          </TileWrap>
+
+          <TileWrap>
+            <Tile type="button" onClick={() => setView("wizards")}>
+              <TileTop><span style={{ fontSize: 18 }} aria-hidden>🪄</span> Wizards</TileTop>
+              <TileSub>
+                Every guided flow the fleet runs, tracked in one place. See all of a wizard&apos;s
+                slides at once on the board, zoom into one, and edit it in the real editor —
+                then hand the same panel to members for their own.
               </TileSub>
             </Tile>
           </TileWrap>

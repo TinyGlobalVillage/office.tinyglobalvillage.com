@@ -6,7 +6,7 @@
 
 import styled from "styled-components";
 import TopNav from "../../components/TopNav";
-import { EmailCampaignsPanel } from "@tgv/module-email-campaigns";
+import SystemEmailCampaigns from "./SystemEmailCampaigns";
 
 const ACCENT = "#ff4ecb";
 
@@ -64,7 +64,9 @@ export default function EmailCampaignsClient() {
           it live, and send yourself a test. Unedited templates fall back to the code builder. Members
           edit their own site&apos;s copies from their dashboard Support tab.
         </PageSubtitle>
-        <EmailCampaignsPanel apiBase="/api/email-campaigns" scopeLabel="System" />
+        {/* One mount definition, shared with the Modules-grid chrome — see
+            SystemEmailCampaigns for why. */}
+        <SystemEmailCampaigns />
       </PageMain>
     </>
   );

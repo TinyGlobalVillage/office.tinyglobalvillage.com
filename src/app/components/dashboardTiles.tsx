@@ -173,6 +173,7 @@ export const OFFICE_CHILDREN: OfficeChildDef[] = [
   // Modules → its panels
   { key: "TemplateGallery", title: "Template Gallery", subtitle: "in Modules · browse + review", parent: "Modules", detail: "templates" },
   { key: "EmailCampaigns", title: "Email Campaigns", subtitle: "in Modules · sends & lists", parent: "Modules", detail: "email" },
+  { key: "Wizards", title: "Wizards", subtitle: "in Modules · every guided flow, on a board", parent: "Modules", detail: "wizards" },
 
   // Utils → every modal tile in the ADDM sections. `detail` is the TileSpec
   // type / HardeningKind the Utils page already switches on, so the ?view=
@@ -209,6 +210,7 @@ export const OFFICE_CHILDREN: OfficeChildDef[] = [
   { key: "VillagersDns", title: "DNS", subtitle: "in Villagers · member site records", parent: "Villagers", detail: "dns" },
   { key: "VillagersEcosystemAnalytics", title: "Ecosystem Analytics", subtitle: "in Villagers · cross-site numbers", parent: "Villagers", detail: "ecosystemAnalytics" },
   { key: "VillagersGuestClaims", title: "Guest Claims", subtitle: "in Villagers · guest → member", parent: "Villagers", detail: "guestClaims" },
+  { key: "VillagersHandshake", title: "Handshake", subtitle: "in Villagers · HNS wallet + TLDs", parent: "Villagers", detail: "handshake" },
   { key: "VillagersMemberLookup", title: "Member Lookup", subtitle: "in Villagers · find a villager", parent: "Villagers", detail: "memberLookup" },
   { key: "VillagersMemberWallet", title: "Member Wallet", subtitle: "in Villagers · balances + ledger", parent: "Villagers", detail: "memberWallet" },
   { key: "VillagersMoneyStores", title: "Money & Stores", subtitle: "in Villagers · storefront money", parent: "Villagers", detail: "moneyStores" },

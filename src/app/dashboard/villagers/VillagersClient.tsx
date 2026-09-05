@@ -52,6 +52,7 @@ import ProfileEnginesModal from "../../components/villagers/ProfileEnginesModal"
 import RequestTenantAccessModal from "../../components/villagers/RequestTenantAccessModal";
 import KeycloakWireModal from "../../components/villagers/KeycloakWireModal";
 import GuestClaimsModal from "../../components/villagers/GuestClaimsModal";
+import HandshakeModal from "../../components/villagers/HandshakeModal";
 import StudioConfigModal from "../../components/villagers/StudioConfigModal";
 import OnboardVillagerModal from "../../components/villagers/OnboardVillagerModal";
 import OnboardConfigModal from "../../components/villagers/OnboardConfigModal";
@@ -83,6 +84,7 @@ const DEFAULT_LAYOUT: SectionLayout[] = [
     id: "money",
     title: "Money & Wallets",
     tileIds: [
+      "handshake",
       "memberBilling",
       "memberWallet",
       "moneyStores",
@@ -479,6 +481,7 @@ export default function VillagersClient() {
   const [openMoney, setOpenMoney] = useState(false);
   const [openKeycloakWire, setOpenKeycloakWire] = useState(false);
   const [openGuestClaims, setOpenGuestClaims] = useState(false);
+  const [openHandshake, setOpenHandshake] = useState(false);
   const [openOnboardVillager, setOpenOnboardVillager] = useState(false);
   const [openOnboardConfig, setOpenOnboardConfig] = useState(false);
   const [openSiteVersions, setOpenSiteVersions] = useState(false);
@@ -526,6 +529,19 @@ export default function VillagersClient() {
           Guests who bought without an account — send a one-time claim link that
           creates their passkey login and attaches their purchase history
           (guest→member, F20). Issuance is audit-logged.
+        </>
+      ),
+    },
+    handshake: {
+      id: "handshake",
+      title: "Handshake",
+      icon: <WalletIcon size={18} />,
+      onClick: () => setOpenHandshake(true),
+      sub: (
+        <>
+          Your self-custodied Handshake holdings, mirrored read-only — HNS balance, deposit
+          addresses with a QR, and the six TLDs with their renewal countdown and transfer state.
+          Office holds no keys and ships no signer, so it can watch but never spend.
         </>
       ),
     },
@@ -1110,6 +1126,7 @@ export default function VillagersClient() {
       {openKeycloakWire && <KeycloakWireModal onClose={() => setOpenKeycloakWire(false)} />}
 
       {openGuestClaims && <GuestClaimsModal onClose={() => setOpenGuestClaims(false)} />}
+      {openHandshake && <HandshakeModal onClose={() => setOpenHandshake(false)} />}
       {openSiteVersions && <SiteVersionsModal onClose={() => setOpenSiteVersions(false)} />}
 
       {openStudioConfig && (
