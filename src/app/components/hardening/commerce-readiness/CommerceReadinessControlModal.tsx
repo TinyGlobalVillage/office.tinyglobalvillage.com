@@ -5,11 +5,16 @@
 //
 // Pattern: ~/.claude/CLAUDE.md §"Hardening UTILS Surfaces". One row per tenant
 // site, its overall commerce badge (green/amber/red) + canTransact, expanding
-// to the same seven per-check rows the member's own StoreReadinessCard shows —
-// PLUS the staff-only rows a villager never sees (connect_webhook). Data comes
-// from /api/admin/commerce-readiness → tgv.com's internal fleet read → the ONE
-// computeStoreReadiness computer, so this view can never disagree with what a
-// tenant's dashboard tells them.
+// to seven per-check rows PLUS the staff-only rows a villager never sees
+// (connect_webhook). Data comes from /api/admin/commerce-readiness →
+// tgv.com's internal fleet read → the ONE computeStoreReadiness computer.
+//
+// As of 2026-09-05 this is the ONLY readiness surface. The member-facing
+// StoreReadinessCard — a dashboard tile, then a Stripe / Config ADDM, then the
+// first-product wizard's finale — was retired whole (Gio: "it's not relevant at
+// all and should be removed from TGV HQ as well"). A red row is platform
+// plumbing, and staff are the people who can act on one, so the audit lives
+// here and nowhere else.
 //
 // Sections:
 //   1. Store fleet     — every site that IS a store, worst-first
