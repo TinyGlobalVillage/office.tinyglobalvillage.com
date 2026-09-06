@@ -52,7 +52,7 @@ export function renderTgvEmail(opts: TgvEmailOpts): string {
   const b = TGV_EMAIL_BRAND;
   const eyebrow = (opts.eyebrow ?? "TINY GLOBAL VILLAGE").toUpperCase();
   const year = opts.year ?? 2026;
-  const foot = opts.footNote ?? "a village that cares";
+  const foot = opts.footNote ?? "";
 
   const calloutRow = opts.callout
     ? `<tr>
@@ -99,7 +99,7 @@ export function renderTgvEmail(opts: TgvEmailOpts): string {
           ${calloutRow}
           ${ctaRow}
           <tr><td align="center" style="padding:10px 36px 24px;font-family:${FONT};color:${b.faint};font-size:12px;line-height:1.6;">
-            © ${year} Tiny Global Village · ${foot}
+            © ${year} Tiny Global Village${foot.trim() ? ` · ${foot}` : ""}
           </td></tr>
         </table>
       </td></tr>
