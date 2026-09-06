@@ -13,6 +13,7 @@
 import { useEffect, useState } from "react";
 import styled from "styled-components";
 import ADDM from "@tgv/module-component-library/components/ui/ADDM";
+import DashboardCopyModal from "./DashboardCopyModal";
 import { rgb, colors } from "../../theme";
 
 const TGV_BASE =
@@ -26,6 +27,9 @@ export default function ModuleDashboardConfigModal({ onClose }: { onClose: () =>
   const [undoDepth, setUndoDepth] = useState<number>(10);
   const [undoDepthSaved, setUndoDepthSaved] = useState<number>(10);
   const [settingsErr, setSettingsErr] = useState<string | null>(null);
+  // The fleet copy editor is its own (much wider) surface — a 26rem settings card cannot hold a
+  // modal picker, a language picker and a stack of paragraph fields (Gio 2026-09-05).
+  const [copyOpen, setCopyOpen] = useState(false);
 
   useEffect(() => {
     try {
@@ -90,6 +94,7 @@ export default function ModuleDashboardConfigModal({ onClose }: { onClose: () =>
   };
 
   return (
+    <>
     <Overlay onClick={onClose}>
       <Panel onClick={(e) => e.stopPropagation()}>
         <Title>Module-Dashboard - Studio settings</Title>
@@ -100,6 +105,16 @@ export default function ModuleDashboardConfigModal({ onClose }: { onClose: () =>
         <Field>
           <Label>Village base URL</Label>
           <Input value={base} onChange={(e) => setBase(e.target.value)} placeholder={TGV_BASE} />
+        </Field>
+        <Field>
+          <Label>Dashboard copy</Label>
+          <BtnGhost type="button" onClick={() => setCopyOpen(true)}>
+            Edit the words on any dashboard modal…
+          </BtnGhost>
+          <Hint>
+            Fleet canon (dashboard_copy_canon): every tenant reads these. Pick a modal, pick a
+            language — a new language is auto-translated from the English, then corrected by hand.
+          </Hint>
         </Field>
         <ADDM
           label="Dashboard behaviour"
@@ -138,6 +153,8 @@ export default function ModuleDashboardConfigModal({ onClose }: { onClose: () =>
         </Actions>
       </Panel>
     </Overlay>
+    {copyOpen && <DashboardCopyModal onClose={() => setCopyOpen(false)} />}
+    </>
   );
 }
 
