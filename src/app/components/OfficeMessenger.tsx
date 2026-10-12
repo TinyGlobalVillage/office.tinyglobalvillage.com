@@ -19,7 +19,42 @@ import { DrawerChatsIcon } from "./icons";
 const DRAWER_ID = "chat";
 const TAB_STORAGE_KEY = "tgv-drawer-tab-chat-y";
 
-function ChatTab() {
+// The signed-in person's neon colour (Profile → Appearance). The messenger and its side tab wear
+// it, and re-read it the moment the picker saves a new one.
+function useMyAccent(): string | null {
+  const [accent, setAccent] = useState<string | null>(null);
+  useEffect(() => {
+    let alive = true;
+    const load = async () => {
+      try {
+        const [me, prof] = await Promise.all([
+          fetch("/api/users/me").then((r) => (r.ok ? r.json() : null)),
+          fetch("/api/users/profile").then((r) => (r.ok ? r.json() : null)),
+        ]);
+        const mine = (prof?.profiles as { username: string; accentColor?: string }[] | undefined)?.find((p) => p.username === me?.username);
+        if (alive && mine?.accentColor) setAccent(mine.accentColor);
+      } catch {
+        /* keeps the last colour */
+      }
+    };
+    void load();
+    window.addEventListener("tgv-profile-change", load);
+    return () => {
+      alive = false;
+      window.removeEventListener("tgv-profile-change", load);
+    };
+  }, []);
+  return accent;
+}
+
+const toRgb = (hex: string): string | null => {
+  const m = /^#([0-9a-f]{6})$/i.exec(hex);
+  if (!m) return null;
+  const n = parseInt(m[1], 16);
+  return `${n >> 16}, ${(n >> 8) & 255}, ${n & 255}`;
+};
+
+function ChatTab({ accent }: { accent: string | null }) {
   const { me, open, setOpen, unreadTotal } = useIM();
   const { hideKnob } = useKnobVisibility();
   const [tabY, setTabY] = useState(480);
@@ -73,6 +108,8 @@ function ChatTab() {
       $side="left"
       $accent="green"
       $unread={unreadTotal > 0}
+      $hex={accent && toRgb(accent) ? accent : colors.green}
+      $rgb={(accent && toRgb(accent)) || rgb.green}
       onMouseDown={onMouseDown}
       title="Open chat"
       aria-label={unreadTotal > 0 ? `Open chat, ${unreadTotal} unread` : "Open chat"}
@@ -88,12 +125,14 @@ function ChatTab() {
 }
 
 export default function OfficeMessenger({ defaultOpen = false }: { defaultOpen?: boolean }) {
+  const accent = useMyAccent();
   return (
     <InstantMessenger
       apiBase="/api/im"
       forumsPath="/api/forum/mine"
       transcribePath="/api/chat/transcribe"
       hideLauncher
+      accent={accent}
       defaultOpen={defaultOpen}
       timeclockPath="/api/frontdesk/timeclock"
       supportQueuePath="/api/frontdesk/support/queue"
@@ -101,17 +140,19 @@ export default function OfficeMessenger({ defaultOpen = false }: { defaultOpen?:
       consentInboxPath={null}
       drawerAttrs={{ [DRAWER_DATA_ATTR]: DRAWER_ID }}
     >
-      <ChatTab />
+      <ChatTab accent={accent} />
     </InstantMessenger>
   );
 }
 
-const SideTab = styled(DrawerTab)<{ $unread: boolean }>`
+const SideTab = styled(DrawerTab)<{ $unread: boolean; $hex: string; $rgb: string }>`
   left: 0;
   z-index: 100;
+  color: ${(p) => p.$hex};
+  border-color: rgba(${(p) => p.$rgb}, 0.45);
   border-left: none;
-  background: rgba(${rgb.green}, ${(p) => (p.$unread ? 0.22 : 0.12)});
-  box-shadow: 2px 0 ${(p) => (p.$unread ? 14 : 10)}px rgba(${rgb.green}, ${(p) => (p.$unread ? 0.35 : 0.18)});
+  background: rgba(${(p) => p.$rgb}, ${(p) => (p.$unread ? 0.22 : 0.12)});
+  box-shadow: 2px 0 ${(p) => (p.$unread ? 14 : 10)}px rgba(${(p) => p.$rgb}, ${(p) => (p.$unread ? 0.35 : 0.18)});
 `;
 const Glyph = styled.span`
   position: relative;

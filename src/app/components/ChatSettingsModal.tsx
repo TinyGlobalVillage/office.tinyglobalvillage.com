@@ -1217,6 +1217,7 @@ function SettingsTab({
       });
       if (res.ok) {
         onProfileRefresh();
+        window.dispatchEvent(new Event("tgv-profile-change"));
         flashSaved("appearance");
       }
     } catch { /* ignore */ }
