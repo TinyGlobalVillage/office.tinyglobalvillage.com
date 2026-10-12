@@ -11,7 +11,8 @@ import PresenceHeartbeat from "./PresenceHeartbeat";
 import PingNotifier from "./PingNotifier";
 import FrontDeskDrawer from "./FrontDeskDrawer";
 import IncomingCallOverlay from "./frontdesk/IncomingCallOverlay";
-import ChatDrawer from "./ChatDrawer";
+import OfficeMessenger from "./OfficeMessenger";
+import { Forum } from "@tgv/module-forum";
 import InboxDrawer from "./InboxDrawer";
 import SessionsDrawer from "./SessionsDrawer";
 import DashboardPopoutBeacon from "./DashboardPopoutBeacon";
@@ -82,7 +83,10 @@ function ShellInner({ children }: { children: ReactNode }) {
         <TileUrlSync />
         <FrontDeskDrawer />
         <IncomingCallOverlay />
-        <ChatDrawer />
+        <OfficeMessenger />
+        {/* The forum drawer. No launcher of its own: the chat's Forums list opens it. Mounted here,
+            once, so a page that mounts a second messenger does not open two of them. */}
+        <Forum apiBase="/api/forum" />
         <InboxDrawer />
         <SessionsDrawer />
         <LegendDrawer />
