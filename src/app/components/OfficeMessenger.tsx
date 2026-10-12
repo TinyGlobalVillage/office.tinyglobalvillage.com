@@ -92,6 +92,7 @@ export default function OfficeMessenger({ defaultOpen = false }: { defaultOpen?:
     <InstantMessenger
       apiBase="/api/im"
       forumsPath="/api/forum/mine"
+      transcribePath="/api/chat/transcribe"
       hideLauncher
       defaultOpen={defaultOpen}
       timeclockPath="/api/frontdesk/timeclock"

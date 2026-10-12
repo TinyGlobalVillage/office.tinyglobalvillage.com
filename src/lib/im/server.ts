@@ -8,7 +8,7 @@
 import "server-only";
 import type { NextRequest } from "next/server";
 import { Client } from "pg";
-import { createTenantIM } from "@tgv/module-tim/server";
+import { createTenantIM, giphySearch } from "@tgv/module-tim/server";
 import { livekitEnv, mintToken } from "@tgv/module-video-calls/server/livekit";
 import { requireAuth } from "@/lib/api-auth";
 import { rosterEmailForUsername } from "@/lib/member-auth/bridge";
@@ -38,6 +38,7 @@ export const im = createTenantIM({
   db,
   surface: "office",
   mintCallGrant,
+  gifSearch: process.env.GIPHY_API_KEY ? giphySearch(process.env.GIPHY_API_KEY) : undefined,
   files,
   auth: async (req) => {
     if (!req) return null;
