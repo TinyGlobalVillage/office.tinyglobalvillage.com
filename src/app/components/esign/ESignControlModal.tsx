@@ -926,8 +926,8 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
               {stepKey === "page" && (
                 <>
                   <StepLead>
-                    Where the button leads. These two lines head the screen the signer signs on — the
-                    real page is framed below, and it repaints as you type.
+                    What your signers will see — nothing here asks you to sign. The invitation&apos;s button
+                    leads to this page; these two lines head it, and the frame below repaints as you type.
                   </StepLead>
                   <TwoUp>
                     <div>
@@ -951,8 +951,8 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
                   </TwoUp>
                   <FieldHint>Empty a field and that line is left off the page entirely.</FieldHint>
                   <SignPagePreview eyebrow={signEyebrow} title={signPageTitle} />
-                  <FieldHint>The document itself appears in the empty panel — this is the frame
-                  around it, with no signer and nothing to sign.</FieldHint>
+                  <FieldHint>The grey page and its sample boxes are a stand-in: your PDF uploads only at Send,
+                  so the signer&apos;s real document and your drawn boxes take that panel then.</FieldHint>
                 </>
               )}
 
