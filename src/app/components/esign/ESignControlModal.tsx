@@ -50,7 +50,7 @@ import PillBar from "@tgv/module-component-library/components/ui/PillBar";
 import ArrowRightIcon from "../icons/ArrowRightIcon";
 import ConfirmModal from "../frontdesk/ConfirmModal";
 import UploadDropzone from "../UploadDropzone";
-import { placementsForWire, type SignerPlacement } from "@tgv/module-documenso/components/FieldPlacer";
+import { placementsForWire, signersWithoutBoxes, type SignerPlacement } from "@tgv/module-documenso/components/FieldPlacer";
 import PrepMode from "@tgv/module-documenso/components/PrepMode";
 
 // ── types (mirror the API payloads) ────────────────────────────────────────────
@@ -280,6 +280,12 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
   const steps = STEPS;
   const stepIndex = Math.max(0, steps.indexOf(stepKey));
 
+  // Signers with no boxes yet. Nothing is placed for anybody until the operator draws it
+  // (Gio 2026-10-17), so a signer left at zero would get the server's auto-stacked pair —
+  // the very thing the room stopped doing — and Next stays shut until every one has a box.
+  const missing = signersWithoutBoxes(recipients, placements);
+  const missingNames = missing.map((s) => s.name || s.email).join(", ");
+
   // What stops Next. Returned as the sentence the operator reads, so the block and its
   // reason are the same fact rather than a disabled button they have to guess about.
   const blocked: string | null =
@@ -287,6 +293,8 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
       ? "Choose the PDF first. Nothing uploads until the Send button on the last step."
       : stepKey === "document" && recipients.length === 0
       ? "Add at least one person who signs — each one gets their own link and their own boxes."
+      : stepKey === "document" && missing.length > 0
+      ? `Every signer needs at least one box — ${missingNames} ${missing.length === 1 ? "has" : "have"} none. Open the room and draw them.`
       : stepKey === "invite" && emailReplyTo.trim() && !EMAIL_RE.test(emailReplyTo.trim())
       ? `"${emailReplyTo.trim()}" is not a valid reply-to email.`
       : null;
@@ -390,7 +398,11 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
       return;
     }
     if (recipients.length === 0) {
-      setMsg("Add the people who sign first — then drag each one's boxes into place on the staged document.");
+      setMsg("Add the people who sign first — then open the room and draw each one's boxes.");
+      return;
+    }
+    if (missing.length > 0) {
+      setMsg(`Every signer needs at least one box — ${missingNames} ${missing.length === 1 ? "has" : "have"} none. Go back to Document and draw them.`);
       return;
     }
     const replyTo = emailReplyTo.trim().toLowerCase();
@@ -572,7 +584,7 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
         />
         <AddBtn type="button" onClick={() => { addRecipient(customEmail, null); setCustomEmail(""); }}>Add</AddBtn>
       </Row>
-      {recipients.length > 0 ? (
+      {recipients.length > 0 && (
         <Chips>
           {recipients.map((r, i) => (
             <Chip key={r.email}>
@@ -581,12 +593,6 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
             </Chip>
           ))}
         </Chips>
-      ) : (
-        <FieldHint>
-          {uploadFile
-            ? "Add the first person who signs and their Sign and Date boxes appear on the last page, ready to drag into place."
-            : "Everyone you add here signs this one document — each gets their own emailed link and their own boxes."}
-        </FieldHint>
       )}
       {recipients.length > 1 && (
         <CheckRow>
@@ -659,8 +665,8 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
               {stepKey === "document" && (
                 <>
                   <StepLead>
-                    Stage the PDF, add the people who sign above its preview, then tick what each one
-                    is asked for and drag their boxes onto the printed lines.
+                    Stage the PDF, add the people who sign, then open the room and draw each one&apos;s
+                    boxes where they sign.
                   </StepLead>
                   <UploadDropzone
                     accept="application/pdf"
@@ -705,8 +711,8 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
                         <ItemTitle>{uploadFile.name}</ItemTitle>
                         <ItemSub>
                           {recipients.length === 0
-                            ? "No one signs yet — add a person above, then place their boxes."
-                            : `${placedCount} box${placedCount === 1 ? "" : "es"} for ${recipients.length} signer${recipients.length === 1 ? "" : "s"}`}
+                            ? "No one signs yet — add a person above."
+                            : `${placedCount} box${placedCount === 1 ? "" : "es"} for ${recipients.length} signer${recipients.length === 1 ? "" : "s"}${missing.length ? ` — ${missingNames} still ${missing.length === 1 ? "has" : "have"} none` : ""}`}
                         </ItemSub>
                       </StagedMain>
                       <ItemActions>
@@ -732,13 +738,16 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
                           <StepTally>
                             {recipients.length === 0
                               ? "Add at least one person who signs."
-                              : `${placedCount} box${placedCount === 1 ? "" : "es"} · ${recipients.length} signer${recipients.length === 1 ? "" : "s"}`}
+                              : missing.length
+                                ? `${missingNames} still ${missing.length === 1 ? "has" : "have"} no box`
+                                : `${placedCount} box${placedCount === 1 ? "" : "es"} · ${recipients.length} signer${recipients.length === 1 ? "" : "s"}`}
                           </StepTally>
                           <NextBtn
                             type="button"
-                            $blocked={recipients.length === 0}
+                            $blocked={recipients.length === 0 || missing.length > 0}
                             onClick={() => {
                               if (recipients.length === 0) { setMsg("Add at least one person who signs — type an email above."); return; }
+                              if (missing.length > 0) { setMsg(`Every signer needs at least one box — ${missingNames} ${missing.length === 1 ? "has" : "have"} none.`); return; }
                               setPrepOpen(false);
                               setMsg("");
                               setStepKey("invite");
