@@ -50,7 +50,8 @@ import PillBar from "@tgv/module-component-library/components/ui/PillBar";
 import ArrowRightIcon from "../icons/ArrowRightIcon";
 import ConfirmModal from "../frontdesk/ConfirmModal";
 import UploadDropzone from "../UploadDropzone";
-import FieldPlacer, { placementsForWire, type SignerPlacement } from "@tgv/module-documenso/components/FieldPlacer";
+import { placementsForWire, type SignerPlacement } from "@tgv/module-documenso/components/FieldPlacer";
+import PrepMode from "@tgv/module-documenso/components/PrepMode";
 
 // ── types (mirror the API payloads) ────────────────────────────────────────────
 type DocKind = "waiver" | "multisig";
@@ -180,6 +181,10 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
   // The signer added last. The placer opens their row and lights their first box, so adding
   // an email is the prompt to place that person's marks — not a chip that sits there.
   const [focusEmail, setFocusEmail] = useState<string | null>(null);
+  /** The full-size placing room. Opens the moment a PDF is staged and whenever a signer is
+   *  added with one staged; Done closes it with the boxes kept, and the staged-file card
+   *  re-opens it (Gio 2026-10-17: "fill the whole modal … close it out and re-open it"). */
+  const [prepOpen, setPrepOpen] = useState(false);
   // "Include certificate page?" — Documenso appends a signing-certificate page to the
   // signed PDF; unchecked = our stored/downloadable copy keeps only the document's own
   // pages (a sealed original is kept server-side for audit). OFF by default (Gio
@@ -310,6 +315,8 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
     });
     const newest = valid.length ? valid[valid.length - 1].email : null;
     if (newest) setFocusEmail(newest);
+    // A new address is the prompt to place that person's boxes — so the room opens.
+    if (newest && uploadFile && !uploading) setPrepOpen(true);
     setMsg(bad ? `"${bad}" is not a valid email` : "");
   };
   const removeRecipient = (email: string) => {
@@ -365,12 +372,13 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
     }
     setUploadFile(f);
     setPlacements({}); // a new document invalidates any box positions from the previous one
+    setPrepOpen(true);
     setMsg("");
     // Nothing else to open: the invitation is the next step of the flow, so subject /
     // message / reply-to are a decision every send walks through rather than one an
     // operator had to remember a gear existed to make.
   };
-  const clearStaged = () => { if (!uploading) { setUploadFile(null); setPlacements({}); } };
+  const clearStaged = () => { if (!uploading) { setUploadFile(null); setPlacements({}); setPrepOpen(false); } };
 
   // SEND — create the document and email the signers, in one click.
   // XHR (not fetch) so we get a real upload-progress %; plus a hard timeout so it can't hang.
@@ -456,6 +464,7 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
             : `"${docTitle}" sent to ${n} signer(s) — each received their own signing link.`) + ending);
           setRecipients([]);
           setFocusEmail(null);
+          setPrepOpen(false);
           setNote("");
           setPlacements({});
           setEmailSubject(""); // reply-to intentionally kept for the next send
@@ -533,6 +542,64 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
       <PreviewLink>Or paste this into your browser:<br />{SIGN_PAGE_ORIGIN}/sign/…</PreviewLink>
       <PreviewFooter>{inviteFooter.trim() || INVITE_DEFAULTS.footer}</PreviewFooter>
     </InvitePreview>
+  );
+
+  // How many boxes are placed across every signer — the staged-file card and the room's
+  // footer both say it.
+  const placedCount = Object.values(placements).reduce((n, p) => n + (p?.fields?.length ?? 0), 0);
+
+  // The "who signs" bar. Rendered in the Document step and again inside the placing room,
+  // above the document, so a signer can be added from either place.
+  const signerBar = (
+    <>
+      <Label>Who signs (in document order)</Label>
+      <Row>
+        <DDM
+          label="Add staff"
+          ariaLabel="Add a staff signer"
+          align="left"
+          items={staff.map((s): DDMItem => ({
+            key: s.username,
+            label: `${s.username} · ${s.email}`,
+            onClick: () => addRecipient(s.email, s.username),
+          }))}
+        />
+        <Input
+          placeholder="or type emails (comma-separated)"
+          value={customEmail}
+          onChange={(e) => setCustomEmail(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") { addRecipient(customEmail, null); setCustomEmail(""); } }}
+        />
+        <AddBtn type="button" onClick={() => { addRecipient(customEmail, null); setCustomEmail(""); }}>Add</AddBtn>
+      </Row>
+      {recipients.length > 0 ? (
+        <Chips>
+          {recipients.map((r, i) => (
+            <Chip key={r.email}>
+              {i + 1}. {r.name ? `${r.name} · ` : ""}{r.email}
+              <ChipX type="button" onClick={() => removeRecipient(r.email)} aria-label="Remove"><XIcon size={12} /></ChipX>
+            </Chip>
+          ))}
+        </Chips>
+      ) : (
+        <FieldHint>
+          {uploadFile
+            ? "Add the first person who signs and their Sign and Date boxes appear on the last page, ready to drag into place."
+            : "Everyone you add here signs this one document — each gets their own emailed link and their own boxes."}
+        </FieldHint>
+      )}
+      {recipients.length > 1 && (
+        <CheckRow>
+          <input
+            type="checkbox"
+            checked={inOrder}
+            onChange={(e) => setInOrder(e.target.checked)}
+          />
+          Sign in order — one at a time
+          <CheckHint>— only the first signer is emailed now; each signature automatically sends the next signer their link. Unchecked, everyone is emailed at once.</CheckHint>
+        </CheckRow>
+      )}
+    </>
   );
 
   return (
@@ -627,66 +694,62 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
 
                   {/* The people who sign, in the order they sign. This bar sits above the
                       document on purpose: adding an address is what opens that person's row
-                      in the placer below and lights their first box — one person is one
-                      signer, a second address is a second set of boxes to place. */}
-                  <Label>Who signs (in document order)</Label>
-                  <Row>
-                    <DDM
-                      label="Add staff"
-                      ariaLabel="Add a staff signer"
-                      align="left"
-                      items={staff.map((s): DDMItem => ({
-                        key: s.username,
-                        label: `${s.username} · ${s.email}`,
-                        onClick: () => addRecipient(s.email, s.username),
-                      }))}
-                    />
-                    <Input
-                      placeholder="or type emails (comma-separated)"
-                      value={customEmail}
-                      onChange={(e) => setCustomEmail(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === "Enter") { addRecipient(customEmail, null); setCustomEmail(""); } }}
-                    />
-                    <AddBtn type="button" onClick={() => { addRecipient(customEmail, null); setCustomEmail(""); }}>Add</AddBtn>
-                  </Row>
-                  {recipients.length > 0 ? (
-                    <Chips>
-                      {recipients.map((r, i) => (
-                        <Chip key={r.email}>
-                          {i + 1}. {r.name ? `${r.name} · ` : ""}{r.email}
-                          <ChipX type="button" onClick={() => removeRecipient(r.email)} aria-label="Remove"><XIcon size={12} /></ChipX>
-                        </Chip>
-                      ))}
-                    </Chips>
-                  ) : (
-                    <FieldHint>
-                      {uploadFile
-                        ? "Add the first person who signs and their Sign and Date boxes appear on the last page, ready to drag into place."
-                        : "Everyone you add here signs this one document — each gets their own emailed link and their own boxes."}
-                    </FieldHint>
-                  )}
-                  {recipients.length > 1 && (
-                    <CheckRow>
-                      <input
-                        type="checkbox"
-                        checked={inOrder}
-                        onChange={(e) => setInOrder(e.target.checked)}
-                      />
-                      Sign in order — one at a time
-                      <CheckHint>— only the first signer is emailed now; each signature automatically sends the next signer their link. Unchecked, everyone is emailed at once.</CheckHint>
-                    </CheckRow>
+                      in the placer and lights their first box — one person is one signer, a
+                      second address is a second set of boxes to place. The same bar is
+                      rendered inside the placing room, above the document. */}
+                  {signerBar}
+
+                  {uploadFile && !uploading && (
+                    <StagedCard>
+                      <StagedMain>
+                        <ItemTitle>{uploadFile.name}</ItemTitle>
+                        <ItemSub>
+                          {recipients.length === 0
+                            ? "No one signs yet — add a person above, then place their boxes."
+                            : `${placedCount} box${placedCount === 1 ? "" : "es"} for ${recipients.length} signer${recipients.length === 1 ? "" : "s"}`}
+                        </ItemSub>
+                      </StagedMain>
+                      <ItemActions>
+                        <PrimaryBtn type="button" onClick={() => setPrepOpen(true)}>
+                          {placedCount ? "Edit boxes" : "Place boxes"}
+                        </PrimaryBtn>
+                      </ItemActions>
+                    </StagedCard>
                   )}
 
-                  {uploadFile && recipients.length > 0 && !uploading && (
-                    <FieldPlacer
+                  {uploadFile && !uploading && (
+                    <PrepMode
+                      open={prepOpen}
+                      onClose={() => setPrepOpen(false)}
                       file={uploadFile}
                       signers={recipients}
                       placements={placements}
                       onChange={setPlacements}
                       focusEmail={focusEmail}
+                      signerBar={signerBar}
+                      footer={
+                        <>
+                          <StepTally>
+                            {recipients.length === 0
+                              ? "Add at least one person who signs."
+                              : `${placedCount} box${placedCount === 1 ? "" : "es"} · ${recipients.length} signer${recipients.length === 1 ? "" : "s"}`}
+                          </StepTally>
+                          <NextBtn
+                            type="button"
+                            $blocked={recipients.length === 0}
+                            onClick={() => {
+                              if (recipients.length === 0) { setMsg("Add at least one person who signs — type an email above."); return; }
+                              setPrepOpen(false);
+                              setMsg("");
+                              setStepKey("invite");
+                            }}
+                          >
+                            Next: Invitation
+                          </NextBtn>
+                        </>
+                      }
                     />
                   )}
-
                   <CheckRow>
                     <input
                       type="checkbox"
@@ -1294,6 +1357,10 @@ const DelBtn = styled.button`
 const ItemTitle = styled.div`font-size: 13.5px; font-weight: 600;`;
 const ItemSub = styled.div`font-size: 11.5px; color: rgba(232,232,239,0.5); margin-top: 2px;`;
 const ActItem = styled(Item)``;
+// The staged PDF while the placing room is closed: name, how far along the boxes are, and
+// the button that opens the room again.
+const StagedCard = styled(Item)`margin-top: 10px; border-color: rgba(120,200,255,0.28); background: rgba(120,200,255,0.06);`;
+const StagedMain = styled.div`min-width: 0;`;
 const ActMain = styled.div`min-width: 0;`;
 const ActRight = styled.div`display: flex; align-items: center; gap: 10px; flex: 0 0 auto;`;
 const IconLink = styled.a`color: #7fd0ff; display: inline-flex; padding: 4px; border-radius: 6px; &:hover { background: rgba(120,200,255,0.12); }`;
