@@ -28,7 +28,11 @@ async function jsonOrThrow(r: Response, fallback: string) {
   return r.json();
 }
 
-const officeAdapter: PlatformProductsAdapter = {
+// The intersection keeps this compiling against a module-component-library dist that predates
+// the optional `listFeatureCatalog` (the panel simply ignores it there).
+const officeAdapter: PlatformProductsAdapter & {
+  listFeatureCatalog?: () => Promise<{ key: string; label: string; group?: string }[]>;
+} = {
   listPlans: async () =>
     (
       await jsonOrThrow(
@@ -95,6 +99,15 @@ const officeAdapter: PlatformProductsAdapter = {
       "Delete failed",
     );
   },
+  // Dashboard feature catalog (HQ registry) for the plan / add-on Features picker — HQ's
+  // platform-products GET carries it beside the rows (migration 0172).
+  listFeatureCatalog: async () =>
+    (
+      await jsonOrThrow(
+        await fetch("/api/admin/villagers/platform-products", { cache: "no-store" }),
+        "Failed to load features",
+      )
+    ).featureCatalog ?? [],
 };
 
 export default function ProductsControlModal({ onClose }: { onClose: () => void }) {
