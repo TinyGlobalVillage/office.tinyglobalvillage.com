@@ -5,6 +5,7 @@
 // tgv.com via the internal-secret (operator-auth) seam, attributed to the operator. tgv.com is the
 // authoritative boundary: it re-validates everything, owns Stripe, and is money-first (Stripe
 // Product+Price before any DB write). Operator-only (requireAdmin). Same seam as promo-proxy.ts.
+// Also carries the per-villager feature overrides (villager-features, migration 0172).
 import "server-only";
 import { type NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/api-admin";
@@ -17,7 +18,7 @@ function tgvBase(): string {
 /** Proxy an admin platform-product / platform-addon action to HQ's /api/user/admin/... path. */
 export async function proxyProducts(
   req: NextRequest,
-  opts: { path: string; method: "GET" | "POST" | "PATCH" | "DELETE" },
+  opts: { path: string; method: "GET" | "POST" | "PATCH" | "PUT" | "DELETE" },
 ) {
   const gate = await requireAdmin(req);
   if (gate instanceof NextResponse) return gate;
@@ -33,7 +34,7 @@ export async function proxyProducts(
   if (actorId) headers["x-operator-actor-id"] = actorId;
 
   const init: RequestInit = { method: opts.method, headers, cache: "no-store" };
-  if (opts.method === "POST" || opts.method === "PATCH") init.body = await req.text();
+  if (opts.method === "POST" || opts.method === "PATCH" || opts.method === "PUT") init.body = await req.text();
 
   try {
     const res = await fetch(`${tgvBase()}${opts.path}`, init);

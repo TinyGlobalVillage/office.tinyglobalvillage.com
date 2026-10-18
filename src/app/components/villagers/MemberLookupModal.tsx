@@ -29,6 +29,8 @@ import NeonX from "../NeonX";
 import { StarIcon } from "../icons";
 import ChargeCardModal from "./ChargeCardModal";
 import MemberBillingModal from "./MemberBillingModal";
+import FeatureOverridesModal from "./FeatureOverridesModal";
+import Tooltip from "../ui/Tooltip";
 
 type Member = { id: string; email: string; name: string | null; role: string | null };
 type MemberFull = Member & {
@@ -120,6 +122,8 @@ export default function MemberLookupModal({ onClose }: { onClose: () => void }) 
   const [invoicesOpen, setInvoicesOpen] = useState(false);
   // The card the operator is charging (opens ChargeCardModal); null = closed.
   const [chargeTarget, setChargeTarget] = useState<SavedCard | null>(null);
+  // The site whose dashboard feature overrides are open (FeatureOverridesModal); null = closed.
+  const [featuresSite, setFeaturesSite] = useState<Site | null>(null);
   // Support Tickets archive (read-only, per villager).
   const [tickets, setTickets] = useState<ArchiveTicket[] | null>(null);
   const [openTicket, setOpenTicket] = useState<ArchiveDetail | null>(null);
@@ -542,6 +546,15 @@ export default function MemberLookupModal({ onClose }: { onClose: () => void }) 
                             </SiteMeta>
                           </SiteLeft>
                           <SiteBtns>
+                            <Tooltip label="Feature overrides" accent={colors.gold}>
+                              <FeaturesBtn
+                                type="button"
+                                aria-label="Feature overrides"
+                                onClick={() => setFeaturesSite(s)}
+                              >
+                                Features
+                              </FeaturesBtn>
+                            </Tooltip>
                             {s.junction_role === "owner" &&
                               staffEmails.has(profile.member.email.toLowerCase()) && (
                                 <RevokeBtn
@@ -733,6 +746,14 @@ export default function MemberLookupModal({ onClose }: { onClose: () => void }) 
                       setChargeTarget(null);
                       void loadProfile(selected.id);
                     }}
+                  />
+                )}
+
+                {featuresSite && (
+                  <FeatureOverridesModal
+                    siteId={featuresSite.id}
+                    siteLabel={featuresSite.client_name ?? featuresSite.domain ?? featuresSite.id.slice(0, 8)}
+                    onClose={() => setFeaturesSite(null)}
                   />
                 )}
 
@@ -1248,6 +1269,21 @@ const FoundingBtn = styled.button<{ $on: boolean }>`
   &:disabled {
     opacity: 0.6;
     cursor: not-allowed;
+  }
+`;
+const FeaturesBtn = styled.button`
+  flex: 0 0 auto;
+  padding: 0.3rem 0.7rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  border-radius: 999px;
+  cursor: pointer;
+  background: transparent;
+  color: var(--t-textFaint);
+  border: 1px solid var(--t-border);
+  &:hover {
+    border-color: rgba(${rgb.gold}, 0.55);
+    color: ${colors.gold};
   }
 `;
 const SiteBtns = styled.div`
