@@ -50,7 +50,7 @@ import PillBar from "@tgv/module-component-library/components/ui/PillBar";
 import ArrowRightIcon from "../icons/ArrowRightIcon";
 import ConfirmModal from "../frontdesk/ConfirmModal";
 import UploadDropzone from "../UploadDropzone";
-import FieldPlacer, { type SignerPlacement } from "./FieldPlacer";
+import FieldPlacer, { placementsForWire, type SignerPlacement } from "@tgv/module-documenso/components/FieldPlacer";
 
 // ── types (mirror the API payloads) ────────────────────────────────────────────
 type DocKind = "waiver" | "multisig";
@@ -415,26 +415,7 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
       // sits on. The server replaces that signer's default pair with this list, so a kind the
       // operator un-ticked is simply not in it.
       //
-      // `order` is the row's position in that signer's field list — the sequence the operator
-      // dragged it into, which is the sequence the signer is walked through. Stamped here
-      // because the list's own array order IS the answer; nothing downstream has to guess.
-      const placed = recipients
-        .map((r, i) => {
-          const p = placements[r.email];
-          if (!p?.fields.length) return null;
-          return {
-            signerIndex: i,
-            fields: p.fields.map((f, order) => ({
-              kind: f.kind,
-              pageNumber: f.pageNumber,
-              order,
-              ...(f.required === false ? { required: false } : {}),
-              ...(f.label?.trim() ? { label: f.label.trim() } : {}),
-              ...f.rect,
-            })),
-          };
-        })
-        .filter(Boolean);
+      const placed = placementsForWire(recipients, placements);
       if (placed.length) fd.append("placements", JSON.stringify(placed));
     }
     fd.append("includeCertificate", String(includeCert));

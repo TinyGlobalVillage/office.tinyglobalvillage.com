@@ -33,7 +33,9 @@ import {
 import {
   createAndDistributeMultisigFromPdf,
   retireMultisigDocument,
+  sanitizeManualPlacements,
 } from "@tgv/module-documenso/server/multisig";
+import type { MultisigManualPlacement } from "@tgv/module-documenso/types/multisig";
 import {
   inviteTemplateFrom,
   renderSigningInvite,
@@ -231,8 +233,8 @@ export async function POST(req: NextRequest) {
   // no-reply address and which offers nowhere to reply is a dead end to a human and a
   // spam signal to a filter; DEFAULT_REPLY_TO makes "just send it" the deliverable path.
   const emailReplyTo = replyToInput || DEFAULT_REPLY_TO;
-  let signers: Array<{ email: string; name: string | null }> = [];
-  let deliveryEmails: string[] = [];
+  const signers: Array<{ email: string; name: string | null }> = [];
+  const deliveryEmails: string[] = [];
   if (kind === "multisig") {
     let parsed: unknown;
     try {
@@ -297,25 +299,10 @@ export async function POST(req: NextRequest) {
   // list of signature / initials / full-name / date fields, on whichever pages they drew
   // them. Optional — a signer without an entry keeps the auto-stacked signature+date pair;
   // the module clamps rects and page numbers again server-side.
-  type PlacedRect = { pageX: number; pageY: number; width: number; height: number };
-  type FieldKind = "signature" | "initials" | "name" | "date" | "text" | "number";
-  type PlacedBox = PlacedRect & {
-    kind: FieldKind;
-    pageNumber: number;
-    required?: boolean;
-    label?: string;
-    order?: number;
-  };
-  type PlacementEntry = { signerIndex: number; fields: PlacedBox[] };
-  /** Ceilings, so a runaway client cannot ask Documenso for thousands of fields. */
-  const MAX_FIELDS_PER_SIGNER = 200;
-  const MAX_FIELD_LABEL = 120;
-  const FIELD_KINDS: readonly FieldKind[] = ["signature", "initials", "name", "date", "text", "number"];
-  /** Documenso only honours required:false on these two (its own optional-capable list) —
-   *  a signature or a date is always required there, so `false` on one is dropped here
-   *  rather than sent and silently ignored. */
-  const OPTIONAL_CAPABLE: readonly FieldKind[] = ["text", "number"];
-  const placements: PlacementEntry[] = [];
+  // The operator's boxes, as the placer sent them. The rules (which kinds, which pages, what
+  // "optional" may mean, an empty list falling back to the auto-stack) live in the module,
+  // shared with the member cabinet's send — non-JSON is the only thing refused here.
+  let placements: MultisigManualPlacement[] = [];
   if (kind === "multisig") {
     let pRaw: unknown = [];
     try {
@@ -323,57 +310,7 @@ export async function POST(req: NextRequest) {
     } catch {
       return NextResponse.json({ error: "placements must be a JSON array" }, { status: 400 });
     }
-    const rectOf = (v: unknown): PlacedRect | null => {
-      const r = v as { pageX?: unknown; pageY?: unknown; width?: unknown; height?: unknown };
-      const nums = [r?.pageX, r?.pageY, r?.width, r?.height].map(Number);
-      if (nums.some((n) => !Number.isFinite(n))) return null;
-      const [pageX, pageY, width, height] = nums;
-      if (width <= 0 || height <= 0 || pageX < 0 || pageY < 0 || pageX > 100 || pageY > 100) return null;
-      return { pageX, pageY, width, height };
-    };
-    const seenIdx = new Set<number>();
-    for (const raw of Array.isArray(pRaw) ? pRaw : []) {
-      const e = raw as { signerIndex?: unknown; fields?: unknown };
-      const idx = Number(e?.signerIndex);
-      if (!Number.isInteger(idx) || idx < 0 || idx >= signers.length) continue;
-      if (seenIdx.has(idx)) continue;
-      const fields: PlacementEntry["fields"] = [];
-      for (const fRaw of Array.isArray(e?.fields) ? e.fields : []) {
-        const f = fRaw as {
-          kind?: unknown;
-          pageNumber?: unknown;
-          required?: unknown;
-          label?: unknown;
-          order?: unknown;
-        };
-        const k = String(f?.kind) as FieldKind;
-        const page = Number(f?.pageNumber);
-        const rect = rectOf(fRaw);
-        if (!FIELD_KINDS.includes(k)) continue;
-        if (!Number.isInteger(page) || page < 1 || page > 5000) continue;
-        if (!rect) continue;
-        const optional = f?.required === false && OPTIONAL_CAPABLE.includes(k);
-        const label = typeof f?.label === "string" ? f.label.trim().slice(0, MAX_FIELD_LABEL) : "";
-        const order = Number(f?.order);
-        fields.push({
-          kind: k,
-          pageNumber: page,
-          ...rect,
-          ...(optional ? { required: false } : {}),
-          ...(label ? { label } : {}),
-          ...(Number.isInteger(order) && order >= 0 && order < MAX_FIELDS_PER_SIGNER
-            ? { order }
-            : {}),
-        });
-        if (fields.length >= MAX_FIELDS_PER_SIGNER) break;
-      }
-      // A signer with nothing left to fill in could never finish signing, and a stalled
-      // signer stalls the whole chain — so an empty list falls back to the auto-stack
-      // rather than being sent as-is.
-      if (!fields.length) continue;
-      seenIdx.add(idx);
-      placements.push({ signerIndex: idx, fields });
-    }
+    placements = sanitizeManualPlacements(pRaw, signers.length);
   }
 
   // 1) Create the legal_documents row (Office origin).
