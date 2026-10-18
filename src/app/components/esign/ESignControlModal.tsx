@@ -50,6 +50,7 @@ import PillBar from "@tgv/module-component-library/components/ui/PillBar";
 import ArrowRightIcon from "../icons/ArrowRightIcon";
 import ConfirmModal from "../frontdesk/ConfirmModal";
 import UploadDropzone from "../UploadDropzone";
+import DocumentChooser from "./DocumentChooser";
 import { placementsForWire, signersWithoutBoxes, type SignerPlacement } from "@tgv/module-documenso/components/FieldPlacer";
 import PrepMode from "@tgv/module-documenso/components/PrepMode";
 
@@ -185,6 +186,8 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
    *  added with one staged; Done closes it with the boxes kept, and the staged-file card
    *  re-opens it (Gio 2026-10-17: "fill the whole modal … close it out and re-open it"). */
   const [prepOpen, setPrepOpen] = useState(false);
+  // "Choose File" asks My Documents or disk first (Gio 2026-10-18); a drop skips the question.
+  const [chooserOpen, setChooserOpen] = useState(false);
   // "Include certificate page?" — Documenso appends a signing-certificate page to the
   // signed PDF; unchecked = our stored/downloadable copy keeps only the document's own
   // pages (a sealed original is kept server-side for audit). OFF by default (Gio
@@ -690,6 +693,7 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
                       : "Works with any .PDF file up to 20 MB."}
                     recommendation={!uploading && !uploadFile ? "Staged until you press Send" : undefined}
                     onFiles={(fl) => stageFile(fl[0] ?? null)}
+                    onChoose={() => setChooserOpen(true)}
                   >
                     {uploading && (
                       <Track>
@@ -1135,6 +1139,13 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
         )}
       </Panel>
     </Backdrop>
+
+    <DocumentChooser
+      open={chooserOpen}
+      onClose={() => setChooserOpen(false)}
+      onPick={stageFile}
+      onNotice={setMsg}
+    />
 
     <ConfirmModal
       open={!!confirm}
