@@ -685,8 +685,9 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
                         </>
                       ) : (
                         <>
-                          <p>Named signers on ONE document — each gets their own emailed link and their
-                          own signature box.</p>
+                          <p>One or more named signers on ONE document — each gets their own emailed
+                          link and their own boxes. This is the kind to pick when you want to say
+                          WHERE somebody signs, even if that somebody is one person.</p>
                           <p>Add signers in signing order, stage the PDF, then drag each signer&apos;s
                           Sign and Date boxes exactly onto the document&apos;s printed lines in the
                           preview. Either box resizes from its bottom-right corner.</p>
@@ -699,8 +700,8 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
                   </ModeRow>
                   <StepBody>
                     {mode === "waiver"
-                      ? "A waiver is one link that anyone can open and sign their own copy of — a release form, a photo consent, a code of conduct. Four steps."
-                      : "Multiple signatures is one document that several named people sign in turn, each with their own boxes on the page — a contract, an agreement, a lease. Six steps."}
+                      ? "A waiver is one link that anyone can open and sign their own copy of — a release form, a photo consent, a code of conduct. The Sign and Date boxes are placed for you near the bottom of the page. Four steps."
+                      : "Multiple signatures is one document that one or more named people sign in turn, each with their own boxes placed by you on the page — a contract, an agreement, a lease. Six steps."}
                   </StepBody>
                 </>
               )}
