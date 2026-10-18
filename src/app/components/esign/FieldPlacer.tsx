@@ -272,11 +272,17 @@ export default function FieldPlacer({
   signers,
   placements,
   onChange,
+  focusEmail = null,
 }: {
   file: File;
   signers: Signer[];
   placements: Record<string, SignerPlacement>;
   onChange: (next: Record<string, SignerPlacement>) => void;
+  /** The signer the host just added. Their row opens, their first box lights, and the page it
+   *  sits on scrolls into view — adding an address IS the prompt to place that person's boxes
+   *  (Gio 2026-10-17: "the moment you add another email address … you're prompted to draw and
+   *  label all the places the 2nd person will need to sign"). */
+  focusEmail?: string | null;
 }) {
   const [numPages, setNumPages] = useState(0);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
@@ -337,6 +343,25 @@ export default function FieldPlacer({
       doc?.destroy().catch(() => {});
     };
   }, [file]);
+
+  // ── a newly added signer is handed to the operator, not left as a chip ─────────
+  // Runs once per focusEmail value, and only once that signer's boxes exist (the seed
+  // effect below writes them a tick after the signer appears).
+  const focusedRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!focusEmail || status !== "ready") return;
+    if (focusedRef.current === focusEmail) return;
+    const first = placements[focusEmail]?.fields[0];
+    if (!first) return;
+    focusedRef.current = focusEmail;
+    // After paint: the new box has to be in the DOM before the page can scroll to it.
+    const raf = requestAnimationFrame(() => {
+      setCollapsed((m) => (m[focusEmail] ? { ...m, [focusEmail]: false } : m));
+      setActiveId(first.id);
+      wrapRefs.current.get(first.pageNumber)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [focusEmail, status, placements]);
 
   // ── seed defaults for new signers / prune removed ones (once pages are known) ──
   useEffect(() => {

@@ -8,11 +8,14 @@
 // THREE views on a PillBar (2026-07-02 redesign — Upload+Send folded into one):
 //   New Document — a CLICK-THROUGH (2026-08-18): Back on the left, Next on the right, one
 //     decision per step, and the last step is the preview of what is about to be sent.
-//     Kind (waiver = one shared /d/{token} link; multiple signatures = Documenso document
-//     flow, each named signer gets their own emailed link + their own fields) → People →
-//     Document → Invitation → Signing page → Review & send. Nothing dispatches until the
-//     Send button on the final step. Waiver recipients are optional (skip them to just get
-//     the link), and a waiver's flow is four steps — it has no per-signer invitation.
+//     Document (stage the PDF, add the people who sign above its preview, place each one's
+//     boxes) → Invitation → Signing page → Review & send. Nothing dispatches until the Send
+//     button on the final step.
+//     There is no Kind step any more (Gio 2026-10-17: "get rid of kind, and we start with the
+//     document and what needs to be signed"). Every send is the document flow: the people on
+//     the list are the signers, one or many, each with their own emailed link and their own
+//     boxes, walked through TGV's own signing tour. The shared-link waiver is no longer made
+//     here; the ones already in the library keep their link and their kind filter.
 //   Activity — the outbox (sent → signed per recipient; X removes an entry, log-only).
 //   Documents — the library w/ kind filter, per-signer status, copy-link, delete.
 //
@@ -96,14 +99,6 @@ const TAB_SEGMENTS = [
   { key: "activity", label: "Activity" },
   { key: "documents", label: "Documents" },
 ];
-const MODE_SEGMENTS = [
-  { key: "waiver", label: "Waiver — one shared link" },
-  { key: "multisig", label: "Multiple signatures" },
-];
-const CHANNEL_SEGMENTS = [
-  { key: "email", label: "Email the link" },
-  { key: "link", label: "Just record & copy" },
-];
 const KIND_SEGMENTS = [
   { key: "all", label: "All" },
   { key: "waiver", label: "Waivers" },
@@ -112,15 +107,11 @@ const KIND_SEGMENTS = [
 const ACCENT = "58, 160, 255"; // modal cyan-blue (#3aa0ff)
 
 // ── the click-through ──────────────────────────────────────────────────────────
-// One decision per step, in the order the send is assembled. A waiver shares one link and
-// carries no per-signer invitation, so it skips the two curation steps entirely rather than
-// showing an operator two screens that do not apply to what they picked.
-type StepKey = "mode" | "people" | "document" | "invite" | "page" | "review";
-const WAIVER_STEPS: StepKey[] = ["mode", "people", "document", "review"];
-const MULTISIG_STEPS: StepKey[] = ["mode", "people", "document", "invite", "page", "review"];
+// One decision per step, in the order the send is assembled. The document comes first,
+// because what needs signing is what everything after it is about.
+type StepKey = "document" | "invite" | "page" | "review";
+const STEPS: StepKey[] = ["document", "invite", "page", "review"];
 const STEP_LABEL: Record<StepKey, string> = {
-  mode: "Kind",
-  people: "People",
   document: "Document",
   invite: "Invitation",
   page: "Signing page",
@@ -136,12 +127,6 @@ const XIcon = ({ size = 18 }: { size?: number }) => (
 const DownloadIcon = ({ size = 15 }: { size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M12 3v12M7 11l5 5 5-5M4 21h16" />
-  </svg>
-);
-const LinkIcon = ({ size = 15 }: { size?: number }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1" />
-    <path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1" />
   </svg>
 );
 
@@ -188,12 +173,13 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
   const [confirm, setConfirm] = useState<ConfirmState | null>(null);
 
   // New Document state
-  const [mode, setMode] = useState<DocKind>("waiver");
-  const [stepKey, setStepKey] = useState<StepKey>("mode");
+  const [stepKey, setStepKey] = useState<StepKey>("document");
   const [recipients, setRecipients] = useState<Recipient[]>([]);
   const [customEmail, setCustomEmail] = useState("");
   const [note, setNote] = useState("");
-  const [channel, setChannel] = useState<"email" | "link">("email");
+  // The signer added last. The placer opens their row and lights their first box, so adding
+  // an email is the prompt to place that person's marks — not a chip that sits there.
+  const [focusEmail, setFocusEmail] = useState<string | null>(null);
   // "Include certificate page?" — Documenso appends a signing-certificate page to the
   // signed PDF; unchecked = our stored/downloadable copy keeps only the document's own
   // pages (a sealed original is kept server-side for audit). OFF by default (Gio
@@ -213,7 +199,6 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
   // address was answering a question he hadn't been asked.
   const [myAddresses, setMyAddresses] = useState<string[]>([]);
   const [myAddress, setMyAddress] = useState("");
-  const [recordedUrl, setRecordedUrl] = useState<string | null>(null); // waiver link-channel result
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadPct, setUploadPct] = useState<number | null>(null); // 0–100 while sending; null = server processing
@@ -286,26 +271,17 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
   // preview quote it so the defaults read as the real sentence, not a template.
   const previewTitle = uploadFile ? uploadFile.name.replace(/\.pdf$/i, "") : "(document title)";
 
-  // Which steps this send has, and where in them the operator is standing.
-  const steps = mode === "multisig" ? MULTISIG_STEPS : WAIVER_STEPS;
+  // Where in the steps the operator is standing.
+  const steps = STEPS;
   const stepIndex = Math.max(0, steps.indexOf(stepKey));
-
-  // A recorded link belongs to one upload; switching mode invalidates it. So does the step
-  // the operator is on, if the new mode hasn't got it — the two curation steps are multisig's
-  // alone, and landing on one after picking "waiver" would offer fields that never ship.
-  useEffect(() => {
-    setRecordedUrl(null);
-    const list = mode === "multisig" ? MULTISIG_STEPS : WAIVER_STEPS;
-    setStepKey((k) => (list.includes(k) ? k : "document"));
-  }, [mode]);
 
   // What stops Next. Returned as the sentence the operator reads, so the block and its
   // reason are the same fact rather than a disabled button they have to guess about.
   const blocked: string | null =
-    stepKey === "people" && mode === "multisig" && recipients.length === 0
-      ? "Add at least one signer before moving on — each one gets their own link and their own boxes."
-      : stepKey === "document" && !uploadFile
+    stepKey === "document" && !uploadFile
       ? "Choose the PDF first. Nothing uploads until the Send button on the last step."
+      : stepKey === "document" && recipients.length === 0
+      ? "Add at least one person who signs — each one gets their own link and their own boxes."
       : stepKey === "invite" && emailReplyTo.trim() && !EMAIL_RE.test(emailReplyTo.trim())
       ? `"${emailReplyTo.trim()}" is not a valid reply-to email.`
       : null;
@@ -332,9 +308,14 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
       for (const v of valid) if (!next.some((r) => r.email === v.email)) next.push(v);
       return next;
     });
+    const newest = valid.length ? valid[valid.length - 1].email : null;
+    if (newest) setFocusEmail(newest);
     setMsg(bad ? `"${bad}" is not a valid email` : "");
   };
-  const removeRecipient = (email: string) => setRecipients((prev) => prev.filter((r) => r.email !== email));
+  const removeRecipient = (email: string) => {
+    setRecipients((prev) => prev.filter((r) => r.email !== email));
+    setFocusEmail((cur) => (cur === email ? null : cur));
+  };
 
   // Delivery list (multisig): who receives the signed document. A signer belongs here as
   // readily as anyone else — the operator is usually both, and the old copy-only list
@@ -375,35 +356,6 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
     setMyAddress(e);
   };
 
-  // Waiver post-upload dispatch: reuse the send route (records legal_sends + emails / returns url).
-  const finishWaiverSend = async (documentId: string, title: string) => {
-    try {
-      const r = await fetch("/api/esign/send", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ documentId, recipients, note, channel }),
-      });
-      const d = await r.json();
-      if (!r.ok || !d?.ok) {
-        setMsg(d?.error ?? `"${title}" uploaded, but sending failed`);
-        return;
-      }
-      if (channel === "link") {
-        if (typeof d.url === "string") setRecordedUrl(d.url);
-        setMsg(`"${title}" added + recorded for ${recipients.length} recipient(s) — use the copy icon.`);
-      } else {
-        const emailed = (d.results ?? []).filter((x: { emailed: boolean }) => x.emailed).length;
-        const failed = (d.results ?? []).filter((x: { ok: boolean }) => !x.ok);
-        setMsg(`"${title}" added + sent to ${recipients.length} recipient(s) — ${emailed} emailed${failed.length ? `, ${failed.length} failed` : ""}.`);
-      }
-      setRecipients([]);
-      setNote("");
-      await loadActivity();
-    } catch {
-      setMsg(`"${title}" uploaded, but sending failed (server error)`);
-    }
-  };
-
   // Drop/select a PDF → STAGE it only. Nothing uploads or emails until the Send button.
   const stageFile = (f: File | null) => {
     if (!f || uploading) return;
@@ -420,7 +372,7 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
   };
   const clearStaged = () => { if (!uploading) { setUploadFile(null); setPlacements({}); } };
 
-  // SEND — create the document and dispatch it per the mode, in one click.
+  // SEND — create the document and email the signers, in one click.
   // XHR (not fetch) so we get a real upload-progress %; plus a hard timeout so it can't hang.
   const submit = () => {
     const f = uploadFile;
@@ -429,12 +381,12 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
       setMsg("Documenso is not configured on this server — cannot send.");
       return;
     }
-    if (mode === "multisig" && recipients.length === 0) {
-      setMsg("Add the signers first — then drag each signer's Sign and Date boxes into place on the staged document.");
+    if (recipients.length === 0) {
+      setMsg("Add the people who sign first — then drag each one's boxes into place on the staged document.");
       return;
     }
     const replyTo = emailReplyTo.trim().toLowerCase();
-    if (mode === "multisig" && replyTo && !EMAIL_RE.test(replyTo)) {
+    if (replyTo && !EMAIL_RE.test(replyTo)) {
       setMsg(`"${emailReplyTo.trim()}" is not a valid reply-to email — fix it on the Invitation step.`);
       return;
     }
@@ -442,7 +394,7 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
     const fd = new FormData();
     fd.append("title", title);
     fd.append("file", f);
-    if (mode === "multisig") {
+    {
       fd.append("kind", "multisig");
       fd.append("signers", JSON.stringify(recipients));
       fd.append("sequential", String(inOrder));
@@ -496,7 +448,6 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
 
     setUploading(true);
     setUploadPct(0);
-    setRecordedUrl(null);
     setMsg("");
 
     const xhr = new XMLHttpRequest();
@@ -511,8 +462,8 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
       try { d = JSON.parse(xhr.responseText); } catch { /* non-JSON */ }
       if (xhr.status >= 200 && xhr.status < 300 && d?.ok) {
         const docTitle = d.document?.title ?? title;
-        setStepKey("mode"); // the send is spent — the flow starts over, not on its own recap
-        if (d.document?.kind === "multisig") {
+        setStepKey("document"); // the send is spent — the flow starts over, not on its own recap
+        {
           const n = d.document?.signerCount ?? recipients.length;
           const first = recipients[0]?.name || recipients[0]?.email || "the first signer";
           const delivery = d.document?.deliveryCount ?? ccList.length;
@@ -523,15 +474,11 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
             ? `"${docTitle}" is on its way — ${first} signs first; each next signer is emailed automatically when the previous one finishes.`
             : `"${docTitle}" sent to ${n} signer(s) — each received their own signing link.`) + ending);
           setRecipients([]);
+          setFocusEmail(null);
           setNote("");
           setPlacements({});
           setEmailSubject(""); // reply-to intentionally kept for the next send
           loadActivity();
-        } else if (recipients.length > 0 && d.document?.id) {
-          done(`"${docTitle}" added — dispatching…`);
-          finishWaiverSend(d.document.id, docTitle);
-        } else {
-          done(`"${docTitle}" added — copy its link from the Documents view anytime.`);
         }
         loadDocuments();
       } else {
@@ -660,215 +607,12 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
                 ))}
               </WizRail>
 
-              {/* ── 1 · Kind ────────────────────────────────────────────────── */}
-              {stepKey === "mode" && (
-                <>
-                  <StepLead>How does this document get signed?</StepLead>
-                  <ModeRow>
-                    <PillBar variant="flat"
-                      segments={MODE_SEGMENTS}
-                      active={mode}
-                      onChange={(k) => setMode(k as DocKind)}
-                      accent={ACCENT}
-                      ariaLabel="Signature mode"
-                    />
-                    <InfoBubble
-                      title={mode === "waiver" ? "Waiver — one shared link" : "Multiple signatures"}
-                      theme="cyan"
-                      placement="popover"
-                      body={mode === "waiver" ? (
-                        <>
-                          <p>One reusable signing link — anyone who opens it signs their own copy.</p>
-                          <p>Recipients are optional: add them and Office emails each one the link (or
-                          just records them and hands you the link to deliver yourself); add none and
-                          you simply get a link to publish wherever you like.</p>
-                        </>
-                      ) : (
-                        <>
-                          <p>One or more named signers on ONE document — each gets their own emailed
-                          link and their own boxes. This is the kind to pick when you want to say
-                          WHERE somebody signs, even if that somebody is one person.</p>
-                          <p>Add signers in signing order, stage the PDF, then drag each signer&apos;s
-                          Sign and Date boxes exactly onto the document&apos;s printed lines in the
-                          preview. Either box resizes from its bottom-right corner.</p>
-                          <p>Two further steps write the invitation itself — subject, heading, message,
-                          button, footer, reply-to — and the two lines heading the page its button
-                          opens, both previewed as you type.</p>
-                        </>
-                      )}
-                    />
-                  </ModeRow>
-                  <StepBody>
-                    {mode === "waiver"
-                      ? "A waiver is one link that anyone can open and sign their own copy of — a release form, a photo consent, a code of conduct. The Sign and Date boxes are placed for you near the bottom of the page. Four steps."
-                      : "Multiple signatures is one document that one or more named people sign in turn, each with their own boxes placed by you on the page — a contract, an agreement, a lease. Six steps."}
-                  </StepBody>
-                </>
-              )}
-
-              {/* ── 2 · People ──────────────────────────────────────────────── */}
-              {stepKey === "people" && (
-                <>
-                  <StepLead>
-                    {mode === "multisig"
-                      ? "Who signs, in the order they sign — and who receives the finished document."
-                      : "Who gets the link. Leave this empty and you simply get the link yourself."}
-                  </StepLead>
-
-                  <Label>{mode === "multisig" ? "Signers (in document order)" : "Recipients (optional)"}</Label>
-                  <Row>
-                    <DDM
-                      label="Add staff"
-                      ariaLabel={mode === "multisig" ? "Add a staff signer" : "Add a staff recipient"}
-                      align="left"
-                      items={staff.map((s): DDMItem => ({
-                        key: s.username,
-                        label: `${s.username} · ${s.email}`,
-                        onClick: () => addRecipient(s.email, s.username),
-                      }))}
-                    />
-                    <Input
-                      placeholder="or type emails (comma-separated)"
-                      value={customEmail}
-                      onChange={(e) => setCustomEmail(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === "Enter") { addRecipient(customEmail, null); setCustomEmail(""); } }}
-                    />
-                    <AddBtn type="button" onClick={() => { addRecipient(customEmail, null); setCustomEmail(""); }}>Add</AddBtn>
-                  </Row>
-                  {recipients.length > 0 && (
-                    <Chips>
-                      {recipients.map((r, i) => (
-                        <Chip key={r.email}>
-                          {mode === "multisig" ? `${i + 1}. ` : ""}{r.name ? `${r.name} · ` : ""}{r.email}
-                          <ChipX type="button" onClick={() => removeRecipient(r.email)} aria-label="Remove"><XIcon size={12} /></ChipX>
-                        </Chip>
-                      ))}
-                    </Chips>
-                  )}
-
-                  {mode === "multisig" && (
-                    <>
-                      <CheckRow>
-                        <input
-                          type="checkbox"
-                          checked={inOrder}
-                          onChange={(e) => setInOrder(e.target.checked)}
-                        />
-                        Sign in order — one at a time
-                        <CheckHint>— only the first signer is emailed now; each signature automatically sends the next signer their link. Unchecked, everyone is emailed at once.</CheckHint>
-                      </CheckRow>
-                      <Label>Deliver the signed document to</Label>
-                      <Row>
-                        {myAddresses.length > 1 && (
-                          <DDM
-                            label={myAddress ? `Me · ${myAddress}` : "Me · pick an address"}
-                            ariaLabel="Which of my addresses receives the signed document"
-                            align="left"
-                            items={myAddresses.map((a): DDMItem => ({
-                              key: a,
-                              label: a === myAddress ? `✓ ${a}` : a,
-                              onClick: () => pickMyAddress(a),
-                            }))}
-                          />
-                        )}
-                        <DDM
-                          label="Add staff"
-                          ariaLabel="Add a staff delivery address"
-                          align="left"
-                          items={staff.map((s): DDMItem => ({
-                            key: s.username,
-                            label: `${s.username} · ${s.email}`,
-                            onClick: () => addCc(s.email, s.username),
-                          }))}
-                        />
-                        <Input
-                          placeholder="or type emails (comma-separated)"
-                          value={ccEmail}
-                          onChange={(e) => setCcEmail(e.target.value)}
-                          onKeyDown={(e) => { if (e.key === "Enter") { addCc(ccEmail, null); setCcEmail(""); } }}
-                        />
-                        <AddBtn type="button" onClick={() => { addCc(ccEmail, null); setCcEmail(""); }}>Add</AddBtn>
-                      </Row>
-                      {ccList.length > 0 ? (
-                        <Chips>
-                          {ccList.map((r) => (
-                            <Chip key={r.email}>
-                              {r.name ? `${r.name} · ` : ""}{r.email}
-                              <ChipX type="button" onClick={() => removeCc(r.email)} aria-label="Remove"><XIcon size={12} /></ChipX>
-                            </Chip>
-                          ))}
-                        </Chips>
-                      ) : (
-                        <EmptyDelivery>
-                          No one receives the finished document — including you. Add an address above if
-                          that isn&apos;t what you want.
-                        </EmptyDelivery>
-                      )}
-                      <CheckRow>
-                        <input
-                          type="checkbox"
-                          checked={copyToSigners}
-                          onChange={(e) => setCopyToSigners(e.target.checked)}
-                        />
-                        Also send it to everyone who signed
-                        <CheckHint>— adds each signer to the list above when the document completes.</CheckHint>
-                      </CheckRow>
-                    </>
-                  )}
-
-                  {mode === "waiver" && (
-                    <>
-                      <Label>Message (optional)</Label>
-                      <Textarea rows={2} value={note} onChange={(e) => setNote(e.target.value)} placeholder="A short note included in the email…" />
-                      {recipients.length > 0 && (
-                        <Row>
-                          <PillBar variant="flat"
-                            segments={CHANNEL_SEGMENTS}
-                            active={channel}
-                            onChange={(k) => setChannel(k as "email" | "link")}
-                            accent={ACCENT}
-                            ariaLabel="Delivery"
-                          />
-                          <InfoBubble
-                            title="Delivery"
-                            theme="cyan"
-                            placement="popover"
-                            body={
-                              <>
-                                <p><strong>Email the link</strong> — when you press Send, Office emails every
-                                recipient the signing link from your own mailbox, and logs each send in Activity.</p>
-                                <p><strong>Just record &amp; copy</strong> — nothing is emailed. The same recipients
-                                are logged in Activity as expected signers, and the copy icon beside this bar
-                                hands you the link to deliver yourself — text, WhatsApp, in person.</p>
-                                <p>Both paths use the same signing page and track completed signatures the same
-                                way. This chooser only appears for waivers, which share one link; Multiple-signature
-                                documents always email each signer their own private link.</p>
-                              </>
-                            }
-                          />
-                          <CopyIconBtn
-                            type="button"
-                            disabled={!recordedUrl}
-                            title="Copy signing link"
-                            aria-label="Copy signing link"
-                            onClick={() => copyLink(recordedUrl)}
-                          >
-                            <LinkIcon size={15} />
-                          </CopyIconBtn>
-                        </Row>
-                      )}
-                    </>
-                  )}
-                </>
-              )}
-
-              {/* ── 3 · Document ────────────────────────────────────────────── */}
+              {/* ── 1 · Document ────────────────────────────────────────────── */}
               {stepKey === "document" && (
                 <>
                   <StepLead>
-                    {mode === "multisig"
-                      ? "Stage the PDF, then tick what each signer is asked for and drag their boxes onto the printed lines."
-                      : "Stage the PDF. Nothing is uploaded until the Send button on the last step."}
+                    Stage the PDF, add the people who sign above its preview, then tick what each one
+                    is asked for and drag their boxes onto the printed lines.
                   </StepLead>
                   <UploadDropzone
                     accept="application/pdf"
@@ -884,11 +628,9 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
                     hint={uploading
                       ? uploadPct !== null
                         ? "Sending file to the server"
-                        : mode === "multisig"
-                        ? inOrder
-                          ? "Creating the document and emailing the first signer their link…"
-                          : "Creating the document and emailing each signer their own link…"
-                        : "Creating signing template in Documenso…"
+                        : inOrder
+                        ? "Creating the document and emailing the first signer their link…"
+                        : "Creating the document and emailing each signer their own link…"
                       : uploadFile
                       ? "Staged — nothing happens until you press Send."
                       : "Works with any .PDF file up to 20 MB."}
@@ -902,12 +644,65 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
                     )}
                   </UploadDropzone>
 
-                  {mode === "multisig" && uploadFile && recipients.length > 0 && !uploading && (
+                  {/* The people who sign, in the order they sign. This bar sits above the
+                      document on purpose: adding an address is what opens that person's row
+                      in the placer below and lights their first box — one person is one
+                      signer, a second address is a second set of boxes to place. */}
+                  <Label>Who signs (in document order)</Label>
+                  <Row>
+                    <DDM
+                      label="Add staff"
+                      ariaLabel="Add a staff signer"
+                      align="left"
+                      items={staff.map((s): DDMItem => ({
+                        key: s.username,
+                        label: `${s.username} · ${s.email}`,
+                        onClick: () => addRecipient(s.email, s.username),
+                      }))}
+                    />
+                    <Input
+                      placeholder="or type emails (comma-separated)"
+                      value={customEmail}
+                      onChange={(e) => setCustomEmail(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === "Enter") { addRecipient(customEmail, null); setCustomEmail(""); } }}
+                    />
+                    <AddBtn type="button" onClick={() => { addRecipient(customEmail, null); setCustomEmail(""); }}>Add</AddBtn>
+                  </Row>
+                  {recipients.length > 0 ? (
+                    <Chips>
+                      {recipients.map((r, i) => (
+                        <Chip key={r.email}>
+                          {i + 1}. {r.name ? `${r.name} · ` : ""}{r.email}
+                          <ChipX type="button" onClick={() => removeRecipient(r.email)} aria-label="Remove"><XIcon size={12} /></ChipX>
+                        </Chip>
+                      ))}
+                    </Chips>
+                  ) : (
+                    <FieldHint>
+                      {uploadFile
+                        ? "Add the first person who signs and their Sign and Date boxes appear on the last page, ready to drag into place."
+                        : "Everyone you add here signs this one document — each gets their own emailed link and their own boxes."}
+                    </FieldHint>
+                  )}
+                  {recipients.length > 1 && (
+                    <CheckRow>
+                      <input
+                        type="checkbox"
+                        checked={inOrder}
+                        onChange={(e) => setInOrder(e.target.checked)}
+                      />
+                      Sign in order — one at a time
+                      <CheckHint>— only the first signer is emailed now; each signature automatically sends the next signer their link. Unchecked, everyone is emailed at once.</CheckHint>
+                    </CheckRow>
+                  )}
+
+                  {uploadFile && recipients.length > 0 && !uploading && (
                     <FieldPlacer
                       file={uploadFile}
                       signers={recipients}
                       placements={placements}
                       onChange={setPlacements}
+                      focusEmail={focusEmail}
                     />
                   )}
 
@@ -929,13 +724,71 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
                 </>
               )}
 
-              {/* ── 4 · Invitation (multisig) ───────────────────────────────── */}
+              {/* ── 2 · Invitation ──────────────────────────────────────────── */}              {/* ── 4 · Invitation (multisig) ───────────────────────────────── */}
               {stepKey === "invite" && (
                 <>
                   <StepLead>
                     Office writes and sends this email itself — every line the signer reads is a field
-                    here, and the card below is it, repainting as you type.
+                    here, and the card below is it, repainting as you type. First, who receives the
+                    finished document.
                   </StepLead>
+
+                  <Label>Deliver the signed document to</Label>
+                  <Row>
+                    {myAddresses.length > 1 && (
+                      <DDM
+                        label={myAddress ? `Me · ${myAddress}` : "Me · pick an address"}
+                        ariaLabel="Which of my addresses receives the signed document"
+                        align="left"
+                        items={myAddresses.map((a): DDMItem => ({
+                          key: a,
+                          label: a === myAddress ? `✓ ${a}` : a,
+                          onClick: () => pickMyAddress(a),
+                        }))}
+                      />
+                    )}
+                    <DDM
+                      label="Add staff"
+                      ariaLabel="Add a staff delivery address"
+                      align="left"
+                      items={staff.map((s): DDMItem => ({
+                        key: s.username,
+                        label: `${s.username} · ${s.email}`,
+                        onClick: () => addCc(s.email, s.username),
+                      }))}
+                    />
+                    <Input
+                      placeholder="or type emails (comma-separated)"
+                      value={ccEmail}
+                      onChange={(e) => setCcEmail(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === "Enter") { addCc(ccEmail, null); setCcEmail(""); } }}
+                    />
+                    <AddBtn type="button" onClick={() => { addCc(ccEmail, null); setCcEmail(""); }}>Add</AddBtn>
+                  </Row>
+                  {ccList.length > 0 ? (
+                    <Chips>
+                      {ccList.map((r) => (
+                        <Chip key={r.email}>
+                          {r.name ? `${r.name} · ` : ""}{r.email}
+                          <ChipX type="button" onClick={() => removeCc(r.email)} aria-label="Remove"><XIcon size={12} /></ChipX>
+                        </Chip>
+                      ))}
+                    </Chips>
+                  ) : (
+                    <EmptyDelivery>
+                      No one receives the finished document — including you. Add an address above if
+                      that isn&apos;t what you want.
+                    </EmptyDelivery>
+                  )}
+                  <CheckRow>
+                    <input
+                      type="checkbox"
+                      checked={copyToSigners}
+                      onChange={(e) => setCopyToSigners(e.target.checked)}
+                    />
+                    Also send it to everyone who signed
+                    <CheckHint>— adds each signer to the list above when the document completes.</CheckHint>
+                  </CheckRow>
 
                   <Label>Subject</Label>
                   <LineInput
@@ -1016,7 +869,7 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
                 </>
               )}
 
-              {/* ── 5 · Signing page (multisig) ─────────────────────────────── */}
+              {/* ── 3 · Signing page (multisig) ─────────────────────────────── */}
               {stepKey === "page" && (
                 <>
                   <StepLead>
@@ -1050,24 +903,17 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
                 </>
               )}
 
-              {/* ── 6 · Review & send ───────────────────────────────────────── */}
+              {/* ── 4 · Review & send ───────────────────────────────────────── */}
               {stepKey === "review" && (
                 <>
                   <StepLead>
-                    {mode === "multisig"
-                      ? "Check the summary, then press Send. The PDF uploads and every signer is emailed only then."
-                      : recipients.length > 0
-                      ? channel === "email"
-                        ? "Check the summary, then press Send. The PDF uploads and each recipient is emailed the link only then."
-                        : "Check the summary, then press the button. The PDF uploads and the signing link is recorded for you to copy — nobody is emailed."
-                      : "Nobody is on the list, so nobody will be emailed. The button below uploads the PDF and hands you its signing link to share yourself — or go Back to People and add a recipient."}
+                    Check the summary, then press Send. The PDF uploads and the signers are emailed only then.
                   </StepLead>
                   <Recap>
                     <dt>Document</dt>
                     <dd>{uploadFile ? uploadFile.name : "— none staged"}</dd>
-                    {mode === "multisig" ? (
-                      <>
-                        <dt>Signers</dt>
+                    <>
+                        <dt>Signers</dt>                        <dt>Signers</dt>
                         <dd>{recipients.length
                           ? recipients.map((r, i) => `${i + 1}. ${r.name ? `${r.name} · ` : ""}${r.email}`).join("   ")
                           : "— none"}</dd>
@@ -1082,28 +928,12 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
                         <dd>{emailSubject.trim() || `Please sign: ${previewTitle}`}</dd>
                         <dt>Reply-to</dt>
                         <dd>{emailReplyTo.trim() || "support@tinyglobalvillage.com"}</dd>
-                      </>
-                    ) : (
-                      <>
-                        <dt>Recipients</dt>
-                        <dd>{recipients.length
-                          ? recipients.map((r) => r.email).join("   ")
-                          : "— none; the signing link waits in the Documents view for you to copy"}</dd>
-                        {recipients.length > 0 && (
-                          <>
-                            <dt>Delivery</dt>
-                            <dd>{channel === "email"
-                              ? "Office emails each recipient the link"
-                              : "Recorded only — you copy the link and deliver it yourself"}</dd>
-                          </>
-                        )}
-                      </>
-                    )}
+                    </>
                     <dt>Certificate page</dt>
                     <dd>{includeCert ? "Appended to the signed PDF" : "Left off your stored copy"}</dd>
                   </Recap>
 
-                  {mode === "multisig" ? (
+                  {(
                     <>
                       {/* Both halves of what is about to be sent, in one place: the email at the
                           size it arrives, and the page its button opens. The signing face frames
@@ -1126,9 +956,6 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
                         </>
                       )}
                     </>
-                  ) : (
-                    <FieldHint>A waiver shares one signing page for everyone who opens the link, so
-                    there is no per-signer invitation to curate here.</FieldHint>
                   )}
 
                   {uploading && (
@@ -1231,20 +1058,14 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
             {stepKey === "review" ? (
               <PrimaryBtn
                 type="button"
-                disabled={!uploadFile || uploading || !configured || (mode === "multisig" && recipients.length === 0)}
+                disabled={!uploadFile || uploading || !configured || recipients.length === 0}
                 onClick={submit}
               >
                 {uploading
                   ? "Sending…"
-                  : mode === "multisig"
-                  ? recipients.length
-                    ? `Send to ${recipients.length} signer${recipients.length === 1 ? "" : "s"}`
-                    : "Send to signers"
-                  : recipients.length > 0
-                  ? channel === "email"
-                    ? `Send to ${recipients.length} recipient${recipients.length === 1 ? "" : "s"}`
-                    : "Record & get link"
-                  : "Create & get link"}
+                  : recipients.length
+                  ? `Send to ${recipients.length} signer${recipients.length === 1 ? "" : "s"}`
+                  : "Send to signers"}
               </PrimaryBtn>
             ) : (
               <NextBtn
@@ -1428,7 +1249,6 @@ const PreviewFooter = styled.p`
   margin: 14px 0 0; padding-top: 12px; border-top: 1px solid #eceef1;
   font-size: 10.5px; line-height: 1.5; color: #7b8494;
 `;
-const ModeRow = styled.div`display: flex; align-items: center; gap: 10px; flex-wrap: wrap;`;
 const Warn = styled.div`margin: 12px 22px 0; padding: 10px 12px; border-radius: 8px; font-size: 12.5px; background: rgba(255,180,60,0.1); border: 1px solid rgba(255,180,60,0.3); color: #ffcf87;`;
 const TabsRow = styled.div`padding: 14px 22px 0;`;
 const Msg = styled.div`margin: 12px 22px 0; padding: 9px 12px; border-radius: 8px; font-size: 12.5px; background: rgba(120,200,255,0.1); border: 1px solid rgba(120,200,255,0.28); color: #cfe9ff; cursor: pointer;`;
@@ -1472,13 +1292,6 @@ const PrimaryBtn = styled.button`
   margin-left: auto; background: #3aa0ff; color: #001a2e; border: none; border-radius: 8px;
   padding: 9px 18px; font-size: 13px; font-weight: 650; cursor: pointer;
   &:hover:not(:disabled) { background: #58b0ff; } &:disabled { opacity: 0.45; cursor: default; }
-`;
-const CopyIconBtn = styled.button`
-  display: inline-flex; align-items: center; justify-content: center; padding: 8px;
-  border-radius: 8px; border: 1px solid rgba(120,200,255,0.3); background: rgba(120,200,255,0.1);
-  color: #cfe9ff; cursor: pointer;
-  &:hover:not(:disabled) { background: rgba(120,200,255,0.2); border-color: rgba(120,200,255,0.55); }
-  &:disabled { opacity: 0.35; cursor: default; }
 `;
 const GhostBtn = styled.button`${baseField} cursor: pointer; flex: 0 0 auto; font-size: 12px; padding: 6px 12px; &:hover { border-color: rgba(120,200,255,0.5); }`;
 const slide = keyframes`0% { left: -45%; } 100% { left: 100%; }`;
@@ -1543,9 +1356,6 @@ const RailDot = styled.span`
 // The step's question, in the operator's words, before any field of it.
 const StepLead = styled.p`
   margin: 4px 0 2px; font-size: 13px; line-height: 1.5; color: rgba(232,232,239,0.72);
-`;
-const StepBody = styled.p`
-  margin: 6px 0 0; font-size: 12px; line-height: 1.55; color: rgba(232,232,239,0.45);
 `;
 const WizFoot = styled.div`
   display: flex; align-items: center; gap: 12px; flex-wrap: wrap; flex: 0 0 auto;
