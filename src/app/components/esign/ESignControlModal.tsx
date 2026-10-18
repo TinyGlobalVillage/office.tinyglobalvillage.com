@@ -585,7 +585,8 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
           onChange={(e) => setCustomEmail(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter") { addRecipient(customEmail, null); setCustomEmail(""); } }}
         />
-        <AddBtn type="button" onClick={() => { addRecipient(customEmail, null); setCustomEmail(""); }}>Add</AddBtn>
+        {/* data-tour: the prep room's tour outlines this as "Next invitation" after the first box. */}
+        <AddBtn type="button" data-tour="add-signer" onClick={() => { addRecipient(customEmail, null); setCustomEmail(""); }}>Add</AddBtn>
       </Row>
       {recipients.length > 0 && (
         <Chips>
