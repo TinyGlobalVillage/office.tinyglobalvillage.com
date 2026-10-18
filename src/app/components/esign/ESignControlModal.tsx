@@ -785,12 +785,6 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
               {/* ── 2 · Invitation ──────────────────────────────────────────── */}              {/* ── 4 · Invitation (multisig) ───────────────────────────────── */}
               {stepKey === "invite" && (
                 <>
-                  <StepLead>
-                    Office writes and sends this email itself — every line the signer reads is a field
-                    here, and the card below is it, repainting as you type. First, who receives the
-                    finished document.
-                  </StepLead>
-
                   <Label>Deliver the signed document to</Label>
                   <Row>
                     {myAddresses.length > 1 && (
