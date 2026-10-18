@@ -196,8 +196,9 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
   const [channel, setChannel] = useState<"email" | "link">("email");
   // "Include certificate page?" — Documenso appends a signing-certificate page to the
   // signed PDF; unchecked = our stored/downloadable copy keeps only the document's own
-  // pages (a sealed original is kept server-side for audit).
-  const [includeCert, setIncludeCert] = useState(true);
+  // pages (a sealed original is kept server-side for audit). OFF by default (Gio
+  // 2026-10-17): the audit page is there when asked for, never a surprise last page.
+  const [includeCert, setIncludeCert] = useState(false);
   // Multisig delivery: in-order chain (only the first signer is emailed; each signature
   // triggers the next signer's email), then the delivery list — who receives the finished
   // document. The list is the ONLY answer to "where does this land": it is always on screen,
@@ -1053,8 +1054,12 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
                 <>
                   <StepLead>
                     {mode === "multisig"
-                      ? "Nothing has been uploaded or emailed yet. Send does both."
-                      : "Nothing has been uploaded yet. Send creates the document and dispatches it as chosen."}
+                      ? "Check the summary, then press Send. The PDF uploads and every signer is emailed only then."
+                      : recipients.length > 0
+                      ? channel === "email"
+                        ? "Check the summary, then press Send. The PDF uploads and each recipient is emailed the link only then."
+                        : "Check the summary, then press the button. The PDF uploads and the signing link is recorded for you to copy — nobody is emailed."
+                      : "Nobody is on the list, so nobody will be emailed. The button below uploads the PDF and hands you its signing link to share yourself — or go Back to People and add a recipient."}
                   </StepLead>
                   <Recap>
                     <dt>Document</dt>
@@ -1082,7 +1087,7 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
                         <dt>Recipients</dt>
                         <dd>{recipients.length
                           ? recipients.map((r) => r.email).join("   ")
-                          : "— none; you just get the link"}</dd>
+                          : "— none; the signing link waits in the Documents view for you to copy"}</dd>
                         {recipients.length > 0 && (
                           <>
                             <dt>Delivery</dt>
@@ -1238,7 +1243,7 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
                   ? channel === "email"
                     ? `Send to ${recipients.length} recipient${recipients.length === 1 ? "" : "s"}`
                     : "Record & get link"
-                  : "Add to library"}
+                  : "Create & get link"}
               </PrimaryBtn>
             ) : (
               <NextBtn

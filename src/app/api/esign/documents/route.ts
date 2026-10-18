@@ -193,9 +193,9 @@ export async function POST(req: NextRequest) {
   // kind branch (0076): default waiver; multisig carries a JSON signer roster.
   const kind = String(form.get("kind") ?? "waiver") === "multisig" ? "multisig" : "waiver";
   const note = String(form.get("note") ?? "").trim();
-  // "Include certificate page?" (0079) — default true; false = the completion webhook
+  // "Include certificate page?" (0079) — default false (Gio 2026-10-17); false = the completion webhook
   // strips Documenso's appended certificate from the stored copy (sealed original kept).
-  const includeCertificate = String(form.get("includeCertificate") ?? "true") !== "false";
+  const includeCertificate = String(form.get("includeCertificate") ?? "false") === "true";
   // Sequential is the default: Documenso emails only the first signer, then advances the
   // chain natively as each one signs. Completion mail is OURS now — Documenso sends none
   // (DOCUMENT_EMAIL_SETTINGS); deliveryEmails below is who actually receives the signed
