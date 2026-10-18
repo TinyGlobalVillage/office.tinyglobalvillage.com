@@ -7,10 +7,15 @@
 //
 // THREE views on a PillBar (2026-07-02 redesign — Upload+Send folded into one):
 //   New Document — a CLICK-THROUGH (2026-08-18): Back on the left, Next on the right, one
-//     decision per step, and the last step is the preview of what is about to be sent.
-//     Document (stage the PDF, add the people who sign above its preview, place each one's
-//     boxes) → Invitation → Signing page → Review & send. Nothing dispatches until the Send
-//     button on the final step.
+//     decision per step. Document (stage the PDF, add the people who sign above its preview,
+//     place each one's boxes) → Invitation, whose email preview is the last thing seen before
+//     Send. Nothing dispatches until that button.
+//     There is no Signing page step and no Review & send step any more (Gio 2026-10-18:
+//     "there's no need for the signing page and review and send, all of it is already
+//     previewed on the slide they're editing"). The signer's page heads itself — the house
+//     name over the document's title — and the boxes it shows are the ones drawn on the
+//     Document step, so a slide that asked for two header lines and a slide that recapped
+//     the two before it were two more clicks between a finished form and the Send button.
 //     There is no Kind step any more (Gio 2026-10-17: "get rid of kind, and we start with the
 //     document and what needs to be signed"). Every send is the document flow: the people on
 //     the list are the signers, one or many, each with their own emailed link and their own
@@ -31,13 +36,9 @@
 // setting most sends never make. The FROM identity is the house mailbox (SUPPORT_FROM_EMAIL,
 // "Tiny Global Village"); per-send sender control is Reply-To, and the step's QMBM says so.
 //
-// BOTH previews repaint AS YOU TYPE. The email card is plain React, so it always did. The
-// signing page is the REAL /sign/preview route in an iframe — it used to reload on a 350ms
-// debounce per keystroke, so the screen being judged lagged the words just typed; now the
-// frame is mounted once and driven by postMessage (HQ's LivePreview.client.tsx listens).
-// Its box also carries an EXPLICIT height: as a column flex item whose only child is
-// absolutely positioned it had no in-flow content, and Chrome collapsed `aspect-ratio` to
-// the two border pixels — which is why this preview showed nothing at all.
+// The email preview repaints AS YOU TYPE — it is plain React. (The framed /sign/preview
+// iframe that previewed the signing page's header left with the Signing page step; HQ's
+// route and its postMessage listener still exist for anyone who wants to look.)
 //
 // Self-contained (styled-components, per Office's no-Tailwind rule). Inline SVGs — no emoji.
 
@@ -111,14 +112,13 @@ const ACCENT = "58, 160, 255"; // modal cyan-blue (#3aa0ff)
 // ── the click-through ──────────────────────────────────────────────────────────
 // One decision per step, in the order the send is assembled. The document comes first,
 // because what needs signing is what everything after it is about.
-type StepKey = "document" | "invite" | "page" | "review";
-const STEPS: StepKey[] = ["document", "invite", "page", "review"];
+type StepKey = "document" | "invite";
+const STEPS: StepKey[] = ["document", "invite"];
 const STEP_LABEL: Record<StepKey, string> = {
   document: "Document",
   invite: "Invitation",
-  page: "Signing page",
-  review: "Review & send",
 };
+const LAST_STEP: StepKey = STEPS[STEPS.length - 1];
 
 // ── inline icons (currentColor) ─────────────────────────────────────────────────
 const XIcon = ({ size = 18 }: { size?: number }) => (
@@ -138,21 +138,8 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // field can show the operator exactly what will be sent in its place. The module is still
 // the authority — these are placeholders, never submitted.
 const INVITE_DEFAULTS = { heading: "Your signature is needed", buttonLabel: "Review & sign", footer: "Sent by Tiny Global Village" };
-// The signing page's two identity lines, mirrored from the journey page's own copy file
-// (tinyglobalvillage.com/src/app/[lang]/sign/[token]/journey-copy.ts). These are seeded
-// INTO the fields rather than shown as placeholders: here a cleared field means "drop
-// that line", and a placeholder cannot say the difference between empty and unset.
-const JOURNEY_DEFAULTS = { eyebrow: "Tiny Global Village", title: "Your signature is needed" };
-// Where the signer's page lives. Office frames the real route so what an operator judges
-// is the page itself, not a copy of it drawn here that would drift on the first edit.
+// Where the signer's page lives (the signed-copy links in the library point at it).
 const SIGN_PAGE_ORIGIN = process.env.NEXT_PUBLIC_TGV_ORIGIN || "https://tinyglobalvillage.com";
-const PREVIEW_SEGMENTS = [
-  { key: "email", label: "Email" },
-  { key: "page", label: "Signing page" },
-];
-// A laptop's screen, scaled to fit the dialog — the shape most signers open the link on.
-const SIGN_FRAME_W = 1120;
-const SIGN_FRAME_H = 760;
 const inviteDefaultMessage = (title: string) =>
   `You've been asked to sign "${title}".\n\nOpening the link below shows you the document and your own signature box — you can sign from your phone, and nothing else is required of you.`;
 
@@ -221,12 +208,6 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
   const [inviteButtonLabel, setInviteButtonLabel] = useState("");
   const [inviteFooter, setInviteFooter] = useState("");
   const [emailReplyTo, setEmailReplyTo] = useState("");
-  // The signing page's header, seeded with the house wording so it can be edited or
-  // emptied. Empty is a real answer here — that line simply isn't rendered — which is
-  // why these two are always submitted, blank included, unlike the email fields above.
-  const [signEyebrow, setSignEyebrow] = useState(JOURNEY_DEFAULTS.eyebrow);
-  const [signPageTitle, setSignPageTitle] = useState(JOURNEY_DEFAULTS.title);
-  const [previewFace, setPreviewFace] = useState<"email" | "page">("email");
 
   // documents-tab kind filter (PillBar)
   const [docFilter, setDocFilter] = useState<KindFilter>("all");
@@ -293,7 +274,7 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
   // reason are the same fact rather than a disabled button they have to guess about.
   const blocked: string | null =
     stepKey === "document" && !uploadFile
-      ? "Choose the PDF first. Nothing uploads until the Send button on the last step."
+      ? "Choose the PDF first. Nothing uploads until the Send button on the Invitation step."
       : stepKey === "document" && recipients.length === 0
       ? "Add at least one person who signs — each one gets their own link and their own boxes."
       : stepKey === "document" && missing.length > 0
@@ -428,10 +409,9 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
       if (inviteHeading.trim()) fd.append("inviteHeading", inviteHeading.trim());
       if (inviteButtonLabel.trim()) fd.append("inviteButtonLabel", inviteButtonLabel.trim());
       if (inviteFooter.trim()) fd.append("inviteFooter", inviteFooter.trim());
-      // Always sent, blank included: the server reads PRESENCE, so an empty line arrives
-      // as the operator's decision to drop it rather than as "use the default".
-      fd.append("signEyebrow", signEyebrow.trim());
-      fd.append("signTitle", signPageTitle.trim());
+      // The signing page's two header lines are NOT sent: absent, the route leaves the
+      // journey override null and the page heads itself with the house name over the
+      // document's own title (signer page.tsx: `journey?.title ?? documentTitle`).
       if (replyTo) fd.append("emailReplyTo", replyTo);
       // The whole set, exactly as it was drawn: what each signer is asked for, how many of
       // each, whether they may leave it blank, what it is called, and which page every box
@@ -544,8 +524,8 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
   const visibleDocs = documents.filter((d) => docFilter === "all" || d.kind === docFilter);
 
   // The invitation as the signer meets it. Plain React over the same state the fields write,
-  // so it has always repainted per keystroke — the Invitation step shows it under the fields
-  // and Review shows it again beside the page it opens.
+  // so it has always repainted per keystroke — the Invitation step shows it under the fields,
+  // the last thing seen before Send.
   const emailPreview = (
     <InvitePreview>
       <PreviewWordmark>Tiny Global Village</PreviewWordmark>
@@ -921,101 +901,11 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
                 </>
               )}
 
-              {/* ── 3 · Signing page (multisig) ─────────────────────────────── */}
-              {stepKey === "page" && (
-                <>
-                  <StepLead>
-                    What your signers will see — nothing here asks you to sign. The invitation&apos;s button
-                    leads to this page; these two lines head it, and the frame below repaints as you type.
-                  </StepLead>
-                  <TwoUp>
-                    <div>
-                      <SubLabel>Small line</SubLabel>
-                      <LineInput
-                        value={signEyebrow}
-                        maxLength={60}
-                        onChange={(e) => setSignEyebrow(e.target.value)}
-                        aria-label="Signing page small line"
-                      />
-                    </div>
-                    <div>
-                      <SubLabel>Title</SubLabel>
-                      <LineInput
-                        value={signPageTitle}
-                        maxLength={120}
-                        onChange={(e) => setSignPageTitle(e.target.value)}
-                        aria-label="Signing page title"
-                      />
-                    </div>
-                  </TwoUp>
-                  <FieldHint>Empty a field and that line is left off the page entirely.</FieldHint>
-                  <SignPagePreview eyebrow={signEyebrow} title={signPageTitle} />
-                  <FieldHint>The grey page and its sample boxes are a stand-in: your PDF uploads only at Send,
-                  so the signer&apos;s real document and your drawn boxes take that panel then.</FieldHint>
-                </>
-              )}
-
-              {/* ── 4 · Review & send ───────────────────────────────────────── */}
-              {stepKey === "review" && (
-                <>
-                  <StepLead>
-                    Check the summary, then press Send. The PDF uploads and the signers are emailed only then.
-                  </StepLead>
-                  <Recap>
-                    <dt>Document</dt>
-                    <dd>{uploadFile ? uploadFile.name : "— none staged"}</dd>
-                    <>
-                        <dt>Signers</dt>                        <dt>Signers</dt>
-                        <dd>{recipients.length
-                          ? recipients.map((r, i) => `${i + 1}. ${r.name ? `${r.name} · ` : ""}${r.email}`).join("   ")
-                          : "— none"}</dd>
-                        <dt>Order</dt>
-                        <dd>{inOrder
-                          ? "One at a time — each signature emails the next signer"
-                          : "Everyone is emailed their link at once"}</dd>
-                        <dt>Signed copy to</dt>
-                        <dd>{ccList.length ? ccList.map((c) => c.email).join("   ") : "— nobody"}
-                          {copyToSigners ? "   + everyone who signed" : ""}</dd>
-                        <dt>Subject</dt>
-                        <dd>{emailSubject.trim() || `Please sign: ${previewTitle}`}</dd>
-                        <dt>Reply-to</dt>
-                        <dd>{emailReplyTo.trim() || "support@tinyglobalvillage.com"}</dd>
-                    </>
-                    <dt>Certificate page</dt>
-                    <dd>{includeCert ? "Appended to the signed PDF" : "Left off your stored copy"}</dd>
-                  </Recap>
-
-                  {(
-                    <>
-                      {/* Both halves of what is about to be sent, in one place: the email at the
-                          size it arrives, and the page its button opens. The signing face frames
-                          the real route rather than a mock of it, so it cannot drift. */}
-                      <PreviewHead>
-                        <Label>Preview</Label>
-                        <PillBar variant="flat"
-                          segments={PREVIEW_SEGMENTS}
-                          active={previewFace}
-                          onChange={(k) => setPreviewFace(k as "email" | "page")}
-                          accent={ACCENT}
-                          ariaLabel="Preview which surface"
-                        />
-                      </PreviewHead>
-                      {previewFace === "email" ? emailPreview : (
-                        <>
-                          <SignPagePreview eyebrow={signEyebrow} title={signPageTitle} />
-                          <FieldHint>The document itself appears in the empty panel — this is the
-                          frame around it, with no signer and nothing to sign.</FieldHint>
-                        </>
-                      )}
-                    </>
-                  )}
-
-                  {uploading && (
-                    <Track>
-                      <Fill $pct={uploadPct} />
-                    </Track>
-                  )}
-                </>
+              {/* The upload's progress, where the Send button is. */}
+              {stepKey === LAST_STEP && uploading && (
+                <Track>
+                  <Fill $pct={uploadPct} />
+                </Track>
               )}
             </Section>
           )}
@@ -1095,8 +985,8 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
 
         {/* Back on the left, Next on the right — the two directions a click-through has, in
             the two places a hand already looks for them. Pinned below the scrolling body so
-            the way forward is never something you have to scroll to find. On the last step
-            Next becomes Send: the only button in this console that dispatches anything. */}
+            the way forward is never something you have to scroll to find. On the Invitation
+            step Next becomes Send: the only button in this console that dispatches anything. */}
         {!loading && tab === "new" && (
           <WizFoot>
             <BackBtn
@@ -1107,7 +997,7 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
               <ArrowRightIcon size={15} style={{ transform: "scaleX(-1)" }} /> Back
             </BackBtn>
             <StepTally>Step {stepIndex + 1} of {steps.length} · {STEP_LABEL[stepKey]}</StepTally>
-            {stepKey === "review" ? (
+            {stepKey === LAST_STEP ? (
               <PrimaryBtn
                 type="button"
                 disabled={!uploadFile || uploading || !configured || recipients.length === 0}
@@ -1156,74 +1046,6 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
   );
 }
 
-// The signing page, live.
-//
-// The frame is mounted ONCE and then driven by postMessage: its src carries the lines it
-// mounted with (so the very first paint is already right, and an HQ that hasn't shipped the
-// listener still shows something true), and every keystroke after that rides a message into
-// HQ's LivePreview, which sets state. No debounce, no reload, no flash between edits.
-function SignPagePreview({ eyebrow, title }: { eyebrow: string; title: string }) {
-  const [src] = useState(() => {
-    const q = new URLSearchParams({ eyebrow: eyebrow.trim(), title: title.trim() });
-    return `${SIGN_PAGE_ORIGIN}/sign/preview/?${q.toString()}`;
-  });
-  const frameRef = useRef<HTMLIFrameElement | null>(null);
-  const boxRef = useRef<HTMLDivElement | null>(null);
-  const live = useRef(false);
-  const [scale, setScale] = useState(0.5);
-
-  const push = useCallback(() => {
-    frameRef.current?.contentWindow?.postMessage(
-      { type: "tgv-sign-preview", eyebrow, title },
-      SIGN_PAGE_ORIGIN,
-    );
-  }, [eyebrow, title]);
-
-  // Push every edit once the far side is listening…
-  useEffect(() => { if (live.current) push(); }, [push]);
-  // …and let the far side say when that is, which closes the race where the operator types
-  // before the frame has finished loading. onLoad covers the reverse race, when the frame is
-  // ready before this listener is. Both are idempotent.
-  useEffect(() => {
-    const onMessage = (e: MessageEvent) => {
-      if (e.origin !== SIGN_PAGE_ORIGIN) return;
-      if ((e.data as { type?: string } | null)?.type !== "tgv-sign-preview-ready") return;
-      live.current = true;
-      push();
-    };
-    window.addEventListener("message", onMessage);
-    return () => window.removeEventListener("message", onMessage);
-  }, [push]);
-
-  // Rendered at a laptop's width, then scaled to whatever the dialog can spare — a
-  // phone-width iframe would preview a layout no signer is going to meet.
-  useEffect(() => {
-    const el = boxRef.current;
-    if (!el) return;
-    const ro = new ResizeObserver(([entry]) => {
-      const w = entry.contentRect.width;
-      if (w > 0) setScale(w / SIGN_FRAME_W);
-    });
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
-
-  return (
-    // The height is SET from the measured width, not left to `aspect-ratio`: as a column
-    // flex item whose only child is absolutely positioned, this box has no in-flow content,
-    // and Chrome collapsed it to its two border pixels — the preview rendered, at 2px tall.
-    <SignFrameBox ref={boxRef} style={{ height: `${Math.round(SIGN_FRAME_H * scale)}px` }}>
-      <SignFrame
-        ref={frameRef}
-        src={src}
-        title="Signing page preview"
-        style={{ transform: `scale(${scale})` }}
-        onLoad={() => { live.current = true; push(); }}
-      />
-    </SignFrameBox>
-  );
-}
-
 // ── styled ──────────────────────────────────────────────────────────────────────
 const Backdrop = styled.div`
   position: fixed; inset: 0; z-index: 1000;
@@ -1231,8 +1053,7 @@ const Backdrop = styled.div`
   display: flex; align-items: center; justify-content: center; padding: 24px;
 `;
 const Panel = styled.div`
-  /* Wide enough that the framed signing page is judged at a readable scale — under
-     ~700px the whole screen shrinks past the point where its copy can be curated. */
+  /* Wide enough that the staged PDF and the email card are judged at a readable scale. */
   width: min(860px, 100%); max-height: 90vh; display: flex; flex-direction: column;
   background: #0d0d12; border: 1px solid rgba(120,200,255,0.18); border-radius: 14px;
   box-shadow: 0 24px 80px rgba(0,0,0,0.6); color: #e8e8ef; overflow: hidden;
@@ -1256,29 +1077,9 @@ const TwoUp = styled.div`
   display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
   @media (max-width: 460px) { grid-template-columns: 1fr; }
 `;
-const SubLabel = styled.span`
-  display: block; margin-bottom: 5px; font-size: 11px; font-weight: 600;
-  color: rgba(232,232,239,0.6);
-`;
 const PreviewHead = styled.div`
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
   flex-wrap: wrap; margin-top: 4px;
-`;
-// The signing page at a laptop's width, scaled into whatever the dialog can spare. The
-// frame keeps its real proportions so the operator judges the layout a signer meets,
-// not a squeezed one that only exists inside this box.
-//
-// No `aspect-ratio` here: SignPagePreview sets the height in pixels from the measured
-// width. See its comment — this is a column flex item with no in-flow content, and the
-// ratio collapsed to the border.
-const SignFrameBox = styled.div`
-  position: relative; margin-top: 4px; width: 100%; flex: 0 0 auto;
-  border-radius: 10px; overflow: hidden; background: #f4f5f7;
-  border: 1px solid rgba(255,255,255,0.14);
-`;
-const SignFrame = styled.iframe`
-  position: absolute; top: 0; left: 0; border: 0; transform-origin: top left;
-  width: ${SIGN_FRAME_W}px; height: ${SIGN_FRAME_H}px;
 `;
 // The invitation as the signer meets it: a LIGHT card inside the dark console, because
 // that is the contrast their inbox will show and a dark mock would flatter copy that
@@ -1446,9 +1247,3 @@ const StepTally = styled.span`
   font-size: 11.5px; color: rgba(232,232,239,0.4); flex: 0 1 auto;
 `;
 // The whole send in one glance, before the button that spends it.
-const Recap = styled.dl`
-  margin: 10px 0 2px; display: grid; grid-template-columns: minmax(112px, auto) 1fr;
-  gap: 7px 16px; font-size: 12.5px; line-height: 1.55;
-  dt { color: rgba(232,232,239,0.48); font-weight: 600; }
-  dd { margin: 0; color: rgba(232,232,239,0.86); overflow-wrap: anywhere; }
-`;
