@@ -37,6 +37,7 @@ import {
 } from "@tgv/module-documenso/server/multisig";
 import type { MultisigManualPlacement } from "@tgv/module-documenso/types/multisig";
 import {
+  completionTemplateFrom,
   inviteTemplateFrom,
   renderSigningInvite,
   signingUrl,
@@ -48,8 +49,10 @@ import {
   listSignersForDocuments,
   markSignerSentByEmail,
   setLegalDocumentCertPrefs,
+  setLegalDocumentCompletion,
   setLegalDocumentDelivery,
   setLegalDocumentInvite,
+  recordLegalDocumentEvent,
   rememberSigningToken,
   rememberSignerFieldPlan,
   type InsertSignerInput,
@@ -215,6 +218,15 @@ export async function POST(req: NextRequest) {
   const inviteHeading = String(form.get("inviteHeading") ?? "").trim().slice(0, 120);
   const inviteButtonLabel = String(form.get("inviteButtonLabel") ?? "").trim().slice(0, 40);
   const inviteFooter = String(form.get("inviteFooter") ?? "").trim().slice(0, 200);
+  // The follow-up email — the one that carries the signed PDF once everyone has signed
+  // (Gio 2026-10-18: a pillbar for the invitation AND for the finished-document mail).
+  // Stored on the row; the completion webhook renders from it days later.
+  const completionEdits = {
+    subject: String(form.get("completionSubject") ?? "").trim().slice(0, 200),
+    heading: String(form.get("completionHeading") ?? "").trim().slice(0, 120),
+    message: String(form.get("completionMessage") ?? "").trim().slice(0, 4000),
+    footer: String(form.get("completionFooter") ?? "").trim().slice(0, 200),
+  };
   // The signing page's two identity lines (gear → Signing page). A cleared field means
   // "leave that line off the page", so presence is read from the FIELD, never from its
   // value — an absent pair falls back to the house wording, an empty string does not.
@@ -362,6 +374,13 @@ export async function POST(req: NextRequest) {
     // Store the invitation BEFORE anything is mailed: it is also the flag that says we own
     // this chain, and the webhook must never advance a document it thinks Documenso runs.
     await setLegalDocumentInvite(db, doc.id, invite);
+    await setLegalDocumentCompletion(db, doc.id, completionTemplateFrom(title, completionEdits)).catch(() => {});
+    await recordLegalDocumentEvent(db, {
+      legalDocumentId: doc.id,
+      kind: "created",
+      actorEmail: (await readStaff()).find((x) => x.username === auth.username)?.email ?? null,
+      detail: { by: auth.username, signers: signers.length, sequential, delivery: deliveryEmails },
+    }).catch(() => {});
 
     const recipientByEmail = new Map(result.recipients.map((r) => [r.email, r.recipientId]));
     const signerInputs: InsertSignerInput[] = [];
@@ -435,6 +454,12 @@ export async function POST(req: NextRequest) {
       }
       await markSignerSentByEmail(db, result.documensoDocumentId, s.email).catch(() => {});
       invited.push(s.email);
+      await recordLegalDocumentEvent(db, {
+        legalDocumentId: doc.id,
+        kind: "invited",
+        actorEmail: s.email,
+        detail: { order: signers.findIndex((x) => x.email === s.email) + 1 },
+      }).catch(() => {});
     }
 
     // Outbox rows so the Activity view shows each dispatch that actually happened.

@@ -5,55 +5,33 @@
 // Lifts the @tgv/module-legal/module-documenso e-sign engine (built for Studio waivers) onto
 // Office so operators (Gio/Marthe) can send ANY document to ANYONE for signature.
 //
-// THREE views on a PillBar (2026-07-02 redesign — Upload+Send folded into one):
-//   New Document — a CLICK-THROUGH (2026-08-18): Back on the left, Next on the right, one
-//     decision per step. Document (stage the PDF, add the people who sign above its preview,
-//     place each one's boxes) → Invitation, whose email preview is the last thing seen before
-//     Send. Nothing dispatches until that button.
-//     There is no Signing page step and no Review & send step any more (Gio 2026-10-18:
-//     "there's no need for the signing page and review and send, all of it is already
-//     previewed on the slide they're editing"). The signer's page heads itself — the house
-//     name over the document's title — and the boxes it shows are the ones drawn on the
-//     Document step, so a slide that asked for two header lines and a slide that recapped
-//     the two before it were two more clicks between a finished form and the Send button.
-//     There is no Kind step any more (Gio 2026-10-17: "get rid of kind, and we start with the
-//     document and what needs to be signed"). Every send is the document flow: the people on
-//     the list are the signers, one or many, each with their own emailed link and their own
-//     boxes, walked through TGV's own signing tour. The shared-link waiver is no longer made
-//     here; the ones already in the library keep their link and their kind filter.
+// THREE views on a PillBar:
+//   New Document — the shared click-through, `EsignWizard` from the module (Gio 2026-10-18:
+//     "Lift this entire module onto the dashboard … the same modal as on TGV Office"). Office
+//     is one HOST of it: this file passes the staff roster as the quick-add list, the
+//     operator's own addresses, the My Documents / disk chooser, the house email look, and
+//     the multipart send to /api/esign/documents. Every member dashboard hosts the same
+//     component with its own answers to those. The wizard's two steps, Document → Invitation,
+//     and the Invitation step's PillBar over the two emails (the signing invitation, and the
+//     follow-up that carries the signed copy) live in the module, not here.
 //   Activity — the outbox (sent → signed per recipient; X removes an entry, log-only).
 //   Documents — the library w/ kind filter, per-signer status, copy-link, delete.
 //
-// Multisig boxes default to auto-stacking on the last page IN THE ORDER SIGNERS ARE ADDED —
-// but once a PDF is staged, the FieldPlacer preview renders every page: the operator TICKS
-// what each person is asked for (sign · initials · full name · date) and DRAGS those boxes
-// onto the document's printed lines, one initials box per page where a contract wants them.
-//
-// Office WRITES AND SENDS the signing invitation itself — Documenso is told to email nobody —
-// so every line of it is a field here: subject, heading, message, button label, footer,
-// reply-to. Those were behind a header gear that opened a dialog OVER the console; they are
-// now the Invitation step, because a setting you have to know a gear exists to find is a
-// setting most sends never make. The FROM identity is the house mailbox (SUPPORT_FROM_EMAIL,
-// "Tiny Global Village"); per-send sender control is Reply-To, and the step's QMBM says so.
-//
-// The email preview repaints AS YOU TYPE — it is plain React. (The framed /sign/preview
-// iframe that previewed the signing page's header left with the Signing page step; HQ's
-// route and its postMessage listener still exist for anyone who wants to look.)
+// Office WRITES AND SENDS both emails itself — Documenso is told to email nobody — from the
+// house mailbox (SUPPORT_FROM_EMAIL, "Tiny Global Village"); per-send sender control is
+// Reply-To, defaulting to support@. The signed copy goes to the delivery list the operator
+// ticks on the Invitation step, seeded with the operator alone.
 //
 // Self-contained (styled-components, per Office's no-Tailwind rule). Inline SVGs — no emoji.
 
 import { useEscapeToClose } from "@tgv/module-component-library/components/hooks/useEscapeToClose";
-import { useCallback, useEffect, useRef, useState } from "react";
-import styled, { keyframes, css } from "styled-components";
-import DDM, { type DDMItem } from "@tgv/module-component-library/components/ui/DDM";
-import InfoBubble from "@tgv/module-component-library/components/ui/InfoBubble";
+import { useCallback, useEffect, useState } from "react";
+import styled from "styled-components";
 import PillBar from "@tgv/module-component-library/components/ui/PillBar";
-import ArrowRightIcon from "../icons/ArrowRightIcon";
 import ConfirmModal from "../frontdesk/ConfirmModal";
-import UploadDropzone from "../UploadDropzone";
 import DocumentChooser from "./DocumentChooser";
-import { placementsForWire, signersWithoutBoxes, type SignerPlacement } from "@tgv/module-documenso/components/FieldPlacer";
-import PrepMode from "@tgv/module-documenso/components/PrepMode";
+import EsignWizard, { type EsignSendResult, type EsignWizardPayload } from "@tgv/module-documenso/components/EsignWizard";
+import { HOUSE_MAIL_BRAND } from "@tgv/module-documenso/components/mailDefaults";
 
 // ── types (mirror the API payloads) ────────────────────────────────────────────
 type DocKind = "waiver" | "multisig";
@@ -76,7 +54,6 @@ type DocRow = {
   signerCount?: number;
 };
 type StaffRow = { username: string; email: string; role: string };
-type Recipient = { email: string; name: string | null };
 type ActivityRow = {
   id: string;
   documentId: string;
@@ -108,19 +85,8 @@ const KIND_SEGMENTS = [
   { key: "multisig", label: "Multiple Signatures" },
 ];
 const ACCENT = "58, 160, 255"; // modal cyan-blue (#3aa0ff)
+const DEFAULT_REPLY_TO = "support@tinyglobalvillage.com";
 
-// ── the click-through ──────────────────────────────────────────────────────────
-// One decision per step, in the order the send is assembled. The document comes first,
-// because what needs signing is what everything after it is about.
-type StepKey = "document" | "invite";
-const STEPS: StepKey[] = ["document", "invite"];
-const STEP_LABEL: Record<StepKey, string> = {
-  document: "Document",
-  invite: "Invitation",
-};
-const LAST_STEP: StepKey = STEPS[STEPS.length - 1];
-
-// ── inline icons (currentColor) ─────────────────────────────────────────────────
 const XIcon = ({ size = 18 }: { size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
     <path d="M6 6l12 12M18 6L6 18" />
@@ -128,20 +94,9 @@ const XIcon = ({ size = 18 }: { size?: number }) => (
 );
 const DownloadIcon = ({ size = 15 }: { size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M12 3v12M7 11l5 5 5-5M4 21h16" />
+    <path d="M12 3v12M6 11l6 6 6-6M4 21h16" />
   </svg>
 );
-
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-// The invitation's defaults, mirrored from module-documenso/server/invite.ts so a blank
-// field can show the operator exactly what will be sent in its place. The module is still
-// the authority — these are placeholders, never submitted.
-const INVITE_DEFAULTS = { heading: "Your signature is needed", buttonLabel: "Review & sign", footer: "Sent by Tiny Global Village" };
-// Where the signer's page lives (the signed-copy links in the library point at it).
-const SIGN_PAGE_ORIGIN = process.env.NEXT_PUBLIC_TGV_ORIGIN || "https://tinyglobalvillage.com";
-const inviteDefaultMessage = (title: string) =>
-  `You've been asked to sign "${title}".\n\nOpening the link below shows you the document and your own signature box — you can sign from your phone, and nothing else is required of you.`;
 
 type ConfirmState = {
   title: string;
@@ -150,6 +105,54 @@ type ConfirmState = {
   confirmLabel: string;
   run: () => Promise<void>;
 };
+
+/** The wizard's payload as /api/esign/documents takes it: one multipart POST with progress. */
+function postEsignDocument(payload: EsignWizardPayload, onProgress: (pct: number | null) => void): Promise<EsignSendResult> {
+  const fd = new FormData();
+  fd.append("title", payload.title);
+  fd.append("file", payload.file);
+  fd.append("kind", "multisig");
+  fd.append("signers", JSON.stringify(payload.signers));
+  fd.append("sequential", String(payload.sequential));
+  fd.append("deliveryEmails", JSON.stringify(payload.deliveryEmails));
+  fd.append("note", payload.invite.message ?? "");
+  fd.append("emailSubject", payload.invite.subject ?? "");
+  fd.append("inviteHeading", payload.invite.heading ?? "");
+  fd.append("inviteButtonLabel", payload.invite.buttonLabel ?? "");
+  fd.append("inviteFooter", payload.invite.footer ?? "");
+  fd.append("emailReplyTo", payload.invite.replyTo ?? "");
+  fd.append("completionSubject", payload.completion.subject ?? "");
+  fd.append("completionHeading", payload.completion.heading ?? "");
+  fd.append("completionMessage", payload.completion.message ?? "");
+  fd.append("completionFooter", payload.completion.footer ?? "");
+  fd.append("placements", JSON.stringify(payload.placements));
+  fd.append("includeCertificate", String(payload.includeCertificate));
+
+  return new Promise((resolve) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", "/api/esign/documents");
+    xhr.timeout = 120_000;
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) onProgress(Math.min(99, Math.round((e.loaded / e.total) * 100)));
+    };
+    xhr.upload.onload = () => onProgress(null); // bytes are up; the server is talking to Documenso
+    xhr.onload = () => {
+      let d: { ok?: boolean; error?: string; document?: { invitedCount?: number; inviteFailed?: string[] } } = {};
+      try { d = JSON.parse(xhr.responseText); } catch { /* non-JSON body */ }
+      if (xhr.status >= 200 && xhr.status < 300 && d?.ok) {
+        const failed = d.document?.inviteFailed ?? [];
+        resolve({
+          ok: true,
+          invitedCount: d.document?.invitedCount,
+          ...(failed.length ? { summary: `Created, but the invitation to ${failed.join(", ")} could not be sent — resend it from the Documents tab.` } : {}),
+        });
+      } else resolve({ ok: false, error: d?.error ?? `Upload failed (HTTP ${xhr.status})` });
+    };
+    xhr.onerror = () => resolve({ ok: false, error: "Upload failed (network error)" });
+    xhr.ontimeout = () => resolve({ ok: false, error: "Upload timed out after 2 min — please try again." });
+    xhr.send(fd);
+  });
+}
 
 export default function ESignControlModal({ onClose }: { onClose: () => void }) {
   const [tab, setTab] = useState<Tab>("new");
@@ -160,56 +163,9 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
   const [activity, setActivity] = useState<ActivityRow[]>([]);
   const [msg, setMsg] = useState<string>("");
   const [confirm, setConfirm] = useState<ConfirmState | null>(null);
-
-  // New Document state
-  const [stepKey, setStepKey] = useState<StepKey>("document");
-  const [recipients, setRecipients] = useState<Recipient[]>([]);
-  const [customEmail, setCustomEmail] = useState("");
-  const [note, setNote] = useState("");
-  // The signer added last. The placer opens their row and lights their first box, so adding
-  // an email is the prompt to place that person's marks — not a chip that sits there.
-  const [focusEmail, setFocusEmail] = useState<string | null>(null);
-  /** The full-size placing room. Opens the moment a PDF is staged and whenever a signer is
-   *  added with one staged; Done closes it with the boxes kept, and the staged-file card
-   *  re-opens it (Gio 2026-10-17: "fill the whole modal … close it out and re-open it"). */
-  const [prepOpen, setPrepOpen] = useState(false);
-  // "Choose File" asks My Documents or disk first (Gio 2026-10-18); a drop skips the question.
-  const [chooserOpen, setChooserOpen] = useState(false);
-  // "Include certificate page?" — Documenso appends a signing-certificate page to the
-  // signed PDF; unchecked = our stored/downloadable copy keeps only the document's own
-  // pages (a sealed original is kept server-side for audit). OFF by default (Gio
-  // 2026-10-17): the audit page is there when asked for, never a surprise last page.
-  const [includeCert, setIncludeCert] = useState(false);
-  // Multisig delivery: in-order chain (only the first signer is emailed; each signature
-  // triggers the next signer's email), then the delivery list — who receives the finished
-  // document. The list is the ONLY answer to "where does this land": it is always on screen,
-  // it is never inferred, and copyToSigners just folds the roster into it.
-  const [inOrder, setInOrder] = useState(true);
-  const [copyToSigners, setCopyToSigners] = useState(false);
-  const [ccList, setCcList] = useState<Recipient[]>([]);
-  const [ccEmail, setCcEmail] = useState("");
-  const deliveryTouched = useRef(false);
-  // The operator's own addresses (Fastmail sending identities + roster email) and which one
-  // is currently on the delivery list. Gio receives at four domains; the roster's single
-  // address was answering a question he hadn't been asked.
+  // The operator's own addresses (Fastmail sending identities + roster email). Gio receives
+  // at four domains; the roster's single address was answering a question he hadn't been asked.
   const [myAddresses, setMyAddresses] = useState<string[]>([]);
-  const [myAddress, setMyAddress] = useState("");
-  const [uploadFile, setUploadFile] = useState<File | null>(null);
-  const [uploading, setUploading] = useState(false);
-  const [uploadPct, setUploadPct] = useState<number | null>(null); // 0–100 while sending; null = server processing
-  // Drag-placed field boxes per signer email (percent coords). Empty = auto-stack default.
-  const [placements, setPlacements] = useState<Record<string, SignerPlacement>>({});
-  // The signing invitation, line by line (the Invitation step). Every visible part of the
-  // email is here — Office sends it, not Documenso, so there is no wording left over from
-  // somewhere else. Blank means "use the default shown as the placeholder". Reply-to
-  // survives a send on purpose — it's operator identity, not per-document content.
-  const [emailSubject, setEmailSubject] = useState("");
-  const [inviteHeading, setInviteHeading] = useState("");
-  const [inviteButtonLabel, setInviteButtonLabel] = useState("");
-  const [inviteFooter, setInviteFooter] = useState("");
-  const [emailReplyTo, setEmailReplyTo] = useState("");
-
-  // documents-tab kind filter (PillBar)
   const [docFilter, setDocFilter] = useState<KindFilter>("all");
 
   const loadDocuments = useCallback(async () => {
@@ -220,15 +176,9 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
         setConfigured(Boolean(d.configured));
         setDocuments(d.documents ?? []);
         setStaff(d.staff ?? []);
-        // Seed the delivery list with the operator once, on first load. Once they have
-        // touched it — including emptying it — their choice stands.
         if (d.me?.email) {
           const mine = String(d.me.email).toLowerCase();
           setMyAddresses(Array.isArray(d.me.addresses) && d.me.addresses.length ? d.me.addresses.map(String) : [mine]);
-          if (!deliveryTouched.current) {
-            setMyAddress(mine);
-            setCcList([{ email: mine, name: d.me.username ?? null }]);
-          }
         }
       } else {
         setMsg(d?.error ?? "Failed to load documents");
@@ -256,224 +206,10 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
   }, [loadDocuments, loadActivity]);
 
   useEscapeToClose({ open: true, onClose });
-  // The title the server will use — the staged filename, minus .pdf. Placeholders and the
-  // preview quote it so the defaults read as the real sentence, not a template.
-  const previewTitle = uploadFile ? uploadFile.name.replace(/\.pdf$/i, "") : "(document title)";
 
-  // Where in the steps the operator is standing.
-  const steps = STEPS;
-  const stepIndex = Math.max(0, steps.indexOf(stepKey));
-
-  // Signers with no boxes yet. Nothing is placed for anybody until the operator draws it
-  // (Gio 2026-10-17), so a signer left at zero would get the server's auto-stacked pair —
-  // the very thing the room stopped doing — and Next stays shut until every one has a box.
-  const missing = signersWithoutBoxes(recipients, placements);
-  const missingNames = missing.map((s) => s.name || s.email).join(", ");
-
-  // What stops Next. Returned as the sentence the operator reads, so the block and its
-  // reason are the same fact rather than a disabled button they have to guess about.
-  const blocked: string | null =
-    stepKey === "document" && !uploadFile
-      ? "Choose the PDF first. Nothing uploads until the Send button on the Invitation step."
-      : stepKey === "document" && recipients.length === 0
-      ? "Add at least one person who signs — each one gets their own link and their own boxes."
-      : stepKey === "document" && missing.length > 0
-      ? `Every signer needs at least one box — ${missingNames} ${missing.length === 1 ? "has" : "have"} none. Open the room and draw them.`
-      : stepKey === "invite" && emailReplyTo.trim() && !EMAIL_RE.test(emailReplyTo.trim())
-      ? `"${emailReplyTo.trim()}" is not a valid reply-to email.`
-      : null;
-  const goNext = () => {
-    if (blocked) { setMsg(blocked); return; }
-    setMsg("");
-    setStepKey(steps[Math.min(steps.length - 1, stepIndex + 1)]);
-  };
-  const goBack = () => { setMsg(""); setStepKey(steps[Math.max(0, stepIndex - 1)]); };
-
-  const addRecipient = (email: string, name: string | null) => {
-    // comma-separated typing supported — split and add each
-    const parts = email.split(",").map((p) => p.trim()).filter(Boolean);
-    if (!parts.length) return;
-    const valid: Recipient[] = [];
-    let bad: string | null = null;
-    for (const p of parts) {
-      const e = p.toLowerCase();
-      if (!EMAIL_RE.test(e)) { bad = p; continue; }
-      valid.push({ email: e, name: parts.length === 1 ? name : null });
-    }
-    setRecipients((prev) => {
-      const next = [...prev];
-      for (const v of valid) if (!next.some((r) => r.email === v.email)) next.push(v);
-      return next;
-    });
-    const newest = valid.length ? valid[valid.length - 1].email : null;
-    if (newest) setFocusEmail(newest);
-    // A new address is the prompt to place that person's boxes — so the room opens.
-    if (newest && uploadFile && !uploading) setPrepOpen(true);
-    setMsg(bad ? `"${bad}" is not a valid email` : "");
-  };
-  const removeRecipient = (email: string) => {
-    setRecipients((prev) => prev.filter((r) => r.email !== email));
-    setFocusEmail((cur) => (cur === email ? null : cur));
-  };
-
-  // Delivery list (multisig): who receives the signed document. A signer belongs here as
-  // readily as anyone else — the operator is usually both, and the old copy-only list
-  // silently dropped them, which is how a finished document reached nobody who asked for it.
-  const addCc = (email: string, name: string | null) => {
-    const parts = email.split(",").map((p) => p.trim()).filter(Boolean);
-    if (!parts.length) return;
-    let bad: string | null = null;
-    const valid: Recipient[] = [];
-    for (const p of parts) {
-      const e = p.toLowerCase();
-      if (!EMAIL_RE.test(e)) { bad = p; continue; }
-      valid.push({ email: e, name: parts.length === 1 ? name : null });
-    }
-    deliveryTouched.current = true;
-    setCcList((prev) => {
-      const next = [...prev];
-      for (const v of valid) if (!next.some((r) => r.email === v.email)) next.push(v);
-      return next;
-    });
-    setMsg(bad ? `"${bad}" is not a valid email` : "");
-  };
-  const removeCc = (email: string) => {
-    deliveryTouched.current = true;
-    setCcList((prev) => prev.filter((r) => r.email !== email));
-    // Dropping the chip is how you say "not to me" — the picker follows it back to unset
-    // rather than claiming an address that is no longer on the list.
-    setMyAddress((cur) => (cur === email ? "" : cur));
-  };
-  /** Swap which of the operator's own addresses is on the list. Everyone else stays put. */
-  const pickMyAddress = (email: string) => {
-    const e = email.toLowerCase();
-    deliveryTouched.current = true;
-    setCcList((prev) => {
-      const others = prev.filter((r) => r.email !== myAddress && r.email !== e);
-      return [{ email: e, name: null }, ...others];
-    });
-    setMyAddress(e);
-  };
-
-  // Drop/select a PDF → STAGE it only. Nothing uploads or emails until the Send button.
-  const stageFile = (f: File | null) => {
-    if (!f || uploading) return;
-    if (f.type !== "application/pdf" && !f.name.toLowerCase().endsWith(".pdf")) {
-      setMsg("Please choose a PDF file");
-      return;
-    }
-    setUploadFile(f);
-    setPlacements({}); // a new document invalidates any box positions from the previous one
-    setPrepOpen(true);
-    setMsg("");
-    // Nothing else to open: the invitation is the next step of the flow, so subject /
-    // message / reply-to are a decision every send walks through rather than one an
-    // operator had to remember a gear existed to make.
-  };
-  const clearStaged = () => { if (!uploading) { setUploadFile(null); setPlacements({}); setPrepOpen(false); } };
-
-  // SEND — create the document and email the signers, in one click.
-  // XHR (not fetch) so we get a real upload-progress %; plus a hard timeout so it can't hang.
-  const submit = () => {
-    const f = uploadFile;
-    if (!f || uploading) return;
-    if (!configured) {
-      setMsg("Documenso is not configured on this server — cannot send.");
-      return;
-    }
-    if (recipients.length === 0) {
-      setMsg("Add the people who sign first — then open the room and draw each one's boxes.");
-      return;
-    }
-    if (missing.length > 0) {
-      setMsg(`Every signer needs at least one box — ${missingNames} ${missing.length === 1 ? "has" : "have"} none. Go back to Document and draw them.`);
-      return;
-    }
-    const replyTo = emailReplyTo.trim().toLowerCase();
-    if (replyTo && !EMAIL_RE.test(replyTo)) {
-      setMsg(`"${emailReplyTo.trim()}" is not a valid reply-to email — fix it on the Invitation step.`);
-      return;
-    }
-    const title = f.name.replace(/\.pdf$/i, "").trim() || f.name;
-    const fd = new FormData();
-    fd.append("title", title);
-    fd.append("file", f);
-    {
-      fd.append("kind", "multisig");
-      fd.append("signers", JSON.stringify(recipients));
-      fd.append("sequential", String(inOrder));
-      fd.append("finalCopyAll", String(copyToSigners));
-      fd.append("deliveryEmails", JSON.stringify(ccList.map((c) => c.email)));
-      if (note.trim()) fd.append("note", note.trim());
-      if (emailSubject.trim()) fd.append("emailSubject", emailSubject.trim());
-      if (inviteHeading.trim()) fd.append("inviteHeading", inviteHeading.trim());
-      if (inviteButtonLabel.trim()) fd.append("inviteButtonLabel", inviteButtonLabel.trim());
-      if (inviteFooter.trim()) fd.append("inviteFooter", inviteFooter.trim());
-      // The signing page's two header lines are NOT sent: absent, the route leaves the
-      // journey override null and the page heads itself with the house name over the
-      // document's own title (signer page.tsx: `journey?.title ?? documentTitle`).
-      if (replyTo) fd.append("emailReplyTo", replyTo);
-      // The whole set, exactly as it was drawn: what each signer is asked for, how many of
-      // each, whether they may leave it blank, what it is called, and which page every box
-      // sits on. The server replaces that signer's default pair with this list, so a kind the
-      // operator un-ticked is simply not in it.
-      //
-      const placed = placementsForWire(recipients, placements);
-      if (placed.length) fd.append("placements", JSON.stringify(placed));
-    }
-    fd.append("includeCertificate", String(includeCert));
-
-    const done = (message: string) => {
-      setUploading(false);
-      setUploadFile(null);
-      setUploadPct(null);
-      setMsg(message);
-    };
-
-    setUploading(true);
-    setUploadPct(0);
-    setMsg("");
-
-    const xhr = new XMLHttpRequest();
-    xhr.open("POST", "/api/esign/documents");
-    xhr.timeout = 120_000; // 2 min ceiling — Documenso creation is a few round-trips
-    xhr.upload.onprogress = (e) => {
-      if (e.lengthComputable) setUploadPct(Math.round((e.loaded / e.total) * 100));
-    };
-    xhr.upload.onload = () => setUploadPct(null); // file fully sent → server now talking to Documenso
-    xhr.onload = () => {
-      let d: { ok?: boolean; error?: string; document?: { id?: string; title?: string; kind?: string; signerCount?: number; sequential?: boolean; deliveryCount?: number } } | null = null;
-      try { d = JSON.parse(xhr.responseText); } catch { /* non-JSON */ }
-      if (xhr.status >= 200 && xhr.status < 300 && d?.ok) {
-        const docTitle = d.document?.title ?? title;
-        setStepKey("document"); // the send is spent — the flow starts over, not on its own recap
-        {
-          const n = d.document?.signerCount ?? recipients.length;
-          const first = recipients[0]?.name || recipients[0]?.email || "the first signer";
-          const delivery = d.document?.deliveryCount ?? ccList.length;
-          const ending = delivery
-            ? ` The signed document goes to ${delivery === 1 ? ccList[0]?.email ?? "1 address" : `${delivery} addresses`} once everyone has signed.`
-            : " Nobody is set to receive the finished document.";
-          done((d.document?.sequential
-            ? `"${docTitle}" is on its way — ${first} signs first; each next signer is emailed automatically when the previous one finishes.`
-            : `"${docTitle}" sent to ${n} signer(s) — each received their own signing link.`) + ending);
-          setRecipients([]);
-          setFocusEmail(null);
-          setPrepOpen(false);
-          setNote("");
-          setPlacements({});
-          setEmailSubject(""); // reply-to intentionally kept for the next send
-          loadActivity();
-        }
-        loadDocuments();
-      } else {
-        done(d?.error ?? `Upload failed (HTTP ${xhr.status})`);
-      }
-    };
-    xhr.onerror = () => done("Upload failed (network error)");
-    xhr.ontimeout = () => done("Upload timed out after 2 min — please try again.");
-    xhr.send(fd);
-  };
+  const onSent = useCallback((r: EsignSendResult) => {
+    if (r.ok) void Promise.all([loadDocuments(), loadActivity()]);
+  }, [loadDocuments, loadActivity]);
 
   const copyLink = async (url: string | null) => {
     if (!url) return;
@@ -523,75 +259,6 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
 
   const visibleDocs = documents.filter((d) => docFilter === "all" || d.kind === docFilter);
 
-  // The invitation as the signer meets it. Plain React over the same state the fields write,
-  // so it has always repainted per keystroke — the Invitation step shows it under the fields,
-  // the last thing seen before Send.
-  const emailPreview = (
-    <InvitePreview>
-      <PreviewWordmark>Tiny Global Village</PreviewWordmark>
-      <PreviewHeading>{inviteHeading.trim() || INVITE_DEFAULTS.heading}</PreviewHeading>
-      {(note.trim() || inviteDefaultMessage(previewTitle))
-        .split(/\n{2,}/)
-        .map((para, i) => <PreviewPara key={i}>{para}</PreviewPara>)}
-      <PreviewButton>{inviteButtonLabel.trim() || INVITE_DEFAULTS.buttonLabel}</PreviewButton>
-      <PreviewLink>Or paste this into your browser:<br />{SIGN_PAGE_ORIGIN}/sign/…</PreviewLink>
-      <PreviewFooter>{inviteFooter.trim() || INVITE_DEFAULTS.footer}</PreviewFooter>
-    </InvitePreview>
-  );
-
-  // How many boxes are placed across every signer — the staged-file card and the room's
-  // footer both say it.
-  const placedCount = Object.values(placements).reduce((n, p) => n + (p?.fields?.length ?? 0), 0);
-
-  // The "who signs" bar. Rendered in the Document step and again inside the placing room,
-  // above the document, so a signer can be added from either place.
-  const signerBar = (
-    <>
-      <Label>Who signs (in document order)</Label>
-      <Row>
-        <DDM
-          label="Add staff"
-          ariaLabel="Add a staff signer"
-          align="left"
-          items={staff.map((s): DDMItem => ({
-            key: s.username,
-            label: `${s.username} · ${s.email}`,
-            onClick: () => addRecipient(s.email, s.username),
-          }))}
-        />
-        <Input
-          placeholder="or type emails (comma-separated)"
-          value={customEmail}
-          onChange={(e) => setCustomEmail(e.target.value)}
-          onKeyDown={(e) => { if (e.key === "Enter") { addRecipient(customEmail, null); setCustomEmail(""); } }}
-        />
-        {/* data-tour: the prep room's tour outlines this as "Next invitation" after the first box. */}
-        <AddBtn type="button" data-tour="add-signer" onClick={() => { addRecipient(customEmail, null); setCustomEmail(""); }}>Add</AddBtn>
-      </Row>
-      {recipients.length > 0 && (
-        <Chips>
-          {recipients.map((r, i) => (
-            <Chip key={r.email}>
-              {i + 1}. {r.name ? `${r.name} · ` : ""}{r.email}
-              <ChipX type="button" onClick={() => removeRecipient(r.email)} aria-label="Remove"><XIcon size={12} /></ChipX>
-            </Chip>
-          ))}
-        </Chips>
-      )}
-      {recipients.length > 1 && (
-        <CheckRow>
-          <input
-            type="checkbox"
-            checked={inOrder}
-            onChange={(e) => setInOrder(e.target.checked)}
-          />
-          Sign in order — one at a time
-          <CheckHint>— only the first signer is emailed now; each signature automatically sends the next signer their link. Unchecked, everyone is emailed at once.</CheckHint>
-        </CheckRow>
-      )}
-    </>
-  );
-
   return (
     <>
     <Backdrop onClick={onClose}>
@@ -606,7 +273,7 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
           </HeaderActions>
         </Header>
 
-        {!configured && (
+        {!configured && tab !== "new" && (
           <Warn>Documenso is not configured on this server (DOCUMENSO_URL + DOCUMENSO_API_KEY). Uploads and sends are disabled.</Warn>
         )}
 
@@ -620,297 +287,31 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
           />
         </TabsRow>
 
-        {msg && <Msg onClick={() => setMsg("")}>{msg}</Msg>}
+        {msg && tab !== "new" && <Msg onClick={() => setMsg("")}>{msg}</Msg>}
 
-        <Body>
-          {loading && <Dim>Loading…</Dim>}
+        {loading && <Body><Dim>Loading…</Dim></Body>}
 
-          {!loading && tab === "new" && (
-            <Section>
-              {/* The rail says where the operator is standing and how much is left. Steps
-                  already passed stay clickable — going back to change one line should never
-                  mean walking the whole flow again. */}
-              <WizRail aria-label="Steps">
-                {steps.map((k, i) => (
-                  <RailStep
-                    key={k}
-                    type="button"
-                    $state={i < stepIndex ? "past" : i === stepIndex ? "now" : "next"}
-                    disabled={i >= stepIndex || uploading}
-                    aria-current={i === stepIndex ? "step" : undefined}
-                    onClick={() => { setMsg(""); setStepKey(k); }}
-                  >
-                    <RailDot aria-hidden="true" />{STEP_LABEL[k]}
-                  </RailStep>
-                ))}
-              </WizRail>
+        {!loading && tab === "new" && (
+          <EsignWizard
+            configured={configured}
+            myAddresses={myAddresses}
+            quickAdd={staff.map((s) => ({ email: s.email, name: s.username }))}
+            quickAddLabel="Add staff"
+            defaultDelivery="me"
+            brand={HOUSE_MAIL_BRAND}
+            senderLine="Tiny Global Village <no-reply@tinyglobalvillage.com>"
+            replyToEditable
+            replyToFixed={DEFAULT_REPLY_TO}
+            renderPicker={(p) => (
+              <DocumentChooser open={p.open} onClose={p.onClose} onPick={(f) => p.onPick(f)} onNotice={p.onNotice} />
+            )}
+            send={postEsignDocument}
+            onSent={onSent}
+          />
+        )}
 
-              {/* ── 1 · Document ────────────────────────────────────────────── */}
-              {stepKey === "document" && (
-                <>
-                  <StepLead>
-                    Stage the PDF, add the people who sign, then open the room and draw each one&apos;s
-                    boxes where they sign.
-                  </StepLead>
-                  <UploadDropzone
-                    accept="application/pdf"
-                    disabled={uploading}
-                    chooseLabel={uploadFile && !uploading ? "Choose Another File" : "Choose File"}
-                    headline={uploading
-                      ? uploadPct !== null
-                        ? `Uploading ${uploadFile?.name ?? "PDF"} — ${uploadPct}%`
-                        : `Processing ${uploadFile?.name ?? "PDF"}…`
-                      : uploadFile
-                      ? uploadFile.name
-                      : "Drop your PDF here to upload"}
-                    hint={uploading
-                      ? uploadPct !== null
-                        ? "Sending file to the server"
-                        : inOrder
-                        ? "Creating the document and emailing the first signer their link…"
-                        : "Creating the document and emailing each signer their own link…"
-                      : uploadFile
-                      ? "Staged — nothing happens until you press Send."
-                      : "Works with any .PDF file up to 20 MB."}
-                    recommendation={!uploading && !uploadFile ? "Staged until you press Send" : undefined}
-                    onFiles={(fl) => stageFile(fl[0] ?? null)}
-                    onChoose={() => setChooserOpen(true)}
-                  >
-                    {uploading && (
-                      <Track>
-                        <Fill $pct={uploadPct} />
-                      </Track>
-                    )}
-                  </UploadDropzone>
-
-                  {/* The people who sign, in the order they sign. This bar sits above the
-                      document on purpose: adding an address is what opens that person's row
-                      in the placer and lights their first box — one person is one signer, a
-                      second address is a second set of boxes to place. The same bar is
-                      rendered inside the placing room, above the document. */}
-                  {signerBar}
-
-                  {uploadFile && !uploading && (
-                    <StagedCard>
-                      <StagedMain>
-                        <ItemTitle>{uploadFile.name}</ItemTitle>
-                        <ItemSub>
-                          {recipients.length === 0
-                            ? "No one signs yet — add a person above."
-                            : `${placedCount} box${placedCount === 1 ? "" : "es"} for ${recipients.length} signer${recipients.length === 1 ? "" : "s"}${missing.length ? ` — ${missingNames} still ${missing.length === 1 ? "has" : "have"} none` : ""}`}
-                        </ItemSub>
-                      </StagedMain>
-                      <ItemActions>
-                        <PrimaryBtn type="button" onClick={() => setPrepOpen(true)}>
-                          {placedCount ? "Edit boxes" : "Place boxes"}
-                        </PrimaryBtn>
-                      </ItemActions>
-                    </StagedCard>
-                  )}
-
-                  {uploadFile && !uploading && (
-                    <PrepMode
-                      open={prepOpen}
-                      onClose={() => setPrepOpen(false)}
-                      file={uploadFile}
-                      signers={recipients}
-                      placements={placements}
-                      onChange={setPlacements}
-                      focusEmail={focusEmail}
-                      signerBar={signerBar}
-                      footer={
-                        <>
-                          <StepTally>
-                            {recipients.length === 0
-                              ? "Add at least one person who signs."
-                              : missing.length
-                                ? `${missingNames} still ${missing.length === 1 ? "has" : "have"} no box`
-                                : `${placedCount} box${placedCount === 1 ? "" : "es"} · ${recipients.length} signer${recipients.length === 1 ? "" : "s"}`}
-                          </StepTally>
-                          <NextBtn
-                            type="button"
-                            $blocked={recipients.length === 0 || missing.length > 0}
-                            onClick={() => {
-                              if (recipients.length === 0) { setMsg("Add at least one person who signs — type an email above."); return; }
-                              if (missing.length > 0) { setMsg(`Every signer needs at least one box — ${missingNames} ${missing.length === 1 ? "has" : "have"} none.`); return; }
-                              setPrepOpen(false);
-                              setMsg("");
-                              setStepKey("invite");
-                            }}
-                          >
-                            Next: Invitation
-                          </NextBtn>
-                        </>
-                      }
-                    />
-                  )}
-                  <CheckRow>
-                    <input
-                      type="checkbox"
-                      checked={includeCert}
-                      onChange={(e) => setIncludeCert(e.target.checked)}
-                    />
-                    Include certificate page?
-                    <CheckHint>— the audit page Documenso appends to the signed PDF. Unchecked keeps your stored copy clean; a sealed original is kept for audit.</CheckHint>
-                  </CheckRow>
-
-                  {uploadFile && !uploading && (
-                    <Row>
-                      <GhostBtn type="button" onClick={clearStaged}>Clear file</GhostBtn>
-                    </Row>
-                  )}
-                </>
-              )}
-
-              {/* ── 2 · Invitation ──────────────────────────────────────────── */}              {/* ── 4 · Invitation (multisig) ───────────────────────────────── */}
-              {stepKey === "invite" && (
-                <>
-                  <Label>Deliver the signed document to</Label>
-                  <Row>
-                    {myAddresses.length > 1 && (
-                      <DDM
-                        label={myAddress ? `Me · ${myAddress}` : "Me · pick an address"}
-                        ariaLabel="Which of my addresses receives the signed document"
-                        align="left"
-                        items={myAddresses.map((a): DDMItem => ({
-                          key: a,
-                          label: a === myAddress ? `✓ ${a}` : a,
-                          onClick: () => pickMyAddress(a),
-                        }))}
-                      />
-                    )}
-                    <DDM
-                      label="Add staff"
-                      ariaLabel="Add a staff delivery address"
-                      align="left"
-                      items={staff.map((s): DDMItem => ({
-                        key: s.username,
-                        label: `${s.username} · ${s.email}`,
-                        onClick: () => addCc(s.email, s.username),
-                      }))}
-                    />
-                    <Input
-                      placeholder="or type emails (comma-separated)"
-                      value={ccEmail}
-                      onChange={(e) => setCcEmail(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === "Enter") { addCc(ccEmail, null); setCcEmail(""); } }}
-                    />
-                    <AddBtn type="button" onClick={() => { addCc(ccEmail, null); setCcEmail(""); }}>Add</AddBtn>
-                  </Row>
-                  {ccList.length > 0 ? (
-                    <Chips>
-                      {ccList.map((r) => (
-                        <Chip key={r.email}>
-                          {r.name ? `${r.name} · ` : ""}{r.email}
-                          <ChipX type="button" onClick={() => removeCc(r.email)} aria-label="Remove"><XIcon size={12} /></ChipX>
-                        </Chip>
-                      ))}
-                    </Chips>
-                  ) : (
-                    <EmptyDelivery>
-                      No one receives the finished document — including you. Add an address above if
-                      that isn&apos;t what you want.
-                    </EmptyDelivery>
-                  )}
-                  <CheckRow>
-                    <input
-                      type="checkbox"
-                      checked={copyToSigners}
-                      onChange={(e) => setCopyToSigners(e.target.checked)}
-                    />
-                    Also send it to everyone who signed
-                    <CheckHint>— adds each signer to the list above when the document completes.</CheckHint>
-                  </CheckRow>
-
-                  <Label>Subject</Label>
-                  <LineInput
-                    placeholder={`Please sign: ${previewTitle}`}
-                    value={emailSubject}
-                    maxLength={200}
-                    onChange={(e) => setEmailSubject(e.target.value)}
-                  />
-
-                  <Label>Heading — the one bold line at the top</Label>
-                  <LineInput
-                    placeholder={INVITE_DEFAULTS.heading}
-                    value={inviteHeading}
-                    maxLength={120}
-                    onChange={(e) => setInviteHeading(e.target.value)}
-                  />
-
-                  <Label>Message — the body each signer sees</Label>
-                  <Textarea
-                    rows={7}
-                    value={note}
-                    onChange={(e) => setNote(e.target.value)}
-                    placeholder={inviteDefaultMessage(previewTitle)}
-                  />
-                  <FieldHint>A blank line starts a new paragraph.</FieldHint>
-
-                  <TwoUp>
-                    <div>
-                      <Label>Button</Label>
-                      <LineInput
-                        placeholder={INVITE_DEFAULTS.buttonLabel}
-                        value={inviteButtonLabel}
-                        maxLength={40}
-                        onChange={(e) => setInviteButtonLabel(e.target.value)}
-                      />
-                    </div>
-                    <div>
-                      <Label>Footer</Label>
-                      <LineInput
-                        placeholder={INVITE_DEFAULTS.footer}
-                        value={inviteFooter}
-                        maxLength={200}
-                        onChange={(e) => setInviteFooter(e.target.value)}
-                      />
-                    </div>
-                  </TwoUp>
-
-                  <Label>Reply-to</Label>
-                  <HalfInput
-                    placeholder="support@tinyglobalvillage.com"
-                    value={emailReplyTo}
-                    onChange={(e) => setEmailReplyTo(e.target.value)}
-                  />
-                  <FieldHint>Left blank, replies go to support@tinyglobalvillage.com — a real, monitored
-                  mailbox. An invite nobody can reply to is a dead end for the signer and a spam signal
-                  to their mail provider.</FieldHint>
-
-                  <PreviewHead>
-                    <Label>The email, as it arrives</Label>
-                    <InfoBubble
-                      title="Who the email comes from"
-                      theme="cyan"
-                      placement="popover"
-                      body={
-                        <>
-                          <p>Office writes and sends this email itself, from <strong>Tiny Global Village
-                          &lt;no-reply@tinyglobalvillage.com&gt;</strong>. Documenso emails nobody about
-                          a document sent from here — every line the signer reads is one of the fields
-                          on this step.</p>
-                          <p>Reply-to is where their answer lands, and it is never empty: left blank it
-                          is support@tinyglobalvillage.com. Set it to your own address when you want a
-                          signer&apos;s reply to reach you directly.</p>
-                        </>
-                      }
-                    />
-                  </PreviewHead>
-                  {emailPreview}
-                </>
-              )}
-
-              {/* The upload's progress, where the Send button is. */}
-              {stepKey === LAST_STEP && uploading && (
-                <Track>
-                  <Fill $pct={uploadPct} />
-                </Track>
-              )}
-            </Section>
-          )}
-
-          {!loading && tab === "documents" && (
+        {!loading && tab === "documents" && (
+          <Body>
             <Section>
               <PillBar variant="flat"
                 segments={KIND_SEGMENTS}
@@ -936,7 +337,7 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
                       {d.kind === "multisig" && (d.signers?.length ?? 0) > 0 && (
                         <SignerLine>
                           {d.signers!.map((s) => (
-                            <SignerPill key={s.email} $s={s.status} title={s.email}>
+                            <SignerPill key={s.email} $s={s.status}>
                               {s.name || s.email} · {s.status === "sent" ? "pending" : s.status}
                             </SignerPill>
                           ))}
@@ -945,15 +346,17 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
                     </ItemMain>
                     <ItemActions>
                       {d.shareUrl && <GhostBtn type="button" onClick={() => copyLink(d.shareUrl)}>Copy link</GhostBtn>}
-                      <DelBtn type="button" onClick={() => askDeleteDoc(d)} aria-label="Delete document" title="Delete document"><XIcon size={13} /></DelBtn>
+                      <DelBtn type="button" onClick={() => askDeleteDoc(d)} aria-label="Delete document"><XIcon size={13} /></DelBtn>
                     </ItemActions>
                   </Item>
                 ))}
               </List>
             </Section>
-          )}
+          </Body>
+        )}
 
-          {!loading && tab === "activity" && (
+        {!loading && tab === "activity" && (
+          <Body>
             <Section>
               {activity.length === 0 && <Dim>Nothing sent yet.</Dim>}
               <List>
@@ -970,67 +373,20 @@ export default function ESignControlModal({ onClose }: { onClose: () => void }) 
                       {a.docKind === "multisig" && <KindTag>multi-sig</KindTag>}
                       <StatusPill $s={a.status}>{a.status}</StatusPill>
                       {a.hasSignedPdf && a.signatureId && (
-                        <IconLink href={`/api/esign/pdf/${a.signatureId}`} target="_blank" rel="noreferrer" title="Download signed PDF">
+                        <IconLink href={`/api/esign/pdf/${a.signatureId}`} target="_blank" rel="noreferrer" aria-label="Download signed PDF">
                           <DownloadIcon />
                         </IconLink>
                       )}
-                      <DelBtn type="button" onClick={() => askRemoveActivity(a)} aria-label="Remove entry" title="Remove entry"><XIcon size={13} /></DelBtn>
+                      <DelBtn type="button" onClick={() => askRemoveActivity(a)} aria-label="Remove entry"><XIcon size={13} /></DelBtn>
                     </ActRight>
                   </ActItem>
                 ))}
               </List>
             </Section>
-          )}
-        </Body>
-
-        {/* Back on the left, Next on the right — the two directions a click-through has, in
-            the two places a hand already looks for them. Pinned below the scrolling body so
-            the way forward is never something you have to scroll to find. On the Invitation
-            step Next becomes Send: the only button in this console that dispatches anything. */}
-        {!loading && tab === "new" && (
-          <WizFoot>
-            <BackBtn
-              type="button"
-              disabled={stepIndex === 0 || uploading}
-              onClick={goBack}
-            >
-              <ArrowRightIcon size={15} style={{ transform: "scaleX(-1)" }} /> Back
-            </BackBtn>
-            <StepTally>Step {stepIndex + 1} of {steps.length} · {STEP_LABEL[stepKey]}</StepTally>
-            {stepKey === LAST_STEP ? (
-              <PrimaryBtn
-                type="button"
-                disabled={!uploadFile || uploading || !configured || recipients.length === 0}
-                onClick={submit}
-              >
-                {uploading
-                  ? "Sending…"
-                  : recipients.length
-                  ? `Send to ${recipients.length} signer${recipients.length === 1 ? "" : "s"}`
-                  : "Send to signers"}
-              </PrimaryBtn>
-            ) : (
-              <NextBtn
-                type="button"
-                disabled={uploading}
-                title={blocked ?? undefined}
-                $blocked={Boolean(blocked)}
-                onClick={goNext}
-              >
-                Next <ArrowRightIcon size={15} />
-              </NextBtn>
-            )}
-          </WizFoot>
+          </Body>
         )}
       </Panel>
     </Backdrop>
-
-    <DocumentChooser
-      open={chooserOpen}
-      onClose={() => setChooserOpen(false)}
-      onPick={stageFile}
-      onNotice={setMsg}
-    />
 
     <ConfirmModal
       open={!!confirm}
@@ -1057,9 +413,13 @@ const Panel = styled.div`
   width: min(860px, 100%); max-height: 90vh; display: flex; flex-direction: column;
   background: #0d0d12; border: 1px solid rgba(120,200,255,0.18); border-radius: 14px;
   box-shadow: 0 24px 80px rgba(0,0,0,0.6); color: #e8e8ef; overflow: hidden;
-  /* DDM accent (recipient pickers) → cyan to match the modal */
+  /* DDM accent (recipient pickers) → cyan to match the modal; the wizard reads --esw-*. */
   --ddm-accent: #3aa0ff;
   --ddm-accent-rgb: 58, 160, 255;
+  --esw-accent: #3aa0ff;
+  --esw-accent-rgb: 58, 160, 255;
+  --esw-text: #e8e8ef;
+  --esw-on-accent: #001a2e;
 `;
 const Header = styled.div`
   display: flex; align-items: flex-start; justify-content: space-between; gap: 16px;
@@ -1073,95 +433,17 @@ const CloseBtn = styled.button`
   &:hover { color: #fff; background: rgba(255,255,255,0.06); }
 `;
 const HeaderActions = styled.div`display: flex; align-items: center; gap: 6px; flex: 0 0 auto;`;
-const TwoUp = styled.div`
-  display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
-  @media (max-width: 460px) { grid-template-columns: 1fr; }
-`;
-const PreviewHead = styled.div`
-  display: flex; align-items: center; justify-content: space-between; gap: 12px;
-  flex-wrap: wrap; margin-top: 4px;
-`;
-// The invitation as the signer meets it: a LIGHT card inside the dark console, because
-// that is the contrast their inbox will show and a dark mock would flatter copy that
-// reads differently on white.
-const InvitePreview = styled.div`
-  margin-top: 4px; padding: 18px 18px 16px; border-radius: 10px;
-  background: #ffffff; border: 1px solid rgba(255,255,255,0.14);
-`;
-const PreviewWordmark = styled.p`
-  margin: 0 0 12px; font-size: 10.5px; font-weight: 700; letter-spacing: 0.08em;
-  text-transform: uppercase; color: #5b6472;
-`;
-const PreviewHeading = styled.p`
-  margin: 0 0 10px; font-size: 16px; line-height: 1.3; font-weight: 700; color: #14161a;
-`;
-const PreviewPara = styled.p`
-  margin: 0 0 10px; font-size: 12.5px; line-height: 1.6; color: #2c2f36; white-space: pre-wrap;
-`;
-const PreviewButton = styled.span`
-  display: inline-block; margin-top: 2px; padding: 9px 18px; border-radius: 7px;
-  background: #14161a; color: #ffffff; font-size: 12.5px; font-weight: 600;
-`;
-const PreviewLink = styled.p`
-  margin: 10px 0 0; font-size: 10.5px; line-height: 1.5; color: #7b8494; word-break: break-all;
-`;
-const PreviewFooter = styled.p`
-  margin: 14px 0 0; padding-top: 12px; border-top: 1px solid #eceef1;
-  font-size: 10.5px; line-height: 1.5; color: #7b8494;
-`;
 const Warn = styled.div`margin: 12px 22px 0; padding: 10px 12px; border-radius: 8px; font-size: 12.5px; background: rgba(255,180,60,0.1); border: 1px solid rgba(255,180,60,0.3); color: #ffcf87;`;
 const TabsRow = styled.div`padding: 14px 22px 0;`;
 const Msg = styled.div`margin: 12px 22px 0; padding: 9px 12px; border-radius: 8px; font-size: 12.5px; background: rgba(120,200,255,0.1); border: 1px solid rgba(120,200,255,0.28); color: #cfe9ff; cursor: pointer;`;
 const Body = styled.div`padding: 18px 22px 22px; overflow-y: auto;`;
 const Section = styled.div`display: flex; flex-direction: column; gap: 8px;`;
-const Label = styled.label`font-size: 12px; font-weight: 600; color: rgba(232,232,239,0.75); margin-top: 10px;`;
-const Row = styled.div`display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 2px;`;
 const baseField = `
   background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.12);
   border-radius: 8px; color: #e8e8ef; padding: 9px 11px; font-size: 13px; outline: none;
   &:focus { border-color: rgba(120,200,255,0.5); }
 `;
-const Input = styled.input`${baseField} flex: 1 1 180px;`;
-// Input's `flex: 1 1 180px` is sized for a ROW. In the settings dialog's column the
-// same basis is read on the vertical axis, which is what made Subject 180px tall —
-// so the dialog's fields carry their own width and refuse to flex at all.
-const LineInput = styled.input`${baseField} flex: 0 0 auto; width: 100%;`;
-const HalfInput = styled(LineInput)`width: 50%;`;
-// Same flex trap as LineInput, one axis further: a textarea in a flex COLUMN still
-// shrinks past its `rows`, which is what squashed the Message body down to one line.
-// `flex: 0 0 auto` makes `rows` mean what it says, and the min-height is the floor —
-// two of a single-line field (≈42px each), so Message is never shorter than Heading×2.
-const Textarea = styled.textarea`${baseField} resize: vertical; width: 100%; flex: 0 0 auto; min-height: 84px;`;
-const CheckRow = styled.label`
-  display: flex; align-items: baseline; gap: 8px; margin-top: 8px;
-  font-size: 12.5px; font-weight: 600; color: rgba(232,232,239,0.8); cursor: pointer;
-  input { flex: 0 0 auto; transform: translateY(1px); }
-`;
-const CheckHint = styled.span`font-size: 11.5px; font-weight: 400; color: rgba(232,232,239,0.45);`;
-const FieldHint = styled.p`margin: 6px 0 0; font-size: 11.5px; line-height: 1.5; color: rgba(232,232,239,0.45);`;
-// An empty delivery list is allowed but rarely meant — say so where the chips would be,
-// in warning amber rather than the muted grey the operator's eye already skips.
-const EmptyDelivery = styled.p`
-  margin: 6px 0 0; font-size: 11.5px; line-height: 1.5; color: rgba(255,196,120,0.85);
-`;
-const Chips = styled.div`display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px;`;
-const Chip = styled.span`display: inline-flex; align-items: center; gap: 6px; background: rgba(120,200,255,0.1); border: 1px solid rgba(120,200,255,0.28); border-radius: 999px; padding: 4px 10px; font-size: 12px;`;
-const ChipX = styled.button`background: transparent; border: none; color: inherit; cursor: pointer; display: inline-flex; padding: 0; opacity: 0.7; &:hover { opacity: 1; }`;
-const AddBtn = styled.button`${baseField} cursor: pointer; flex: 0 0 auto; &:hover { border-color: rgba(120,200,255,0.5); }`;
-const PrimaryBtn = styled.button`
-  margin-left: auto; background: #3aa0ff; color: #001a2e; border: none; border-radius: 8px;
-  padding: 9px 18px; font-size: 13px; font-weight: 650; cursor: pointer;
-  &:hover:not(:disabled) { background: #58b0ff; } &:disabled { opacity: 0.45; cursor: default; }
-`;
 const GhostBtn = styled.button`${baseField} cursor: pointer; flex: 0 0 auto; font-size: 12px; padding: 6px 12px; &:hover { border-color: rgba(120,200,255,0.5); }`;
-const slide = keyframes`0% { left: -45%; } 100% { left: 100%; }`;
-const Track = styled.div`position: relative; height: 5px; width: 70%; margin-top: 8px; border-radius: 999px; background: rgba(255,255,255,0.09); overflow: hidden;`;
-const Fill = styled.div<{ $pct: number | null }>`
-  position: absolute; top: 0; bottom: 0; border-radius: 999px; background: #3aa0ff;
-  ${(p) => (p.$pct !== null
-    ? css`left: 0; width: ${p.$pct}%; transition: width 0.2s ease;`
-    : css`width: 45%; animation: ${slide} 1.1s ease-in-out infinite;`)}
-`;
 const List = styled.div`display: flex; flex-direction: column; gap: 6px; margin-top: 4px;`;
 const Item = styled.div`display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; border: 1px solid rgba(255,255,255,0.08); border-radius: 9px; background: rgba(255,255,255,0.02);`;
 const ItemActions = styled.div`display: flex; align-items: center; gap: 8px; flex: 0 0 auto;`;
@@ -1173,10 +455,6 @@ const DelBtn = styled.button`
 const ItemTitle = styled.div`font-size: 13.5px; font-weight: 600;`;
 const ItemSub = styled.div`font-size: 11.5px; color: rgba(232,232,239,0.5); margin-top: 2px;`;
 const ActItem = styled(Item)``;
-// The staged PDF while the placing room is closed: name, how far along the boxes are, and
-// the button that opens the room again.
-const StagedCard = styled(Item)`margin-top: 10px; border-color: rgba(120,200,255,0.28); background: rgba(120,200,255,0.06);`;
-const StagedMain = styled.div`min-width: 0;`;
 const ActMain = styled.div`min-width: 0;`;
 const ActRight = styled.div`display: flex; align-items: center; gap: 10px; flex: 0 0 auto;`;
 const IconLink = styled.a`color: #7fd0ff; display: inline-flex; padding: 4px; border-radius: 6px; &:hover { background: rgba(120,200,255,0.12); }`;
@@ -1197,53 +475,3 @@ const KindTag = styled.span`
   font-size: 10px; font-weight: 650; padding: 2px 8px; border-radius: 999px; letter-spacing: 0.02em;
   background: rgba(120,140,255,0.12); color: #b9c4ff; border: 1px solid rgba(120,140,255,0.32);
 `;
-
-// ── the click-through ──────────────────────────────────────────────────────────
-const WizRail = styled.div`
-  display: flex; align-items: center; flex-wrap: wrap; gap: 4px; margin-bottom: 2px;
-`;
-const RailStep = styled.button<{ $state: "past" | "now" | "next" }>`
-  display: inline-flex; align-items: center; gap: 6px; background: transparent;
-  border: 1px solid transparent; border-radius: 999px; padding: 4px 11px 4px 9px;
-  font-size: 11.5px; font-weight: 650; letter-spacing: 0.01em; cursor: pointer;
-  ${(p) =>
-    p.$state === "now"
-      ? "color: #cfe9ff; background: rgba(120,200,255,0.13); border-color: rgba(120,200,255,0.38);"
-      : p.$state === "past"
-      ? "color: rgba(232,232,239,0.62);"
-      : "color: rgba(232,232,239,0.26); cursor: default;"}
-  &:hover:not(:disabled) { color: #cfe9ff; background: rgba(120,200,255,0.08); }
-`;
-const RailDot = styled.span`
-  width: 5px; height: 5px; border-radius: 50%; background: currentColor; flex: 0 0 auto;
-`;
-// The step's question, in the operator's words, before any field of it.
-const StepLead = styled.p`
-  margin: 4px 0 2px; font-size: 13px; line-height: 1.5; color: rgba(232,232,239,0.72);
-`;
-const WizFoot = styled.div`
-  display: flex; align-items: center; gap: 12px; flex-wrap: wrap; flex: 0 0 auto;
-  padding: 13px 22px; border-top: 1px solid rgba(255,255,255,0.07);
-  background: rgba(255,255,255,0.016);
-`;
-const BackBtn = styled.button`
-  ${baseField} display: inline-flex; align-items: center; gap: 7px; cursor: pointer;
-  flex: 0 0 auto; font-size: 12.5px; font-weight: 600; padding: 8px 14px 8px 12px;
-  &:hover:not(:disabled) { border-color: rgba(120,200,255,0.5); }
-  &:disabled { opacity: 0.32; cursor: default; }
-`;
-// Next stays pressable when a step is incomplete — the click answers WHY in the message
-// bar. A greyed button that won't say what it wants is the same dead end twice.
-const NextBtn = styled.button<{ $blocked: boolean }>`
-  margin-left: auto; flex: 0 0 auto; display: inline-flex; align-items: center; gap: 7px;
-  border: none; border-radius: 8px; padding: 9px 15px 9px 18px;
-  font-size: 13px; font-weight: 650; cursor: pointer;
-  background: ${(p) => (p.$blocked ? "rgba(120,200,255,0.16)" : "#3aa0ff")};
-  color: ${(p) => (p.$blocked ? "#8fc9f5" : "#001a2e")};
-  &:hover:not(:disabled) { background: ${(p) => (p.$blocked ? "rgba(120,200,255,0.24)" : "#58b0ff")}; }
-  &:disabled { opacity: 0.45; cursor: default; }
-`;
-const StepTally = styled.span`
-  font-size: 11.5px; color: rgba(232,232,239,0.4); flex: 0 1 auto;
-`;
-// The whole send in one glance, before the button that spends it.
