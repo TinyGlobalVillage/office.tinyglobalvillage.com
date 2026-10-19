@@ -32,7 +32,8 @@
       "@/lib/helpers/utils": ["../../packages/@tgv/module-core/module-component-library/dist/helpers/utils/index"],
       "@/lib/helpers/utils/*": ["../../packages/@tgv/module-core/module-component-library/dist/helpers/utils/*"],
       "@/lib/i18n/*": ["../../packages/@tgv/module-core/module-cms/i18n/*"],
-      "@tgv/module-component-library/*": ["../../packages/@tgv/module-core/module-component-library/dist/*"]
+      "@tgv/module-component-library/*": ["../../packages/@tgv/module-core/module-component-library/dist/*"],
+      "@tgv/module-dashboard/components/*": ["../../packages/@tgv/module-core/module-dashboard/dist/components/*"]
     }
   },
   "include": [
