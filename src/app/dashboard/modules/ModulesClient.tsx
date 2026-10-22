@@ -28,6 +28,7 @@ import TemplateGalleryPanel from "../../components/modules/TemplateGalleryPanel"
 import ModuleStorefrontPanel from "../../components/modules/ModuleStorefrontPanel";
 import SystemEmailCampaigns from "../email-campaigns/SystemEmailCampaigns";
 import WizardsPanelHost from "../../components/modules/WizardsPanelHost";
+import ComponentLibraryPanel from "../../components/modules/ComponentLibraryPanel";
 
 /* ── Styled (Villagers tile canon, violet accent) ─────────────────── */
 
@@ -169,8 +170,8 @@ const BackBtn = styled.button`
 
 /* ── Page ──────────────────────────────────────────────────────── */
 
-type ModulesView = "grid" | "email" | "templates" | "storefront" | "wizards";
-const VIEWS: ModulesView[] = ["grid", "email", "templates", "storefront", "wizards"];
+type ModulesView = "grid" | "email" | "templates" | "storefront" | "wizards" | "library";
+const VIEWS: ModulesView[] = ["grid", "email", "templates", "storefront", "wizards", "library"];
 
 export default function ModulesClient() {
   const [openMdConfig, setOpenMdConfig] = useState(false);
@@ -289,6 +290,32 @@ export default function ModulesClient() {
   // Template Gallery opens INLINE for the same reason Email Campaigns does —
   // it's a platform-library surface, not a separate destination. Edit hops out
   // to the tgv.com editor in a new tab (see TemplateGalleryPanel's header).
+  // Component Library — the living library is the tgv.com Page Editor in
+  // library mode; this view is the explainer + door (new tab). Decoupled from
+  // the Sandbox on 2026-10-22: the Sandbox stays a lab, the library is fleet.
+  if (view === "library") {
+    return (
+      <>
+        <TopNav />
+        <PageMain>
+          <HeaderRow>
+            <BackBtn type="button" onClick={() => setView("grid")}>← Modules</BackBtn>
+            <TitleWrap>
+              <EditorIcon size={22} style={{ color: colors.violet }} />
+              <PageTitle>Component Library</PageTitle>
+            </TitleWrap>
+          </HeaderRow>
+          <PageSubtitle style={{ marginBottom: "1.25rem" }}>
+            The components every member&apos;s editor picker offers, edited live
+            in the real editor. <strong>Save</strong> keeps a staff draft;
+            <strong> Publish library</strong> ships it to the whole fleet.
+          </PageSubtitle>
+          <ComponentLibraryPanel />
+        </PageMain>
+      </>
+    );
+  }
+
   if (view === "templates") {
     return (
       <>
@@ -408,6 +435,17 @@ export default function ModulesClient() {
                 The page templates members can start a site from — Live, Drafts, or All.
                 Preview each one, edit it in the real editor, or move it to Drafts to pull
                 a vertical out of circulation without deleting the work.
+              </TileSub>
+            </Tile>
+          </TileWrap>
+
+          <TileWrap>
+            <Tile type="button" onClick={() => setView("library")}>
+              <TileTop><EditorIcon size={18} /> Component Library</TileTop>
+              <TileSub>
+                The living library — every picker component, edited in the real
+                editor with its atom layers on the canvas. Re-group by drag, save
+                a staff draft, publish to the whole fleet.
               </TileSub>
             </Tile>
           </TileWrap>
