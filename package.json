@@ -34,6 +34,7 @@
     "@tgv/module-wizards": "workspace:*",
     "@tgv/module-consent": "workspace:*",
     "@tgv/module-docs": "workspace:*",
+    "@tgv/module-sheets": "workspace:*",
     "@tgv/module-documenso": "workspace:*",
     "@tgv/module-domain-console": "workspace:*",
     "@tgv/module-inbox": "workspace:*",

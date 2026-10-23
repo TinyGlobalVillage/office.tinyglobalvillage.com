@@ -6,8 +6,26 @@
 // The open document (?doc=&kind=) and folder (?folder=) ride the URL beside ?view=docs, written
 // with history.replaceState like the rest of ModulesClient — no useSearchParams, no Suspense.
 import { useCallback, useEffect, useState } from "react";
+import styled from "styled-components";
 import { DocEditorWorkspace } from "@tgv/module-docs/dashboard/workspace";
 import type { DocKind } from "@tgv/module-docs/types";
+import { SheetEditor } from "@tgv/module-sheets/sheets";
+
+/**
+ * Fills the rest of the Modules page (a flex column at least a viewport tall) so the workspace's
+ * `height: 100%` means something — a spreadsheet's canvas is measured against its box before the
+ * engine mounts, and inside a content-sized wrapper it came out 0px tall (UAT 2026-10-23).
+ */
+const Frame = styled.div`
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+
+  > * {
+    flex: 1 1 auto;
+  }
+`;
 
 type State = { doc: string | null; kind: DocKind | null; folder: string | null };
 
@@ -46,12 +64,16 @@ export default function DocEditorHost() {
 
   // No dashboardHref: the Modules view draws its own "← Modules" above the workspace.
   return (
-    <DocEditorWorkspace
-      documentId={state.doc}
-      documentKind={state.kind}
-      onDocumentIdChange={onDocumentIdChange}
-      folderId={state.folder}
-      onFolderIdChange={onFolderIdChange}
-    />
+    <Frame>
+      <DocEditorWorkspace
+        documentId={state.doc}
+        documentKind={state.kind}
+        onDocumentIdChange={onDocumentIdChange}
+        folderId={state.folder}
+        onFolderIdChange={onFolderIdChange}
+        // Spreadsheets too (Gio 2026-10-23: "both") — the same injected Univer surface TGV mounts.
+        renderSheet={(p) => <SheetEditor key={p.documentId} {...p} />}
+      />
+    </Frame>
   );
 }
