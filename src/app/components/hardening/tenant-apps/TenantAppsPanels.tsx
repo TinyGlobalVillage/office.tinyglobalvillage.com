@@ -8,7 +8,7 @@
 import { useCallback, useEffect, useState } from "react";
 import styled from "styled-components";
 import { rgb } from "@/app/theme";
-import { askConfirm, showNotice } from "../../dialogService";
+import { askConfirm, askPrompt, showNotice } from "../../dialogService";
 
 export type TenantAppRow = {
   slug: string;
@@ -230,10 +230,11 @@ export function DriftPanel({
 
   const adopt = useCallback(async (e: DriftEntry) => {
     const defaultHost = `${e.pm2Name}.tinyglobalvillage.com`;
-    const hostname = prompt(
-      `Adopt "${e.pm2Name}" into tenant_apps. Hostname?`,
-      defaultHost,
-    );
+    const hostname = await askPrompt({
+      message: `Adopt "${e.pm2Name}" into tenant_apps. Hostname?`,
+      initialValue: defaultHost,
+      confirmLabel: "Adopt",
+    });
     if (!hostname) return;
     setBusy(e.pm2Name);
     try {
