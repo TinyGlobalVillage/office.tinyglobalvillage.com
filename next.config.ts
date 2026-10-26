@@ -31,6 +31,9 @@ const nextConfig: NextConfig = {
     "@tgv/module-registry",
     "@tgv/module-auth",
     "drizzle-orm",
+    // paper.js (the page editor's pathBoolean.ts) runs in the browser only; the server bundle ignores its
+    // "browser" map and would try to resolve jsdom. Same entry as tgv.com's.
+    "paper",
   ],
   webpack: (config) => {
     // @tgv/* source barrels use NodeNext ".js" import specifiers (./members.js);
