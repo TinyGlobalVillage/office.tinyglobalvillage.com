@@ -16,6 +16,7 @@ import { useCallback, useEffect, useState } from "react";
 import styled from "styled-components";
 import { useEscapeToClose } from "@tgv/module-component-library/components/hooks/useEscapeToClose";
 import Lightswitch from "@tgv/module-component-library/components/ui/Lightswitch";
+import { askConfirm } from "../dialogService";
 import { colors, rgb } from "@/app/theme";
 import {
   ModalBackdrop,
@@ -400,11 +401,14 @@ export default function MemberLookupModal({ onClose }: { onClose: () => void }) 
     if (!selected || revokeBusy) return;
     const label = site.client_name ?? site.domain ?? site.id.slice(0, 8);
     if (
-      !window.confirm(
-        `Revoke ${selected.email}'s TGV editing access on “${label}”?\n\n` +
+      !(await askConfirm({
+        message: `Revoke ${selected.email}'s TGV editing access on “${label}”?`,
+        detail:
           "This DELETES their owner access. Re-granting later requires the " +
           "client's consent (dashboard link request + approval).",
-      )
+        confirmLabel: "Revoke",
+        intent: "danger",
+      }))
     )
       return;
     setRevokeBusy(site.id);

@@ -14,6 +14,7 @@ import { useState, useEffect, useRef, type ReactNode } from "react";
 import styled, { css } from "styled-components";
 import { colors, rgb } from "../../theme";
 import TopNav from "../../components/TopNav";
+import { showNotice } from "../../components/dialogService";
 import {
   MembersIcon,
   WalletIcon,
@@ -454,9 +455,9 @@ export default function VillagersClient() {
       const r = await fetch('/api/demo-tgv/operator-link', { method: 'POST' });
       const d = await r.json();
       if (d?.url) window.open(d.url, '_blank', 'noopener');
-      else alert('Could not open DemoTGV — operator link not configured.');
+      else await showNotice({ message: 'Could not open DemoTGV — operator link not configured.' });
     } catch {
-      alert('Could not open DemoTGV.');
+      await showNotice({ message: 'Could not open DemoTGV.' });
     }
   };
 
