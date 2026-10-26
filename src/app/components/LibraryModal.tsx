@@ -19,9 +19,9 @@ import NeonX from "./NeonX";
 import Tooltip from "./ui/Tooltip";
 import SkillLibraryModal from "./SkillLibraryModal";
 import PlaybookLibraryModal from "./PlaybookLibraryModal";
-import SandboxModal from "./sandbox/SandboxModal";
 import UtilsLibraryModal from "./UtilsLibraryModal";
 import GlossaryModal from "./library/glossary/GlossaryModal";
+import { livingLibraryUrl } from "./modules/livingLibraryUrl";
 
 const FsContainer = styled(ModalContainer)<{ $fs: boolean }>`
   ${(p) => p.$fs && `
@@ -74,7 +74,7 @@ const HeaderRight = styled.div`
 `;
 
 const SECTIONS = [
-  { title: "Component Library", body: "Canonical TGV UI primitives — shared catalog with the Sandbox. Open from here to browse; use the Sandbox tile on the dashboard to author.", status: "live" },
+  { title: "Component Library", body: "The living library — every component the fleet's editor picker offers, edited live in the real editor. Opens on tinyglobalvillage.com in a new tab; Save keeps a staff draft, Publish ships to the fleet.", status: "live" },
   { title: "Skill Library", body: "Domain skills the agent can consult: opensrs, fastmail, swisseph, and more as they're added.", status: "live" },
   { title: "Playbook Library", body: "Reusable runbooks: gitrefuse, dep-check, deploy flows, incident response.", status: "live" },
   { title: "Utils Library", body: "Developer & niche tooling — feature worktrees today; default home for new RCS / Office utilities going forward.", status: "live" },
@@ -158,7 +158,6 @@ export default function LibraryModal({
   const [fullscreen, setFullscreen] = useState(false);
   const [skillsOpen, setSkillsOpen] = useState(initialChild === "skills");
   const [playbooksOpen, setPlaybooksOpen] = useState(initialChild === "playbooks");
-  const [componentLibraryOpen, setComponentLibraryOpen] = useState(initialChild === "components");
   const [utilsLibraryOpen, setUtilsLibraryOpen] = useState(initialChild === "utils");
   const [glossaryOpen, setGlossaryOpen] = useState(initialChild === "glossary");
   // A search result names a shelf; open it with the Library, not after it.
@@ -169,7 +168,15 @@ export default function LibraryModal({
   // drop the LibraryModal backdrop below the nested PanelBackdrop (z-index
   // 65 in styled.ts) so the nested modal renders ON TOP. Without this,
   // LibraryModal's z-index 100 covers the nested one.
-  const nestedOpen = componentLibraryOpen || skillsOpen || playbooksOpen || utilsLibraryOpen;
+  // The Component Library card is a DOOR, not a nested modal: the living
+  // library is the tgv.com Page Editor in library mode (new tab, same member
+  // session). Decoupled from the Sandbox 2026-10-22. Called straight from the
+  // click handler so the popup blocker treats it as a user gesture.
+  const openLivingLibrary = () => {
+    window.open(livingLibraryUrl(), "_blank");
+  };
+
+  const nestedOpen = skillsOpen || playbooksOpen || utilsLibraryOpen;
   const backdropStyle = nestedOpen ? { zIndex: 50 } : undefined;
 
   return (
@@ -203,7 +210,7 @@ export default function LibraryModal({
             <Grid>
               {SECTIONS.map((s) => {
                 const onOpen =
-                  s.title === "Component Library" && s.status === "live" ? () => setComponentLibraryOpen(true)
+                  s.title === "Component Library" && s.status === "live" ? openLivingLibrary
                   : s.title === "Skill Library" && s.status === "live" ? () => setSkillsOpen(true)
                   : s.title === "Playbook Library" && s.status === "live" ? () => setPlaybooksOpen(true)
                   : s.title === "Utils Library" && s.status === "live" ? () => setUtilsLibraryOpen(true)
@@ -233,13 +240,6 @@ export default function LibraryModal({
       </ModalBackdrop>
       <SkillLibraryModal open={skillsOpen} onClose={() => setSkillsOpen(false)} />
       {playbooksOpen && <PlaybookLibraryModal onClose={() => setPlaybooksOpen(false)} />}
-      {componentLibraryOpen && (
-        <SandboxModal
-          onClose={() => setComponentLibraryOpen(false)}
-          title="Component Library"
-          surface="library"
-        />
-      )}
       {utilsLibraryOpen && <UtilsLibraryModal onClose={() => setUtilsLibraryOpen(false)} />}
       {glossaryOpen && <GlossaryModal onClose={() => setGlossaryOpen(false)} />}
     </>

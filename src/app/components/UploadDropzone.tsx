@@ -74,6 +74,12 @@ export type UploadDropzoneProps = {
   disabled?: boolean;
   chooseLabel?: string;
   onFiles: (files: FileList) => void;
+  /**
+   * What a click on the zone or its button does INSTEAD of opening the native file picker —
+   * for a caller that first asks "My Documents or disk?" (the e-sign wizard). A drop still
+   * lands in `onFiles`.
+   */
+  onChoose?: () => void;
   /** Extra content below the button (progress bars etc.). */
   children?: ReactNode;
 };
@@ -87,13 +93,16 @@ export default function UploadDropzone({
   disabled = false,
   chooseLabel = "Choose File",
   onFiles,
+  onChoose,
   children,
 }: UploadDropzoneProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
 
   const open = () => {
-    if (!disabled) inputRef.current?.click();
+    if (disabled) return;
+    if (onChoose) onChoose();
+    else inputRef.current?.click();
   };
 
   return (

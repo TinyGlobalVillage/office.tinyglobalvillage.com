@@ -23,11 +23,14 @@ import { ModulesIcon, EditorIcon, SettingsIcon, PhotosIcon } from "../../compone
 // The same glyphs the member dashboard wears for these features — never emoji.
 import { IconEmail } from "@tgv/module-component-library/components/icons/EmailIcon";
 import { IconStorefront } from "@tgv/module-component-library/components/icons/StorefrontIcon";
+import { IconDocEdit } from "@tgv/module-component-library/components/icons/DocEditIcon";
 import ModuleDashboardConfigModal from "../../components/modules/ModuleDashboardConfigModal";
 import TemplateGalleryPanel from "../../components/modules/TemplateGalleryPanel";
 import ModuleStorefrontPanel from "../../components/modules/ModuleStorefrontPanel";
 import SystemEmailCampaigns from "../email-campaigns/SystemEmailCampaigns";
 import WizardsPanelHost from "../../components/modules/WizardsPanelHost";
+import ComponentLibraryPanel from "../../components/modules/ComponentLibraryPanel";
+import DocEditorHost from "../../components/modules/DocEditorHost";
 
 /* ── Styled (Villagers tile canon, violet accent) ─────────────────── */
 
@@ -167,10 +170,11 @@ const BackBtn = styled.button`
   }
 `;
 
+
 /* ── Page ──────────────────────────────────────────────────────── */
 
-type ModulesView = "grid" | "email" | "templates" | "storefront" | "wizards";
-const VIEWS: ModulesView[] = ["grid", "email", "templates", "storefront", "wizards"];
+type ModulesView = "grid" | "email" | "templates" | "storefront" | "wizards" | "library" | "docs";
+const VIEWS: ModulesView[] = ["grid", "email", "templates", "storefront", "wizards", "library", "docs"];
 
 export default function ModulesClient() {
   const [openMdConfig, setOpenMdConfig] = useState(false);
@@ -193,6 +197,8 @@ export default function ModulesClient() {
       const url = new URL(window.location.href);
       if (next === "grid") url.searchParams.delete("view");
       else url.searchParams.set("view", next);
+      // The Doc Editor's open document and folder belong to that view only.
+      if (next !== "docs") for (const k of ["doc", "kind", "folder"]) url.searchParams.delete(k);
       window.history.replaceState({}, "", url);
     } catch {
       /* history is best-effort — never block the view change on it */
@@ -289,6 +295,52 @@ export default function ModulesClient() {
   // Template Gallery opens INLINE for the same reason Email Campaigns does —
   // it's a platform-library surface, not a separate destination. Edit hops out
   // to the tgv.com editor in a new tab (see TemplateGalleryPanel's header).
+  // Component Library — the living library is the tgv.com Page Editor in
+  // library mode; this view is the explainer + door (new tab). Decoupled from
+  // the Sandbox on 2026-10-22: the Sandbox stays a lab, the library is fleet.
+  if (view === "library") {
+    return (
+      <>
+        <TopNav />
+        <PageMain>
+          <HeaderRow>
+            <BackBtn type="button" onClick={() => setView("grid")}>← Modules</BackBtn>
+            <TitleWrap>
+              <EditorIcon size={22} style={{ color: colors.violet }} />
+              <PageTitle>Component Library</PageTitle>
+            </TitleWrap>
+          </HeaderRow>
+          <PageSubtitle style={{ marginBottom: "1.25rem" }}>
+            The components every member&apos;s editor picker offers, edited live
+            in the real editor. <strong>Save</strong> keeps a staff draft;
+            <strong> Publish library</strong> ships it to the whole fleet.
+          </PageSubtitle>
+          <ComponentLibraryPanel />
+        </PageMain>
+      </>
+    );
+  }
+
+  // Doc Editor opens INLINE — the same @tgv/module-docs workspace TGV's Editor tab mounts, on
+  // Office's own /api/user/docs, so both apps open one library with one gear (Gio 2026-10-22).
+  if (view === "docs") {
+    return (
+      <>
+        <TopNav />
+        <PageMain>
+          <HeaderRow>
+            <BackBtn type="button" onClick={() => setView("grid")}>← Modules</BackBtn>
+            <TitleWrap>
+              <IconDocEdit width={22} height={22} style={{ color: colors.violet }} aria-hidden />
+              <PageTitle>Doc Editor</PageTitle>
+            </TitleWrap>
+          </HeaderRow>
+          <DocEditorHost />
+        </PageMain>
+      </>
+    );
+  }
+
   if (view === "templates") {
     return (
       <>
@@ -408,6 +460,28 @@ export default function ModulesClient() {
                 The page templates members can start a site from — Live, Drafts, or All.
                 Preview each one, edit it in the real editor, or move it to Drafts to pull
                 a vertical out of circulation without deleting the work.
+              </TileSub>
+            </Tile>
+          </TileWrap>
+
+          <TileWrap>
+            <Tile type="button" onClick={() => setView("library")}>
+              <TileTop><EditorIcon size={18} /> Component Library</TileTop>
+              <TileSub>
+                The living library — every picker component, edited in the real
+                editor with its atom layers on the canvas. Re-group by drag, save
+                a staff draft, publish to the whole fleet.
+              </TileSub>
+            </Tile>
+          </TileWrap>
+
+          <TileWrap>
+            <Tile type="button" onClick={() => setView("docs")}>
+              <TileTop><IconDocEdit width={18} height={18} aria-hidden /> Doc Editor</TileTop>
+              <TileSub>
+                Documents with the same editor, library and proofing gear as the Village&apos;s
+                Doc Editor — one library across both apps. Staff switch the fleet&apos;s
+                proofing engine from the gear.
               </TileSub>
             </Tile>
           </TileWrap>

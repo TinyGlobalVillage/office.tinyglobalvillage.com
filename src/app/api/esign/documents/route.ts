@@ -33,8 +33,11 @@ import {
 import {
   createAndDistributeMultisigFromPdf,
   retireMultisigDocument,
+  sanitizeManualPlacements,
 } from "@tgv/module-documenso/server/multisig";
+import type { MultisigManualPlacement } from "@tgv/module-documenso/types/multisig";
 import {
+  completionTemplateFrom,
   inviteTemplateFrom,
   renderSigningInvite,
   signingUrl,
@@ -46,8 +49,10 @@ import {
   listSignersForDocuments,
   markSignerSentByEmail,
   setLegalDocumentCertPrefs,
+  setLegalDocumentCompletion,
   setLegalDocumentDelivery,
   setLegalDocumentInvite,
+  recordLegalDocumentEvent,
   rememberSigningToken,
   rememberSignerFieldPlan,
   type InsertSignerInput,
@@ -193,9 +198,9 @@ export async function POST(req: NextRequest) {
   // kind branch (0076): default waiver; multisig carries a JSON signer roster.
   const kind = String(form.get("kind") ?? "waiver") === "multisig" ? "multisig" : "waiver";
   const note = String(form.get("note") ?? "").trim();
-  // "Include certificate page?" (0079) — default true; false = the completion webhook
+  // "Include certificate page?" (0079) — default false (Gio 2026-10-17); false = the completion webhook
   // strips Documenso's appended certificate from the stored copy (sealed original kept).
-  const includeCertificate = String(form.get("includeCertificate") ?? "true") !== "false";
+  const includeCertificate = String(form.get("includeCertificate") ?? "false") === "true";
   // Sequential is the default: Documenso emails only the first signer, then advances the
   // chain natively as each one signs. Completion mail is OURS now — Documenso sends none
   // (DOCUMENT_EMAIL_SETTINGS); deliveryEmails below is who actually receives the signed
@@ -213,6 +218,15 @@ export async function POST(req: NextRequest) {
   const inviteHeading = String(form.get("inviteHeading") ?? "").trim().slice(0, 120);
   const inviteButtonLabel = String(form.get("inviteButtonLabel") ?? "").trim().slice(0, 40);
   const inviteFooter = String(form.get("inviteFooter") ?? "").trim().slice(0, 200);
+  // The follow-up email — the one that carries the signed PDF once everyone has signed
+  // (Gio 2026-10-18: a pillbar for the invitation AND for the finished-document mail).
+  // Stored on the row; the completion webhook renders from it days later.
+  const completionEdits = {
+    subject: String(form.get("completionSubject") ?? "").trim().slice(0, 200),
+    heading: String(form.get("completionHeading") ?? "").trim().slice(0, 120),
+    message: String(form.get("completionMessage") ?? "").trim().slice(0, 4000),
+    footer: String(form.get("completionFooter") ?? "").trim().slice(0, 200),
+  };
   // The signing page's two identity lines (gear → Signing page). A cleared field means
   // "leave that line off the page", so presence is read from the FIELD, never from its
   // value — an absent pair falls back to the house wording, an empty string does not.
@@ -231,8 +245,8 @@ export async function POST(req: NextRequest) {
   // no-reply address and which offers nowhere to reply is a dead end to a human and a
   // spam signal to a filter; DEFAULT_REPLY_TO makes "just send it" the deliverable path.
   const emailReplyTo = replyToInput || DEFAULT_REPLY_TO;
-  let signers: Array<{ email: string; name: string | null }> = [];
-  let deliveryEmails: string[] = [];
+  const signers: Array<{ email: string; name: string | null }> = [];
+  const deliveryEmails: string[] = [];
   if (kind === "multisig") {
     let parsed: unknown;
     try {
@@ -297,25 +311,10 @@ export async function POST(req: NextRequest) {
   // list of signature / initials / full-name / date fields, on whichever pages they drew
   // them. Optional — a signer without an entry keeps the auto-stacked signature+date pair;
   // the module clamps rects and page numbers again server-side.
-  type PlacedRect = { pageX: number; pageY: number; width: number; height: number };
-  type FieldKind = "signature" | "initials" | "name" | "date" | "text" | "number";
-  type PlacedBox = PlacedRect & {
-    kind: FieldKind;
-    pageNumber: number;
-    required?: boolean;
-    label?: string;
-    order?: number;
-  };
-  type PlacementEntry = { signerIndex: number; fields: PlacedBox[] };
-  /** Ceilings, so a runaway client cannot ask Documenso for thousands of fields. */
-  const MAX_FIELDS_PER_SIGNER = 200;
-  const MAX_FIELD_LABEL = 120;
-  const FIELD_KINDS: readonly FieldKind[] = ["signature", "initials", "name", "date", "text", "number"];
-  /** Documenso only honours required:false on these two (its own optional-capable list) —
-   *  a signature or a date is always required there, so `false` on one is dropped here
-   *  rather than sent and silently ignored. */
-  const OPTIONAL_CAPABLE: readonly FieldKind[] = ["text", "number"];
-  const placements: PlacementEntry[] = [];
+  // The operator's boxes, as the placer sent them. The rules (which kinds, which pages, what
+  // "optional" may mean, an empty list falling back to the auto-stack) live in the module,
+  // shared with the member cabinet's send — non-JSON is the only thing refused here.
+  let placements: MultisigManualPlacement[] = [];
   if (kind === "multisig") {
     let pRaw: unknown = [];
     try {
@@ -323,57 +322,7 @@ export async function POST(req: NextRequest) {
     } catch {
       return NextResponse.json({ error: "placements must be a JSON array" }, { status: 400 });
     }
-    const rectOf = (v: unknown): PlacedRect | null => {
-      const r = v as { pageX?: unknown; pageY?: unknown; width?: unknown; height?: unknown };
-      const nums = [r?.pageX, r?.pageY, r?.width, r?.height].map(Number);
-      if (nums.some((n) => !Number.isFinite(n))) return null;
-      const [pageX, pageY, width, height] = nums;
-      if (width <= 0 || height <= 0 || pageX < 0 || pageY < 0 || pageX > 100 || pageY > 100) return null;
-      return { pageX, pageY, width, height };
-    };
-    const seenIdx = new Set<number>();
-    for (const raw of Array.isArray(pRaw) ? pRaw : []) {
-      const e = raw as { signerIndex?: unknown; fields?: unknown };
-      const idx = Number(e?.signerIndex);
-      if (!Number.isInteger(idx) || idx < 0 || idx >= signers.length) continue;
-      if (seenIdx.has(idx)) continue;
-      const fields: PlacementEntry["fields"] = [];
-      for (const fRaw of Array.isArray(e?.fields) ? e.fields : []) {
-        const f = fRaw as {
-          kind?: unknown;
-          pageNumber?: unknown;
-          required?: unknown;
-          label?: unknown;
-          order?: unknown;
-        };
-        const k = String(f?.kind) as FieldKind;
-        const page = Number(f?.pageNumber);
-        const rect = rectOf(fRaw);
-        if (!FIELD_KINDS.includes(k)) continue;
-        if (!Number.isInteger(page) || page < 1 || page > 5000) continue;
-        if (!rect) continue;
-        const optional = f?.required === false && OPTIONAL_CAPABLE.includes(k);
-        const label = typeof f?.label === "string" ? f.label.trim().slice(0, MAX_FIELD_LABEL) : "";
-        const order = Number(f?.order);
-        fields.push({
-          kind: k,
-          pageNumber: page,
-          ...rect,
-          ...(optional ? { required: false } : {}),
-          ...(label ? { label } : {}),
-          ...(Number.isInteger(order) && order >= 0 && order < MAX_FIELDS_PER_SIGNER
-            ? { order }
-            : {}),
-        });
-        if (fields.length >= MAX_FIELDS_PER_SIGNER) break;
-      }
-      // A signer with nothing left to fill in could never finish signing, and a stalled
-      // signer stalls the whole chain — so an empty list falls back to the auto-stack
-      // rather than being sent as-is.
-      if (!fields.length) continue;
-      seenIdx.add(idx);
-      placements.push({ signerIndex: idx, fields });
-    }
+    placements = sanitizeManualPlacements(pRaw, signers.length);
   }
 
   // 1) Create the legal_documents row (Office origin).
@@ -425,6 +374,13 @@ export async function POST(req: NextRequest) {
     // Store the invitation BEFORE anything is mailed: it is also the flag that says we own
     // this chain, and the webhook must never advance a document it thinks Documenso runs.
     await setLegalDocumentInvite(db, doc.id, invite);
+    await setLegalDocumentCompletion(db, doc.id, completionTemplateFrom(title, completionEdits)).catch(() => {});
+    await recordLegalDocumentEvent(db, {
+      legalDocumentId: doc.id,
+      kind: "created",
+      actorEmail: (await readStaff()).find((x) => x.username === auth.username)?.email ?? null,
+      detail: { by: auth.username, signers: signers.length, sequential, delivery: deliveryEmails },
+    }).catch(() => {});
 
     const recipientByEmail = new Map(result.recipients.map((r) => [r.email, r.recipientId]));
     const signerInputs: InsertSignerInput[] = [];
@@ -498,6 +454,12 @@ export async function POST(req: NextRequest) {
       }
       await markSignerSentByEmail(db, result.documensoDocumentId, s.email).catch(() => {});
       invited.push(s.email);
+      await recordLegalDocumentEvent(db, {
+        legalDocumentId: doc.id,
+        kind: "invited",
+        actorEmail: s.email,
+        detail: { order: signers.findIndex((x) => x.email === s.email) + 1 },
+      }).catch(() => {});
     }
 
     // Outbox rows so the Activity view shows each dispatch that actually happened.

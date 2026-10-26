@@ -160,7 +160,7 @@ export type OfficeChildDef = {
 
 export const OFFICE_CHILDREN: OfficeChildDef[] = [
   // Library → its shelves
-  { key: "ComponentLibrary", title: "Component Library", subtitle: "in Library · catalog", parent: "Library", detail: "components" },
+  { key: "ComponentLibrary", title: "Component Library", subtitle: "in Library · opens the living library", parent: "Library", detail: "components" },
   { key: "SkillLibrary", title: "Skill Library", subtitle: "in Library · agent skills", parent: "Library", detail: "skills" },
   { key: "PlaybookLibrary", title: "Playbook Library", subtitle: "in Library · runbooks", parent: "Library", detail: "playbooks" },
   { key: "UtilsLibrary", title: "Utils Library", subtitle: "in Library · tooling", parent: "Library", detail: "utils" },
@@ -174,6 +174,7 @@ export const OFFICE_CHILDREN: OfficeChildDef[] = [
   { key: "TemplateGallery", title: "Template Gallery", subtitle: "in Modules · browse + review", parent: "Modules", detail: "templates" },
   { key: "EmailCampaigns", title: "Email Campaigns", subtitle: "in Modules · sends & lists", parent: "Modules", detail: "email" },
   { key: "Wizards", title: "Wizards", subtitle: "in Modules · every guided flow, on a board", parent: "Modules", detail: "wizards" },
+  { key: "LivingComponentLibrary", title: "Component Library", subtitle: "in Modules · the living library, edited live", parent: "Modules", detail: "library" },
 
   // Utils → every modal tile in the ADDM sections. `detail` is the TileSpec
   // type / HardeningKind the Utils page already switches on, so the ?view=

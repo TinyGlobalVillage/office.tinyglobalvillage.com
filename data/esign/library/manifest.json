@@ -1,0 +1,5 @@
+{
+  "agreement-1-signer.pdf": { "title": "Agreement — 1 signer", "signers": 1, "pages": 3 },
+  "agreement-2-signers.pdf": { "title": "Agreement — 2 signers", "signers": 2, "pages": 3 },
+  "agreement-3-signers.pdf": { "title": "Agreement — 3 signers", "signers": 3, "pages": 3 }
+}
