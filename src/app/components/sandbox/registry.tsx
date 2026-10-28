@@ -9,6 +9,7 @@ import TPG from "@tgv/module-component-library/components/ui/TPG";
 import AddmToggle from "@tgv/module-component-library/components/ui/AddmToggle";
 import TgvBalloon from "@tgv/module-component-library/components/tgv-v5/brand/TgvBalloon";
 import PillBar from "@tgv/module-component-library/components/ui/PillBar";
+import ThreeDSwitch from "@tgv/module-component-library/components/ui/ThreeDSwitch";
 import GPG from "@tgv/module-component-library/components/ui/GPG";
 import ExploreFeaturesModal, {
   type ExploreFeatureDef,
@@ -1300,6 +1301,25 @@ function LightswitchSwitch({ on, onChange, highlighted }: { on: boolean; onChang
     <LsTrack onClick={() => onChange(!on)} $on={on} $highlighted={highlighted}>
       <LsThumb $on={on} $highlighted={highlighted} />
     </LsTrack>
+  );
+}
+
+function ThreeDSwitchDemo() {
+  const [sky, setSky] = useState(false);
+  const [edit, setEdit] = useState(true);
+  return (
+    <LsWrap>
+      <MutedRow>
+        <MutedLabel>Sky mode</MutedLabel>
+        <ThreeDSwitch on={sky} onChange={setSky} label="Sky mode" />
+      </MutedRow>
+      <Highlight label="3D-Switch">
+        <LsHighlightRow>
+          <LsExpandLabel>Edit mode</LsExpandLabel>
+          <ThreeDSwitch on={edit} onChange={setEdit} label="Edit mode" />
+        </LsHighlightRow>
+      </Highlight>
+    </LsWrap>
   );
 }
 
@@ -3985,6 +4005,22 @@ const [name, setName] = useState("");
 />`,
     stylePath: "src/app/dashboard/page.tsx",
     Demo: ACRDemo,
+  },
+  {
+    key: "3DSwitch",
+    tier: "atom",
+    name: "3D-Switch",
+    category: "Toggles",
+    summary: "The bezelled O|I rocker that tips toward the active face; the lit I face glows the accent. Canonized from the sky-mode rocker on the Human Design chart. Use it for a MODE that changes how a whole surface behaves (sky mode, Edit mode on the Nav logo card).",
+    usage: "Do NOT use for collapse/expand or plain on/off values — that's the Lightswitch — nor for show/hide, which is the Eye Icon. Label is the tooltip (≤25 chars) and the aria-label.",
+    code: `<ThreeDSwitch
+  on={editMode}
+  onChange={setEditMode}
+  label="Edit mode"
+  accent="#ffa22e"
+/>`,
+    stylePath: "packages/@tgv/module-core/module-component-library/components/ui/ThreeDSwitch.tsx",
+    Demo: ThreeDSwitchDemo,
   },
   {
     key: "DTog",
