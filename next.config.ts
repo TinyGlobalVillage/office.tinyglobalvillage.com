@@ -35,7 +35,7 @@ const nextConfig: NextConfig = {
     // "browser" map and would try to resolve jsdom. Same entry as tgv.com's.
     "paper",
   ],
-  webpack: (config) => {
+  webpack: (config, { dev }) => {
     // @tgv/* source barrels use NodeNext ".js" import specifiers (./members.js);
     // map ".js" → try ".ts"/".tsx" first so the proxy/edge bundle resolves them.
     config.resolve.extensionAlias = {
@@ -48,6 +48,8 @@ const nextConfig: NextConfig = {
     // module graph (likely via the shared dashboard layout), not merely mis-chunked. Reverted.
     // The real fix is finding + lazy-loading that transitive import (needs a browser profile) —
     // tracked as a separate Office bundle-perf task.
+    // Production builds keep a week of webpack cache, not the default 60 days — same as tgv.com's.
+    if (!dev && config.cache && typeof config.cache === "object") config.cache.maxAge = 7 * 24 * 3600 * 1000;
     return config;
   },
 };
