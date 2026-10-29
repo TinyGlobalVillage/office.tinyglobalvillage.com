@@ -25,6 +25,7 @@ const DomainConsoleControlModal = dynamic(() => import("../../components/domain-
 const ESignControlModal = dynamic(() => import("../../components/esign/ESignControlModal"), { ssr: false });
 const DocumentsVaultModal = dynamic(() => import("../../components/esign/DocumentsVaultModal"), { ssr: false });
 const BuildGuardControlModal = dynamic(() => import("../../components/hardening/build-guard/BuildGuardControlModal"), { ssr: false });
+const DeployWatcherControlModal = dynamic(() => import("../../components/hardening/deploy-watcher/DeployWatcherControlModal"), { ssr: false });
 const TsserverControlModal = dynamic(() => import("../../components/hardening/tsserver/TsserverControlModal"), { ssr: false });
 const DomainDnsControlModal = dynamic(() => import("../../components/hardening/domain-dns/DomainDnsControlModal"), { ssr: false });
 const KeycloakControlModal = dynamic(() => import("../../components/hardening/keycloak/KeycloakControlModal"), { ssr: false });
@@ -1878,6 +1879,22 @@ function UtilsAdlSurface({
                         </HardeningTileSub>
                       </HardeningTile>
                     );
+                    if (tile.type === "deploy-watcher") return (
+                      <HardeningTile key={i} type="button" onClick={() => onOpenHardening("deploy-watcher")}>
+                        <HardeningTileTop>
+                          <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: "-2px", marginRight: 8 }}>
+                            <path d="M12 3v12" />
+                            <path d="M7 10l5 5 5-5" />
+                            <path d="M4 19h16" />
+                          </svg>
+                          Deploy Watcher
+                        </HardeningTileTop>
+                        <HardeningTileSub>
+                          Builds on the Mac whenever main moves and stages the result on RCS. It never
+                          promotes: Deploy and Rollback live on the Deploy page. Pause it or tune its timing.
+                        </HardeningTileSub>
+                      </HardeningTile>
+                    );
                     if (tile.type === "build-guard") return (
                       <HardeningTile key={i} type="button" onClick={() => onOpenHardening("build-guard")}>
                         <HardeningTileTop>
@@ -2119,7 +2136,7 @@ type DefaultsOverlay = Record<string, Record<string, FieldValue>>;
 
 // Runtime list, not just a union: the ?view= deep-link reader has to validate a
 // string off the URL, and a second hand-kept list would drift.
-const HARDENING_KINDS = ["telephony", "tenant-apps", "member-auth", "office-staff", "mesh-vpn", "invitations", "firewall", "build-guard", "tsserver", "keycloak", "demo-mode", "domain-dns", "box-usage", "meet-captions", "commerce-readiness"] as const;  // | "postgres" | "ssh" | "nginx" — future
+const HARDENING_KINDS = ["telephony", "tenant-apps", "member-auth", "office-staff", "mesh-vpn", "invitations", "firewall", "build-guard", "deploy-watcher", "tsserver", "keycloak", "demo-mode", "domain-dns", "box-usage", "meet-captions", "commerce-readiness"] as const;  // | "postgres" | "ssh" | "nginx" — future
 type HardeningKind = (typeof HARDENING_KINDS)[number];
 
 // ── Link Tools (TinyURL + QR generators) ──────────────────────────────────
@@ -2161,6 +2178,7 @@ type TileSpec =
   | { type: "invitations" }
   | { type: "firewall" }
   | { type: "build-guard" }
+  | { type: "deploy-watcher" }
   | { type: "domain-dns" }
   | { type: "tsserver" }
   | { type: "box-usage" }
@@ -2215,7 +2233,7 @@ const SECTIONS: Section[] = [
     kind: "actions", actionIds: ["gitrepo", "gitdelrepo"] },
   { id: "hardening", title: "Hardening", accent: "cyan",
     subtitle: "defensive mechanisms installed on RCS — controls + status + audit log",
-    kind: "tiles", tiles: [{ type: "firewall" }, { type: "telephony" }, { type: "tenant-apps" }, { type: "commerce-readiness" }, { type: "member-auth" }, { type: "keycloak" }, { type: "office-staff" }, { type: "mesh-vpn" }, { type: "invitations" }, { type: "build-guard" }, { type: "tsserver" }, { type: "box-usage" }, { type: "domain-dns" }] },
+    kind: "tiles", tiles: [{ type: "firewall" }, { type: "telephony" }, { type: "tenant-apps" }, { type: "commerce-readiness" }, { type: "member-auth" }, { type: "keycloak" }, { type: "office-staff" }, { type: "mesh-vpn" }, { type: "invitations" }, { type: "build-guard" }, { type: "deploy-watcher" }, { type: "tsserver" }, { type: "box-usage" }, { type: "domain-dns" }] },
   { id: "linktools", title: "Link Tools", accent: "cyan",
     subtitle: "shorten URLs and generate scannable QR codes — pair them for printable mini-flyers",
     kind: "tiles", tiles: [{ type: "tinyurl" }, { type: "qrcode" }] },
@@ -2777,6 +2795,9 @@ export default function UtilsPage() {
       )}
       {openHardening === "build-guard" && (
         <BuildGuardControlModal onClose={() => setOpenHardening(null)} />
+      )}
+      {openHardening === "deploy-watcher" && (
+        <DeployWatcherControlModal onClose={() => setOpenHardening(null)} />
       )}
 
       {openHardening === "tsserver" && (

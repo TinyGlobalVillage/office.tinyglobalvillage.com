@@ -8,6 +8,7 @@ import TopNav from "../../components/TopNav";
 import { usePreview } from "../../components/PreviewDrawer";
 import dynamic from "next/dynamic";
 import TPG from "@tgv/module-component-library/components/ui/TPG";
+import ReleasePanel from "../../components/deploy/ReleasePanel";
 
 const DeployTargetsControlModal = dynamic(
   () => import("../../components/hardening/deploy-targets/DeployTargetsControlModal"),
@@ -578,6 +579,8 @@ export default function DeployPage() {
             <RefreshBtn onClick={load}>↺ Refresh</RefreshBtn>
           </HeaderActions>
         </HeaderRow>
+
+        <ReleasePanel />
 
         {/* DDM */}
         <DdmWrap ref={sbdmRef}>
