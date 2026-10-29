@@ -106,7 +106,7 @@ export type ReleaseState =
   | "promoting" | "live" | "rolled_back" | "failed" | "blocked"
   | "resolving" | "done"; // the last two: the legacy "Build now" job
 
-export type Stamp = { mono: string | null; client: string | null; upstream: string | null; at: string | null; host: string | null };
+export type Stamp = { mono: string | null; client: string | null; upstream: string | null; at: string | null; host: string | null; run?: string | null };
 export type Smoke = { ok: boolean; code: string; secs: number; at: string; url: string };
 export type Rollback = { at: string; by: string; from: Stamp | null; to: Stamp | null };
 export type ReleaseStatus = {
@@ -222,7 +222,7 @@ export function readStamp(client: string, slot: ".next" | ".next.incoming" | ".n
   const get = (k: string) => txt.match(new RegExp(`^${k}=(.*)$`, "m"))?.[1]?.trim() || null;
   let at = get("at");
   if (!at) { try { at = fs.statSync(`${dir}/BUILD_ID`).mtime.toISOString(); } catch { /* */ } }
-  return { mono: get("mono"), client: get("client"), upstream: get("upstream"), at, host: get("host") };
+  return { mono: get("mono"), client: get("client"), upstream: get("upstream"), at, host: get("host"), run: get("run") };
 }
 
 /** The release targets in display order: each target, then whoever follows it. */

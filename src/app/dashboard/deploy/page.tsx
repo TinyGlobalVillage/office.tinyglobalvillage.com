@@ -9,6 +9,7 @@ import { usePreview } from "../../components/PreviewDrawer";
 import dynamic from "next/dynamic";
 import TPG from "@tgv/module-component-library/components/ui/TPG";
 import ReleasePanel from "../../components/deploy/ReleasePanel";
+import BenchPanel from "../../components/deploy/BenchPanel";
 
 const DeployTargetsControlModal = dynamic(
   () => import("../../components/hardening/deploy-targets/DeployTargetsControlModal"),
@@ -581,6 +582,7 @@ export default function DeployPage() {
         </HeaderRow>
 
         <ReleasePanel />
+        <BenchPanel />
 
         {/* DDM */}
         <DdmWrap ref={sbdmRef}>
