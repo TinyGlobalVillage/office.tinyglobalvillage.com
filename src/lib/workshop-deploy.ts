@@ -109,6 +109,12 @@ export type ReleaseState =
 export type Stamp = { mono: string | null; client: string | null; upstream: string | null; at: string | null; host: string | null };
 export type Smoke = { ok: boolean; code: string; secs: number; at: string; url: string };
 export type Rollback = { at: string; by: string; from: Stamp | null; to: Stamp | null };
+/** One migration file the staged build would apply (rcs-migrate.sh --plan). */
+export type PendingMigration = {
+  file: string; sha256: string; destructive: boolean; approved: boolean;
+  statements: string[]; databases: string[];
+};
+export type MigrationRun = { at: string; by: string; result: { applied?: number; failed?: { file: string; db: string } }; log: string };
 export type ReleaseStatus = {
   client: string;
   follows: string | null;
@@ -124,6 +130,9 @@ export type ReleaseStatus = {
   lastError: string | null;
   promoteBy: string | null;
   log: string | null;
+  pendingMigrations: PendingMigration[];
+  migrations: MigrationRun | null;
+  liveTag: string | null;
 };
 export type WatcherConfig = {
   enabled: boolean;
@@ -253,7 +262,67 @@ export function readRelease(client: string, follows: string | null = null): Rele
     lastError: j.lastError ?? null,
     promoteBy: j.promoteBy ?? null,
     log: j.log ?? null,
+    pendingMigrations: Array.isArray(j.pendingMigrations) ? j.pendingMigrations : [],
+    migrations: j.migrations && typeof j.migrations === "object" ? j.migrations : null,
+    liveTag: typeof j.liveTag === "string" ? j.liveTag : null,
   };
+}
+
+// ---------------------------------------------------------------------------
+// Migration approval (Decision 1, 2026-10-31). rcs-migrate.sh applies additive
+// files on its own; a DESTRUCTIVE one (DROP TABLE/COLUMN/SCHEMA/TYPE, ALTER …
+// DROP/TYPE, TRUNCATE) waits until its exact sha256 is in this file. Approving
+// is a superadmin act on the tile, logged like a promote. The sha is what gets
+// approved, not the name: a file edited after approval is unapproved again.
+// ---------------------------------------------------------------------------
+const approvalFile = (client: string) => `${DEPLOY_DIR}/${client}.migrations-approved.json`;
+export type MigrationApprovals = { files: Record<string, string>; by?: string; at?: string; history?: Array<{ file: string; sha256: string; by: string; at: string }> };
+const MIG_FILE_RE = /^(manual\/)?[A-Za-z0-9][A-Za-z0-9._-]*\.sql$/;
+const SHA256_RE = /^[0-9a-f]{64}$/;
+
+export function readMigrationApprovals(client: string): MigrationApprovals {
+  try {
+    const j = JSON.parse(fs.readFileSync(approvalFile(client), "utf8"));
+    return { files: j.files && typeof j.files === "object" ? j.files : {}, by: j.by, at: j.at, history: Array.isArray(j.history) ? j.history : [] };
+  } catch { return { files: {}, history: [] }; }
+}
+
+/**
+ * Approve the destructive migrations the staged build is waiting on. Only
+ * files the status file currently lists as pending+destructive are accepted,
+ * each with the sha the operator saw — so an approval can never reach a file
+ * that was not on the tile.
+ */
+export function approveMigrations(client: string, by: string, files: Array<{ file: string; sha256: string }>): string[] {
+  if (!SITE_RE.test(client)) throw new Error("invalid client name");
+  const pending = readRelease(client).pendingMigrations.filter((p) => p.destructive);
+  const ok: string[] = [];
+  const cur = readMigrationApprovals(client);
+  const now = new Date().toISOString();
+  for (const f of files) {
+    if (!MIG_FILE_RE.test(f.file) || !SHA256_RE.test(f.sha256)) continue;
+    const p = pending.find((x) => x.file === f.file && x.sha256 === f.sha256);
+    if (!p) continue;
+    cur.files[f.file] = f.sha256;
+    (cur.history ??= []).push({ file: f.file, sha256: f.sha256, by: safeBy(by), at: now });
+    ok.push(f.file);
+  }
+  if (!ok.length) throw new Error("nothing to approve — the staged plan changed, refresh and look again");
+  cur.by = safeBy(by); cur.at = now;
+  cur.history = cur.history!.slice(-200);
+  fs.mkdirSync(DEPLOY_DIR, { recursive: true });
+  const tmp = `${approvalFile(client)}.${process.pid}.tmp`;
+  fs.writeFileSync(tmp, JSON.stringify(cur, null, 2) + "\n");
+  fs.renameSync(tmp, approvalFile(client));
+  // reflect it on the tile without waiting for the next --accept / promote
+  const st = readStatusFile(client) as Record<string, any>;
+  if (Array.isArray(st.pendingMigrations)) {
+    mergeStatus(client, {
+      pendingMigrations: st.pendingMigrations.map((p: PendingMigration) => (ok.includes(p.file) ? { ...p, approved: true } : p)),
+      ...(st.state === "blocked" ? { state: "staged", phase: "staged — migrations approved, waiting for deploy" } : {}),
+    });
+  }
+  return ok;
 }
 
 export function readReleases(): ReleaseStatus[] {
