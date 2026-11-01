@@ -9,6 +9,7 @@
 //   - /etc/cron.d/rcs-backups{,.disabled} existence (cron-active)
 //   - file existence checks for restic password + GPG pubkey (no values)
 //   - `restic snapshots --json` for live repo state (best-effort, may time out)
+//   - pg_stat_archiver + `pgbackrest info --output=json` for the PITR tier
 
 import { NextRequest, NextResponse } from "next/server";
 import { promises as fs } from "fs";
@@ -104,6 +105,69 @@ async function getCachedResticState() {
   return { snapshots, stats, cached: false };
 }
 
+/* ── Point-in-time recovery (pgBackRest) ──────────────────────────────
+ * Tier "pitr": continuous WAL archiving + full/diff base backups to two
+ * repos (1 = local /var/lib/pgbackrest, 2 = rsync.net sftp, encrypted).
+ * Archiving stays OFF until `pg-pitr-enable.sh --yes` restarts Postgres,
+ * so "configured but not archiving" is a normal, reported state.
+ */
+type PitrRepo = { key: number; status: string; cipher: string; backups: number;
+  latestLabel: string | null; latestType: string | null; latestTime: string | null; repoSizeBytes: number };
+type PitrState = {
+  installed: boolean; archiveMode: string | null; walLevel: string | null;
+  archiver: { archivedCount: number; lastArchivedTime: string | null; failedCount: number; lastFailedTime: string | null } | null;
+  repos: PitrRepo[]; walMin: string | null; walMax: string | null; error: string | null;
+};
+let pitrCache: { state: PitrState; at: number; mtime: number } | null = null;
+
+async function pitrState(): Promise<PitrState> {
+  const out: PitrState = { installed: false, archiveMode: null, walLevel: null, archiver: null,
+    repos: [], walMin: null, walMax: null, error: null };
+  try {
+    const { stdout } = await pexec(
+      `sudo -n -u postgres psql -qAtX -F '|' -c "select current_setting('archive_mode'), current_setting('wal_level'), archived_count, coalesce(last_archived_time::text,''), failed_count, coalesce(last_failed_time::text,'') from pg_stat_archiver"`,
+      { timeout: 8000 },
+    );
+    const [am, wl, ac, lat, fc, lft] = stdout.trim().split("|");
+    out.archiveMode = am || null;
+    out.walLevel = wl || null;
+    out.archiver = { archivedCount: Number(ac) || 0, lastArchivedTime: lat || null,
+      failedCount: Number(fc) || 0, lastFailedTime: lft || null };
+  } catch (e) { out.error = e instanceof Error ? e.message : String(e); }
+  try {
+    const { stdout } = await pexec("sudo -n -u postgres pgbackrest --stanza=main --output=json info", { timeout: 45000 });
+    const stanza = JSON.parse(stdout)?.[0];
+    out.installed = !!stanza;
+    type B = { label: string; type: string; timestamp?: { stop?: number }; database?: { "repo-key"?: number };
+      info?: { repository?: { delta?: number } } };
+    const backups: B[] = stanza?.backup ?? [];
+    for (const r of (stanza?.repo ?? []) as Array<{ key: number; cipher: string; status?: { message?: string } }>) {
+      const mine = backups.filter((b) => b.database?.["repo-key"] === r.key);
+      const last = mine[mine.length - 1];
+      out.repos.push({
+        key: r.key, status: r.status?.message ?? "unknown", cipher: r.cipher, backups: mine.length,
+        latestLabel: last?.label ?? null, latestType: last?.type ?? null,
+        latestTime: last?.timestamp?.stop ? new Date(last.timestamp.stop * 1000).toISOString() : null,
+        repoSizeBytes: mine.reduce((n, b) => n + (b.info?.repository?.delta ?? 0), 0),
+      });
+    }
+    const arch = (stanza?.archive ?? []) as Array<{ min: string | null; max: string | null }>;
+    out.walMin = arch.map((a) => a.min).filter(Boolean).sort()[0] ?? null;
+    out.walMax = arch.map((a) => a.max).filter(Boolean).sort().pop() ?? null;
+  } catch (e) {
+    out.error = out.error ?? (e instanceof Error ? e.message : String(e));
+  }
+  return out;
+}
+
+async function getCachedPitr(): Promise<PitrState> {
+  const mtime = await manifestMtime();
+  if (pitrCache && pitrCache.mtime === mtime && Date.now() - pitrCache.at < TIME_TTL_MS) return pitrCache.state;
+  const state = await pitrState();
+  pitrCache = { state, at: Date.now(), mtime };
+  return state;
+}
+
 export async function GET(req: NextRequest) {
   const gate = await requireAdmin(req);
   if (gate instanceof NextResponse) return gate;
@@ -122,7 +186,7 @@ export async function GET(req: NextRequest) {
 
   // Latest run per tier (from manifest)
   const lastRunByTier: Record<string, { timestamp: string; status: string; snapshotId?: string; sizeBytes?: number } | null> = {
-    tier1: null, tier2: null, tier4: null,
+    tier1: null, tier2: null, tier4: null, pitr: null,
   };
   for (const entry of manifest as Array<{ tier?: string; timestamp: string; status: string; snapshot_id?: string; total_size_bytes?: number }>) {
     if (!entry.tier) continue;
@@ -139,7 +203,7 @@ export async function GET(req: NextRequest) {
 
   // Live repo state — cached server-side, invalidated on manifest mtime change
   // (i.e., whenever a backup just ran). Falls back to 5min TTL.
-  const { snapshots, stats, cached } = await getCachedResticState();
+  const [{ snapshots, stats, cached }, pitr] = await Promise.all([getCachedResticState(), getCachedPitr()]);
 
   return NextResponse.json({
     _cached: cached,
@@ -162,6 +226,7 @@ export async function GET(req: NextRequest) {
       totalSizeBytes: stats.totalSizeBytes,
       error: snapshots.error || stats.error || null,
     },
+    pitr,
     restoreTest: {
       runs: restoreTest.length,
       latest: restoreTest[restoreTest.length - 1] ?? null,
