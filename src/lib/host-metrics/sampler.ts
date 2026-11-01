@@ -31,6 +31,7 @@ import {
 } from "../db-host-metrics";
 import { evaluateAlert } from "./alerts";
 import { evaluateHealth } from "./health";
+import { evaluateMaintenance } from "../rcs-maintenance/maintenance";
 import { computeCapacity, type HostSample } from "./compute";
 import { hostName, readConfig } from "./config";
 import { readSample, resetBaseline } from "./read";
@@ -146,6 +147,15 @@ async function tick(): Promise<void> {
     } catch (err) {
       s.lastHealthError = err instanceof Error ? err.message : String(err);
     }
+  }
+  // RCS Maintenance (reboot / updates notices) — its own try and its own
+  // switch: a notice that keeps repeating must not depend on health checks
+  // being on, and a failure here must cost neither of the above.
+  try {
+    await evaluateMaintenance();
+    s.lastMaintenanceError = null;
+  } catch (err) {
+    s.lastMaintenanceError = err instanceof Error ? err.message : String(err);
   }
   schedule(readConfig().sampleIntervalMs);
 }
