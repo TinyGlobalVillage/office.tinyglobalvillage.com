@@ -133,6 +133,29 @@ export type ReleaseStatus = {
   pendingMigrations: PendingMigration[];
   migrations: MigrationRun | null;
   liveTag: string | null;
+  request: PromoteRequest | null;
+};
+/**
+ * A durable "deploy" (utils/scripts/build-pipeline/deploy-request.sh, 2026-11-01): filed by
+ * `mac-deploy --promote --wait` when main is not staged yet; fulfilled by that waiter or, once
+ * it is gone, by deploy-watch; expires after requestTtlMin; cancellable here.
+ */
+export type PromoteRequest = {
+  client: string;
+  status: "waiting" | "promoting" | "done" | "failed" | "expired" | "cancelled";
+  by: string[];
+  at: string;
+  expiresAt: string;
+  ttlMin: number;
+  wantMono: string | null;
+  wantClient: string | null;
+  pid: number | null;
+  host: string | null;
+  claimedBy?: string | null;
+  claimedAt?: string | null;
+  finishedAt?: string | null;
+  finishedBy?: string | null;
+  note?: string | null;
 };
 export type WatcherConfig = {
   enabled: boolean;
@@ -140,6 +163,8 @@ export type WatcherConfig = {
   debounceSec: number;
   maxBuildsPerHour: number;
   smokeTimeoutSec: number;
+  /** A queued "deploy" (deploy-request.sh) expires after this many minutes, with an alert. */
+  requestTtlMin: number;
   targets: string[];
   follow: Record<string, string[]>;
   updatedBy?: string;
@@ -148,7 +173,7 @@ export type WatcherConfig = {
 export type WatcherHealth = { online: boolean; host: string | null; at: string | null; enabled: boolean | null; pollSec: number | null };
 
 export const WATCHER_DEFAULTS: WatcherConfig = {
-  enabled: true, pollSec: 30, debounceSec: 60, maxBuildsPerHour: 6, smokeTimeoutSec: 60,
+  enabled: true, pollSec: 30, debounceSec: 60, maxBuildsPerHour: 6, smokeTimeoutSec: 60, requestTtlMin: 30,
   targets: ["tinyglobalvillage.com", "office.tinyglobalvillage.com"],
   follow: { "tinyglobalvillage.com": ["demo-hq"] },
 };
@@ -174,6 +199,7 @@ export function sanitizeWatcherConfig(c: Partial<WatcherConfig> | null | undefin
     debounceSec: clamp(c?.debounceSec, d.debounceSec, 0, 3600),
     maxBuildsPerHour: clamp(c?.maxBuildsPerHour, d.maxBuildsPerHour, 1, 30),
     smokeTimeoutSec: clamp(c?.smokeTimeoutSec, d.smokeTimeoutSec, 10, 600),
+    requestTtlMin: clamp(c?.requestTtlMin, d.requestTtlMin, 5, 240),
     targets,
     follow,
     updatedBy: c?.updatedBy,
@@ -265,7 +291,69 @@ export function readRelease(client: string, follows: string | null = null): Rele
     pendingMigrations: Array.isArray(j.pendingMigrations) ? j.pendingMigrations : [],
     migrations: j.migrations && typeof j.migrations === "object" ? j.migrations : null,
     liveTag: typeof j.liveTag === "string" ? j.liveTag : null,
+    request: readPromoteRequest(client),
   };
+}
+
+// ---------------------------------------------------------------------------
+// Durable deploy requests (pipeline control, 2026-11-01). The file is written by
+// deploy-request.sh under a mkdir lock; Office takes the same lock to cancel.
+// ---------------------------------------------------------------------------
+const requestFile = (client: string) => `${DEPLOY_DIR}/${client}.promote-request.json`;
+const REQUEST_HISTORY = `${DEPLOY_DIR}/promote-requests.jsonl`;
+
+/** The client's request while it is open (waiting/promoting) or closed within the last day. */
+export function readPromoteRequest(client: string): PromoteRequest | null {
+  if (!SITE_RE.test(client)) return null;
+  try {
+    const j = JSON.parse(fs.readFileSync(requestFile(client), "utf8")) as PromoteRequest;
+    if (!j || typeof j.status !== "string") return null;
+    if (j.status === "waiting" || j.status === "promoting") return j;
+    const fin = Date.parse(j.finishedAt ?? "");
+    return Number.isFinite(fin) && Date.now() - fin < 86_400_000 ? j : null;
+  } catch { return null; }
+}
+
+/** Request history, newest first (the jsonl deploy-request.sh appends every final state to). */
+export function readPromoteRequestHistory(limit = 50): PromoteRequest[] {
+  try {
+    const lines = fs.readFileSync(REQUEST_HISTORY, "utf8").trim().split("\n").slice(-limit);
+    return lines.map((l) => { try { return JSON.parse(l) as PromoteRequest; } catch { return null; } })
+      .filter((x): x is PromoteRequest => !!x).reverse();
+  } catch { return []; }
+}
+
+function withRequestLock<T>(client: string, fn: () => T): T {
+  const lock = `${DEPLOY_DIR}/.${client}.request.lock`;
+  for (let i = 0; i < 50; i++) {
+    try {
+      fs.mkdirSync(lock);
+      try { return fn(); } finally { try { fs.rmdirSync(lock); } catch { /* */ } }
+    } catch (e) {
+      if ((e as NodeJS.ErrnoException).code !== "EEXIST") throw e;
+      try { if (Date.now() - fs.statSync(lock).mtimeMs > 30_000) fs.rmdirSync(lock); } catch { /* */ }
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 100);
+    }
+  }
+  throw new Error("the request lock is busy — try again");
+}
+
+/** Cancel a WAITING request. A promoting one is already running and cannot be called back. */
+export function cancelPromoteRequest(client: string, by: string): PromoteRequest {
+  if (!SITE_RE.test(client)) throw new Error("invalid client name");
+  return withRequestLock(client, () => {
+    let j: PromoteRequest;
+    try { j = JSON.parse(fs.readFileSync(requestFile(client), "utf8")); } catch { throw new Error("no deploy request for this client"); }
+    if (j.status === "promoting") throw new Error("already promoting — it can no longer be cancelled");
+    if (j.status !== "waiting") throw new Error(`the request is already ${j.status}`);
+    const now = new Date().toISOString();
+    Object.assign(j, { status: "cancelled", finishedAt: now, finishedBy: safeBy(by), note: "cancelled from Office" });
+    const tmp = `${requestFile(client)}.tmp${process.pid}`;
+    fs.writeFileSync(tmp, JSON.stringify(j, null, 2));
+    fs.renameSync(tmp, requestFile(client));
+    fs.appendFileSync(REQUEST_HISTORY, JSON.stringify({ ...j, client }) + "\n");
+    return j;
+  });
 }
 
 // ---------------------------------------------------------------------------

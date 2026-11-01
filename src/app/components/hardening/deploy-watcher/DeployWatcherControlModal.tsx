@@ -15,7 +15,7 @@ import AuditLogTimeline from "../_shared/AuditLogTimeline";
 import ConfirmModal from "../../frontdesk/ConfirmModal";
 
 type Config = {
-  enabled: boolean; pollSec: number; debounceSec: number; maxBuildsPerHour: number; smokeTimeoutSec: number;
+  enabled: boolean; pollSec: number; debounceSec: number; maxBuildsPerHour: number; smokeTimeoutSec: number; requestTtlMin: number;
   targets: string[]; follow: Record<string, string[]>; updatedBy?: string; updatedAt?: string;
 };
 type Health = { online: boolean; host: string | null; at: string | null; enabled: boolean | null; pollSec: number | null };
@@ -26,6 +26,7 @@ const NUMS: Array<{ k: keyof Config; label: string; min: number; max: number; he
   { k: "debounceSec", label: "Quiet period (s)", min: 0, max: 3600, help: "main must sit still this long before a build starts — three lanes pushing within a minute become one build." },
   { k: "maxBuildsPerHour", label: "Max builds / hour", min: 1, max: 30, help: "Per target. Past this the target goes 'blocked' until the hour rolls over." },
   { k: "smokeTimeoutSec", label: "Smoke timeout (s)", min: 10, max: 600, help: "After a promote, how long the site has to answer 200 before it is rolled back automatically." },
+  { k: "requestTtlMin", label: "Deploy request expires (min)", min: 5, max: 240, help: "A \"deploy\" said while main is not staged yet waits on RCS this long. The watcher promotes it as soon as main is staged; past this it expires with a Front Desk + email alert." },
 ];
 
 export default function DeployWatcherControlModal({ onClose }: { onClose: () => void }) {

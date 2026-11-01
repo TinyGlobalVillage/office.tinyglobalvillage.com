@@ -1,6 +1,6 @@
 // /api/hardening/deploy-watcher — System Hardening control for the deploy watcher.
 //   GET → { ok, config, health, releases }
-//   PUT → { enabled?, pollSec?, debounceSec?, maxBuildsPerHour?, smokeTimeoutSec?, targets?, follow? }
+//   PUT → { enabled?, pollSec?, debounceSec?, maxBuildsPerHour?, smokeTimeoutSec?, requestTtlMin?, targets?, follow? }
 // The Mac's deploy-watch.sh (launchd) reads data/workshop/deploy-watch.json over ssh every
 // poll, so a change here takes effect on the next tick. Values are sanitized server-side
 // (they reach a shell on the Mac).
