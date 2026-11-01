@@ -37,6 +37,7 @@ import {
   pushPoint,
   worstLevel,
 } from "./health-policy";
+import { maintenanceOwnsReboot } from "../rcs-maintenance/maintenance";
 import { hostMetricsState } from "./state";
 
 const DIR = path.join(process.cwd(), "data", "host-metrics");
@@ -224,6 +225,9 @@ export async function evaluateHealth(now: number = Date.now()): Promise<HealthRe
     // Same ordering rule as the capacity alert: the state advances even with
     // alerts muted, so switching them on does not replay an old crossing.
     if (!fire || !cfg.alertsEnabled) continue;
+    // RCS Maintenance repeats the reboot notice (Front Desk + email) until the
+    // box reboots; a one-shot health alert beside it would be a duplicate.
+    if (f.check === "reboot" && maintenanceOwnsReboot()) continue;
     try {
       await sendTeamAlert({
         title: titleFor(host, f, fire.kind),
