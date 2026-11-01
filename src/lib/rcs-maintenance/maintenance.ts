@@ -264,13 +264,21 @@ function esc(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
+// Mail clients drop CSS variables and stylesheets, so the email carries inline hex.
+const MAIL = {
+  accent: "#ffc53d", // colour-literal: email inline style, no CSS vars in mail clients
+  bg: "#0b0b10", // colour-literal: email inline style, no CSS vars in mail clients
+  text: "#e8e8ef", // colour-literal: email inline style, no CSS vars in mail clients
+  title: "#fff", // colour-literal: email inline style, no CSS vars in mail clients
+};
+
 function html(m: Msg): string {
-  const body = m.lines.map((l) => `<p style="margin:0 0 12px;line-height:1.5">${esc(l).replace(/(https:\/\/[^\s]+)/g, '<a href="$1" style="color:#ffc53d">$1</a>')}</p>`).join("");
-  return `<!doctype html><html><body style="margin:0;background:#0b0b10;font-family:-apple-system,Segoe UI,Roboto,sans-serif;color:#e8e8ef">
+  const body = m.lines.map((l) => `<p style="margin:0 0 12px;line-height:1.5">${esc(l).replace(/(https:\/\/[^\s]+)/g, `<a href="$1" style="color:${MAIL.accent}">$1</a>`)}</p>`).join("");
+  return `<!doctype html><html><body style="margin:0;background:${MAIL.bg};font-family:-apple-system,Segoe UI,Roboto,sans-serif;color:${MAIL.text}">
 <div style="max-width:560px;margin:0 auto;padding:28px 24px">
-<div style="font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#ffc53d;font-weight:700">Tiny Global Village · RCS</div>
-<h1 style="font-size:20px;margin:10px 0 18px;color:#fff">${esc(m.title)}</h1>
-<div style="border-left:3px solid #ffc53d;padding-left:14px;font-size:14px">${body}</div>
+<div style="font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:${MAIL.accent};font-weight:700">Tiny Global Village · RCS</div>
+<h1 style="font-size:20px;margin:10px 0 18px;color:${MAIL.title}">${esc(m.title)}</h1>
+<div style="border-left:3px solid ${MAIL.accent};padding-left:14px;font-size:14px">${body}</div>
 </div></body></html>`;
 }
 

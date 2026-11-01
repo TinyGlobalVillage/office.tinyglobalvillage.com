@@ -314,7 +314,7 @@ export default function RcsMaintenanceControlModal({ onClose }: { onClose: () =>
 
 const TONE: Record<"ok" | "warn" | "critical" | "none", string> = {
   ok: colors.green,
-  warn: "#ffc53d",
+  warn: colors.gold,
   critical: colors.red,
   none: "var(--t-textFaint)",
 };
@@ -325,7 +325,7 @@ const Headline = styled.div`display: flex; align-items: baseline; gap: 0.75rem;`
 const Big = styled.div`font-size: 1.9rem; font-weight: 750; font-variant-numeric: tabular-nums; line-height: 1;`;
 const Pill = styled.span<{ $tone: keyof typeof TONE }>`
   font-size: 0.6875rem; font-weight: 700; letter-spacing: 0.06em; padding: 0.2rem 0.6rem; border-radius: 999px; width: fit-content;
-  color: ${(p) => TONE[p.$tone]}; border: 1px solid ${(p) => (p.$tone === "none" ? "var(--t-border)" : TONE[p.$tone])}; background: rgba(0,0,0,0.2);
+  color: ${(p) => TONE[p.$tone]}; border: 1px solid ${(p) => (p.$tone === "none" ? "var(--t-border)" : TONE[p.$tone])}; background: var(--t-inputBg);
 `;
 const Muted = styled.div`font-size: 0.72rem; color: var(--t-textFaint);`;
 const ErrText = styled.div`font-size: 0.6875rem; color: ${colors.red}; font-family: var(--font-geist-mono), monospace;`;
@@ -358,5 +358,5 @@ const Table = styled.table`
 `;
 const RebootCard = styled.div`
   display: flex; flex-direction: column; gap: 0.5rem; padding: 0.75rem; border-radius: 0.5rem;
-  border: 1px solid var(--t-border); background: rgba(0,0,0,0.15);
+  border: 1px solid var(--t-border); background: var(--t-inputBg);
 `;
