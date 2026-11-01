@@ -35,7 +35,7 @@ export async function GET(
   if (!token?.username) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { code } = await params;
-  const link = getLink(code);
+  const link = await getLink(code);
   if (!link) return NextResponse.json({ error: "Not found" }, { status: 404 });
   // Personal-context links are private to their creator.
   if (link.createdBy !== ORG_OWNER && link.createdBy !== token.username) {
@@ -52,7 +52,7 @@ export async function PATCH(
   if (!token?.username) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { code } = await params;
-  const existing = getLink(code);
+  const existing = await getLink(code);
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
   if (existing.createdBy !== ORG_OWNER && existing.createdBy !== token.username) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -62,7 +62,7 @@ export async function PATCH(
   if (!body) return NextResponse.json({ error: "Invalid body" }, { status: 400 });
 
   try {
-    const link = updateLink(code, body, ownerKeyForCaller(existing.createdBy, token.username));
+    const link = await updateLink(code, body, ownerKeyForCaller(existing.createdBy, token.username));
     return NextResponse.json({ link });
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : "Update failed" }, { status: 400 });
@@ -77,14 +77,14 @@ export async function DELETE(
   if (!token?.username) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { code } = await params;
-  const existing = getLink(code);
+  const existing = await getLink(code);
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
   if (existing.createdBy !== ORG_OWNER && existing.createdBy !== token.username) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
   try {
-    deleteLink(code, ownerKeyForCaller(existing.createdBy, token.username));
+    await deleteLink(code, ownerKeyForCaller(existing.createdBy, token.username));
     return NextResponse.json({ ok: true });
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : "Delete failed" }, { status: 400 });

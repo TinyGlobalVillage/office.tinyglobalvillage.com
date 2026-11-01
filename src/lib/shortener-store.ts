@@ -1,27 +1,19 @@
 /**
- * Server-side persistence helpers for the shortener.
+ * Server-side persistence for the shortener: `public.short_links` in tgv_db,
+ * the table the tgv-shortener pm2 service resolves every redirect from.
  *
- * Reads/writes /srv/refusion-core/data/shortener/shortlinks.json — the same
- * file the tgv-shortener pm2 service reads on each redirect to look up the
- * destination. Write pattern: write to .tmp + rename, so a partially-written
- * JSON is never visible to the resolver mid-update.
- *
- * No DB today. Designed to graduate later — swap this module for a
- * Drizzle-backed impl when TGV-members come online; the API-route shape
- * above doesn't have to change.
+ * Until 2026-10-31 this was /srv/refusion-core/data/shortener/shortlinks.json
+ * inside the mono checkout (migration 0208 in tinyglobalvillage.com moved it;
+ * Decision 5, ~/.claude/checklist/rcs-pipeline-hardening.md). The API-route
+ * shape did not change; the functions became async.
  */
-import fs from "fs";
-import path from "path";
-
-const STORE_PATH =
-  process.env.SHORTENER_STORE_PATH ||
-  "/srv/refusion-core/data/shortener/shortlinks.json";
+import { pgPool } from "@/lib/pg-pool";
 
 export type ShortLinkContext =
   | { kind: "user"; username: string }
   | { kind: "org"; orgId: "tgv-office" };
 
-export type FrameMode = "redirect" | "iframe";
+export type FrameMode = "redirect" | "iframe" | "landing";
 
 export interface ShortLink {
   code: string;
@@ -35,6 +27,7 @@ export interface ShortLink {
   renamedFrom: string[];
   deleted: boolean;
   frameMode?: FrameMode;
+  description?: string | null;
 }
 
 export type CreateInput = {
@@ -54,153 +47,163 @@ export type UpdateInput = Partial<{
   frameMode: FrameMode;
 }>;
 
-export type Store = Record<string, ShortLink>;
-
 const ALIAS_RE = /^[a-zA-Z0-9_-]{1,40}$/;
 const RESERVED_CODES = new Set(["health", "robots.txt", "favicon.ico", "api", "_next"]);
+const FRAME_MODES: ReadonlyArray<FrameMode> = ["redirect", "iframe", "landing"];
 
 const ALPHABET = "abcdefghjkmnpqrstuvwxyz23456789"; // no 0/o/1/i/l ambiguity
 
-function readStore(): Store {
-  try {
-    return JSON.parse(fs.readFileSync(STORE_PATH, "utf8")) as Store;
-  } catch {
-    return {};
-  }
+type Row = {
+  code: string; destination: string; created_by: string; created_at: Date; expires_at: Date | null;
+  tags: string[]; clicks: number; last_click_at: Date | null; renamed_from: string[]; deleted: boolean;
+  frame_mode: string; description: string | null;
+};
+
+const iso = (d: Date | null) => (d ? d.toISOString() : null);
+
+function toLink(r: Row): ShortLink {
+  return {
+    code: r.code,
+    destination: r.destination,
+    createdBy: r.created_by,
+    createdAt: r.created_at.toISOString(),
+    expiresAt: iso(r.expires_at),
+    tags: r.tags ?? [],
+    clicks: r.clicks,
+    lastClickAt: iso(r.last_click_at),
+    renamedFrom: r.renamed_from ?? [],
+    deleted: r.deleted,
+    frameMode: (r.frame_mode as FrameMode) ?? "redirect",
+    description: r.description,
+  };
 }
 
-function writeStore(store: Store): void {
-  const tmp = STORE_PATH + ".tmp";
-  fs.mkdirSync(path.dirname(STORE_PATH), { recursive: true });
-  fs.writeFileSync(tmp, JSON.stringify(store, null, 2), "utf8");
-  fs.renameSync(tmp, STORE_PATH);
+async function liveRow(code: string): Promise<Row | null> {
+  const { rows } = await pgPool.query<Row>(
+    "SELECT * FROM public.short_links WHERE code = $1 AND NOT deleted", [code]);
+  return rows[0] ?? null;
 }
 
-function generateCode(store: Store, length = 7): string {
-  for (let attempt = 0; attempt < 50; attempt++) {
-    let s = "";
-    for (let i = 0; i < length; i++) s += ALPHABET[Math.floor(Math.random() * ALPHABET.length)];
-    if (!store[s] && !RESERVED_CODES.has(s)) return s;
-  }
-  // Fallback to longer
-  return generateCode(store, length + 1);
+function randomCode(length: number): string {
+  let s = "";
+  for (let i = 0; i < length; i++) s += ALPHABET[Math.floor(Math.random() * ALPHABET.length)];
+  return s;
 }
 
 function ownerKey(context: ShortLinkContext): string {
   return context.kind === "user" ? context.username : `org:${context.orgId}`;
 }
 
-export function listLinks(context: ShortLinkContext): ShortLink[] {
-  const store = readStore();
-  const owner = ownerKey(context);
-  return Object.values(store)
-    .filter((l) => !l.deleted && l.createdBy === owner)
-    .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+function checkAlias(code: string, label = "Alias") {
+  if (!ALIAS_RE.test(code)) {
+    throw new Error(`${label} must be 1–40 chars (letters, digits, underscore, hyphen)`);
+  }
+  if (RESERVED_CODES.has(code)) throw new Error(`Alias "${code}" is reserved`);
 }
 
-export function createLink(input: CreateInput): ShortLink {
+export async function listLinks(context: ShortLinkContext): Promise<ShortLink[]> {
+  const { rows } = await pgPool.query<Row>(
+    "SELECT * FROM public.short_links WHERE NOT deleted AND created_by = $1 ORDER BY created_at DESC",
+    [ownerKey(context)]);
+  return rows.map(toLink);
+}
+
+export async function createLink(input: CreateInput): Promise<ShortLink> {
   if (!/^https?:\/\//.test(input.destination)) {
     throw new Error("Destination must start with http:// or https://");
   }
-  const store = readStore();
-  let code = input.code?.trim() || generateCode(store);
-  if (!ALIAS_RE.test(code)) {
-    throw new Error("Alias must be 1–40 chars (letters, digits, underscore, hyphen)");
-  }
-  if (RESERVED_CODES.has(code)) {
-    throw new Error(`Alias "${code}" is reserved`);
-  }
-  if (store[code] && !store[code].deleted) {
-    throw new Error(`Alias "${code}" is already in use`);
-  }
+  const frameMode = input.frameMode ?? "redirect";
+  if (!FRAME_MODES.includes(frameMode)) throw new Error("frameMode must be 'redirect', 'iframe' or 'landing'");
+  const custom = input.code?.trim();
+  if (custom) checkAlias(custom);
 
-  const now = new Date().toISOString();
-  const link: ShortLink = {
-    code,
-    destination: input.destination,
-    createdBy: ownerKey(input.context),
-    createdAt: now,
-    expiresAt: input.expiresAt ?? null,
-    tags: input.tags ?? [],
-    clicks: 0,
-    lastClickAt: null,
-    renamedFrom: [],
-    deleted: false,
-    frameMode: input.frameMode ?? "redirect",
-  };
-  store[code] = link;
-  writeStore(store);
-  return link;
+  // A soft-deleted row keeps its code, so a custom alias may reclaim it; a
+  // generated code only ever takes a free one.
+  for (let attempt = 0; attempt < 60; attempt++) {
+    const code = custom || randomCode(attempt < 50 ? 7 : 8);
+    if (!custom && RESERVED_CODES.has(code)) continue;
+    const { rows } = await pgPool.query<Row>(
+      `INSERT INTO public.short_links (code, destination, created_by, expires_at, tags, frame_mode)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       ON CONFLICT (code) DO UPDATE SET
+         destination = EXCLUDED.destination, created_by = EXCLUDED.created_by, created_at = now(),
+         expires_at = EXCLUDED.expires_at, tags = EXCLUDED.tags, frame_mode = EXCLUDED.frame_mode,
+         clicks = 0, last_click_at = NULL, renamed_from = '{}', deleted = false, description = NULL
+       WHERE public.short_links.deleted AND $7::boolean
+       RETURNING *`,
+      [code, input.destination, ownerKey(input.context), input.expiresAt ?? null,
+        input.tags ?? [], frameMode, !!custom]);
+    if (rows[0]) return toLink(rows[0]);
+    if (custom) throw new Error(`Alias "${code}" is already in use`);
+  }
+  throw new Error("Could not allocate a unique short code");
 }
 
-export function updateLink(
+export async function updateLink(
   code: string,
   patch: UpdateInput,
   callerOwner: string,
-): ShortLink {
-  const store = readStore();
-  const existing = store[code];
-  if (!existing || existing.deleted) throw new Error("Link not found");
-  if (existing.createdBy !== callerOwner) {
+): Promise<ShortLink> {
+  const existing = await liveRow(code);
+  if (!existing) throw new Error("Link not found");
+  if (existing.created_by !== callerOwner) {
     throw new Error("You can only edit links you created in the active context");
   }
-
-  let result = { ...existing };
-
-  if (patch.destination !== undefined) {
-    if (!/^https?:\/\//.test(patch.destination)) {
-      throw new Error("Destination must start with http:// or https://");
-    }
-    result.destination = patch.destination;
+  if (patch.destination !== undefined && !/^https?:\/\//.test(patch.destination)) {
+    throw new Error("Destination must start with http:// or https://");
   }
-  if (patch.expiresAt !== undefined) result.expiresAt = patch.expiresAt;
-  if (patch.tags !== undefined) result.tags = patch.tags;
-  if (patch.frameMode !== undefined) {
-    if (patch.frameMode !== "redirect" && patch.frameMode !== "iframe") {
-      throw new Error("frameMode must be 'redirect' or 'iframe'");
-    }
-    result.frameMode = patch.frameMode;
+  if (patch.frameMode !== undefined && !FRAME_MODES.includes(patch.frameMode)) {
+    throw new Error("frameMode must be 'redirect', 'iframe' or 'landing'");
   }
+  const renaming = patch.code !== undefined && patch.code !== code;
+  if (renaming) checkAlias(patch.code!, "New alias");
 
-  if (patch.code !== undefined && patch.code !== code) {
-    if (!ALIAS_RE.test(patch.code)) {
-      throw new Error("New alias must be 1–40 chars (letters, digits, underscore, hyphen)");
+  const client = await pgPool.connect();
+  try {
+    await client.query("BEGIN");
+    if (renaming) {
+      const taken = await client.query<{ deleted: boolean }>(
+        "SELECT deleted FROM public.short_links WHERE code = $1 FOR UPDATE", [patch.code]);
+      if (taken.rows[0] && !taken.rows[0].deleted) throw new Error(`Alias "${patch.code}" is already in use`);
+      // A soft-deleted row under the new code gives way, as the JSON store's overwrite did.
+      if (taken.rows[0]) await client.query("DELETE FROM public.short_links WHERE code = $1", [patch.code]);
     }
-    if (RESERVED_CODES.has(patch.code)) {
-      throw new Error(`Alias "${patch.code}" is reserved`);
-    }
-    if (store[patch.code] && !store[patch.code].deleted) {
-      throw new Error(`Alias "${patch.code}" is already in use`);
-    }
-    // Rename: move entry, leave a tombstone-redirect-by-soft-pointer so old
-    // code 404s? Per scope: we move + record the prior code in renamedFrom.
-    result = { ...result, code: patch.code, renamedFrom: [code, ...existing.renamedFrom] };
-    delete store[code];
-    store[patch.code] = result;
-  } else {
-    store[code] = result;
+    const { rows } = await client.query<Row>(
+      `UPDATE public.short_links SET
+         destination  = coalesce($2, destination),
+         expires_at   = CASE WHEN $3::boolean THEN $4::timestamptz ELSE expires_at END,
+         tags         = coalesce($5, tags),
+         frame_mode   = coalesce($6, frame_mode),
+         code         = coalesce($7, code),
+         renamed_from = CASE WHEN $7::text IS NULL THEN renamed_from ELSE array_prepend(code, renamed_from) END
+       WHERE code = $1 AND NOT deleted
+       RETURNING *`,
+      [code, patch.destination ?? null, patch.expiresAt !== undefined, patch.expiresAt ?? null,
+        patch.tags ?? null, patch.frameMode ?? null, renaming ? patch.code : null]);
+    await client.query("COMMIT");
+    if (!rows[0]) throw new Error("Link not found");
+    return toLink(rows[0]);
+  } catch (e) {
+    await client.query("ROLLBACK").catch(() => {});
+    throw e;
+  } finally {
+    client.release();
   }
-
-  writeStore(store);
-  return result;
 }
 
-export function deleteLink(code: string, callerOwner: string): void {
-  const store = readStore();
-  const existing = store[code];
-  if (!existing || existing.deleted) throw new Error("Link not found");
-  if (existing.createdBy !== callerOwner) {
+export async function deleteLink(code: string, callerOwner: string): Promise<void> {
+  const existing = await liveRow(code);
+  if (!existing) throw new Error("Link not found");
+  if (existing.created_by !== callerOwner) {
     throw new Error("You can only delete links you created in the active context");
   }
   // Soft-delete: keeps the row so click history isn't lost; resolver returns 404.
-  store[code] = { ...existing, deleted: true };
-  writeStore(store);
+  await pgPool.query("UPDATE public.short_links SET deleted = true WHERE code = $1", [code]);
 }
 
-export function getLink(code: string): ShortLink | null {
-  const store = readStore();
-  const l = store[code];
-  return l && !l.deleted ? l : null;
+export async function getLink(code: string): Promise<ShortLink | null> {
+  const r = await liveRow(code);
+  return r ? toLink(r) : null;
 }
 
 export function ownerKeyOf(context: ShortLinkContext): string {

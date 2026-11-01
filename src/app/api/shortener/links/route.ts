@@ -61,7 +61,7 @@ export async function GET(req: NextRequest) {
   if (gate) return NextResponse.json({ error: gate }, { status: 403 });
 
   try {
-    const links = listLinks(ctx);
+    const links = await listLinks(ctx);
     return NextResponse.json({ links });
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : "List failed" }, { status: 500 });
@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
   if (gate) return NextResponse.json({ error: gate }, { status: 403 });
 
   try {
-    const link = createLink({
+    const link = await createLink({
       destination: body.destination,
       code: body.code,
       expiresAt: body.expiresAt ?? null,
