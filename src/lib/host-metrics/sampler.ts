@@ -30,6 +30,7 @@ import {
   type HostMetricRow,
 } from "../db-host-metrics";
 import { evaluateAlert } from "./alerts";
+import { evaluateHealth } from "./health";
 import { computeCapacity, type HostSample } from "./compute";
 import { hostName, readConfig } from "./config";
 import { readSample, resetBaseline } from "./read";
@@ -50,6 +51,7 @@ export type SamplerStatus = {
   lastAlertAt: string | null;
   nextRunAt: string | null;
   host: string;
+  lastHealthError: string | null;
 };
 
 /**
@@ -132,9 +134,20 @@ async function tick(): Promise<void> {
   } catch (err) {
     // A DB blip must not kill the timer — record it and try again next tick.
     s.lastError = err instanceof Error ? err.message : String(err);
-  } finally {
-    schedule(readConfig().sampleIntervalMs);
   }
+  // Box health rides the same cadence but its own try: a pm2 hiccup must not
+  // cost a capacity row, and a missing samples table must not silence a
+  // restart storm. It needs no table at all.
+  if (cfg.healthEnabled) {
+    try {
+      s.lastHealth = await evaluateHealth();
+      if (s.lastHealth.fired.length) s.lastAlertAt = s.lastHealth.at;
+      s.lastHealthError = null;
+    } catch (err) {
+      s.lastHealthError = err instanceof Error ? err.message : String(err);
+    }
+  }
+  schedule(readConfig().sampleIntervalMs);
 }
 
 function schedule(delayMs: number): void {
@@ -180,5 +193,6 @@ export function samplerStatus(): SamplerStatus {
     lastAlertAt: s.lastAlertAt === null ? null : new Date(s.lastAlertAt).toISOString(),
     nextRunAt: s.nextRunAt === null ? null : new Date(s.nextRunAt).toISOString(),
     host: hostName(),
+    lastHealthError: s.lastHealthError,
   };
 }
