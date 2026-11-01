@@ -38,6 +38,7 @@ export type HostMetricsState = {
   lastHealthError: string | null;
   // rcs-maintenance (../rcs-maintenance/maintenance.ts) — why the last tick failed
   lastMaintenanceError: string | null;
+  lastPipelineError: string | null;
   // delta baseline for the shared reader
   prevCpu: CpuCounters | null;
   prevNet: NetCounters | null;
@@ -62,6 +63,7 @@ function fresh(): HostMetricsState {
     lastHealth: null,
     lastHealthError: null,
     lastMaintenanceError: null,
+    lastPipelineError: null,
     prevCpu: null,
     prevNet: null,
     prevAt: null,

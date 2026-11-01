@@ -32,6 +32,7 @@ import {
 import { evaluateAlert } from "./alerts";
 import { evaluateHealth } from "./health";
 import { evaluateMaintenance } from "../rcs-maintenance/maintenance";
+import { evaluatePipelineAlerts } from "../pipeline-alerts";
 import { computeCapacity, type HostSample } from "./compute";
 import { hostName, readConfig } from "./config";
 import { readSample, resetBaseline } from "./read";
@@ -156,6 +157,14 @@ async function tick(): Promise<void> {
     s.lastMaintenanceError = null;
   } catch (err) {
     s.lastMaintenanceError = err instanceof Error ? err.message : String(err);
+  }
+  // Pipeline alerts (stuck deploys, expired requests, the direct route) — same
+  // reasoning: its own try, so a pipeline read error costs nothing above.
+  try {
+    await evaluatePipelineAlerts();
+    s.lastPipelineError = null;
+  } catch (err) {
+    s.lastPipelineError = err instanceof Error ? err.message : String(err);
   }
   schedule(readConfig().sampleIntervalMs);
 }

@@ -31,6 +31,7 @@ const DomainDnsControlModal = dynamic(() => import("../../components/hardening/d
 const KeycloakControlModal = dynamic(() => import("../../components/hardening/keycloak/KeycloakControlModal"), { ssr: false });
 const BoxUsageControlModal = dynamic(() => import("../../components/hardening/box-usage/BoxUsageControlModal"), { ssr: false });
 const RcsMaintenanceControlModal = dynamic(() => import("../../components/hardening/rcs-maintenance/RcsMaintenanceControlModal"), { ssr: false });
+const PipelineControlModal = dynamic(() => import("../../components/hardening/pipeline/PipelineControlModal"), { ssr: false });
 const DemoModeControlModal = dynamic(() => import("../../components/dev-tooling/demo-mode/DemoModeControlModal"), { ssr: false });
 const MediaReducerModal = dynamic(() => import("../../components/media-reducer/MediaReducerModal"), { ssr: false });
 const MeetCaptionsControlModal = dynamic(() => import("../../components/hardening/meet-captions/MeetCaptionsControlModal"), { ssr: false });
@@ -1960,6 +1961,24 @@ function UtilsAdlSurface({
                         </HardeningTileSub>
                       </HardeningTile>
                     );
+                    if (tile.type === "pipeline") return (
+                      <HardeningTile key={i} type="button" onClick={() => onOpenHardening("pipeline")}>
+                        <HardeningTileTop>
+                          <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: "-2px", marginRight: 8 }}>
+                            <circle cx="5" cy="6" r="2" />
+                            <circle cx="12" cy="18" r="2" />
+                            <circle cx="19" cy="6" r="2" />
+                            <path d="M5 8v2a4 4 0 0 0 4 4h1M19 8v2a4 4 0 0 1-4 4h-1M12 14v2" />
+                          </svg>
+                          Pipeline
+                        </HardeningTileTop>
+                        <HardeningTileSub>
+                          What stands between main and live: each app&rsquo;s state and blocker,
+                          queued deploys, the Mac&rsquo;s build lock and checkouts, the direct
+                          route — and who gets told when it sticks.
+                        </HardeningTileSub>
+                      </HardeningTile>
+                    );
                     if (tile.type === "rcs-maintenance") return (
                       <HardeningTile key={i} type="button" onClick={() => onOpenHardening("rcs-maintenance")}>
                         <HardeningTileTop>
@@ -2153,7 +2172,7 @@ type DefaultsOverlay = Record<string, Record<string, FieldValue>>;
 
 // Runtime list, not just a union: the ?view= deep-link reader has to validate a
 // string off the URL, and a second hand-kept list would drift.
-const HARDENING_KINDS = ["telephony", "tenant-apps", "member-auth", "office-staff", "mesh-vpn", "invitations", "firewall", "build-guard", "deploy-watcher", "tsserver", "keycloak", "demo-mode", "domain-dns", "box-usage", "rcs-maintenance", "meet-captions", "commerce-readiness"] as const;  // | "postgres" | "ssh" | "nginx" — future
+const HARDENING_KINDS = ["telephony", "tenant-apps", "member-auth", "office-staff", "mesh-vpn", "invitations", "firewall", "build-guard", "deploy-watcher", "tsserver", "keycloak", "demo-mode", "domain-dns", "box-usage", "rcs-maintenance", "pipeline", "meet-captions", "commerce-readiness"] as const;  // | "postgres" | "ssh" | "nginx" — future
 type HardeningKind = (typeof HARDENING_KINDS)[number];
 
 // ── Link Tools (TinyURL + QR generators) ──────────────────────────────────
@@ -2200,6 +2219,7 @@ type TileSpec =
   | { type: "tsserver" }
   | { type: "box-usage" }
   | { type: "rcs-maintenance" }
+  | { type: "pipeline" }
   | { type: "keycloak" }
   | { type: "demo-mode" }
   | { type: "tinyurl" }
@@ -2251,7 +2271,7 @@ const SECTIONS: Section[] = [
     kind: "actions", actionIds: ["gitrepo", "gitdelrepo"] },
   { id: "hardening", title: "Hardening", accent: "cyan",
     subtitle: "defensive mechanisms installed on RCS — controls + status + audit log",
-    kind: "tiles", tiles: [{ type: "firewall" }, { type: "telephony" }, { type: "tenant-apps" }, { type: "commerce-readiness" }, { type: "member-auth" }, { type: "keycloak" }, { type: "office-staff" }, { type: "mesh-vpn" }, { type: "invitations" }, { type: "build-guard" }, { type: "deploy-watcher" }, { type: "tsserver" }, { type: "box-usage" }, { type: "rcs-maintenance" }, { type: "domain-dns" }] },
+    kind: "tiles", tiles: [{ type: "firewall" }, { type: "telephony" }, { type: "tenant-apps" }, { type: "commerce-readiness" }, { type: "member-auth" }, { type: "keycloak" }, { type: "office-staff" }, { type: "mesh-vpn" }, { type: "invitations" }, { type: "build-guard" }, { type: "deploy-watcher" }, { type: "pipeline" }, { type: "tsserver" }, { type: "box-usage" }, { type: "rcs-maintenance" }, { type: "domain-dns" }] },
   { id: "linktools", title: "Link Tools", accent: "cyan",
     subtitle: "shorten URLs and generate scannable QR codes — pair them for printable mini-flyers",
     kind: "tiles", tiles: [{ type: "tinyurl" }, { type: "qrcode" }] },
@@ -2830,6 +2850,9 @@ export default function UtilsPage() {
       )}
       {openHardening === "box-usage" && (
         <BoxUsageControlModal onClose={() => setOpenHardening(null)} />
+      )}
+      {openHardening === "pipeline" && (
+        <PipelineControlModal onClose={() => setOpenHardening(null)} />
       )}
       {openHardening === "rcs-maintenance" && (
         <RcsMaintenanceControlModal onClose={() => setOpenHardening(null)} />
