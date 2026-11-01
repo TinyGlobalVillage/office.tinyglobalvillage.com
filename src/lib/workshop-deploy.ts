@@ -376,6 +376,10 @@ export function readPromoteRequest(client: string): PromoteRequest | null {
   try {
     const j = JSON.parse(fs.readFileSync(requestFile(client), "utf8")) as PromoteRequest;
     if (!j || typeof j.status !== "string") return null;
+    // Past its expiresAt but still "waiting": nobody has closed it yet (deploy-watch closes
+    // it from its heartbeat; a Mac that is off never will). Close it here, so the history
+    // line — and the expiry alert that reads it — land on time either way.
+    if (j.status === "waiting" && Date.parse(j.expiresAt) <= Date.now()) return expirePromoteRequest(client) ?? j;
     if (j.status === "waiting" || j.status === "promoting") return j;
     const fin = Date.parse(j.finishedAt ?? "");
     return Number.isFinite(fin) && Date.now() - fin < 86_400_000 ? j : null;
@@ -404,6 +408,22 @@ function withRequestLock<T>(client: string, fn: () => T): T {
     }
   }
   throw new Error("the request lock is busy — try again");
+}
+
+/** Close a WAITING request that is past its expiresAt, as deploy-request.sh would. */
+function expirePromoteRequest(client: string): PromoteRequest | null {
+  try {
+    return withRequestLock(client, () => {
+      const j = JSON.parse(fs.readFileSync(requestFile(client), "utf8")) as PromoteRequest;
+      if (j.status !== "waiting" || !(Date.parse(j.expiresAt) <= Date.now())) return j;
+      Object.assign(j, { status: "expired", finishedAt: new Date().toISOString(), finishedBy: "office", note: "not promoted before it expired" });
+      const tmp = `${requestFile(client)}.tmp${process.pid}`;
+      fs.writeFileSync(tmp, JSON.stringify(j, null, 2));
+      fs.renameSync(tmp, requestFile(client));
+      fs.appendFileSync(REQUEST_HISTORY, JSON.stringify({ ...j, client }) + "\n");
+      return j;
+    });
+  } catch { return null; }
 }
 
 /** Cancel a WAITING request. A promoting one is already running and cannot be called back. */
