@@ -303,7 +303,7 @@ export default function PipelineControlModal({ onClose }: { onClose: () => void 
     {
       id: "alerts",
       title: "Alerts",
-      qmbm: "Office checks the pipeline every sampler tick. A deploy blocked past the threshold, the watcher offline, or a policed mesh while a build waits raises a Front Desk notice + email, repeats on the reminder interval, and closes with a resolved notice. An expired or failed deploy request, and the direct route opening (or closing for an abnormal reason), alert once.",
+      qmbm: "Office checks the pipeline every sampler tick. A deploy blocked past the threshold, or a policed mesh while a build waits, raises a Front Desk notice + email, repeats on the reminder interval, and closes with a resolved notice. The watcher offline alerts only while work is waiting on it, and only once — an idle Mac asleep sends nothing. An expired or failed deploy request, and the direct route opening (or closing for an abnormal reason), alert once.",
       body: (
         <Body>
           {openEpisodes.length ? openEpisodes.map(([k, e]) => (
@@ -320,7 +320,7 @@ export default function PipelineControlModal({ onClose }: { onClose: () => void 
           </Grid>
           <Grid>
             {num("alerts", "blockedMin", "Blocked for", "min", a?.blockedMin)}
-            {num("alerts", "offlineMin", "Watcher offline for", "min", a?.offlineMin)}
+            {num("alerts", "offlineMin", "Offline + work waiting for", "min", a?.offlineMin)}
             {num("alerts", "reminderMin", "Repeat every", "min", a?.reminderMin)}
           </Grid>
           <Cell>

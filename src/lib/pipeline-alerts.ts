@@ -6,9 +6,11 @@
  * Runs inside the host-metrics sampler tick (sampler.ts), in its own try.
  * Two shapes:
  *   - EPISODES that repeat until they clear (decideNotice, the same policy as
- *     RCS Maintenance): a deploy blocked ≥ blockedMin, the watcher offline
- *     ≥ offlineMin, the mesh policed while something waits on it and the direct
- *     route is closed (→ "say go direct"; opening stays Gio's call).
+ *     RCS Maintenance): a deploy blocked ≥ blockedMin, the mesh policed while
+ *     something waits on it and the direct route is closed (→ "say go direct";
+ *     opening stays Gio's call). The watcher offline ≥ offlineMin is an episode
+ *     too, but only while work is waiting on it, and it is told ONCE — an idle
+ *     Mac asleep overnight sends nothing (Gio 2026-11-02).
  *   - ONE-SHOT events read from the jsonl histories RCS appends to: a deploy
  *     request that expired or failed, the direct route opening or closing.
  *     Cursors start at "now" on first run so history is never replayed.
@@ -77,7 +79,11 @@ function writeState(s: StateFile): void {
 
 // ── what is wrong right now ─────────────────────────────────────────────────
 
-type Condition = { key: string; title: string; detail: string; since: number | null; thresholdMs: number };
+type Condition = {
+  key: string; title: string; detail: string; since: number | null; thresholdMs: number;
+  /** false = tell once and stop (no reminders); the resolved notice still closes it. */
+  remind?: boolean;
+};
 
 const short = (sha: string | null | undefined) => (sha ? sha.slice(0, 8) : "?");
 
@@ -120,16 +126,24 @@ function conditions(p: Pipeline, a: PipelineAlertConfig): Condition[] {
       thresholdMs: a.blockedMin * 60_000,
     });
   }
-  // Watcher offline — only while it is supposed to be running.
-  if (p.config.enabled && !p.health.online) {
+  // Watcher offline — only while it is supposed to be running AND something is
+  // waiting on it. A Mac that is asleep or away with nothing to build is not
+  // news (Gio 2026-11-02, after 14 hourly reminders overnight: "I don't need
+  // emails coming in like this when my mac is offline"). Told once, no repeats.
+  const pending = p.clients.filter((c) =>
+    c.request?.status === "waiting" || c.state === "queued" || c.state === "building" || c.state === "debouncing"
+    || (!!c.mainMono && c.mainMono !== c.stagedMono && c.mainMono !== c.liveMono));
+  if (p.config.enabled && !p.health.online && pending.length) {
+    const what = pending.map((c) => `${c.client}${c.request?.status === "waiting" ? " (deploy asked)" : ""}`).join(", ");
     out.push({
       key: "watcher-offline",
-      title: "Deploy watcher offline",
+      title: "Deploy watcher offline with work waiting",
       detail: p.health.at
-        ? `The Mac's deploy-watch last checked in ${ageText(Date.now() - Date.parse(p.health.at))} ago (${p.health.host ?? "?"}). Nothing will build or promote until it is back — the Mac is asleep, offline, or the launchd job stopped.`
-        : "The Mac's deploy-watch has never checked in.",
+        ? `The Mac's deploy-watch last checked in ${ageText(Date.now() - Date.parse(p.health.at))} ago (${p.health.host ?? "?"}) and ${what} ${pending.length === 1 ? "is" : "are"} waiting on it. Nothing builds or promotes until the Mac is back. This is the only notice; the board shows when it returns.`
+        : `The Mac's deploy-watch has never checked in, and ${what} ${pending.length === 1 ? "is" : "are"} waiting on it.`,
       since: p.health.at ? Date.parse(p.health.at) : null,
       thresholdMs: a.offlineMin * 60_000,
+      remind: false,
     });
   }
   // A policed mesh only matters while something is waiting to cross it.
@@ -283,7 +297,7 @@ export async function evaluatePipelineAlerts(now: number = Date.now()): Promise<
   for (const key of keys) {
     const c = active.find((x) => x.key === key) ?? null;
     const prev = state.episodes[key] ?? { ...INITIAL_NOTICE, title: c?.title ?? key, detail: c?.detail ?? "" };
-    const d = decideNotice(prev, !!c, now, { thresholdMs: c?.thresholdMs ?? 0, reminderMs }, c?.since ?? null);
+    const d = decideNotice(prev, !!c, now, { thresholdMs: c?.thresholdMs ?? 0, reminderMs: c?.remind === false ? Infinity : reminderMs }, c?.since ?? null);
     if (d.send) {
       const about = c ?? prev;
       // Resolutions go to the board only; the inbox gets what needs doing.
