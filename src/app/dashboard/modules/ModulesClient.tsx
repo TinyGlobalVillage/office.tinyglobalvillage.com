@@ -25,6 +25,7 @@ import { IconEmail } from "@tgv/module-component-library/components/icons/EmailI
 import { IconStorefront } from "@tgv/module-component-library/components/icons/StorefrontIcon";
 import { IconDocEdit } from "@tgv/module-component-library/components/icons/DocEditIcon";
 import { IconBook } from "@tgv/module-component-library/components/icons/BookIcon";
+import { IconMic } from "@tgv/module-component-library/components/icons/MicIcon";
 import ModuleDashboardConfigModal from "../../components/modules/ModuleDashboardConfigModal";
 import TemplateGalleryPanel from "../../components/modules/TemplateGalleryPanel";
 import ModuleStorefrontPanel from "../../components/modules/ModuleStorefrontPanel";
@@ -509,6 +510,17 @@ export default function ModulesClient() {
               <TileSub>
                 The course builder every villager&apos;s Editor tab opens — sections, lessons,
                 pages, quizzes and certificates. Opens on tgv.com in a new tab, on the site your
+                dashboard there is standing in.
+              </TileSub>
+            </Tile>
+          </TileWrap>
+
+          <TileWrap>
+            <Tile type="button" onClick={() => openTgvEditor("podcasts")}>
+              <TileTop><IconMic width={18} height={18} aria-hidden /> Podcast Editor</TileTop>
+              <TileSub>
+                Shows and episodes — audio, show notes, cover art — with a public RSS feed for
+                Apple Podcasts and Spotify. Opens on tgv.com in a new tab, on the site your
                 dashboard there is standing in.
               </TileSub>
             </Tile>
