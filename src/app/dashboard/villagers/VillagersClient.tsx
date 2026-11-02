@@ -653,14 +653,14 @@ export default function VillagersClient() {
     },
     promoDiscounts: {
       id: "promoDiscounts",
-      title: "Discount Codes",
+      title: "Codes",
       icon: <StarIcon size={18} />,
       onClick: () => setOpenDiscounts(true),
       sub: (
         <>
-          Create and manage the TGV-wide discount codes the signup wizard honors — percent or
-          fixed, aimed at all signups or one plan / add-on. The SAME codes as the HQ dashboard
-          (real Stripe promotion codes; Office proxies to HQ, which holds the keys).
+          TGV&apos;s own codes, the same ones HQ&apos;s Store Front shows. Discount: the signup
+          wizard&apos;s promo codes. Referral: rewards for bringing someone in. Invite: one-time
+          codes bound to one email that open Try Demo and signup.
         </>
       ),
     },

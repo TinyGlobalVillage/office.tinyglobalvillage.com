@@ -17,7 +17,6 @@ const CommerceReadinessControlModal = dynamic(() => import("../../components/har
 const MemberAuthControlModal = dynamic(() => import("../../components/hardening/member-auth/MemberAuthControlModal"), { ssr: false });
 const OfficeStaffControlModal = dynamic(() => import("../../components/hardening/office-staff/OfficeStaffControlModal"), { ssr: false });
 const MeshVpnControlModal = dynamic(() => import("../../components/hardening/mesh-vpn/MeshVpnControlModal"), { ssr: false });
-const InvitationsControlModal = dynamic(() => import("../../components/hardening/invitations/InvitationsControlModal"), { ssr: false });
 const FirewallControlModal = dynamic(() => import("../../components/hardening/firewall/FirewallControlModal"), { ssr: false });
 const BackupsControlModal = dynamic(() => import("../../components/backups/BackupsControlModal"), { ssr: false });
 const MigrateSiteControlModal = dynamic(() => import("../../components/migrate/MigrateSiteControlModal"), { ssr: false });
@@ -1862,16 +1861,6 @@ function UtilsAdlSurface({
                         </HardeningTileSub>
                       </HardeningTile>
                     );
-                    if (tile.type === "invitations") return (
-                      <HardeningTile key={i} type="button" onClick={() => onOpenHardening("invitations")}>
-                        <HardeningTileTop>✉️ Invitations</HardeningTileTop>
-                        <HardeningTileSub>
-                          Invite-only onboarding caps AI API spend — nobody reaches the wizard
-                          without redeeming an emailed, single-use code. Mint, track redemptions,
-                          revoke, and resend codes; the `admin` seed is the temporary team code.
-                        </HardeningTileSub>
-                      </HardeningTile>
-                    );
                     if (tile.type === "firewall") return (
                       <HardeningTile key={i} type="button" onClick={() => onOpenHardening("firewall")}>
                         <HardeningTileTop>🧱 Firewall & Intrusion</HardeningTileTop>
@@ -2172,7 +2161,7 @@ type DefaultsOverlay = Record<string, Record<string, FieldValue>>;
 
 // Runtime list, not just a union: the ?view= deep-link reader has to validate a
 // string off the URL, and a second hand-kept list would drift.
-const HARDENING_KINDS = ["telephony", "tenant-apps", "member-auth", "office-staff", "mesh-vpn", "invitations", "firewall", "build-guard", "deploy-watcher", "tsserver", "keycloak", "demo-mode", "domain-dns", "box-usage", "rcs-maintenance", "pipeline", "meet-captions", "commerce-readiness"] as const;  // | "postgres" | "ssh" | "nginx" — future
+const HARDENING_KINDS = ["telephony", "tenant-apps", "member-auth", "office-staff", "mesh-vpn", "firewall", "build-guard", "deploy-watcher", "tsserver", "keycloak", "demo-mode", "domain-dns", "box-usage", "rcs-maintenance", "pipeline", "meet-captions", "commerce-readiness"] as const;  // | "postgres" | "ssh" | "nginx" — future
 type HardeningKind = (typeof HARDENING_KINDS)[number];
 
 // ── Link Tools (TinyURL + QR generators) ──────────────────────────────────
@@ -2211,7 +2200,6 @@ type TileSpec =
   | { type: "member-auth" }
   | { type: "office-staff" }
   | { type: "mesh-vpn" }
-  | { type: "invitations" }
   | { type: "firewall" }
   | { type: "build-guard" }
   | { type: "deploy-watcher" }
@@ -2271,7 +2259,7 @@ const SECTIONS: Section[] = [
     kind: "actions", actionIds: ["gitrepo", "gitdelrepo"] },
   { id: "hardening", title: "Hardening", accent: "cyan",
     subtitle: "defensive mechanisms installed on RCS — controls + status + audit log",
-    kind: "tiles", tiles: [{ type: "firewall" }, { type: "telephony" }, { type: "tenant-apps" }, { type: "commerce-readiness" }, { type: "member-auth" }, { type: "keycloak" }, { type: "office-staff" }, { type: "mesh-vpn" }, { type: "invitations" }, { type: "build-guard" }, { type: "deploy-watcher" }, { type: "pipeline" }, { type: "tsserver" }, { type: "box-usage" }, { type: "rcs-maintenance" }, { type: "domain-dns" }] },
+    kind: "tiles", tiles: [{ type: "firewall" }, { type: "telephony" }, { type: "tenant-apps" }, { type: "commerce-readiness" }, { type: "member-auth" }, { type: "keycloak" }, { type: "office-staff" }, { type: "mesh-vpn" }, { type: "build-guard" }, { type: "deploy-watcher" }, { type: "pipeline" }, { type: "tsserver" }, { type: "box-usage" }, { type: "rcs-maintenance" }, { type: "domain-dns" }] },
   { id: "linktools", title: "Link Tools", accent: "cyan",
     subtitle: "shorten URLs and generate scannable QR codes — pair them for printable mini-flyers",
     kind: "tiles", tiles: [{ type: "tinyurl" }, { type: "qrcode" }] },
@@ -2818,10 +2806,6 @@ export default function UtilsPage() {
 
       {openHardening === "mesh-vpn" && (
         <MeshVpnControlModal onClose={() => setOpenHardening(null)} />
-      )}
-
-      {openHardening === "invitations" && (
-        <InvitationsControlModal onClose={() => setOpenHardening(null)} />
       )}
 
       {openHardening === "firewall" && (
