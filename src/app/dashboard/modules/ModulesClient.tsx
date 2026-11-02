@@ -24,6 +24,7 @@ import { ModulesIcon, EditorIcon, SettingsIcon, PhotosIcon } from "../../compone
 import { IconEmail } from "@tgv/module-component-library/components/icons/EmailIcon";
 import { IconStorefront } from "@tgv/module-component-library/components/icons/StorefrontIcon";
 import { IconDocEdit } from "@tgv/module-component-library/components/icons/DocEditIcon";
+import { IconBook } from "@tgv/module-component-library/components/icons/BookIcon";
 import ModuleDashboardConfigModal from "../../components/modules/ModuleDashboardConfigModal";
 import TemplateGalleryPanel from "../../components/modules/TemplateGalleryPanel";
 import ModuleStorefrontPanel from "../../components/modules/ModuleStorefrontPanel";
@@ -234,6 +235,22 @@ export default function ModulesClient() {
     }
     const url = `${cfg.base}/${encodeURIComponent(cfg.lang)}/editor/module-dashboard?popout=1`;
     window.open(url, "_blank");
+  };
+
+  // Course Editor / Podcast Editor (Gio 2026-11-01: "module copies on Office → Modules") — the
+  // SAME editors the villager dashboard's Editor tab opens, on tgv.com in a new tab (its editor
+  // surfaces refuse cross-origin framing, like Module-Dashboard). They author on the site the
+  // operator's tgv.com dashboard is standing in. Lang/base share the Module-Dashboard gear.
+  const openTgvEditor = (path: string) => {
+    let cfg = { lang: "en", base: process.env.NEXT_PUBLIC_TGV_URL ?? "https://tinyglobalvillage.com" };
+    try {
+      const c = JSON.parse(localStorage.getItem("tgv-module-dashboard-cfg") || "{}");
+      if (typeof c.lang === "string" && c.lang) cfg = { ...cfg, lang: c.lang };
+      if (typeof c.base === "string" && c.base) cfg = { ...cfg, base: c.base };
+    } catch {
+      /* ignore malformed cfg */
+    }
+    window.open(`${cfg.base}/${encodeURIComponent(cfg.lang)}/editor/${path}`, "_blank");
   };
 
   // Email Campaigns opens INLINE (system-scoped editor) — same panel the member
@@ -482,6 +499,17 @@ export default function ModulesClient() {
                 Documents with the same editor, library and proofing gear as the Village&apos;s
                 Doc Editor — one library across both apps. Staff switch the fleet&apos;s
                 proofing engine from the gear.
+              </TileSub>
+            </Tile>
+          </TileWrap>
+
+          <TileWrap>
+            <Tile type="button" onClick={() => openTgvEditor("courses")}>
+              <TileTop><IconBook width={18} height={18} aria-hidden /> Course Editor</TileTop>
+              <TileSub>
+                The course builder every villager&apos;s Editor tab opens — sections, lessons,
+                pages, quizzes and certificates. Opens on tgv.com in a new tab, on the site your
+                dashboard there is standing in.
               </TileSub>
             </Tile>
           </TileWrap>
