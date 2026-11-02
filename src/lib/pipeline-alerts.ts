@@ -25,8 +25,8 @@ import { sendMail } from "./email/sendMail";
 import { sendTeamAlert } from "./host-metrics/alerts";
 import { ageText, decideNotice, INITIAL_NOTICE, type NoticeSend, type NoticeState } from "./rcs-maintenance/policy";
 import {
-  PIPELINE_FILES, readJsonl, readPipeline,
-  type DirectRouteEvent, type Pipeline, type PipelineAlertConfig, type PipelineClient, type PromoteRequest,
+  budgetHistoryFiles, PIPELINE_FILES, readJsonl, readPipeline,
+  type BudgetReport, type DirectRouteEvent, type Pipeline, type PipelineAlertConfig, type PipelineClient, type PromoteRequest,
 } from "./workshop-deploy";
 
 const DIR = path.join(process.cwd(), "data", "pipeline-alerts");
@@ -47,7 +47,7 @@ export type PipelineSend = {
 };
 type StateFile = {
   episodes: Record<string, Episode>;
-  cursors: { requests: string | null; direct: string | null };
+  cursors: { requests: string | null; direct: string | null; budget: string | null };
   sends: PipelineSend[];
 };
 
@@ -56,11 +56,11 @@ function readState(): StateFile {
     const raw = JSON.parse(readFileSync(STATE_FILE, "utf8")) as Partial<StateFile>;
     return {
       episodes: raw.episodes && typeof raw.episodes === "object" ? raw.episodes : {},
-      cursors: { requests: raw.cursors?.requests ?? null, direct: raw.cursors?.direct ?? null },
+      cursors: { requests: raw.cursors?.requests ?? null, direct: raw.cursors?.direct ?? null, budget: raw.cursors?.budget ?? null },
       sends: Array.isArray(raw.sends) ? raw.sends : [],
     };
   } catch {
-    return { episodes: {}, cursors: { requests: null, direct: null }, sends: [] };
+    return { episodes: {}, cursors: { requests: null, direct: null, budget: null }, sends: [] };
   }
 }
 
@@ -244,6 +244,24 @@ function directMsg(e: DirectRouteEvent): Msg {
   };
 }
 
+function budgetMsg(b: BudgetReport): Msg {
+  const worst = b.over[0];
+  const enforced = b.status === "over-enforced";
+  const commits = b.range ? ` Commits: ${b.range}.` : b.mono ? ` Mono ${short(b.mono)}.` : "";
+  const rest = b.over.slice(1, 4).map((o) => `${o.route} ${o.kb} KB (+${o.overKb})`).join("; ");
+  const what = enforced
+    ? `The ${b.client} build was STOPPED before it shipped: ${worst.route} loads ${worst.kb} KB gz of JS against a budget of ${worst.budgetKb} KB (+${worst.overKb} KB, +${worst.overPct}%).${commits} Prod is untouched.`
+    : `${b.client}: ${worst.route} loads ${worst.kb} KB gz of JS against a budget of ${worst.budgetKb} KB (+${worst.overKb} KB).${commits} Warn-only until ${b.warnUntil}; after that this build would be stopped.`;
+  const lines = [what];
+  if (b.over.length > 1) lines.push(`${b.over.length - 1} more over budget${rest ? `: ${rest}` : ""}.`);
+  lines.push("Cut the route (next/dynamic) or raise its budget in data/perf/budgets.json in a reviewed commit.", `Board: ${BOARD}`);
+  return {
+    subject: `${enforced ? "PERF BUDGET STOP" : "Perf budget warning"}: ${b.client} ${worst.route}`,
+    title: `${enforced ? "Over budget — stage stopped" : "Over budget (warn)"}: ${b.client}`,
+    lines,
+  };
+}
+
 // ── evaluation ──────────────────────────────────────────────────────────────
 
 export type PipelineAlertReport = {
@@ -302,6 +320,23 @@ export async function evaluatePipelineAlerts(now: number = Date.now()): Promise<
         sends.push(await deliver(`direct:${e.event}`, "event", directMsg(e), a, mail, { ip: e.ip, why: e.why ?? null, by: e.by ?? null }));
       }
       if (e.at > state.cursors.direct!) state.cursors.direct = e.at;
+    }
+  }
+
+  // Perf budgets: a hard stop goes to Front Desk AND email; a warning to Front Desk only.
+  if (state.cursors.budget === null) state.cursors.budget = nowIso;
+  else {
+    const rows = budgetHistoryFiles()
+      .flatMap((f) => readJsonl<BudgetReport>(f, 50))
+      .filter((b) => (b.at ?? "") > state.cursors.budget!)
+      .sort((x, y) => x.at.localeCompare(y.at));
+    for (const b of rows) {
+      if ((b.status === "over-warn" || b.status === "over-enforced") && b.over?.length) {
+        sends.push(await deliver(`budget:${b.client}`, "event", budgetMsg(b), a, b.status === "over-enforced", {
+          client: b.client, status: b.status, route: b.over[0].route, kb: b.over[0].kb, budgetKb: b.over[0].budgetKb, range: b.range || null,
+        }));
+      }
+      if (b.at > state.cursors.budget!) state.cursors.budget = b.at;
     }
   }
 

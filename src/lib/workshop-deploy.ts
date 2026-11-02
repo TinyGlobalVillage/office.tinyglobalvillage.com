@@ -622,6 +622,29 @@ export function readJsonl<T>(file: string, limit = 500): T[] {
 }
 export const PIPELINE_FILES = { directHistory: DIRECT_HISTORY, requestHistory: REQUEST_HISTORY };
 
+/** One perf-budget verdict, one line per build (`utils/scripts/perf/perf-budget.README.md`). */
+export type BudgetReport = {
+  client: string;
+  at: string;
+  mono: string;
+  clientSha: string;
+  range: string;
+  mode: "warn" | "enforce";
+  warnUntil: string;
+  status: "ok" | "over-warn" | "over-enforced";
+  routes: number;
+  over: { route: string; kb: number; budgetKb: number; overKb: number; overPct: number; unbudgeted: boolean }[];
+  newRoutes: string[];
+  heavyClientFiles: { file: string; imports: number }[];
+};
+
+/** Every client's `<client>.budget.jsonl` mac-deploy has shipped. */
+export function budgetHistoryFiles(): string[] {
+  try {
+    return fs.readdirSync(DEPLOY_DIR).filter((f) => f.endsWith(".budget.jsonl")).map((f) => `${DEPLOY_DIR}/${f}`);
+  } catch { return []; }
+}
+
 /**
  * Office's Close button. Office cannot touch UFW, so it marks the request and the
  * RCS reaper (cron, every minute, `direct-route-rcs.sh reap`) deletes the rule —
@@ -672,6 +695,8 @@ export type MacSnapshot = {
   queue: Array<{ label: string; pid: number; waitingSec: number; turnSec: number | null }>;
   running: Array<{ pid: number; elapsed: string; cmd: string; lane: string | null }>;
   memory: { pressure: string; availGb: number; swapUsedGb: number; sessions: Array<{ lane: string; gb: number }> } | null;
+  /** memgov's dev-server stops over the last `days`, by lane (pipeline-snapshot.sh). */
+  devCaps?: { days: number; total: number; lanes: Array<{ lane: string; stops: number; killed: number; peakGb: number; last: string; lastReason: string }> } | null;
   link: { at: string; ageSec?: number; verdict: LinkVerdict; why: string; mesh: { loss: number; avgMs: number | null }; direct: { loss: number; avgMs: number | null } } | null;
 };
 export type PipelineClient = {
@@ -686,6 +711,8 @@ export type PipelineClient = {
   liveMono: string | null;
   stagedMono: string | null;
   mainMono: string | null;
+  /** The last perf-budget verdict mac-deploy shipped for this client. */
+  budget: { at: string; status: BudgetReport["status"]; mode: BudgetReport["mode"]; over: number; worst: BudgetReport["over"][number] | null; mono: string } | null;
 };
 export type Pipeline = {
   at: string;
@@ -705,6 +732,13 @@ export function readMacSnapshot(): MacSnapshot | null {
   } catch { return null; }
 }
 
+function readBudget(client: string): PipelineClient["budget"] {
+  try {
+    const b = JSON.parse(fs.readFileSync(`${DEPLOY_DIR}/${client}.budget.json`, "utf8")) as BudgetReport;
+    return { at: b.at, status: b.status, mode: b.mode, over: b.over?.length ?? 0, worst: b.over?.[0] ?? null, mono: b.mono };
+  } catch { return null; }
+}
+
 export function readPipeline(): Pipeline {
   const clients = releaseTargets().map(({ client, follows }): PipelineClient => {
     const j = readStatusFile(client) as Record<string, any>;
@@ -720,6 +754,7 @@ export function readPipeline(): Pipeline {
       liveMono: readStamp(client, ".next")?.mono ?? null,
       stagedMono: readStamp(client, ".next.incoming")?.mono ?? null,
       mainMono: j.main?.mono ?? null,
+      budget: readBudget(client),
     };
   });
   return {

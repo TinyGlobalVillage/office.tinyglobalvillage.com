@@ -22,6 +22,7 @@ type Client = {
   client: string; follows: string | null; state: string | null; phase: string | null; updatedAt: string | null;
   blocked: Blocker | null; blockedSince: string | null; request: Req | null;
   liveMono: string | null; stagedMono: string | null; mainMono: string | null;
+  budget: { at: string; status: string; mode: string; over: number; worst: { route: string; kb: number; budgetKb: number; overKb: number } | null; mono: string } | null;
 };
 type Lease = { host: string; pid: number; label: string; at: string };
 type Direct = {
@@ -37,6 +38,7 @@ type Mac = {
   queue: Array<{ label: string; pid: number; waitingSec: number; turnSec: number | null }>;
   running: Array<{ pid: number; elapsed: string; cmd: string; lane: string | null }>;
   memory: { pressure: string; availGb: number; swapUsedGb: number; sessions: Array<{ lane: string; gb: number }> } | null;
+  devCaps?: { days: number; total: number; lanes: Array<{ lane: string; stops: number; killed: number; peakGb: number; last: string; lastReason: string }> } | null;
   link: { at: string; verdict: string; why: string; mesh: { loss: number; avgMs: number | null }; direct: { loss: number; avgMs: number | null } } | null;
 };
 type AlertCfg = { enabled: boolean; frontDesk: boolean; email: boolean; recipients: string[]; blockedMin: number; reminderMin: number; offlineMin: number; linkAlerts: boolean };
@@ -227,6 +229,17 @@ export default function PipelineControlModal({ onClose }: { onClose: () => void 
               <Muted>{mac.memory.availGb} GB free · swap {mac.memory.swapUsedGb} GB · {mac.memory.sessions.length} Claude sessions</Muted>
             </Rowline>
           )}
+          {mac.devCaps && (
+            <Rowline>
+              <StatLabel style={{ minWidth: "6rem" }}>Dev caps</StatLabel>
+              <Pill $tone={mac.devCaps.total ? "warn" : "ok"}>{mac.devCaps.total} this week</Pill>
+              <Muted>
+                {mac.devCaps.lanes.length
+                  ? mac.devCaps.lanes.map((l) => `${l.lane} ×${l.stops} (peak ${l.peakGb} GB)`).join(" · ")
+                  : "no dev server hit memgov's cap in 7 days"}
+              </Muted>
+            </Rowline>
+          )}
           {link && (
             <Rowline>
               <StatLabel style={{ minWidth: "6rem" }}>Link</StatLabel>
@@ -390,13 +403,18 @@ function FragmentRows({ c }: { c: Client }) {
         <td><Mono>{sha(c.mainMono)}</Mono></td>
         <td>{ago(c.updatedAt)}</td>
       </tr>
-      {(c.phase || st === "blocked" || c.request) && (
+      {(c.phase || st === "blocked" || c.request || (c.budget && c.budget.over > 0)) && (
         <tr>
           <td />
           <td colSpan={5}>
             {st === "blocked" ? (
               <Detail $tone="critical">blocked {ago(c.blockedSince)} — {blockerLine(c.blocked)}</Detail>
             ) : c.phase ? <Detail $tone="none">{c.phase}</Detail> : null}
+            {c.budget && c.budget.over > 0 && c.budget.worst && (
+              <Detail $tone={c.budget.status === "over-enforced" ? "critical" : "warn"}>
+                perf budget {c.budget.status === "over-enforced" ? "STOPPED the stage" : "over (warn)"} {ago(c.budget.at)} ago — {c.budget.worst.route} {c.budget.worst.kb} KB vs {c.budget.worst.budgetKb} (+{c.budget.worst.overKb}){c.budget.over > 1 ? ` · ${c.budget.over - 1} more` : ""}
+              </Detail>
+            )}
             {c.request && (c.request.status === "waiting" || c.request.status === "promoting") && (
               <Detail $tone="warn">&ldquo;deploy&rdquo; {c.request.status} — asked by {c.request.by.join(", ")} {ago(c.request.at)} ago · expires {clock(c.request.expiresAt)}</Detail>
             )}
