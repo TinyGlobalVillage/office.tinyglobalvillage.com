@@ -12,6 +12,7 @@ import DashboardPopoutBeacon from "./DashboardPopoutBeacon";
 import GlobalModals from "./GlobalModals";
 import DrawerStackController from "./DrawerStackController";
 import TileUrlSync from "./TileUrlSync";
+import FindPalette from "./FindPalette";
 import type { RingChannel } from "./call";
 import { deferShellPiece } from "../lib/deferredShell";
 
@@ -98,6 +99,8 @@ function ShellInner({ children }: { children: ReactNode }) {
         <SessionsDrawer />
         <LegendDrawer />
         <GlobalModals />
+        {/* cmd/ctrl+F — find any tile, drawer tab or Utils tool by name. */}
+        <FindPalette />
         <IncomingCallToast
           onJoinActive={handleJoinFromRing("active")}
           onJoinObserver={handleJoinFromRing("observer")}
