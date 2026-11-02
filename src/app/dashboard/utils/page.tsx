@@ -31,6 +31,7 @@ const KeycloakControlModal = dynamic(() => import("../../components/hardening/ke
 const BoxUsageControlModal = dynamic(() => import("../../components/hardening/box-usage/BoxUsageControlModal"), { ssr: false });
 const RcsMaintenanceControlModal = dynamic(() => import("../../components/hardening/rcs-maintenance/RcsMaintenanceControlModal"), { ssr: false });
 const PipelineControlModal = dynamic(() => import("../../components/hardening/pipeline/PipelineControlModal"), { ssr: false });
+const PrivacyControlModal = dynamic(() => import("../../components/hardening/privacy/PrivacyControlModal"), { ssr: false });
 const DemoModeControlModal = dynamic(() => import("../../components/dev-tooling/demo-mode/DemoModeControlModal"), { ssr: false });
 const MediaReducerModal = dynamic(() => import("../../components/media-reducer/MediaReducerModal"), { ssr: false });
 const MeetCaptionsControlModal = dynamic(() => import("../../components/hardening/meet-captions/MeetCaptionsControlModal"), { ssr: false });
@@ -1950,6 +1951,22 @@ function UtilsAdlSurface({
                         </HardeningTileSub>
                       </HardeningTile>
                     );
+                    if (tile.type === "privacy") return (
+                      <HardeningTile key={i} type="button" onClick={() => onOpenHardening("privacy")}>
+                        <HardeningTileTop>
+                          <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: "-2px", marginRight: 8 }}>
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                            <path d="M9 12l2 2 4-4" />
+                          </svg>
+                          Privacy &amp; Data
+                        </HardeningTileTop>
+                        <HardeningTileSub>
+                          GDPR / CCPA on for everyone: consent ledger, data-subject requests and their
+                          deadlines, accounts in their 30-day close window (restore or erase tonight),
+                          the sealing key ring, the nightly erase cron.
+                        </HardeningTileSub>
+                      </HardeningTile>
+                    );
                     if (tile.type === "pipeline") return (
                       <HardeningTile key={i} type="button" onClick={() => onOpenHardening("pipeline")}>
                         <HardeningTileTop>
@@ -2161,7 +2178,7 @@ type DefaultsOverlay = Record<string, Record<string, FieldValue>>;
 
 // Runtime list, not just a union: the ?view= deep-link reader has to validate a
 // string off the URL, and a second hand-kept list would drift.
-const HARDENING_KINDS = ["telephony", "tenant-apps", "member-auth", "office-staff", "mesh-vpn", "firewall", "build-guard", "deploy-watcher", "tsserver", "keycloak", "demo-mode", "domain-dns", "box-usage", "rcs-maintenance", "pipeline", "meet-captions", "commerce-readiness"] as const;  // | "postgres" | "ssh" | "nginx" — future
+const HARDENING_KINDS = ["telephony", "tenant-apps", "member-auth", "office-staff", "mesh-vpn", "firewall", "build-guard", "deploy-watcher", "tsserver", "keycloak", "demo-mode", "domain-dns", "box-usage", "rcs-maintenance", "pipeline", "meet-captions", "commerce-readiness", "privacy"] as const;  // | "postgres" | "ssh" | "nginx" — future
 type HardeningKind = (typeof HARDENING_KINDS)[number];
 
 // ── Link Tools (TinyURL + QR generators) ──────────────────────────────────
@@ -2208,6 +2225,7 @@ type TileSpec =
   | { type: "box-usage" }
   | { type: "rcs-maintenance" }
   | { type: "pipeline" }
+  | { type: "privacy" }
   | { type: "keycloak" }
   | { type: "demo-mode" }
   | { type: "tinyurl" }
@@ -2259,7 +2277,7 @@ const SECTIONS: Section[] = [
     kind: "actions", actionIds: ["gitrepo", "gitdelrepo"] },
   { id: "hardening", title: "Hardening", accent: "cyan",
     subtitle: "defensive mechanisms installed on RCS — controls + status + audit log",
-    kind: "tiles", tiles: [{ type: "firewall" }, { type: "telephony" }, { type: "tenant-apps" }, { type: "commerce-readiness" }, { type: "member-auth" }, { type: "keycloak" }, { type: "office-staff" }, { type: "mesh-vpn" }, { type: "build-guard" }, { type: "deploy-watcher" }, { type: "pipeline" }, { type: "tsserver" }, { type: "box-usage" }, { type: "rcs-maintenance" }, { type: "domain-dns" }] },
+    kind: "tiles", tiles: [{ type: "firewall" }, { type: "telephony" }, { type: "tenant-apps" }, { type: "commerce-readiness" }, { type: "member-auth" }, { type: "keycloak" }, { type: "office-staff" }, { type: "mesh-vpn" }, { type: "build-guard" }, { type: "deploy-watcher" }, { type: "pipeline" }, { type: "privacy" }, { type: "tsserver" }, { type: "box-usage" }, { type: "rcs-maintenance" }, { type: "domain-dns" }] },
   { id: "linktools", title: "Link Tools", accent: "cyan",
     subtitle: "shorten URLs and generate scannable QR codes — pair them for printable mini-flyers",
     kind: "tiles", tiles: [{ type: "tinyurl" }, { type: "qrcode" }] },
@@ -2837,6 +2855,9 @@ export default function UtilsPage() {
       )}
       {openHardening === "pipeline" && (
         <PipelineControlModal onClose={() => setOpenHardening(null)} />
+      )}
+      {openHardening === "privacy" && (
+        <PrivacyControlModal onClose={() => setOpenHardening(null)} />
       )}
       {openHardening === "rcs-maintenance" && (
         <RcsMaintenanceControlModal onClose={() => setOpenHardening(null)} />
