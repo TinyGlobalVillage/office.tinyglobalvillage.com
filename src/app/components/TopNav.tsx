@@ -13,8 +13,9 @@ import styled from "styled-components";
 import TgvNav, {
   type TgvNavSection,
 } from "@tgv/module-component-library/domains/navigation/components/TgvNav";
-import ProfileModal, { type Profile, type Memo, type Ping } from "./ProfileModal";
-import { UserAvatar } from "./ChatSettingsModal";
+import dynamic from "next/dynamic";
+import type { Profile, Memo, Ping } from "./ProfileModal";
+import { UserAvatar } from "./UserAvatar";
 import { signOut } from "next-auth/react";
 import { useNavHistory } from "./useNavHistory";
 import { clearAllDrawerState } from "../lib/drawerPersist";
@@ -22,6 +23,9 @@ import LDM from "./LDM";
 import { colors, rgb } from "@/app/theme";
 import { MembersIcon } from "./icons";
 import { OFFICE_TILES, dispatchTileAction, tileHref } from "./dashboardTiles";
+
+// Opens on a face click — its own chunk, with ChatSettingsModal behind it (stack-efficiency P2).
+const ProfileModal = dynamic(() => import("./ProfileModal"), { ssr: false });
 
 const navLinks = [
   { label: "Dashboard", href: "/dashboard" },

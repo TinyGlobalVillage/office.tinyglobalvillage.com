@@ -4,12 +4,17 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import styled from "styled-components";
 import { colors, rgb } from "../theme";
-import ProfileModal, { type Profile, type Memo, type Ping, hexToRgb } from "./ProfileModal";
-import { UserAvatar } from "./ChatSettingsModal";
+import dynamic from "next/dynamic";
+import type { Profile, Memo, Ping } from "./ProfileModal";
+import { hexToRgb } from "@/app/lib/hexToRgb";
+import { UserAvatar } from "./UserAvatar";
 import type { UserPresence } from "./PresenceDots";
 import { ArrowRightIcon } from "./icons";
 import Tooltip from "./ui/Tooltip";
 import TPG from "@tgv/module-component-library/components/ui/TPG";
+
+// Opens on a face click — its own chunk (stack-efficiency P2).
+const ProfileModal = dynamic(() => import("./ProfileModal"), { ssr: false });
 
 const TILE_MIN_WIDTH = 200;
 const DEFAULT_PAGE_SIZE = 5;

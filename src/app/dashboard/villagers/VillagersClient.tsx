@@ -12,6 +12,7 @@
 
 import { useState, useEffect, useRef, type ReactNode } from "react";
 import styled, { css } from "styled-components";
+import dynamic from "next/dynamic";
 import { colors, rgb } from "../../theme";
 import TopNav from "../../components/TopNav";
 import { showNotice } from "../../components/dialogService";
@@ -32,32 +33,36 @@ import {
   ArchiveIcon,
   StorageIcon,
 } from "../../components/icons";
-import MemberWalletModal from "../../components/villagers/MemberWalletModal";
-import MemberBillingModal from "../../components/villagers/MemberBillingModal";
-import PayoutsModal from "../../components/villagers/PayoutsModal";
-import WalletControlModal from "../../components/hardening/wallet-control/WalletControlModal";
-import ManagedOnboardingModal from "../../components/villagers/ManagedOnboardingModal";
-import DiscountCodesModal from "../../components/villagers/DiscountCodesModal";
-import ProductsControlModal from "../../components/villagers/ProductsControlModal";
-import CourseControlModal from "../../components/villagers/CourseControlModal";
-import StudioControlModal from "../../components/villagers/StudioControlModal";
-import PerformersControlModal from "../../components/villagers/PerformersControlModal";
-import DnsModal from "../../components/villagers/DnsModal";
-import EcosystemAnalyticsModal from "../../components/villagers/EcosystemAnalyticsModal";
-import PaypalControlModal from "../../components/villagers/PaypalControlModal";
-import MoneyStoresModal from "../../components/villagers/MoneyStoresModal";
-import MemberLookupModal from "../../components/villagers/MemberLookupModal";
-import DashboardConfigModal from "../../components/villagers/DashboardConfigModal";
-import DashboardStorageModal from "../../components/villagers/DashboardStorageModal";
-import ProfileEnginesModal from "../../components/villagers/ProfileEnginesModal";
-import RequestTenantAccessModal from "../../components/villagers/RequestTenantAccessModal";
-import KeycloakWireModal from "../../components/villagers/KeycloakWireModal";
-import GuestClaimsModal from "../../components/villagers/GuestClaimsModal";
-import HandshakeModal from "../../components/villagers/HandshakeModal";
-import StudioConfigModal from "../../components/villagers/StudioConfigModal";
-import OnboardVillagerModal from "../../components/villagers/OnboardVillagerModal";
-import OnboardConfigModal from "../../components/villagers/OnboardConfigModal";
-import SiteVersionsModal from "../../components/villagers/SiteVersionsModal";
+
+// Stack-efficiency P2: each control modal is its own chunk, fetched when its
+// tile opens it — the Villagers page no longer ships all of them up front.
+const MemberWalletModal = dynamic(() => import("../../components/villagers/MemberWalletModal"), { ssr: false });
+const MemberBillingModal = dynamic(() => import("../../components/villagers/MemberBillingModal"), { ssr: false });
+const PayoutsModal = dynamic(() => import("../../components/villagers/PayoutsModal"), { ssr: false });
+const WalletControlModal = dynamic(() => import("../../components/hardening/wallet-control/WalletControlModal"), { ssr: false });
+const ManagedOnboardingModal = dynamic(() => import("../../components/villagers/ManagedOnboardingModal"), { ssr: false });
+const DiscountCodesModal = dynamic(() => import("../../components/villagers/DiscountCodesModal"), { ssr: false });
+const ProductsControlModal = dynamic(() => import("../../components/villagers/ProductsControlModal"), { ssr: false });
+const CourseControlModal = dynamic(() => import("../../components/villagers/CourseControlModal"), { ssr: false });
+const StudioControlModal = dynamic(() => import("../../components/villagers/StudioControlModal"), { ssr: false });
+const PerformersControlModal = dynamic(() => import("../../components/villagers/PerformersControlModal"), { ssr: false });
+const DnsModal = dynamic(() => import("../../components/villagers/DnsModal"), { ssr: false });
+const EcosystemAnalyticsModal = dynamic(() => import("../../components/villagers/EcosystemAnalyticsModal"), { ssr: false });
+const PaypalControlModal = dynamic(() => import("../../components/villagers/PaypalControlModal"), { ssr: false });
+const MoneyStoresModal = dynamic(() => import("../../components/villagers/MoneyStoresModal"), { ssr: false });
+const MemberLookupModal = dynamic(() => import("../../components/villagers/MemberLookupModal"), { ssr: false });
+const DashboardConfigModal = dynamic(() => import("../../components/villagers/DashboardConfigModal"), { ssr: false });
+const DashboardStorageModal = dynamic(() => import("../../components/villagers/DashboardStorageModal"), { ssr: false });
+const ProfileEnginesModal = dynamic(() => import("../../components/villagers/ProfileEnginesModal"), { ssr: false });
+const RequestTenantAccessModal = dynamic(() => import("../../components/villagers/RequestTenantAccessModal"), { ssr: false });
+const KeycloakWireModal = dynamic(() => import("../../components/villagers/KeycloakWireModal"), { ssr: false });
+const GuestClaimsModal = dynamic(() => import("../../components/villagers/GuestClaimsModal"), { ssr: false });
+const HandshakeModal = dynamic(() => import("../../components/villagers/HandshakeModal"), { ssr: false });
+const StudioConfigModal = dynamic(() => import("../../components/villagers/StudioConfigModal"), { ssr: false });
+const OnboardVillagerModal = dynamic(() => import("../../components/villagers/OnboardVillagerModal"), { ssr: false });
+const OnboardConfigModal = dynamic(() => import("../../components/villagers/OnboardConfigModal"), { ssr: false });
+const SiteVersionsModal = dynamic(() => import("../../components/villagers/SiteVersionsModal"), { ssr: false });
+
 
 /* ── Layout model ──────────────────────────────────────────────── */
 
