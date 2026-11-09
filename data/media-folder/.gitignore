@@ -1,0 +1,3 @@
+# Runtime artifact — written on the deployed box by src/lib/system/nginx-media.ts
+# (applyPolicy) just before the apply script installs it. Not source.
+media-allowlist.conf.generated

@@ -1,0 +1,25 @@
+{
+  "mode": "denylist",
+  "privateFolders": [
+    "documents",
+    "users",
+    "chat"
+  ],
+  "publicCabinets": [
+    "avatars",
+    "backgrounds",
+    "editor-uploads",
+    "imported",
+    "landing",
+    "nav",
+    "welcome"
+  ],
+  "publicRoots": [
+    "office",
+    "embed",
+    "gen-favicons"
+  ],
+  "lastUpdated": null,
+  "lastAppliedAt": null,
+  "_note": "Source of truth for the /media/ (CDN) access policy served off /srv/refusion-core/cdn. The Office 'Media Folder' hardening tile (System Hardening) writes this file; utils/scripts/media/media-allowlist-apply.sh installs the generated map to /etc/nginx/conf.d/media-allowlist.conf and reloads nginx. mode=denylist (default, = the historical prod behaviour) serves everything EXCEPT privateFolders. mode=allowlist (deny-by-default) serves ONLY publicCabinets (<name>/ under any one tenant) and publicRoots (whole /media/<name>/ bucket); privateFolders are ALWAYS denied on top, in both modes. Folder names match case-sensitively as a path segment under /media/."
+}
