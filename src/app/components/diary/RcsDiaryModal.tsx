@@ -125,19 +125,39 @@ function Qmbm({ content }: { content: string }) {
 
 /* ── Markdown rendering (lightweight; mirrors Read Me's modal) ─────── */
 
+function slugify(s: string): string {
+  return s
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
 function renderMarkdown(md: string): string {
+  const heading =
+    (tag: string) =>
+    (_m: string, t: string, id?: string) =>
+      `<${tag} id="${id || slugify(t)}">${t}</${tag}>`;
   return md
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
-    .replace(/^### (.*)$/gm, "<h3>$1</h3>")
-    .replace(/^## (.*)$/gm, "<h2>$1</h2>")
-    .replace(/^# (.*)$/gm, "<h1>$1</h1>")
-    .replace(/^&gt; (.*)$/gm, '<blockquote>$1</blockquote>')
+    // Solution callout: :::fix ... ::: (no blank line inside the block)
+    .replace(
+      /^:::fix[ \t]*\n([\s\S]*?)\n:::[ \t]*$/gm,
+      (_m, inner) =>
+        `<div class="fix"><span class="fix-label">✔ Fix</span>${String(inner).replace(/\n/g, " ")}</div>`,
+    )
+    // Headings carry an id (explicit {#id} or auto-slug) so a TOC can anchor to them
+    .replace(/^### (.*?)(?:[ \t]*\{#([\w-]+)\})?$/gm, heading("h3"))
+    .replace(/^## (.*?)(?:[ \t]*\{#([\w-]+)\})?$/gm, heading("h2"))
+    .replace(/^# (.*?)(?:[ \t]*\{#([\w-]+)\})?$/gm, heading("h1"))
+    .replace(/^&gt; (.*)$/gm, "<blockquote>$1</blockquote>")
     .replace(/^- \[ \] (.*)$/gm, '<div class="task">☐ $1</div>')
     .replace(/^- \[x\] (.*)$/gm, '<div class="task done">☑ $1</div>')
     .replace(/^- (.*)$/gm, "<li>$1</li>")
     .replace(/(<li>.*<\/li>\n?)+/g, (m) => `<ul>${m}</ul>`)
+    // Links (incl. in-page #anchors for the clickable outline)
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>')
     .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
     .replace(/`([^`]+)`/g, "<code>$1</code>")
     .replace(/\n\n/g, "</p><p>")
@@ -329,24 +349,62 @@ const SummaryText = styled.span`
 `;
 
 const EntryBody = styled.div`
-  padding: 0.85rem 1rem 1rem 1rem;
+  padding: 0.85rem 1.1rem 1.2rem 1.1rem;
   font-size: 0.85rem;
-  line-height: 1.55;
+  line-height: 1.6;
   color: var(--t-text);
-  h1 { font-size: 1.05rem; margin: 0.6rem 0 0.4rem; }
-  h2 { font-size: 0.95rem; margin: 0.8rem 0 0.4rem; color: rgb(${rgb.cyan}); }
-  h3 { font-size: 0.85rem; margin: 0.5rem 0 0.3rem; }
+  scroll-behavior: smooth;
+  h1 { font-size: 1.15rem; margin: 0.8rem 0 0.5rem; letter-spacing: -0.01em; }
+  h2 {
+    font-size: 1rem;
+    margin: 1.6rem 0 0.6rem;
+    padding-bottom: 0.3rem;
+    color: rgb(${rgb.cyan});
+    border-bottom: 1px solid rgba(${rgb.cyan}, 0.18);
+  }
+  h3 { font-size: 0.9rem; margin: 1.1rem 0 0.35rem; color: var(--t-text); }
+  h1, h2, h3 { scroll-margin-top: 1.25rem; }
+  p { margin: 0.6rem 0; }
+  a {
+    color: rgb(${rgb.cyan});
+    text-decoration: none;
+    border-bottom: 1px dotted rgba(${rgb.cyan}, 0.5);
+  }
+  a:hover { border-bottom-style: solid; }
   blockquote {
     border-left: 3px solid rgba(${rgb.cyan}, 0.5);
     padding-left: 0.75rem;
     color: var(--t-textFaint);
     font-style: italic;
-    margin: 0.5rem 0;
+    margin: 0.6rem 0;
   }
-  ul { padding-left: 1.5rem; }
+  /* Clickable outline / table of contents */
+  ul { padding-left: 1.5rem; margin: 0.5rem 0; }
+  li { margin: 0.32rem 0; }
   .task { margin: 0.2rem 0; }
   .task.done { color: var(--t-textFaint); text-decoration: line-through; }
   code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.78rem; padding: 0 0.2rem; background: var(--t-inputBg); border-radius: 3px; }
+  /* Per-finding solution — green callout, set apart from the problem above it */
+  .fix {
+    border-left: 3px solid rgba(${rgb.green}, 0.85);
+    background: rgba(${rgb.green}, 0.07);
+    padding: 0.55rem 0.8rem;
+    margin: 0.45rem 0 1.15rem;
+    border-radius: 0 6px 6px 0;
+    color: rgb(${rgb.green});
+    line-height: 1.55;
+  }
+  .fix .fix-label {
+    display: block;
+    font-weight: 700;
+    font-size: 0.68rem;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    margin-bottom: 0.3rem;
+    opacity: 0.95;
+  }
+  .fix code { color: inherit; background: rgba(${rgb.green}, 0.14); }
+  .fix strong { color: inherit; }
 `;
 
 const Empty = styled.div`
