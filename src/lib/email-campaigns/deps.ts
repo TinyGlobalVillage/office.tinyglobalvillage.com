@@ -5,6 +5,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createEmailCampaignsRoutes, type EmailCampaignsContext } from "@tgv/module-email-campaigns/server/routes";
 import { pgPool } from "@/lib/pg-pool";
 import { requireAdmin } from "@/lib/api-admin";
+import { rosterEmailForUsername } from "@/lib/member-auth/bridge";
 import nodemailer from "nodemailer";
 
 async function sendMail(args: { to: string; subject: string; html: string }): Promise<void> {
@@ -28,5 +29,8 @@ export function emailCampaigns() {
 export async function adminCtx(req: NextRequest): Promise<EmailCampaignsContext | NextResponse> {
   const gate = await requireAdmin(req);
   if (gate instanceof NextResponse) return gate;
-  return { scope: "system", tenantId: null, username: gate.username };
+  // Audit S2 #12: a test-send may only reach the OPERATOR'S OWN roster email —
+  // never a client-supplied `to`. No roster email → testRecipient null →
+  // testSend fails closed (no open relay from the platform's DKIM From).
+  return { scope: "system", tenantId: null, username: gate.username, testRecipient: rosterEmailForUsername(gate.username) };
 }
