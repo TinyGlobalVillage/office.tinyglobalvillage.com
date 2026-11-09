@@ -311,7 +311,7 @@ const X = styled.button`
 const AddRow = styled.div`display: flex; gap: 8px; align-items: center;`;
 const Input = styled.input`
   flex: 1; padding: 6px 9px; font-family: var(--font-geist-mono), monospace; font-size: 12.5px;
-  background: rgba(0,0,0,0.25); border: 1px solid var(--t-border); border-radius: 7px; color: var(--t-text);
+  background: var(--t-inputBg); border: 1px solid var(--t-border); border-radius: 7px; color: var(--t-text);
   &:focus { outline: none; border-color: rgba(${rgb.gold},0.5); }
 `;
 const AddBtn = styled.button<{ $color: string }>`
@@ -332,7 +332,7 @@ const ApplyMsg = styled.span<{ $ok: boolean }>`
 const ProbeOut = styled.div`font-family: var(--font-geist-mono), monospace; font-size: 11.5px; color: var(--t-text);`;
 const Pre = styled.pre`
   margin: 0; padding: 10px; border-radius: 8px; overflow: auto; max-height: 320px;
-  background: rgba(0,0,0,0.3); border: 1px solid var(--t-border);
+  background: var(--t-inputBg); border: 1px solid var(--t-border);
   font-family: var(--font-geist-mono), monospace; font-size: 11px; line-height: 1.5; color: var(--t-textFaint);
 `;
 const Empty = styled.span`font-size: 11.5px; color: var(--t-textFaint); font-style: italic;`;
