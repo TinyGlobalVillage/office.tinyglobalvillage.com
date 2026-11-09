@@ -17,6 +17,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import styled from "styled-components";
+import dynamic from "next/dynamic";
 import { colors, rgb } from "../../theme";
 import TopNav from "../../components/TopNav";
 import { ModulesIcon, EditorIcon, SettingsIcon, PhotosIcon } from "../../components/icons";
@@ -24,13 +25,28 @@ import { ModulesIcon, EditorIcon, SettingsIcon, PhotosIcon } from "../../compone
 import { IconEmail } from "@tgv/module-component-library/components/icons/EmailIcon";
 import { IconStorefront } from "@tgv/module-component-library/components/icons/StorefrontIcon";
 import { IconDocEdit } from "@tgv/module-component-library/components/icons/DocEditIcon";
-import ModuleDashboardConfigModal from "../../components/modules/ModuleDashboardConfigModal";
-import TemplateGalleryPanel from "../../components/modules/TemplateGalleryPanel";
-import ModuleStorefrontPanel from "../../components/modules/ModuleStorefrontPanel";
-import SystemEmailCampaigns from "../email-campaigns/SystemEmailCampaigns";
-import WizardsPanelHost from "../../components/modules/WizardsPanelHost";
-import ComponentLibraryPanel from "../../components/modules/ComponentLibraryPanel";
-import DocEditorHost from "../../components/modules/DocEditorHost";
+import { IconBook } from "@tgv/module-component-library/components/icons/BookIcon";
+import { IconMic } from "@tgv/module-component-library/components/icons/MicIcon";
+
+// Stack-efficiency P2: the grid shows one panel at a time, so each panel is its
+// own chunk. Hovering a tile fetches its panel; clicking it then opens at once.
+const viewLoaders = {
+  email: () => import("../email-campaigns/SystemEmailCampaigns"),
+  wizards: () => import("../../components/modules/WizardsPanelHost"),
+  library: () => import("../../components/modules/ComponentLibraryPanel"),
+  docs: () => import("../../components/modules/DocEditorHost"),
+  templates: () => import("../../components/modules/TemplateGalleryPanel"),
+  storefront: () => import("../../components/modules/ModuleStorefrontPanel"),
+};
+const warmView = (v: keyof typeof viewLoaders) => { void viewLoaders[v]().catch(() => {}); };
+const SystemEmailCampaigns = dynamic(viewLoaders.email, { ssr: false });
+const WizardsPanelHost = dynamic(viewLoaders.wizards, { ssr: false });
+const ComponentLibraryPanel = dynamic(viewLoaders.library, { ssr: false });
+const DocEditorHost = dynamic(viewLoaders.docs, { ssr: false });
+const TemplateGalleryPanel = dynamic(viewLoaders.templates, { ssr: false });
+const ModuleStorefrontPanel = dynamic(viewLoaders.storefront, { ssr: false });
+const ModuleDashboardConfigModal = dynamic(() => import("../../components/modules/ModuleDashboardConfigModal"), { ssr: false });
+
 
 /* ── Styled (Villagers tile canon, violet accent) ─────────────────── */
 
@@ -236,6 +252,22 @@ export default function ModulesClient() {
     window.open(url, "_blank");
   };
 
+  // Course Editor / Podcast Editor (Gio 2026-11-01: "module copies on Office → Modules") — the
+  // SAME editors the villager dashboard's Editor tab opens, on tgv.com in a new tab (its editor
+  // surfaces refuse cross-origin framing, like Module-Dashboard). They author on the site the
+  // operator's tgv.com dashboard is standing in. Lang/base share the Module-Dashboard gear.
+  const openTgvEditor = (path: string) => {
+    let cfg = { lang: "en", base: process.env.NEXT_PUBLIC_TGV_URL ?? "https://tinyglobalvillage.com" };
+    try {
+      const c = JSON.parse(localStorage.getItem("tgv-module-dashboard-cfg") || "{}");
+      if (typeof c.lang === "string" && c.lang) cfg = { ...cfg, lang: c.lang };
+      if (typeof c.base === "string" && c.base) cfg = { ...cfg, base: c.base };
+    } catch {
+      /* ignore malformed cfg */
+    }
+    window.open(`${cfg.base}/${encodeURIComponent(cfg.lang)}/editor/${path}`, "_blank");
+  };
+
   // Email Campaigns opens INLINE (system-scoped editor) — same panel the member
   // Support tab mounts tenant-scoped. Keeps everything inside the Modules surface
   // instead of a separate top-level tile.
@@ -431,7 +463,7 @@ export default function ModulesClient() {
           </TileWrap>
 
           <TileWrap>
-            <Tile type="button" onClick={() => setView("email")}>
+            <Tile type="button" onPointerEnter={() => warmView("email")} onFocus={() => warmView("email")} onClick={() => setView("email")}>
               <TileTop><IconEmail width={18} height={18} aria-hidden /> Email Campaigns</TileTop>
               <TileSub>
                 Branded outbound-email templates — edit the system-wide copies every member
@@ -442,7 +474,7 @@ export default function ModulesClient() {
           </TileWrap>
 
           <TileWrap>
-            <Tile type="button" onClick={() => setView("storefront")}>
+            <Tile type="button" onPointerEnter={() => warmView("storefront")} onFocus={() => warmView("storefront")} onClick={() => setView("storefront")}>
               <TileTop><IconStorefront width={18} height={18} aria-hidden /> Module Storefront</TileTop>
               <TileSub>
                 The store pages every tenant ships with — confirmation, product
@@ -454,7 +486,7 @@ export default function ModulesClient() {
           </TileWrap>
 
           <TileWrap>
-            <Tile type="button" onClick={() => setView("templates")}>
+            <Tile type="button" onPointerEnter={() => warmView("templates")} onFocus={() => warmView("templates")} onClick={() => setView("templates")}>
               <TileTop><PhotosIcon size={18} /> Template Gallery</TileTop>
               <TileSub>
                 The page templates members can start a site from — Live, Drafts, or All.
@@ -465,7 +497,7 @@ export default function ModulesClient() {
           </TileWrap>
 
           <TileWrap>
-            <Tile type="button" onClick={() => setView("library")}>
+            <Tile type="button" onPointerEnter={() => warmView("library")} onFocus={() => warmView("library")} onClick={() => setView("library")}>
               <TileTop><EditorIcon size={18} /> Component Library</TileTop>
               <TileSub>
                 The living library — every picker component, edited in the real
@@ -476,7 +508,7 @@ export default function ModulesClient() {
           </TileWrap>
 
           <TileWrap>
-            <Tile type="button" onClick={() => setView("docs")}>
+            <Tile type="button" onPointerEnter={() => warmView("docs")} onFocus={() => warmView("docs")} onClick={() => setView("docs")}>
               <TileTop><IconDocEdit width={18} height={18} aria-hidden /> Doc Editor</TileTop>
               <TileSub>
                 Documents with the same editor, library and proofing gear as the Village&apos;s
@@ -487,7 +519,29 @@ export default function ModulesClient() {
           </TileWrap>
 
           <TileWrap>
-            <Tile type="button" onClick={() => setView("wizards")}>
+            <Tile type="button" onClick={() => openTgvEditor("courses")}>
+              <TileTop><IconBook width={18} height={18} aria-hidden /> Course Editor</TileTop>
+              <TileSub>
+                The course builder every villager&apos;s Editor tab opens — sections, lessons,
+                pages, quizzes and certificates. Opens on tgv.com in a new tab, on the site your
+                dashboard there is standing in.
+              </TileSub>
+            </Tile>
+          </TileWrap>
+
+          <TileWrap>
+            <Tile type="button" onClick={() => openTgvEditor("podcasts")}>
+              <TileTop><IconMic width={18} height={18} aria-hidden /> Podcast Editor</TileTop>
+              <TileSub>
+                Shows and episodes — audio, show notes, cover art — with a public RSS feed for
+                Apple Podcasts and Spotify. Opens on tgv.com in a new tab, on the site your
+                dashboard there is standing in.
+              </TileSub>
+            </Tile>
+          </TileWrap>
+
+          <TileWrap>
+            <Tile type="button" onPointerEnter={() => warmView("wizards")} onFocus={() => warmView("wizards")} onClick={() => setView("wizards")}>
               <TileTop><span style={{ fontSize: 18 }} aria-hidden>🪄</span> Wizards</TileTop>
               <TileSub>
                 Every guided flow the fleet runs, tracked in one place. See all of a wizard&apos;s

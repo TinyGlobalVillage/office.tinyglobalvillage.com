@@ -4,7 +4,8 @@ import { useMemo, useState } from "react";
 import styled from "styled-components";
 import { useEscapeToClose } from "@tgv/module-component-library/components/hooks/useEscapeToClose";
 import { colors, rgb } from "../theme";
-import { UserAvatar, type MemberProfile } from "./ChatSettingsModal";
+import { UserAvatar } from "./UserAvatar";
+import type { MemberProfile } from "./ChatSettingsModal";
 import { CancelIcon } from "./icons";
 
 type Visibility = "open" | "restricted" | "invisible";

@@ -32,7 +32,7 @@ export async function GET(
   if (!token?.username) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
-  const qrcode = getQRCode(id);
+  const qrcode = await getQRCode(id);
   if (!qrcode) return NextResponse.json({ error: "Not found" }, { status: 404 });
   if (qrcode.createdBy !== ORG_OWNER && qrcode.createdBy !== token.username) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -48,7 +48,7 @@ export async function PATCH(
   if (!token?.username) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
-  const existing = getQRCode(id);
+  const existing = await getQRCode(id);
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
   if (existing.createdBy !== ORG_OWNER && existing.createdBy !== token.username) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -58,7 +58,7 @@ export async function PATCH(
   if (!body) return NextResponse.json({ error: "Invalid body" }, { status: 400 });
 
   try {
-    const qrcode = updateQRCode(id, body, ownerKeyForCaller(existing.createdBy, token.username));
+    const qrcode = await updateQRCode(id, body, ownerKeyForCaller(existing.createdBy, token.username));
     return NextResponse.json({ qrcode });
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : "Update failed" }, { status: 400 });
@@ -73,14 +73,14 @@ export async function DELETE(
   if (!token?.username) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
-  const existing = getQRCode(id);
+  const existing = await getQRCode(id);
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
   if (existing.createdBy !== ORG_OWNER && existing.createdBy !== token.username) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
   try {
-    deleteQRCode(id, ownerKeyForCaller(existing.createdBy, token.username));
+    await deleteQRCode(id, ownerKeyForCaller(existing.createdBy, token.username));
     return NextResponse.json({ ok: true });
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : "Delete failed" }, { status: 400 });

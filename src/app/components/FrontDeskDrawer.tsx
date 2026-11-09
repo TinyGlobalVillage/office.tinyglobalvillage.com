@@ -12,13 +12,7 @@ import {
   DrawerTitle,
   PanelIconBtn,
 } from "../styled";
-import PhoneTab from "./frontdesk/PhoneTab";
-import SmsTab from "./frontdesk/SmsTab";
-import ContactsTab from "./frontdesk/ContactsTab";
-import AlertsTab from "./frontdesk/AlertsTab";
-import TicketsTab from "./frontdesk/TicketsTab";
-import VoicemailsTab from "./frontdesk/VoicemailsTab";
-import RecordingsTab from "./frontdesk/RecordingsTab";
+import dynamic from "next/dynamic";
 import FrontDeskShiftBar from "./frontdesk/FrontDeskShiftBar";
 import {
   DrawerFrontDeskIcon,
@@ -36,6 +30,17 @@ import { useKnobVisibility } from "../lib/drawerKnobs";
 import { useDrawerLifecycle, DRAWER_DATA_ATTR } from "../lib/drawerStack";
 import { DRAWER_TAB_EVENT, type DrawerTabDetail } from "./dashboardTiles";
 import { useDrawerPersistedState } from "../lib/drawerPersist";
+
+// Stack-efficiency P2: each tab is its own chunk, fetched when the drawer
+// first opens on it. Cross-tab intents (Contacts → Call/SMS) already survive a
+// late mount through the dialBus, so a tab arriving a beat later loses nothing.
+const PhoneTab = dynamic(() => import("./frontdesk/PhoneTab"), { ssr: false });
+const SmsTab = dynamic(() => import("./frontdesk/SmsTab"), { ssr: false });
+const ContactsTab = dynamic(() => import("./frontdesk/ContactsTab"), { ssr: false });
+const AlertsTab = dynamic(() => import("./frontdesk/AlertsTab"), { ssr: false });
+const TicketsTab = dynamic(() => import("./frontdesk/TicketsTab"), { ssr: false });
+const VoicemailsTab = dynamic(() => import("./frontdesk/VoicemailsTab"), { ssr: false });
+const RecordingsTab = dynamic(() => import("./frontdesk/RecordingsTab"), { ssr: false });
 
 const MIN_W = 420;
 const MAX_W = 1400;
@@ -362,6 +367,11 @@ const TAB_META: Record<FrontDeskTab, { label: string; Icon: React.ComponentType<
 
 export default function FrontDeskDrawer() {
   const [open, setOpen] = useState(false);
+  // The panel stays mounted (it slides off-screen), so without this the active
+  // tab polled its API on every Office page from load, drawer shut. A tab now
+  // mounts the first time the drawer opens and stays mounted after.
+  const [everOpened, setEverOpened] = useState(false);
+  useEffect(() => { if (open) setEverOpened(true); }, [open]);
   const [width, setWidth] = useDrawerPersistedState<number>(DRAWER_ID, "width", DEFAULT_W);
   const [fullscreen, setFullscreen] = useDrawerPersistedState<boolean>(DRAWER_ID, "fullscreen", false);
   const [zoom, setZoom] = useDrawerPersistedState<number>(DRAWER_ID, "zoom", 1.0);
@@ -676,6 +686,7 @@ export default function FrontDeskDrawer() {
         ))}
 
         <ContentWrap style={{ fontSize: `${zoom}rem` }}>
+          {everOpened && <>
           {activeTab === "phone" && <PhoneTab />}
           {activeTab === "sms" && <SmsTab />}
           {activeTab === "contacts" && <ContactsTab />}
@@ -683,6 +694,7 @@ export default function FrontDeskDrawer() {
           {activeTab === "recordings" && <RecordingsTab />}
           {activeTab === "alerts" && <AlertsTab />}
           {activeTab === "tickets" && <TicketsTab />}
+          </>}
         </ContentWrap>
         </Gutter>
 

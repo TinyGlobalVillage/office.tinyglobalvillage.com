@@ -17,7 +17,6 @@ const CommerceReadinessControlModal = dynamic(() => import("../../components/har
 const MemberAuthControlModal = dynamic(() => import("../../components/hardening/member-auth/MemberAuthControlModal"), { ssr: false });
 const OfficeStaffControlModal = dynamic(() => import("../../components/hardening/office-staff/OfficeStaffControlModal"), { ssr: false });
 const MeshVpnControlModal = dynamic(() => import("../../components/hardening/mesh-vpn/MeshVpnControlModal"), { ssr: false });
-const InvitationsControlModal = dynamic(() => import("../../components/hardening/invitations/InvitationsControlModal"), { ssr: false });
 const FirewallControlModal = dynamic(() => import("../../components/hardening/firewall/FirewallControlModal"), { ssr: false });
 const BackupsControlModal = dynamic(() => import("../../components/backups/BackupsControlModal"), { ssr: false });
 const MigrateSiteControlModal = dynamic(() => import("../../components/migrate/MigrateSiteControlModal"), { ssr: false });
@@ -30,6 +29,9 @@ const TsserverControlModal = dynamic(() => import("../../components/hardening/ts
 const DomainDnsControlModal = dynamic(() => import("../../components/hardening/domain-dns/DomainDnsControlModal"), { ssr: false });
 const KeycloakControlModal = dynamic(() => import("../../components/hardening/keycloak/KeycloakControlModal"), { ssr: false });
 const BoxUsageControlModal = dynamic(() => import("../../components/hardening/box-usage/BoxUsageControlModal"), { ssr: false });
+const RcsMaintenanceControlModal = dynamic(() => import("../../components/hardening/rcs-maintenance/RcsMaintenanceControlModal"), { ssr: false });
+const PipelineControlModal = dynamic(() => import("../../components/hardening/pipeline/PipelineControlModal"), { ssr: false });
+const PrivacyControlModal = dynamic(() => import("../../components/hardening/privacy/PrivacyControlModal"), { ssr: false });
 const DemoModeControlModal = dynamic(() => import("../../components/dev-tooling/demo-mode/DemoModeControlModal"), { ssr: false });
 const MediaReducerModal = dynamic(() => import("../../components/media-reducer/MediaReducerModal"), { ssr: false });
 const MeetCaptionsControlModal = dynamic(() => import("../../components/hardening/meet-captions/MeetCaptionsControlModal"), { ssr: false });
@@ -1861,16 +1863,6 @@ function UtilsAdlSurface({
                         </HardeningTileSub>
                       </HardeningTile>
                     );
-                    if (tile.type === "invitations") return (
-                      <HardeningTile key={i} type="button" onClick={() => onOpenHardening("invitations")}>
-                        <HardeningTileTop>✉️ Invitations</HardeningTileTop>
-                        <HardeningTileSub>
-                          Invite-only onboarding caps AI API spend — nobody reaches the wizard
-                          without redeeming an emailed, single-use code. Mint, track redemptions,
-                          revoke, and resend codes; the `admin` seed is the temporary team code.
-                        </HardeningTileSub>
-                      </HardeningTile>
-                    );
                     if (tile.type === "firewall") return (
                       <HardeningTile key={i} type="button" onClick={() => onOpenHardening("firewall")}>
                         <HardeningTileTop>🧱 Firewall & Intrusion</HardeningTileTop>
@@ -1966,6 +1958,56 @@ function UtilsAdlSurface({
                           How full this box is — CPU, RAM, disk and bandwidth sampled on a cadence and
                           kept as history, headlined by whichever fills first. The box has already
                           OOM-killed a build once; this is the number that says when to add another.
+                        </HardeningTileSub>
+                      </HardeningTile>
+                    );
+                    if (tile.type === "privacy") return (
+                      <HardeningTile key={i} type="button" onClick={() => onOpenHardening("privacy")}>
+                        <HardeningTileTop>
+                          <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: "-2px", marginRight: 8 }}>
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                            <path d="M9 12l2 2 4-4" />
+                          </svg>
+                          Privacy &amp; Data
+                        </HardeningTileTop>
+                        <HardeningTileSub>
+                          GDPR / CCPA on for everyone: consent ledger, data-subject requests and their
+                          deadlines, accounts in their 30-day close window (restore or erase tonight),
+                          the sealing key ring, the nightly erase cron.
+                        </HardeningTileSub>
+                      </HardeningTile>
+                    );
+                    if (tile.type === "pipeline") return (
+                      <HardeningTile key={i} type="button" onClick={() => onOpenHardening("pipeline")}>
+                        <HardeningTileTop>
+                          <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: "-2px", marginRight: 8 }}>
+                            <circle cx="5" cy="6" r="2" />
+                            <circle cx="12" cy="18" r="2" />
+                            <circle cx="19" cy="6" r="2" />
+                            <path d="M5 8v2a4 4 0 0 0 4 4h1M19 8v2a4 4 0 0 1-4 4h-1M12 14v2" />
+                          </svg>
+                          Pipeline
+                        </HardeningTileTop>
+                        <HardeningTileSub>
+                          What stands between main and live: each app&rsquo;s state and blocker,
+                          queued deploys, the Mac&rsquo;s build lock and checkouts, the direct
+                          route — and who gets told when it sticks.
+                        </HardeningTileSub>
+                      </HardeningTile>
+                    );
+                    if (tile.type === "rcs-maintenance") return (
+                      <HardeningTile key={i} type="button" onClick={() => onOpenHardening("rcs-maintenance")}>
+                        <HardeningTileTop>
+                          <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: "-2px", marginRight: 8 }}>
+                            <path d="M21 12a9 9 0 1 1-3-6.7" />
+                            <path d="M21 4v5h-5" />
+                          </svg>
+                          RCS Maintenance
+                        </HardeningTileTop>
+                        <HardeningTileSub>
+                          Reboot-needed and updates-waiting notices to the Front Desk and by email,
+                          repeated until RCS reboots — plus every reboot run from the Mac, with its
+                          measured downtime.
                         </HardeningTileSub>
                       </HardeningTile>
                     );
@@ -2146,7 +2188,7 @@ type DefaultsOverlay = Record<string, Record<string, FieldValue>>;
 
 // Runtime list, not just a union: the ?view= deep-link reader has to validate a
 // string off the URL, and a second hand-kept list would drift.
-const HARDENING_KINDS = ["telephony", "tenant-apps", "member-auth", "office-staff", "mesh-vpn", "invitations", "firewall", "build-guard", "deploy-watcher", "tsserver", "keycloak", "demo-mode", "domain-dns", "box-usage", "meet-captions", "commerce-readiness", "media-folder"] as const;  // | "postgres" | "ssh" | "nginx" — future
+const HARDENING_KINDS = ["telephony", "tenant-apps", "member-auth", "office-staff", "mesh-vpn", "firewall", "build-guard", "deploy-watcher", "tsserver", "keycloak", "demo-mode", "domain-dns", "box-usage", "rcs-maintenance", "pipeline", "meet-captions", "commerce-readiness", "privacy", "media-folder"] as const;  // | "postgres" | "ssh" | "nginx" — future
 type HardeningKind = (typeof HARDENING_KINDS)[number];
 
 // ── Link Tools (TinyURL + QR generators) ──────────────────────────────────
@@ -2185,7 +2227,6 @@ type TileSpec =
   | { type: "member-auth" }
   | { type: "office-staff" }
   | { type: "mesh-vpn" }
-  | { type: "invitations" }
   | { type: "firewall" }
   | { type: "media-folder" }
   | { type: "build-guard" }
@@ -2193,6 +2234,9 @@ type TileSpec =
   | { type: "domain-dns" }
   | { type: "tsserver" }
   | { type: "box-usage" }
+  | { type: "rcs-maintenance" }
+  | { type: "pipeline" }
+  | { type: "privacy" }
   | { type: "keycloak" }
   | { type: "demo-mode" }
   | { type: "tinyurl" }
@@ -2244,7 +2288,7 @@ const SECTIONS: Section[] = [
     kind: "actions", actionIds: ["gitrepo", "gitdelrepo"] },
   { id: "hardening", title: "Hardening", accent: "cyan",
     subtitle: "defensive mechanisms installed on RCS — controls + status + audit log",
-    kind: "tiles", tiles: [{ type: "firewall" }, { type: "media-folder" }, { type: "telephony" }, { type: "tenant-apps" }, { type: "commerce-readiness" }, { type: "member-auth" }, { type: "keycloak" }, { type: "office-staff" }, { type: "mesh-vpn" }, { type: "invitations" }, { type: "build-guard" }, { type: "deploy-watcher" }, { type: "tsserver" }, { type: "box-usage" }, { type: "domain-dns" }] },
+    kind: "tiles", tiles: [{ type: "firewall" }, { type: "media-folder" }, { type: "telephony" }, { type: "tenant-apps" }, { type: "commerce-readiness" }, { type: "member-auth" }, { type: "keycloak" }, { type: "office-staff" }, { type: "mesh-vpn" }, { type: "build-guard" }, { type: "deploy-watcher" }, { type: "pipeline" }, { type: "privacy" }, { type: "tsserver" }, { type: "box-usage" }, { type: "rcs-maintenance" }, { type: "domain-dns" }] },
   { id: "linktools", title: "Link Tools", accent: "cyan",
     subtitle: "shorten URLs and generate scannable QR codes — pair them for printable mini-flyers",
     kind: "tiles", tiles: [{ type: "tinyurl" }, { type: "qrcode" }] },
@@ -2793,10 +2837,6 @@ export default function UtilsPage() {
         <MeshVpnControlModal onClose={() => setOpenHardening(null)} />
       )}
 
-      {openHardening === "invitations" && (
-        <InvitationsControlModal onClose={() => setOpenHardening(null)} />
-      )}
-
       {openHardening === "firewall" && (
         <FirewallControlModal onClose={() => setOpenHardening(null)} />
       )}
@@ -2827,6 +2867,15 @@ export default function UtilsPage() {
       )}
       {openHardening === "box-usage" && (
         <BoxUsageControlModal onClose={() => setOpenHardening(null)} />
+      )}
+      {openHardening === "pipeline" && (
+        <PipelineControlModal onClose={() => setOpenHardening(null)} />
+      )}
+      {openHardening === "privacy" && (
+        <PrivacyControlModal onClose={() => setOpenHardening(null)} />
+      )}
+      {openHardening === "rcs-maintenance" && (
+        <RcsMaintenanceControlModal onClose={() => setOpenHardening(null)} />
       )}
       {openHardening === "meet-captions" && (
         <MeetCaptionsControlModal onClose={() => setOpenHardening(null)} />

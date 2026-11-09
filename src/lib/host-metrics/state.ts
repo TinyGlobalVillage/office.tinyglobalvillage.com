@@ -13,6 +13,7 @@
  * timer alongside the first.
  */
 import type { HostSample } from "./compute";
+import type { HealthReport } from "./health";
 
 type CpuCounters = { idle: number; total: number };
 type NetCounters = { rx: number; tx: number };
@@ -32,6 +33,12 @@ export type HostMetricsState = {
   lastPruneDeleted: number | null;
   lastAlertAt: number | null;
   priming: boolean;
+  // box health (health.ts) — last report and why it failed, if it did
+  lastHealth: HealthReport | null;
+  lastHealthError: string | null;
+  // rcs-maintenance (../rcs-maintenance/maintenance.ts) — why the last tick failed
+  lastMaintenanceError: string | null;
+  lastPipelineError: string | null;
   // delta baseline for the shared reader
   prevCpu: CpuCounters | null;
   prevNet: NetCounters | null;
@@ -53,6 +60,10 @@ function fresh(): HostMetricsState {
     lastPruneDeleted: null,
     lastAlertAt: null,
     priming: true,
+    lastHealth: null,
+    lastHealthError: null,
+    lastMaintenanceError: null,
+    lastPipelineError: null,
     prevCpu: null,
     prevNet: null,
     prevAt: null,

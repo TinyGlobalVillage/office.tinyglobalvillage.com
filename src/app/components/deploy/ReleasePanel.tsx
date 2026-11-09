@@ -27,7 +27,15 @@ type Release = {
   lastRollback: { at: string; by: string; from: Stamp | null; to: Stamp | null } | null;
   lastError: string | null;
   promoteBy: string | null;
+  pendingMigrations: PendingMigration[];
+  migrations: { at: string; by: string; result: { applied?: number; failed?: { file: string; db: string } }; log: string } | null;
+  liveTag: string | null;
+  request: {
+    status: string; by: string[]; at: string; expiresAt: string; wantMono: string | null;
+    claimedBy?: string | null; finishedAt?: string | null; finishedBy?: string | null; note?: string | null;
+  } | null;
 };
+type PendingMigration = { file: string; sha256: string; destructive: boolean; approved: boolean; statements: string[]; databases: string[] };
 type Watcher = { online: boolean; host: string | null; at: string | null };
 
 const BUSY = new Set(["promoting", "building", "queued", "debouncing", "resolving"]);
@@ -44,6 +52,12 @@ const ago = (t?: string | null) => {
   if (!Number.isFinite(s)) return "";
   return s < 90 ? `${s}s ago` : s < 5400 ? `${Math.round(s / 60)}m ago` : s < 172800 ? `${Math.round(s / 3600)}h ago` : `${Math.round(s / 86400)}d ago`;
 };
+const until = (t?: string | null) => {
+  if (!t) return "";
+  const s = Math.round((Date.parse(t) - Date.now()) / 1000);
+  if (!Number.isFinite(s)) return "";
+  return s <= 0 ? "now" : s < 90 ? `in ${s}s` : `in ${Math.round(s / 60)}m`;
+};
 const label = (c: string) => c.replace(/\.tinyglobalvillage\.com$/, "").replace(/^tinyglobalvillage\.com$/, "tgv.com");
 const sameBuild = (a: Stamp | null, b: Stamp | null) => !!a && !!b && a.mono === b.mono && a.client === b.client;
 
@@ -51,7 +65,7 @@ export default function ReleasePanel() {
   const [releases, setReleases] = useState<Release[]>([]);
   const [watcher, setWatcher] = useState<Watcher | null>(null);
   const [err, setErr] = useState<Record<string, string>>({});
-  const [ask, setAsk] = useState<{ kind: "promote" | "rollback"; r: Release } | null>(null);
+  const [ask, setAsk] = useState<{ kind: "promote" | "rollback" | "approve" | "cancel"; r: Release } | null>(null);
   const [gear, setGear] = useState<Record<string, boolean>>({});
 
   const load = useCallback(async () => {
@@ -92,8 +106,14 @@ export default function ReleasePanel() {
       await post(r.client, { action: "promote", expectMono: r.staged.mono, expectClient: r.staged.client });
     } else if (kind === "rollback") {
       await post(r.client, { action: "rollback" });
+    } else if (kind === "cancel") {
+      await post(r.client, { action: "cancel-request" });
+    } else if (kind === "approve") {
+      const files = unapproved(r).map((p) => ({ file: p.file, sha256: p.sha256 }));
+      await post(r.client, { action: "approve-migrations", files });
     }
   };
+  const unapproved = (r: Release) => (r.pendingMigrations ?? []).filter((p) => p.destructive && !p.approved);
 
   if (releases.length === 0) return null;
 
@@ -111,6 +131,8 @@ export default function ReleasePanel() {
           const busy = !!r.state && BUSY.has(r.state);
           const stagedNew = !!r.staged && !sameBuild(r.staged, r.live);
           const color = STATE_COLOR[r.state ?? ""] ?? "#9aa0aa";
+          const pending = r.pendingMigrations ?? [];
+          const needsApproval = unapproved(r).length > 0;
           return (
             <Tile key={r.client} $color={color}>
               <TopRow>
@@ -135,18 +157,68 @@ export default function ReleasePanel() {
               {r.lastRollback && (
                 <Muted>Rolled back {ago(r.lastRollback.at)} by {r.lastRollback.by} to {short(r.lastRollback.to?.mono)}</Muted>
               )}
+              {r.liveTag && <Muted>tagged {r.liveTag}</Muted>}
+              {r.migrations?.result?.failed && (
+                <ErrText>Migration failed: {r.migrations.result.failed.file} on {r.migrations.result.failed.db} · {ago(r.migrations.at)}</ErrText>
+              )}
+              {r.migrations && !r.migrations.result?.failed && (r.migrations.result?.applied ?? 0) > 0 && (
+                <Muted>{r.migrations.result.applied} migration{r.migrations.result.applied === 1 ? "" : "s"} applied {ago(r.migrations.at)} by {r.migrations.by}</Muted>
+              )}
+              {pending.length > 0 && (
+                <Migs $warn={needsApproval}>
+                  <MigHead>
+                    {needsApproval ? "Deploy waits on approval" : "This deploy migrates"}
+                    <Muted> · {pending.length} file{pending.length === 1 ? "" : "s"} · {[...new Set(pending.flatMap((p) => p.databases))].join(", ")}</Muted>
+                  </MigHead>
+                  {pending.map((p) => (
+                    <Mig key={p.file}>
+                      <MigName>
+                        <span>{p.file}</span>
+                        {p.destructive && <MigBadge $ok={p.approved}>{p.approved ? "approved" : "destructive"}</MigBadge>}
+                      </MigName>
+                      {p.destructive && p.statements.length > 0 && (
+                        <MigStmts>{p.statements.slice(0, 4).map((st, i) => <li key={i}>{st}</li>)}</MigStmts>
+                      )}
+                    </Mig>
+                  ))}
+                </Migs>
+              )}
+              {r.request && (r.request.status === "waiting" || r.request.status === "promoting") && (
+                <Req>
+                  <ReqText>
+                    <strong>{r.request.status === "promoting" ? "Deploy request promoting" : "Deploy requested"}</strong>
+                    <Muted> by {r.request.by.join(", ")} · {ago(r.request.at)} · for {short(r.request.wantMono)}</Muted>
+                    {r.request.status === "waiting" && <Muted>Goes live as soon as main is staged · expires {until(r.request.expiresAt)}</Muted>}
+                  </ReqText>
+                  {r.request.status === "waiting" && (
+                    <Tooltip label="Cancel this deploy">
+                      <Btn $c={rgb.red} onClick={() => setAsk({ kind: "cancel", r })}>Cancel</Btn>
+                    </Tooltip>
+                  )}
+                </Req>
+              )}
+              {r.request && !(r.request.status === "waiting" || r.request.status === "promoting") && r.request.status !== "done" && (
+                <Muted>Deploy request {r.request.status} {ago(r.request.finishedAt)}{r.request.finishedBy ? ` by ${r.request.finishedBy}` : ""}{r.request.note ? ` — ${r.request.note}` : ""}</Muted>
+              )}
               {(err[r.client] || (r.state === "failed" && r.lastError)) && <ErrText>{err[r.client] || r.lastError}</ErrText>}
 
               <Actions>
-                <Tooltip label={stagedNew ? "Promote staged build" : "Nothing new staged"}>
+                <Tooltip label={needsApproval ? "Approve migrations first" : stagedNew ? "Promote staged build" : "Nothing new staged"}>
                   <Btn
                     $c={rgb.green}
-                    disabled={busy || !stagedNew}
+                    disabled={busy || !stagedNew || needsApproval}
                     onClick={() => setAsk({ kind: "promote", r })}
                   >
                     Deploy
                   </Btn>
                 </Tooltip>
+                {needsApproval && (
+                  <Tooltip label="Approve destructive SQL">
+                    <Btn $c={rgb.red} disabled={busy} onClick={() => setAsk({ kind: "approve", r })}>
+                      Approve
+                    </Btn>
+                  </Tooltip>
+                )}
                 <Tooltip label={r.prev ? "Swap to previous build" : "No previous build"}>
                   <Btn
                     $c={rgb.orange}
@@ -176,19 +248,34 @@ export default function ReleasePanel() {
 
       <ConfirmModal
         open={!!ask}
-        title={ask?.kind === "rollback" ? `Roll ${label(ask.r.client)} back?` : `Deploy ${ask ? label(ask.r.client) : ""}?`}
+        title={
+          ask?.kind === "cancel" ? `Cancel the deploy of ${label(ask.r.client)}?`
+            : ask?.kind === "rollback" ? `Roll ${label(ask.r.client)} back?`
+            : ask?.kind === "approve" ? `Approve destructive SQL on ${label(ask.r.client)}?`
+            : `Deploy ${ask ? label(ask.r.client) : ""}?`
+        }
         message={
-          ask?.kind === "rollback"
+          ask?.kind === "cancel"
+            ? `Requested by ${ask.r.request?.by.join(", ") ?? "?"} ${ago(ask.r.request?.at)} for ${short(ask.r.request?.wantMono)}.`
+            : ask?.kind === "rollback"
             ? `Roll ${label(ask.r.client)} back to ${short(ask.r.prev?.mono)} (built ${ago(ask.r.prev?.at)})?`
-            : ask ? `Promote ${short(ask.r.staged?.mono)} · ${short(ask.r.staged?.client)} (built ${ago(ask.r.staged?.at)}) to live?` : ""
+            : ask?.kind === "approve"
+              ? unapproved(ask.r).map((p) => `${p.file} → ${p.databases.join(", ")}`).join(" · ")
+              : ask ? `Promote ${short(ask.r.staged?.mono)} · ${short(ask.r.staged?.client)} (built ${ago(ask.r.staged?.at)}) to live?` : ""
         }
         detail={
-          ask?.kind === "rollback"
+          ask?.kind === "cancel"
+            ? "The watcher keeps building and staging main, but nothing goes live until someone says deploy again. A session still waiting on it stops."
+            : ask?.kind === "rollback"
             ? "The current build becomes the previous one, so you can roll forward again. The site restarts and is smoke-checked."
-            : "The site restarts on the new build and is smoke-checked. If it does not answer, it rolls back by itself."
+            : ask?.kind === "approve"
+              ? "These statements drop or rewrite data or shape. The next Deploy runs them, in one transaction per file, before the build goes live. A rollback does not undo them. Take a backup first if you are not sure."
+              : (ask?.r.pendingMigrations?.length
+                ? `Pending migrations apply first (${ask.r.pendingMigrations.length} file${ask.r.pendingMigrations.length === 1 ? "" : "s"}), then the site restarts on the new build and is smoke-checked. If it does not answer, it rolls back by itself.`
+                : "The site restarts on the new build and is smoke-checked. If it does not answer, it rolls back by itself.")
         }
-        confirmLabel={ask?.kind === "rollback" ? "Roll back" : "Deploy"}
-        intent={ask?.kind === "rollback" ? "danger" : "primary"}
+        confirmLabel={ask?.kind === "cancel" ? "Cancel deploy" : ask?.kind === "rollback" ? "Roll back" : ask?.kind === "approve" ? "Approve" : "Deploy"}
+        intent={ask?.kind === "promote" ? "primary" : "danger"}
         onConfirm={confirm}
         onCancel={() => setAsk(null)}
       />
@@ -233,6 +320,33 @@ const Sha = styled.span`font-family: ui-monospace, monospace; overflow: hidden; 
 const Age = styled.span`font-size: 11px; opacity: 0.55; white-space: nowrap;`;
 const Muted = styled.span`font-size: 11.5px; color: rgba(232,232,239,0.5);`;
 const ErrText = styled.div`font-size: 11.5px; color: #ff9a9a; overflow-wrap: anywhere;`;
+const Migs = styled.div<{ $warn: boolean }>`
+  display: flex; flex-direction: column; gap: 4px; padding: 8px 10px; border-radius: 8px; font-size: 11.5px;
+  background: rgba(${(p) => (p.$warn ? rgb.red : rgb.cyan)},0.07);
+  border: 1px solid rgba(${(p) => (p.$warn ? rgb.red : rgb.cyan)},0.3);
+`;
+const MigHead = styled.div`font-weight: 650; color: #e8e8ef;`;
+const Mig = styled.div`display: flex; flex-direction: column; gap: 2px; min-width: 0;`;
+const MigName = styled.div`
+  display: flex; gap: 8px; align-items: center; font-family: ui-monospace, monospace; font-size: 11px;
+  color: rgba(232,232,239,0.8); & > span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+`;
+const MigBadge = styled.span<{ $ok: boolean }>`
+  font-family: inherit; font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;
+  padding: 1px 6px; border-radius: 999px; white-space: nowrap;
+  color: ${(p) => (p.$ok ? colors.green : colors.red)};
+  border: 1px solid rgba(${(p) => (p.$ok ? rgb.green : rgb.red)},0.5);
+`;
+const MigStmts = styled.ul`
+  margin: 0; padding-left: 16px; font-family: ui-monospace, monospace; font-size: 10.5px; color: rgba(255,154,154,0.9);
+  li { overflow-wrap: anywhere; }
+`;
+const Req = styled.div`
+  display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;
+  padding: 8px 10px; border-radius: 8px; font-size: 12px;
+  border: 1px solid rgba(${rgb.gold}, 0.45); background: rgba(${rgb.gold}, 0.08);
+`;
+const ReqText = styled.div`display: flex; flex-direction: column; gap: 2px; min-width: 0; color: ${colors.gold};`;
 const Actions = styled.div`display: flex; gap: 8px; align-items: center; flex-wrap: wrap;`;
 const Btn = styled.button<{ $c: string }>`
   padding: 6px 14px; border-radius: 8px; font-size: 12.5px; font-weight: 650; cursor: pointer;

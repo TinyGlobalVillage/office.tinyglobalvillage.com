@@ -4,7 +4,8 @@ import { useMemo, useState, type ReactNode } from "react";
 import styled from "styled-components";
 import { useEscapeToClose } from "@tgv/module-component-library/components/hooks/useEscapeToClose";
 import { colors, rgb } from "../theme";
-import { UserAvatar, type MemberProfile } from "./ChatSettingsModal";
+import { UserAvatar } from "./UserAvatar";
+import type { MemberProfile } from "./ChatSettingsModal";
 import { CancelIcon, TrashIcon } from "./icons";
 import AddmToggle from "@tgv/module-component-library/components/ui/AddmToggle";
 

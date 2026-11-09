@@ -18,6 +18,7 @@ import AuditLogTimeline from "../_shared/AuditLogTimeline";
 import DiskBreakdown from "./DiskBreakdown";
 import type { Bucket, Resource, ThresholdStatus } from "@/lib/host-metrics/compute";
 import type { HostMetricsConfig } from "@/lib/host-metrics/config";
+import type { HealthReport } from "@/lib/host-metrics/health";
 
 type WindowKey = "24h" | "7d" | "30d";
 
@@ -53,7 +54,9 @@ type Snapshot = {
     lastAlertAt: string | null;
     nextRunAt: string | null;
     host: string;
+    lastHealthError?: string | null;
   };
+  health?: HealthReport | null;
   alert: {
     level: "ok" | "warn" | "critical";
     streak: number;
@@ -165,6 +168,8 @@ export default function BoxUsageControlModal({ onClose }: { onClose: () => void 
   };
 
   const cfg = snap?.config;
+
+  const health = snap?.health ?? null;
   const average = snap?.headlinePct ?? null;
   const live = snap?.live?.worstPct ?? null;
 
@@ -262,6 +267,99 @@ export default function BoxUsageControlModal({ onClose }: { onClose: () => void 
             <Muted>
               CPU and bandwidth are deltas — they read 0% until two readings exist.
             </Muted>
+          )}
+        </Body>
+      ),
+    },
+    {
+      id: "health",
+      title: "Box health",
+      qmbm:
+        "Capacity says how FULL the box is; this says whether anything is WRONG with it — a pm2 app in a restart loop, an error log growing by the megabyte, swap climbing, the disk near its floor in gigabytes, a kernel patch waiting on a reboot.\n\n" +
+        "Restarts and error logs are RATES over the last hour, not lifetime counters: pm2 remembers every restart since the daemon came up (one app here has hundreds of thousands), and only the change since an hour ago says anything about tonight. The first reading after a start is a warm-up; rates appear once two readings ten minutes apart exist.\n\n" +
+        "Each check alerts the way capacity does — on the edge, after two agreeing ticks, once, and again on recovery — into the same team alerts the Front Desk reads. The reboot pill is always shown; whether it also alerts is a switch, because a pending reboot can be a known, scheduled thing for weeks.",
+      body: (
+        <Body>
+          <Rowline>
+            <Pill $tone={health ? (health.level === "ok" ? "ok" : health.level) : "none"}>
+              {!health ? "NO READING" : health.level === "ok" ? "HEALTHY" : health.level === "warn" ? "NEEDS ATTENTION" : "CRITICAL"}
+            </Pill>
+            <Muted>
+              {health ? `checked ${when(new Date(health.at).toISOString())}` : cfg && !cfg.healthEnabled ? "health checks are off" : "waiting for the first tick"}
+              {health?.reading.uptimeDays !== null && health?.reading.uptimeDays !== undefined ? ` · up ${health.reading.uptimeDays.toFixed(0)} days` : ""}
+            </Muted>
+          </Rowline>
+          {snap?.sampler?.lastHealthError && <ErrText>last health error: {snap.sampler.lastHealthError}</ErrText>}
+
+          {health && (
+            <Findings>
+              {health.findings.map((f) => (
+                <Finding key={f.check}>
+                  <Pill $tone={f.level}>{f.label}</Pill>
+                  <Muted>
+                    {f.detail}
+                    {health.alerts[f.check]?.firedLevel
+                      ? ` Alerting since ${when(health.alerts[f.check]?.firedAt ? new Date(health.alerts[f.check]!.firedAt as number).toISOString() : null)}.`
+                      : ""}
+                  </Muted>
+                </Finding>
+              ))}
+            </Findings>
+          )}
+
+          {health && health.rates.length > 0 && (
+            <AppTable>
+              <thead>
+                <tr>
+                  <th>pm2 app</th>
+                  <th>status</th>
+                  <th>restarts</th>
+                  <th>per hour</th>
+                  <th>error log KB/h</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[...health.rates]
+                  .sort((a, b) => (b.restartsPerHour ?? -1) - (a.restartsPerHour ?? -1) || (b.errorKbPerHour ?? -1) - (a.errorKbPerHour ?? -1) || b.restarts - a.restarts)
+                  .slice(0, 10)
+                  .map((r) => {
+                    const hotR = cfg && r.restartsPerHour !== null && r.restartsPerHour >= cfg.restartsPerHourWarn;
+                    const hotE = cfg && r.errorKbPerHour !== null && r.errorKbPerHour >= cfg.errorLogKbPerHourWarn;
+                    return (
+                      <tr key={r.name}>
+                        <td>{r.name}</td>
+                        <td style={{ color: r.status === "online" ? colors.green : r.status === "stopped" ? "var(--t-textGhost)" : colors.red }}>{r.status}</td>
+                        <td>{r.restarts.toLocaleString()}</td>
+                        <td style={{ color: hotR ? colors.red : undefined }}>{r.restartsPerHour === null ? "—" : r.restartsPerHour.toFixed(1)}</td>
+                        <td style={{ color: hotE ? colors.red : undefined }}>{r.errorKbPerHour === null ? "—" : r.errorKbPerHour.toFixed(0)}</td>
+                      </tr>
+                    );
+                  })}
+              </tbody>
+            </AppTable>
+          )}
+          {health && health.rates.length === 0 && (
+            <Muted>No pm2 apps visible from this process — on RCS that means pm2 jlist failed; on a Mac it is expected.</Muted>
+          )}
+
+          {cfg && (
+            <>
+              <Grid>
+                <NumField label="Disk floor (GB free)" value={cfg.diskFreeWarnGb} min={1} max={1000} disabled={busy} onCommit={(v) => saveConfig({ diskFreeWarnGb: v })} />
+                <NumField label="Swap warn at (%)" value={cfg.swapWarnPct} min={1} max={100} disabled={busy} onCommit={(v) => saveConfig({ swapWarnPct: v })} />
+                <NumField label="Restarts per hour" value={cfg.restartsPerHourWarn} min={1} max={10_000} disabled={busy} onCommit={(v) => saveConfig({ restartsPerHourWarn: v })} />
+                <NumField label="Error log KB per hour" value={cfg.errorLogKbPerHourWarn} min={1} max={1_000_000} disabled={busy} onCommit={(v) => saveConfig({ errorLogKbPerHourWarn: v })} />
+              </Grid>
+              <Rowline>
+                <TBtn $active={cfg.healthEnabled} disabled={busy} onClick={() => saveConfig({ healthEnabled: !cfg.healthEnabled })}>
+                  Health checks {cfg.healthEnabled ? "on" : "off"}
+                </TBtn>
+                <TBtn $active={cfg.rebootAlerts} disabled={busy} onClick={() => saveConfig({ rebootAlerts: !cfg.rebootAlerts })}>
+                  Reboot alerts {cfg.rebootAlerts ? "on" : "off"}
+                </TBtn>
+                <Muted>Alerts share the capacity switch in Thresholds &amp; retention.</Muted>
+              </Rowline>
+            </>
           )}
         </Body>
       ),
@@ -659,6 +757,19 @@ const Muted = styled.div`
   color: var(--t-textFaint);
 `;
 
+const Findings = styled.div`
+  display: flex; flex-direction: column; gap: 8px;
+`;
+const Finding = styled.div`
+  display: grid; grid-template-columns: minmax(150px, max-content) 1fr; gap: 10px; align-items: start;
+  @media (max-width: 640px) { grid-template-columns: 1fr; }
+`;
+const AppTable = styled.table`
+  width: 100%; border-collapse: collapse; font-size: 12px;
+  th { text-align: left; font-weight: 600; color: var(--t-textGhost); padding: 4px 8px 4px 0; border-bottom: 1px solid rgba(${rgb.cyan},0.18); }
+  td { padding: 4px 8px 4px 0; border-bottom: 1px solid rgba(${rgb.cyan},0.08); font-variant-numeric: tabular-nums; }
+  td:first-child { font-family: ui-monospace, monospace; font-size: 11.5px; }
+`;
 const ErrText = styled.div`
   font-size: 0.6875rem;
   color: ${colors.red};
