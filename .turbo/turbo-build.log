@@ -1,0 +1,49 @@
+
+> office.tinyglobalvillage.com@0.1.0 prebuild /Users/macbookpro/Documents/REFUSIONBOX/MAC RCS/.claude/worktrees/canvas-editor/clients/office.tinyglobalvillage.com
+> node scripts/check-override-scope.mjs
+
+override-scope gate: clean
+
+> office.tinyglobalvillage.com@0.1.0 build /Users/macbookpro/Documents/REFUSIONBOX/MAC RCS/.claude/worktrees/canvas-editor/clients/office.tinyglobalvillage.com
+> NODE_OPTIONS=--max-old-space-size=6144 next build --webpack
+
+⚠ `eslint` configuration in next.config.ts is no longer supported. See more info here: https://nextjs.org/docs/app/api-reference/cli/next#next-lint-options
+⚠ Invalid next.config.ts options detected: 
+⚠     Unrecognized key(s) in object: 'eslint'
+⚠ See more info here: https://nextjs.org/docs/messages/invalid-next-config
+⚠ Warning: Next.js inferred your workspace root, but it may not be correct.
+ We detected multiple lockfiles and selected the directory of /Users/macbookpro/Documents/REFUSIONBOX/MAC RCS/pnpm-workspace.yaml as the root directory.
+ To silence this warning, set `outputFileTracingRoot` in your Next.js config, or consider removing one of the lockfiles if it's not needed.
+   See https://nextjs.org/docs/app/api-reference/config/next-config-js/output#caveats for more information.
+ Detected additional lockfiles: 
+   * /Users/macbookpro/Documents/REFUSIONBOX/MAC RCS/.claude/worktrees/canvas-editor/pnpm-workspace.yaml
+
+▲ Next.js 16.2.4 (webpack)
+- Experiments (use with caution):
+  · proxyClientMaxBodySize: "500mb"
+  · serverActions
+
+  Creating an optimized production build ...
+Failed to compile.
+
+../../node_modules/paper/dist/node/canvas.js
+Module not found: Can't resolve 'jsdom/lib/jsdom/living/generated/utils'
+
+https://nextjs.org/docs/messages/module-not-found
+
+Import trace for requested module:
+../../node_modules/paper/dist/node/self.js
+../../node_modules/paper/dist/paper-core.js
+../../packages/@tgv/module-core/module-page-editor/dist/editor/page-editor/grid-canvas/pathBoolean.js
+../../packages/@tgv/module-core/module-page-editor/dist/editor/page-editor/grid-canvas/CanvasEditor.js
+../../packages/@tgv/module-core/module-page-editor/dist/editor/page-editor/PageEditorPreview.js
+../../packages/@tgv/module-core/module-page-editor/dist/editor/page-editor/PageEditor.js
+../../packages/@tgv/module-connect/module-email-campaigns/dist/editor/EmailCampaignEditor.js
+../../packages/@tgv/module-connect/module-email-campaigns/dist/EmailCampaignsPanel.js
+../../packages/@tgv/module-connect/module-email-campaigns/dist/index.js
+./src/app/dashboard/email-campaigns/SystemEmailCampaigns.tsx
+./src/app/dashboard/email-campaigns/EmailCampaignsClient.tsx
+
+
+> Build failed because of webpack errors
+ ELIFECYCLE  Command failed with exit code 1.
