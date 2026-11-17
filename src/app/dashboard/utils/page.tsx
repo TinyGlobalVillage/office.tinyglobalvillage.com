@@ -35,6 +35,7 @@ const PrivacyControlModal = dynamic(() => import("../../components/hardening/pri
 const DemoModeControlModal = dynamic(() => import("../../components/dev-tooling/demo-mode/DemoModeControlModal"), { ssr: false });
 const MediaReducerModal = dynamic(() => import("../../components/media-reducer/MediaReducerModal"), { ssr: false });
 const MeetCaptionsControlModal = dynamic(() => import("../../components/hardening/meet-captions/MeetCaptionsControlModal"), { ssr: false });
+const MediaFolderControlModal = dynamic(() => import("../../components/hardening/media-folder/MediaFolderControlModal"), { ssr: false });
 import AutomationsTab from "../../components/automations/AutomationsTab";
 import type { ShortLink } from "@tgv/module-page-editor/editor/component-library/marketing/link-tools";
 // Heavy feature packages — lazy-loaded so they don't sit in the Utils page's first-load JS.
@@ -1871,6 +1872,15 @@ function UtilsAdlSurface({
                         </HardeningTileSub>
                       </HardeningTile>
                     );
+                    if (tile.type === "media-folder") return (
+                      <HardeningTile key={i} type="button" onClick={() => onOpenHardening("media-folder")}>
+                        <HardeningTileTop>🗂 Media Folder</HardeningTileTop>
+                        <HardeningTileSub>
+                          The /media/ (CDN) access policy — which folders nginx serves off the CDN. List the
+                          permitted folders, expand/contract the allow-list, flip deny↔allow mode, apply live.
+                        </HardeningTileSub>
+                      </HardeningTile>
+                    );
                     if (tile.type === "deploy-watcher") return (
                       <HardeningTile key={i} type="button" onClick={() => onOpenHardening("deploy-watcher")}>
                         <HardeningTileTop>
@@ -2178,7 +2188,7 @@ type DefaultsOverlay = Record<string, Record<string, FieldValue>>;
 
 // Runtime list, not just a union: the ?view= deep-link reader has to validate a
 // string off the URL, and a second hand-kept list would drift.
-const HARDENING_KINDS = ["telephony", "tenant-apps", "member-auth", "office-staff", "mesh-vpn", "firewall", "build-guard", "deploy-watcher", "tsserver", "keycloak", "demo-mode", "domain-dns", "box-usage", "rcs-maintenance", "pipeline", "meet-captions", "commerce-readiness", "privacy"] as const;  // | "postgres" | "ssh" | "nginx" — future
+const HARDENING_KINDS = ["telephony", "tenant-apps", "member-auth", "office-staff", "mesh-vpn", "firewall", "build-guard", "deploy-watcher", "tsserver", "keycloak", "demo-mode", "domain-dns", "box-usage", "rcs-maintenance", "pipeline", "meet-captions", "commerce-readiness", "privacy", "media-folder"] as const;  // | "postgres" | "ssh" | "nginx" — future
 type HardeningKind = (typeof HARDENING_KINDS)[number];
 
 // ── Link Tools (TinyURL + QR generators) ──────────────────────────────────
@@ -2218,6 +2228,7 @@ type TileSpec =
   | { type: "office-staff" }
   | { type: "mesh-vpn" }
   | { type: "firewall" }
+  | { type: "media-folder" }
   | { type: "build-guard" }
   | { type: "deploy-watcher" }
   | { type: "domain-dns" }
@@ -2277,7 +2288,7 @@ const SECTIONS: Section[] = [
     kind: "actions", actionIds: ["gitrepo", "gitdelrepo"] },
   { id: "hardening", title: "Hardening", accent: "cyan",
     subtitle: "defensive mechanisms installed on RCS — controls + status + audit log",
-    kind: "tiles", tiles: [{ type: "firewall" }, { type: "telephony" }, { type: "tenant-apps" }, { type: "commerce-readiness" }, { type: "member-auth" }, { type: "keycloak" }, { type: "office-staff" }, { type: "mesh-vpn" }, { type: "build-guard" }, { type: "deploy-watcher" }, { type: "pipeline" }, { type: "privacy" }, { type: "tsserver" }, { type: "box-usage" }, { type: "rcs-maintenance" }, { type: "domain-dns" }] },
+    kind: "tiles", tiles: [{ type: "firewall" }, { type: "media-folder" }, { type: "telephony" }, { type: "tenant-apps" }, { type: "commerce-readiness" }, { type: "member-auth" }, { type: "keycloak" }, { type: "office-staff" }, { type: "mesh-vpn" }, { type: "build-guard" }, { type: "deploy-watcher" }, { type: "pipeline" }, { type: "privacy" }, { type: "tsserver" }, { type: "box-usage" }, { type: "rcs-maintenance" }, { type: "domain-dns" }] },
   { id: "linktools", title: "Link Tools", accent: "cyan",
     subtitle: "shorten URLs and generate scannable QR codes — pair them for printable mini-flyers",
     kind: "tiles", tiles: [{ type: "tinyurl" }, { type: "qrcode" }] },
@@ -2828,6 +2839,10 @@ export default function UtilsPage() {
 
       {openHardening === "firewall" && (
         <FirewallControlModal onClose={() => setOpenHardening(null)} />
+      )}
+
+      {openHardening === "media-folder" && (
+        <MediaFolderControlModal onClose={() => setOpenHardening(null)} />
       )}
 
       {openHardening === "domain-dns" && (
