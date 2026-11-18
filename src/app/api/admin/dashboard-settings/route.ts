@@ -35,6 +35,9 @@ const ALLOWED: Record<string, (v: unknown) => string | null> = {
     typeof v === "number" && Number.isInteger(v) && v >= 1 && v <= 100
       ? null
       : "undo_depth must be an integer between 1 and 100",
+  // Video Editor (2026-11-18): where a short-form `compose` render runs — the Mac worker through the
+  // tunnel (default) or the box itself. tgv.com reads it before every claim (runtime-settings.ts).
+  compose_renders_on: (v) => (v === "mac" || v === "rcs" ? null : "compose_renders_on must be mac or rcs"),
 };
 
 export async function GET(req: NextRequest) {
