@@ -59,6 +59,8 @@ function borderedSplit(c: Ctx): Section {
   for (const it of items) it.box.desktop.h = maxH;
   const gh = maxH * 2 + gap;
   const grid = group(c, { name: 'Cards', x: 1080 - 40 - (cellW * 2 + gap), y: 40, w: cellW * 2 + gap, h: gh, children: items, layout: { cols: 2, bp: { tablet: 2, mobile: 1 }, gap } });
+  // phone: the panel's flow re-tops its kids but keeps their desktop x/w — pull the grid under the words, one card per row
+  (grid.box as Record<string, unknown>).mobile = { x: 20, w: 318, h: maxH * 4 + gap * 3 };
   const ph = Math.max(bottom(b) + 50, gh + 80);
   const panel = group(c, { name: 'Panel', x: PAD, y: 60, w: 1080, h: ph, children: [...left, grid], border: c.pal.line, radius: 22, flow: { gap: 22, pad: 40 } });
   return section([panel], ph + 120, t.bg);

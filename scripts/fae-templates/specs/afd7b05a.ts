@@ -44,7 +44,9 @@ function howCard(c: Ctx): Section {
   const cellH = Math.max(...cells.map((n) => n.box.desktop.h));
   for (const n of cells) n.box.desktop.h = cellH;
   const grid = group(c, { name: 'Grid', x: pad, y: pad, w: gridW, h: cellH * 2 + 44, children: cells, layout: { cols: 2, bp: { tablet: 2, mobile: 1 }, gap: 44 } });
-  const card = group(c, { name: 'How card', x: PAD, y: bottom(head) + 40, w: CW, h: bottom(grid) + pad, children: [grid], fill: '#ffffff', radius: 20, shadow: SHADOW });
+  // phone: one cell per row inside the card; the card's flow grows it to fit
+  (grid.box as Record<string, unknown>).mobile = { x: 24, w: 310, h: cellH * 4 + 44 * 3 };
+  const card = group(c, { name: 'How card', x: PAD, y: bottom(head) + 40, w: CW, h: bottom(grid) + pad, children: [grid], fill: '#ffffff', radius: 20, shadow: SHADOW, flow: { gap: 0, pad } });
   const b = button(c, { slot: 'cta', href: '/sessions', x: (1200 - 180) / 2, y: bottom(card) + 50, w: 180, look: 'dark' });
   return section([head, card, b], bottom(b) + 90, t.bg);
 }
