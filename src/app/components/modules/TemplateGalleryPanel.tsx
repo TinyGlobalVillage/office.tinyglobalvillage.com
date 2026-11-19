@@ -48,6 +48,7 @@
 // An entry with no `catalog_entries` row takes its state from code
 // (`entry.proposed`), which grandfathers everything that predates the gate.
 
+import LiveTemplateThumb from "@tgv/module-page-editor/editor/page-editor/taskbar/_layout/LiveTemplateThumb";
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
@@ -535,12 +536,14 @@ export default function TemplateGalleryPanel() {
                   title={`Edit ${t.label}`}
                   $busy={busyId === t.templateId}
                 >
-                  {thumb ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={thumb} alt="" loading="lazy" />
-                  ) : (
-                    <NoThumb>No preview</NoThumb>
-                  )}
+                  {/* The template as it is now (Gio 2026-11-19), rendered live by tgv.com's
+                      preview route; the stored shot only stands in while it loads. */}
+                  <LiveTemplateThumb
+                    templateId={t.templateId}
+                    poster={thumb ?? undefined}
+                    lang={LANG}
+                    origin={TGV_BASE}
+                  />
                 </Thumb>
 
                 <TileMeta>
@@ -1140,26 +1143,16 @@ const Thumb = styled.a<{ $busy: boolean }>`
   opacity: ${({ $busy }) => ($busy ? 0.45 : 1)};
   transition: opacity 0.15s, border-color 0.15s;
 
-  img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    object-position: top center;
-    display: block;
+  /* the live preview fills the tile edge to edge */
+  [data-live-template-thumb] {
+    border: 0;
+    border-radius: 0;
+    margin: 0;
   }
 
   &:hover {
     border-color: rgba(${rgb.violet}, 0.6);
   }
-`;
-
-const NoThumb = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  font-size: 0.7rem;
-  color: var(--t-textFaint);
 `;
 
 const TileMeta = styled.div`
