@@ -1040,12 +1040,36 @@ export type TemplateSpec = {
   tags?: string[];
 };
 
-export type Ledger = { photos: Record<string, { url: string; uses: string[] }> };
+export type Ledger = { maxUses?: number; photos: Record<string, { url: string; uses: string[]; tags?: string[]; source?: string }> };
+
+/** Resolve `@tag` (or `@tag1|tag2`) to a pool photo: one carrying a tag, not yet on this template, under the
+ *  reuse cap, least-used first (ties broken by a per-template hash so neighbours differ). Plain keys pass through.
+ *  Uses are counted live into `ledger` so later picks — and later templates in the same run — see them. */
+export function pickPhoto(ledger: Ledger, templateId: string, ask: string, taken: Set<string>): string {
+  if (!ask.startsWith('@')) return ask;
+  const want = ask.slice(1).split('|');
+  const cap = ledger.maxUses ?? 5;
+  const h = (k: string) => { let x = 2166136261; for (const ch of templateId + k) x = Math.imul(x ^ ch.charCodeAt(0), 16777619); return x >>> 0; };
+  const tagged = (p: { tags?: string[] }) => (p.tags ?? []).some((t) => want.includes(t));
+  // a rebuild after --record: reuse this template's own recorded photos first, so the picks stay put
+  const mine = Object.entries(ledger.photos).filter(([k, p]) => !taken.has(k) && p.uses.includes(templateId) && tagged(p)).sort((a, b) => h(a[0]) - h(b[0]));
+  if (mine.length) return mine[0][0];
+  const pool = Object.entries(ledger.photos).filter(([k, p]) => p.source !== 'original' && !taken.has(k) && !p.uses.includes(templateId) && p.uses.length < cap);
+  for (const tagSet of [want, null]) {
+    const hits = pool.filter(([, p]) => !tagSet || (p.tags ?? []).some((t) => tagSet.includes(t)));
+    if (!hits.length) continue;
+    hits.sort((a, b) => a[1].uses.length - b[1].uses.length || h(a[0]) - h(b[0]));
+    if (!tagSet) console.warn(`${templateId}: no free photo tagged ${ask} — fell back to ${hits[0][0]}`);
+    return hits[0][0];
+  }
+  throw new Error(`${templateId}: the photo pool is exhausted (${ask})`);
+}
 
 export function buildTemplate(spec: TemplateSpec, ledger: Ledger, uuid: () => string) {
   const templateId = `fae-${spec.key}`;
   const site = createFaeSite({ seed: templateId, industry: spec.industry });
   const used = new Set<string>();
+  const picked = new Map<string, string>(); // '@tag#n' → key, stable within the template
   const pages = spec.pages.map((p) => {
     let n = 0;
     const counters = new Map<string, number>();
@@ -1054,10 +1078,16 @@ export function buildTemplate(spec: TemplateSpec, ledger: Ledger, uuid: () => st
       pal: spec.palette,
       fonts: spec.fonts,
       id: (hint) => `${hint}${(++n).toString(36)}-${p.slug.replace(/[^a-z0-9]/g, '') || 'home'}`,
-      photo: (key) => {
+      photo: (ask) => {
+        // '@tag' picks from the pool; '@tag#2' names a distinct second pick that can be repeated verbatim
+        const key = ask.startsWith('@') ? (picked.get(ask) ?? pickPhoto(ledger, templateId, ask.replace(/#.*$/, ''), used)) : ask;
+        if (ask.startsWith('@')) picked.set(ask, key);
         const ph = ledger.photos[key];
         if (!ph) throw new Error(`${spec.key}: no photo ${key} in the ledger`);
-        used.add(key);
+        if (!used.has(key)) {
+          used.add(key);
+          if (ask.startsWith('@') && ph.source !== 'original' && !ph.uses.includes(templateId)) ph.uses.push(templateId); // count live, so the next pick spreads
+        }
         return ph.url;
       },
       next: (slot) => {

@@ -7,11 +7,26 @@
       "platform": "Wix",
       "industry": "agency",
       "batch": 4,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-40453488",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "about",
+        "services",
+        "contact"
+      ],
+      "photos": [
+        "p-61517033",
+        "p-7e4eca4d",
+        "p-cf46e6be",
+        "a-gnome-4",
+        "a-gnome-5",
+        "a-gnome-0",
+        "a-gnome-1"
+      ],
+      "newAtoms": [],
+      "brand": "Bramblefoot Atelier",
+      "cast": "gnome"
     },
     "72184101": {
       "n": 26,
@@ -19,11 +34,26 @@
       "platform": "Wix",
       "industry": "agency",
       "batch": 3,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-72184101",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "services",
+        "about",
+        "contact"
+      ],
+      "photos": [
+        "p-5e2744a2",
+        "p-2b41cdf1",
+        "p-2c38a175",
+        "a-faerie-4",
+        "a-faerie-5",
+        "a-faerie-0",
+        "a-faerie-1"
+      ],
+      "newAtoms": [],
+      "brand": "Glimmer Workshop",
+      "cast": "faerie"
     },
     "91242216": {
       "n": 111,
@@ -31,11 +61,23 @@
       "platform": "Shopify",
       "industry": "ecommerce",
       "batch": 12,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-91242216",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "shop",
+        "journal",
+        "contact"
+      ],
+      "photos": [
+        "p-8e75cbfd",
+        "p-54b73726",
+        "p-19acaddb",
+        "p-dbacb630"
+      ],
+      "newAtoms": [],
+      "brand": "The Wild Trading Post",
+      "cast": "faerie"
     },
     "2247d9b7": {
       "n": 0,
@@ -304,11 +346,23 @@
       "platform": "Squarespace",
       "industry": "actor",
       "batch": 2,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-8b6b45ce",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "reel",
+        "biography",
+        "contact"
+      ],
+      "photos": [
+        "p-1e6efdec",
+        "p-0f814652",
+        "p-4d08a68a",
+        "a-faerie-1"
+      ],
+      "newAtoms": [],
+      "brand": "Firefly Masquers",
+      "cast": "faerie"
     },
     "c3c97182": {
       "n": 11,
@@ -316,11 +370,26 @@
       "platform": "Squarespace",
       "industry": "actor",
       "batch": 2,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-c3c97182",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "meet",
+        "how-it-works",
+        "journal"
+      ],
+      "photos": [
+        "p-0f814652",
+        "p-3892bcd6",
+        "p-e40a56f8",
+        "a-faerie-2",
+        "a-elf-2",
+        "a-gnome-2",
+        "a-faerie-3"
+      ],
+      "newAtoms": [],
+      "brand": "Thistledown Stage Company Guild of Equals",
+      "cast": "collective+elf+faerie+gnome"
     },
     "dbf5db42": {
       "n": 12,
@@ -328,11 +397,23 @@
       "platform": "Squarespace",
       "industry": "actor",
       "batch": 2,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-dbf5db42",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "about",
+        "performances",
+        "contact"
+      ],
+      "photos": [
+        "p-0c59506e",
+        "a-gnome-4",
+        "a-gnome-5",
+        "p-d4c1f73b"
+      ],
+      "newAtoms": [],
+      "brand": "Nutkin Masquers",
+      "cast": "gnome"
     },
     "6beab4a1": {
       "n": 13,
@@ -340,11 +421,22 @@
       "platform": "Squarespace",
       "industry": "actor",
       "batch": 2,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-6beab4a1",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "projects",
+        "courses",
+        "contact"
+      ],
+      "photos": [
+        "p-99e11ce6",
+        "p-e9b485ce",
+        "p-2c38a175"
+      ],
+      "newAtoms": [],
+      "brand": "Crossroads Stage Company Commons",
+      "cast": "collective+elf+faerie+gnome"
     },
     "9acaf094": {
       "n": 14,
@@ -352,11 +444,27 @@
       "platform": "Squarespace",
       "industry": "actor",
       "batch": 2,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-9acaf094",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "characters",
+        "packages",
+        "contact"
+      ],
+      "photos": [
+        "p-f81cf80c",
+        "p-660dfa3b",
+        "a-faerie-5",
+        "a-faerie-0",
+        "a-faerie-1",
+        "a-faerie-2",
+        "a-faerie-3",
+        "a-faerie-4"
+      ],
+      "newAtoms": [],
+      "brand": "Moonpetal Masquers",
+      "cast": "faerie"
     },
     "d200195b": {
       "n": 15,
@@ -364,11 +472,26 @@
       "platform": "Squarespace",
       "industry": "actor",
       "batch": 2,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-d200195b",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "work",
+        "about",
+        "contact"
+      ],
+      "photos": [
+        "p-1e6efdec",
+        "p-a40981c3",
+        "p-6d951def",
+        "p-64fedca1",
+        "a-elf-0",
+        "a-elf-1",
+        "a-elf-2"
+      ],
+      "newAtoms": [],
+      "brand": "The Timeless Masquers",
+      "cast": "elf"
     },
     "240ec272": {
       "n": 16,
@@ -376,11 +499,26 @@
       "platform": "Wix",
       "industry": "actor",
       "batch": 2,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-240ec272",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "shows",
+        "shop",
+        "contact"
+      ],
+      "photos": [
+        "p-0f814652",
+        "p-8a5e52b1",
+        "p-df3bac91",
+        "p-17787ae6",
+        "a-gnome-3",
+        "a-gnome-4",
+        "a-gnome-5"
+      ],
+      "newAtoms": [],
+      "brand": "Root & Barrow Players",
+      "cast": "gnome"
     },
     "bbe73921": {
       "n": 17,
@@ -388,11 +526,26 @@
       "platform": "Squarespace",
       "industry": "actor",
       "batch": 2,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-bbe73921",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "about",
+        "shows",
+        "contact"
+      ],
+      "photos": [
+        "p-54abe25c",
+        "p-cf46e6be",
+        "p-df3bac91",
+        "a-gnome-2",
+        "a-gnome-3",
+        "a-gnome-4",
+        "a-gnome-5"
+      ],
+      "newAtoms": [],
+      "brand": "Old Stump Stage Company",
+      "cast": "gnome"
     },
     "275c9072": {
       "n": 18,
@@ -400,11 +553,24 @@
       "platform": "Framer",
       "industry": "agency",
       "batch": 2,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-275c9072",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "services",
+        "work",
+        "contact"
+      ],
+      "photos": [
+        "p-d68edc63",
+        "a-elf-3",
+        "p-a40981c3",
+        "p-4f45018c",
+        "a-elf-4"
+      ],
+      "newAtoms": [],
+      "brand": "The Starlit Atelier",
+      "cast": "elf"
     },
     "d630f74c": {
       "n": 19,
@@ -412,11 +578,24 @@
       "platform": "Framer",
       "industry": "agency",
       "batch": 2,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-d630f74c",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "work",
+        "about",
+        "contact"
+      ],
+      "photos": [
+        "p-b129c497",
+        "p-20c3f888",
+        "p-0f814652",
+        "p-4f45018c",
+        "a-gnome-4"
+      ],
+      "newAtoms": [],
+      "brand": "Stumpwhistle Studio",
+      "cast": "gnome"
     },
     "83d3219c": {
       "n": 20,
@@ -424,11 +603,24 @@
       "platform": "Framer",
       "industry": "agency",
       "batch": 3,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-83d3219c",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "work",
+        "studio",
+        "contact"
+      ],
+      "photos": [
+        "p-4d08a68a",
+        "p-20c3f888",
+        "a-faerie-5",
+        "a-faerie-0",
+        "a-faerie-1"
+      ],
+      "newAtoms": [],
+      "brand": "Wildrose Atelier",
+      "cast": "faerie"
     },
     "7145f715": {
       "n": 21,
@@ -436,11 +628,24 @@
       "platform": "Framer",
       "industry": "agency",
       "batch": 3,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-7145f715",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "features",
+        "pricing",
+        "about"
+      ],
+      "photos": [
+        "a-faerie-2",
+        "a-gnome-2",
+        "a-elf-2",
+        "a-faerie-3",
+        "a-gnome-3"
+      ],
+      "newAtoms": [],
+      "brand": "Common Bough Workshop Fellowship",
+      "cast": "collective+elf+faerie+gnome"
     },
     "f60665f2": {
       "n": 22,
@@ -448,11 +653,25 @@
       "platform": "Framer",
       "industry": "agency",
       "batch": 3,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-f60665f2",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "apps",
+        "pricing",
+        "about"
+      ],
+      "photos": [
+        "a-gnome-1",
+        "a-gnome-2",
+        "a-gnome-3",
+        "a-gnome-4",
+        "a-gnome-5",
+        "a-gnome-0"
+      ],
+      "newAtoms": [],
+      "brand": "Hollowell Agency",
+      "cast": "gnome"
     },
     "5ec4f011": {
       "n": 23,
@@ -460,11 +679,25 @@
       "platform": "Wix",
       "industry": "agency",
       "batch": 3,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-5ec4f011",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "about",
+        "inventory",
+        "contact"
+      ],
+      "photos": [
+        "p-2d8b1ce6",
+        "p-91f19468",
+        "p-3892bcd6",
+        "a-faerie-2",
+        "a-faerie-3",
+        "a-faerie-4"
+      ],
+      "newAtoms": [],
+      "brand": "The Airy Agency",
+      "cast": "faerie"
     },
     "542052b1": {
       "n": 24,
@@ -472,11 +705,23 @@
       "platform": "Wix",
       "industry": "agency",
       "batch": 3,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-542052b1",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "services",
+        "about",
+        "contact"
+      ],
+      "photos": [
+        "a-elf-0",
+        "a-elf-1",
+        "a-elf-2",
+        "a-elf-3"
+      ],
+      "newAtoms": [],
+      "brand": "The Starlit Studio",
+      "cast": "elf"
     },
     "901bd857": {
       "n": 25,
@@ -484,11 +729,27 @@
       "platform": "Wix",
       "industry": "agency",
       "batch": 3,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-901bd857",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "trails",
+        "about",
+        "contact"
+      ],
+      "photos": [
+        "p-4590a9e7",
+        "p-67d6f993",
+        "p-f405cd66",
+        "p-5e2744a2",
+        "a-elf-1",
+        "a-elf-2",
+        "a-elf-3",
+        "a-elf-4"
+      ],
+      "newAtoms": [],
+      "brand": "The Starlit Atelier",
+      "cast": "elf"
     },
     "95b003f2": {
       "n": 27,
@@ -496,11 +757,18 @@
       "platform": "Wix",
       "industry": "agency",
       "batch": 3,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-95b003f2",
-      "pages": [],
+      "pages": [
+        "home",
+        "studio",
+        "roadmap",
+        "contact"
+      ],
       "photos": [],
-      "newAtoms": []
+      "newAtoms": [],
+      "brand": "Toadstool Agency",
+      "cast": "gnome"
     },
     "4159d4a2": {
       "n": 28,
@@ -508,11 +776,21 @@
       "platform": "Wix",
       "industry": "agency",
       "batch": 3,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-4159d4a2",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "about",
+        "contact"
+      ],
+      "photos": [
+        "a-elf-2",
+        "a-elf-3",
+        "a-elf-4"
+      ],
+      "newAtoms": [],
+      "brand": "Willow Studio",
+      "cast": "elf"
     },
     "f15bf837": {
       "n": 29,
@@ -520,11 +798,27 @@
       "platform": "Wix",
       "industry": "agency",
       "batch": 3,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-f15bf837",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "services",
+        "about",
+        "contact"
+      ],
+      "photos": [
+        "p-1cc5dae4",
+        "p-9cdbea8d",
+        "p-64fedca1",
+        "p-b606aa28",
+        "a-gnome-3",
+        "a-gnome-4",
+        "a-gnome-5",
+        "a-gnome-0"
+      ],
+      "newAtoms": [],
+      "brand": "Hollowell Agency",
+      "cast": "gnome"
     },
     "f65a6e19": {
       "n": 30,
@@ -532,11 +826,27 @@
       "platform": "Wix",
       "industry": "agency",
       "batch": 4,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-f65a6e19",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "shop",
+        "journal",
+        "about",
+        "contact"
+      ],
+      "photos": [
+        "p-8f170728",
+        "p-b129c497",
+        "p-f5f0a9de",
+        "p-f4ffc645",
+        "a-gnome-2",
+        "a-gnome-3",
+        "a-gnome-4"
+      ],
+      "newAtoms": [],
+      "brand": "Copper Kettle Agency",
+      "cast": "gnome"
     },
     "dc8a7f02": {
       "n": 32,
@@ -544,11 +854,29 @@
       "platform": "Wix",
       "industry": "agency",
       "batch": 4,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-dc8a7f02",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "about",
+        "makers",
+        "contact"
+      ],
+      "photos": [
+        "p-f944e755",
+        "p-30292e2f",
+        "p-a0a4d8d3",
+        "a-faerie-3",
+        "a-faerie-4",
+        "a-faerie-5",
+        "a-faerie-0",
+        "p-2294787a",
+        "a-faerie-1",
+        "a-faerie-2"
+      ],
+      "newAtoms": [],
+      "brand": "Featherlight Studio",
+      "cast": "faerie"
     },
     "b6d4d638": {
       "n": 33,
@@ -556,11 +884,27 @@
       "platform": "Wix",
       "industry": "agency",
       "batch": 4,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-b6d4d638",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "speakers",
+        "about",
+        "contact"
+      ],
+      "photos": [
+        "p-75d8dbe7",
+        "a-faerie-5",
+        "a-faerie-0",
+        "a-faerie-1",
+        "a-faerie-2",
+        "a-faerie-3",
+        "a-faerie-4",
+        "p-ebf824f9"
+      ],
+      "newAtoms": [],
+      "brand": "Honeysuckle Agency",
+      "cast": "faerie"
     },
     "cac22fa2": {
       "n": 34,
@@ -568,11 +912,22 @@
       "platform": "Squarespace",
       "industry": "agency",
       "batch": 4,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-cac22fa2",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "how-it-works",
+        "journal",
+        "contact"
+      ],
+      "photos": [
+        "p-19acaddb",
+        "p-201206df",
+        "p-d5075f70"
+      ],
+      "newAtoms": [],
+      "brand": "Root & Barrow Atelier",
+      "cast": "gnome"
     },
     "ab707557": {
       "n": 35,
@@ -580,11 +935,24 @@
       "platform": "Squarespace",
       "industry": "agency",
       "batch": 4,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-ab707557",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "services",
+        "portfolio",
+        "contact"
+      ],
+      "photos": [
+        "p-958c8e11",
+        "p-8e63dbc0",
+        "p-cf46e6be",
+        "p-49ad2b43",
+        "a-gnome-1"
+      ],
+      "newAtoms": [],
+      "brand": "Crossroads Atelier Circle",
+      "cast": "collective+elf+faerie+gnome"
     },
     "a2ba9d13": {
       "n": 36,
@@ -592,11 +960,25 @@
       "platform": "Squarespace",
       "industry": "agency",
       "batch": 4,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-a2ba9d13",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "about",
+        "offerings",
+        "journal",
+        "contact"
+      ],
+      "photos": [
+        "p-54abe25c",
+        "p-660dfa3b",
+        "p-6d951def",
+        "a-faerie-2",
+        "a-faerie-3"
+      ],
+      "newAtoms": [],
+      "brand": "Firefly Agency",
+      "cast": "faerie"
     },
     "7bd38904": {
       "n": 37,
@@ -604,11 +986,26 @@
       "platform": "Squarespace",
       "industry": "agency",
       "batch": 4,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-7bd38904",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "services",
+        "about",
+        "contact"
+      ],
+      "photos": [
+        "p-6d951def",
+        "p-c0b92fa1",
+        "p-d8fc343a",
+        "p-36eb24f6",
+        "a-faerie-4",
+        "a-faerie-5",
+        "a-faerie-0"
+      ],
+      "newAtoms": [],
+      "brand": "Glimmer Atelier",
+      "cast": "faerie"
     },
     "022214fe": {
       "n": 38,
@@ -616,11 +1013,23 @@
       "platform": "Squarespace",
       "industry": "agency",
       "batch": 4,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-022214fe",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "features",
+        "favourites",
+        "contact"
+      ],
+      "photos": [
+        "p-2903b15c",
+        "p-1e7ca2e9",
+        "p-7d0da415",
+        "p-7dce1c6b"
+      ],
+      "newAtoms": [],
+      "brand": "Lightfell Agency",
+      "cast": "elf"
     },
     "88376c6b": {
       "n": 39,
@@ -628,11 +1037,28 @@
       "platform": "Squarespace",
       "industry": "agency",
       "batch": 4,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-88376c6b",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "services",
+        "about",
+        "blog",
+        "contact"
+      ],
+      "photos": [
+        "p-e5e450bb",
+        "p-8e75cbfd",
+        "p-d7f7e8a8",
+        "p-b27f46ee",
+        "a-elf-0",
+        "a-elf-1",
+        "a-elf-2",
+        "a-elf-3"
+      ],
+      "newAtoms": [],
+      "brand": "The Starlit Studio",
+      "cast": "elf"
     },
     "f5154f63": {
       "n": 40,
@@ -640,11 +1066,27 @@
       "platform": "Duda",
       "industry": "architecture",
       "batch": 5,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-f5154f63",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "projects",
+        "about",
+        "contact"
+      ],
+      "photos": [
+        "p-81ded215",
+        "p-17855891",
+        "p-226bed23",
+        "p-d6eb029e",
+        "a-elf-4",
+        "a-elf-5",
+        "a-elf-0",
+        "a-elf-1"
+      ],
+      "newAtoms": [],
+      "brand": "Evergreen Builders of Halls",
+      "cast": "elf"
     },
     "f2f47ddc": {
       "n": 41,
@@ -652,11 +1094,28 @@
       "platform": "Wix",
       "industry": "architecture",
       "batch": 5,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-f2f47ddc",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "homes",
+        "about",
+        "contact"
+      ],
+      "photos": [
+        "p-6044b23d",
+        "p-1a101cfb",
+        "p-2903b15c",
+        "p-5e2744a2",
+        "a-elf-2",
+        "a-gnome-2",
+        "a-faerie-2",
+        "a-elf-4",
+        "a-gnome-4"
+      ],
+      "newAtoms": [],
+      "brand": "Lantern Ring Design Studio Fellowship",
+      "cast": "collective+elf+faerie+gnome"
     },
     "572da249": {
       "n": 42,
@@ -664,11 +1123,23 @@
       "platform": "Wix",
       "industry": "architecture",
       "batch": 5,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-572da249",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "gallery",
+        "info",
+        "contact"
+      ],
+      "photos": [
+        "p-8b16dac0",
+        "p-81f4198f",
+        "p-dbe669e8",
+        "p-e9b485ce"
+      ],
+      "newAtoms": [],
+      "brand": "Crossroads Builders of Halls Commons",
+      "cast": "collective+elf+faerie+gnome"
     },
     "8546f85e": {
       "n": 43,
@@ -676,11 +1147,26 @@
       "platform": "Squarespace",
       "industry": "artist",
       "batch": 5,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-8546f85e",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "music",
+        "tour",
+        "contact"
+      ],
+      "photos": [
+        "p-19acaddb",
+        "p-91f19468",
+        "p-3892bcd6",
+        "p-297607c7",
+        "a-elf-1",
+        "a-elf-2",
+        "a-elf-3"
+      ],
+      "newAtoms": [],
+      "brand": "The Unhurried Studio",
+      "cast": "elf"
     },
     "631a9317": {
       "n": 44,
@@ -688,11 +1174,23 @@
       "platform": "Squarespace",
       "industry": "artist",
       "batch": 5,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-631a9317",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "details",
+        "travel",
+        "rsvp"
+      ],
+      "photos": [
+        "p-f4465425",
+        "a-faerie-1",
+        "a-elf-1",
+        "p-0f814652"
+      ],
+      "newAtoms": [],
+      "brand": "Shared Hearth Atelier Circle",
+      "cast": "collective+elf+faerie+gnome"
     },
     "19077c6b": {
       "n": 45,
@@ -700,11 +1198,27 @@
       "platform": "Squarespace",
       "industry": "artist",
       "batch": 5,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-19077c6b",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "works",
+        "info"
+      ],
+      "photos": [
+        "p-7aff69b7",
+        "a-faerie-3",
+        "a-faerie-4",
+        "a-faerie-5",
+        "a-faerie-0",
+        "p-050ca4cb",
+        "p-dc9d3ea9",
+        "a-faerie-1",
+        "a-faerie-2"
+      ],
+      "newAtoms": [],
+      "brand": "Dewdrop Studio",
+      "cast": "faerie"
     },
     "3a84f530": {
       "n": 46,
@@ -712,11 +1226,27 @@
       "platform": "Wix",
       "industry": "artist",
       "batch": 5,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-3a84f530",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "styles",
+        "pricing",
+        "about"
+      ],
+      "photos": [
+        "p-4269ee3f",
+        "p-8535bf1b",
+        "a-elf-2",
+        "a-elf-3",
+        "a-elf-4",
+        "a-elf-5",
+        "a-elf-0",
+        "a-elf-1"
+      ],
+      "newAtoms": [],
+      "brand": "Highleaf Atelier",
+      "cast": "elf"
     },
     "c7e8dd1f": {
       "n": 47,
@@ -724,11 +1254,22 @@
       "platform": "Wix",
       "industry": "artist",
       "batch": 5,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-c7e8dd1f",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "shows",
+        "about",
+        "visit"
+      ],
+      "photos": [
+        "p-ebf824f9",
+        "p-d455ce82",
+        "p-4f45018c"
+      ],
+      "newAtoms": [],
+      "brand": "Wildrose Gallery",
+      "cast": "faerie"
     },
     "a91643cc": {
       "n": 48,
@@ -736,11 +1277,25 @@
       "platform": "Wix",
       "industry": "artist",
       "batch": 5,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-a91643cc",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "mixes",
+        "gigs",
+        "book"
+      ],
+      "photos": [
+        "a-faerie-1",
+        "p-75d8dbe7",
+        "a-faerie-3",
+        "a-faerie-4",
+        "a-faerie-5",
+        "p-72ffc22a"
+      ],
+      "newAtoms": [],
+      "brand": "Moonpetal Gallery",
+      "cast": "faerie"
     },
     "7a44fec6": {
       "n": 49,
@@ -748,11 +1303,26 @@
       "platform": "Duda",
       "industry": "bakery",
       "batch": 5,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-7a44fec6",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "menu",
+        "events",
+        "contact"
+      ],
+      "photos": [
+        "p-248a1a41",
+        "p-8a5e52b1",
+        "p-e7ba6d79",
+        "p-81f97a60",
+        "a-gnome-2",
+        "a-gnome-3",
+        "a-gnome-4"
+      ],
+      "newAtoms": [],
+      "brand": "Copper Kettle Bakehouse",
+      "cast": "gnome"
     },
     "76e8af8b": {
       "n": 50,
@@ -760,11 +1330,25 @@
       "platform": "Duda",
       "industry": "bakery",
       "batch": 6,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-76e8af8b",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "menu",
+        "story",
+        "contact"
+      ],
+      "photos": [
+        "p-cbba3dd9",
+        "p-8a5e52b1",
+        "p-a40981c3",
+        "a-gnome-4",
+        "a-gnome-5",
+        "a-gnome-0"
+      ],
+      "newAtoms": [],
+      "brand": "The No-nonsense Bakehouse",
+      "cast": "gnome"
     },
     "3282fb66": {
       "n": 51,
@@ -772,11 +1356,28 @@
       "platform": "Duda",
       "industry": "bakery",
       "batch": 6,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-3282fb66",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "menu",
+        "reviews",
+        "contact"
+      ],
+      "photos": [
+        "p-813a9dc6",
+        "p-a40981c3",
+        "p-8a5e52b1",
+        "a-gnome-2",
+        "a-gnome-3",
+        "a-gnome-4",
+        "a-gnome-5",
+        "a-gnome-0",
+        "a-gnome-1"
+      ],
+      "newAtoms": [],
+      "brand": "Thimble Pantry",
+      "cast": "gnome"
     },
     "a67c9ea7": {
       "n": 52,
@@ -784,11 +1385,26 @@
       "platform": "Wix",
       "industry": "barbershop-salon",
       "batch": 6,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-a67c9ea7",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "about",
+        "services",
+        "gallery",
+        "contact"
+      ],
+      "photos": [
+        "p-d50a1c0b",
+        "p-0469f4b7",
+        "a-elf-5",
+        "a-elf-0",
+        "a-elf-1",
+        "p-30ebe85a"
+      ],
+      "newAtoms": [],
+      "brand": "The Starlit Grooming Parlour",
+      "cast": "elf"
     },
     "46d86ef5": {
       "n": 53,
@@ -796,11 +1412,26 @@
       "platform": "Squarespace",
       "industry": "barbershop-salon",
       "batch": 6,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-46d86ef5",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "about",
+        "shop",
+        "services",
+        "contact"
+      ],
+      "photos": [
+        "p-36eb24f6",
+        "p-99e11ce6",
+        "p-dbacb630",
+        "a-gnome-3",
+        "a-gnome-4",
+        "a-gnome-5"
+      ],
+      "newAtoms": [],
+      "brand": "The Honest Wing & Tress",
+      "cast": "gnome"
     },
     "4db3ba23": {
       "n": 54,
@@ -808,11 +1439,26 @@
       "platform": "Wix",
       "industry": "barbershop-salon",
       "batch": 6,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-4db3ba23",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "services",
+        "about",
+        "contact"
+      ],
+      "photos": [
+        "p-9577aa79",
+        "p-55a4d011",
+        "p-d3dd23de",
+        "p-f4465425",
+        "a-elf-1",
+        "a-elf-2",
+        "a-elf-3"
+      ],
+      "newAtoms": [],
+      "brand": "Moonlit Wing & Tress",
+      "cast": "elf"
     },
     "d8fc3837": {
       "n": 55,
@@ -820,11 +1466,27 @@
       "platform": "Wix",
       "industry": "barbershop-salon",
       "batch": 6,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-d8fc3837",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "book",
+        "about",
+        "contact"
+      ],
+      "photos": [
+        "p-eba4cd6a",
+        "p-3b904265",
+        "p-8e63dbc0",
+        "p-f405cd66",
+        "a-faerie-0",
+        "a-faerie-3",
+        "a-faerie-4",
+        "a-faerie-5"
+      ],
+      "newAtoms": [],
+      "brand": "Dewdrop Grooming Parlour",
+      "cast": "faerie"
     },
     "a13318f0": {
       "n": 56,
@@ -832,11 +1494,21 @@
       "platform": "Squarespace",
       "industry": "artist",
       "batch": 6,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-a13318f0",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "journal",
+        "contact"
+      ],
+      "photos": [
+        "p-dea30ff8",
+        "p-791a8a1a",
+        "p-f4ffc645"
+      ],
+      "newAtoms": [],
+      "brand": "Windrunner Studio",
+      "cast": "elf"
     },
     "f96e4fe2": {
       "n": 57,
@@ -844,11 +1516,26 @@
       "platform": "Squarespace",
       "industry": "agency",
       "batch": 6,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-f96e4fe2",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "about",
+        "journal",
+        "contact"
+      ],
+      "photos": [
+        "p-58359c87",
+        "p-d68edc63",
+        "p-4d08a68a",
+        "p-67d6f993",
+        "a-gnome-2",
+        "a-gnome-3",
+        "a-gnome-4"
+      ],
+      "newAtoms": [],
+      "brand": "Acorn Atelier",
+      "cast": "gnome"
     },
     "92f7e907": {
       "n": 58,
@@ -856,11 +1543,27 @@
       "platform": "Squarespace",
       "industry": "agency",
       "batch": 6,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-92f7e907",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "about",
+        "journal",
+        "contact"
+      ],
+      "photos": [
+        "p-df3bac91",
+        "a-gnome-2",
+        "a-gnome-3",
+        "a-gnome-4",
+        "a-gnome-5",
+        "a-gnome-0",
+        "p-1e6efdec",
+        "p-17787ae6"
+      ],
+      "newAtoms": [],
+      "brand": "Toadstool Studio",
+      "cast": "gnome"
     },
     "78896f68": {
       "n": 59,
@@ -868,11 +1571,27 @@
       "platform": "Squarespace",
       "industry": "agency",
       "batch": 6,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-78896f68",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "about",
+        "packages",
+        "portfolio",
+        "contact"
+      ],
+      "photos": [
+        "p-f81cf80c",
+        "p-0d929805",
+        "p-2b41cdf1",
+        "a-elf-4",
+        "a-elf-5",
+        "a-elf-0",
+        "p-b606aa28"
+      ],
+      "newAtoms": [],
+      "brand": "Starwell Atelier",
+      "cast": "elf"
     },
     "323674b9": {
       "n": 60,
@@ -880,11 +1599,25 @@
       "platform": "Squarespace",
       "industry": "blog",
       "batch": 7,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-323674b9",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "about",
+        "contact"
+      ],
+      "photos": [
+        "p-8a5e52b1",
+        "p-2b421510",
+        "p-539c8406",
+        "p-a40981c3",
+        "a-gnome-4",
+        "a-gnome-5",
+        "a-gnome-0"
+      ],
+      "newAtoms": [],
+      "brand": "The Clever Journal",
+      "cast": "gnome"
     },
     "428ef4b6": {
       "n": 61,
@@ -892,11 +1625,25 @@
       "platform": "Squarespace",
       "industry": "blog",
       "batch": 7,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-428ef4b6",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "about",
+        "contact"
+      ],
+      "photos": [
+        "p-2b41cdf1",
+        "p-2c38a175",
+        "p-eba4cd6a",
+        "p-0b27a93c",
+        "a-faerie-5",
+        "a-faerie-0",
+        "a-faerie-1"
+      ],
+      "newAtoms": [],
+      "brand": "The Twinkling Almanac",
+      "cast": "faerie"
     },
     "1f99d107": {
       "n": 62,
@@ -904,11 +1651,27 @@
       "platform": "Squarespace",
       "industry": "blog",
       "batch": 7,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-1f99d107",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "about",
+        "initiatives",
+        "contact"
+      ],
+      "photos": [
+        "p-73228230",
+        "p-e40a56f8",
+        "p-54b73726",
+        "p-660dfa3b",
+        "a-gnome-2",
+        "a-faerie-2",
+        "a-elf-2",
+        "a-gnome-3"
+      ],
+      "newAtoms": [],
+      "brand": "Three Roots Journal Co-operative",
+      "cast": "collective+elf+faerie+gnome"
     },
     "5fe53207": {
       "n": 63,
@@ -916,11 +1679,23 @@
       "platform": "Wix",
       "industry": "blog",
       "batch": 7,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-5fe53207",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "blog",
+        "podcast",
+        "about"
+      ],
+      "photos": [
+        "p-e40a56f8",
+        "p-17787ae6",
+        "p-3b904265",
+        "p-c9f66f20"
+      ],
+      "newAtoms": [],
+      "brand": "Crossroads Gazette Circle",
+      "cast": "collective+elf+faerie+gnome"
     },
     "e9ffa30b": {
       "n": 64,
@@ -928,11 +1703,25 @@
       "platform": "Wix",
       "industry": "blog",
       "batch": 7,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-e9ffa30b",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "resume",
+        "projects",
+        "contact"
+      ],
+      "photos": [
+        "a-elf-0",
+        "p-20c3f888",
+        "p-5a01c18f",
+        "p-d4c1f73b",
+        "a-elf-3",
+        "a-elf-4"
+      ],
+      "newAtoms": [],
+      "brand": "Evergreen Notebook",
+      "cast": "elf"
     },
     "524d33b1": {
       "n": 65,
@@ -940,11 +1729,23 @@
       "platform": "Wix",
       "industry": "blog",
       "batch": 7,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-524d33b1",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "about",
+        "projects"
+      ],
+      "photos": [
+        "a-elf-2",
+        "p-5a01c18f",
+        "p-9577aa79",
+        "p-d68edc63",
+        "p-22828a94"
+      ],
+      "newAtoms": [],
+      "brand": "Three Roots Notebook Commons",
+      "cast": "collective+elf+faerie+gnome"
     },
     "b7a666ae": {
       "n": 66,
@@ -952,11 +1753,26 @@
       "platform": "Squarespace",
       "industry": "blog",
       "batch": 7,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-b7a666ae",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "about",
+        "news",
+        "contact"
+      ],
+      "photos": [
+        "p-b129c497",
+        "p-72ffc22a",
+        "p-54b73726",
+        "a-faerie-1",
+        "a-faerie-2",
+        "a-faerie-3",
+        "a-faerie-4"
+      ],
+      "newAtoms": [],
+      "brand": "Wildrose Notebook",
+      "cast": "faerie"
     },
     "80ea71c8": {
       "n": 67,
@@ -964,11 +1780,20 @@
       "platform": "Squarespace",
       "industry": "business",
       "batch": 7,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-80ea71c8",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "about",
+        "contact"
+      ],
+      "photos": [
+        "p-54abe25c",
+        "p-e9b485ce"
+      ],
+      "newAtoms": [],
+      "brand": "Dawnmantle Trading Co.",
+      "cast": "elf"
     },
     "db89c579": {
       "n": 68,
@@ -976,11 +1801,23 @@
       "platform": "Squarespace",
       "industry": "business",
       "batch": 7,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-db89c579",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "lookbook",
+        "about",
+        "contact"
+      ],
+      "photos": [
+        "p-55a4d011",
+        "p-17855891",
+        "p-1e6efdec",
+        "p-791a8a1a"
+      ],
+      "newAtoms": [],
+      "brand": "The No-nonsense Guild",
+      "cast": "gnome"
     },
     "977389ae": {
       "n": 69,
@@ -988,11 +1825,25 @@
       "platform": "Squarespace",
       "industry": "blog",
       "batch": 7,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-977389ae",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "recipes",
+        "about",
+        "contact"
+      ],
+      "photos": [
+        "p-8043980b",
+        "p-5909b68b",
+        "p-55fd0a97",
+        "a-elf-0",
+        "a-elf-1",
+        "a-elf-2"
+      ],
+      "newAtoms": [],
+      "brand": "The Considered Gazette",
+      "cast": "elf"
     },
     "44da55d8": {
       "n": 70,
@@ -1000,11 +1851,26 @@
       "platform": "Squarespace",
       "industry": "architecture",
       "batch": 8,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-44da55d8",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "projects",
+        "studio",
+        "contact"
+      ],
+      "photos": [
+        "p-8e75cbfd",
+        "p-61517033",
+        "p-660dfa3b",
+        "a-gnome-4",
+        "a-gnome-5",
+        "a-gnome-0",
+        "p-1cc5dae4"
+      ],
+      "newAtoms": [],
+      "brand": "The Hand-built Architects",
+      "cast": "gnome"
     },
     "f2df3b49": {
       "n": 71,
@@ -1012,11 +1878,24 @@
       "platform": "Squarespace",
       "industry": "business",
       "batch": 8,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-f2df3b49",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "shop",
+        "about",
+        "journal",
+        "contact"
+      ],
+      "photos": [
+        "p-30292e2f",
+        "p-dc9d3ea9",
+        "p-f944e755",
+        "p-8f170728"
+      ],
+      "newAtoms": [],
+      "brand": "Silkthread Company",
+      "cast": "faerie"
     },
     "e8c29bfa": {
       "n": 72,
@@ -1024,11 +1903,27 @@
       "platform": "Squarespace",
       "industry": "agency",
       "batch": 8,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-e8c29bfa",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "services",
+        "about",
+        "blog",
+        "contact"
+      ],
+      "photos": [
+        "p-8535bf1b",
+        "p-7e4eca4d",
+        "p-0d929805",
+        "p-8b16dac0",
+        "a-faerie-2",
+        "a-faerie-3",
+        "a-faerie-4"
+      ],
+      "newAtoms": [],
+      "brand": "Firefly Studio",
+      "cast": "faerie"
     },
     "311e4048": {
       "n": 73,
@@ -1036,11 +1931,26 @@
       "platform": "Squarespace",
       "industry": "agency",
       "batch": 8,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-311e4048",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "services",
+        "process",
+        "about",
+        "contact"
+      ],
+      "photos": [
+        "p-9cdbea8d",
+        "p-58359c87",
+        "p-dbacb630",
+        "a-elf-5",
+        "a-elf-0",
+        "p-1cc5dae4"
+      ],
+      "newAtoms": [],
+      "brand": "The Luminous Agency",
+      "cast": "elf"
     },
     "0b977915": {
       "n": 74,
@@ -1048,11 +1958,25 @@
       "platform": "Squarespace",
       "industry": "agency",
       "batch": 8,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-0b977915",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "offerings",
+        "about",
+        "contact"
+      ],
+      "photos": [
+        "p-dea30ff8",
+        "a-elf-1",
+        "a-elf-3",
+        "p-54abe25c",
+        "a-elf-0",
+        "a-elf-2"
+      ],
+      "newAtoms": [],
+      "brand": "Highbough Studio",
+      "cast": "elf"
     },
     "191813b0": {
       "n": 75,
@@ -1060,11 +1984,21 @@
       "platform": "Wix",
       "industry": "business",
       "batch": 8,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-191813b0",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "programs",
+        "about",
+        "contact"
+      ],
+      "photos": [
+        "p-7dce1c6b",
+        "p-7d0da415"
+      ],
+      "newAtoms": [],
+      "brand": "Copper Kettle Trading Co.",
+      "cast": "gnome"
     },
     "8d428913": {
       "n": 76,
@@ -1072,11 +2006,29 @@
       "platform": "Squarespace",
       "industry": "blog",
       "batch": 8,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-8d428913",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "journal",
+        "retreats",
+        "about",
+        "contact"
+      ],
+      "photos": [
+        "p-5e2744a2",
+        "p-0c59506e",
+        "a-faerie-2",
+        "a-faerie-3",
+        "p-49ad2b43",
+        "p-df3bac91",
+        "a-faerie-0",
+        "a-faerie-1",
+        "a-faerie-4"
+      ],
+      "newAtoms": [],
+      "brand": "Silkthread Journal",
+      "cast": "faerie"
     },
     "104a42c3": {
       "n": 77,
@@ -1084,11 +2036,27 @@
       "platform": "Squarespace",
       "industry": "business",
       "batch": 8,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-104a42c3",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "membership",
+        "about",
+        "events",
+        "contact"
+      ],
+      "photos": [
+        "p-c0b92fa1",
+        "p-c9f66f20",
+        "p-4d08a68a",
+        "a-elf-1",
+        "a-gnome-1",
+        "a-faerie-1",
+        "a-elf-2"
+      ],
+      "newAtoms": [],
+      "brand": "Lantern Ring Exchange Fellowship",
+      "cast": "collective+elf+faerie+gnome"
     },
     "afd7b05a": {
       "n": 78,
@@ -1096,11 +2064,24 @@
       "platform": "Wix",
       "industry": "coach",
       "batch": 8,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-afd7b05a",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "sessions",
+        "about",
+        "contact"
+      ],
+      "photos": [
+        "p-d8fc343a",
+        "a-faerie-3",
+        "a-faerie-0",
+        "a-faerie-1",
+        "a-faerie-2"
+      ],
+      "newAtoms": [],
+      "brand": "Fernwhistle Pathfinding",
+      "cast": "faerie"
     },
     "25094b99": {
       "n": 79,
@@ -1108,11 +2089,26 @@
       "platform": "Squarespace",
       "industry": "coach",
       "batch": 8,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-25094b99",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "classes",
+        "about",
+        "contact"
+      ],
+      "photos": [
+        "p-73228230",
+        "p-0469f4b7",
+        "p-22828a94",
+        "p-dbe669e8",
+        "a-gnome-5",
+        "a-elf-5",
+        "a-faerie-5"
+      ],
+      "newAtoms": [],
+      "brand": "Lantern Ring Mentorship Commons",
+      "cast": "collective+elf+faerie+gnome"
     },
     "b093c9a8": {
       "n": 80,
@@ -1120,11 +2116,24 @@
       "platform": "Squarespace",
       "industry": "coach",
       "batch": 9,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-b093c9a8",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "training",
+        "classes",
+        "blog",
+        "contact"
+      ],
+      "photos": [
+        "p-4f45018c",
+        "p-2b421510",
+        "p-64fedca1",
+        "p-2c38a175"
+      ],
+      "newAtoms": [],
+      "brand": "Thistledown Mentorship",
+      "cast": "faerie"
     },
     "ffdb2d19": {
       "n": 81,
@@ -1132,11 +2141,26 @@
       "platform": "Squarespace",
       "industry": "coach",
       "batch": 9,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-ffdb2d19",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "about",
+        "services",
+        "blog",
+        "contact"
+      ],
+      "photos": [
+        "p-b606aa28",
+        "p-813a9dc6",
+        "p-d50a1c0b",
+        "a-faerie-4",
+        "a-faerie-5",
+        "a-faerie-0"
+      ],
+      "newAtoms": [],
+      "brand": "The Petal-soft Mentorship",
+      "cast": "faerie"
     },
     "97c1457c": {
       "n": 82,
@@ -1144,11 +2168,24 @@
       "platform": "Squarespace",
       "industry": "coach",
       "batch": 9,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-97c1457c",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "about",
+        "testimonials",
+        "resources",
+        "contact"
+      ],
+      "photos": [
+        "p-9cdbea8d",
+        "p-8043980b",
+        "a-faerie-5",
+        "p-d68edc63"
+      ],
+      "newAtoms": [],
+      "brand": "Rosehip Mentorship",
+      "cast": "faerie"
     },
     "72a6ebc4": {
       "n": 83,
@@ -1156,11 +2193,28 @@
       "platform": "Wix",
       "industry": "construction",
       "batch": 9,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-72a6ebc4",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "about",
+        "services",
+        "gallery",
+        "contact"
+      ],
+      "photos": [
+        "p-e9b485ce",
+        "p-297607c7",
+        "a-gnome-2",
+        "a-gnome-3",
+        "a-gnome-4",
+        "a-gnome-5",
+        "p-7aff69b7",
+        "p-b129c497"
+      ],
+      "newAtoms": [],
+      "brand": "Tinkerwhistle Builders",
+      "cast": "gnome"
     },
     "9d0da8ca": {
       "n": 84,
@@ -1168,11 +2222,26 @@
       "platform": "Framer",
       "industry": "architecture",
       "batch": 9,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-9d0da8ca",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "projects",
+        "about",
+        "contact"
+      ],
+      "photos": [
+        "p-1e7ca2e9",
+        "p-226bed23",
+        "p-6044b23d",
+        "a-elf-1",
+        "a-elf-2",
+        "a-elf-3",
+        "p-f5f0a9de"
+      ],
+      "newAtoms": [],
+      "brand": "Lantern Builders of Halls",
+      "cast": "elf"
     },
     "bbdb260f": {
       "n": 85,
@@ -1180,11 +2249,25 @@
       "platform": "Framer",
       "industry": "architecture",
       "batch": 9,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-bbdb260f",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "works",
+        "about",
+        "contact"
+      ],
+      "photos": [
+        "p-d3dd23de",
+        "p-f4ffc645",
+        "p-d6eb029e",
+        "p-8f170728",
+        "a-elf-3",
+        "a-elf-4"
+      ],
+      "newAtoms": [],
+      "brand": "Highbough Design Studio",
+      "cast": "elf"
     },
     "294d876f": {
       "n": 86,
@@ -1192,11 +2275,25 @@
       "platform": "Squarespace",
       "industry": "architecture",
       "batch": 9,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-294d876f",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "services",
+        "listings",
+        "faqs",
+        "contact"
+      ],
+      "photos": [
+        "p-81ded215",
+        "p-050ca4cb",
+        "p-0d929805",
+        "p-4590a9e7",
+        "a-gnome-2"
+      ],
+      "newAtoms": [],
+      "brand": "The Honest Builders of Halls",
+      "cast": "gnome"
     },
     "731a386a": {
       "n": 87,
@@ -1204,11 +2301,24 @@
       "platform": "Squarespace",
       "industry": "architecture",
       "batch": 9,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-731a386a",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "spaces",
+        "about",
+        "connect"
+      ],
+      "photos": [
+        "p-30ebe85a",
+        "p-d5075f70",
+        "p-5a01c18f",
+        "a-elf-4",
+        "a-elf-5"
+      ],
+      "newAtoms": [],
+      "brand": "The Unhurried Builders of Halls",
+      "cast": "elf"
     },
     "b17cbb51": {
       "n": 88,
@@ -1216,11 +2326,24 @@
       "platform": "Squarespace",
       "industry": "agency",
       "batch": 9,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-b17cbb51",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "about",
+        "services",
+        "contact"
+      ],
+      "photos": [
+        "p-7e4eca4d",
+        "p-49ad2b43",
+        "p-20c3f888",
+        "a-gnome-1",
+        "p-d4c1f73b"
+      ],
+      "newAtoms": [],
+      "brand": "Acorn Workshop",
+      "cast": "gnome"
     },
     "42ff13d7": {
       "n": 89,
@@ -1228,11 +2351,27 @@
       "platform": "Squarespace",
       "industry": "agency",
       "batch": 9,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-42ff13d7",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "what-we-do",
+        "team",
+        "testimonials",
+        "contact"
+      ],
+      "photos": [
+        "p-e5e450bb",
+        "p-17787ae6",
+        "a-elf-5",
+        "a-elf-0",
+        "a-elf-1",
+        "a-elf-2",
+        "p-201206df"
+      ],
+      "newAtoms": [],
+      "brand": "The Considered Studio",
+      "cast": "elf"
     },
     "c63f9eca": {
       "n": 90,
@@ -1240,11 +2379,27 @@
       "platform": "Squarespace",
       "industry": "agency",
       "batch": 10,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-c63f9eca",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "workshops",
+        "about",
+        "contact"
+      ],
+      "photos": [
+        "a-elf-1",
+        "p-a0a4d8d3",
+        "p-2294787a",
+        "p-660dfa3b",
+        "a-elf-3",
+        "a-elf-4",
+        "a-elf-5",
+        "a-elf-0"
+      ],
+      "newAtoms": [],
+      "brand": "Evergreen Studio",
+      "cast": "elf"
     },
     "527ec024": {
       "n": 91,
@@ -1252,11 +2407,29 @@
       "platform": "Squarespace",
       "industry": "agency",
       "batch": 10,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-527ec024",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "services",
+        "about",
+        "journal",
+        "contact"
+      ],
+      "photos": [
+        "p-958c8e11",
+        "p-d7f7e8a8",
+        "p-248a1a41",
+        "p-0c59506e",
+        "a-faerie-2",
+        "a-faerie-3",
+        "a-faerie-4",
+        "a-faerie-0",
+        "a-faerie-1"
+      ],
+      "newAtoms": [],
+      "brand": "Nightjar Studio",
+      "cast": "faerie"
     },
     "7c877181": {
       "n": 92,
@@ -1264,11 +2437,21 @@
       "platform": "Wix",
       "industry": "ecommerce",
       "batch": 10,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-7c877181",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "shop",
+        "about",
+        "contact"
+      ],
+      "photos": [
+        "p-f81cf80c",
+        "p-5909b68b"
+      ],
+      "newAtoms": [],
+      "brand": "Thimble Shop",
+      "cast": "gnome"
     },
     "85d0ae34": {
       "n": 93,
@@ -1276,11 +2459,29 @@
       "platform": "Wix",
       "industry": "ecommerce",
       "batch": 10,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-85d0ae34",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "market",
+        "vendors",
+        "contact"
+      ],
+      "photos": [
+        "p-b129c497",
+        "p-539c8406",
+        "p-81f97a60",
+        "p-55a4d011",
+        "a-faerie-1",
+        "a-faerie-2",
+        "a-faerie-3",
+        "a-faerie-4",
+        "a-faerie-5",
+        "a-faerie-0"
+      ],
+      "newAtoms": [],
+      "brand": "The Petal-soft Trading Post",
+      "cast": "faerie"
     },
     "e90890dd": {
       "n": 94,
@@ -1288,11 +2489,24 @@
       "platform": "Wix",
       "industry": "ecommerce",
       "batch": 10,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-e90890dd",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "shop",
+        "about",
+        "visit"
+      ],
+      "photos": [
+        "p-55fd0a97",
+        "p-58359c87",
+        "a-gnome-5",
+        "a-elf-5",
+        "a-faerie-5"
+      ],
+      "newAtoms": [],
+      "brand": "Crossroads Market Co-operative",
+      "cast": "collective+elf+faerie+gnome"
     },
     "417dba85": {
       "n": 95,
@@ -1300,11 +2514,26 @@
       "platform": "Shopify",
       "industry": "ecommerce",
       "batch": 10,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-417dba85",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "collections",
+        "about",
+        "contact"
+      ],
+      "photos": [
+        "p-b27f46ee",
+        "p-e40a56f8",
+        "p-2b421510",
+        "a-faerie-2",
+        "a-faerie-3",
+        "a-faerie-4",
+        "a-faerie-1"
+      ],
+      "newAtoms": [],
+      "brand": "Thistle Emporium",
+      "cast": "faerie"
     },
     "ec0a601a": {
       "n": 96,
@@ -1312,11 +2541,29 @@
       "platform": "Shopify",
       "industry": "ecommerce",
       "batch": 10,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-ec0a601a",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "shop",
+        "guide",
+        "contact"
+      ],
+      "photos": [
+        "p-81f4198f",
+        "p-0b27a93c",
+        "p-e7ba6d79",
+        "p-297607c7",
+        "a-elf-2",
+        "a-elf-3",
+        "a-elf-4",
+        "a-elf-5",
+        "a-elf-0",
+        "a-elf-1"
+      ],
+      "newAtoms": [],
+      "brand": "Brightwater Emporium",
+      "cast": "elf"
     },
     "ce37d763": {
       "n": 97,
@@ -1324,11 +2571,23 @@
       "platform": "Shopify",
       "industry": "ecommerce",
       "batch": 10,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-ce37d763",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "shop",
+        "journal",
+        "contact"
+      ],
+      "photos": [
+        "p-e9b485ce",
+        "p-9577aa79",
+        "p-3b904265",
+        "p-dea30ff8"
+      ],
+      "newAtoms": [],
+      "brand": "The Well-made Trading Post",
+      "cast": "gnome"
     },
     "90048ff5": {
       "n": 98,
@@ -1336,11 +2595,26 @@
       "platform": "Shopify",
       "industry": "ecommerce",
       "batch": 10,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-90048ff5",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "shop",
+        "lookbook",
+        "contact"
+      ],
+      "photos": [
+        "p-2d8b1ce6",
+        "p-2b41cdf1",
+        "p-4269ee3f",
+        "p-2c38a175",
+        "a-gnome-3",
+        "a-gnome-1",
+        "a-gnome-2"
+      ],
+      "newAtoms": [],
+      "brand": "Burrowmere Trading Post",
+      "cast": "gnome"
     },
     "47101e78": {
       "n": 99,
@@ -1348,11 +2622,29 @@
       "platform": "Shopify",
       "industry": "ecommerce",
       "batch": 10,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-47101e78",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "shop",
+        "story",
+        "contact"
+      ],
+      "photos": [
+        "p-4f45018c",
+        "p-72ffc22a",
+        "p-eba4cd6a",
+        "a-gnome-2",
+        "p-f405cd66",
+        "a-gnome-0",
+        "a-gnome-1",
+        "a-gnome-3",
+        "a-gnome-4",
+        "a-gnome-5"
+      ],
+      "newAtoms": [],
+      "brand": "Thimblewick Emporium",
+      "cast": "gnome"
     },
     "f26065d2": {
       "n": 100,
@@ -1360,11 +2652,26 @@
       "platform": "Shopify",
       "industry": "ecommerce",
       "batch": 11,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-f26065d2",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "shop",
+        "about",
+        "journal"
+      ],
+      "photos": [
+        "p-55fd0a97",
+        "p-22828a94",
+        "p-dc9d3ea9",
+        "p-1a101cfb",
+        "a-faerie-4",
+        "a-faerie-5",
+        "a-faerie-0"
+      ],
+      "newAtoms": [],
+      "brand": "The Enchanted Shop",
+      "cast": "faerie"
     },
     "909bed02": {
       "n": 101,
@@ -1372,11 +2679,24 @@
       "platform": "Framer",
       "industry": "ecommerce",
       "batch": 11,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-909bed02",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "wares",
+        "about",
+        "contact"
+      ],
+      "photos": [
+        "p-df3bac91",
+        "a-elf-1",
+        "a-elf-2",
+        "a-elf-3",
+        "a-elf-4"
+      ],
+      "newAtoms": [],
+      "brand": "Willow Market",
+      "cast": "elf"
     },
     "09f8103e": {
       "n": 102,
@@ -1384,11 +2704,27 @@
       "platform": "Squarespace",
       "industry": "ecommerce",
       "batch": 11,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-09f8103e",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "shop",
+        "about",
+        "faqs",
+        "contact"
+      ],
+      "photos": [
+        "p-d455ce82",
+        "p-d7f7e8a8",
+        "p-0b27a93c",
+        "p-e7ba6d79",
+        "a-elf-3",
+        "a-elf-4",
+        "a-elf-5"
+      ],
+      "newAtoms": [],
+      "brand": "Highleaf Emporium",
+      "cast": "elf"
     },
     "9aa93d1b": {
       "n": 103,
@@ -1396,11 +2732,27 @@
       "platform": "Wix",
       "industry": "education",
       "batch": 11,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-9aa93d1b",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "classes",
+        "about",
+        "contact"
+      ],
+      "photos": [
+        "p-a0a4d8d3",
+        "p-7aff69b7",
+        "p-8535bf1b",
+        "a-faerie-0",
+        "a-faerie-1",
+        "a-faerie-2",
+        "a-faerie-3",
+        "a-faerie-4"
+      ],
+      "newAtoms": [],
+      "brand": "Wildrose Academy",
+      "cast": "faerie"
     },
     "38f8fe7d": {
       "n": 104,
@@ -1408,11 +2760,25 @@
       "platform": "Squarespace",
       "industry": "education",
       "batch": 11,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-38f8fe7d",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "services",
+        "about",
+        "faqs",
+        "contact"
+      ],
+      "photos": [
+        "p-dbe669e8",
+        "p-64fedca1",
+        "a-gnome-1",
+        "a-gnome-2",
+        "a-gnome-3"
+      ],
+      "newAtoms": [],
+      "brand": "Nutkin Lyceum",
+      "cast": "gnome"
     },
     "33bc07b4": {
       "n": 105,
@@ -1420,11 +2786,23 @@
       "platform": "Wix",
       "industry": "education",
       "batch": 11,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-33bc07b4",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "about",
+        "services",
+        "packages",
+        "contact"
+      ],
+      "photos": [
+        "p-e5e450bb",
+        "a-elf-4",
+        "a-elf-5"
+      ],
+      "newAtoms": [],
+      "brand": "Starwell Academy",
+      "cast": "elf"
     },
     "a91a8316": {
       "n": 106,
@@ -1432,11 +2810,26 @@
       "platform": "Wix",
       "industry": "education",
       "batch": 11,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-a91a8316",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "about",
+        "programs",
+        "staff",
+        "contact"
+      ],
+      "photos": [
+        "p-2d8b1ce6",
+        "p-54abe25c",
+        "a-elf-5",
+        "a-elf-0",
+        "a-elf-1",
+        "a-elf-2"
+      ],
+      "newAtoms": [],
+      "brand": "Skyharrow Academy",
+      "cast": "elf"
     },
     "15bac737": {
       "n": 107,
@@ -1444,11 +2837,25 @@
       "platform": "Wix",
       "industry": "education",
       "batch": 11,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-15bac737",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "product",
+        "pricing",
+        "contact"
+      ],
+      "photos": [
+        "a-elf-0",
+        "a-elf-1",
+        "a-elf-2",
+        "a-elf-3",
+        "a-elf-4",
+        "a-elf-5"
+      ],
+      "newAtoms": [],
+      "brand": "Frostpetal Lyceum",
+      "cast": "elf"
     },
     "82d151e2": {
       "n": 108,
@@ -1456,11 +2863,23 @@
       "platform": "Wix",
       "industry": "ecommerce",
       "batch": 11,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-82d151e2",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "shop",
+        "about",
+        "contact"
+      ],
+      "photos": [
+        "p-22828a94",
+        "a-elf-3",
+        "a-elf-4",
+        "a-elf-5"
+      ],
+      "newAtoms": [],
+      "brand": "The Clear-eyed Market",
+      "cast": "elf"
     },
     "20f535d7": {
       "n": 109,
@@ -1468,11 +2887,28 @@
       "platform": "Wix",
       "industry": "business",
       "batch": 11,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-20f535d7",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "benefits",
+        "reviews",
+        "order"
+      ],
+      "photos": [
+        "p-4269ee3f",
+        "p-cbba3dd9",
+        "p-dc9d3ea9",
+        "a-gnome-2",
+        "a-elf-2",
+        "a-faerie-2",
+        "a-gnome-3",
+        "a-elf-3",
+        "a-faerie-3"
+      ],
+      "newAtoms": [],
+      "brand": "Shared Hearth Company Circle",
+      "cast": "collective+elf+faerie+gnome"
     },
     "1c76a261": {
       "n": 110,
@@ -1480,11 +2916,29 @@
       "platform": "Shopify",
       "industry": "ecommerce",
       "batch": 12,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-1c76a261",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "shop",
+        "stories",
+        "contact"
+      ],
+      "photos": [
+        "a-faerie-0",
+        "a-faerie-1",
+        "a-faerie-2",
+        "a-faerie-3",
+        "a-faerie-4",
+        "a-faerie-5",
+        "p-5e2744a2",
+        "p-958c8e11",
+        "p-539c8406",
+        "p-d5075f70"
+      ],
+      "newAtoms": [],
+      "brand": "Glimmer Trading Post",
+      "cast": "faerie"
     },
     "2ea3fee2": {
       "n": 112,
@@ -1492,11 +2946,26 @@
       "platform": "Shopify",
       "industry": "ecommerce",
       "batch": 12,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-2ea3fee2",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "shop",
+        "about",
+        "contact"
+      ],
+      "photos": [
+        "p-c9f66f20",
+        "p-2903b15c",
+        "p-17855891",
+        "a-faerie-1",
+        "a-faerie-2",
+        "a-faerie-3",
+        "a-faerie-4"
+      ],
+      "newAtoms": [],
+      "brand": "The Shimmering Market",
+      "cast": "faerie"
     },
     "8e4c9bf9": {
       "n": 113,
@@ -1504,11 +2973,25 @@
       "platform": "Shopify",
       "industry": "ecommerce",
       "batch": 12,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-8e4c9bf9",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "our-story",
+        "journal",
+        "faq"
+      ],
+      "photos": [
+        "p-8e63dbc0",
+        "p-8b16dac0",
+        "a-gnome-0",
+        "a-gnome-1",
+        "a-gnome-2",
+        "p-248a1a41"
+      ],
+      "newAtoms": [],
+      "brand": "The Hand-built Shop",
+      "cast": "gnome"
     },
     "6fcdb649": {
       "n": 114,
@@ -1516,11 +2999,26 @@
       "platform": "Squarespace",
       "industry": "fashion",
       "batch": 12,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-6fcdb649",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "about",
+        "lookbook",
+        "contact"
+      ],
+      "photos": [
+        "p-d3dd23de",
+        "a-elf-0",
+        "a-elf-1",
+        "a-elf-2",
+        "p-b27f46ee",
+        "p-36eb24f6",
+        "p-99e11ce6"
+      ],
+      "newAtoms": [],
+      "brand": "Aspen Wardrobe",
+      "cast": "elf"
     },
     "c77e145f": {
       "n": 115,
@@ -1528,11 +3026,24 @@
       "platform": "Wix",
       "industry": "fashion",
       "batch": 12,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-c77e145f",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "collections",
+        "as-seen-in",
+        "contact"
+      ],
+      "photos": [
+        "p-2294787a",
+        "p-f5f0a9de",
+        "p-d5075f70",
+        "a-elf-0",
+        "a-elf-1"
+      ],
+      "newAtoms": [],
+      "brand": "The Considered Wardrobe",
+      "cast": "elf"
     },
     "bc73e370": {
       "n": 116,
@@ -1540,11 +3051,29 @@
       "platform": "Shopify",
       "industry": "fashion",
       "batch": 12,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-bc73e370",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "shop",
+        "about",
+        "help"
+      ],
+      "photos": [
+        "p-f4465425",
+        "p-30ebe85a",
+        "p-e7ba6d79",
+        "p-8b16dac0",
+        "a-elf-0",
+        "a-elf-1",
+        "a-elf-2",
+        "a-elf-3",
+        "a-elf-4",
+        "a-elf-5"
+      ],
+      "newAtoms": [],
+      "brand": "Willowmere Couture",
+      "cast": "elf"
     },
     "400bacde": {
       "n": 117,
@@ -1552,11 +3081,27 @@
       "platform": "Squarespace",
       "industry": "fashion",
       "batch": 12,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-400bacde",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "collections",
+        "about",
+        "contact"
+      ],
+      "photos": [
+        "p-36eb24f6",
+        "p-4d08a68a",
+        "p-30292e2f",
+        "p-d8fc343a",
+        "a-elf-0",
+        "a-elf-1",
+        "a-elf-2",
+        "a-elf-3"
+      ],
+      "newAtoms": [],
+      "brand": "Lantern House",
+      "cast": "elf"
     },
     "d5036d6b": {
       "n": 118,
@@ -1564,11 +3109,27 @@
       "platform": "Squarespace",
       "industry": "fashion",
       "batch": 12,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-d5036d6b",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "services",
+        "about",
+        "contact"
+      ],
+      "photos": [
+        "p-99e11ce6",
+        "a-elf-1",
+        "a-elf-2",
+        "p-5909b68b",
+        "a-elf-0",
+        "a-elf-3",
+        "a-elf-4",
+        "a-elf-5"
+      ],
+      "newAtoms": [],
+      "brand": "Amberlane Wardrobe",
+      "cast": "elf"
     },
     "54df5609": {
       "n": 119,
@@ -1576,11 +3137,29 @@
       "platform": "Squarespace",
       "industry": "fashion",
       "batch": 12,
-      "status": "todo",
+      "status": "built",
       "templateId": "fae-54df5609",
-      "pages": [],
-      "photos": [],
-      "newAtoms": []
+      "pages": [
+        "home",
+        "shop",
+        "about",
+        "contact"
+      ],
+      "photos": [
+        "p-1e6efdec",
+        "p-f944e755",
+        "p-f4465425",
+        "p-73228230",
+        "a-gnome-0",
+        "a-faerie-0",
+        "a-elf-0",
+        "a-gnome-1",
+        "a-gnome-2",
+        "a-faerie-2"
+      ],
+      "newAtoms": [],
+      "brand": "Shared Hearth House Collective",
+      "cast": "collective+elf+faerie+gnome"
     }
   }
 }
