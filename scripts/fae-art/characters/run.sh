@@ -32,13 +32,13 @@ case "$KIND" in portrait|scene) KARG="--kind $KIND" ;; all) KARG="" ;; *) echo "
 [ -f "$OUT/jobs.json" ] || (cd "$MONO" && node_modules/.bin/tsx "$HERE/prompts.mts" --out "$OUT")
 
 LOCK=""
-trap '[ -n "$LOCK" ] && "$PREFLIGHT" --release "$LOCK" >/dev/null 2>&1 || true' EXIT
+trap '[ -n "$LOCK" ] && bash "$PREFLIGHT" --release "$LOCK" >/dev/null 2>&1 || true' EXIT
 while :; do
   left=$("$HOME_DIR/venv/bin/python" "$HERE/generate.py" --out "$OUT" --model "$MODEL" $KARG --dry-run | head -1 | awk '{print $3}')
   [ "$left" = "0" ] && { echo "DONE: every $KIND render exists in $OUT"; break; }
-  LOCK=$("$PREFLIGHT" --acquire "fae-art $KIND" --owner-pid $$) || { echo "STOP: build-preflight refused (above). Not retrying."; exit 1; }
+  LOCK=$(bash "$PREFLIGHT" --acquire "fae-art $KIND" --owner-pid $$) || { echo "STOP: build-preflight refused (above). Not retrying."; exit 1; }
   "$HOME_DIR/venv/bin/python" "$HERE/generate.py" --out "$OUT" --model "$MODEL" $KARG --minutes "$CHUNK" $LIMIT
-  "$PREFLIGHT" --release "$LOCK" >/dev/null; LOCK=""
+  bash "$PREFLIGHT" --release "$LOCK" >/dev/null; LOCK=""
   [ -n "$LIMIT" ] && break
 done
 node "$HERE/contact.mjs" "$OUT"
