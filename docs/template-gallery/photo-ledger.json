@@ -1,0 +1,47 @@
+{
+  "maxUses": 5,
+  "photos": {
+    "p-8a5e52b1": {
+      "id": "p-8a5e52b1",
+      "url": "https://tinyglobalvillage.com/api/storage/shared/a45081231bea46ad87c6e574eea5d5e46d1745f064f5483aa39bcda59ad81999/",
+      "fileId": "c0a5f449-ea4d-45a0-a37f-485735d3c3b4",
+      "width": 960,
+      "height": 640,
+      "title": "Baking Bread",
+      "tags": [
+        "bakery",
+        "bread"
+      ],
+      "query": "bread",
+      "source": "openverse",
+      "sourceId": "8a5e52b1-d400-47eb-a255-501f577251ab",
+      "provider": "stocksnap",
+      "license": "cc0",
+      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "creator": "Igor Trepeshchenok",
+      "landing": "https://stocksnap.io/photo/baking-bread-XXNL0MZLOR",
+      "uses": []
+    },
+    "p-a40981c3": {
+      "id": "p-a40981c3",
+      "url": "https://tinyglobalvillage.com/api/storage/shared/ac026d3640064b7abd4c2bb10afde0749b599dc6f5fb4c658a7b88c762310c92/",
+      "fileId": "4d5b2cb8-baa8-4e26-93a7-a24d1c8d8549",
+      "width": 960,
+      "height": 720,
+      "title": "Bread Bakery",
+      "tags": [
+        "bakery",
+        "bread"
+      ],
+      "query": "bread",
+      "source": "openverse",
+      "sourceId": "a40981c3-f646-411b-8954-fb5ad8afec83",
+      "provider": "stocksnap",
+      "license": "cc0",
+      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "creator": "Drew Coffman",
+      "landing": "https://stocksnap.io/photo/bread-bakery-EA1243E167",
+      "uses": []
+    }
+  }
+}

@@ -33,10 +33,10 @@ Source content rule: rebuild layout/structure only — never copy the source's t
 | # | Phase | Status |
 |---|---|---|
 | 0 | Plan + decisions recorded | done |
-| 1 | Fae generator module + editor re-roll button | |
-| 2 | Bundle apply → grouped Template Pages in the editor | |
+| 1 | Fae generator module + editor re-roll button | done — `@tgv/module-component-library/helpers/fae` |
+| 2 | Bundle apply → grouped Template Pages in the editor | done — `model.templateGroup`; create-page applies gallery bundles |
 | 3 | Nav + footer system audit; options/tiles extended per reference | (rolls with batches) |
-| 4 | Photo pool pipeline (free-licence fetch → shared storage, ≤5-site reuse ledger) | |
+| 4 | Photo pool pipeline (free-licence fetch → shared storage, ≤5-site reuse ledger) | done — `scripts/fae-photos/` + `photo-ledger.json`; SVG illustrations are drawn per batch |
 | 5+ | Templates in batches of ~10: open preview, map pages/sections, back-fill catalog atoms, insert bundle | |
 
 Batch progress is tracked in `progress.json` (per template: status, pages, new atoms/options, photos used).
