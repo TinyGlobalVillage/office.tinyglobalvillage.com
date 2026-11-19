@@ -16,15 +16,24 @@ export async function GET(req: NextRequest) {
   if (gate instanceof NextResponse) return gate;
 
   try {
-    const [pj, aj] = await Promise.all([
+    const secret = process.env.INTERNAL_API_SECRET;
+    const [pj, aj, sj] = await Promise.all([
       fetch(`${tgvBase()}/api/wizard/plans`, { cache: "no-store" })
         .then((r) => r.json())
         .catch(() => ({ plans: [] })),
       fetch(`${tgvBase()}/api/wizard/addons`, { cache: "no-store" })
         .then((r) => r.json())
         .catch(() => ({ addons: [] })),
+      // The +GB storage add-on product (HQ's twin lists it too) — admin-gated on HQ, so this read
+      // rides the internal-secret seam; no secret configured → simply no storage target.
+      secret
+        ? fetch(`${tgvBase()}/api/storage/addon-product`, { cache: "no-store", headers: { "x-internal-secret": secret } })
+            .then((r) => (r.ok ? r.json() : null))
+            .catch(() => null)
+        : Promise.resolve(null),
     ]);
     const targets: { productId: string; label: string; group: string }[] = [];
+    if (sj?.productId) targets.push({ productId: sj.productId, label: sj.label ?? "Extra storage (+GB/mo)", group: "Storage" });
     for (const p of pj.plans ?? []) {
       if (p.stripeProductId)
         targets.push({ productId: p.stripeProductId, label: p.name, group: "Subscriptions" });
