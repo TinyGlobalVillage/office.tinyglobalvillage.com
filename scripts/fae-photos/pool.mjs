@@ -4,6 +4,8 @@
 //   node pool.mjs search "<query>" [--n 16] [--page 1] [--source wikimedia] [--min 1300] [--any]
 //                                                         → contact sheet of fresh CC0/PD photos
 //   node pool.mjs import <i,i,…> --tags a,b               → resize on the Mac, deposit in the shared gallery
+//   node pool.mjs add <file,…> --tags a,b                 → our own drawn art (rendered SVG) into the same gallery
+//   node pool.mjs retire <photoId,…>                      → delete unused photos from the gallery + ledger
 //   node pool.mjs use <photoId> <templateId>              → record a use (refuses a 6th site)
 //   node pool.mjs free [tag]                              → photos that still have uses left
 //
@@ -54,16 +56,11 @@ async function download(url, to) {
 
 // Openverse's `url` is not always the full photo. What each provider actually hands over:
 // stocksnap 960px, flickr 1024px, rawpixel 1300px (after the rewrite below), wikimedia full size.
-const PROVIDER_EDGE = { stocksnap: 960, flickr: 1024, rawpixel: 1300 };
+// rawpixel: ONLY the editor_1024 rendition is clean — their larger renditions (image_1300 …) carry a
+// "rawpixel" watermark tiled across the photo. Never rewrite the URL upward.
+const PROVIDER_EDGE = { stocksnap: 960, flickr: 1024, rawpixel: 1024 };
 const deliverable = (r) => Math.min(r.width ?? 0, PROVIDER_EDGE[r.provider] ?? Infinity);
 async function fetchBest(r, to) {
-  if (r.provider === "rawpixel" && r.url.includes("/editor_1024/")) {
-    try {
-      return await download(r.url.replace("/editor_1024/", "/image_1300/"), to);
-    } catch {
-      /* fall through to the listed url */
-    }
-  }
   return download(r.url, to);
 }
 
@@ -139,6 +136,21 @@ async function importPicks() {
       _src: r,
     });
   }
+  await deposit(out, items, (r) => ({
+    title: r.title,
+    query: q,
+    source: "openverse",
+    sourceId: r.id,
+    provider: r.provider,
+    license: r.license,
+    licenseUrl: r.license_url,
+    creator: r.creator ?? null,
+    landing: r.foreign_landing_url,
+  }), tags);
+}
+
+/** Upload prepared JPEGs to the shared gallery on RCS and record each in the ledger. */
+async function deposit(out, items, meta, tags) {
   const job = { items: items.map(({ _src, ...rest }) => rest) };
   await fs.writeFile(path.join(out, "job.json"), JSON.stringify(job));
   await fs.copyFile(path.join(HERE, "rcs-upload.mjs"), path.join(out, "rcs-upload.mjs"));
@@ -156,7 +168,6 @@ async function importPicks() {
       console.log(`FAIL ${res.key}: ${res.error}`);
       continue;
     }
-    const r = item._src;
     const dims = execFileSync("magick", ["identify", "-format", "%w %h", path.join(out, `${res.key}.jpg`)]).toString().split(" ").map(Number);
     ledger.photos[res.key] = {
       id: res.key,
@@ -164,19 +175,78 @@ async function importPicks() {
       fileId: res.fileId,
       width: dims[0],
       height: dims[1],
-      title: r.title,
       tags,
-      query: q,
-      source: "openverse",
-      sourceId: r.id,
-      provider: r.provider,
-      license: r.license,
-      licenseUrl: r.license_url,
-      creator: r.creator ?? null,
-      landing: r.foreign_landing_url,
+      ...meta(item._src),
       uses: [],
     };
     console.log(`OK ${res.key} ${res.url}`);
+  }
+  await writeLedger(ledger);
+}
+
+/** Our own artwork (drawn SVGs rendered to JPEG): `add <file,file,…> --tags a,b [--creator "TGV"]`. */
+async function addLocal() {
+  const files = (args[1] || "").split(",").filter(Boolean);
+  const tags = (flag("tags", "") || "").split(",").map((t) => t.trim()).filter(Boolean);
+  if (!files.length) throw new Error("usage: add <file,file,…> --tags a,b");
+  const out = path.join(SCRATCH, "upload");
+  await fs.rm(out, { recursive: true, force: true });
+  await fs.mkdir(out, { recursive: true });
+  const items = [];
+  for (const f of files) {
+    const stem = path.basename(f).replace(/\.[^.]+$/, "");
+    const key = `a-${stem}`;
+    execFileSync("magick", [f, "-auto-orient", "-resize", `${MAX_EDGE}x${MAX_EDGE}>`, "-strip", "-quality", "86", path.join(out, `${key}.jpg`)]);
+    items.push({
+      key,
+      path: `/tmp/fae-photos/${key}.jpg`,
+      filename: `fae-${key}.jpg`,
+      contentType: "image/jpeg",
+      title: `Fae art — ${stem}`,
+      tags: ["fae-template", "fae-art", ...tags, "license:original"],
+      _src: { stem, file: f },
+    });
+  }
+  await deposit(out, items, (src) => ({
+    title: `Fae art — ${src.stem}`,
+    source: "original",
+    sourceId: `art:${src.stem}`,
+    provider: "tgv",
+    license: "original",
+    licenseUrl: null,
+    creator: flag("creator", "Tiny Global Village"),
+    landing: null,
+  }), tags);
+}
+
+/** `retire <photoId,…>` — delete unused photos from the shared gallery and the ledger. */
+async function retire() {
+  const ids = (args[1] || "").split(",").filter(Boolean);
+  const ledger = await readLedger();
+  const remove = [];
+  for (const id of ids) {
+    const p = ledger.photos[id];
+    if (!p) throw new Error(`unknown photo ${id}`);
+    if (p.uses.length) throw new Error(`${id} is in use by ${p.uses.join(", ")} — swap it out first`);
+    remove.push(p.fileId);
+  }
+  const out = path.join(SCRATCH, "upload");
+  await fs.rm(out, { recursive: true, force: true });
+  await fs.mkdir(out, { recursive: true });
+  await fs.writeFile(path.join(out, "job.json"), JSON.stringify({ remove, items: [] }));
+  await fs.copyFile(path.join(HERE, "rcs-upload.mjs"), path.join(out, "rcs-upload.mjs"));
+  execFileSync("ssh", [RCS_HOST, "rm -rf /tmp/fae-photos && mkdir -p /tmp/fae-photos"]);
+  execFileSync("scp", ["-q", path.join(out, "job.json"), path.join(out, "rcs-upload.mjs"), `${RCS_HOST}:/tmp/fae-photos/`]);
+  const stdout = execFileSync("ssh", [
+    RCS_HOST,
+    `cd ${RCS_OFFICE} && node --env-file=.env.local /tmp/fae-photos/rcs-upload.mjs /tmp/fae-photos/job.json; rm -rf /tmp/fae-photos`,
+  ]).toString();
+  const gone = new Set(stdout.split("\n").filter((l) => l.startsWith("{")).map((l) => JSON.parse(l)).filter((r) => r.ok).map((r) => r.removed));
+  for (const id of ids) {
+    if (gone.has(ledger.photos[id].fileId)) {
+      delete ledger.photos[id];
+      console.log(`retired ${id}`);
+    } else console.log(`FAIL ${id}`);
   }
   await writeLedger(ledger);
 }
@@ -202,10 +272,10 @@ async function free() {
   }
 }
 
-const commands = { search, import: importPicks, use, free };
+const commands = { search, import: importPicks, add: addLocal, retire, use, free };
 const cmd = commands[args[0]];
 if (!cmd) {
-  console.log("commands: search | import | use | free");
+  console.log("commands: search | import | add | retire | use | free");
   process.exit(1);
 }
 await cmd().catch((e) => {

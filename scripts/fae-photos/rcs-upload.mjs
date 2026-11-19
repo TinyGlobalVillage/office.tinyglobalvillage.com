@@ -67,7 +67,13 @@ const col = cols.find((c) => c.name === COLLECTION) ?? (await S.insertCollection
   description: "Free-licence (CC0 / public domain) photos used by the fae template gallery. Ledger: office docs/template-gallery/photo-ledger.json",
 }));
 
-for (const item of job.items) {
+// Retire: delete files from the gallery (storage row, R2 object, quota, share grants) — `job.remove: [fileId]`.
+for (const id of job.remove ?? []) {
+  const res = await storage.remove(new Request("http://local/"), id);
+  console.log(JSON.stringify({ ok: res.ok, removed: id, status: res.status }));
+}
+
+for (const item of job.items ?? []) {
   try {
     const buf = await fs.readFile(item.path);
     const file = new File([buf], item.filename, { type: item.contentType });

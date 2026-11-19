@@ -16,14 +16,20 @@ node pool.mjs search "bakery" --min 1300       # → sheet.jpg, numbered; alread
 node pool.mjs import 3,7,11 --tags bakery,bread
 node pool.mjs free bakery                      # photos with uses left
 node pool.mjs use p-8a5e52b1 <templateId>      # record a use — refuses a 6th site
+node pool.mjs add a.jpg,b.jpg --tags avatar     # our own drawn art (rendered SVG) → key a-<stem>
+node pool.mjs retire p-1234abcd,p-…             # delete unused photos from the gallery + ledger
 ```
+
+Drawn art: `scripts/fae-art/avatars.mjs <outDir> [count] [start]` renders seeded gnome / elf / faerie
+portraits (SVG + JPG) for `add`.
 
 Rules:
 - **Licence:** `cc0,pdm` only. Openverse is queried with that filter; the licence is also written into
   the file's tags (`license:cc0`) and the ledger.
 - **Reuse cap:** a photo goes on at most **5** templates (`maxUses`). Aim for unique.
 - **Size:** Openverse's link isn't always the full photo — stocksnap 960px, flickr 1024px,
-  rawpixel 1300px (rewritten from `editor_1024`), wikimedia full size. Heroes want `--min 1300`
+  rawpixel 1024px (`editor_1024` ONLY — their larger renditions carry a tiled "rawpixel" watermark;
+  never rewrite the URL upward), wikimedia full size. Heroes want `--min 1300`
   (or `--source wikimedia`); cards and galleries are fine at 960.
 - **Links:** `https://tinyglobalvillage.com/api/storage/shared/<token>/` — stable, public,
   noindex, no expiry. Keep the trailing slash (TGV runs `trailingSlash`).
