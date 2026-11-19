@@ -104,7 +104,8 @@ export function estimateH(text: string, w: number, size: number, lh: number, wei
     }
     lines += l;
   }
-  return Math.ceil(lines * size * lh + 6);
+  // big display type rides above its line box (ascenders, tight lh): give it room so a one-line headline is not clipped
+  return Math.ceil(lines * size * lh + 6 + (size >= 40 ? size * 0.15 : 0));
 }
 
 export type TextArgs = {
@@ -181,6 +182,15 @@ export const bottom = (n: Node) => n.box.desktop.y + n.box.desktop.h;
 
 export type BtnLook = 'solid' | 'outline' | 'light' | 'ghost-light' | 'dark';
 
+/** True for a pale colour (#rgb / #rrggbb); anything unparseable counts as dark. */
+export function isLight(c: string): boolean {
+  const m = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(c.trim());
+  if (!m) return false;
+  const h = m[1].length === 3 ? m[1].replace(/./g, (x) => x + x) : m[1];
+  const [r, g, b] = [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16));
+  return 0.299 * r + 0.587 * g + 0.114 * b > 160;
+}
+
 export function button(ctx: Ctx, a: { slot?: FaeSlot; text?: string; href: string; x: number; y: number; w?: number; look?: BtnLook; size?: number; pct?: number }): Node {
   const { pal, fonts } = ctx;
   let t = a.text ?? '';
@@ -197,12 +207,12 @@ export function button(ctx: Ctx, a: { slot?: FaeSlot; text?: string; href: strin
       : look === 'outline'
         ? { fill: 'rgba(0,0,0,0)', text: pal.ink, border: pal.ink }
         : look === 'light'
-          ? { fill: '#ffffff', text: pal.ink, border: '#ffffff' }
+          ? { fill: '#ffffff', text: isLight(pal.ink) ? '#16161a' : pal.ink, border: '#ffffff' } // a dark-mode palette's ink is pale
           : look === 'dark'
             ? { fill: pal.dark, text: pal.darkInk, border: pal.dark }
             : { fill: 'rgba(0,0,0,0)', text: '#ffffff', border: 'rgba(255,255,255,0.75)' };
   const size = a.size ?? 15;
-  const w = a.w ?? Math.max(150, Math.round(t.length * size * (fonts.btnUpper ? 0.72 : 0.6) + 56));
+  const w = a.w ?? Math.max(150, Math.round(t.length * size * (fonts.btnUpper ? 0.82 : 0.6) + 56));
   return {
     id: ctx.id('b'),
     type: 'button',
@@ -277,11 +287,15 @@ export function group(ctx: Ctx, a: { name: string; x: number; y: number; w: numb
 /** A glyph in a circle — the kit's icon (no icon font, no SVG: survives the sanitizer anywhere). */
 export function badge(ctx: Ctx, a: { x: number; y: number; d?: number; glyph: string; fill: string; ink: string }): Node[] {
   const d = a.d ?? 52;
+  // one group: inside a card that flows, two loose atoms would stack (the glyph pushed under its disc)
   return [
-    shape(ctx, { x: a.x, y: a.y, w: d, h: d, fill: a.fill, radius: d / 2, name: 'Icon disc' }),
-    {
-      ...text(ctx, { text: a.glyph, x: a.x, y: a.y + d * 0.18, w: d, size: Math.round(d * 0.46), color: a.ink, align: 'center', lh: 1.2, name: 'Icon' }),
-    },
+    group(ctx, {
+      name: 'Icon', x: a.x, y: a.y, w: d, h: d,
+      children: [
+        shape(ctx, { x: 0, y: 0, w: d, h: d, fill: a.fill, radius: d / 2, name: 'Icon disc' }),
+        text(ctx, { text: a.glyph, x: 0, y: d * 0.18, w: d, size: Math.round(d * 0.46), color: a.ink, align: 'center', lh: 1.2, name: 'Glyph' }),
+      ],
+    }),
   ];
 }
 
@@ -296,6 +310,19 @@ export function tone(ctx: Ctx, t: Tone) {
   return { bg: t === 'surface' ? p.surface : p.bg, ink: p.ink, body: p.body, head: p.ink, muted: p.muted, card: t === 'surface' ? p.bg : p.surface, line: p.line, btn: 'solid' as BtnLook };
 }
 
+/** A photo frame's wash: the renderer paints the frame background OVER its own cover photo only when the background
+ *  is a gradient (bgPin.overlay alone tints just the scroll-pinned copy), so the wash rides in as a flat gradient. */
+export function wash(ov: string): string {
+  return `linear-gradient(180deg, ${ov}, ${ov})`;
+}
+
+/** On tablet/phone a frame stacks its atoms in desktop top-to-bottom order; a picture or art panel drawn beside
+ *  the words (and so starting higher) would land above the headline. This sends them after the words instead. */
+export function stackLast<T extends Node>(nodes: T[], order = 50): T[] {
+  for (const n of nodes) (n as Record<string, unknown>).flex = { ...((n as Record<string, unknown>).flex as object | undefined), order };
+  return nodes;
+}
+
 export function frame(h: number, background: string, extra: Record<string, unknown> = {}): Record<string, unknown> {
   return {
     desktop: { h: Math.ceil(h) },
@@ -308,6 +335,7 @@ export function frame(h: number, background: string, extra: Record<string, unkno
     flexAlign: 'center',
     flexGap: 20,
     flexPadX: 16,
+    flexPadY: 48,
     space: { top: 0, bottom: 0 },
     ...extra,
   };
@@ -370,7 +398,7 @@ export function hero(
     sideNote?: boolean;
   },
 ): Section {
-  const H = o.h ?? 680;
+  let H = o.h ?? 680;
   const isPhoto = o.variant.startsWith('photo');
   const t = isPhoto ? tone(ctx, 'dark') : tone(ctx, o.tone ?? 'bg');
   const ink = isPhoto ? '#ffffff' : t.head;
@@ -393,23 +421,25 @@ export function hero(
   b1.box.desktop.x = Math.round(bx);
   if (b2) b2.box.desktop.x = Math.round(bx + b1.box.desktop.w + 14);
   const blockH = by + 50;
+  H = Math.max(H, blockH + 220); // a long headline never pushes the buttons onto the next section
   const top = Math.max(110, (H - blockH) / 2 + (isPhoto ? 20 : 0));
   for (const n of st.nodes) n.box.desktop.y += top;
   b1.box.desktop.y += top;
   if (b2) b2.box.desktop.y += top;
   const layers = [...st.nodes, b1, ...(b2 ? [b2] : [])];
   if (o.variant === 'split' && o.photo) {
-    layers.push(image(ctx, { key: o.photo, x: 640, y: 60, w: 500, h: H - 120, radius: o.imageRadius ?? ctx.fonts.cardRadius ?? 0 }));
+    layers.push(...stackLast([image(ctx, { key: o.photo, x: 640, y: 60, w: 500, h: H - 120, radius: o.imageRadius ?? ctx.fonts.cardRadius ?? 0 })]));
   }
-  if (o.variant === 'split-art' && o.art) layers.push(...o.art(ctx, 620, 70, 520, H - 140));
+  if (o.variant === 'split-art' && o.art) layers.push(...stackLast(o.art(ctx, 620, 70, 520, H - 140)));
   if (o.sideNote && isPhoto) {
     // a small floating line of contact at the foot of the hero (the "Let's chat" tab of the reference)
-    layers.push(button(ctx, { text: `✉ ${ctx.site.email}`, href: '/contact', x: W - PAD - 300, y: H - 92, w: 300, look: 'dark', size: 14 }));
+    layers.push(...stackLast([button(ctx, { text: `✉ ${ctx.site.email}`, href: '/contact', x: W - PAD - 300, y: H - 92, w: 300, look: 'dark', size: 14 })], 60));
   }
   const extra: Record<string, unknown> = {};
+  const ov = o.overlay ?? 'rgba(10,16,14,0.48)';
   if (isPhoto && o.photo)
-    extra.bgPin = { src: ctx.photo(o.photo), paintFrame: true, pinned: false, overlay: o.overlay ?? 'rgba(10,16,14,0.42)', ...(o.focal ? { pos: o.focal } : {}) };
-  return section(layers, H, isPhoto ? ctx.pal.dark : t.bg, 'banner-image-atomic', extra);
+    extra.bgPin = { src: ctx.photo(o.photo), paintFrame: true, pinned: false, overlay: ov, ...(o.focal ? { pos: o.focal } : {}) };
+  return section(layers, H, isPhoto && o.photo ? wash(ov) : t.bg, 'banner-image-atomic', extra);
 }
 
 /** Heading on the left, paragraph + button on the right ("Why I started"). */
@@ -667,8 +697,12 @@ export function logos(ctx: Ctx, o: { n?: number; tone?: Tone; label?: string; se
   const lab = text(ctx, { text: o.label ?? 'Trusted by burrows, bowers and halls across the wood', x: PAD, y: 56, w: CW, size: 14, color: t.muted, align: 'center', name: 'Label' });
   const cellW = (CW - 20 * (n - 1)) / n;
   const marks: Node[] = [];
+  const seen = new Set<string>();
   for (let i = 0; i < n; i++) {
-    const other = createFaeSite({ seed: o.seeds[i % o.seeds.length] + ':' + i });
+    let other = createFaeSite({ seed: o.seeds[i % o.seeds.length] + ':' + i });
+    // two neighbours rolling the same name read as a copy-paste: re-roll until it is new
+    for (let r = 1; seen.has(other.brand) && r < 20; r++) other = createFaeSite({ seed: `${o.seeds[i % o.seeds.length]}:${i}:${r}` });
+    seen.add(other.brand);
     marks.push(text(ctx, { text: `${GLYPHS[(i * 5) % GLYPHS.length]} ${other.brand.replace(/^The /, '')}`, x: 0, y: 0, w: cellW, pct: 100, size: 16, color: t.muted, font: 'head', weight: 700, align: 'center', lh: 1.3, name: 'Wordmark' }));
   }
   const mh = Math.max(...marks.map(hOf));
@@ -700,8 +734,8 @@ export function ctaBand(ctx: Ctx, o: { tone?: Tone; split?: boolean; photo?: str
   b1.box.desktop.x = Math.round((W - bw) / 2);
   if (b2) b2.box.desktop.x = b1.box.desktop.x + b1.box.desktop.w + 14;
   const extra: Record<string, unknown> = {};
-  if (o.photo) extra.bgPin = { src: ctx.photo(o.photo), paintFrame: true, pinned: false, overlay: 'rgba(8,12,10,0.55)' };
-  return section([...st.nodes, b1, ...(b2 ? [b2] : [])], st.y + 32 + 50 + 100, t.bg, 'text-rich-text-atomic', extra);
+  if (o.photo) extra.bgPin = { src: ctx.photo(o.photo), paintFrame: true, pinned: false, overlay: 'rgba(8,12,10,0.58)' };
+  return section([...st.nodes, b1, ...(b2 ? [b2] : [])], st.y + 32 + 50 + 100, o.photo ? wash('rgba(8,12,10,0.58)') : t.bg, 'text-rich-text-atomic', extra);
 }
 
 /** Questions and answers — an accordion. */
@@ -921,8 +955,8 @@ export function pageTitle(ctx: Ctx, o: { title: string; tone?: Tone; photo?: str
     for (const n of st.nodes) n.box.desktop.y += Math.round(off);
   }
   const extra: Record<string, unknown> = {};
-  if (o.photo) extra.bgPin = { src: ctx.photo(o.photo), paintFrame: true, pinned: false, overlay: 'rgba(8,12,10,0.5)' };
-  return section(st.nodes, H, o.photo ? ctx.pal.dark : t.bg, o.photo ? 'banner-image-atomic' : 'text-rich-text-atomic', extra);
+  if (o.photo) extra.bgPin = { src: ctx.photo(o.photo), paintFrame: true, pinned: false, overlay: 'rgba(8,12,10,0.52)' };
+  return section(st.nodes, H, o.photo ? wash('rgba(8,12,10,0.52)') : t.bg, o.photo ? 'banner-image-atomic' : 'text-rich-text-atomic', extra);
 }
 
 // ————————————————————————————————————————————————————————————— composed art
@@ -947,8 +981,23 @@ export function chartPanel(look: { card: string; ink: string; muted: string; bar
     const months = ['Bud', 'Leaf', 'Bloom', 'Sun', 'Hay', 'Fruit', 'Mist', 'Frost'];
     for (let i = 0; i < n; i++) kids.push(text(ctx, { text: months[i], x: pad + i * (bw + 14) - 6, y: chartTop + chartH + 10, w: bw + 12, size: 11, color: look.muted, align: 'center', name: 'Month' }));
     kids.push(shape(ctx, { x: pad, y: h - 36, w: w - pad * 2, h: 1, fill: look.line ?? look.muted, name: 'Rule' }));
-    return [group(ctx, { name: 'Ledger panel', x, y, w, h, children: kids, fill: look.card, radius: look.radius ?? 18, shadow: look.dark ? undefined : '0px 20px 50px rgba(20,20,40,0.12)', border: look.line })];
+    return [fitPhone(group(ctx, { name: 'Ledger panel', x, y, w, h, children: kids, fill: look.card, radius: look.radius ?? 18, shadow: look.dark ? undefined : '0px 20px 50px rgba(20,20,40,0.12)', border: look.line }))];
   };
+}
+
+/** A drawn panel's parts are placed in px for its desktop width; on a phone the panel narrows to the column, so each
+ *  part gets a phone face scaled sideways to match (heights keep: the rows still fit). */
+export function fitPhone(panel: Node, phoneW = 358): Node {
+  const dw = panel.box.desktop.w;
+  if (dw <= phoneW) return panel;
+  const f = phoneW / dw;
+  // no face on the panel itself: an explicit phone box pins a node out of the stack (it went absolute, off-screen);
+  // in the stack it already shrinks to the column via max-width — only its insides need the phone geometry
+  for (const k of (panel.children as Node[] | undefined) ?? []) {
+    if (k.box.desktop.wu === '%') continue;
+    (k.box as Record<string, unknown>).mobile = { x: Math.round(k.box.desktop.x * f), w: Math.round(k.box.desktop.w * f) };
+  }
+  return panel;
 }
 
 /** A list panel: rows of name + amount (a "transactions" card). */
@@ -963,12 +1012,12 @@ export function listPanel(look: { card: string; ink: string; muted: string; acce
       const ry = 70 + i * rowH;
       if (look.avatars?.length) kids.push(image(ctx, { key: look.avatars[i % look.avatars.length], x: pad, y: ry, w: 40, h: 40, circle: true }));
       else kids.push(shape(ctx, { x: pad, y: ry, w: 40, h: 40, fill: look.line ?? look.muted, radius: 20, name: 'Dot' }));
-      kids.push(text(ctx, { text: copy(ctx, 'person.name', i + 2).text, x: pad + 54, y: ry + 2, w: w - pad * 2 - 160, size: 14, color: look.ink, weight: 600, name: 'Name' }));
+      kids.push(text(ctx, { text: copy(ctx, 'review.author', i + 7).text.split(',')[0], x: pad + 54, y: ry + 2, w: w - pad * 2 - 160, size: 14, color: look.ink, weight: 600, name: 'Name' }));
       kids.push(text(ctx, { text: copy(ctx, 'offering.title', i).text, x: pad + 54, y: ry + 21, w: w - pad * 2 - 160, size: 12, color: look.muted, name: 'What' }));
       kids.push(text(ctx, { text: `${(i * 37 + 12) % 90 + 9}.${(i * 13) % 9}0 ⟡`, x: w - pad - 100, y: ry + 10, w: 100, size: 14, color: look.accent, weight: 700, align: 'right', name: 'Amount' }));
       if (i < n - 1) kids.push(shape(ctx, { x: pad, y: ry + rowH - 9, w: w - pad * 2, h: 1, fill: look.line ?? look.muted, name: 'Rule' }));
     }
-    return [group(ctx, { name: 'Tally panel', x, y, w, h, children: kids, fill: look.card, radius: look.radius ?? 18, shadow: '0px 20px 50px rgba(20,20,40,0.12)', border: look.line })];
+    return [fitPhone(group(ctx, { name: 'Tally panel', x, y, w, h, children: kids, fill: look.card, radius: look.radius ?? 18, shadow: '0px 20px 50px rgba(20,20,40,0.12)', border: look.line }))];
   };
 }
 

@@ -27,7 +27,7 @@ const keys = args.filter((a) => !a.startsWith('--'));
 if (!keys.length) throw new Error('usage: build.mts <specKey…> [--record]');
 
 const ledger = JSON.parse(readFileSync(ledgerPath, 'utf8')) as Ledger & { maxUses: number; photos: Record<string, { uses: string[]; source?: string }> };
-const progress = JSON.parse(readFileSync(progressPath, 'utf8')) as { templates: Array<Record<string, unknown>> };
+const progress = JSON.parse(readFileSync(progressPath, 'utf8')) as { templates: Record<string, Record<string, unknown>> }; // keyed by reference key
 
 /** Every leaf path in a JSON value. */
 function leaves(v: unknown, p = '', acc = new Set<string>()): Set<string> {
@@ -83,7 +83,7 @@ for (const key of keys) {
       if (ph.source !== 'original' && ph.uses.length >= ledger.maxUses) throw new Error(`${k} already on ${ph.uses.length} sites`);
       ph.uses.push(built.templateId);
     }
-    const row = progress.templates.find((t) => t.templateId === built.templateId);
+    const row = Object.values(progress.templates).find((t) => t.templateId === built.templateId);
     if (row) {
       row.status = 'built';
       row.pages = built.pages.map((p) => p.slug);

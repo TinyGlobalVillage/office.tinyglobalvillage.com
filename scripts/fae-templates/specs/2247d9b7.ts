@@ -34,7 +34,7 @@ const spec: TemplateSpec = {
       slug: 'home',
       title: 'Home',
       build: (c) => [
-        hero(c, { variant: 'photo-center', photo: 'p-2b41cdf1', h: 720, buttons: 1, sideNote: true, overlay: 'rgba(8,24,20,0.45)' }),
+        hero(c, { variant: 'photo-center', photo: 'p-2b41cdf1', h: 720, buttons: 1, sideNote: true, overlay: 'rgba(8,24,20,0.56)' }),
         splitHeading(c, { tone: 'bg' }),
         imageStory(c, { photo: 'p-e40a56f8', side: 'left', tone: 'dark', inset: false, h: 700 }),
         cards(c, { n: 3, cols: 3, kind: 'photo', tone: 'bg', photos: ['p-3b904265', 'p-17787ae6', 'p-6d951def'], head: { heading: 'Ledger Programmes', intro: true }, link: '/services', cardFill: false, imgH: 280 }),
