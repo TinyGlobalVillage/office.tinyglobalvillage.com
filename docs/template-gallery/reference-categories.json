@@ -1,0 +1,260 @@
+{
+  "source": "https://www.sitebuilderreport.com/templates/",
+  "scraped": "2026-11-18",
+  "note": "Category taxonomy from Site Builder Report's template gallery \u2014 reference for the TGV Office template gallery. Platform entries are builder tools, not industries.",
+  "industries": [
+    {
+      "slug": "accounting",
+      "name": "Accounting",
+      "templates": 39
+    },
+    {
+      "slug": "actor",
+      "name": "Actor",
+      "templates": 34
+    },
+    {
+      "slug": "agency",
+      "name": "Agency",
+      "templates": 692
+    },
+    {
+      "slug": "architecture",
+      "name": "Architecture",
+      "templates": 101
+    },
+    {
+      "slug": "artist",
+      "name": "Artist",
+      "templates": 160
+    },
+    {
+      "slug": "bakery",
+      "name": "Bakery",
+      "templates": 97
+    },
+    {
+      "slug": "barbershop-salon",
+      "name": "Barbershop & Salon",
+      "templates": 26
+    },
+    {
+      "slug": "blog",
+      "name": "Blog",
+      "templates": 196
+    },
+    {
+      "slug": "business",
+      "name": "Business",
+      "templates": 129
+    },
+    {
+      "slug": "church",
+      "name": "Church",
+      "templates": 18
+    },
+    {
+      "slug": "coach",
+      "name": "Coach",
+      "templates": 174
+    },
+    {
+      "slug": "construction",
+      "name": "Construction",
+      "templates": 71
+    },
+    {
+      "slug": "consulting",
+      "name": "Consulting",
+      "templates": 189
+    },
+    {
+      "slug": "counseling",
+      "name": "Counseling",
+      "templates": 172
+    },
+    {
+      "slug": "ecommerce",
+      "name": "Ecommerce",
+      "templates": 406
+    },
+    {
+      "slug": "education",
+      "name": "Education",
+      "templates": 81
+    },
+    {
+      "slug": "electronics",
+      "name": "Electronics",
+      "templates": 27
+    },
+    {
+      "slug": "fashion",
+      "name": "Fashion",
+      "templates": 278
+    },
+    {
+      "slug": "fitness",
+      "name": "Fitness",
+      "templates": 154
+    },
+    {
+      "slug": "free",
+      "name": "Free",
+      "templates": 1304
+    },
+    {
+      "slug": "furniture",
+      "name": "Furniture",
+      "templates": 42
+    },
+    {
+      "slug": "home-decor",
+      "name": "Home Decor",
+      "templates": 41
+    },
+    {
+      "slug": "interior-designer",
+      "name": "Interior Designer",
+      "templates": 132
+    },
+    {
+      "slug": "jewelry",
+      "name": "Jewelry",
+      "templates": 22
+    },
+    {
+      "slug": "landscaping",
+      "name": "Landscaping",
+      "templates": 5
+    },
+    {
+      "slug": "lawyer",
+      "name": "Lawyer",
+      "templates": 33
+    },
+    {
+      "slug": "musician-band",
+      "name": "Musician & Band",
+      "templates": 39
+    },
+    {
+      "slug": "nonprofit-charity",
+      "name": "Nonprofit & Charity",
+      "templates": 48
+    },
+    {
+      "slug": "outdoor-garden",
+      "name": "Outdoor & Garden",
+      "templates": 15
+    },
+    {
+      "slug": "pet",
+      "name": "Pet",
+      "templates": 9
+    },
+    {
+      "slug": "photography",
+      "name": "Photography",
+      "templates": 215
+    },
+    {
+      "slug": "podcast",
+      "name": "Podcast",
+      "templates": 34
+    },
+    {
+      "slug": "portfolio",
+      "name": "Portfolio",
+      "templates": 482
+    },
+    {
+      "slug": "real-estate",
+      "name": "Real Estate",
+      "templates": 73
+    },
+    {
+      "slug": "restaurant",
+      "name": "Restaurant",
+      "templates": 142
+    },
+    {
+      "slug": "resume-cv",
+      "name": "Resume & CV",
+      "templates": 72
+    },
+    {
+      "slug": "school-education",
+      "name": "School & Education",
+      "templates": 37
+    },
+    {
+      "slug": "service",
+      "name": "Service",
+      "templates": 1217
+    },
+    {
+      "slug": "therapist",
+      "name": "Therapist",
+      "templates": 38
+    },
+    {
+      "slug": "toys-games",
+      "name": "Toys & Games",
+      "templates": 25
+    },
+    {
+      "slug": "video",
+      "name": "Video",
+      "templates": 33
+    },
+    {
+      "slug": "weddings",
+      "name": "Wedding",
+      "templates": 79
+    },
+    {
+      "slug": "writer",
+      "name": "Writer",
+      "templates": 121
+    },
+    {
+      "slug": "yoga",
+      "name": "Yoga",
+      "templates": 84
+    }
+  ],
+  "platforms": [
+    {
+      "slug": "duda",
+      "name": "Duda",
+      "templates": 54
+    },
+    {
+      "slug": "framer",
+      "name": "Framer",
+      "templates": 544
+    },
+    {
+      "slug": "shopify",
+      "name": "Shopify",
+      "templates": 235
+    },
+    {
+      "slug": "squarespace",
+      "name": "Squarespace",
+      "templates": 817
+    },
+    {
+      "slug": "webflow",
+      "name": "Webflow",
+      "templates": 2
+    },
+    {
+      "slug": "wix",
+      "name": "Wix",
+      "templates": 505
+    }
+  ],
+  "uniqueTemplates": 2156
+}
