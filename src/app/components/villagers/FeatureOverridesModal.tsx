@@ -26,7 +26,7 @@ import {
 } from "@/app/styled";
 import NeonX from "../NeonX";
 
-type Feature = { key: string; label: string; group: string };
+type Feature = { key: string; label: string; group: string; optIn?: boolean };
 type Override = { key: string; mode: "allow" | "deny"; note: string | null };
 type FeatureSet = {
   basis: "plan" | "grandfathered";
@@ -160,7 +160,9 @@ export default function FeatureOverridesModal({
                                 : "Override: denied"
                               : set.baseKeys.includes(f.key)
                                 ? "In their plan"
-                                : "Not in their plan"
+                                : f.optIn
+                                  ? "Opt-in: off until allowed"
+                                  : "Not in their plan"
                           }
                           on={on}
                           locked={busy !== null}

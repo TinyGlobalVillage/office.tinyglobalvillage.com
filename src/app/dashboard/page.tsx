@@ -2,10 +2,10 @@
 
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import styled from "styled-components";
+import dynamic from "next/dynamic";
 import TopNav from "../components/TopNav";
 import UsersCard from "../components/UsersCard";
 import AnnouncementsPanel from "../components/AnnouncementsPanel";
-import DashboardPageModal from "../components/DashboardPageModal";
 import AddmToggle from "@tgv/module-component-library/components/ui/AddmToggle";
 import {
   OFFICE_TILES,
@@ -21,6 +21,9 @@ import CopyLinkButton from "../components/CopyLinkButton";
 import { TILE_PARAM, VIEW_PARAM, tileUrlFor } from "@/app/lib/tileUrl";
 import { SearchIcon } from "../components/icons";
 import { colors, rgb, type GlowColor } from "@/app/theme";
+
+// Renders only while a tile page is open — its own chunk (stack-efficiency P2).
+const DashboardPageModal = dynamic(() => import("../components/DashboardPageModal"), { ssr: false });
 
 type DashTile = {
   key: string;

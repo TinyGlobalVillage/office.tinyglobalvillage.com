@@ -1,6 +1,6 @@
 {
   "admin": {
-    "email": "gio@tinyglobalvillage.com",
+    "email": "connect@refusionist.com",
     "role": "admin"
   },
   "marmar": {
@@ -29,6 +29,10 @@
   },
   "claude": {
     "email": "claude@anthropic.com",
+    "role": "employee"
+  },
+  "uat": {
+    "email": "uat@tinyglobalvillage.com",
     "role": "employee"
   }
 }

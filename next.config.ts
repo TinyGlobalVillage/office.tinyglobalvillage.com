@@ -1,4 +1,15 @@
+import path from "path";
+import { readFileSync } from "fs";
 import type { NextConfig } from "next";
+
+// P3 (stack-efficiency): every @tgv/* dependency is barrel-optimized, so importing one symbol from a
+// package root stops pulling the whole package into the route. Read from package.json so a new
+// module is covered the day it is added; server-external packages are left to Node.
+const SERVER_EXTERNAL_TGV = new Set(["@tgv/module-registry", "@tgv/module-auth"]);
+const TGV_PACKAGES = Object.keys(
+  (JSON.parse(readFileSync(path.join(process.cwd(), "package.json"), "utf8")) as { dependencies?: Record<string, string> })
+    .dependencies ?? {},
+).filter((name) => name.startsWith("@tgv/") && !SERVER_EXTERNAL_TGV.has(name));
 
 const nextConfig: NextConfig = {
   compiler: {
@@ -15,6 +26,7 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: true,
   },
   experimental: {
+    optimizePackageImports: TGV_PACKAGES,
     proxyClientMaxBodySize: "500mb",
     serverActions: {
       bodySizeLimit: "500mb",

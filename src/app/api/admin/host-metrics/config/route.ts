@@ -19,6 +19,12 @@ const FIELDS = [
   "criticalPct",
   "samplingEnabled",
   "alertsEnabled",
+  "healthEnabled",
+  "diskFreeWarnGb",
+  "swapWarnPct",
+  "restartsPerHourWarn",
+  "errorLogKbPerHourWarn",
+  "rebootAlerts",
 ] as const;
 
 export async function GET(req: NextRequest) {
@@ -44,7 +50,7 @@ export async function PATCH(req: NextRequest) {
   for (const f of FIELDS) {
     if (!(f in o)) continue;
     const v = o[f];
-    if (f === "samplingEnabled" || f === "alertsEnabled") {
+    if (f === "samplingEnabled" || f === "alertsEnabled" || f === "healthEnabled" || f === "rebootAlerts") {
       if (typeof v === "boolean") patch[f] = v;
     } else if (typeof v === "number" && Number.isFinite(v)) {
       patch[f] = v;

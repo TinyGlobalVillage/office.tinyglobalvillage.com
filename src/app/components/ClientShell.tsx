@@ -1,26 +1,34 @@
 "use client";
 
-import { ReactNode, Suspense, useEffect } from "react";
+import { ReactNode, Suspense, useEffect, type ComponentType } from "react";
 import { useSearchParams } from "next/navigation";
 import { TerminalProvider } from "./TerminalProvider";
 import { PreviewProvider } from "./PreviewDrawer";
-import CliTerminal from "./CliTerminal";
+import dynamic from "next/dynamic";
 import PreviewDrawer from "./PreviewDrawer";
-import LegendDrawer from "./LegendDrawer";
 import PresenceHeartbeat from "./PresenceHeartbeat";
 import PingNotifier from "./PingNotifier";
-import FrontDeskDrawer from "./FrontDeskDrawer";
-import IncomingCallOverlay from "./frontdesk/IncomingCallOverlay";
-import OfficeMessenger from "./OfficeMessenger";
-import { Forum } from "@tgv/module-forum";
-import InboxDrawer from "./InboxDrawer";
-import SessionsDrawer from "./SessionsDrawer";
 import DashboardPopoutBeacon from "./DashboardPopoutBeacon";
 import GlobalModals from "./GlobalModals";
 import DrawerStackController from "./DrawerStackController";
 import TileUrlSync from "./TileUrlSync";
-import { IncomingCallToast } from "./call";
+import FindPalette from "./FindPalette";
 import type { RingChannel } from "./call";
+import { deferShellPiece } from "../lib/deferredShell";
+
+// Stack-efficiency P2: the drawers and call overlays are on every Office page
+// but none of them is needed to paint it. They load right after hydration, out
+// of the first-load bundle; deferredShell holds any drawer event fired before
+// they arrive and replays it once they have all mounted.
+const FrontDeskDrawer = dynamic(deferShellPiece("frontdesk", () => import("./FrontDeskDrawer").then((m) => m.default)), { ssr: false });
+const IncomingCallOverlay = dynamic(deferShellPiece("call-overlay", () => import("./frontdesk/IncomingCallOverlay").then((m) => m.default)), { ssr: false });
+const OfficeMessenger = dynamic(deferShellPiece("messenger", () => import("./OfficeMessenger").then((m) => m.default)), { ssr: false });
+const Forum = dynamic(deferShellPiece("forum", () => import("@tgv/module-forum").then((m) => m.Forum as ComponentType<{ apiBase: string }>)), { ssr: false });
+const InboxDrawer = dynamic(deferShellPiece("inbox", () => import("./InboxDrawer").then((m) => m.default)), { ssr: false });
+const SessionsDrawer = dynamic(deferShellPiece("sessions", () => import("./SessionsDrawer").then((m) => m.default)), { ssr: false });
+const LegendDrawer = dynamic(deferShellPiece("legend", () => import("./LegendDrawer").then((m) => m.default)), { ssr: false });
+const CliTerminal = dynamic(deferShellPiece("terminal", () => import("./CliTerminal").then((m) => m.default)), { ssr: false });
+const IncomingCallToast = dynamic(deferShellPiece("call-toast", () => import("./call/IncomingCallToast").then((m) => m.default)), { ssr: false });
 
 function ShellInner({ children }: { children: ReactNode }) {
   const searchParams = useSearchParams();
@@ -91,6 +99,8 @@ function ShellInner({ children }: { children: ReactNode }) {
         <SessionsDrawer />
         <LegendDrawer />
         <GlobalModals />
+        {/* cmd/ctrl+F — find any tile, drawer tab or Utils tool by name. */}
+        <FindPalette />
         <IncomingCallToast
           onJoinActive={handleJoinFromRing("active")}
           onJoinObserver={handleJoinFromRing("observer")}

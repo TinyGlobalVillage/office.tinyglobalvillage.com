@@ -2577,6 +2577,27 @@ function ADDMDemo() {
   );
 }
 
+function ADDMTileDemo() {
+  return (
+    <DrawerWrap>
+      <Highlight label="ADDM-tile">
+        <AddmDemoWrap>
+          <div>
+            <AddmHeaderDemo as="div" $open style={{ cursor: "default" }}>
+              <AddmLabelDemo>Create a course</AddmLabelDemo>
+            </AddmHeaderDemo>
+            <AddmBodyDemo $open>
+              <AddmBodyItem>Course title… [Create]</AddmBodyItem>
+            </AddmBodyDemo>
+          </div>
+          <AddmDemoGroup label="All My Courses" defaultOpen={false} items={["Intro to Sound", "Breathwork 101"]} />
+        </AddmDemoWrap>
+      </Highlight>
+      <DrawerCaption>Always open: same box and header as an ADDM, no +/−, nothing to collapse.</DrawerCaption>
+    </DrawerWrap>
+  );
+}
+
 function FrontDeskDrawerDemo() {
   return (
     <ConcreteDrawerDemo
@@ -3605,6 +3626,20 @@ const AddmBody = styled.div<{ $open: boolean }>\`
 \`;`,
     stylePath: "src/app/components/sandbox/SandboxModal.tsx",
     Demo: ADDMDemo,
+  },
+  {
+    key: "ADDM-tile",
+    name: "Accordion Tile",
+    category: "Menus",
+    summary: "An ADDM that is always open: the same contained box and accent header, with no +/− toggle and nothing to collapse. The header is a plain heading, not a button.",
+    usage: "A one-action section that must never hide its own form — e.g. \"Create a course\" above the \"All My Courses\" ADDM. Use the shared ADDMTile export; never pass open/onOpenChange.",
+    code: `import ADDM, { ADDMTile } from "@tgv/module-component-library/components/ui/ADDM";
+
+<ADDMTile label="Create a course">
+  <CreateRow>…</CreateRow>
+</ADDMTile>`,
+    stylePath: "packages/@tgv/module-core/module-component-library/components/ui/ADDM.tsx",
+    Demo: ADDMTileDemo,
   },
   {
     key: "FrontDeskDrawer",

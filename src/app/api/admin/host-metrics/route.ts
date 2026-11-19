@@ -20,6 +20,7 @@ import {
   rollingAverages,
 } from "@/lib/host-metrics/compute";
 import { alertState } from "@/lib/host-metrics/alerts";
+import { healthStatus } from "@/lib/host-metrics/health";
 import { readConfig, hostName } from "@/lib/host-metrics/config";
 import { readSampleIsolated } from "@/lib/host-metrics/read";
 import { samplerStatus } from "@/lib/host-metrics/sampler";
@@ -65,6 +66,7 @@ export async function GET(req: NextRequest) {
       series: [],
       sampler: samplerStatus(),
       alert: alertState(host),
+      health: await healthStatus(),
       config: cfg,
     });
   }
@@ -96,6 +98,7 @@ export async function GET(req: NextRequest) {
     sampleCount: series30d.length,
     sampler: samplerStatus(),
     alert: alertState(host),
+    health: await healthStatus(),
     config: cfg,
   });
 }

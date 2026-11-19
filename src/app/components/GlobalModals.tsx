@@ -2,13 +2,34 @@
 
 import { useEffect, useState } from "react";
 import { clearTileUrl, currentTile } from "@/app/lib/tileUrl";
-import ClaudeMenuModal from "./claude/ClaudeMenuModal";
-import SandboxModal from "./sandbox/SandboxModal";
-import LibraryModal from "./LibraryModal";
-import SuggestionBoxModal from "./suggestion/SuggestionBoxModal";
-import ActivityModal from "./ActivityModal";
-import RcsDiaryModal from "./diary/RcsDiaryModal";
+import dynamic from "next/dynamic";
 import MyAlertsAccess from "./MyAlertsAccess";
+
+// Stack-efficiency P2: every modal here renders only while open, so none of
+// them belongs in the first load of every Office page. Each loads on demand;
+// `warmGlobalModals` fetches the chunks once the page is idle so the first
+// open is still instant.
+const loaders = {
+  claude: () => import("./claude/ClaudeMenuModal"),
+  sandbox: () => import("./sandbox/SandboxModal"),
+  library: () => import("./LibraryModal"),
+  suggestion: () => import("./suggestion/SuggestionBoxModal"),
+  activity: () => import("./ActivityModal"),
+  diary: () => import("./diary/RcsDiaryModal"),
+};
+const ClaudeMenuModal = dynamic(loaders.claude, { ssr: false });
+const SandboxModal = dynamic(loaders.sandbox, { ssr: false });
+const LibraryModal = dynamic(loaders.library, { ssr: false });
+const SuggestionBoxModal = dynamic(loaders.suggestion, { ssr: false });
+const ActivityModal = dynamic(loaders.activity, { ssr: false });
+const RcsDiaryModal = dynamic(loaders.diary, { ssr: false });
+
+let warmed = false;
+function warmGlobalModals() {
+  if (warmed) return;
+  warmed = true;
+  Object.values(loaders).forEach((load) => void load().catch(() => { warmed = false; }));
+}
 
 // Global hosts for the window-event modals dispatched by the dashboard tiles
 // and the TgvNav Menu (see dashboardTiles.tsx). Hosting here — not in a page —
@@ -26,6 +47,16 @@ export default function GlobalModals() {
   const [suggestionOpen, setSuggestionOpen] = useState(false);
   const [activityOpen, setActivityOpen] = useState(false);
   const [diaryOpen, setDiaryOpen] = useState(false);
+
+  useEffect(() => {
+    const w = window as Window & { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number; cancelIdleCallback?: (id: number) => void };
+    if (w.requestIdleCallback) {
+      const id = w.requestIdleCallback(warmGlobalModals, { timeout: 8000 });
+      return () => w.cancelIdleCallback?.(id);
+    }
+    const t = window.setTimeout(warmGlobalModals, 4000);
+    return () => window.clearTimeout(t);
+  }, []);
 
   useEffect(() => {
     const handlers: Record<string, (e: Event) => void> = {

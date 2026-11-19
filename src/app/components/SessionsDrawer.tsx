@@ -20,7 +20,10 @@ import { useDrawerLifecycle, DRAWER_DATA_ATTR } from "../lib/drawerStack";
 import { useDrawerPersistedState } from "../lib/drawerPersist";
 import { CallSurface, CallButton } from "./call";
 import type { RingChannel } from "./call";
-import SessionSettingsModal from "./SessionSettingsModal";
+import dynamic from "next/dynamic";
+
+// Opens from a room's gear only — its own chunk (stack-efficiency P2).
+const SessionSettingsModal = dynamic(() => import("./SessionSettingsModal"), { ssr: false });
 
 // ── Types ────────────────────────────────────────────────────────────────────
 

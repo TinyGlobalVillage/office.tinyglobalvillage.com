@@ -115,21 +115,13 @@ export async function evaluateAlert(
   if (!fire || !cfg.alertsEnabled) return { fired: null, level: observed };
 
   try {
-    await alertsDb.insert(user_alerts).values({
-      user_id: "rcs",
+    await sendTeamAlert({
       title: title(host, fire.level, worst, worstPct),
       description: description(host, fire.level, worst, worstPct),
-      trigger_at: new Date(now).toISOString(),
-      channels: ["dashboard"],
-      recurrence: "none",
-      visibility: "team",
-      source: "rcs",
+      at: now,
       payload: { host, level: fire.level, kind: fire.kind, worst, worstPct },
-    });
-    logHardeningAction({
       action: `host-metrics.alert.${fire.kind}`,
       target: host,
-      user: "rcs",
       success: fire.kind === "recover",
       details: { level: fire.level, worst, pct: Number(worstPct.toFixed(1)) },
     });
@@ -142,6 +134,36 @@ export async function evaluateAlert(
   }
 
   return { fired: fire.kind, level: observed };
+}
+
+/**
+ * One team alert + its audit row. Shared by the capacity alert above and the
+ * health checks in health.ts, so both land in the same table with the same
+ * `source` and show up in the same timeline. Throws on a DB failure; callers
+ * roll their own "already fired" marker back.
+ */
+export async function sendTeamAlert(a: {
+  title: string;
+  description: string;
+  at: number;
+  payload: Record<string, unknown>;
+  action: string;
+  target: string;
+  success: boolean;
+  details: Record<string, unknown>;
+}): Promise<void> {
+  await alertsDb.insert(user_alerts).values({
+    user_id: "rcs",
+    title: a.title,
+    description: a.description,
+    trigger_at: new Date(a.at).toISOString(),
+    channels: ["dashboard"],
+    recurrence: "none",
+    visibility: "team",
+    source: "rcs",
+    payload: a.payload,
+  });
+  logHardeningAction({ action: a.action, target: a.target, user: "rcs", success: a.success, details: a.details });
 }
 
 /** Current per-host alert state — the modal shows this next to the sampler's. */

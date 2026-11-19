@@ -1,5 +1,6 @@
 "use client";
 
+import { hexToRgb } from "@/app/lib/hexToRgb";
 import { useEscapeToClose } from "@tgv/module-component-library/components/hooks/useEscapeToClose";
 import { useState, useEffect, useRef, ChangeEvent } from "react";
 import styled from "styled-components";
@@ -58,13 +59,7 @@ export type Ping = {
   createdAt: string;
 };
 
-export function hexToRgb(hex: string): string {
-  const clean = hex.replace("#", "");
-  const r = parseInt(clean.slice(0, 2), 16);
-  const g = parseInt(clean.slice(2, 4), 16);
-  const b = parseInt(clean.slice(4, 6), 16);
-  return `${r},${g},${b}`;
-}
+export { hexToRgb };
 
 export function timeAgo(iso: string) {
   const diff = Date.now() - new Date(iso).getTime();

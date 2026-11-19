@@ -34,6 +34,18 @@ export type HostMetricsConfig = {
   samplingEnabled: boolean;
   /** Whether crossing a threshold raises an Office alert (phase 4). */
   alertsEnabled: boolean;
+  /** Box Health checks (restart storms, error-log growth, disk floor, swap, reboot-required). */
+  healthEnabled: boolean;
+  /** Warn when / has fewer free gigabytes than this; critical under half of it. */
+  diskFreeWarnGb: number;
+  /** Warn when swap in use crosses this percent. */
+  swapWarnPct: number;
+  /** Warn when a pm2 app restarts more than this many times an hour. */
+  restartsPerHourWarn: number;
+  /** Warn when a pm2 error log grows faster than this many KB an hour. */
+  errorLogKbPerHourWarn: number;
+  /** Whether a pending OS reboot raises a team alert (the pill shows either way). */
+  rebootAlerts: boolean;
   lastUpdated: string | null;
   /** Orientation for whoever opens the raw file. Carried through writes. */
   _note?: string;
@@ -47,6 +59,12 @@ export const CONFIG_DEFAULTS: HostMetricsConfig = {
   criticalPct: CRITICAL_PCT,
   samplingEnabled: true,
   alertsEnabled: true,
+  healthEnabled: true,
+  diskFreeWarnGb: 20,
+  swapWarnPct: 50,
+  restartsPerHourWarn: 5,
+  errorLogKbPerHourWarn: 256,
+  rebootAlerts: true,
   lastUpdated: null,
 };
 
@@ -62,6 +80,10 @@ const CLAMPS = {
   nicCapMbps: [1, 100_000],
   warnPct: [1, 99],
   criticalPct: [1, 100],
+  diskFreeWarnGb: [1, 1000],
+  swapWarnPct: [1, 100],
+  restartsPerHourWarn: [1, 10_000],
+  errorLogKbPerHourWarn: [1, 1_000_000],
 } as const;
 
 function clampNum(key: keyof typeof CLAMPS, value: unknown, fallback: number): number {
@@ -85,6 +107,12 @@ function coerce(raw: unknown): HostMetricsConfig {
     criticalPct,
     samplingEnabled: o.samplingEnabled !== false,
     alertsEnabled: o.alertsEnabled !== false,
+    healthEnabled: o.healthEnabled !== false,
+    diskFreeWarnGb: clampNum("diskFreeWarnGb", o.diskFreeWarnGb, CONFIG_DEFAULTS.diskFreeWarnGb),
+    swapWarnPct: clampNum("swapWarnPct", o.swapWarnPct, CONFIG_DEFAULTS.swapWarnPct),
+    restartsPerHourWarn: clampNum("restartsPerHourWarn", o.restartsPerHourWarn, CONFIG_DEFAULTS.restartsPerHourWarn),
+    errorLogKbPerHourWarn: clampNum("errorLogKbPerHourWarn", o.errorLogKbPerHourWarn, CONFIG_DEFAULTS.errorLogKbPerHourWarn),
+    rebootAlerts: o.rebootAlerts !== false,
     lastUpdated: typeof o.lastUpdated === "string" ? o.lastUpdated : null,
     ...(typeof o._note === "string" ? { _note: o._note } : {}),
   };

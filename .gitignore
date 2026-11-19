@@ -104,3 +104,6 @@ telephony/data/recordings/
 # Sandbox-created template categories (empty groups with no template in them yet;
 # a template's real category is a shared_templates column). Per-box runtime state.
 data/templates/
+
+# Runtime-written on RCS (Gio 2026-11-02): the live login-session store never ships through git.
+data/sessions.json

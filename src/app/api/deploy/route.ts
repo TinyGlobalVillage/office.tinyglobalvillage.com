@@ -8,6 +8,7 @@ import { logHardeningAction } from "@/lib/audit-log";
 import {
   startDeploy, readDeploy, readDeploys, SITE_RE, SHA_RE,
   readReleases, releaseTargets, readWatcherHealth, readWatcherConfig, startPromote, startRollback,
+  approveMigrations, cancelPromoteRequest,
 } from "@/lib/workshop-deploy";
 
 export const runtime = "nodejs";
@@ -48,9 +49,41 @@ export async function POST(req: NextRequest) {
   if (auth instanceof NextResponse) return auth;
   const body = (await req.json().catch(() => ({}))) as {
     client?: string; action?: string; expectMono?: string; expectClient?: string | null;
+    files?: Array<{ file: string; sha256: string }>;
   };
   const client = String(body.client ?? "");
   const action = body.action ?? "build";
+
+  // Approve the destructive migrations the staged build is waiting on (rcs-migrate.sh).
+  if (action === "approve-migrations") {
+    if (!SITE_RE.test(client) || !releaseTargets().some((t) => t.client === client)) {
+      return NextResponse.json({ error: "not a release target" }, { status: 400 });
+    }
+    const files = Array.isArray(body.files) ? body.files.slice(0, 50) : [];
+    try {
+      const approved = approveMigrations(client, auth.username, files);
+      logHardeningAction({ action: "deploy.approve_migrations", target: client, user: auth.username, success: true, details: { files: approved } });
+      return NextResponse.json({ ok: true, approved });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      logHardeningAction({ action: "deploy.approve_migrations", target: client, user: auth.username, success: false, details: msg });
+      return NextResponse.json({ error: msg }, { status: 409 });
+    }
+  }
+
+  // Cancel a queued "deploy" (deploy-request.sh) before deploy-watch fulfills it.
+  if (action === "cancel-request") {
+    if (!SITE_RE.test(client)) return NextResponse.json({ error: "bad client" }, { status: 400 });
+    try {
+      const r = cancelPromoteRequest(client, auth.username);
+      logHardeningAction({ action: "deploy.request_cancel", target: client, user: auth.username, success: true, details: { by: r.by, wantMono: r.wantMono } });
+      return NextResponse.json({ ok: true, request: r });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      logHardeningAction({ action: "deploy.request_cancel", target: client, user: auth.username, success: false, details: msg });
+      return NextResponse.json({ error: msg }, { status: 409 });
+    }
+  }
 
   // Release flow: promote the staged build / roll back to .next.prev (deploy-watcher).
   if (action === "promote" || action === "rollback") {

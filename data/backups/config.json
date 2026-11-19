@@ -34,7 +34,7 @@
     "restoreTest": {"cron": "0 4 1 * *", "desc": "Monthly 1st 04:00 — auto Postgres restore"}
   },
   "retention": {
-    "tier1": {"keepDaily": 14, "keepWeekly": 8, "keepMonthly": 12, "keepYearly": 100},
+    "tier1": {"keepDaily": 14, "keepWeekly": 8, "keepMonthly": 12, "keepYearly": 3},
     "tier2": {"keepDaily": 0, "keepWeekly": 4, "keepMonthly": 6, "keepYearly": 0},
     "tier4": {"keepDaily": 0, "keepWeekly": 4, "keepMonthly": 6, "keepYearly": 0}
   },

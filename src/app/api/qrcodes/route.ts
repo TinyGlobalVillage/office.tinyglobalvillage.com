@@ -61,7 +61,7 @@ export async function GET(req: NextRequest) {
   if (gate) return NextResponse.json({ error: gate }, { status: 403 });
 
   try {
-    const qrcodes = listQRCodes(ctx);
+    const qrcodes = await listQRCodes(ctx);
     return NextResponse.json({ qrcodes });
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : "List failed" }, { status: 500 });
@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
   if (gate) return NextResponse.json({ error: gate }, { status: 403 });
 
   try {
-    const qrcode = createQRCode({
+    const qrcode = await createQRCode({
       name: body.name,
       text: body.text,
       errorCorrection: body.errorCorrection,

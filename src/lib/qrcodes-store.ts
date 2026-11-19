@@ -1,5 +1,7 @@
 /**
- * Server-side persistence for saved QR-code configurations.
+ * Server-side persistence for saved QR-code configurations: `public.qr_codes`
+ * in tgv_db (migration 0208 in tinyglobalvillage.com; until 2026-10-31 it was
+ * /srv/refusion-core/data/qrcodes/qrcodes.json in the mono checkout).
  *
  * Why "configuration" not "image" — a QR code is deterministic from its
  * input + settings, so we never store the rendered PNG/SVG bytes. We store
@@ -7,17 +9,9 @@
  * the image client-side every time. This keeps storage tiny and avoids
  * stale-image problems (rename a TinyURL → its QR keeps working because the
  * config encodes the short URL, not the destination).
- *
- * Storage: /srv/refusion-core/data/qrcodes/qrcodes.json — sibling of the
- * shortener's data dir. Same atomic .tmp + rename pattern.
  */
-import fs from "fs";
-import path from "path";
 import crypto from "crypto";
-
-const STORE_PATH =
-  process.env.QRCODES_STORE_PATH ||
-  "/srv/refusion-core/data/qrcodes/qrcodes.json";
+import { pgPool } from "@/lib/pg-pool";
 
 export type QRContext =
   | { kind: "user"; username: string }
@@ -59,23 +53,33 @@ export type UpdateQRInput = Partial<{
   tags: string[];
 }>;
 
-export type Store = Record<string, QRCodeRecord>;
-
 const ERROR_LEVELS: ReadonlyArray<QRErrorCorrection> = ["L", "M", "Q", "H"];
 
-function readStore(): Store {
-  try {
-    return JSON.parse(fs.readFileSync(STORE_PATH, "utf8")) as Store;
-  } catch {
-    return {};
-  }
+type Row = {
+  id: string; name: string; text: string; error_correction: string; transparent_bg: boolean;
+  linked_short_code: string | null; tags: string[]; created_by: string;
+  created_at: Date; updated_at: Date; deleted: boolean;
+};
+
+function toRecord(r: Row): QRCodeRecord {
+  return {
+    id: r.id,
+    name: r.name,
+    text: r.text,
+    errorCorrection: r.error_correction as QRErrorCorrection,
+    transparentBg: r.transparent_bg,
+    linkedShortCode: r.linked_short_code,
+    tags: r.tags ?? [],
+    createdBy: r.created_by,
+    createdAt: r.created_at.toISOString(),
+    updatedAt: r.updated_at.toISOString(),
+    deleted: r.deleted,
+  };
 }
 
-function writeStore(store: Store): void {
-  const tmp = STORE_PATH + ".tmp";
-  fs.mkdirSync(path.dirname(STORE_PATH), { recursive: true });
-  fs.writeFileSync(tmp, JSON.stringify(store, null, 2), "utf8");
-  fs.renameSync(tmp, STORE_PATH);
+async function liveRow(id: string): Promise<Row | null> {
+  const { rows } = await pgPool.query<Row>("SELECT * FROM public.qr_codes WHERE id = $1 AND NOT deleted", [id]);
+  return rows[0] ?? null;
 }
 
 function ownerKey(context: QRContext): string {
@@ -104,91 +108,73 @@ function validateName(name: string) {
   }
 }
 
-export function listQRCodes(context: QRContext): QRCodeRecord[] {
-  const store = readStore();
-  const owner = ownerKey(context);
-  return Object.values(store)
-    .filter((r) => !r.deleted && r.createdBy === owner)
-    .sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : -1));
+export async function listQRCodes(context: QRContext): Promise<QRCodeRecord[]> {
+  const { rows } = await pgPool.query<Row>(
+    "SELECT * FROM public.qr_codes WHERE NOT deleted AND created_by = $1 ORDER BY updated_at DESC",
+    [ownerKey(context)]);
+  return rows.map(toRecord);
 }
 
-export function createQRCode(input: CreateQRInput): QRCodeRecord {
+export async function createQRCode(input: CreateQRInput): Promise<QRCodeRecord> {
   validateName(input.name);
   validateText(input.text);
   const ec: QRErrorCorrection = input.errorCorrection ?? "H";
   if (!ERROR_LEVELS.includes(ec)) {
     throw new Error("errorCorrection must be one of L, M, Q, H.");
   }
-  const store = readStore();
-  const now = new Date().toISOString();
-  const record: QRCodeRecord = {
-    id: newId(),
-    name: input.name.trim(),
-    text: input.text,
-    errorCorrection: ec,
-    transparentBg: !!input.transparentBg,
-    linkedShortCode: input.linkedShortCode ?? null,
-    tags: input.tags ?? [],
-    createdBy: ownerKey(input.context),
-    createdAt: now,
-    updatedAt: now,
-    deleted: false,
-  };
-  store[record.id] = record;
-  writeStore(store);
-  return record;
+  const { rows } = await pgPool.query<Row>(
+    `INSERT INTO public.qr_codes (id, name, text, error_correction, transparent_bg, linked_short_code, tags, created_by)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+    [newId(), input.name.trim(), input.text, ec, !!input.transparentBg,
+      input.linkedShortCode ?? null, input.tags ?? [], ownerKey(input.context)]);
+  return toRecord(rows[0]);
 }
 
-export function updateQRCode(
+export async function updateQRCode(
   id: string,
   patch: UpdateQRInput,
   callerOwner: string,
-): QRCodeRecord {
-  const store = readStore();
-  const existing = store[id];
-  if (!existing || existing.deleted) throw new Error("QR code not found");
-  if (existing.createdBy !== callerOwner) {
+): Promise<QRCodeRecord> {
+  const existing = await liveRow(id);
+  if (!existing) throw new Error("QR code not found");
+  if (existing.created_by !== callerOwner) {
     throw new Error("You can only edit QR codes you created in the active context");
   }
-  const next = { ...existing };
-  if (patch.name !== undefined) {
-    validateName(patch.name);
-    next.name = patch.name.trim();
+  if (patch.name !== undefined) validateName(patch.name);
+  if (patch.text !== undefined) validateText(patch.text);
+  if (patch.errorCorrection !== undefined && !ERROR_LEVELS.includes(patch.errorCorrection)) {
+    throw new Error("errorCorrection must be one of L, M, Q, H.");
   }
-  if (patch.text !== undefined) {
-    validateText(patch.text);
-    next.text = patch.text;
-  }
-  if (patch.errorCorrection !== undefined) {
-    if (!ERROR_LEVELS.includes(patch.errorCorrection)) {
-      throw new Error("errorCorrection must be one of L, M, Q, H.");
-    }
-    next.errorCorrection = patch.errorCorrection;
-  }
-  if (patch.transparentBg !== undefined) next.transparentBg = !!patch.transparentBg;
-  if (patch.linkedShortCode !== undefined) next.linkedShortCode = patch.linkedShortCode;
-  if (patch.tags !== undefined) next.tags = patch.tags;
-  next.updatedAt = new Date().toISOString();
-  store[id] = next;
-  writeStore(store);
-  return next;
+  const { rows } = await pgPool.query<Row>(
+    `UPDATE public.qr_codes SET
+       name              = coalesce($2, name),
+       text              = coalesce($3, text),
+       error_correction  = coalesce($4, error_correction),
+       transparent_bg    = coalesce($5, transparent_bg),
+       linked_short_code = CASE WHEN $6::boolean THEN $7 ELSE linked_short_code END,
+       tags              = coalesce($8, tags),
+       updated_at        = now()
+     WHERE id = $1 AND NOT deleted
+     RETURNING *`,
+    [id, patch.name?.trim() ?? null, patch.text ?? null, patch.errorCorrection ?? null,
+      patch.transparentBg === undefined ? null : !!patch.transparentBg,
+      patch.linkedShortCode !== undefined, patch.linkedShortCode ?? null, patch.tags ?? null]);
+  if (!rows[0]) throw new Error("QR code not found");
+  return toRecord(rows[0]);
 }
 
-export function deleteQRCode(id: string, callerOwner: string): void {
-  const store = readStore();
-  const existing = store[id];
-  if (!existing || existing.deleted) throw new Error("QR code not found");
-  if (existing.createdBy !== callerOwner) {
+export async function deleteQRCode(id: string, callerOwner: string): Promise<void> {
+  const existing = await liveRow(id);
+  if (!existing) throw new Error("QR code not found");
+  if (existing.created_by !== callerOwner) {
     throw new Error("You can only delete QR codes you created in the active context");
   }
-  store[id] = { ...existing, deleted: true, updatedAt: new Date().toISOString() };
-  writeStore(store);
+  await pgPool.query("UPDATE public.qr_codes SET deleted = true, updated_at = now() WHERE id = $1", [id]);
 }
 
-export function getQRCode(id: string): QRCodeRecord | null {
-  const store = readStore();
-  const r = store[id];
-  return r && !r.deleted ? r : null;
+export async function getQRCode(id: string): Promise<QRCodeRecord | null> {
+  const r = await liveRow(id);
+  return r ? toRecord(r) : null;
 }
 
 export function ownerKeyOf(context: QRContext): string {

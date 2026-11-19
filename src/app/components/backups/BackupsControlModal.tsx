@@ -18,7 +18,7 @@
 //
 // Reused by tgv-franchise-rollout Component G — keep self-contained.
 
-import { useEffect, useState, useCallback } from "react";
+import { Fragment, useEffect, useState, useCallback } from "react";
 import styled from "styled-components";
 import { useEscapeToClose } from "@tgv/module-component-library/components/hooks/useEscapeToClose";
 import { colors, rgb } from "@/app/theme";
@@ -57,6 +57,15 @@ type BackupStatus = {
   repo: { reachable: boolean; snapshotCount: number; latestSnapshotId: string | null;
     latestSnapshotTime: string | null; totalSizeBytes: number; error: string | null };
   restoreTest: { runs: number; latest: RestoreTest | null };
+  pitr?: PitrState;
+};
+
+type PitrRepo = { key: number; status: string; cipher: string; backups: number;
+  latestLabel: string | null; latestType: string | null; latestTime: string | null; repoSizeBytes: number };
+type PitrState = {
+  installed: boolean; archiveMode: string | null; walLevel: string | null;
+  archiver: { archivedCount: number; lastArchivedTime: string | null; failedCount: number; lastFailedTime: string | null } | null;
+  repos: PitrRepo[]; walMin: string | null; walMax: string | null; error: string | null;
 };
 
 type HistoryResponse = { runs: RunEntry[]; restoreTests: RestoreTest[] };
@@ -600,6 +609,7 @@ function Body({
           <dt>Tier 1</dt><dd>{c.schedule.tier1.cron} — {c.schedule.tier1.desc}</dd>
           <dt>Tier 2</dt><dd>{c.schedule.tier2.cron} — {c.schedule.tier2.desc}</dd>
           <dt>Tier 4</dt><dd>{c.schedule.tier4.cron} — {c.schedule.tier4.desc}</dd>
+          <dt>PITR</dt><dd>{status.lastRunByTier.pitr ? `${timeAgo(status.lastRunByTier.pitr.timestamp)} · ${status.lastRunByTier.pitr.status}` : <Badge $variant="off">never</Badge>}</dd>
           <dt>Restore test</dt><dd>{c.schedule.restoreTest.cron} — {c.schedule.restoreTest.desc}</dd>
         </KV>
       </Section>
@@ -651,6 +661,9 @@ function Body({
         </KV>
       </Section>
 
+      {/* Point-in-time recovery */}
+      {status.pitr && <PitrSection pitr={status.pitr} />}
+
       {/* Restore-test history */}
       <Section>
         <SectionTitle>🧪 Restore-test history</SectionTitle>
@@ -697,5 +710,64 @@ function Body({
         </KV>
       </Section>
     </Stack>
+  );
+}
+
+/* ── Point-in-time recovery (pgBackRest) ───────────────────────── */
+
+function PitrSection({ pitr }: { pitr: PitrState }) {
+  const archiving = pitr.archiveMode === "on";
+  const failing = (pitr.archiver?.failedCount ?? 0) > 0 &&
+    (!pitr.archiver?.lastArchivedTime || (pitr.archiver?.lastFailedTime ?? "") > pitr.archiver.lastArchivedTime);
+  const repoName = (k: number) => (k === 1 ? "Repo 1 · local" : k === 2 ? "Repo 2 · rsync.net" : `Repo ${k}`);
+  return (
+    <Section>
+      <SectionTitle>⏪ Point-in-time recovery</SectionTitle>
+      <KV>
+        <dt>Stanza</dt>
+        <dd>{pitr.installed ? <Badge $variant="ok">main</Badge> : <Badge $variant="err">not installed</Badge>}</dd>
+        <dt>WAL archiving</dt>
+        <dd>
+          {archiving
+            ? (failing ? <Badge $variant="err">failing</Badge> : <Badge $variant="ok">on</Badge>)
+            : <Badge $variant="warn">off · restart needed</Badge>}
+          {" "}wal_level={pitr.walLevel ?? "?"}
+        </dd>
+        {pitr.archiver && archiving && (
+          <>
+            <dt>Archived</dt>
+            <dd>{pitr.archiver.archivedCount} segments{pitr.archiver.lastArchivedTime ? ` · last ${timeAgo(pitr.archiver.lastArchivedTime)}` : ""}</dd>
+            <dt>Failures</dt>
+            <dd>{pitr.archiver.failedCount}{pitr.archiver.lastFailedTime ? ` · last ${timeAgo(pitr.archiver.lastFailedTime)}` : ""}</dd>
+          </>
+        )}
+        {pitr.repos.map((r) => (
+          <Fragment key={r.key}>
+            <dt>{repoName(r.key)}</dt>
+            <dd>
+              {r.backups > 0
+                ? `${r.backups} backups · ${r.latestType} ${r.latestTime ? timeAgo(r.latestTime) : ""} · ${fmtBytes(r.repoSizeBytes)}`
+                : <Badge $variant="off">{r.status}</Badge>}
+              {r.cipher !== "none" ? ` · ${r.cipher}` : ""}
+            </dd>
+          </Fragment>
+        ))}
+        {(pitr.walMin || pitr.walMax) && (
+          <>
+            <dt>WAL range</dt>
+            <dd>{pitr.walMin ?? "?"} → {pitr.walMax ?? "?"}</dd>
+          </>
+        )}
+        <dt>Schedule</dt>
+        <dd>full Sun 01:30 · diff Mon–Sat 01:30 · keeps 2 full local, 4 off-site</dd>
+      </KV>
+      {!archiving && (
+        <TinyMsg>
+          Configured, not yet archiving. Turning it on restarts Postgres (a few seconds of downtime) —
+          run <code>utils/scripts/system/backup/pg-pitr-enable.sh --yes</code> on RCS in a quiet window.
+        </TinyMsg>
+      )}
+      {pitr.error && <TinyMsg>⚠ {pitr.error}</TinyMsg>}
+    </Section>
   );
 }
