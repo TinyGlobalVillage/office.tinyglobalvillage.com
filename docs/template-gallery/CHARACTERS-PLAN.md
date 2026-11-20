@@ -2,7 +2,7 @@
 
 Our own elves, gnomes and faeries, rendered on the Mac, replace the drawn avatars and add character scenes to all 120 gallery templates. Engine: `scripts/fae-art/characters/` (README there).
 
-**Status (2026-11-19):** the engine is installed and the job list is built. **Nothing has been generated yet.** Generation waits for Gio's go.
+**Status (2026-11-19):** generating, in waves by site number (Gio's go). The live tally is `~/.local/share/tgv-fae-art/SITES.txt`. The cast is 610 pictures in all: 370 portraits (one per face a template shows, each a named character) and 240 scenes (2 per site).
 
 ## Settled with Gio (2026-11-19)
 
@@ -14,7 +14,7 @@ Our own elves, gnomes and faeries, rendered on the Mac, replace the drawn avatar
 
 ## The look
 
-Every prompt is built from these parts in `prompts.mts`:
+Every prompt is built from these parts in `look.mts`; `cast.mts` assembles them per character:
 
 | Axis | Values |
 |---|---|
@@ -52,6 +52,13 @@ Every prompt is built from these parts in `prompts.mts`:
    - Copy each keeper to `<id>.png`.
    - Run `pool.mjs add <files> --tags <job tags>`. That gives keys `a-elf-f-03` and `a-scene-542052b1`, with `source: original`, which makes them exempt from the 5-site cap.
    - Then `rcs-upload.mjs` on RCS, the existing Fae Template Photos flow.
+   - **Filing and naming (Gio 2026-11-19):**
+     - On TGV, every picture goes into a top folder called **"Template Sites"**, with one sub-folder per template site it's attached to.
+     - Each elf, gnome and faerie gets its own name.
+     - Filenames, titles and alt text follow SEO conventions: lowercase, hyphenated, with name, species, trade and site, e.g. `bramble-thistlewick-gnome-baker-moonloaf-bakery.png`.
+     - Characters are unique per site, and the names on the template pages are the characters' names.
+     - **Locally first:** every picture is filed into `Template Sites/<NNN Brand>/` as it renders, with that site's prompt doc (index + every prompt and seed). The registry `cast-registry.json` records it all; at the end the whole tree moves to TGV.
+     - **At move time:** add nesting to gallery collections (`storage_collections` has no parent today) for Template Sites › site; upload each picture with its SEO filename, title and alt; turn each prompt doc into a Doc Editor doc in a matching nested `docs_folders` folder (needs a Markdown → document import). After that, `cast.mts remix` uploads its result and appends to the TGV doc as well.
 5. **Kit wiring** (`kit.ts`, `build.mts`):
    - `avatarsFor(site, offset)` picks from the ledger's `portrait` + `character` entries for the site's species. The order is deterministic per template, alternating female/male, offset as today.
      - `build.mts` hands the kit the pool once it has loaded the ledger.

@@ -10,6 +10,7 @@ goes stale and deploys can slot in between chunks; calling it bare skips those g
 
 import argparse
 import json
+import subprocess
 import sys
 import time
 from pathlib import Path
@@ -24,21 +25,24 @@ def main() -> int:
     ap.add_argument("--limit", type=int, default=0, help="stop after N renders (0 = no cap)")
     ap.add_argument("--minutes", type=float, default=0, help="stop starting new renders after M minutes")
     ap.add_argument("--steps", type=int, default=4)
+    ap.add_argument("--refresh", help="shell command run after every render (cast.mts docs)")
     ap.add_argument("--dry-run", action="store_true", help="list what would render; load nothing")
     a = ap.parse_args()
 
     out = Path(a.out)
-    jobs = json.loads((out / "jobs.json").read_text())["jobs"]
+    data = json.loads((out / "jobs.json").read_text())
+    jobs = data["jobs"]
     if a.kind:
         jobs = [j for j in jobs if j["kind"] == a.kind]
     if a.only:
         want = set(a.only.split(","))
         jobs = [j for j in jobs if j["id"] in want]
 
+    base = Path(data.get("base") or out)  # cast jobs name their file inside the site folder
     todo = []
     for j in jobs:
         for v, seed in enumerate(j["seeds"]):
-            png = out / j["kind"] / f"{j['id']}-v{v}.png"
+            png = base / j["files"][v] if j.get("files") else out / j["kind"] / f"{j['id']}-v{v}.png"
             if not png.exists():
                 todo.append((j, v, seed, png))
     total = sum(len(j["seeds"]) for j in jobs)
@@ -69,9 +73,12 @@ def main() -> int:
         tmp = png.with_suffix(".part.png")
         img.save(path=tmp, overwrite=True)
         tmp.rename(png)  # a killed run never leaves a half-written PNG that would count as done
-        (png.with_suffix(".json")).write_text(json.dumps({"id": j["id"], "variant": v, "seed": seed, "prompt": j["prompt"], "tags": j["tags"], "meta": j["meta"]}, indent=1))
+        if not j.get("files"):  # cast pictures keep their prompt in the registry + the site's prompt doc instead
+            (png.with_suffix(".json")).write_text(json.dumps({"id": j["id"], "variant": v, "seed": seed, "prompt": j["prompt"], "tags": j["tags"], "meta": j["meta"]}, indent=1))
         done += 1
         print(f"✓ {png.name} {time.time() - t:.0f}s", flush=True)
+        if a.refresh:  # keep SITES.txt and the site's prompt doc current after every picture
+            subprocess.run(a.refresh, shell=True, check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     print(f"rendered {done} this run", flush=True)
     return 0
 
