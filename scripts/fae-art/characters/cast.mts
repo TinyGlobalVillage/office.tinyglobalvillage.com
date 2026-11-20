@@ -210,7 +210,7 @@ async function init() {
       site.cast.mode === 'single'
         ? BODY[site.cast.species][fg]
         : 'an equal trio of fae friends — an elf, a gnome and a faerie — working side by side';
-    const prompt = [`Full-body wide shot of ${who}, wearing ${pick(COSTUME[era], sid)}`, tradeFor(spec.industry), 'joyful, energetic, magical, room to the side for a headline', PALETTE, STYLE[style]].join(', ');
+    const prompt = [`Full-body wide shot of ${who}, wearing ${pick(COSTUME[era], sid)}`, tradeFor(spec.industry), 'every person in the scene a complete figure with head, body, arms and legs, joyful, energetic, magical, room to the side for a headline', PALETTE, STYLE[style]].join(', ');
     const sp = site.cast.mode === 'single' ? [site.cast.species as string] : ['elf', 'gnome', 'faerie'];
     for (const [v, seed] of seedsFor(sid, 1).entries()) {
       const title = site.cast.mode === 'single' ? `${founder.name} at work` : `The ${site.brand} collective at work`;
