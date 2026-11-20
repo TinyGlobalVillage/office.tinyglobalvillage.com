@@ -4839,7 +4839,7 @@
      "file": "the-unhurried-studio-artist-caladrel-brightwater-elf-scene-1.png",
      "alt": "Caladrel Brightwater, founder of The Unhurried Studio, at work",
      "prompt": "Full-body wide shot of a brown-skinned Black Afro-Caribbean elf man, side hair tucked behind his slender pointed elf ears, a single smooth ear on each side of his face, luminous almond eyes and a sharp proud face, hair tied back with silver cord, black locs, wearing a patchwork wizard coat of star-dyed silk and tiny bells, standing beside an easel with a glowing canvas, holding a single paintbrush that trails living neon light, a single figure shown whole from head to feet with two arms and two hands, joyful, energetic, magical, room to the side for a headline, colour palette of neon magenta pink, electric cyan and soft violet with small touches of warm gold, glowing energy threads of pink and cyan light weaving and spiralling through the air, stylised 3D animated feature-film character, expressive oversized eyes, soft subsurface skin, playful proportions, polished render",
-     "seed": 1058450140,
+     "seed": 1079293422,
      "width": 1024,
      "height": 576,
      "tags": [
@@ -4852,6 +4852,13 @@
       "era-myth",
       "art",
       "studio"
+     ],
+     "rejected": [
+      {
+       "seed": 1058450140,
+       "prompt": "Full-body wide shot of a brown-skinned Black Afro-Caribbean elf man, side hair tucked behind his slender pointed elf ears, a single smooth ear on each side of his face, luminous almond eyes and a sharp proud face, hair tied back with silver cord, black locs, wearing a patchwork wizard coat of star-dyed silk and tiny bells, standing beside an easel with a glowing canvas, holding a single paintbrush that trails living neon light, a single figure shown whole from head to feet with two arms and two hands, joyful, energetic, magical, room to the side for a headline, colour palette of neon magenta pink, electric cyan and soft violet with small touches of warm gold, glowing energy threads of pink and cyan light weaving and spiralling through the air, stylised 3D animated feature-film character, expressive oversized eyes, soft subsurface skin, playful proportions, polished render",
+       "why": "review 2026-11-20: 039 brush floating and arms hidden behind two canvases; 045 a second gnome head behind the founder"
+      }
      ]
     }
    ]
@@ -5690,7 +5697,7 @@
      "file": "toadstool-studio-agency-wendeline-nutkin-gnome-scene-1.png",
      "alt": "Wendeline Nutkin, founder of Toadstool Studio, at work",
      "prompt": "Full-body wide shot of a copper-skinned Native American stout gnome woman with rosy cheeks, a tall floppy pointed knitted hat, thick braids with copper beads and a big warm grin, long straight black hair, wearing a moss-green woven cloak pinned with a glowing crystal brooch, standing beside a hovering holographic drafting board covered in luminous designs, in a bustling creative studio-workshop, a single figure shown whole from head to feet with two arms and two hands, joyful, energetic, magical, room to the side for a headline, colour palette of neon magenta pink, electric cyan and soft violet with small touches of warm gold, glowing energy threads of pink and cyan light weaving and spiralling through the air, stop-motion claymation figure, sculpted plasticine with fingerprint texture, handmade miniature set, tilt-shift photography",
-     "seed": 2066673190,
+     "seed": 1742608090,
      "width": 1024,
      "height": 576,
      "tags": [
@@ -5703,6 +5710,13 @@
       "era-myth",
       "studio",
       "workshop"
+     ],
+     "rejected": [
+      {
+       "seed": 2066673190,
+       "prompt": "Full-body wide shot of a copper-skinned Native American stout gnome woman with rosy cheeks, a tall floppy pointed knitted hat, thick braids with copper beads and a big warm grin, long straight black hair, wearing a moss-green woven cloak pinned with a glowing crystal brooch, standing beside a hovering holographic drafting board covered in luminous designs, in a bustling creative studio-workshop, a single figure shown whole from head to feet with two arms and two hands, joyful, energetic, magical, room to the side for a headline, colour palette of neon magenta pink, electric cyan and soft violet with small touches of warm gold, glowing energy threads of pink and cyan light weaving and spiralling through the air, stop-motion claymation figure, sculpted plasticine with fingerprint texture, handmade miniature set, tilt-shift photography",
+       "why": "review 2026-11-20: 039 brush floating and arms hidden behind two canvases; 045 a second gnome head behind the founder"
+      }
      ]
     }
    ]
