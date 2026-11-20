@@ -15,7 +15,7 @@ On disk (`~/.local/share/tgv-fae-art/`):
 |---|---|
 | `install.sh` | Creates a venv plus the 4-bit model in `~/.local/share/tgv-fae-art/` (about 11 GB). It refuses if that would leave less than 25 GB of free disk, and it never generates. |
 | `look.mts` | The look in words: palette, styles, species bodies, costumes, backdrops, trades. |
-| `cast.mts` | The registry. `init` (once), `jobs [--sites 1-10]`, `docs` (rewrites SITES.txt and every prompt doc), `remix <site#> <pic#> [--seed N] [--add "words"]` (re-uses a prompt as a new numbered picture in the same folder and doc), `stage <sites> reviewed\|on-tgv`. |
+| `cast.mts` | The registry. `init` (once), `jobs [--sites 1-10]`, `docs` (rewrites SITES.txt and every prompt doc), `remix <site#> <pic#> [--seed N] [--add "words"]` (re-uses a prompt as a new numbered picture in the same folder and doc), `reprompt` (rebuilds every unrendered prompt from the current wording in `look.mts`), `redo [site:pic …] [--scenes] [--faeries] [--why "…"]` (a failed render goes to `Rejects/<folder>/`, gets a fresh seed and the current wording, and the runner re-renders it; the old seed, prompt and reason stay on the picture as `rejected`), `stage <sites> reviewed\|on-tgv`. |
 | `generate.py` | Renders the missing pictures in `<out>/jobs.json` straight into their site folders. It is resumable; `--refresh` rewrites the docs after each picture; `--dry-run` loads nothing. |
 | `run.sh` | **The way to run it.** `run.sh --sites 1-10` renders one wave. It works in chunks of 45 minutes or less, each holding the Mac build lock (`build-preflight.sh`). If preflight refuses, it stops; it never retries. |
 
@@ -23,6 +23,7 @@ On disk (`~/.local/share/tgv-fae-art/`):
 scripts/fae-art/characters/install.sh                       # once
 scripts/fae-art/characters/run.sh --sites 1-10              # a wave of sites (by SITES.txt number)
 node_modules/.bin/tsx …/cast.mts remix 12 3 --add "profile view, looking left"   # a new angle
+node_modules/.bin/tsx …/cast.mts redo 31:5 --why "abacus fused into the body"   # send one back
 scripts/fae-art/characters/run.sh --sites 12                # renders it and updates the doc
 ```
 

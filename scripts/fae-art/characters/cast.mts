@@ -20,7 +20,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { LEXICON } from '../../../../../packages/@tgv/module-core/module-component-library/helpers/fae/index.ts';
 import { buildTemplate } from '../../fae-templates/kit.ts';
-import { BACKDROP, BODY, MIXED_GROUP, heritageFor, COSTUME, PALETTE, STYLE, STYLES, TRADE_TAGS, hash, pick, seedsFor, tradeFor, type Era, type Gender, type Species, type Style } from './look.mts';
+import { BACKDROP, BODY, MIXED_GROUP, heritageFor, heritageText, withHeritage, COSTUME, PALETTE, STYLE, STYLES, TRADE_TAGS, hash, pick, seedsFor, tradeFor, type Era, type Gender, type Species, type Style } from './look.mts';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const CLIENT = join(HERE, '..', '..', '..');
@@ -43,6 +43,8 @@ export type Picture = {
   height: number;
   tags: string[];
   character?: { name: string; species: Species; gender: Gender; role: string; heritage?: string };
+  /** earlier takes that failed review, newest last (the files sit in Rejects/<folder>/) */
+  rejected?: { seed: number; prompt: string; why: string }[];
   from?: number; // a remix: the picture whose prompt it re-used
   origin?: string; // where an already-rendered picture came from
 };
@@ -98,14 +100,29 @@ const pad = (n: number, w = 2) => String(n).padStart(w, '0');
 
 // ————————————————————————————————————————————————————— init
 
-function portraitPrompt(sp: Species, g: Gender, era: Era, style: Style, id: string, heritage: string) {
-  return [
-    `Head-and-shoulders portrait of ${BODY[sp][g]}, ${heritage}, wearing ${pick(COSTUME[era], id)}`,
-    'looking at the camera with a playful, warm expression, centred, face fully in frame',
-    pick(BACKDROP, `${id}:bg`),
-    PALETTE,
-    STYLE[style],
-  ].join(', ');
+type Heritage = { lead: string; hair: string };
+const parseHeritage = (t: string): Heritage => (([lead, ...hair]) => ({ lead, hair: hair.join(', ') }))(t.split(', '));
+
+function portraitPrompt(sp: Species, g: Gender, era: Era, style: Style, id: string, heritage: Heritage) {
+  // faeries turn and glance back over the shoulder: face-on, a 4-step model plants the wings beside the head (Gio 2026-11-20)
+  const frame =
+    sp === 'faerie'
+      ? [`Waist-up portrait of ${withHeritage(BODY[sp][g], heritage)}, wearing ${pick(COSTUME[era], id)}`, `standing in a three-quarter view with ${g === 'female' ? 'her' : 'his'} back half turned, glancing back over the shoulder at the camera with a playful, warm smile`]
+      : [`Head-and-shoulders portrait of ${withHeritage(BODY[sp][g], heritage)}, wearing ${pick(COSTUME[era], id)}`, 'looking at the camera with a playful, warm expression, centred, face fully in frame'];
+  return [...frame, pick(BACKDROP, `${id}:bg`), PALETTE, STYLE[style]].join(', ');
+}
+
+/** The site's one scene: the founder alone at the trade (one figure, simple prop), or the mixed trio for a collective. */
+function scenePrompt(key: string, cast: string, industry: string, style: Style, founderName: string, founderHeritage: Heritage) {
+  const sid = `scene-${key}`;
+  const era: Era = hash(`${sid}:era`) % 2 ? 'myth' : 'space';
+  const single = cast !== 'collective';
+  const fg = genderOf(founderName, `${key}:founder`);
+  const who = single ? withHeritage(BODY[cast as Species][fg], founderHeritage) : `an equal trio of fae friends — an elf, a gnome and a faerie, ${MIXED_GROUP} — working side by side`;
+  const pose = single
+    ? `a single figure shown whole from head to feet with two arms and two hands${cast === 'faerie' ? ', turned in a three-quarter view so the wings on the back show' : ''}`
+    : 'every person in the scene a complete figure with head, body, arms and legs';
+  return [`Full-body wide shot of ${who}, wearing ${pick(COSTUME[era], sid)}`, tradeFor(industry), `${pose}, joyful, energetic, magical, room to the side for a headline`, PALETTE, STYLE[style]].join(', ');
 }
 
 async function init() {
@@ -196,7 +213,7 @@ async function init() {
         width: 768,
         height: 768,
         tags: ['avatar', 'portrait', 'character', sp, g, `style-${style}`, `era-${era}`, `tpl-${key}`],
-        character: { name, species: sp, gender: g, role, ...(origin ? {} : { heritage }) },
+        character: { name, species: sp, gender: g, role, ...(origin ? {} : { heritage: heritageText(heritage) }) },
         ...(origin ? { origin } : {}),
       });
       if (origin) moves.push([join(OUT, origin.replace(/^out\//, '')), join(SITES_DIR, s.folder, file)]);
@@ -204,14 +221,9 @@ async function init() {
 
     // one scene (Gio 2026-11-20: one take, 1024×576 — renders ~2.5x faster), starring the founder (or the whole collective) at the site's trade
     const founder = site.people[0];
-    const fg = genderOf(founder.name, `${key}:founder`);
     const sid = `scene-${key}`;
     const era: Era = hash(`${sid}:era`) % 2 ? 'myth' : 'space';
-    const who =
-      site.cast.mode === 'single'
-        ? `${BODY[site.cast.species][fg]}${(h => (h ? `, ${h}` : ''))(s.pictures.find((p) => p.character?.name === founder.name)?.character?.heritage)}`
-        : `an equal trio of fae friends — an elf, a gnome and a faerie, ${MIXED_GROUP} — working side by side`;
-    const prompt = [`Full-body wide shot of ${who}, wearing ${pick(COSTUME[era], sid)}`, tradeFor(spec.industry), 'every person in the scene a complete figure with head, body, arms and legs, joyful, energetic, magical, room to the side for a headline', PALETTE, STYLE[style]].join(', ');
+    const prompt = scenePrompt(key, castMode, spec.industry, style, founder.name, parseHeritage(s.pictures.find((p) => p.character?.name === founder.name && p.character.heritage)?.character?.heritage ?? heritageText(heritageFor(key, 0))));
     const sp = site.cast.mode === 'single' ? [site.cast.species as string] : ['elf', 'gnome', 'faerie'];
     for (const [v, seed] of seedsFor(sid, 1).entries()) {
       const title = site.cast.mode === 'single' ? `${founder.name} at work` : `The ${site.brand} collective at work`;
@@ -346,6 +358,68 @@ function remix(siteNo: number, picNo: number) {
   console.log(`site ${pad(s.n, 3)} picture #${pad(no)} ← #${pad(p.no)} seed ${seed} → ${file}`);
 }
 
+// ————————————————————————————————————————————————————— reprompt / redo
+
+const REJECTS = join(dirname(SITES_DIR), 'Rejects');
+/** A character's heritage is its slot's draw (the record keeps the words a rendered picture was made with). */
+const heritageOf = (s: Site, p: Picture) => heritageFor(s.key, p.no - 1);
+
+function promptFor(s: Site, p: Picture) {
+  if (p.kind === 'portrait' && p.character) {
+    const { name, species, gender } = p.character;
+    const id = `${s.key}-${slugify(name)}`;
+    const era: Era = hash(`${id}:era`) % 2 ? 'myth' : 'space';
+    return portraitPrompt(species, gender, era, s.style as Style, id, heritageOf(s, p));
+  }
+  if (p.kind === 'scene' && !p.from) {
+    const founderName = p.title.replace(/ at work.*$/, '');
+    const fp = s.pictures.find((q) => q.kind === 'portrait' && q.character?.name === founderName);
+    return scenePrompt(s.key, s.cast, s.industry, s.style as Style, founderName, fp ? heritageOf(s, fp) : heritageFor(s.key, 0));
+  }
+  return p.prompt; // remixes keep their own words
+}
+
+/** Rebuild every unrendered picture's prompt from the current wording (seed, number and file stay). */
+function reprompt() {
+  const r = load();
+  let n = 0;
+  for (const s of r.sites)
+    for (const p of s.pictures) {
+      if (rendered(s, p)) continue;
+      const next = promptFor(s, p);
+      if (next !== p.prompt) (p.prompt = next), n++;
+      if (p.character) p.character.heritage = heritageText(heritageOf(s, p));
+    }
+  save(r);
+  console.log(`${n} prompts rebuilt`);
+}
+
+/** Send rendered pictures back: file → Rejects/<folder>/, fresh seed, current wording; the runner re-renders them in site order. */
+function redo(refs: string[], why: string, opts: { scenes: boolean; faeries: boolean }) {
+  const r = load();
+  const want = new Set(refs);
+  let n = 0;
+  for (const s of r.sites)
+    for (const p of s.pictures) {
+      const hit =
+        want.has(`${s.n}:${p.no}`) ||
+        (opts.scenes && p.kind === 'scene' && !p.from) ||
+        (opts.faeries && (p.character?.species === 'faerie' || (p.kind === 'scene' && (s.cast === 'faerie' || s.cast === 'collective'))));
+      if (!hit || !rendered(s, p)) continue;
+      const dir = join(REJECTS, s.folder);
+      mkdirSync(dir, { recursive: true });
+      renameSync(join(SITES_DIR, s.folder, p.file), join(dir, p.file.replace(/\.png$/, `-seed${p.seed}.png`)));
+      p.rejected = [...(p.rejected ?? []), { seed: p.seed, prompt: p.prompt, why }];
+      p.seed = seedsFor(`${s.key}:${p.no}:redo:${p.rejected.length}`, 1)[0];
+      p.prompt = promptFor(s, p);
+      if (p.character) p.character.heritage = heritageText(heritageOf(s, p));
+      delete p.origin;
+      n++;
+    }
+  save(r);
+  console.log(`${n} pictures sent back for a re-render`);
+}
+
 function stage(sitesArg: string, st: string) {
   if (st !== 'reviewed' && st !== 'on-tgv') throw new Error('stage is reviewed | on-tgv');
   const r = load();
@@ -368,10 +442,17 @@ else if (cmd === 'remix') {
   remix(Number(a1), Number(a2));
   jobs(a1);
   docs();
+} else if (cmd === 'reprompt') {
+  reprompt();
+  docs();
+} else if (cmd === 'redo') {
+  const wi = process.argv.indexOf('--why');
+  redo(process.argv.slice(3).filter((x) => /^\d+:\d+$/.test(x)), wi > 0 ? process.argv[wi + 1] : 'failed review', { scenes: process.argv.includes('--scenes'), faeries: process.argv.includes('--faeries') });
+  docs();
 } else if (cmd === 'stage') {
   stage(a1, a2);
   docs();
 } else {
-  console.log('usage: cast.mts init | jobs [--sites 1-10] | docs | remix <site#> <pic#> [--seed N] [--add "words"] | stage <sites> reviewed|on-tgv');
+  console.log('usage: cast.mts init | jobs [--sites 1-10] | docs | remix <site#> <pic#> [--seed N] [--add "words"] | reprompt | redo [site:pic ...] [--scenes] [--faeries] [--why "..."] | stage <sites> reviewed|on-tgv');
   process.exit(2);
 }

@@ -29,8 +29,8 @@ export const BODY: Record<Species, Record<Gender, string>> = {
     male: 'a stout old gnome man with rosy cheeks, a tall floppy pointed knitted hat and a long white braided beard woven with glowing thread',
   },
   faerie: {
-    female: 'a faerie woman with one pair of translucent iridescent dragonfly wings growing from her shoulder blades, two human ears, delicate features and starlight freckles',
-    male: 'a faerie man with one pair of translucent iridescent moth wings growing from his shoulder blades, two human ears, fine features and silver-dusted cheekbones',
+    female: 'a faerie woman with delicate features, starlight freckles and two human ears, one pair of translucent iridescent dragonfly wings growing out of her upper back between the shoulder blades',
+    male: 'a faerie man with fine features, silver-dusted cheekbones and two human ears, one pair of translucent iridescent moth wings growing out of his upper back between the shoulder blades',
   },
 };
 
@@ -64,20 +64,22 @@ export const BACKDROP = [
 
 /** What each trade looks like when fae do it — the scene's action and set. */
 export const TRADE: Record<string, string> = {
-  accounting: 'tallying glowing gold coins on a floating abacus of light in a candlelit counting-house among star charts',
-  actor: 'performing on a moonlit stage under a spotlight beam, theatrical pose, velvet curtains of light behind',
-  agency: 'sketching luminous designs on a hovering holographic drafting board in a bustling creative studio-workshop',
-  architecture: 'raising a model of a spiralling tree-tower city from glowing blueprints of light',
-  artist: 'painting a canvas with brushes that trail living neon light, paint jars glowing on the easel',
-  bakery: 'pulling star-dusted loaves from a glowing mushroom-cap oven, warm flour drifting through the light',
-  'barbershop-salon': 'braiding glowing ribbons into the long hair of a smiling fae customer who sits whole and relaxed in a plush velvet barber chair, the customer’s shoulders, arms, body and legs all visible in the chair, an ornate mirror and a cosy salon behind them',
-  blog: 'writing with a quill that leaves floating glowing words in the air, journals stacked around',
-  business: 'shaking hands across a market stall of curious wares with a fae shopper standing on the far side, the shopper’s whole body visible from head to feet, at a twilight fae market',
-  coach: 'walking beside a fae traveller with a walking staff on a glowing stone path up a misty mountain, both figures seen whole from head to feet, pointing the way',
-  construction: 'building a rune-carved stone bridge with floating beams of light and a glowing hammer',
-  education: 'reading from a floating book to a few wide-eyed young fae children sitting cross-legged on the grass, each child a whole small person with body, arms and legs, under a great old tree',
-  ecommerce: 'packing glowing parcels tied with light-thread into a basket by a postal toadstool',
-  fashion: 'fitting a shimmering gown of woven light on a tailor’s form, bolts of cosmic silk all around',
+  // One figure, hands free or holding ONE simple prop, big props standing beside or behind them.
+  // A second person or a hand working a prop is where a 4-step model grows extra arms and fuses objects into bodies (Gio 2026-11-20).
+  accounting: 'standing in front of a tall wooden abacus of glowing gold beads, holding a small leather ledger against the chest, in a candlelit counting-house among star charts',
+  actor: 'standing on a moonlit stage under a spotlight beam, taking a theatrical bow, velvet curtains of light behind',
+  agency: 'standing beside a hovering holographic drafting board covered in luminous designs, in a bustling creative studio-workshop',
+  architecture: 'holding a small model of a spiralling tree-tower city in both hands, glowing blueprints of light floating behind',
+  artist: 'standing beside an easel with a glowing canvas, holding a single paintbrush that trails living neon light',
+  bakery: 'holding a wooden tray of star-dusted loaves in both hands beside a glowing mushroom-cap oven, warm flour drifting through the light',
+  'barbershop-salon': 'standing proudly beside an empty plush velvet barber chair, holding a pair of silver scissors, an ornate mirror and glowing ribbons in a cosy salon behind',
+  blog: 'holding a quill that leaves floating glowing words in the air, journals stacked on a desk beside them',
+  business: 'standing behind a market stall of curious glowing wares, arms open in welcome, at a twilight fae market',
+  coach: 'standing on a glowing stone path up a misty mountain holding a walking staff, pointing the way ahead',
+  construction: 'standing on a rune-carved stone bridge holding a glowing hammer, floating beams of light behind',
+  education: 'standing under a great old tree holding an open glowing book, floating letters drifting up from its pages',
+  ecommerce: 'holding a glowing parcel tied with light-thread, a basket of parcels beside a postal toadstool',
+  fashion: 'standing beside a tailor’s form dressed in a shimmering gown of woven light, bolts of cosmic silk all around',
 };
 export const tradeFor = (industry: string) => TRADE[industry] ?? 'at work at their craft in a glowing fae workshop';
 
@@ -111,23 +113,26 @@ export const pick = <T>(list: readonly T[], key: string) => list[hash(key) % lis
 
 /** Every race across the board (Gio 2026-11-20): each character gets a heritage, a skin tone and a natural
  *  hair type. Within a site the characters rotate through the list, so no cast is all one look. */
-export const HERITAGE: string[] = [
-  'of West African heritage, with deep dark-brown skin and tightly coiled black hair',
-  'of East Asian heritage, with light golden skin and straight glossy black hair',
-  'of South Asian heritage, with warm brown skin and long wavy black hair',
-  'of Latin American heritage, with tan olive skin and thick wavy dark-brown hair',
-  'of Middle Eastern heritage, with olive-bronze skin and curly dark-brown hair',
-  'of Indigenous American heritage, with warm copper-brown skin and long straight black hair',
-  'of Afro-Caribbean heritage, with rich brown skin and black locs',
-  'of Southeast Asian heritage, with golden-brown skin and sleek black hair',
-  'of Pacific Islander heritage, with deep tan skin and thick curly black hair',
-  'of East African heritage, with dark umber skin and a short natural black afro',
-  'of Northern European heritage, with fair freckled skin and copper-red hair',
-  'of mixed heritage, with light-brown skin and loose brown curls',
-  'of North African heritage, with sun-bronzed skin and dark wavy hair',
-  'of Mediterranean heritage, with light olive skin and dark curly hair',
-  'of Scandinavian heritage, with pale skin and ash-blonde hair',
+export const HERITAGE: { lead: string; hair: string }[] = [
+  { lead: 'dark-brown-skinned Black West African', hair: 'tightly coiled black hair' },
+  { lead: 'East Asian', hair: 'straight glossy black hair' },
+  { lead: 'brown-skinned South Asian Indian', hair: 'long wavy black hair' },
+  { lead: 'tan-skinned Latino', hair: 'thick wavy dark-brown hair' },
+  { lead: 'olive-skinned Middle Eastern', hair: 'curly dark-brown hair' },
+  { lead: 'copper-skinned Native American', hair: 'long straight black hair' },
+  { lead: 'brown-skinned Black Afro-Caribbean', hair: 'black locs' },
+  { lead: 'golden-brown-skinned Southeast Asian Filipino', hair: 'sleek black hair' },
+  { lead: 'brown-skinned Polynesian Pacific Islander', hair: 'thick curly black hair' },
+  { lead: 'deep-brown-skinned Black East African', hair: 'a short natural black afro' },
+  { lead: 'fair freckled Irish', hair: 'copper-red hair' },
+  { lead: 'light-brown-skinned mixed-race', hair: 'loose brown curls' },
+  { lead: 'bronze-skinned North African', hair: 'dark wavy hair' },
+  { lead: 'olive-skinned Mediterranean', hair: 'dark curly hair' },
+  { lead: 'pale Scandinavian', hair: 'ash-blonde hair' },
 ];
+/** The race goes first, where schnell listens hardest, and the hair rides along: a trailing clause gets ignored. */
+export const withHeritage = (body: string, h: { lead: string; hair: string }) => `${body.replace(/^an? /, `a ${h.lead} `)}, ${h.hair}`;
+export const heritageText = (h: { lead: string; hair: string }) => `${h.lead}, ${h.hair}`;
 /** The k-th character of a site: stepping by a number coprime to the list keeps a site's cast varied. */
 export const heritageFor = (siteKey: string, k: number) => HERITAGE[(hash(`${siteKey}:heritage`) + k * 7) % HERITAGE.length];
 /** A mixed group's line, for scenes with a whole collective. */
