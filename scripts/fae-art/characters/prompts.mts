@@ -156,7 +156,7 @@ function portrait(species: Species, gender: Gender, n: number): Job {
     STYLE[style],
   ].join(', ');
   return {
-    id, kind: 'portrait', prompt, seeds: seedsFor(id), width: 1024, height: 1024,
+    id, kind: 'portrait', prompt, seeds: seedsFor(id), width: 768, height: 768, // avatars show small; 768 renders ~1.8x faster (Gio 2026-11-19)
     tags: ['avatar', 'portrait', 'character', species, gender, `style-${style}`, `era-${era}`],
     meta: { species, gender, style, era },
   };

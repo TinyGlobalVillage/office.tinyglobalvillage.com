@@ -31,7 +31,7 @@ Every prompt is built from these parts in `prompts.mts`:
 
 | Kind | Jobs | Renders (2 seeds each) | Size | Feeds |
 |---|---|---|---|---|
-| Portrait | 120: 3 species × 2 genders × 20, every style × both eras | 240 | 1024² | `avatarsFor()`: team, reviews, testimonials |
+| Portrait | 120: 3 species × 2 genders × 20, every style × both eras | 240 | 768² | `avatarsFor()`: team, reviews, testimonials |
 | Scene | 120: one per template, with **that template's own species** (from `createFaeSite`) at its own trade; 16 collectives get an elf + gnome + faerie trio | 240 | 1344×768 | the hero photo or the first feature photo |
 
 **Time:** about 40 s per render on the M3 Pro, so roughly 2.7 h per stage and about 5.5 h in all. The first chunk measures the real figure.
