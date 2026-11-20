@@ -309,15 +309,23 @@ function siteDoc(s: Site) {
   return L.join('\n');
 }
 
+/** Sites with a faerie in the cast (faerie or collective) — paused and filed last until the wings are solved (Gio 2026-11-20). */
+const hasFaeries = (s: Site) => s.cast === 'faerie' || s.cast === 'collective';
+
 function docs() {
   const r = load();
   const rows: string[] = [];
   let all = 0;
   let done = 0;
+  let firstFae = true;
   for (const s of r.sites) {
     const n = s.pictures.filter((p) => rendered(s, p)).length;
     all += s.pictures.length;
     done += n;
+    if (hasFaeries(s) && firstFae) {
+      firstFae = false;
+      rows.push('', '', '**FAERY SITES** — paused; elves and gnomes go first', '=================================================', '');
+    }
     const status = s.stage === 'on-tgv' ? 'ON TGV' : s.stage === 'reviewed' ? 'reviewed' : n === s.pictures.length ? 'FINISHED' : n ? 'in progress' : 'not started';
     rows.push(`${pad(s.n, 3)}  ${s.key}  ${s.brand.padEnd(34).slice(0, 34)}  ${s.cast.padEnd(10)}  ${`${n}/${s.pictures.length}`.padStart(5)}  ${status}`);
     if (n) {
@@ -331,6 +339,12 @@ function docs() {
     [
       'TGV fae template sites — character pictures',
       `updated ${now} · ${done}/${all} pictures rendered (${Math.round((100 * done) / all)}%)`,
+      (() => {
+        const eg = r.sites.filter((x) => !hasFaeries(x));
+        const a = eg.reduce((t, x) => t + x.pictures.length, 0);
+        const d = eg.reduce((t, x) => t + x.pictures.filter((p) => rendered(x, p)).length, 0);
+        return `elf and gnome sites ${pad(1, 3)}–${pad(eg.length, 3)}: ${d}/${a} rendered (${Math.round((100 * d) / a)}%)`;
+      })(),
       'pictures live in "Template Sites/<NNN Brand>/", each with its <brand>-image-prompts.md',
       'status: not started · in progress · FINISHED (all rendered) · reviewed · ON TGV',
       '',
@@ -398,6 +412,28 @@ function reprompt() {
   console.log(`${n} prompts rebuilt`);
 }
 
+/** Faery sites to the bottom: elf and gnome sites keep their order as 001…, faery sites follow; folders in Template Sites and Rejects are renamed to match. */
+function renumber() {
+  const r = load();
+  const order = [...r.sites.filter((x) => !hasFaeries(x)), ...r.sites.filter(hasFaeries)];
+  const moves: [string, string][] = [];
+  order.forEach((x, i) => {
+    const folder = `${pad(i + 1, 3)} ${x.brand.replace(/[/:]/g, '-')}`;
+    if (folder !== x.folder) moves.push([x.folder, folder]);
+    x.n = i + 1;
+    x.folder = folder;
+  });
+  for (const base of [SITES_DIR, REJECTS]) {
+    const staged = moves.filter(([a]) => existsSync(join(base, a)));
+    for (const [a] of staged) renameSync(join(base, a), join(base, `.renumber-${a}`));
+    for (const [a, b] of staged) renameSync(join(base, `.renumber-${a}`), join(base, b));
+  }
+  r.sites = order;
+  save(r);
+  docs();
+  console.log(`${moves.length} sites renumbered; elf and gnome sites 001–${pad(order.filter((x) => !hasFaeries(x)).length, 3)}, faery sites after`);
+}
+
 /** Send rendered pictures back: file → Rejects/<folder>/, fresh seed, current wording; the runner re-renders them in site order. */
 function redo(refs: string[], why: string, opts: { scenes: boolean; faeries: boolean }) {
   const r = load();
@@ -449,6 +485,8 @@ else if (cmd === 'remix') {
 } else if (cmd === 'reprompt') {
   reprompt();
   docs();
+} else if (cmd === 'renumber') {
+  renumber();
 } else if (cmd === 'redo') {
   const wi = process.argv.indexOf('--why');
   redo(process.argv.slice(3).filter((x) => /^\d+:\d+$/.test(x)), wi > 0 ? process.argv[wi + 1] : 'failed review', { scenes: process.argv.includes('--scenes'), faeries: process.argv.includes('--faeries') });

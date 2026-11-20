@@ -33,3 +33,5 @@ Gotchas:
 - schnell ignores negative prompts. To keep modern clothing out, say exactly what the costume is.
 - Put no brand or character names in prompts. The felt-doll look is a style, not someone's character.
 - Generation holds about 8 GB. That is why it takes the build lock and not the dev slot: it is build-sized.
+
+`cast.mts renumber` — files every site with a faerie in the cast (faerie or collective) last, under **FAERY SITES** in SITES.txt; elf and gnome sites keep their order from 001 and their folders (Template Sites + Rejects) are renamed to match. Render just the elves and gnomes with `run.sh --sites 1-73` (Gio 2026-11-20).
