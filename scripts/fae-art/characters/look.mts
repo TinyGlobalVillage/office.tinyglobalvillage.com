@@ -131,7 +131,7 @@ export const HERITAGE: { lead: string; hair: string }[] = [
   { lead: 'pale Scandinavian', hair: 'ash-blonde hair' },
 ];
 /** The race goes first, where schnell listens hardest, and the hair rides along: a trailing clause gets ignored. */
-export const withHeritage = (body: string, h: { lead: string; hair: string }) => `${body.replace(/^an? /, `a ${h.lead} `)}, ${h.hair}`;
+export const withHeritage = (body: string, h?: { lead: string; hair: string }) => (h ? `${body.replace(/^an? /, `a ${h.lead} `)}, ${h.hair}` : body);
 export const heritageText = (h: { lead: string; hair: string }) => `${h.lead}, ${h.hair}`;
 /** The k-th character of a site: stepping by a number coprime to the list keeps a site's cast varied. */
 export const heritageFor = (siteKey: string, k: number) => HERITAGE[(hash(`${siteKey}:heritage`) + k * 7) % HERITAGE.length];

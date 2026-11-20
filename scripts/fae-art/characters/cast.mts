@@ -113,7 +113,7 @@ function portraitPrompt(sp: Species, g: Gender, era: Era, style: Style, id: stri
 }
 
 /** The site's one scene: the founder alone at the trade (one figure, simple prop), or the mixed trio for a collective. */
-function scenePrompt(key: string, cast: string, industry: string, style: Style, founderName: string, founderHeritage: Heritage) {
+function scenePrompt(key: string, cast: string, industry: string, style: Style, founderName: string, founderHeritage?: Heritage) {
   const sid = `scene-${key}`;
   const era: Era = hash(`${sid}:era`) % 2 ? 'myth' : 'space';
   const single = cast !== 'collective';
@@ -303,6 +303,7 @@ function siteDoc(s: Site) {
     L.push(`- **Seed:** ${p.seed} · **Size:** ${p.width}×${p.height} · **Engine:** FLUX.1-schnell 4-bit, 4 steps`);
     if (p.from) L.push(`- **Re-used from:** #${pad(p.from)}`);
     L.push('', '```text', p.prompt, '```', '');
+    for (const [k, x] of (p.rejected ?? []).entries()) L.push(`- **Rejected take ${k + 1}:** seed ${x.seed} — ${x.why} (file in \`Rejects/${s.folder}/\`)`, '', '```text', x.prompt, '```', '');
   }
   return L.join('\n');
 }
@@ -374,7 +375,9 @@ function promptFor(s: Site, p: Picture) {
   if (p.kind === 'scene' && !p.from) {
     const founderName = p.title.replace(/ at work.*$/, '');
     const fp = s.pictures.find((q) => q.kind === 'portrait' && q.character?.name === founderName);
-    return scenePrompt(s.key, s.cast, s.industry, s.style as Style, founderName, fp ? heritageOf(s, fp) : heritageFor(s.key, 0));
+    // the founder looks like their portrait: one already rendered without a race keeps that face until it is redone too
+    const look = !fp ? heritageFor(s.key, 0) : rendered(s, fp) && !fp.prompt.includes(heritageOf(s, fp).lead) ? undefined : heritageOf(s, fp);
+    return scenePrompt(s.key, s.cast, s.industry, s.style as Style, founderName, look);
   }
   return p.prompt; // remixes keep their own words
 }
