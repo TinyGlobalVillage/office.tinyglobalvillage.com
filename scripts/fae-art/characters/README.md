@@ -4,7 +4,7 @@ Renders our own elves, gnomes and faeries locally on the Mac. It runs FLUX.1-sch
 
 The why, the volume and the stages are in `docs/template-gallery/CHARACTERS-PLAN.md`.
 
-Everything is organised **per template site**: each of the 120 sites has its own named characters (the people on its pages, plus extra reviewers) and two scenes. Each picture has a number, an SEO filename, alt text, a prompt and a seed. The source of truth is `docs/template-gallery/cast-registry.json` (append-only; never reshuffled).
+Everything is organised **per template site**: each of the 120 sites has its own named characters (the people on its pages, plus extra reviewers) and one scene. Each picture has a number, an SEO filename, alt text, a prompt and a seed. The source of truth is `docs/template-gallery/cast-registry.json` (append-only; never reshuffled).
 
 On disk (`~/.local/share/tgv-fae-art/`):
 - `SITES.txt` — every site, how many of its pictures are rendered, and its status (not started · in progress · FINISHED · reviewed · ON TGV).

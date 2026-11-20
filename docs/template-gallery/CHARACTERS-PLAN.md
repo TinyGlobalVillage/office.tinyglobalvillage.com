@@ -2,7 +2,7 @@
 
 Our own elves, gnomes and faeries, rendered on the Mac, replace the drawn avatars and add character scenes to all 120 gallery templates. Engine: `scripts/fae-art/characters/` (README there).
 
-**Status (2026-11-19):** generating, in waves by site number (Gio's go). The live tally is `~/.local/share/tgv-fae-art/SITES.txt`. The cast is 610 pictures in all: 370 portraits (one per face a template shows, each a named character) and 240 scenes (2 per site).
+**Status (2026-11-19):** generating, in waves by site number (Gio's go). The live tally is `~/.local/share/tgv-fae-art/SITES.txt`. The cast is 610 pictures in all: 370 portraits (one per face a template shows, each a named character) and 120 scenes (1 per site, 1024×576; Gio 2026-11-20). Four sites already have a second take, kept.
 
 ## Settled with Gio (2026-11-19)
 

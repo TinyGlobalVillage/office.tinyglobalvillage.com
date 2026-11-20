@@ -201,7 +201,7 @@ async function init() {
       if (origin) moves.push([join(OUT, origin.replace(/^out\//, '')), join(SITES_DIR, s.folder, file)]);
     }
 
-    // two scene candidates, starring the founder (or the whole collective) at the site's trade
+    // one scene (Gio 2026-11-20: one take, 1024×576 — renders ~2.5x faster), starring the founder (or the whole collective) at the site's trade
     const founder = site.people[0];
     const fg = genderOf(founder.name, `${key}:founder`);
     const sid = `scene-${key}`;
@@ -212,7 +212,7 @@ async function init() {
         : 'an equal trio of fae friends — an elf, a gnome and a faerie — working side by side';
     const prompt = [`Full-body wide shot of ${who}, wearing ${pick(COSTUME[era], sid)}`, tradeFor(spec.industry), 'joyful, energetic, magical, room to the side for a headline', PALETTE, STYLE[style]].join(', ');
     const sp = site.cast.mode === 'single' ? [site.cast.species as string] : ['elf', 'gnome', 'faerie'];
-    for (const [v, seed] of seedsFor(sid, 2).entries()) {
+    for (const [v, seed] of seedsFor(sid, 1).entries()) {
       const title = site.cast.mode === 'single' ? `${founder.name} at work` : `The ${site.brand} collective at work`;
       const who = site.cast.mode === 'single' ? `${slugify(founder.name)}-${slugify(LEXICON[site.cast.species].singular)}` : 'elf-gnome-faerie-collective';
       s.pictures.push({
@@ -223,8 +223,8 @@ async function init() {
         alt: site.cast.mode === 'single' ? `${founder.name}, ${founder.role.toLowerCase()} of ${site.brand}, at work` : `The elf, gnome and faerie partners of ${site.brand} at work`,
         prompt,
         seed,
-        width: 1344,
-        height: 768,
+        width: 1024,
+        height: 576,
         tags: ['character', 'scene', `tpl-${key}`, spec.industry, ...sp, `style-${style}`, `era-${era}`, ...(TRADE_TAGS[spec.industry] ?? [])],
       });
     }
