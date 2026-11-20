@@ -108,6 +108,30 @@ export const hash = (s: string) => {
 };
 export const seedsFor = (id: string, n: number) => Array.from({ length: n }, (_, v) => hash(`${id}#${v}`) % 2 ** 31);
 export const pick = <T>(list: readonly T[], key: string) => list[hash(key) % list.length];
+
+/** Every race across the board (Gio 2026-11-20): each character gets a heritage, a skin tone and a natural
+ *  hair type. Within a site the characters rotate through the list, so no cast is all one look. */
+export const HERITAGE: string[] = [
+  'of West African heritage, with deep dark-brown skin and tightly coiled black hair',
+  'of East Asian heritage, with light golden skin and straight glossy black hair',
+  'of South Asian heritage, with warm brown skin and long wavy black hair',
+  'of Latin American heritage, with tan olive skin and thick wavy dark-brown hair',
+  'of Middle Eastern heritage, with olive-bronze skin and curly dark-brown hair',
+  'of Indigenous American heritage, with warm copper-brown skin and long straight black hair',
+  'of Afro-Caribbean heritage, with rich brown skin and black locs',
+  'of Southeast Asian heritage, with golden-brown skin and sleek black hair',
+  'of Pacific Islander heritage, with deep tan skin and thick curly black hair',
+  'of East African heritage, with dark umber skin and a short natural black afro',
+  'of Northern European heritage, with fair freckled skin and copper-red hair',
+  'of mixed heritage, with light-brown skin and loose brown curls',
+  'of North African heritage, with sun-bronzed skin and dark wavy hair',
+  'of Mediterranean heritage, with light olive skin and dark curly hair',
+  'of Scandinavian heritage, with pale skin and ash-blonde hair',
+];
+/** The k-th character of a site: stepping by a number coprime to the list keeps a site's cast varied. */
+export const heritageFor = (siteKey: string, k: number) => HERITAGE[(hash(`${siteKey}:heritage`) + k * 7) % HERITAGE.length];
+/** A mixed group's line, for scenes with a whole collective. */
+export const MIXED_GROUP = 'each of a different race and skin tone';
 export const STYLES: Style[] = ['photo', 'felt', 'clay', 'toon'];
 export const SPECIES: Species[] = ['elf', 'gnome', 'faerie'];
 export const GENDERS: Gender[] = ['female', 'male'];

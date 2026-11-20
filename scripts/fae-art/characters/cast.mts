@@ -20,7 +20,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { LEXICON } from '../../../../../packages/@tgv/module-core/module-component-library/helpers/fae/index.ts';
 import { buildTemplate } from '../../fae-templates/kit.ts';
-import { BACKDROP, BODY, COSTUME, PALETTE, STYLE, STYLES, TRADE_TAGS, hash, pick, seedsFor, tradeFor, type Era, type Gender, type Species, type Style } from './look.mts';
+import { BACKDROP, BODY, MIXED_GROUP, heritageFor, COSTUME, PALETTE, STYLE, STYLES, TRADE_TAGS, hash, pick, seedsFor, tradeFor, type Era, type Gender, type Species, type Style } from './look.mts';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const CLIENT = join(HERE, '..', '..', '..');
@@ -42,7 +42,7 @@ export type Picture = {
   width: number;
   height: number;
   tags: string[];
-  character?: { name: string; species: Species; gender: Gender; role: string };
+  character?: { name: string; species: Species; gender: Gender; role: string; heritage?: string };
   from?: number; // a remix: the picture whose prompt it re-used
   origin?: string; // where an already-rendered picture came from
 };
@@ -98,9 +98,9 @@ const pad = (n: number, w = 2) => String(n).padStart(w, '0');
 
 // ————————————————————————————————————————————————————— init
 
-function portraitPrompt(sp: Species, g: Gender, era: Era, style: Style, id: string) {
+function portraitPrompt(sp: Species, g: Gender, era: Era, style: Style, id: string, heritage: string) {
   return [
-    `Head-and-shoulders portrait of ${BODY[sp][g]}, wearing ${pick(COSTUME[era], id)}`,
+    `Head-and-shoulders portrait of ${BODY[sp][g]}, ${heritage}, wearing ${pick(COSTUME[era], id)}`,
     'looking at the camera with a playful, warm expression, centred, face fully in frame',
     pick(BACKDROP, `${id}:bg`),
     PALETTE,
@@ -172,7 +172,8 @@ async function init() {
       const id = `${key}-${slugify(name)}`;
       const era: Era = hash(`${id}:era`) % 2 ? 'myth' : 'space';
       const no = s.pictures.length + 1;
-      let prompt = portraitPrompt(sp, g, era, style, id);
+      const heritage = heritageFor(key, s.pictures.length);
+      let prompt = portraitPrompt(sp, g, era, style, id, heritage);
       let seed = seedsFor(id, 1)[0];
       let origin: string | undefined;
       const reuse = legacy.findIndex((l) => l.meta.meta.species === sp && l.meta.meta.gender === g && l.meta.meta.style === style);
@@ -195,7 +196,7 @@ async function init() {
         width: 768,
         height: 768,
         tags: ['avatar', 'portrait', 'character', sp, g, `style-${style}`, `era-${era}`, `tpl-${key}`],
-        character: { name, species: sp, gender: g, role },
+        character: { name, species: sp, gender: g, role, ...(origin ? {} : { heritage }) },
         ...(origin ? { origin } : {}),
       });
       if (origin) moves.push([join(OUT, origin.replace(/^out\//, '')), join(SITES_DIR, s.folder, file)]);
@@ -208,8 +209,8 @@ async function init() {
     const era: Era = hash(`${sid}:era`) % 2 ? 'myth' : 'space';
     const who =
       site.cast.mode === 'single'
-        ? BODY[site.cast.species][fg]
-        : 'an equal trio of fae friends — an elf, a gnome and a faerie — working side by side';
+        ? `${BODY[site.cast.species][fg]}${(h => (h ? `, ${h}` : ''))(s.pictures.find((p) => p.character?.name === founder.name)?.character?.heritage)}`
+        : `an equal trio of fae friends — an elf, a gnome and a faerie, ${MIXED_GROUP} — working side by side`;
     const prompt = [`Full-body wide shot of ${who}, wearing ${pick(COSTUME[era], sid)}`, tradeFor(spec.industry), 'every person in the scene a complete figure with head, body, arms and legs, joyful, energetic, magical, room to the side for a headline', PALETTE, STYLE[style]].join(', ');
     const sp = site.cast.mode === 'single' ? [site.cast.species as string] : ['elf', 'gnome', 'faerie'];
     for (const [v, seed] of seedsFor(sid, 1).entries()) {
@@ -286,7 +287,7 @@ function siteDoc(s: Site) {
     L.push(`### ${pad(p.no)} · ${p.title}`, '');
     L.push(`- **File:** \`${p.file}\``);
     L.push(`- **Alt text:** ${p.alt}`);
-    if (p.character) L.push(`- **Character:** ${p.character.name} — ${p.character.species}, ${p.character.gender}, ${p.character.role}`);
+    if (p.character) L.push(`- **Character:** ${p.character.name} — ${p.character.species}, ${p.character.gender}, ${p.character.role}${p.character.heritage ? `, ${p.character.heritage}` : ''}`);
     L.push(`- **Seed:** ${p.seed} · **Size:** ${p.width}×${p.height} · **Engine:** FLUX.1-schnell 4-bit, 4 steps`);
     if (p.from) L.push(`- **Re-used from:** #${pad(p.from)}`);
     L.push('', '```text', p.prompt, '```', '');
