@@ -29,15 +29,15 @@ export const BODY: Record<Species, Record<Gender, string>> = {
     male: 'a stout old gnome man with rosy cheeks, a tall floppy pointed knitted hat and a long white braided beard woven with glowing thread',
   },
   faerie: {
-    female: 'a faerie woman with delicate features, starlight freckles and two human ears, one pair of translucent iridescent dragonfly wings growing out of her upper back between the shoulder blades',
-    male: 'a faerie man with fine features, silver-dusted cheekbones and two human ears, one pair of translucent iridescent moth wings growing out of his upper back between the shoulder blades',
+    female: 'a faerie woman with delicate features, starlight freckles and two human ears, one pair of huge pale-gold iridescent dragonfly wings, each wing as long as her whole body, flecked with cyan and magenta veins and shimmering particle filaments, both wings joined to her body at one single point on the bare skin between her shoulder blades, the wing roots clearly visible',
+    male: 'a faerie man with fine features, silver-dusted cheekbones and two human ears, one pair of huge pale-gold iridescent moth wings, each wing as long as his whole body, flecked with cyan and magenta veins and shimmering particle filaments, both wings joined to his body at one single point on the bare skin between his shoulder blades, the wing roots clearly visible',
   },
 };
 
 /** Never modern streetwear — space-age or mythical, nothing in between. */
 export const COSTUME: Record<Era, string[]> = {
   space: [
-    'a sleek iridescent space-age flight suit with glowing cyan seams',
+    'a flowing iridescent space-age tunic with glowing cyan seams',
     'chrome and silk star-voyager armour with neon pink piping',
     'a holographic cosmic cloak embroidered with moving constellations',
     'a luminous orbital explorer harness with violet light panels',
@@ -138,6 +138,12 @@ export const heritageFor = (siteKey: string, k: number) => HERITAGE[(hash(`${sit
 /** A mixed group's line, for scenes with a whole collective. */
 export const MIXED_GROUP = 'each of a different race and skin tone';
 export const STYLES: Style[] = ['photo', 'felt', 'clay', 'toon'];
+/** Faeries fly: big wings, and an open back so both visibly grow from one point (Gio 2026-11-20). */
+export const backView = (g: 'female' | 'male') => {
+  const h = g === 'female' ? 'her' : 'his';
+  return { open: `with a low open back that shows ${h} shoulder blades, otherwise fully and modestly clothed`, pose: `seen from behind with ${h} back to the camera, both wings spread wide and even to the left and right of ${h} body, turning ${h} head to look back over ${h} shoulder at the camera with a playful, warm smile` };
+};
+
 export const SPECIES: Species[] = ['elf', 'gnome', 'faerie'];
 export const GENDERS: Gender[] = ['female', 'male'];
 

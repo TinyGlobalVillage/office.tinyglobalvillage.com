@@ -20,7 +20,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { LEXICON } from '../../../../../packages/@tgv/module-core/module-component-library/helpers/fae/index.ts';
 import { buildTemplate } from '../../fae-templates/kit.ts';
-import { BACKDROP, BODY, MIXED_GROUP, heritageFor, heritageText, withHeritage, COSTUME, PALETTE, STYLE, STYLES, TRADE_TAGS, hash, pick, seedsFor, tradeFor, type Era, type Gender, type Species, type Style } from './look.mts';
+import { BACKDROP, BODY, backView, MIXED_GROUP, heritageFor, heritageText, withHeritage, COSTUME, PALETTE, STYLE, STYLES, TRADE_TAGS, hash, pick, seedsFor, tradeFor, type Era, type Gender, type Species, type Style } from './look.mts';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const CLIENT = join(HERE, '..', '..', '..');
@@ -104,10 +104,10 @@ type Heritage = { lead: string; hair: string };
 const parseHeritage = (t: string): Heritage => (([lead, ...hair]) => ({ lead, hair: hair.join(', ') }))(t.split(', '));
 
 function portraitPrompt(sp: Species, g: Gender, era: Era, style: Style, id: string, heritage: Heritage) {
-  // faeries turn and glance back over the shoulder: face-on, a 4-step model plants the wings beside the head (Gio 2026-11-20)
+  // faeries are seen from behind with an open back: big gold wings visibly growing from one point between the shoulder blades (Gio 2026-11-20)
   const frame =
     sp === 'faerie'
-      ? [`Waist-up portrait of ${withHeritage(BODY[sp][g], heritage)}, wearing ${pick(COSTUME[era], id)}`, `standing in a three-quarter view with ${g === 'female' ? 'her' : 'his'} back half turned, glancing back over the shoulder at the camera with a playful, warm smile`]
+      ? [`Upper-body portrait from the waist up, cropped above the hips, of ${withHeritage(BODY[sp][g], heritage)}, wearing ${pick(COSTUME[era], id)} ${backView(g).open}`, backView(g).pose]
       : [`Head-and-shoulders portrait of ${withHeritage(BODY[sp][g], heritage)}, wearing ${pick(COSTUME[era], id)}`, 'looking at the camera with a playful, warm expression, centred, face fully in frame'];
   return [...frame, pick(BACKDROP, `${id}:bg`), PALETTE, STYLE[style]].join(', ');
 }
@@ -119,10 +119,11 @@ function scenePrompt(key: string, cast: string, industry: string, style: Style, 
   const single = cast !== 'collective';
   const fg = genderOf(founderName, `${key}:founder`);
   const who = single ? withHeritage(BODY[cast as Species][fg], founderHeritage) : `an equal trio of fae friends — an elf, a gnome and a faerie, ${MIXED_GROUP} — working side by side`;
+  const fae = single && cast === 'faerie';
   const pose = single
-    ? `a single figure shown whole from head to feet with two arms and two hands${cast === 'faerie' ? ', turned in a three-quarter view so the wings on the back show' : ''}`
+    ? `a single figure shown whole from head to feet with two arms and two hands${fae ? `, ${backView(fg).pose}` : ''}`
     : 'every person in the scene a complete figure with head, body, arms and legs';
-  return [`Full-body wide shot of ${who}, wearing ${pick(COSTUME[era], sid)}`, tradeFor(industry), `${pose}, joyful, energetic, magical, room to the side for a headline`, PALETTE, STYLE[style]].join(', ');
+  return [`Full-body wide shot of ${who}, wearing ${pick(COSTUME[era], sid)}${fae ? ` ${backView(fg).open}` : ''}`, tradeFor(industry), `${pose}, joyful, energetic, magical, room to the side for a headline`, PALETTE, STYLE[style]].join(', ');
 }
 
 async function init() {
