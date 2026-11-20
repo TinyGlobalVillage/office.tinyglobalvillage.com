@@ -75,7 +75,13 @@ export type Ctx = {
   photo: (key: string) => string;
   /** per-slot running index, so two headlines on a page never repeat */
   next: (slot: FaeSlot) => number;
+  /** the site's own character behind a portrait key (cast art, CHARACTERS-PLAN) — name, role, alt — else null */
+  who?: (key: string) => CastMember | null;
+  /** this site's founder-at-work scene, when it is on TGV */
+  scene?: string | null;
 };
+
+export type CastMember = { key: string; name: string; role: string; alt: string };
 
 export const W = 1200;
 export const PAD = 60;
@@ -237,7 +243,7 @@ export function image(ctx: Ctx, a: { key: string; x: number; y: number; w: numbe
     type: 'image',
     name: a.circle ? 'Portrait' : 'Picture',
     src: ctx.photo(a.key),
-    alt: a.alt ?? '',
+    alt: a.alt ?? ctx.who?.(a.key)?.alt ?? '',
     fit: 'cover',
     ...(a.focal ? { focal: a.focal } : {}),
     ...(a.circle ? { imgShape: 'circle' } : {}),
@@ -398,6 +404,8 @@ export function hero(
     sideNote?: boolean;
   },
 ): Section {
+  // the founder at work is the hero picture wherever the site has one (a spec's own pick stays the fallback)
+  if (o.photo && ctx.scene) o = { ...o, photo: '@cast' };
   let H = o.h ?? 680;
   const isPhoto = o.variant.startsWith('photo');
   const t = isPhoto ? tone(ctx, 'dark') : tone(ctx, o.tone ?? 'bg');
@@ -603,8 +611,9 @@ export function team(ctx: Ctx, o: { n: number; avatars: string[]; tone?: Tone; h
     const off = o.ring ? 8 : 0;
     kids.push(image(ctx, { key: o.avatars[i % o.avatars.length], x: (cellW - d) / 2, y: off, w: d, h: d, circle: true }));
     let cy = d + off * 2 + 20;
-    const nm = text(ctx, { slot: 'person.name', index: i, x: 0, y: cy, w: cellW, pct: 100, size: 20, color: t.head, font: 'head', align: 'center', role: 'h3', name: 'Name' });
-    const rl = text(ctx, { slot: 'person.role', index: i, x: 0, y: bottom(nm) + 4, w: cellW, pct: 100, size: 14, color: t.muted, align: 'center', name: 'Role' });
+    const who = ctx.who?.(o.avatars[i % o.avatars.length]);
+    const nm = text(ctx, { slot: 'person.name', index: i, text: who?.name, x: 0, y: cy, w: cellW, pct: 100, size: 20, color: t.head, font: 'head', align: 'center', role: 'h3', name: 'Name' });
+    const rl = text(ctx, { slot: 'person.role', index: i, text: who && who.role !== 'Customer' ? who.role : undefined, x: 0, y: bottom(nm) + 4, w: cellW, pct: 100, size: 14, color: t.muted, align: 'center', name: 'Role' });
     kids.push(nm, rl);
     cy = bottom(rl);
     if (o.bio) {
@@ -673,7 +682,9 @@ export function reviews(ctx: Ctx, o: { n?: number; tone?: Tone; head?: HeadOpts 
     let cy = bottom(q) + 22;
     if (o.avatars?.length) {
       kids.push(image(ctx, { key: o.avatars[i % o.avatars.length], x: pad, y: cy, w: 48, h: 48, circle: true }));
-      kids.push(text(ctx, { slot: 'review.author', index: i, x: pad + 62, y: cy + 12, w: cellW - pad * 2 - 62, pct: pct - (62 / cellW) * 100, size: 14, color: t.muted, weight: 600, name: 'Author' }));
+      const who = ctx.who?.(o.avatars[i % o.avatars.length]);
+      const rest = who ? copy(ctx, 'review.author', i).text.split(',').slice(1).join(',') : '';
+      kids.push(text(ctx, { slot: 'review.author', index: i, text: who ? who.name + (rest ? `,${rest}` : '') : undefined, x: pad + 62, y: cy + 12, w: cellW - pad * 2 - 62, pct: pct - (62 / cellW) * 100, size: 14, color: t.muted, weight: 600, name: 'Author' }));
       cy += 48;
     } else {
       const a = text(ctx, { slot: 'review.author', index: i, x: pad, y: cy, w: cellW - pad * 2, pct, size: 14, color: t.muted, weight: 600, name: 'Author' });
@@ -1012,7 +1023,8 @@ export function listPanel(look: { card: string; ink: string; muted: string; acce
       const ry = 70 + i * rowH;
       if (look.avatars?.length) kids.push(image(ctx, { key: look.avatars[i % look.avatars.length], x: pad, y: ry, w: 40, h: 40, circle: true }));
       else kids.push(shape(ctx, { x: pad, y: ry, w: 40, h: 40, fill: look.line ?? look.muted, radius: 20, name: 'Dot' }));
-      kids.push(text(ctx, { text: copy(ctx, 'review.author', i + 7).text.split(',')[0], x: pad + 54, y: ry + 2, w: w - pad * 2 - 160, size: 14, color: look.ink, weight: 600, name: 'Name' }));
+      const who = look.avatars?.length ? ctx.who?.(look.avatars[i % look.avatars.length]) : null;
+      kids.push(text(ctx, { text: who?.name ?? copy(ctx, 'review.author', i + 7).text.split(',')[0], x: pad + 54, y: ry + 2, w: w - pad * 2 - 160, size: 14, color: look.ink, weight: 600, name: 'Name' }));
       kids.push(text(ctx, { text: copy(ctx, 'offering.title', i).text, x: pad + 54, y: ry + 21, w: w - pad * 2 - 160, size: 12, color: look.muted, name: 'What' }));
       kids.push(text(ctx, { text: `${(i * 37 + 12) % 90 + 9}.${(i * 13) % 9}0 ⟡`, x: w - pad - 100, y: ry + 10, w: 100, size: 14, color: look.accent, weight: 700, align: 'right', name: 'Amount' }));
       if (i < n - 1) kids.push(shape(ctx, { x: pad, y: ry + rowH - 9, w: w - pad * 2, h: 1, fill: look.line ?? look.muted, name: 'Rule' }));
@@ -1038,9 +1050,30 @@ export type TemplateSpec = {
   pages: PageSpec[];
   /** the photo/art keys this template uses, for the ledger */
   tags?: string[];
+  /** false = keep the shared drawn faces and pool photos, never this site's own cast art */
+  cast?: false;
 };
 
-export type Ledger = { maxUses?: number; photos: Record<string, { url: string; uses: string[]; tags?: string[]; source?: string }> };
+export type Ledger = {
+  maxUses?: number;
+  photos: Record<string, { url: string; uses: string[]; tags?: string[]; source?: string; alt?: string; cast?: { site: string; kind: 'portrait' | 'scene'; face?: string; name?: string; role?: string } }>;
+};
+
+/** This template's own characters, from the ledger entries `move.mts` filed: drawn face (`a-elf-2`) → its
+ *  portrait, and the founder's scene (first take) for the hero. Empty when the site has none on TGV yet. */
+export function castOf(ledger: Ledger, key: string): { faces: Map<string, CastMember>; members: Map<string, CastMember>; scene: string | null } {
+  const faces = new Map<string, CastMember>();
+  const members = new Map<string, CastMember>();
+  let scene: string | null = null;
+  for (const [k, p] of Object.entries(ledger.photos)) {
+    if (p.cast?.site !== key) continue;
+    const m: CastMember = { key: k, name: p.cast.name ?? '', role: p.cast.role ?? '', alt: p.alt ?? '' };
+    members.set(k, m);
+    if (p.cast.kind === 'portrait' && p.cast.face) faces.set(p.cast.face, m);
+    if (p.cast.kind === 'scene' && (!scene || k.length < scene.length)) scene = k;
+  }
+  return { faces, members, scene };
+}
 
 /** Resolve `@tag` (or `@tag1|tag2`) to a pool photo: one carrying a tag, not yet on this template, under the
  *  reuse cap, least-used first (ties broken by a per-template hash so neighbours differ). Plain keys pass through.
@@ -1065,11 +1098,16 @@ export function pickPhoto(ledger: Ledger, templateId: string, ask: string, taken
   throw new Error(`${templateId}: the photo pool is exhausted (${ask})`);
 }
 
-export function buildTemplate(spec: TemplateSpec, ledger: Ledger, uuid: () => string) {
+export function buildTemplate(spec: TemplateSpec, ledger: Ledger, uuid: () => string, opts: { cast?: boolean } = {}) {
   const templateId = `fae-${spec.key}`;
   const site = createFaeSite({ seed: templateId, industry: spec.industry });
   const used = new Set<string>();
   const picked = new Map<string, string>(); // '@tag#n' → key, stable within the template
+  // the site's own characters stand in for the shared drawn faces; the founder's scene takes the first
+  // pool photo the template asks for ('@cast' names it outright; `hero()` asks for it) — art-only specs keep their art
+  const cast = opts.cast === false || spec.cast === false ? { faces: new Map<string, CastMember>(), members: new Map<string, CastMember>(), scene: null } : castOf(ledger, spec.key);
+  let sceneGiven = false;
+  const who = (key: string) => cast.faces.get(key) ?? cast.members.get(picked.get(key) ?? key) ?? null;
   const pages = spec.pages.map((p) => {
     let n = 0;
     const counters = new Map<string, number>();
@@ -1080,8 +1118,15 @@ export function buildTemplate(spec: TemplateSpec, ledger: Ledger, uuid: () => st
       id: (hint) => `${hint}${(++n).toString(36)}-${p.slug.replace(/[^a-z0-9]/g, '') || 'home'}`,
       photo: (ask) => {
         // '@tag' picks from the pool; '@tag#2' names a distinct second pick that can be repeated verbatim
-        const key = ask.startsWith('@') ? (picked.get(ask) ?? pickPhoto(ledger, templateId, ask.replace(/#.*$/, ''), used)) : ask;
-        if (ask.startsWith('@')) picked.set(ask, key);
+        let key: string;
+        if (cast.faces.has(ask)) key = cast.faces.get(ask)!.key;
+        else if (picked.has(ask)) key = picked.get(ask)!;
+        else if (cast.scene && (ask === '@cast' || ((ask.startsWith('@') || /^p-/.test(ask)) && !sceneGiven))) {
+          key = cast.scene;
+          sceneGiven = true;
+        } else if (ask === '@cast') key = pickPhoto(ledger, templateId, '@nature|forest', used);
+        else key = ask.startsWith('@') ? pickPhoto(ledger, templateId, ask.replace(/#.*$/, ''), used) : ask;
+        if (ask.startsWith('@') || key !== ask) picked.set(ask, key);
         const ph = ledger.photos[key];
         if (!ph) throw new Error(`${spec.key}: no photo ${key} in the ledger`);
         if (!used.has(key)) {
@@ -1095,6 +1140,8 @@ export function buildTemplate(spec: TemplateSpec, ledger: Ledger, uuid: () => st
         counters.set(slot, v + 1);
         return v;
       },
+      who,
+      scene: cast.scene,
     };
     const sections = p.build(ctx).flat();
     const model = {

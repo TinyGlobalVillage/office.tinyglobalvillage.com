@@ -16,13 +16,13 @@
         "contact"
       ],
       "photos": [
-        "p-61517033",
+        "a-scene-40453488",
         "p-7e4eca4d",
         "p-cf46e6be",
-        "a-gnome-4",
-        "a-gnome-5",
-        "a-gnome-0",
-        "a-gnome-1"
+        "a-40453488-barnaby-bramblefoot",
+        "a-40453488-tilda-thimblewick",
+        "a-40453488-tobble-copperkettle",
+        "a-40453488-bartholomew-rootwhistle"
       ],
       "newAtoms": [],
       "brand": "Bramblefoot Atelier",
@@ -94,19 +94,19 @@
         "contact"
       ],
       "photos": [
-        "p-2b41cdf1",
+        "a-scene-2247d9b7",
         "p-e40a56f8",
         "p-3b904265",
         "p-17787ae6",
         "p-6d951def",
-        "a-gnome-3",
-        "a-gnome-4",
-        "a-gnome-5",
+        "a-2247d9b7-pippa-thimblewick",
+        "a-2247d9b7-dunstan-tinkerwhistle",
+        "a-2247d9b7-nib-bramblefoot",
         "p-72ffc22a",
         "p-64fedca1",
-        "a-gnome-0",
-        "a-gnome-1",
-        "a-gnome-2",
+        "a-2247d9b7-grummel-copperkettle",
+        "a-2247d9b7-bodo-pebblepot",
+        "a-2247d9b7-rosco-tinkerwhistle",
         "p-297607c7",
         "p-d3dd23de"
       ],
@@ -128,12 +128,12 @@
         "register"
       ],
       "photos": [
-        "p-3892bcd6",
+        "a-scene-5e76223d",
         "p-20c3f888",
-        "a-elf-0",
-        "a-elf-1",
-        "a-elf-2",
-        "a-elf-3"
+        "a-5e76223d-aldrith-willowmere",
+        "a-5e76223d-venyra-cloudsong",
+        "a-5e76223d-ellisande-willowmere",
+        "a-5e76223d-theren-nightbreeze"
       ],
       "newAtoms": [],
       "brand": "Highleaf Counting-House",
@@ -154,15 +154,15 @@
         "contact"
       ],
       "photos": [
-        "p-d68edc63",
+        "a-scene-464e5263",
         "p-55a4d011",
         "p-0d929805",
         "p-cf46e6be",
         "p-791a8a1a",
-        "a-gnome-1",
-        "a-gnome-2",
-        "a-gnome-3",
-        "a-gnome-4",
+        "a-464e5263-tilda-bramblefoot",
+        "a-464e5263-hamish-mossbottom",
+        "a-464e5263-rosco-puddingstone",
+        "a-464e5263-barnaby-gearspring",
         "p-54b73726",
         "p-5a01c18f",
         "p-9577aa79",
@@ -187,7 +187,7 @@
         "contact"
       ],
       "photos": [
-        "p-0c59506e"
+        "a-scene-6c4d1523"
       ],
       "newAtoms": [],
       "brand": "Fernbottle Ledgerworks",
@@ -207,7 +207,7 @@
         "contact"
       ],
       "photos": [
-        "p-72ffc22a",
+        "a-scene-ca6aaf5f",
         "p-73228230",
         "p-0c59506e",
         "p-eba4cd6a",
@@ -231,7 +231,7 @@
         "contact"
       ],
       "photos": [
-        "p-6d951def"
+        "a-scene-5634536a"
       ],
       "newAtoms": [],
       "brand": "Toadstool Tally & Sons",
@@ -251,7 +251,7 @@
         "contact"
       ],
       "photos": [
-        "p-9577aa79",
+        "a-scene-a42e2507",
         "p-54b73726",
         "p-3892bcd6"
       ],
@@ -322,7 +322,7 @@
         "contact"
       ],
       "photos": [
-        "p-d3dd23de",
+        "a-scene-2ba95296",
         "p-d4c1f73b",
         "p-2b421510",
         "p-cf46e6be",
@@ -330,10 +330,10 @@
         "p-eba4cd6a",
         "p-73228230",
         "p-297607c7",
-        "a-gnome-2",
-        "a-gnome-3",
-        "a-gnome-4",
-        "a-gnome-5",
+        "a-2ba95296-barnaby-ironcap",
+        "a-2ba95296-humbert-barleycorn",
+        "a-2ba95296-fizzwick-barleycorn",
+        "a-2ba95296-wobbin-copperkettle",
         "p-0d929805"
       ],
       "newAtoms": [],
@@ -406,10 +406,10 @@
         "contact"
       ],
       "photos": [
-        "p-0c59506e",
-        "a-gnome-4",
-        "a-gnome-5",
-        "p-d4c1f73b"
+        "a-scene-dbf5db42",
+        "a-dbf5db42-fergus-barleycorn",
+        "a-dbf5db42-greta-bramblefoot",
+        "p-0c59506e"
       ],
       "newAtoms": [],
       "brand": "Nutkin Masquers",
@@ -481,13 +481,14 @@
         "contact"
       ],
       "photos": [
-        "p-1e6efdec",
+        "a-scene-d200195b",
         "p-a40981c3",
         "p-6d951def",
         "p-64fedca1",
-        "a-elf-0",
-        "a-elf-1",
-        "a-elf-2"
+        "a-d200195b-quelenna-windrunner",
+        "p-1e6efdec",
+        "a-d200195b-corvaleth-amberlane",
+        "a-d200195b-ysolde-thornvale"
       ],
       "newAtoms": [],
       "brand": "The Timeless Masquers",
@@ -508,13 +509,13 @@
         "contact"
       ],
       "photos": [
-        "p-0f814652",
+        "a-scene-240ec272",
         "p-8a5e52b1",
         "p-df3bac91",
         "p-17787ae6",
-        "a-gnome-3",
-        "a-gnome-4",
-        "a-gnome-5"
+        "a-240ec272-pell-bramblefoot",
+        "a-240ec272-barnaby-burrowmere",
+        "a-240ec272-ottoline-gearspring"
       ],
       "newAtoms": [],
       "brand": "Root & Barrow Players",
@@ -535,13 +536,13 @@
         "contact"
       ],
       "photos": [
-        "p-54abe25c",
+        "a-scene-bbe73921",
         "p-cf46e6be",
         "p-df3bac91",
-        "a-gnome-2",
-        "a-gnome-3",
-        "a-gnome-4",
-        "a-gnome-5"
+        "a-bbe73921-tobble-ladlewell",
+        "a-bbe73921-barnaby-burrowmere",
+        "a-bbe73921-hamish-gearspring",
+        "a-bbe73921-maude-puddingstone"
       ],
       "newAtoms": [],
       "brand": "Old Stump Stage Company",
@@ -562,11 +563,11 @@
         "contact"
       ],
       "photos": [
-        "p-d68edc63",
-        "a-elf-3",
+        "a-scene-275c9072",
+        "a-275c9072-aldrith-lightfell",
         "p-a40981c3",
         "p-4f45018c",
-        "a-elf-4"
+        "a-275c9072-rhoswen-sunweaver"
       ],
       "newAtoms": [],
       "brand": "The Starlit Atelier",
@@ -587,11 +588,11 @@
         "contact"
       ],
       "photos": [
-        "p-b129c497",
+        "a-scene-d630f74c",
         "p-20c3f888",
         "p-0f814652",
         "p-4f45018c",
-        "a-gnome-4"
+        "a-d630f74c-wobbin-toadflax"
       ],
       "newAtoms": [],
       "brand": "Stumpwhistle Studio",
@@ -662,12 +663,12 @@
         "about"
       ],
       "photos": [
-        "a-gnome-1",
-        "a-gnome-2",
-        "a-gnome-3",
-        "a-gnome-4",
-        "a-gnome-5",
-        "a-gnome-0"
+        "a-f60665f2-tilda-barleycorn",
+        "a-f60665f2-maude-mossbottom",
+        "a-f60665f2-humbert-puddingstone",
+        "a-f60665f2-ottoline-nutkin",
+        "a-f60665f2-bartholomew-thimblewick",
+        "a-f60665f2-nesbit-tinkerwhistle"
       ],
       "newAtoms": [],
       "brand": "Hollowell Agency",
@@ -714,10 +715,10 @@
         "contact"
       ],
       "photos": [
-        "a-elf-0",
-        "a-elf-1",
-        "a-elf-2",
-        "a-elf-3"
+        "a-542052b1-aldrith-highbough",
+        "a-542052b1-theren-dawnmantle",
+        "a-542052b1-ilyrana-ashgrove",
+        "a-542052b1-aerendyl-cloudsong"
       ],
       "newAtoms": [],
       "brand": "The Starlit Studio",
@@ -738,14 +739,15 @@
         "contact"
       ],
       "photos": [
+        "a-scene-901bd857",
         "p-4590a9e7",
-        "p-67d6f993",
-        "p-f405cd66",
         "p-5e2744a2",
-        "a-elf-1",
-        "a-elf-2",
-        "a-elf-3",
-        "a-elf-4"
+        "p-d3dd23de",
+        "p-67d6f993",
+        "a-901bd857-calenor-gladeborn",
+        "a-901bd857-ilyrana-highbough",
+        "a-901bd857-arannis-mistwalker",
+        "a-901bd857-erevan-larkspur"
       ],
       "newAtoms": [],
       "brand": "The Starlit Atelier",
@@ -784,9 +786,9 @@
         "contact"
       ],
       "photos": [
-        "a-elf-2",
-        "a-elf-3",
-        "a-elf-4"
+        "a-4159d4a2-calenor-moonwhisper",
+        "a-4159d4a2-elowen-larkspur",
+        "a-4159d4a2-aerendyl-sunweaver"
       ],
       "newAtoms": [],
       "brand": "Willow Studio",
@@ -807,14 +809,14 @@
         "contact"
       ],
       "photos": [
+        "a-scene-f15bf837",
         "p-1cc5dae4",
-        "p-9cdbea8d",
         "p-64fedca1",
-        "p-b606aa28",
-        "a-gnome-3",
-        "a-gnome-4",
-        "a-gnome-5",
-        "a-gnome-0"
+        "p-9cdbea8d",
+        "a-f15bf837-hamish-tinkerwhistle",
+        "a-f15bf837-bodo-hollowell",
+        "a-f15bf837-gilly-acornshaw",
+        "a-f15bf837-hettie-barleycorn"
       ],
       "newAtoms": [],
       "brand": "Hollowell Agency",
@@ -836,13 +838,14 @@
         "contact"
       ],
       "photos": [
-        "p-8f170728",
+        "a-scene-f65a6e19",
         "p-b129c497",
-        "p-f5f0a9de",
+        "p-8f170728",
         "p-f4ffc645",
-        "a-gnome-2",
-        "a-gnome-3",
-        "a-gnome-4"
+        "p-f5f0a9de",
+        "a-f65a6e19-fizzwick-toadflax",
+        "a-f65a6e19-pell-nutkin",
+        "a-f65a6e19-bertha-acornshaw"
       ],
       "newAtoms": [],
       "brand": "Copper Kettle Agency",
@@ -921,9 +924,10 @@
         "contact"
       ],
       "photos": [
-        "p-19acaddb",
+        "a-scene-cac22fa2",
         "p-201206df",
-        "p-d5075f70"
+        "p-d5075f70",
+        "p-19acaddb"
       ],
       "newAtoms": [],
       "brand": "Root & Barrow Atelier",
@@ -1022,7 +1026,7 @@
         "contact"
       ],
       "photos": [
-        "p-2903b15c",
+        "a-scene-022214fe",
         "p-1e7ca2e9",
         "p-7d0da415",
         "p-7dce1c6b"
@@ -1047,14 +1051,15 @@
         "contact"
       ],
       "photos": [
-        "p-e5e450bb",
+        "a-scene-88376c6b",
         "p-8e75cbfd",
         "p-d7f7e8a8",
         "p-b27f46ee",
-        "a-elf-0",
-        "a-elf-1",
-        "a-elf-2",
-        "a-elf-3"
+        "a-88376c6b-thalion-moonwhisper",
+        "a-88376c6b-ilyrana-gladeborn",
+        "a-88376c6b-ithilwen-dawnmantle",
+        "a-88376c6b-caladrel-brightwater",
+        "p-e5e450bb"
       ],
       "newAtoms": [],
       "brand": "The Starlit Studio",
@@ -1075,14 +1080,15 @@
         "contact"
       ],
       "photos": [
-        "p-81ded215",
+        "a-scene-f5154f63",
         "p-17855891",
-        "p-226bed23",
+        "p-81ded215",
         "p-d6eb029e",
-        "a-elf-4",
-        "a-elf-5",
-        "a-elf-0",
-        "a-elf-1"
+        "p-226bed23",
+        "a-f5154f63-aelindra-thornvale",
+        "a-f5154f63-mireth-nightbreeze",
+        "a-f5154f63-elowen-nightbreeze",
+        "a-f5154f63-galathil-frostpetal"
       ],
       "newAtoms": [],
       "brand": "Evergreen Builders of Halls",
@@ -1156,13 +1162,13 @@
         "contact"
       ],
       "photos": [
+        "a-scene-8546f85e",
         "p-19acaddb",
-        "p-91f19468",
         "p-3892bcd6",
-        "p-297607c7",
-        "a-elf-1",
-        "a-elf-2",
-        "a-elf-3"
+        "p-91f19468",
+        "a-8546f85e-caladrel-brightwater",
+        "a-8546f85e-ilyrana-highbough",
+        "a-8546f85e-taurion-silverleaf"
       ],
       "newAtoms": [],
       "brand": "The Unhurried Studio",
@@ -1235,14 +1241,14 @@
         "about"
       ],
       "photos": [
+        "a-scene-3a84f530",
         "p-4269ee3f",
-        "p-8535bf1b",
-        "a-elf-2",
-        "a-elf-3",
-        "a-elf-4",
-        "a-elf-5",
-        "a-elf-0",
-        "a-elf-1"
+        "a-3a84f530-corvaleth-cloudsong",
+        "a-3a84f530-ithilwen-cloudsong",
+        "a-3a84f530-seraphel-dawnmantle",
+        "a-3a84f530-ellisande-brightwater",
+        "a-3a84f530-thalion-dawnmantle",
+        "a-3a84f530-nimrien-cloudsong"
       ],
       "newAtoms": [],
       "brand": "Highleaf Atelier",
@@ -1312,13 +1318,13 @@
         "contact"
       ],
       "photos": [
-        "p-248a1a41",
+        "a-scene-7a44fec6",
         "p-8a5e52b1",
-        "p-e7ba6d79",
+        "p-248a1a41",
         "p-81f97a60",
-        "a-gnome-2",
-        "a-gnome-3",
-        "a-gnome-4"
+        "a-7a44fec6-nesbit-mossbottom",
+        "a-7a44fec6-maude-puddingstone",
+        "a-7a44fec6-tobble-toadflax"
       ],
       "newAtoms": [],
       "brand": "Copper Kettle Bakehouse",
@@ -1339,12 +1345,12 @@
         "contact"
       ],
       "photos": [
-        "p-cbba3dd9",
+        "a-scene-76e8af8b",
         "p-8a5e52b1",
         "p-a40981c3",
-        "a-gnome-4",
-        "a-gnome-5",
-        "a-gnome-0"
+        "a-76e8af8b-humbert-mossbottom",
+        "a-76e8af8b-grummel-fernbottle",
+        "a-76e8af8b-nib-hollowell"
       ],
       "newAtoms": [],
       "brand": "The No-nonsense Bakehouse",
@@ -1365,15 +1371,15 @@
         "contact"
       ],
       "photos": [
-        "p-813a9dc6",
+        "a-scene-3282fb66",
         "p-a40981c3",
         "p-8a5e52b1",
-        "a-gnome-2",
-        "a-gnome-3",
-        "a-gnome-4",
-        "a-gnome-5",
-        "a-gnome-0",
-        "a-gnome-1"
+        "a-3282fb66-fergus-cobblebrook",
+        "a-3282fb66-agatha-acornshaw",
+        "a-3282fb66-bodo-nutkin",
+        "a-3282fb66-maude-hollowell",
+        "a-3282fb66-orla-stumpwhistle",
+        "a-3282fb66-barnaby-ironcap"
       ],
       "newAtoms": [],
       "brand": "Thimble Pantry",
@@ -1395,12 +1401,13 @@
         "contact"
       ],
       "photos": [
+        "a-scene-a67c9ea7",
         "p-d50a1c0b",
+        "a-a67c9ea7-taurion-cloudsong",
+        "a-a67c9ea7-varis-skyharrow",
+        "a-a67c9ea7-caladrel-larkspur",
         "p-0469f4b7",
-        "a-elf-5",
-        "a-elf-0",
-        "a-elf-1",
-        "p-30ebe85a"
+        "p-f405cd66"
       ],
       "newAtoms": [],
       "brand": "The Starlit Grooming Parlour",
@@ -1422,12 +1429,13 @@
         "contact"
       ],
       "photos": [
+        "a-scene-46d86ef5",
         "p-36eb24f6",
-        "p-99e11ce6",
-        "p-dbacb630",
-        "a-gnome-3",
-        "a-gnome-4",
-        "a-gnome-5"
+        "p-4590a9e7",
+        "a-46d86ef5-fennick-cobblebrook",
+        "a-46d86ef5-bartholomew-mossbottom",
+        "a-46d86ef5-pell-barleycorn",
+        "p-99e11ce6"
       ],
       "newAtoms": [],
       "brand": "The Honest Wing & Tress",
@@ -1448,13 +1456,13 @@
         "contact"
       ],
       "photos": [
+        "a-scene-4db3ba23",
         "p-9577aa79",
         "p-55a4d011",
         "p-d3dd23de",
-        "p-f4465425",
-        "a-elf-1",
-        "a-elf-2",
-        "a-elf-3"
+        "a-4db3ba23-lirael-cloudsong",
+        "a-4db3ba23-ithilwen-highbough",
+        "a-4db3ba23-faelar-ashgrove"
       ],
       "newAtoms": [],
       "brand": "Moonlit Wing & Tress",
@@ -1502,7 +1510,7 @@
         "contact"
       ],
       "photos": [
-        "p-dea30ff8",
+        "a-scene-a13318f0",
         "p-791a8a1a",
         "p-f4ffc645"
       ],
@@ -1525,13 +1533,14 @@
         "contact"
       ],
       "photos": [
-        "p-58359c87",
+        "a-scene-f96e4fe2",
         "p-d68edc63",
         "p-4d08a68a",
         "p-67d6f993",
-        "a-gnome-2",
-        "a-gnome-3",
-        "a-gnome-4"
+        "a-f96e4fe2-pell-cobblebrook",
+        "a-f96e4fe2-orla-bramblefoot",
+        "a-f96e4fe2-ottoline-hollowell",
+        "p-58359c87"
       ],
       "newAtoms": [],
       "brand": "Acorn Atelier",
@@ -1552,14 +1561,15 @@
         "contact"
       ],
       "photos": [
+        "a-scene-92f7e907",
+        "a-92f7e907-wendeline-nutkin",
+        "a-92f7e907-maude-stumpwhistle",
+        "a-92f7e907-ida-bramblefoot",
+        "a-92f7e907-pippa-barleycorn",
+        "a-92f7e907-rosco-fernbottle",
         "p-df3bac91",
-        "a-gnome-2",
-        "a-gnome-3",
-        "a-gnome-4",
-        "a-gnome-5",
-        "a-gnome-0",
-        "p-1e6efdec",
-        "p-17787ae6"
+        "p-17787ae6",
+        "p-1e6efdec"
       ],
       "newAtoms": [],
       "brand": "Toadstool Studio",
@@ -1581,12 +1591,13 @@
         "contact"
       ],
       "photos": [
-        "p-f81cf80c",
+        "a-scene-78896f68",
         "p-0d929805",
         "p-2b41cdf1",
-        "a-elf-4",
-        "a-elf-5",
-        "a-elf-0",
+        "a-78896f68-shaelynn-ashgrove",
+        "a-78896f68-sylvaris-silverleaf",
+        "a-78896f68-galathil-cloudsong",
+        "p-f81cf80c",
         "p-b606aa28"
       ],
       "newAtoms": [],
@@ -1607,13 +1618,13 @@
         "contact"
       ],
       "photos": [
-        "p-8a5e52b1",
+        "a-scene-323674b9",
         "p-2b421510",
-        "p-539c8406",
-        "p-a40981c3",
-        "a-gnome-4",
-        "a-gnome-5",
-        "a-gnome-0"
+        "p-81ded215",
+        "p-8a5e52b1",
+        "a-323674b9-gilly-puddingstone",
+        "a-323674b9-bertha-rootwhistle",
+        "a-323674b9-maude-toadflax"
       ],
       "newAtoms": [],
       "brand": "The Clever Journal",
@@ -1712,12 +1723,12 @@
         "contact"
       ],
       "photos": [
-        "a-elf-0",
+        "a-e9ffa30b-nimrien-sunweaver",
+        "a-scene-e9ffa30b",
         "p-20c3f888",
         "p-5a01c18f",
-        "p-d4c1f73b",
-        "a-elf-3",
-        "a-elf-4"
+        "a-e9ffa30b-aelindra-silverleaf",
+        "a-e9ffa30b-ellisande-thornvale"
       ],
       "newAtoms": [],
       "brand": "Evergreen Notebook",
@@ -1788,8 +1799,8 @@
         "contact"
       ],
       "photos": [
-        "p-54abe25c",
-        "p-e9b485ce"
+        "a-scene-80ea71c8",
+        "p-54abe25c"
       ],
       "newAtoms": [],
       "brand": "Dawnmantle Trading Co.",
@@ -1810,10 +1821,10 @@
         "contact"
       ],
       "photos": [
-        "p-55a4d011",
-        "p-17855891",
+        "a-scene-db89c579",
+        "p-5909b68b",
         "p-1e6efdec",
-        "p-791a8a1a"
+        "p-55a4d011"
       ],
       "newAtoms": [],
       "brand": "The No-nonsense Guild",
@@ -1834,12 +1845,12 @@
         "contact"
       ],
       "photos": [
-        "p-8043980b",
-        "p-5909b68b",
-        "p-55fd0a97",
-        "a-elf-0",
-        "a-elf-1",
-        "a-elf-2"
+        "a-scene-977389ae",
+        "p-a40981c3",
+        "p-d455ce82",
+        "a-977389ae-ithilwen-frostpetal",
+        "a-977389ae-seraphel-amberlane",
+        "a-977389ae-nimrien-starbloom"
       ],
       "newAtoms": [],
       "brand": "The Considered Gazette",
@@ -1860,12 +1871,12 @@
         "contact"
       ],
       "photos": [
-        "p-8e75cbfd",
+        "a-scene-44da55d8",
         "p-61517033",
         "p-660dfa3b",
-        "a-gnome-4",
-        "a-gnome-5",
-        "a-gnome-0",
+        "a-44da55d8-bertha-gearspring",
+        "a-44da55d8-tilda-gearspring",
+        "a-44da55d8-pell-barleycorn",
         "p-1cc5dae4"
       ],
       "newAtoms": [],
@@ -1941,12 +1952,12 @@
         "contact"
       ],
       "photos": [
-        "p-9cdbea8d",
+        "a-scene-311e4048",
         "p-58359c87",
-        "p-dbacb630",
-        "a-elf-5",
-        "a-elf-0",
-        "p-1cc5dae4"
+        "p-7dce1c6b",
+        "a-311e4048-galathil-amberlane",
+        "a-311e4048-ellisande-amberlane",
+        "p-9cdbea8d"
       ],
       "newAtoms": [],
       "brand": "The Luminous Agency",
@@ -1967,12 +1978,12 @@
         "contact"
       ],
       "photos": [
-        "p-dea30ff8",
-        "a-elf-1",
-        "a-elf-3",
+        "a-scene-0b977915",
+        "a-0b977915-ysolde-thornvale",
+        "a-0b977915-ilyrana-skyharrow",
         "p-54abe25c",
-        "a-elf-0",
-        "a-elf-2"
+        "a-0b977915-erevan-thornvale",
+        "a-0b977915-arannis-ashgrove"
       ],
       "newAtoms": [],
       "brand": "Highbough Studio",
@@ -1993,7 +2004,7 @@
         "contact"
       ],
       "photos": [
-        "p-7dce1c6b",
+        "a-scene-191813b0",
         "p-7d0da415"
       ],
       "newAtoms": [],
@@ -2203,12 +2214,13 @@
         "contact"
       ],
       "photos": [
-        "p-e9b485ce",
+        "a-scene-72a6ebc4",
         "p-297607c7",
-        "a-gnome-2",
-        "a-gnome-3",
-        "a-gnome-4",
-        "a-gnome-5",
+        "a-72a6ebc4-fennick-thimblewick",
+        "a-72a6ebc4-bodo-nutkin",
+        "a-72a6ebc4-hettie-rootwhistle",
+        "a-72a6ebc4-gilly-hollowell",
+        "p-e9b485ce",
         "p-7aff69b7",
         "p-b129c497"
       ],
@@ -2231,13 +2243,13 @@
         "contact"
       ],
       "photos": [
+        "a-scene-9d0da8ca",
         "p-1e7ca2e9",
         "p-226bed23",
-        "p-6044b23d",
-        "a-elf-1",
-        "a-elf-2",
-        "a-elf-3",
-        "p-f5f0a9de"
+        "a-9d0da8ca-calenor-amberlane",
+        "a-9d0da8ca-aldrith-lightfell",
+        "a-9d0da8ca-ellisande-silverleaf",
+        "p-6044b23d"
       ],
       "newAtoms": [],
       "brand": "Lantern Builders of Halls",
@@ -2258,12 +2270,12 @@
         "contact"
       ],
       "photos": [
-        "p-d3dd23de",
+        "a-scene-bbdb260f",
         "p-f4ffc645",
         "p-d6eb029e",
         "p-8f170728",
-        "a-elf-3",
-        "a-elf-4"
+        "a-bbdb260f-erevan-frostpetal",
+        "a-bbdb260f-varis-dawnmantle"
       ],
       "newAtoms": [],
       "brand": "Highbough Design Studio",
@@ -2285,11 +2297,11 @@
         "contact"
       ],
       "photos": [
-        "p-81ded215",
-        "p-050ca4cb",
+        "a-scene-294d876f",
         "p-0d929805",
-        "p-4590a9e7",
-        "a-gnome-2"
+        "p-d68edc63",
+        "p-0f814652",
+        "a-294d876f-ottoline-gearspring"
       ],
       "newAtoms": [],
       "brand": "The Honest Builders of Halls",
@@ -2310,11 +2322,12 @@
         "connect"
       ],
       "photos": [
+        "a-scene-731a386a",
+        "p-6d951def",
         "p-30ebe85a",
-        "p-d5075f70",
         "p-5a01c18f",
-        "a-elf-4",
-        "a-elf-5"
+        "a-731a386a-ysolde-gladeborn",
+        "a-731a386a-thalion-starbloom"
       ],
       "newAtoms": [],
       "brand": "The Unhurried Builders of Halls",
@@ -2335,11 +2348,11 @@
         "contact"
       ],
       "photos": [
-        "p-7e4eca4d",
-        "p-49ad2b43",
+        "a-scene-b17cbb51",
         "p-20c3f888",
-        "a-gnome-1",
-        "p-d4c1f73b"
+        "p-d4c1f73b",
+        "a-b17cbb51-tilda-ladlewell",
+        "p-0c59506e"
       ],
       "newAtoms": [],
       "brand": "Acorn Workshop",
@@ -2361,13 +2374,13 @@
         "contact"
       ],
       "photos": [
-        "p-e5e450bb",
+        "a-scene-42ff13d7",
         "p-17787ae6",
-        "a-elf-5",
-        "a-elf-0",
-        "a-elf-1",
-        "a-elf-2",
-        "p-201206df"
+        "a-42ff13d7-arannis-sunweaver",
+        "a-42ff13d7-seraphel-ashgrove",
+        "a-42ff13d7-taurion-thornvale",
+        "a-42ff13d7-lirael-frostpetal",
+        "p-e5e450bb"
       ],
       "newAtoms": [],
       "brand": "The Considered Studio",
@@ -2388,14 +2401,14 @@
         "contact"
       ],
       "photos": [
-        "a-elf-1",
-        "p-a0a4d8d3",
-        "p-2294787a",
+        "a-c63f9eca-shaelynn-cloudsong",
+        "a-scene-c63f9eca",
+        "p-d68edc63",
         "p-660dfa3b",
-        "a-elf-3",
-        "a-elf-4",
-        "a-elf-5",
-        "a-elf-0"
+        "a-c63f9eca-elowen-cloudsong",
+        "a-c63f9eca-theren-willowmere",
+        "a-c63f9eca-corvaleth-highbough",
+        "a-c63f9eca-arannis-mistwalker"
       ],
       "newAtoms": [],
       "brand": "Evergreen Studio",
@@ -2446,8 +2459,8 @@
         "contact"
       ],
       "photos": [
-        "p-f81cf80c",
-        "p-5909b68b"
+        "a-scene-7c877181",
+        "p-3892bcd6"
       ],
       "newAtoms": [],
       "brand": "Thimble Shop",
@@ -2550,16 +2563,16 @@
         "contact"
       ],
       "photos": [
-        "p-81f4198f",
-        "p-0b27a93c",
-        "p-e7ba6d79",
+        "a-scene-ec0a601a",
+        "p-2294787a",
+        "p-d4c1f73b",
         "p-297607c7",
-        "a-elf-2",
-        "a-elf-3",
-        "a-elf-4",
-        "a-elf-5",
-        "a-elf-0",
-        "a-elf-1"
+        "a-ec0a601a-faelar-moonwhisper",
+        "a-ec0a601a-orlaith-larkspur",
+        "a-ec0a601a-ellisande-windrunner",
+        "a-ec0a601a-quelenna-lightfell",
+        "a-ec0a601a-ilyrana-thornvale",
+        "a-ec0a601a-lirael-moonwhisper"
       ],
       "newAtoms": [],
       "brand": "Brightwater Emporium",
@@ -2580,7 +2593,7 @@
         "contact"
       ],
       "photos": [
-        "p-e9b485ce",
+        "a-scene-ce37d763",
         "p-9577aa79",
         "p-3b904265",
         "p-dea30ff8"
@@ -2604,13 +2617,13 @@
         "contact"
       ],
       "photos": [
-        "p-2d8b1ce6",
+        "a-scene-90048ff5",
         "p-2b41cdf1",
-        "p-4269ee3f",
+        "p-201206df",
         "p-2c38a175",
-        "a-gnome-3",
-        "a-gnome-1",
-        "a-gnome-2"
+        "a-90048ff5-gilly-ironcap",
+        "a-90048ff5-rosco-rootwhistle",
+        "a-90048ff5-humbert-hollowell"
       ],
       "newAtoms": [],
       "brand": "Burrowmere Trading Post",
@@ -2631,16 +2644,16 @@
         "contact"
       ],
       "photos": [
-        "p-4f45018c",
+        "a-scene-47101e78",
         "p-72ffc22a",
+        "p-4f45018c",
+        "a-47101e78-humbert-nutkin",
         "p-eba4cd6a",
-        "a-gnome-2",
-        "p-f405cd66",
-        "a-gnome-0",
-        "a-gnome-1",
-        "a-gnome-3",
-        "a-gnome-4",
-        "a-gnome-5"
+        "a-47101e78-grummel-cobblebrook",
+        "a-47101e78-ottoline-hollowell",
+        "a-47101e78-rosco-ladlewell",
+        "a-47101e78-greta-cobblebrook",
+        "a-47101e78-ida-rootwhistle"
       ],
       "newAtoms": [],
       "brand": "Thimblewick Emporium",
@@ -2688,11 +2701,11 @@
         "contact"
       ],
       "photos": [
-        "p-df3bac91",
-        "a-elf-1",
-        "a-elf-2",
-        "a-elf-3",
-        "a-elf-4"
+        "a-scene-909bed02",
+        "a-909bed02-quelenna-ashgrove",
+        "a-909bed02-ilyrana-dawnmantle",
+        "a-909bed02-elowen-sunweaver",
+        "a-909bed02-rhoswen-moonwhisper"
       ],
       "newAtoms": [],
       "brand": "Willow Market",
@@ -2714,13 +2727,13 @@
         "contact"
       ],
       "photos": [
-        "p-d455ce82",
+        "a-scene-09f8103e",
         "p-d7f7e8a8",
         "p-0b27a93c",
         "p-e7ba6d79",
-        "a-elf-3",
-        "a-elf-4",
-        "a-elf-5"
+        "a-09f8103e-quelenna-mistwalker",
+        "a-09f8103e-rhoswen-silverleaf",
+        "a-09f8103e-corvaleth-lightfell"
       ],
       "newAtoms": [],
       "brand": "Highleaf Emporium",
@@ -2770,11 +2783,11 @@
         "contact"
       ],
       "photos": [
-        "p-dbe669e8",
+        "a-scene-38f8fe7d",
         "p-64fedca1",
-        "a-gnome-1",
-        "a-gnome-2",
-        "a-gnome-3"
+        "a-38f8fe7d-pell-hollowell",
+        "a-38f8fe7d-wobbin-copperkettle",
+        "a-38f8fe7d-wendeline-thimblewick"
       ],
       "newAtoms": [],
       "brand": "Nutkin Lyceum",
@@ -2796,9 +2809,9 @@
         "contact"
       ],
       "photos": [
-        "p-e5e450bb",
-        "a-elf-4",
-        "a-elf-5"
+        "a-scene-33bc07b4",
+        "a-33bc07b4-mireth-skyharrow",
+        "a-33bc07b4-caladrel-cloudsong"
       ],
       "newAtoms": [],
       "brand": "Starwell Academy",
@@ -2820,12 +2833,12 @@
         "contact"
       ],
       "photos": [
-        "p-2d8b1ce6",
+        "a-scene-a91a8316",
         "p-54abe25c",
-        "a-elf-5",
-        "a-elf-0",
-        "a-elf-1",
-        "a-elf-2"
+        "a-a91a8316-aerendyl-willowmere",
+        "a-a91a8316-faelar-sunweaver",
+        "a-a91a8316-theren-amberlane",
+        "a-a91a8316-caladrel-brightwater"
       ],
       "newAtoms": [],
       "brand": "Skyharrow Academy",
@@ -2846,12 +2859,12 @@
         "contact"
       ],
       "photos": [
-        "a-elf-0",
-        "a-elf-1",
-        "a-elf-2",
-        "a-elf-3",
-        "a-elf-4",
-        "a-elf-5"
+        "a-15bac737-shaelynn-silverleaf",
+        "a-15bac737-ellisande-thornvale",
+        "a-15bac737-nimrien-larkspur",
+        "a-15bac737-caladrel-dawnmantle",
+        "a-15bac737-aerendyl-thornvale",
+        "a-15bac737-orlaith-gladeborn"
       ],
       "newAtoms": [],
       "brand": "Frostpetal Lyceum",
@@ -2872,10 +2885,10 @@
         "contact"
       ],
       "photos": [
-        "p-22828a94",
-        "a-elf-3",
-        "a-elf-4",
-        "a-elf-5"
+        "a-scene-82d151e2",
+        "a-82d151e2-ysolde-starbloom",
+        "a-82d151e2-quelenna-thornvale",
+        "a-82d151e2-mireth-frostpetal"
       ],
       "newAtoms": [],
       "brand": "The Clear-eyed Market",
@@ -2982,12 +2995,13 @@
         "faq"
       ],
       "photos": [
-        "p-8e63dbc0",
+        "a-scene-8e4c9bf9",
         "p-8b16dac0",
-        "a-gnome-0",
-        "a-gnome-1",
-        "a-gnome-2",
-        "p-248a1a41"
+        "a-8e4c9bf9-fergus-burrowmere",
+        "a-8e4c9bf9-maude-hollowell",
+        "a-8e4c9bf9-orla-puddingstone",
+        "p-248a1a41",
+        "p-8e63dbc0"
       ],
       "newAtoms": [],
       "brand": "The Hand-built Shop",
@@ -3008,12 +3022,12 @@
         "contact"
       ],
       "photos": [
-        "p-d3dd23de",
-        "a-elf-0",
-        "a-elf-1",
-        "a-elf-2",
-        "p-b27f46ee",
+        "a-scene-6fcdb649",
+        "a-6fcdb649-aldrith-ashgrove",
+        "a-6fcdb649-taurion-willowmere",
+        "a-6fcdb649-galathil-thornvale",
         "p-36eb24f6",
+        "p-b27f46ee",
         "p-99e11ce6"
       ],
       "newAtoms": [],
@@ -3035,11 +3049,11 @@
         "contact"
       ],
       "photos": [
-        "p-2294787a",
+        "a-scene-c77e145f",
         "p-f5f0a9de",
         "p-d5075f70",
-        "a-elf-0",
-        "a-elf-1"
+        "a-c77e145f-faelar-starbloom",
+        "a-c77e145f-aldrith-frostpetal"
       ],
       "newAtoms": [],
       "brand": "The Considered Wardrobe",
@@ -3060,16 +3074,16 @@
         "help"
       ],
       "photos": [
-        "p-f4465425",
+        "a-scene-bc73e370",
         "p-30ebe85a",
         "p-e7ba6d79",
         "p-8b16dac0",
-        "a-elf-0",
-        "a-elf-1",
-        "a-elf-2",
-        "a-elf-3",
-        "a-elf-4",
-        "a-elf-5"
+        "a-bc73e370-lirael-mistwalker",
+        "a-bc73e370-ysolde-starbloom",
+        "a-bc73e370-aerendyl-highbough",
+        "a-bc73e370-orlaith-skyharrow",
+        "a-bc73e370-maelis-frostpetal",
+        "a-bc73e370-erevan-cloudsong"
       ],
       "newAtoms": [],
       "brand": "Willowmere Couture",
@@ -3090,14 +3104,14 @@
         "contact"
       ],
       "photos": [
-        "p-36eb24f6",
+        "a-scene-400bacde",
         "p-4d08a68a",
-        "p-30292e2f",
+        "p-36eb24f6",
         "p-d8fc343a",
-        "a-elf-0",
-        "a-elf-1",
-        "a-elf-2",
-        "a-elf-3"
+        "a-400bacde-maelis-moonwhisper",
+        "a-400bacde-aldrith-windrunner",
+        "a-400bacde-ithilwen-lightfell",
+        "a-400bacde-thalion-amberlane"
       ],
       "newAtoms": [],
       "brand": "Lantern House",
@@ -3118,14 +3132,14 @@
         "contact"
       ],
       "photos": [
-        "p-99e11ce6",
-        "a-elf-1",
-        "a-elf-2",
-        "p-5909b68b",
-        "a-elf-0",
-        "a-elf-3",
-        "a-elf-4",
-        "a-elf-5"
+        "a-scene-d5036d6b",
+        "a-d5036d6b-calenor-gladeborn",
+        "a-d5036d6b-faelar-gladeborn",
+        "p-dea30ff8",
+        "a-d5036d6b-aldrith-moonwhisper",
+        "a-d5036d6b-erevan-sunweaver",
+        "a-d5036d6b-sylvaris-ashgrove",
+        "a-d5036d6b-ellisande-brightwater"
       ],
       "newAtoms": [],
       "brand": "Amberlane Wardrobe",

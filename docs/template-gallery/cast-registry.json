@@ -70,7 +70,12 @@
       }
      ]
     }
-   ]
+   ],
+   "tgv": {
+    "docId": "aac29ee3-4e0c-4b2d-8fa1-9a37d18e11dc",
+    "docFolderId": "47a28062-fcfa-4ad7-a3c1-ad12e29b37e9"
+   },
+   "stage": "on-tgv"
   },
   {
    "n": 2,
@@ -222,7 +227,12 @@
       }
      ]
     }
-   ]
+   ],
+   "tgv": {
+    "docId": "e4959c74-762e-450d-a28f-fdb090365c58",
+    "docFolderId": "744afdbb-fe3c-454a-9310-4e2b981e36e7"
+   },
+   "stage": "on-tgv"
   },
   {
    "n": 3,
@@ -403,7 +413,12 @@
       }
      ]
     }
-   ]
+   ],
+   "tgv": {
+    "docId": "1d20f476-c6a5-4e22-ba80-3fc4a39e0caa",
+    "docFolderId": "b880b94d-95b4-4819-8926-d5ddb8bad588"
+   },
+   "stage": "on-tgv"
   },
   {
    "n": 4,
@@ -611,7 +626,12 @@
       }
      ]
     }
-   ]
+   ],
+   "tgv": {
+    "docId": "d043737e-2e8c-4344-9f45-48f95cdba6d8",
+    "docFolderId": "7277dad7-759e-4682-9cfa-a294b31f1e5a"
+   },
+   "stage": "on-tgv"
   },
   {
    "n": 5,
@@ -652,7 +672,12 @@
       }
      ]
     }
-   ]
+   ],
+   "tgv": {
+    "docId": "8c035cc8-10d0-413c-bd29-697e2bcce1bb",
+    "docFolderId": "e85b9605-e3b2-4715-ad34-d56d2b4d96eb"
+   },
+   "stage": "on-tgv"
   },
   {
    "n": 6,
@@ -856,7 +881,12 @@
       }
      ]
     }
-   ]
+   ],
+   "tgv": {
+    "docId": "52db6f7d-2177-49c8-a02c-89c302413266",
+    "docFolderId": "d44396cb-f3dd-4aec-b580-7763e39379f1"
+   },
+   "stage": "on-tgv"
   },
   {
    "n": 7,
@@ -978,7 +1008,12 @@
       }
      ]
     }
-   ]
+   ],
+   "tgv": {
+    "docId": "a7f7dd28-ada7-466e-9ebf-1fee88d0e590",
+    "docFolderId": "740c52dc-ea47-479d-ae0e-42c2971dc973"
+   },
+   "stage": "on-tgv"
   },
   {
    "n": 8,
@@ -1075,7 +1110,12 @@
       }
      ]
     }
-   ]
+   ],
+   "tgv": {
+    "docId": "aa0566ab-d3c5-446f-ac22-5419f1d5bbeb",
+    "docFolderId": "478188c3-089a-444f-96c9-09ad82b097d5"
+   },
+   "stage": "on-tgv"
   },
   {
    "n": 9,
@@ -1143,7 +1183,12 @@
       }
      ]
     }
-   ]
+   ],
+   "tgv": {
+    "docId": "bf2181df-0305-4133-b558-febc484f9485",
+    "docFolderId": "e373f6e9-f52d-42da-9dbc-e2cc2f9dfe89"
+   },
+   "stage": "on-tgv"
   },
   {
    "n": 10,
@@ -1293,7 +1338,12 @@
       }
      ]
     }
-   ]
+   ],
+   "tgv": {
+    "docId": "c2bf97cc-2bc2-4126-87b7-7a65ad7b66a3",
+    "docFolderId": "4d82bb67-1ef2-4b18-818a-e65f8c9913a0"
+   },
+   "stage": "on-tgv"
   },
   {
    "n": 11,
@@ -1390,7 +1440,12 @@
       }
      ]
     }
-   ]
+   ],
+   "tgv": {
+    "docId": "925cfd9e-34a9-4da6-b23c-5b20284de02b",
+    "docFolderId": "d313c333-297e-4529-bd59-b10f2f125744"
+   },
+   "stage": "on-tgv"
   },
   {
    "n": 12,
@@ -1513,7 +1568,12 @@
       }
      ]
     }
-   ]
+   ],
+   "tgv": {
+    "docId": "d4924d74-d897-4a4a-a660-47efc61acbc0",
+    "docFolderId": "b66be4e8-4e96-4661-8bec-9b1acc991251"
+   },
+   "stage": "on-tgv"
   },
   {
    "n": 13,
@@ -1718,7 +1778,12 @@
       }
      ]
     }
-   ]
+   ],
+   "tgv": {
+    "docId": "16b2a6ad-f6d1-4292-87ba-cd12047a6cc1",
+    "docFolderId": "96d2d74e-6dcb-4952-8422-c0fed45549d4"
+   },
+   "stage": "on-tgv"
   },
   {
    "n": 14,
@@ -1815,7 +1880,12 @@
       }
      ]
     }
-   ]
+   ],
+   "tgv": {
+    "docId": "0fe910fd-c46e-41c6-9867-cef731d19c51",
+    "docFolderId": "7b203cc3-9f29-4bcd-a4b1-e36d6c4e8ffd"
+   },
+   "stage": "on-tgv"
   },
   {
    "n": 15,
@@ -1938,7 +2008,12 @@
       }
      ]
     }
-   ]
+   ],
+   "tgv": {
+    "docId": "7538a7b8-c746-4e5c-bc4b-68d4d7716580",
+    "docFolderId": "49fcca64-d16a-4169-b442-de7951afc144"
+   },
+   "stage": "on-tgv"
   },
   {
    "n": 16,
@@ -2146,7 +2221,12 @@
       }
      ]
     }
-   ]
+   ],
+   "tgv": {
+    "docId": "0ecfd198-4dc9-4915-b3ea-bd1c7bd78e46",
+    "docFolderId": "e1fb51d0-83ea-47d6-867a-f70b4bf6c1a1"
+   },
+   "stage": "on-tgv"
   },
   {
    "n": 17,
@@ -2297,7 +2377,12 @@
       }
      ]
     }
-   ]
+   ],
+   "tgv": {
+    "docId": "f0fd7f75-aa61-4dc9-b6a9-2f88a1a59f14",
+    "docFolderId": "c11d39cf-645e-47cf-b0d5-1d9b0e9128aa"
+   },
+   "stage": "on-tgv"
   },
   {
    "n": 18,
@@ -2447,7 +2532,12 @@
       }
      ]
     }
-   ]
+   ],
+   "tgv": {
+    "docId": "72d7d98e-e9ed-4d54-be87-b7333693b341",
+    "docFolderId": "ffbcf1ff-056b-449a-a183-e09f9b3328ee"
+   },
+   "stage": "on-tgv"
   },
   {
    "n": 19,
@@ -2571,7 +2661,12 @@
       }
      ]
     }
-   ]
+   ],
+   "tgv": {
+    "docId": "e0d1603a-0616-4efc-a226-ef792c971697",
+    "docFolderId": "0bb8cee0-f300-4a15-b1f8-2fe166201c10"
+   },
+   "stage": "on-tgv"
   },
   {
    "n": 20,
@@ -2723,7 +2818,12 @@
       }
      ]
     }
-   ]
+   ],
+   "tgv": {
+    "docId": "b4fb82b2-3518-4092-ae9e-25252f524478",
+    "docFolderId": "033fbe60-cf5e-4d42-b40a-d7ae3bb957e3"
+   },
+   "stage": "on-tgv"
   },
   {
    "n": 21,
@@ -2845,7 +2945,12 @@
       }
      ]
     }
-   ]
+   ],
+   "tgv": {
+    "docId": "6b3a408c-b920-4dc4-8fe6-2b0118663a4e",
+    "docFolderId": "45d86972-9237-4566-9070-aeb2aba8fee8"
+   },
+   "stage": "on-tgv"
   },
   {
    "n": 22,
@@ -2995,7 +3100,12 @@
       }
      ]
     }
-   ]
+   ],
+   "tgv": {
+    "docId": "96a4fbfd-43ee-4a37-98bb-76e082e19110",
+    "docFolderId": "5704afa8-193f-4735-bcbf-05df5f754fb4"
+   },
+   "stage": "on-tgv"
   },
   {
    "n": 23,
@@ -3117,7 +3227,12 @@
       }
      ]
     }
-   ]
+   ],
+   "tgv": {
+    "docId": "34742130-a1a9-4975-aae5-9e11555852ed",
+    "docFolderId": "6dacccfe-8dfe-42f8-b3e8-776d8c77298f"
+   },
+   "stage": "on-tgv"
   },
   {
    "n": 24,
@@ -3320,7 +3435,12 @@
       }
      ]
     }
-   ]
+   ],
+   "tgv": {
+    "docId": "3880b914-4d0b-496c-b5a3-8eeb6fa74c10",
+    "docFolderId": "0223e661-6577-4b4f-b56d-93c4688b53db"
+   },
+   "stage": "on-tgv"
   },
   {
    "n": 25,
@@ -3444,7 +3564,12 @@
       }
      ]
     }
-   ]
+   ],
+   "tgv": {
+    "docId": "72169d1c-9577-4c07-ab7b-fd4318fa7dfe",
+    "docFolderId": "8f6dbe69-5913-43a9-ba2d-2469f228dadd"
+   },
+   "stage": "on-tgv"
   },
   {
    "n": 26,
@@ -3595,7 +3720,12 @@
       }
      ]
     }
-   ]
+   ],
+   "tgv": {
+    "docId": "100188e1-6aed-4dac-928a-e0c15c14d7d9",
+    "docFolderId": "3ac0d9cd-c66f-4a2f-8889-5c26a0865efa"
+   },
+   "stage": "on-tgv"
   },
   {
    "n": 27,
@@ -3637,7 +3767,12 @@
       }
      ]
     }
-   ]
+   ],
+   "tgv": {
+    "docId": "4f7eab8a-99e0-4af6-a762-ead8ff297c81",
+    "docFolderId": "16fcab2d-acec-4e48-adb7-18bf2bb63984"
+   },
+   "stage": "on-tgv"
   },
   {
    "n": 28,
@@ -3788,7 +3923,12 @@
       }
      ]
     }
-   ]
+   ],
+   "tgv": {
+    "docId": "6ee456d9-fbe4-45fe-83e1-e1824df0c2c5",
+    "docFolderId": "04827f61-a790-4020-9c8f-449bb2039645"
+   },
+   "stage": "on-tgv"
   },
   {
    "n": 29,
@@ -3830,7 +3970,12 @@
       }
      ]
     }
-   ]
+   ],
+   "tgv": {
+    "docId": "afe0d0d9-7ad8-47cf-8c40-99276e05bec3",
+    "docFolderId": "b44d44ad-4b15-41f1-b90f-82d3b34d9ada"
+   },
+   "stage": "on-tgv"
   },
   {
    "n": 30,
@@ -3953,7 +4098,12 @@
       }
      ]
     }
-   ]
+   ],
+   "tgv": {
+    "docId": "3ca69576-0b0b-4aec-b4ea-6bae3abe416b",
+    "docFolderId": "7cc5c6b7-da52-4d7c-9ff1-1706bcf9861c"
+   },
+   "stage": "on-tgv"
   },
   {
    "n": 31,
@@ -4100,7 +4250,12 @@
       "craft"
      ]
     }
-   ]
+   ],
+   "tgv": {
+    "docId": "fd7946de-7011-48c3-92ba-4fdba3dec0a5",
+    "docFolderId": "8e608a6c-b675-407c-a81c-34b069385d48"
+   },
+   "stage": "on-tgv"
   },
   {
    "n": 32,
@@ -4190,7 +4345,12 @@
       "architecture"
      ]
     }
-   ]
+   ],
+   "tgv": {
+    "docId": "90d8c827-878a-4d22-a8f9-27d639935adc",
+    "docFolderId": "8e260a35-5aa7-4f6f-9c6b-562df9b79abd"
+   },
+   "stage": "on-tgv"
   },
   {
    "n": 33,
@@ -4310,7 +4470,12 @@
       "food"
      ]
     }
-   ]
+   ],
+   "tgv": {
+    "docId": "29d49997-94be-45ab-820e-976f7169938c",
+    "docFolderId": "38d9afe6-ae44-4c25-922e-42e01c2e6b9d"
+   },
+   "stage": "on-tgv"
   },
   {
    "n": 34,
@@ -4429,7 +4594,12 @@
       "workshop"
      ]
     }
-   ]
+   ],
+   "tgv": {
+    "docId": "dfbb5d87-a578-4f99-b990-0184b4a920ff",
+    "docFolderId": "790dafbe-7903-4cad-8deb-7b10459b11fd"
+   },
+   "stage": "on-tgv"
   },
   {
    "n": 35,
@@ -4549,7 +4719,12 @@
       "food"
      ]
     }
-   ]
+   ],
+   "tgv": {
+    "docId": "25001315-6cb1-483b-9db9-eeb109220aa2",
+    "docFolderId": "47540e15-b3c7-4b05-9c48-d43afc608245"
+   },
+   "stage": "on-tgv"
   },
   {
    "n": 36,
@@ -4583,7 +4758,12 @@
       "product"
      ]
     }
-   ]
+   ],
+   "tgv": {
+    "docId": "89b24a07-38e8-4269-81a1-54ca3b2743fe",
+    "docFolderId": "33f10d81-276e-4d93-8b7b-a0d79a2ee284"
+   },
+   "stage": "on-tgv"
   },
   {
    "n": 37,
@@ -4617,7 +4797,12 @@
       "city"
      ]
     }
-   ]
+   ],
+   "tgv": {
+    "docId": "dfcd38dc-b096-4c89-86ee-f4d0640fee4a",
+    "docFolderId": "4bafc22c-3c3b-46c2-999b-ad80743f9833"
+   },
+   "stage": "on-tgv"
   },
   {
    "n": 38,
@@ -4735,7 +4920,12 @@
       "product"
      ]
     }
-   ]
+   ],
+   "tgv": {
+    "docId": "c04a1a93-aec8-42e9-8006-8c13f2510915",
+    "docFolderId": "43f323ba-35c0-45bc-b116-978d410ddbeb"
+   },
+   "stage": "on-tgv"
   },
   {
    "n": 39,
@@ -4861,7 +5051,12 @@
       }
      ]
     }
-   ]
+   ],
+   "tgv": {
+    "docId": "16cb1bd5-7673-4262-ac5f-b97135ac8fbb",
+    "docFolderId": "e8f7e07c-6fe9-411c-9b7b-588ec2239a56"
+   },
+   "stage": "on-tgv"
   },
   {
    "n": 40,
@@ -5008,7 +5203,12 @@
       "workshop"
      ]
     }
-   ]
+   ],
+   "tgv": {
+    "docId": "f5bf5356-1eab-414d-b610-7164a5331ceb",
+    "docFolderId": "7a2bd7c2-5112-440e-89d6-f001a566c09f"
+   },
+   "stage": "on-tgv"
   },
   {
    "n": 41,
@@ -5126,7 +5326,12 @@
       "product"
      ]
     }
-   ]
+   ],
+   "tgv": {
+    "docId": "0f1d4bfc-e729-41e5-b70c-1944875e99d1",
+    "docFolderId": "55e0f9e7-1380-4e71-b696-06c1269cf673"
+   },
+   "stage": "on-tgv"
   },
   {
    "n": 42,
@@ -5244,7 +5449,12 @@
       "product"
      ]
     }
-   ]
+   ],
+   "tgv": {
+    "docId": "51289d9d-1061-4b17-991e-030b15caaa80",
+    "docFolderId": "b37d5d90-b9d5-474c-950a-92b68b1cd6ac"
+   },
+   "stage": "on-tgv"
   },
   {
    "n": 43,
@@ -5391,7 +5601,12 @@
       "workshop"
      ]
     }
-   ]
+   ],
+   "tgv": {
+    "docId": "1d163917-58a4-47f4-a22b-875d92f49b4c",
+    "docFolderId": "a3ca051f-7b63-4df0-9f87-4d340fce7aa1"
+   },
+   "stage": "on-tgv"
   },
   {
    "n": 44,
@@ -5537,7 +5752,12 @@
       "product"
      ]
     }
-   ]
+   ],
+   "tgv": {
+    "docId": "e56e200e-5bb0-4fd7-85cf-24bf1098aa77",
+    "docFolderId": "5499d988-bbe4-4b72-8aac-1d4f68707d24"
+   },
+   "stage": "on-tgv"
   },
   {
    "n": 45,
@@ -5719,7 +5939,12 @@
       }
      ]
     }
-   ]
+   ],
+   "tgv": {
+    "docId": "afb475fe-7c1f-4334-a3b5-4f2fe5fabc3d",
+    "docFolderId": "13229e18-b396-4f47-b2a9-e980ab9379aa"
+   },
+   "stage": "on-tgv"
   },
   {
    "n": 46,
@@ -5754,7 +5979,12 @@
       "workshop"
      ]
     }
-   ]
+   ],
+   "tgv": {
+    "docId": "235451d5-693a-408e-bce5-bc0aadcc6bac",
+    "docFolderId": "715fd4ea-5439-4182-8768-9ba018b333c4"
+   },
+   "stage": "on-tgv"
   },
   {
    "n": 47,
@@ -5873,7 +6103,12 @@
       "desk"
      ]
     }
-   ]
+   ],
+   "tgv": {
+    "docId": "3cfc4289-4f6e-40b7-838e-a91ca1398cde",
+    "docFolderId": "6dfd442d-18ab-4e03-b789-309f6721e30a"
+   },
+   "stage": "on-tgv"
   },
   {
    "n": 48,
@@ -5991,7 +6226,12 @@
       "architecture"
      ]
     }
-   ]
+   ],
+   "tgv": {
+    "docId": "c64a0916-f450-435d-9b19-95fd14793d35",
+    "docFolderId": "3dc23676-bfac-439b-bac0-610a31bb2b95"
+   },
+   "stage": "on-tgv"
   },
   {
    "n": 49,
@@ -6026,7 +6266,12 @@
       "studio"
      ]
     }
-   ]
+   ],
+   "tgv": {
+    "docId": "e14f5820-08d7-4661-bdaa-d63963e8f0d9",
+    "docFolderId": "b15a7088-d37f-4f6e-8182-0cf13648f292"
+   },
+   "stage": "on-tgv"
   },
   {
    "n": 50,
@@ -6061,7 +6306,12 @@
       "study"
      ]
     }
-   ]
+   ],
+   "tgv": {
+    "docId": "404c0cda-4409-48ee-a171-d35a8d60c389",
+    "docFolderId": "f6f1ee89-2c95-44ab-b88f-5c0b773e41cf"
+   },
+   "stage": "on-tgv"
   },
   {
    "n": 51,
@@ -6179,7 +6429,12 @@
       "barber"
      ]
     }
-   ]
+   ],
+   "tgv": {
+    "docId": "35536f8f-f911-4633-a83c-5a98d91d91f2",
+    "docFolderId": "ec9758b5-c26b-48b4-8e1b-5e4a7ce1d61d"
+   },
+   "stage": "on-tgv"
   },
   {
    "n": 52,
@@ -6326,7 +6581,12 @@
       "books"
      ]
     }
-   ]
+   ],
+   "tgv": {
+    "docId": "743da92a-e1f8-4bdf-a36d-9d391285eb70",
+    "docFolderId": "e75b5d52-703f-4383-aef6-ab2ee075f794"
+   },
+   "stage": "on-tgv"
   },
   {
    "n": 53,
@@ -6389,7 +6649,12 @@
       "workshop"
      ]
     }
-   ]
+   ],
+   "tgv": {
+    "docId": "ceffd783-6bbf-4fd8-9b6c-516efd106db4",
+    "docFolderId": "77963e8d-f27b-4893-ac40-3b1b6e5c469d"
+   },
+   "stage": "on-tgv"
   },
   {
    "n": 54,
@@ -6479,7 +6744,12 @@
       "architecture"
      ]
     }
-   ]
+   ],
+   "tgv": {
+    "docId": "bf607590-353f-4a47-9cf7-493e7794dca2",
+    "docFolderId": "059b2793-71f4-490c-a27a-7054591dd9af"
+   },
+   "stage": "on-tgv"
   },
   {
    "n": 55,
@@ -6625,7 +6895,12 @@
       "stage"
      ]
     }
-   ]
+   ],
+   "tgv": {
+    "docId": "3a83c383-71ff-443e-8ead-533ff67c5b1b",
+    "docFolderId": "85361b31-28c0-4adf-9b61-47a8eb76e2b8"
+   },
+   "stage": "on-tgv"
   },
   {
    "n": 56,
@@ -6827,7 +7102,12 @@
       "fabric"
      ]
     }
-   ]
+   ],
+   "tgv": {
+    "docId": "fc7baac1-510e-45b5-97be-cc7907165b59",
+    "docFolderId": "24738c78-591f-401c-be94-a6570378add1"
+   },
+   "stage": "on-tgv"
   },
   {
    "n": 57,
@@ -7002,7 +7282,12 @@
       "workshop"
      ]
     }
-   ]
+   ],
+   "tgv": {
+    "docId": "37ddfa3e-3af6-482f-8d0f-c530a0f76d14",
+    "docFolderId": "c63cf32e-3a7a-46e7-bfa3-186d18aaa4f8"
+   },
+   "stage": "on-tgv"
   },
   {
    "n": 58,
@@ -7092,7 +7377,12 @@
       "fabric"
      ]
     }
-   ]
+   ],
+   "tgv": {
+    "docId": "f87f654b-693c-4d88-81b9-53985b7ed687",
+    "docFolderId": "42f92866-955e-4c23-b51a-c3c982d5412d"
+   },
+   "stage": "on-tgv"
   },
   {
    "n": 59,
@@ -7127,7 +7417,12 @@
       "study"
      ]
     }
-   ]
+   ],
+   "tgv": {
+    "docId": "45cc1c6e-cb71-4ef5-aa50-e71e3be9390f",
+    "docFolderId": "9b3915dd-36fb-43eb-810e-b10fac1e3b1a"
+   },
+   "stage": "on-tgv"
   },
   {
    "n": 60,
@@ -7162,7 +7457,12 @@
       "workshop"
      ]
     }
-   ]
+   ],
+   "tgv": {
+    "docId": "583d17d5-e2b8-4159-bbbb-bedb1e2b06be",
+    "docFolderId": "67f3a86a-6e6a-4c63-bd01-26892d708d06"
+   },
+   "stage": "on-tgv"
   },
   {
    "n": 61,
@@ -7196,7 +7496,12 @@
       "product"
      ]
     }
-   ]
+   ],
+   "tgv": {
+    "docId": "c1263808-9f65-43b4-9d51-6b00713d4ce7",
+    "docFolderId": "603c9463-49fa-4ca4-86c5-04cf423b9aa9"
+   },
+   "stage": "on-tgv"
   },
   {
    "n": 62,
@@ -7314,7 +7619,12 @@
       "stage"
      ]
     }
-   ]
+   ],
+   "tgv": {
+    "docId": "6f0a8c12-da03-4ed4-bfb8-1747beac81d4",
+    "docFolderId": "c4de8ea6-c5c0-455d-9978-3350fb2c2da4"
+   },
+   "stage": "on-tgv"
   },
   {
    "n": 63,
@@ -7516,7 +7826,12 @@
       "fabric"
      ]
     }
-   ]
+   ],
+   "tgv": {
+    "docId": "c84c1d67-51f5-462e-8272-d3beaac77267",
+    "docFolderId": "26668f91-e6fb-4bd9-a988-dbb27f3a09b6"
+   },
+   "stage": "on-tgv"
   },
   {
    "n": 64,
@@ -7579,7 +7894,12 @@
       "workshop"
      ]
     }
-   ]
+   ],
+   "tgv": {
+    "docId": "56f61aaa-ea8b-4669-8703-97805d312811",
+    "docFolderId": "f4367fa7-7d0e-4f5b-91f2-8cb1ad32010b"
+   },
+   "stage": "on-tgv"
   },
   {
    "n": 65,
@@ -7613,7 +7933,12 @@
       "city"
      ]
     }
-   ]
+   ],
+   "tgv": {
+    "docId": "0185f4a8-b2a8-4a3a-a83c-ee94f5d4b4cc",
+    "docFolderId": "116034c3-ceb1-4ca4-8ddd-2a0e88137ba9"
+   },
+   "stage": "on-tgv"
   },
   {
    "n": 66,
@@ -7703,7 +8028,12 @@
       "stage"
      ]
     }
-   ]
+   ],
+   "tgv": {
+    "docId": "c5c4e9d9-14a7-4fe2-90e4-4990a2e228ed",
+    "docFolderId": "0675c1a3-2ac8-4f83-a73d-51e5d6ad80e6"
+   },
+   "stage": "on-tgv"
   },
   {
    "n": 67,
@@ -7822,7 +8152,12 @@
       "desk"
      ]
     }
-   ]
+   ],
+   "tgv": {
+    "docId": "84c6a984-8a67-449f-b0fa-a54c7e82ebf4",
+    "docFolderId": "491cfcb4-6edb-4892-ab68-f028fce83d85"
+   },
+   "stage": "on-tgv"
   },
   {
    "n": 68,
@@ -8024,7 +8359,12 @@
       "product"
      ]
     }
-   ]
+   ],
+   "tgv": {
+    "docId": "c0b92349-312a-400c-9506-d897eaa980c2",
+    "docFolderId": "1b397fca-98e6-444d-bb35-79d20985881d"
+   },
+   "stage": "on-tgv"
   },
   {
    "n": 69,
@@ -8171,7 +8511,12 @@
       "workshop"
      ]
     }
-   ]
+   ],
+   "tgv": {
+    "docId": "743323ac-461c-4721-ba96-530a28907d1c",
+    "docFolderId": "e582c65d-26b4-463b-8f09-9ffed827b6f8"
+   },
+   "stage": "on-tgv"
   },
   {
    "n": 70,
@@ -8317,7 +8662,12 @@
       "architecture"
      ]
     }
-   ]
+   ],
+   "tgv": {
+    "docId": "11ae0659-199d-4fc4-828d-6cbdb3798713",
+    "docFolderId": "e2ab6109-656c-46eb-bb8a-530fea9cf47a"
+   },
+   "stage": "on-tgv"
   },
   {
    "n": 71,
@@ -8520,7 +8870,12 @@
       "workshop"
      ]
     }
-   ]
+   ],
+   "tgv": {
+    "docId": "ce4031c6-c216-442a-9928-83d557a98ced",
+    "docFolderId": "c819e6fe-d118-41c7-8c25-ee451940962d"
+   },
+   "stage": "on-tgv"
   },
   {
    "n": 72,
@@ -8639,7 +8994,12 @@
       "workshop"
      ]
     }
-   ]
+   ],
+   "tgv": {
+    "docId": "98af9a3f-be1d-43b6-889f-391d0b987f0f",
+    "docFolderId": "339be765-35ec-448a-af23-80b77d19f31a"
+   },
+   "stage": "on-tgv"
   },
   {
    "n": 73,
@@ -8758,7 +9118,12 @@
       "workshop"
      ]
     }
-   ]
+   ],
+   "tgv": {
+    "docId": "74c232f4-febc-4ee0-80d8-6accdc9579ef",
+    "docFolderId": "d6a31bb4-9c1d-4b13-9df0-2447f4788bcd"
+   },
+   "stage": "on-tgv"
   },
   {
    "n": 74,

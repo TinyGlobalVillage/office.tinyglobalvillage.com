@@ -77,6 +77,8 @@ for (const key of keys) {
   );
   console.log(`${built.templateId}  ${label}  pages=${built.pages.map((p) => `${p.slug}:${p.model.sections.length}`).join(',')}  photos=${built.used.join(',')}  bytes=${bj.length}${lost ? `  LOST=${lost}` : ''}`);
   if (record) {
+    // a pick this template no longer shows (its own cast art took the slot) gives its use back to the pool
+    for (const [k, ph] of Object.entries(ledger.photos)) if (!built.used.includes(k) && ph.uses.includes(built.templateId)) ph.uses = ph.uses.filter((u) => u !== built.templateId);
     for (const k of built.used) {
       const ph = ledger.photos[k];
       if (ph.uses.includes(built.templateId)) continue;

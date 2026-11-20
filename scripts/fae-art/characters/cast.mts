@@ -144,7 +144,7 @@ async function init() {
   const sites: Site[] = [];
   for (const [i, key] of keys.entries()) {
     const spec = (await import(join(specDir, `${key}.ts`))).default;
-    const b = buildTemplate(spec, ledger, randomUUID);
+    const b = buildTemplate(spec, ledger, randomUUID, { cast: false });
     const site = b.site;
     const n = i + 1;
     const style = STYLES[i % STYLES.length];

@@ -68,6 +68,7 @@ Every prompt is built from these parts in `look.mts`; `cast.mts` assembles them 
      - `hero()` uses it in place of its photo ask when the scene exists. That covers the 76 photo-hero specs.
      - The 44 art-only heroes take it on their first `@…` photo ask instead.
      - A spec can opt out with `cast: false`.
+   - **As built (2026-11-20):** `move.mts` files sites 001–073 (faery sites wait for the wings). The kit maps each drawn face the template used (`a-elf-2`) to the portrait made for it (ledger `cast.face`), so `avatarsFor` is unchanged; `team` / `reviews` / `listPanel` print the character's name (and role, unless "Customer"); every picture takes its alt from the ledger. The scene takes the template's first `@…` ask (its hero on every spec) or an explicit `'@cast'`; `build.mts --record` hands the displaced pool photo's use back.
 6. **Rebuild and ship:**
    - `build.mts` all 120, then `--record`, `push.sh`.
    - Phone + desktop UAT shots of every template.
