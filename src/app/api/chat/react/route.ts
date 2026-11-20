@@ -9,17 +9,16 @@ const DM_FILE = path.join(process.cwd(), "data", "direct-messages.json");
 
 type WithReactions = { reactions?: Record<string, string[]> };
 
+// ONE reaction per person (Gio 2026-11-19, iMessage's tapback): a new emoji replaces theirs, the
+// same emoji again takes it off.
 function toggleReaction(msg: WithReactions, emoji: string, username: string): WithReactions {
-  const reactions = msg.reactions ?? {};
-  const users = reactions[emoji] ?? [];
-  const idx = users.indexOf(username);
-  if (idx >= 0) {
-    users.splice(idx, 1);
-    if (users.length === 0) delete reactions[emoji];
-    else reactions[emoji] = users;
-  } else {
-    reactions[emoji] = [...users, username];
+  const had = (msg.reactions?.[emoji] ?? []).includes(username);
+  const reactions: Record<string, string[]> = {};
+  for (const [e, users] of Object.entries(msg.reactions ?? {})) {
+    const rest = users.filter((u) => u !== username);
+    if (rest.length > 0) reactions[e] = rest;
   }
+  if (!had) reactions[emoji] = [...(reactions[emoji] ?? []), username];
   msg.reactions = reactions;
   if (Object.keys(reactions).length === 0) delete msg.reactions;
   return msg;

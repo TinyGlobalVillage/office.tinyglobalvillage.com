@@ -63,6 +63,7 @@ import {
 } from "./icons";
 import { CallSurface, type RingChannel } from "./call";
 import { ChatBar } from "@tgv/module-component-library/components/chat";
+import { ReactionBadge, REACTION_BADGE_ROOM } from "@tgv/module-component-library/components/chat/ReactionBadge";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -1162,6 +1163,8 @@ const BubbleTime = styled.span`
 
 const BubbleCard = styled.div<{ $isMe?: boolean; $accent?: string }>`
   position: relative;
+  --tgv-reaction-bg: var(--t-surface);
+  --tgv-reaction-ink: var(--t-text);
   border-radius: ${(p) => (p.$isMe ? "18px 4px 18px 18px" : "4px 18px 18px 18px")};
   padding: 0.5rem 0.75rem;
   background: ${(p) =>
@@ -1412,43 +1415,6 @@ const ReactionTrayBtn = styled.button<{ $accent: string }>`
     background: color-mix(in srgb, ${(p) => p.$accent} 18%, transparent);
     transform: scale(1.15);
   }
-`;
-
-const ReactionRow = styled.div<{ $isMe: boolean }>`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.3rem;
-  margin-top: 0.3rem;
-  ${(p) => (p.$isMe ? "justify-content: flex-end;" : "")}
-`;
-
-const ReactionChip = styled.button<{ $accent: string; $mine: boolean }>`
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  padding: 0.15rem 0.45rem;
-  border-radius: 9999px;
-  font-size: 0.75rem;
-  line-height: 1.2;
-  cursor: pointer;
-  background: ${(p) => p.$mine
-    ? `color-mix(in srgb, ${p.$accent} 20%, transparent)`
-    : "color-mix(in srgb, var(--t-text) 8%, transparent)"};
-  border: 1px solid ${(p) => p.$mine
-    ? `color-mix(in srgb, ${p.$accent} 55%, transparent)`
-    : "color-mix(in srgb, var(--t-text) 18%, transparent)"};
-  color: var(--t-text);
-  transition: background 0.12s, border-color 0.12s, transform 0.08s;
-
-  &:hover {
-    background: color-mix(in srgb, ${(p) => p.$accent} 14%, transparent);
-  }
-  &:active { transform: scale(0.94); }
-`;
-
-const ReactionChipCount = styled.span`
-  font-weight: 600;
-  opacity: 0.85;
 `;
 
 const DEFAULT_QUICK_REACTIONS = ["👍", "❤️", "😂", "😮", "😢", "🙏"];
@@ -3419,7 +3385,16 @@ function MessageBubble({
           onTouchEnd={onBubbleTouchEnd}
           onTouchCancel={onBubbleTouchEnd}
           onContextMenu={onBubbleContextMenu}
+          style={reactions && Object.values(reactions).some((u) => u.length > 0) ? { marginTop: REACTION_BADGE_ROOM } : undefined}
         >
+          {/* The reaction sits on the corner nearest the middle of the chat (Gio 2026-11-19). */}
+          <ReactionBadge
+            reactions={reactions}
+            me={currentUser}
+            side={isMe ? "left" : "right"}
+            label="Change reaction"
+            onOpen={onReact ? (e) => openReactTray(e, e.currentTarget) : undefined}
+          />
           {editing ? (
             <div style={{ display: "flex", gap: "0.5rem" }}>
               <EditInput value={editVal} onChange={(e) => setEditVal(e.target.value)}
@@ -3499,25 +3474,6 @@ function MessageBubble({
             </>
           )}
         </BubbleCard>
-        {reactions && Object.keys(reactions).length > 0 && (
-          <ReactionRow $isMe={isMe}>
-            {Object.entries(reactions).map(([emoji, users]) => {
-              const mine = !!currentUser && users.includes(currentUser);
-              return (
-                <ReactionChip
-                  key={emoji}
-                  $accent={accent}
-                  $mine={mine}
-                  onClick={() => onReact?.(id, emoji)}
-                  title={users.join(", ")}
-                >
-                  <span>{emoji}</span>
-                  <ReactionChipCount>{users.length}</ReactionChipCount>
-                </ReactionChip>
-              );
-            })}
-          </ReactionRow>
-        )}
       </BubbleCol>
       {menuOpen && menuPos && createPortal(
         <BubbleMenuPopup
