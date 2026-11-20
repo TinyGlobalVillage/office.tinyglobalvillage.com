@@ -53,16 +53,16 @@ const STYLE: Record<Style, string> = {
 
 const BODY: Record<Species, Record<Gender, string>> = {
   elf: {
-    female: 'an elf woman with long elegant pointed ears, luminous almond eyes and flowing hair braided with glowing beads',
-    male: 'an elf man with long elegant pointed ears, luminous almond eyes and a sharp proud face, hair tied back with silver cord',
+    female: 'an elf woman with exactly two ears, one on each side of her head where human ears would be, each tapering into one long elegant point, luminous almond eyes and flowing hair braided with glowing beads',
+    male: 'an elf man with exactly two ears, one on each side of his head where human ears would be, each tapering into one long elegant point, luminous almond eyes and a sharp proud face, hair tied back with silver cord',
   },
   gnome: {
     female: 'a stout gnome woman with rosy cheeks, a tall floppy pointed knitted hat, thick braids with copper beads and a big warm grin',
     male: 'a stout old gnome man with rosy cheeks, a tall floppy pointed knitted hat and a long white braided beard woven with glowing thread',
   },
   faerie: {
-    female: 'a faerie woman with translucent iridescent dragonfly wings, delicate features and starlight freckles',
-    male: 'a faerie man with translucent iridescent moth wings, fine features and silver-dusted cheekbones',
+    female: 'a faerie woman with one pair of translucent iridescent dragonfly wings growing from her shoulder blades, two human ears, delicate features and starlight freckles',
+    male: 'a faerie man with one pair of translucent iridescent moth wings growing from his shoulder blades, two human ears, fine features and silver-dusted cheekbones',
   },
 };
 
