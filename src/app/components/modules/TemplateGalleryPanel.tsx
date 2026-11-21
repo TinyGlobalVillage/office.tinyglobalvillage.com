@@ -48,6 +48,7 @@
 // An entry with no `catalog_entries` row takes its state from code
 // (`entry.proposed`), which grandfathers everything that predates the gate.
 
+import LiveTemplateThumb from "@tgv/module-page-editor/editor/page-editor/taskbar/_layout/LiveTemplateThumb";
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
@@ -127,6 +128,8 @@ type Proposal = {
   since: string | null;
 };
 
+const UNCATEGORISED = "Uncategorised";
+
 const TGV_BASE =
   process.env.NEXT_PUBLIC_TGV_URL ?? "https://tinyglobalvillage.com";
 const LANG = "en";
@@ -152,6 +155,9 @@ export default function TemplateGalleryPanel() {
 
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(12);
+  // Industry sidebar (Gio 2026-11-19: "the left side bar menu with all the
+  // categories … just like on the artifact"). "" = every category.
+  const [cat, setCat] = useState("");
 
   const load = useCallback(async () => {
     setError(null);
@@ -268,17 +274,39 @@ export default function TemplateGalleryPanel() {
     [load, tokenAmounts],
   );
 
-  const filtered = useMemo(() => {
+  // The status slice first; the sidebar counts what that slice holds, so the
+  // fae drafts read "Bakery 4" on Drafts and Bakery is simply absent on Live.
+  const inStatus = useMemo(() => {
     const all = templates ?? [];
     if (filter === "all") return all;
     return all.filter((t) => t.status === filter);
   }, [templates, filter]);
 
+  const catCounts = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const t of inStatus) {
+      const k = t.category || UNCATEGORISED;
+      m.set(k, (m.get(k) ?? 0) + 1);
+    }
+    return Array.from(m.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+  }, [inStatus]);
+
+  // A category the new status slice doesn't hold would strand the viewer on an
+  // empty grid — fall back to All.
+  useEffect(() => {
+    if (cat && templates && !catCounts.some(([k]) => k === cat)) setCat("");
+  }, [cat, catCounts, templates]);
+
+  const filtered = useMemo(
+    () => (cat ? inStatus.filter((t) => (t.category || UNCATEGORISED) === cat) : inStatus),
+    [inStatus, cat],
+  );
+
   // Switching pills or shrinking the result set must never strand the viewer
   // on a page that no longer exists.
   useEffect(() => {
     setPage(1);
-  }, [filter]);
+  }, [filter, cat]);
   useEffect(() => {
     const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
     setPage((p) => Math.min(p, pageCount));
@@ -445,7 +473,7 @@ export default function TemplateGalleryPanel() {
 
       {filter !== "proposed" && templates === null && <Note>Loading templates…</Note>}
 
-      {filter !== "proposed" && templates !== null && filtered.length === 0 && (
+      {filter !== "proposed" && templates !== null && inStatus.length === 0 && (
         <Note>
           {filter === "sandbox"
             ? "No drafted templates. Everything in the library is live to members."
@@ -457,7 +485,33 @@ export default function TemplateGalleryPanel() {
         </Note>
       )}
 
-      {filter !== "proposed" && visible.length > 0 && (
+      {filter !== "proposed" && inStatus.length > 0 && (
+        <Body>
+          <CatNav aria-label="Template categories">
+            <CatItem
+              type="button"
+              $active={cat === ""}
+              aria-pressed={cat === ""}
+              onClick={() => setCat("")}
+            >
+              <span>All</span>
+              <CatCount>{inStatus.length}</CatCount>
+            </CatItem>
+            {catCounts.map(([k, n]) => (
+              <CatItem
+                key={k}
+                type="button"
+                $active={cat === k}
+                aria-pressed={cat === k}
+                onClick={() => setCat(k)}
+              >
+                <span>{k}</span>
+                <CatCount>{n}</CatCount>
+              </CatItem>
+            ))}
+          </CatNav>
+          <Main>
+      {visible.length > 0 && (
         <Grid>
           {visible.map((t) => {
             const thumb = thumbnailUrl(t.thumbnail);
@@ -482,12 +536,14 @@ export default function TemplateGalleryPanel() {
                   title={`Edit ${t.label}`}
                   $busy={busyId === t.templateId}
                 >
-                  {thumb ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={thumb} alt="" loading="lazy" />
-                  ) : (
-                    <NoThumb>No preview</NoThumb>
-                  )}
+                  {/* The template as it is now (Gio 2026-11-19), rendered live by tgv.com's
+                      preview route; the stored shot only stands in while it loads. */}
+                  <LiveTemplateThumb
+                    templateId={t.templateId}
+                    poster={thumb ?? undefined}
+                    lang={LANG}
+                    origin={TGV_BASE}
+                  />
                 </Thumb>
 
                 <TileMeta>
@@ -611,7 +667,7 @@ export default function TemplateGalleryPanel() {
         </Grid>
       )}
 
-      {filter !== "proposed" && filtered.length > pageSize && (
+      {filtered.length > pageSize && (
         <PagerRow>
           <TPG
             total={filtered.length}
@@ -624,6 +680,9 @@ export default function TemplateGalleryPanel() {
             onPageSizeChange={setPageSize}
           />
         </PagerRow>
+      )}
+          </Main>
+        </Body>
       )}
 
       {/* The ruling surface: the entry's own panels, live over its real render.
@@ -921,6 +980,66 @@ const NewBtn = styled.button`
   &:hover { background: rgba(${rgb.violet}, 0.2); }
 `;
 
+/* Sidebar + grid. Under ~760px the sidebar folds into a wrapping chip row
+   above the grid, so a phone still picks a category in one tap. */
+const Body = styled.div`
+  display: grid;
+  grid-template-columns: 12.5rem minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+  @media (max-width: 760px) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+`;
+const CatNav = styled.nav`
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 75vh;
+  overflow-y: auto;
+  padding: 0.35rem;
+  border: 1px solid rgba(${rgb.violet}, 0.25);
+  border-radius: 0.625rem;
+  background: rgba(${rgb.violet}, 0.03);
+  @media (max-width: 760px) {
+    position: static;
+    flex-direction: row;
+    flex-wrap: wrap;
+    max-height: none;
+    gap: 4px;
+  }
+`;
+const CatItem = styled.button<{ $active: boolean }>`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 6px 10px;
+  border-radius: 0.45rem;
+  border: 1px solid ${(p) => (p.$active ? `rgba(${rgb.violet}, 0.6)` : "transparent")};
+  background: ${(p) => (p.$active ? `rgba(${rgb.violet}, 0.16)` : "transparent")};
+  color: ${(p) => (p.$active ? colors.violet : "var(--t-text)")};
+  font-size: 0.8rem;
+  font-weight: ${(p) => (p.$active ? 700 : 500)};
+  text-align: left;
+  cursor: pointer;
+  &:hover { background: rgba(${rgb.violet}, 0.1); }
+  @media (max-width: 760px) {
+    border-radius: 999px;
+    border-color: rgba(${rgb.violet}, ${(p) => (p.$active ? 0.6 : 0.25)});
+  }
+`;
+const CatCount = styled.span`
+  font-size: 0.7rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--t-textFaint);
+`;
+const Main = styled.div`
+  min-width: 0;
+`;
+
 const Grid = styled.div`
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
@@ -1024,26 +1143,16 @@ const Thumb = styled.a<{ $busy: boolean }>`
   opacity: ${({ $busy }) => ($busy ? 0.45 : 1)};
   transition: opacity 0.15s, border-color 0.15s;
 
-  img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    object-position: top center;
-    display: block;
+  /* the live preview fills the tile edge to edge */
+  [data-live-template-thumb] {
+    border: 0;
+    border-radius: 0;
+    margin: 0;
   }
 
   &:hover {
     border-color: rgba(${rgb.violet}, 0.6);
   }
-`;
-
-const NoThumb = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  font-size: 0.7rem;
-  color: var(--t-textFaint);
 `;
 
 const TileMeta = styled.div`

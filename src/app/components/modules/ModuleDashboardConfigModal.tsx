@@ -13,6 +13,7 @@
 import { useEffect, useState } from "react";
 import styled from "styled-components";
 import ADDM from "@tgv/module-component-library/components/ui/ADDM";
+import PillBar from "@tgv/module-component-library/components/ui/PillBar";
 import DashboardCopyModal from "./DashboardCopyModal";
 import { rgb, colors } from "../../theme";
 
@@ -26,6 +27,8 @@ export default function ModuleDashboardConfigModal({ onClose }: { onClose: () =>
   const [behaviourOpen, setBehaviourOpen] = useState(false);
   const [undoDepth, setUndoDepth] = useState<number>(10);
   const [undoDepthSaved, setUndoDepthSaved] = useState<number>(10);
+  const [composeOn, setComposeOn] = useState<"mac" | "rcs">("mac");
+  const [composeOnSaved, setComposeOnSaved] = useState<"mac" | "rcs">("mac");
   const [settingsErr, setSettingsErr] = useState<string | null>(null);
   // The fleet copy editor is its own (much wider) surface — a 26rem settings card cannot hold a
   // modal picker, a language picker and a stack of paragraph fields (Gio 2026-09-05).
@@ -53,6 +56,11 @@ export default function ModuleDashboardConfigModal({ onClose }: { onClose: () =>
         if (typeof row?.value === "number") {
           setUndoDepth(row.value);
           setUndoDepthSaved(row.value);
+        }
+        const compose = data.settings?.find((s) => s.setting_key === "compose_renders_on");
+        if (compose?.value === "mac" || compose?.value === "rcs") {
+          setComposeOn(compose.value);
+          setComposeOnSaved(compose.value);
         }
       } catch {
         setSettingsErr("Could not load fleet settings");
@@ -84,6 +92,24 @@ export default function ModuleDashboardConfigModal({ onClose }: { onClose: () =>
           return;
         }
         setUndoDepthSaved(undoDepth);
+      } catch {
+        setSettingsErr("Save failed — network error");
+        return;
+      }
+    }
+    if (composeOn !== composeOnSaved) {
+      try {
+        const res = await fetch("/api/admin/dashboard-settings", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ settingKey: "compose_renders_on", value: composeOn }),
+        });
+        const data = (await res.json()) as { ok?: boolean; error?: string };
+        if (!data.ok) {
+          setSettingsErr(data.error ?? "Save failed");
+          return;
+        }
+        setComposeOnSaved(composeOn);
       } catch {
         setSettingsErr("Save failed — network error");
         return;
@@ -138,6 +164,25 @@ export default function ModuleDashboardConfigModal({ onClose }: { onClose: () =>
             <Hint>
               How many destructive actions (deletes, overwrites) a member can reverse with
               cmd/ctrl+Z in one dashboard session. Fleet-wide, applies on next dashboard load.
+            </Hint>
+          </Field>
+          <Field>
+            <Label>Compose renders on</Label>
+            <PillBar
+              segments={[
+                { key: "mac", label: "Mac" },
+                { key: "rcs", label: "RCS" },
+              ]}
+              active={composeOn}
+              onChange={(k) => setComposeOn(k === "rcs" ? "rcs" : "mac")}
+              kind="choice"
+              ariaLabel="Where Video Editor compose renders run"
+              dense
+            />
+            <Hint>
+              Video Editor short-form renders (Reels, Shorts). Mac: the Mac worker claims them
+              through the tunnel and the box never encodes one. RCS: the box renders them itself.
+              Applies to the next claim, no redeploy.
             </Hint>
           </Field>
         </ADDM>
