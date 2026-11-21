@@ -16,6 +16,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { and, asc, desc, eq, isNull, like, or, sql } from "drizzle-orm";
 import { db } from "./db-drizzle";
+import { cleanLinkName, isValidLinkName } from "./template-link-name";
 import { blankCanvasSection } from "@tgv/module-page-editor/editor/helpers/blankCanvasSection";
 
 export const sharedTemplates = pgTable(
@@ -50,6 +51,9 @@ export const sharedTemplates = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
     publishedAt: timestamp("published_at", { withTimezone: true }),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    /** 0251 (TGV migrations) — share-link name: tinyglobalvillage.com/t/<linkName>.
+     *  A DB trigger names new rows from the label; never set it on insert. */
+    linkName: text("link_name"),
   },
   (t) => ({
     templateIdUnique: uniqueIndex("shared_templates_template_id_uq").on(
@@ -82,6 +86,8 @@ export type SharedTemplateSummary = {
   createdAt: string;
   updatedAt: string;
   publishedAt: string | null;
+  /** Share-link name (tinyglobalvillage.com/t/<linkName>); null only before 0251 runs. */
+  linkName: string | null;
 };
 
 export type SharedTemplateFull = SharedTemplateSummary & {
@@ -106,6 +112,7 @@ function rowToSummary(
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
     publishedAt: row.publishedAt ? row.publishedAt.toISOString() : null,
+    linkName: row.linkName ?? null,
   };
 }
 
@@ -397,4 +404,57 @@ export async function createSharedTemplate(args: {
     .returning();
 
   return { ...rowToSummary(row), model: row.model };
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Share-link name (0251) — the gallery's right-click "Edit link name".
+// ────────────────────────────────────────────────────────────────────────────
+
+export type SetLinkNameResult =
+  | { ok: true; template: SharedTemplateFull }
+  | { ok: false; reason: "invalid" | "taken" | "not_found" };
+
+export async function setSharedTemplateLinkName(args: {
+  templateId: string;
+  linkName: string;
+}): Promise<SetLinkNameResult> {
+  const linkName = cleanLinkName(args.linkName).replace(/-+$/, "");
+  if (!isValidLinkName(linkName)) {
+    return { ok: false, reason: "invalid" };
+  }
+
+  const [clash] = await db
+    .select({ templateId: sharedTemplates.templateId })
+    .from(sharedTemplates)
+    .where(
+      and(
+        eq(sharedTemplates.linkName, linkName),
+        isNull(sharedTemplates.deletedAt),
+      ),
+    )
+    .limit(1);
+  if (clash && clash.templateId !== args.templateId) {
+    return { ok: false, reason: "taken" };
+  }
+
+  try {
+    const updated = await db
+      .update(sharedTemplates)
+      .set({ linkName, updatedAt: new Date() })
+      .where(
+        and(
+          eq(sharedTemplates.templateId, args.templateId),
+          isNull(sharedTemplates.deletedAt),
+        ),
+      )
+      .returning({ id: sharedTemplates.id });
+    if (updated.length === 0) return { ok: false, reason: "not_found" };
+  } catch (e) {
+    // Lost a race to the unique index (shared_templates_link_name_uq).
+    if ((e as { code?: string })?.code === "23505") return { ok: false, reason: "taken" };
+    throw e;
+  }
+
+  const template = await getSharedTemplate(args.templateId);
+  return template ? { ok: true, template } : { ok: false, reason: "not_found" };
 }

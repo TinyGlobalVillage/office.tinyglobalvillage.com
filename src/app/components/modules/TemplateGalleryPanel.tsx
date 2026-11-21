@@ -69,7 +69,8 @@ import TPG from "@tgv/module-component-library/components/ui/TPG";
 import { CATALOG } from "@/lib/domains/editor/component-library/registry";
 
 import { colors, rgb } from "../../theme";
-import { EditIcon, EyeIcon, MoreIcon, TrashIcon } from "../icons";
+import { CopyIcon, EditIcon, EyeIcon, LinkIcon, MoreIcon, TrashIcon } from "../icons";
+import { cleanLinkName, isValidLinkName } from "@/lib/template-link-name";
 import ConfirmModal from "../frontdesk/ConfirmModal";
 import ModalRoot from "../ModalRoot";
 
@@ -95,6 +96,8 @@ type Template = {
   /** 0105: member submissions ride the same table with status 'submitted'. */
   status: TemplateStatus | "submitted";
   updatedAt: string;
+  /** Share-link name — tinyglobalvillage.com/t/<linkName> (TGV migration 0251). */
+  linkName: string | null;
 };
 
 type Filter = "published" | "sandbox" | "submitted" | "proposed" | "all";
@@ -144,6 +147,32 @@ const TGV_BASE =
   process.env.NEXT_PUBLIC_TGV_URL ?? "https://tinyglobalvillage.com";
 const LANG = "en";
 
+/** The fixed part of every share link — only the name after it is editable. */
+const SHARE_PREFIX = `${TGV_BASE}/t/`;
+const shareUrl = (linkName: string) => `${SHARE_PREFIX}${linkName}`;
+
+/** Clipboard write with a fallback for a page that isn't allowed the async API. */
+async function copyText(text: string): Promise<boolean> {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    try {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      const ok = document.execCommand("copy");
+      ta.remove();
+      return ok;
+    } catch {
+      return false;
+    }
+  }
+}
+
 /** Thumbnails are stored as tgv.com-relative paths (/templates/thumbs/x.png).
  *  Office is a different origin, so absolutise them. */
 function thumbnailUrl(thumbnail: string | null): string | null {
@@ -177,6 +206,23 @@ export default function TemplateGalleryPanel() {
     total: number;
   } | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
+  const [linkEdit, setLinkEdit] = useState<Template | null>(null);
+  /** A short-lived line in the select bar's hint slot ("Link copied"). */
+  const [notice, setNotice] = useState<string | null>(null);
+  const noticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const flash = useCallback((msg: string) => {
+    setNotice(msg);
+    if (noticeTimer.current) clearTimeout(noticeTimer.current);
+    noticeTimer.current = setTimeout(() => setNotice(null), 2500);
+  }, []);
+  const copyLink = useCallback(
+    async (t: Template) => {
+      if (!t.linkName) return;
+      const ok = await copyText(shareUrl(t.linkName));
+      flash(ok ? `Link copied · ${shareUrl(t.linkName).replace(/^https?:\/\//, "")}` : "Couldn't copy the link");
+    },
+    [flash],
+  );
 
   const markBusy = useCallback((ids: readonly string[], on: boolean) => {
     setBusyIds((prev) => {
@@ -706,7 +752,7 @@ export default function TemplateGalleryPanel() {
         <SelHint aria-live="polite">
           {progress
             ? `${progress.verb} · ${progress.done} of ${progress.total}…`
-            : "Right-click for actions"}
+            : notice ?? "Right-click for actions"}
         </SelHint>
       </SelectBar>
       {visible.length > 0 && (
@@ -830,6 +876,14 @@ export default function TemplateGalleryPanel() {
                         setOpenMenuId(null);
                         setConfirmDelete([t]);
                       }}
+                      onCopyLink={(x) => {
+                        setOpenMenuId(null);
+                        void copyLink(x);
+                      }}
+                      onEditLink={(x) => {
+                        setOpenMenuId(null);
+                        setLinkEdit(x);
+                      }}
                       onClose={() => setOpenMenuId(null)}
                     />
                   </Menu>
@@ -869,6 +923,14 @@ export default function TemplateGalleryPanel() {
               onDelete={() => {
                 setCtxMenu(null);
                 setConfirmDelete(ctxTargets);
+              }}
+              onCopyLink={(x) => {
+                setCtxMenu(null);
+                void copyLink(x);
+              }}
+              onEditLink={(x) => {
+                setCtxMenu(null);
+                setLinkEdit(x);
               }}
               onClose={() => setCtxMenu(null)}
             />
@@ -943,6 +1005,23 @@ export default function TemplateGalleryPanel() {
         />
       )}
 
+      {linkEdit && (
+        <LinkNameModal
+          template={linkEdit}
+          onClose={() => setLinkEdit(null)}
+          onSaved={(linkName) => {
+            // Patch the row in place so the next Copy link is right at once;
+            // the reload confirms it from the server.
+            setTemplates((prev) =>
+              prev ? prev.map((x) => (x.id === linkEdit.id ? { ...x, linkName } : x)) : prev,
+            );
+            setLinkEdit((cur) => (cur ? { ...cur, linkName } : cur));
+            void load();
+          }}
+          onCopied={(ok) => flash(ok ? "Link copied" : "Couldn't copy the link")}
+        />
+      )}
+
       <ConfirmModal
         open={confirmDelete !== null}
         intent="danger"
@@ -976,6 +1055,8 @@ function ActionsMenu({
   previewHref,
   onMove,
   onDelete,
+  onCopyLink,
+  onEditLink,
   onClose,
 }: {
   targets: Template[];
@@ -983,6 +1064,8 @@ function ActionsMenu({
   previewHref: (t: Template) => string;
   onMove: (status: TemplateStatus) => void;
   onDelete: () => void;
+  onCopyLink: (t: Template) => void;
+  onEditLink: (t: Template) => void;
   onClose: () => void;
 }) {
   const one = targets.length === 1 ? targets[0] : null;
@@ -1040,6 +1123,18 @@ function ActionsMenu({
           >
             <EyeIcon size={13} /> Preview
           </MenuItemLink>
+          <MenuSep />
+          <MenuItem
+            role="menuitem"
+            type="button"
+            disabled={!one.linkName}
+            onClick={() => onCopyLink(one)}
+          >
+            <CopyIcon size={13} /> Copy link
+          </MenuItem>
+          <MenuItem role="menuitem" type="button" onClick={() => onEditLink(one)}>
+            <LinkIcon size={13} /> Edit link name
+          </MenuItem>
         </>
       )}
       <MenuSep />
@@ -1069,6 +1164,116 @@ function CtxMenu({ x, y, children }: { x: number; y: number; children: ReactNode
     <CtxMenuBox ref={ref} role="menu" data-tile-menu="">
       {children}
     </CtxMenuBox>
+  );
+}
+
+/** Edit link name — only the name after tinyglobalvillage.com/t/ is editable.
+ *  The field cleans as you type (lowercase letters, numbers, dashes), so what
+ *  you see is exactly the link that gets saved. */
+function LinkNameModal({
+  template,
+  onClose,
+  onSaved,
+  onCopied,
+}: {
+  template: Template;
+  onClose: () => void;
+  onSaved: (linkName: string) => void;
+  onCopied: (ok: boolean) => void;
+}) {
+  const saved = template.linkName ?? "";
+  const [name, setName] = useState(saved);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const trimmed = name.replace(/-+$/, "");
+  const valid = isValidLinkName(trimmed);
+  const dirty = trimmed !== saved;
+
+  const save = async () => {
+    if (!valid || !dirty || busy) return;
+    setBusy(true);
+    setErr(null);
+    try {
+      const r = await fetch(
+        `/api/editor/shared-templates/${encodeURIComponent(template.templateId)}/link-name`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ linkName: trimmed }),
+        },
+      );
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(j.error ?? `HTTP ${r.status}`);
+      const next = (j.template as Template | undefined)?.linkName ?? trimmed;
+      setName(next);
+      onSaved(next);
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Save failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <ModalRoot onClose={onClose}>
+      <FormShell onMouseDown={(e) => e.stopPropagation()}>
+        <ProposalHead>
+          <div>
+            <ProposalHeadTitle>Link name</ProposalHeadTitle>
+            <ProposalHeadId>{template.label}</ProposalHeadId>
+          </div>
+          <CloseBtn type="button" aria-label="Close" onClick={onClose}>
+            ✕
+          </CloseBtn>
+        </ProposalHead>
+        <FormBody>
+          <Field>
+            <FieldLabel htmlFor="tpl-link-name">Share link</FieldLabel>
+            <LinkRow>
+              <LinkPrefix>{SHARE_PREFIX.replace(/^https?:\/\//, "")}</LinkPrefix>
+              <LinkInput
+                id="tpl-link-name"
+                value={name}
+                autoFocus
+                spellCheck={false}
+                autoComplete="off"
+                placeholder="pebblebrookbakery"
+                onChange={(e) => {
+                  setErr(null);
+                  setName(cleanLinkName(e.target.value));
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") void save();
+                }}
+              />
+            </LinkRow>
+            <FieldHint>
+              Lowercase letters, numbers and dashes. The old link stops working once you save.
+            </FieldHint>
+          </Field>
+
+          {err && <ErrorBox role="alert">{err}</ErrorBox>}
+
+          <FormRow>
+            <PrimaryBtn type="button" disabled={!valid || !dirty || busy} onClick={() => void save()}>
+              {busy ? "Saving…" : "Save"}
+            </PrimaryBtn>
+            <GhostBtn
+              type="button"
+              disabled={!saved || dirty}
+              onClick={() => {
+                void copyText(shareUrl(saved)).then(onCopied);
+              }}
+            >
+              Copy link
+            </GhostBtn>
+            <GhostBtn type="button" onClick={onClose}>
+              Done
+            </GhostBtn>
+          </FormRow>
+        </FormBody>
+      </FormShell>
+    </ModalRoot>
   );
 }
 
@@ -1858,6 +2063,34 @@ const TextArea = styled.textarea`
   border: 1px solid var(--t-border);
   &:focus-visible { outline: 1px solid rgba(${rgb.violet}, 0.7); outline-offset: 1px; }
 `;
+const LinkRow = styled.div`
+  display: flex;
+  align-items: stretch;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--t-border);
+  background: var(--t-inputBg);
+  &:focus-within { outline: 1px solid rgba(${rgb.violet}, 0.7); outline-offset: 1px; }
+`;
+const LinkPrefix = styled.span`
+  display: flex;
+  align-items: center;
+  padding: 0 2px 0 10px;
+  font-size: 13px;
+  color: var(--t-textFaint);
+  white-space: nowrap;
+  user-select: none;
+`;
+const LinkInput = styled.input`
+  flex: 1;
+  min-width: 0;
+  padding: 7px 10px 7px 0;
+  font-size: 13px;
+  color: var(--t-text);
+  background: transparent;
+  border: 0;
+  outline: none;
+`;
 const FormRow = styled.div`
   display: flex;
   align-items: center;
@@ -1887,5 +2120,6 @@ const GhostBtn = styled.button`
   color: var(--t-textFaint);
   background: transparent;
   border: 1px solid var(--t-border);
-  &:hover { color: var(--t-text); }
+  &:hover:not(:disabled) { color: var(--t-text); }
+  &:disabled { opacity: 0.45; cursor: default; }
 `;
