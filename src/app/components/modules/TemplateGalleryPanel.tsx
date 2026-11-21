@@ -50,9 +50,19 @@
 
 import LiveTemplateThumb from "@tgv/module-page-editor/editor/page-editor/taskbar/_layout/LiveTemplateThumb";
 import dynamic from "next/dynamic";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type MouseEvent as ReactMouseEvent,
+  type ReactNode,
+} from "react";
 import styled from "styled-components";
 
+import Checkbox from "@tgv/module-component-library/components/ui/Checkbox";
 import PillBar from "@tgv/module-component-library/components/ui/PillBar";
 import TPG from "@tgv/module-component-library/components/ui/TPG";
 
@@ -146,9 +156,38 @@ export default function TemplateGalleryPanel() {
   const [templates, setTemplates] = useState<Template[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>("published");
-  const [busyId, setBusyId] = useState<string | null>(null);
+  const [busyIds, setBusyIds] = useState<ReadonlySet<string>>(() => new Set());
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
-  const [confirmDelete, setConfirmDelete] = useState<Template | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<Template[] | null>(null);
+
+  // Multi-select (Gio 2026-11-21: "select all and publish so they're all live
+  // at once"). A checkbox on every tile, a select-all bar over the grid, and a
+  // right-click menu that carries every 3-dot action and applies it to the
+  // whole selection. Selection is pruned to what the current pill + category
+  // shows, so an action never reaches a template you can't see.
+  const [selected, setSelected] = useState<ReadonlySet<string>>(() => new Set());
+  const anchorRef = useRef<string | null>(null);
+  const shiftRef = useRef(false);
+  const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number; ids: string[] } | null>(
+    null,
+  );
+  const [progress, setProgress] = useState<{
+    verb: string;
+    done: number;
+    total: number;
+  } | null>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  const markBusy = useCallback((ids: readonly string[], on: boolean) => {
+    setBusyIds((prev) => {
+      const next = new Set(prev);
+      for (const id of ids) {
+        if (on) next.add(id);
+        else next.delete(id);
+      }
+      return next;
+    });
+  }, []);
   const [canonRows, setCanonRows] = useState<CanonRow[] | null>(null);
   const [openProposal, setOpenProposal] = useState<Proposal | null>(null);
   const [newOpen, setNewOpen] = useState(false);
@@ -247,7 +286,7 @@ export default function TemplateGalleryPanel() {
   const [tokenAmounts, setTokenAmounts] = useState<Record<string, string>>({});
   const review = useCallback(
     async (t: Template, decision: "accept" | "decline") => {
-      setBusyId(t.templateId);
+      markBusy([t.templateId], true);
       setError(null);
       try {
         const tokens = Number(tokenAmounts[t.templateId] ?? "") || 0;
@@ -268,10 +307,10 @@ export default function TemplateGalleryPanel() {
       } catch (e) {
         setError(e instanceof Error ? e.message : "Review failed");
       } finally {
-        setBusyId(null);
+        markBusy([t.templateId], false);
       }
     },
-    [load, tokenAmounts],
+    [load, markBusy, tokenAmounts],
   );
 
   // The status slice first; the sidebar counts what that slice holds, so the
@@ -330,15 +369,19 @@ export default function TemplateGalleryPanel() {
   // item ever ran its handler. Verified in prod with a capture-phase log:
   // mousedown on the Delete button, mouseup on the tile behind it, no click.
   useEffect(() => {
-    if (!openMenuId) return;
+    if (!openMenuId && !ctxMenu) return;
+    const close = () => {
+      setOpenMenuId(null);
+      setCtxMenu(null);
+    };
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpenMenuId(null);
+      if (e.key === "Escape") close();
     };
     const onDown = (e: MouseEvent) => {
       const el = e.target instanceof Element ? e.target : null;
       // Inside the open menu, or on the button that owns it → leave it alone.
       if (el?.closest("[data-tile-menu]")) return;
-      setOpenMenuId(null);
+      close();
     };
     document.addEventListener("keydown", onKey);
     document.addEventListener("mousedown", onDown);
@@ -346,54 +389,161 @@ export default function TemplateGalleryPanel() {
       document.removeEventListener("keydown", onKey);
       document.removeEventListener("mousedown", onDown);
     };
-  }, [openMenuId]);
+  }, [openMenuId, ctxMenu]);
 
-  const setStatus = useCallback(
-    async (t: Template, status: TemplateStatus) => {
+  // One runner for every action, one template or seventy. The routes are
+  // per-row, so each template is its own request — six in flight at a time so a
+  // select-all doesn't open seventy sockets — and the bar counts them in. One
+  // reload at the end, and the failures (if any) named in one line.
+  const runMany = useCallback(
+    async (ts: Template[], verb: string, one: (t: Template) => Promise<Response>) => {
       setOpenMenuId(null);
-      setBusyId(t.templateId);
+      setCtxMenu(null);
+      if (ts.length === 0) return;
+      const ids = ts.map((t) => t.templateId);
       setError(null);
-      try {
-        const r = await fetch(
-          `/api/editor/shared-templates/${encodeURIComponent(t.templateId)}/status`,
-          {
+      markBusy(ids, true);
+      setProgress({ verb, done: 0, total: ts.length });
+      const failed: string[] = [];
+      let next = 0;
+      const worker = async () => {
+        while (next < ts.length) {
+          const t = ts[next++];
+          try {
+            const r = await one(t);
+            if (!r.ok) {
+              const j = await r.json().catch(() => ({}));
+              failed.push(`${t.label}: ${j.error ?? `HTTP ${r.status}`}`);
+            }
+          } catch (e) {
+            failed.push(`${t.label}: ${e instanceof Error ? e.message : "failed"}`);
+          }
+          setProgress((p) => (p ? { ...p, done: p.done + 1 } : p));
+        }
+      };
+      await Promise.all(Array.from({ length: Math.min(6, ts.length) }, worker));
+      await load();
+      markBusy(ids, false);
+      setProgress(null);
+      if (failed.length > 0) {
+        setError(
+          `${failed.length} of ${ts.length} didn't go through — ` +
+            failed.slice(0, 3).join(" · ") +
+            (failed.length > 3 ? " …" : ""),
+        );
+      }
+    },
+    [load, markBusy],
+  );
+
+  // Rows already in the destination are skipped. "Drafted" only takes Live
+  // rows and "Live" takes everything else (submitted included) — the same
+  // rule the single-tile menu has always had.
+  const setStatusMany = useCallback(
+    (ts: Template[], status: TemplateStatus) => {
+      const todo = ts.filter((t) =>
+        status === "published" ? t.status !== "published" : t.status === "published",
+      );
+      return runMany(
+        todo,
+        status === "published" ? "Moving to Live" : "Moving to Drafts",
+        (t) =>
+          fetch(`/api/editor/shared-templates/${encodeURIComponent(t.templateId)}/status`, {
             method: "PATCH",
             headers: { "content-type": "application/json" },
             body: JSON.stringify({ status }),
-          },
-        );
-        const j = await r.json().catch(() => ({}));
-        if (!r.ok) throw new Error(j.error ?? `HTTP ${r.status}`);
-        await load();
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Status change failed");
-      } finally {
-        setBusyId(null);
-      }
+          }),
+      );
     },
-    [load],
+    [runMany],
   );
 
   const doDelete = useCallback(async () => {
-    const t = confirmDelete;
-    if (!t) return;
+    const ts = confirmDelete;
+    if (!ts) return;
     setConfirmDelete(null);
-    setBusyId(t.templateId);
-    setError(null);
-    try {
-      const r = await fetch(
-        `/api/editor/shared-templates/${encodeURIComponent(t.templateId)}`,
-        { method: "DELETE" },
-      );
-      const j = await r.json().catch(() => ({}));
-      if (!r.ok) throw new Error(j.error ?? `HTTP ${r.status}`);
-      await load();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Delete failed");
-    } finally {
-      setBusyId(null);
-    }
-  }, [confirmDelete, load]);
+    await runMany(ts, "Deleting", (t) =>
+      fetch(`/api/editor/shared-templates/${encodeURIComponent(t.templateId)}`, {
+        method: "DELETE",
+      }),
+    );
+  }, [confirmDelete, runMany]);
+
+  // Keep the selection to what is on screen (pill + category). Returns the
+  // same Set when nothing dropped, so a reload doesn't re-render for nothing.
+  useEffect(() => {
+    const inView = new Set(filtered.map((t) => t.templateId));
+    setSelected((prev) => {
+      let dropped = false;
+      const next = new Set<string>();
+      for (const id of prev) {
+        if (inView.has(id)) next.add(id);
+        else dropped = true;
+      }
+      return dropped ? next : prev;
+    });
+  }, [filtered]);
+
+  const selectedTemplates = useMemo(
+    () => filtered.filter((t) => selected.has(t.templateId)),
+    [filtered, selected],
+  );
+  const allSelected = filtered.length > 0 && selectedTemplates.length === filtered.length;
+  const selectAll = useCallback(() => {
+    setSelected(new Set(filtered.map((t) => t.templateId)));
+    setCtxMenu(null);
+  }, [filtered]);
+  const clearSelection = useCallback(() => {
+    setSelected(new Set());
+    setCtxMenu(null);
+  }, []);
+
+  // Shift-click ticks (or unticks) the whole run from the last box you clicked.
+  const toggle = useCallback(
+    (t: Template, on: boolean) => {
+      const shift = shiftRef.current;
+      shiftRef.current = false;
+      const ids = filtered.map((x) => x.templateId);
+      const a = anchorRef.current ? ids.indexOf(anchorRef.current) : -1;
+      const b = ids.indexOf(t.templateId);
+      setSelected((prev) => {
+        const next = new Set(prev);
+        const run =
+          shift && a >= 0 && b >= 0
+            ? ids.slice(Math.min(a, b), Math.max(a, b) + 1)
+            : [t.templateId];
+        for (const id of run) {
+          if (on) next.add(id);
+          else next.delete(id);
+        }
+        return next;
+      });
+      anchorRef.current = t.templateId;
+    },
+    [filtered],
+  );
+
+  // Right-click on a ticked tile → the menu acts on the whole selection.
+  // On an unticked tile → that tile alone (the selection is left as it is).
+  // On the grid's empty space → the selection, plus Select all.
+  const openCtx = useCallback(
+    (e: ReactMouseEvent, t?: Template) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const box = rootRef.current?.getBoundingClientRect();
+      if (!box) return;
+      const selIds = selectedTemplates.map((x) => x.templateId);
+      const ids = t ? (selected.has(t.templateId) ? selIds : [t.templateId]) : selIds;
+      setOpenMenuId(null);
+      setCtxMenu({ x: e.clientX - box.left, y: e.clientY - box.top, ids });
+    },
+    [selected, selectedTemplates],
+  );
+  const ctxTargets = useMemo(
+    () => (ctxMenu ? filtered.filter((t) => ctxMenu.ids.includes(t.templateId)) : []),
+    [ctxMenu, filtered],
+  );
+  const working = progress !== null;
 
   // Real hrefs, not window.open: a programmatic popup is silently swallowed by
   // the browser's popup blocker often enough that Edit just "does nothing", and
@@ -411,7 +561,7 @@ export default function TemplateGalleryPanel() {
   );
 
   return (
-    <>
+    <Root ref={rootRef}>
       <BarRow>
         <PillBar
           accent={rgb.violet}
@@ -510,15 +660,79 @@ export default function TemplateGalleryPanel() {
               </CatItem>
             ))}
           </CatNav>
-          <Main>
+          <Main onContextMenu={(e) => openCtx(e)}>
+      <SelectBar aria-label="Selection">
+        <Checkbox
+          checked={allSelected}
+          onChange={(on) => (on ? selectAll() : clearSelection())}
+          disabled={working}
+          aria-label={allSelected ? "Deselect all" : "Select all"}
+        >
+          {allSelected ? "Deselect all" : `Select all ${filtered.length}`}
+        </Checkbox>
+        {selectedTemplates.length > 0 && (
+          <>
+            <SelCount>{selectedTemplates.length} selected</SelCount>
+            <BarBtn
+              type="button"
+              $tone="cyan"
+              disabled={working || selectedTemplates.every((t) => t.status === "published")}
+              onClick={() => void setStatusMany(selectedTemplates, "published")}
+            >
+              Move to Live
+            </BarBtn>
+            <BarBtn
+              type="button"
+              disabled={working || selectedTemplates.every((t) => t.status !== "published")}
+              onClick={() => void setStatusMany(selectedTemplates, "sandbox")}
+            >
+              Move to Drafts
+            </BarBtn>
+            <BarBtn
+              type="button"
+              $tone="pink"
+              disabled={working}
+              onClick={() => setConfirmDelete(selectedTemplates)}
+            >
+              Delete
+            </BarBtn>
+            {!allSelected && (
+              <BarBtn type="button" disabled={working} onClick={clearSelection}>
+                Deselect all
+              </BarBtn>
+            )}
+          </>
+        )}
+        <SelHint aria-live="polite">
+          {progress
+            ? `${progress.verb} · ${progress.done} of ${progress.total}…`
+            : "Right-click for actions"}
+        </SelHint>
+      </SelectBar>
       {visible.length > 0 && (
         <Grid>
           {visible.map((t) => {
             const thumb = thumbnailUrl(t.thumbnail);
             const isLive = t.status === "published";
             const isSubmitted = t.status === "submitted";
+            const isSel = selected.has(t.templateId);
             return (
-              <TileWrap key={t.templateId}>
+              <TileWrap
+                key={t.templateId}
+                $selected={isSel}
+                onContextMenu={(e) => openCtx(e, t)}
+              >
+                <TileCheck>
+                  <Checkbox
+                    checked={isSel}
+                    disabled={working}
+                    aria-label={`Select ${t.label}`}
+                    onClick={(e) => {
+                      shiftRef.current = e.shiftKey;
+                    }}
+                    onChange={(on) => toggle(t, on)}
+                  />
+                </TileCheck>
                 <TileTitleRow>
                   <TileTitle title={t.label}>{t.label}</TileTitle>
                   <StatusChip $live={isLive}>
@@ -534,7 +748,7 @@ export default function TemplateGalleryPanel() {
                   target="_blank"
                   rel="noopener noreferrer"
                   title={`Edit ${t.label}`}
-                  $busy={busyId === t.templateId}
+                  $busy={busyIds.has(t.templateId)}
                 >
                   {/* The template as it is now (Gio 2026-11-19), rendered live by tgv.com's
                       preview route; the stored shot only stands in while it loads. */}
@@ -558,7 +772,7 @@ export default function TemplateGalleryPanel() {
                   aria-expanded={openMenuId === t.templateId}
                   aria-label={`Actions for ${t.label}`}
                   title="Actions"
-                  disabled={busyId === t.templateId}
+                  disabled={busyIds.has(t.templateId)}
                   data-tile-menu=""
                   onClick={() =>
                     setOpenMenuId((k) =>
@@ -589,7 +803,7 @@ export default function TemplateGalleryPanel() {
                     />
                     <ReviewBtn
                       type="button"
-                      disabled={busyId === t.templateId}
+                      disabled={busyIds.has(t.templateId)}
                       onClick={() => void review(t, "accept")}
                     >
                       Accept
@@ -597,7 +811,7 @@ export default function TemplateGalleryPanel() {
                     <ReviewBtn
                       type="button"
                       $danger
-                      disabled={busyId === t.templateId}
+                      disabled={busyIds.has(t.templateId)}
                       onClick={() => void review(t, "decline")}
                     >
                       Decline
@@ -607,58 +821,17 @@ export default function TemplateGalleryPanel() {
 
                 {openMenuId === t.templateId && (
                   <Menu role="menu" data-tile-menu="">
-                    <MenuLabel>Move to</MenuLabel>
-                    {/* Disable the destination you are ALREADY on — the pair was
-                        inverted, which left every template stuck in its status. */}
-                    <MenuItem
-                      role="menuitem"
-                      type="button"
-                      disabled={isLive}
-                      onClick={() => setStatus(t, "published")}
-                    >
-                      Live
-                      {isLive && <Tick aria-hidden>✓</Tick>}
-                    </MenuItem>
-                    <MenuItem
-                      role="menuitem"
-                      type="button"
-                      disabled={!isLive}
-                      onClick={() => setStatus(t, "sandbox")}
-                    >
-                      Drafted
-                      {!isLive && <Tick aria-hidden>✓</Tick>}
-                    </MenuItem>
-                    <MenuSep />
-                    <MenuItemLink
-                      role="menuitem"
-                      href={editHref(t)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={() => setOpenMenuId(null)}
-                    >
-                      <EditIcon size={13} /> Edit
-                    </MenuItemLink>
-                    <MenuItemLink
-                      role="menuitem"
-                      href={previewHref(t)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={() => setOpenMenuId(null)}
-                    >
-                      <EyeIcon size={13} /> Preview
-                    </MenuItemLink>
-                    <MenuSep />
-                    <MenuItem
-                      role="menuitem"
-                      type="button"
-                      $danger
-                      onClick={() => {
+                    <ActionsMenu
+                      targets={[t]}
+                      editHref={editHref}
+                      previewHref={previewHref}
+                      onMove={(status) => void setStatusMany([t], status)}
+                      onDelete={() => {
                         setOpenMenuId(null);
-                        setConfirmDelete(t);
+                        setConfirmDelete([t]);
                       }}
-                    >
-                      <TrashIcon size={13} /> Delete
-                    </MenuItem>
+                      onClose={() => setOpenMenuId(null)}
+                    />
                   </Menu>
                 )}
               </TileWrap>
@@ -683,6 +856,41 @@ export default function TemplateGalleryPanel() {
       )}
           </Main>
         </Body>
+      )}
+
+      {ctxMenu && (
+        <CtxMenu x={ctxMenu.x} y={ctxMenu.y}>
+          {ctxTargets.length > 0 && (
+            <ActionsMenu
+              targets={ctxTargets}
+              editHref={editHref}
+              previewHref={previewHref}
+              onMove={(status) => void setStatusMany(ctxTargets, status)}
+              onDelete={() => {
+                setCtxMenu(null);
+                setConfirmDelete(ctxTargets);
+              }}
+              onClose={() => setCtxMenu(null)}
+            />
+          )}
+          {ctxTargets.length > 0 && <MenuSep />}
+          <MenuItem
+            role="menuitem"
+            type="button"
+            disabled={allSelected}
+            onClick={selectAll}
+          >
+            Select all {filtered.length}
+          </MenuItem>
+          <MenuItem
+            role="menuitem"
+            type="button"
+            disabled={selectedTemplates.length === 0}
+            onClick={clearSelection}
+          >
+            Deselect all
+          </MenuItem>
+        </CtxMenu>
       )}
 
       {/* The ruling surface: the entry's own panels, live over its real render.
@@ -738,8 +946,12 @@ export default function TemplateGalleryPanel() {
       <ConfirmModal
         open={confirmDelete !== null}
         intent="danger"
-        title="Delete template"
-        message={`Delete "${confirmDelete?.label ?? ""}" from the gallery?`}
+        title={(confirmDelete?.length ?? 0) > 1 ? "Delete templates" : "Delete template"}
+        message={
+          (confirmDelete?.length ?? 0) > 1
+            ? `Delete ${confirmDelete?.length} templates from the gallery?`
+            : `Delete "${confirmDelete?.[0]?.label ?? ""}" from the gallery?`
+        }
         detail={
           "It disappears from every member's editor picker and the onboarding wizard immediately. " +
           "The row is soft-deleted (kept for audit), but the gallery can't bring it back — " +
@@ -750,7 +962,113 @@ export default function TemplateGalleryPanel() {
         onConfirm={doDelete}
         onCancel={() => setConfirmDelete(null)}
       />
+    </Root>
+  );
+}
+
+/** Every per-template action, for one template (the 3-dot menu) or many (the
+ *  right-click menu) — one list so the two can never drift apart. Edit and
+ *  Preview open a tab each, so they're offered only for a single template:
+ *  a burst of tabs from one click gets eaten by the popup blocker. */
+function ActionsMenu({
+  targets,
+  editHref,
+  previewHref,
+  onMove,
+  onDelete,
+  onClose,
+}: {
+  targets: Template[];
+  editHref: (t: Template) => string;
+  previewHref: (t: Template) => string;
+  onMove: (status: TemplateStatus) => void;
+  onDelete: () => void;
+  onClose: () => void;
+}) {
+  const one = targets.length === 1 ? targets[0] : null;
+  const toLive = targets.filter((t) => t.status !== "published").length;
+  const toDrafts = targets.length - toLive;
+  return (
+    <>
+      <MenuLabel>{one ? "Move to" : `${targets.length} templates · move to`}</MenuLabel>
+      {/* Disable the destination you are ALREADY on — the pair was inverted
+          once, which left every template stuck in its status. */}
+      <MenuItem
+        role="menuitem"
+        type="button"
+        disabled={toLive === 0}
+        onClick={() => onMove("published")}
+      >
+        Live
+        {one ? (
+          toLive === 0 && <Tick aria-hidden>✓</Tick>
+        ) : (
+          <MenuCount>{toLive === 0 ? "all live" : toLive}</MenuCount>
+        )}
+      </MenuItem>
+      <MenuItem
+        role="menuitem"
+        type="button"
+        disabled={toDrafts === 0}
+        onClick={() => onMove("sandbox")}
+      >
+        Drafted
+        {one ? (
+          toDrafts === 0 && <Tick aria-hidden>✓</Tick>
+        ) : (
+          <MenuCount>{toDrafts === 0 ? "none live" : toDrafts}</MenuCount>
+        )}
+      </MenuItem>
+      {one && (
+        <>
+          <MenuSep />
+          <MenuItemLink
+            role="menuitem"
+            href={editHref(one)}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={onClose}
+          >
+            <EditIcon size={13} /> Edit
+          </MenuItemLink>
+          <MenuItemLink
+            role="menuitem"
+            href={previewHref(one)}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={onClose}
+          >
+            <EyeIcon size={13} /> Preview
+          </MenuItemLink>
+        </>
+      )}
+      <MenuSep />
+      <MenuItem role="menuitem" type="button" $danger onClick={onDelete}>
+        <TrashIcon size={13} /> {one ? "Delete" : `Delete ${targets.length}`}
+      </MenuItem>
     </>
+  );
+}
+
+/** The right-click menu: opens at the pointer, inside the panel, and nudges
+ *  itself back on screen when the pointer was near the right or bottom edge. */
+function CtxMenu({ x, y, children }: { x: number; y: number; children: ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.left = `${x}px`;
+    el.style.top = `${y}px`;
+    const r = el.getBoundingClientRect();
+    const overX = r.right - (window.innerWidth - 8);
+    const overY = r.bottom - (window.innerHeight - 8);
+    if (overX > 0) el.style.left = `${Math.max(0, x - overX)}px`;
+    if (overY > 0) el.style.top = `${Math.max(0, y - r.height)}px`;
+  }, [x, y]);
+  return (
+    <CtxMenuBox ref={ref} role="menu" data-tile-menu="">
+      {children}
+    </CtxMenuBox>
   );
 }
 
@@ -1040,20 +1358,68 @@ const Main = styled.div`
   min-width: 0;
 `;
 
+const Root = styled.div`
+  position: relative;
+`;
+
+/* The select-all bar over the grid. --checkbox-rgb ties every tick on the
+   panel (bar + tiles) to the gallery's violet. */
+const SelectBar = styled.div`
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  min-height: 1.9rem;
+  --checkbox-rgb: ${rgb.violet};
+  --checkbox-label: var(--t-text);
+`;
+const SelCount = styled.span`
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: ${colors.violet};
+  font-variant-numeric: tabular-nums;
+`;
+const BarBtn = styled.button<{ $tone?: "cyan" | "pink" }>`
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  background: transparent;
+  color: ${({ $tone }) =>
+    $tone === "cyan" ? colors.cyan : $tone === "pink" ? colors.pink : "var(--t-text)"};
+  border: 1px solid
+    ${({ $tone }) =>
+      $tone === "cyan"
+        ? `rgba(${rgb.cyan}, 0.5)`
+        : $tone === "pink"
+          ? `rgba(${rgb.pink}, 0.5)`
+          : "var(--t-border)"};
+  &:hover:not(:disabled) { background: rgba(${rgb.violet}, 0.12); }
+  &:disabled { opacity: 0.4; cursor: default; }
+`;
+const SelHint = styled.span`
+  margin-left: auto;
+  font-size: 0.68rem;
+  color: var(--t-textFaint);
+`;
+
 const Grid = styled.div`
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
   gap: 0.75rem;
 `;
 
-const TileWrap = styled.div`
+const TileWrap = styled.div<{ $selected: boolean }>`
   position: relative;
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
   padding: 0.85rem;
-  background: rgba(${rgb.violet}, 0.04);
-  border: 1px solid rgba(${rgb.violet}, 0.3);
+  --checkbox-rgb: ${rgb.violet};
+  background: rgba(${rgb.violet}, ${({ $selected }) => ($selected ? 0.12 : 0.04)});
+  border: 1px solid rgba(${rgb.violet}, ${({ $selected }) => ($selected ? 0.8 : 0.3)});
   border-radius: 0.625rem;
   transition: all 0.15s;
 
@@ -1067,8 +1433,8 @@ const TileTitleRow = styled.div`
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  /* Leave room for the 3-dot button pinned to the corner. */
-  padding-right: 1.85rem;
+  /* Leave room for the checkbox + 3-dot button pinned to the corner. */
+  padding-right: 3.5rem;
 `;
 
 const TileTitle = styled.div`
@@ -1174,10 +1540,22 @@ const TileDesc = styled.div`
   overflow: hidden;
 `;
 
-const MenuBtn = styled.button`
+/* The tile's select box, in the top-right corner; the 3-dot sits to its left. */
+const TileCheck = styled.div`
   position: absolute;
   top: 0.6rem;
   right: 0.6rem;
+  z-index: 2;
+  height: 1.5rem;
+  display: flex;
+  align-items: center;
+  --checkbox-size: 16px;
+`;
+
+const MenuBtn = styled.button`
+  position: absolute;
+  top: 0.6rem;
+  right: 2.1rem;
   z-index: 2;
   width: 1.5rem;
   height: 1.5rem;
@@ -1205,7 +1583,7 @@ const MenuBtn = styled.button`
 const Menu = styled.div`
   position: absolute;
   top: 2.25rem;
-  right: 0.6rem;
+  right: 2.1rem;
   z-index: 5;
   min-width: 9.5rem;
   padding: 0.3rem;
@@ -1260,6 +1638,27 @@ const Tick = styled.span`
   margin-left: auto;
   color: ${colors.cyan};
   font-size: 0.7rem;
+`;
+
+const MenuCount = styled.span`
+  margin-left: auto;
+  font-size: 0.68rem;
+  color: var(--t-textFaint);
+  font-variant-numeric: tabular-nums;
+`;
+
+const CtxMenuBox = styled.div`
+  position: absolute;
+  z-index: 20;
+  min-width: 11rem;
+  padding: 0.3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.05rem;
+  background: var(--t-surface, #12121a);
+  border: 1px solid rgba(${rgb.violet}, 0.4);
+  border-radius: 0.5rem;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.5);
 `;
 
 const MenuSep = styled.div`
