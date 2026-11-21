@@ -29,6 +29,7 @@ const TsserverControlModal = dynamic(() => import("../../components/hardening/ts
 const DomainDnsControlModal = dynamic(() => import("../../components/hardening/domain-dns/DomainDnsControlModal"), { ssr: false });
 const KeycloakControlModal = dynamic(() => import("../../components/hardening/keycloak/KeycloakControlModal"), { ssr: false });
 const BoxUsageControlModal = dynamic(() => import("../../components/hardening/box-usage/BoxUsageControlModal"), { ssr: false });
+const WorkshopDbControlModal = dynamic(() => import("../../components/hardening/workshop-db/WorkshopDbControlModal"), { ssr: false });
 const RcsMaintenanceControlModal = dynamic(() => import("../../components/hardening/rcs-maintenance/RcsMaintenanceControlModal"), { ssr: false });
 const PipelineControlModal = dynamic(() => import("../../components/hardening/pipeline/PipelineControlModal"), { ssr: false });
 const PrivacyControlModal = dynamic(() => import("../../components/hardening/privacy/PrivacyControlModal"), { ssr: false });
@@ -1961,6 +1962,22 @@ function UtilsAdlSurface({
                         </HardeningTileSub>
                       </HardeningTile>
                     );
+                    if (tile.type === "workshop-db") return (
+                      <HardeningTile key={i} type="button" onClick={() => onOpenHardening("workshop-db")}>
+                        <HardeningTileTop>
+                          <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: "-2px", marginRight: 8 }}>
+                            <ellipse cx="12" cy="5" rx="8" ry="3" />
+                            <path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5" />
+                            <path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3" />
+                          </svg>
+                          Workshop DB
+                        </HardeningTileTop>
+                        <HardeningTileSub>
+                          The dev copy of the production databases on RCS2 — refreshed nightly with
+                          member emails and phones masked. Last run, schedule, kept contacts, refresh now.
+                        </HardeningTileSub>
+                      </HardeningTile>
+                    );
                     if (tile.type === "privacy") return (
                       <HardeningTile key={i} type="button" onClick={() => onOpenHardening("privacy")}>
                         <HardeningTileTop>
@@ -2188,7 +2205,7 @@ type DefaultsOverlay = Record<string, Record<string, FieldValue>>;
 
 // Runtime list, not just a union: the ?view= deep-link reader has to validate a
 // string off the URL, and a second hand-kept list would drift.
-const HARDENING_KINDS = ["telephony", "tenant-apps", "member-auth", "office-staff", "mesh-vpn", "firewall", "build-guard", "deploy-watcher", "tsserver", "keycloak", "demo-mode", "domain-dns", "box-usage", "rcs-maintenance", "pipeline", "meet-captions", "commerce-readiness", "privacy", "media-folder"] as const;  // | "postgres" | "ssh" | "nginx" — future
+const HARDENING_KINDS = ["telephony", "tenant-apps", "member-auth", "office-staff", "mesh-vpn", "firewall", "build-guard", "deploy-watcher", "tsserver", "keycloak", "demo-mode", "domain-dns", "box-usage", "workshop-db", "rcs-maintenance", "pipeline", "meet-captions", "commerce-readiness", "privacy", "media-folder"] as const;  // | "postgres" | "ssh" | "nginx" — future
 type HardeningKind = (typeof HARDENING_KINDS)[number];
 
 // ── Link Tools (TinyURL + QR generators) ──────────────────────────────────
@@ -2234,6 +2251,7 @@ type TileSpec =
   | { type: "domain-dns" }
   | { type: "tsserver" }
   | { type: "box-usage" }
+  | { type: "workshop-db" }
   | { type: "rcs-maintenance" }
   | { type: "pipeline" }
   | { type: "privacy" }
@@ -2288,7 +2306,7 @@ const SECTIONS: Section[] = [
     kind: "actions", actionIds: ["gitrepo", "gitdelrepo"] },
   { id: "hardening", title: "Hardening", accent: "cyan",
     subtitle: "defensive mechanisms installed on RCS — controls + status + audit log",
-    kind: "tiles", tiles: [{ type: "firewall" }, { type: "media-folder" }, { type: "telephony" }, { type: "tenant-apps" }, { type: "commerce-readiness" }, { type: "member-auth" }, { type: "keycloak" }, { type: "office-staff" }, { type: "mesh-vpn" }, { type: "build-guard" }, { type: "deploy-watcher" }, { type: "pipeline" }, { type: "privacy" }, { type: "tsserver" }, { type: "box-usage" }, { type: "rcs-maintenance" }, { type: "domain-dns" }] },
+    kind: "tiles", tiles: [{ type: "firewall" }, { type: "media-folder" }, { type: "telephony" }, { type: "tenant-apps" }, { type: "commerce-readiness" }, { type: "member-auth" }, { type: "keycloak" }, { type: "office-staff" }, { type: "mesh-vpn" }, { type: "build-guard" }, { type: "deploy-watcher" }, { type: "pipeline" }, { type: "privacy" }, { type: "tsserver" }, { type: "box-usage" }, { type: "workshop-db" }, { type: "rcs-maintenance" }, { type: "domain-dns" }] },
   { id: "linktools", title: "Link Tools", accent: "cyan",
     subtitle: "shorten URLs and generate scannable QR codes — pair them for printable mini-flyers",
     kind: "tiles", tiles: [{ type: "tinyurl" }, { type: "qrcode" }] },
@@ -2867,6 +2885,9 @@ export default function UtilsPage() {
       )}
       {openHardening === "box-usage" && (
         <BoxUsageControlModal onClose={() => setOpenHardening(null)} />
+      )}
+      {openHardening === "workshop-db" && (
+        <WorkshopDbControlModal onClose={() => setOpenHardening(null)} />
       )}
       {openHardening === "pipeline" && (
         <PipelineControlModal onClose={() => setOpenHardening(null)} />

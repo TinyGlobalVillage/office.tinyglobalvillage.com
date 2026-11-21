@@ -181,6 +181,7 @@ export const OFFICE_CHILDREN: OfficeChildDef[] = [
   // reader there needs no second naming scheme.
   { key: "UtilsBackups", title: "Backups", subtitle: "in Utils · off-site restic pipeline", parent: "Utils", detail: "backups" },
   { key: "UtilsBoxUsage", title: "Box Usage", subtitle: "in Utils · CPU RAM disk bandwidth capacity", parent: "Utils", detail: "box-usage" },
+  { key: "UtilsWorkshopDb", title: "Workshop DB", subtitle: "in Utils · dev copy of prod, masked", parent: "Utils", detail: "workshop-db" },
   { key: "UtilsCommerceReadiness", title: "Commerce Readiness", subtitle: "in Utils · fleet-wide store audit", parent: "Utils", detail: "commerce-readiness" },
   { key: "UtilsBuildGuard", title: "Build Guard", subtitle: "in Utils · parallel-build safety", parent: "Utils", detail: "build-guard" },
   { key: "UtilsDemoMode", title: "Demo Mode", subtitle: "in Utils · package previews on demo-N", parent: "Utils", detail: "demo-mode" },
