@@ -28,26 +28,56 @@
     "gpgPrivateKeyLocation": "MacPass (operator's Mac) — never on RCS"
   },
   "schedule": {
-    "tier1": {"cron": "30 2 * * *", "desc": "Nightly 02:30 — DBs + JSON + cdn"},
-    "tier4": {"cron": "0 3 * * 0", "desc": "Weekly Sun 03:00 — encrypted secrets"},
-    "tier2": {"cron": "30 3 * * 0", "desc": "Weekly Sun 03:30 — system configs"},
-    "restoreTest": {"cron": "0 4 1 * *", "desc": "Monthly 1st 04:00 — auto Postgres restore"}
+    "tier1": {
+      "cron": "30 2 * * *",
+      "desc": "Nightly 02:30 — DBs + JSON + cdn"
+    },
+    "tier4": {
+      "cron": "0 3 * * 0",
+      "desc": "Weekly Sun 03:00 — encrypted secrets"
+    },
+    "tier2": {
+      "cron": "30 3 * * 0",
+      "desc": "Weekly Sun 03:30 — system configs"
+    },
+    "restoreTest": {
+      "cron": "0 4 1 * *",
+      "desc": "Monthly 1st 04:00 — auto Postgres restore"
+    }
   },
   "retention": {
-    "tier1": {"keepDaily": 14, "keepWeekly": 8, "keepMonthly": 12, "keepYearly": 3},
-    "tier2": {"keepDaily": 0, "keepWeekly": 4, "keepMonthly": 6, "keepYearly": 0},
-    "tier4": {"keepDaily": 0, "keepWeekly": 4, "keepMonthly": 6, "keepYearly": 0}
+    "tier1": {
+      "keepDaily": 14,
+      "keepWeekly": 8,
+      "keepMonthly": 12,
+      "keepYearly": 3
+    },
+    "tier2": {
+      "keepDaily": 0,
+      "keepWeekly": 4,
+      "keepMonthly": 6,
+      "keepYearly": 0
+    },
+    "tier4": {
+      "keepDaily": 0,
+      "keepWeekly": 4,
+      "keepMonthly": 6,
+      "keepYearly": 0
+    }
   },
   "cron": {
     "filePath": "/etc/cron.d/rcs-backups",
     "disabledPath": "/etc/cron.d/rcs-backups.disabled",
-    "active": false,
+    "active": true,
     "_note": "Master toggle in BackupsControlModal flips this between paths"
   },
   "idleAlert": {
     "configuredInAm": true,
     "thresholdHours": 36,
-    "recipients": ["admin@tinyglobalvillage.com", "marthe@tinyglobalvillage.com (Technical)"]
+    "recipients": [
+      "admin@tinyglobalvillage.com",
+      "marthe@tinyglobalvillage.com (Technical)"
+    ]
   },
   "appendOnly": {
     "filesystemMode": false,
