@@ -278,11 +278,11 @@ export async function initSoftphone(): Promise<void> {
         // it, only LAN IPs get offered and FreeSWITCH's answer-side ICE
         // check fails with "no suitable candidates found" → cause 88.
         iceServers: [
-          // Direct IP — office.tinyglobalvillage.com is Cloudflare-proxied
-          // (HTTP/HTTPS only), so STUN/UDP never reaches the RCS box via the
-          // name. TODO: add a non-proxied DNS record (e.g. stun.tgv) pointing
-          // at this IP and swap back to a hostname.
-          { urls: "stun:65.181.112.63:3478" },
+          // live.tinyglobalvillage.com is DNS-only (grey cloud), so it
+          // resolves straight to the RCS box; office.* is Cloudflare-proxied
+          // (HTTP/HTTPS only) and STUN/UDP would never reach the box.
+          // A hostname, not the IP, so a box move needs only a DNS change.
+          { urls: "stun:live.tinyglobalvillage.com:3478" },
         ],
       },
     },
