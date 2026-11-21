@@ -1647,18 +1647,12 @@ const MenuCount = styled.span`
   font-variant-numeric: tabular-nums;
 `;
 
-const CtxMenuBox = styled.div`
-  position: absolute;
+/* The 3-dot menu's own skin, placed at the pointer instead of the corner
+   (left/top are set inline by CtxMenu). */
+const CtxMenuBox = styled(Menu)`
+  right: auto;
   z-index: 20;
   min-width: 11rem;
-  padding: 0.3rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.05rem;
-  background: var(--t-surface, #12121a);
-  border: 1px solid rgba(${rgb.violet}, 0.4);
-  border-radius: 0.5rem;
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.5);
 `;
 
 const MenuSep = styled.div`
