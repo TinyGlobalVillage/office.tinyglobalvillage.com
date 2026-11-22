@@ -28,14 +28,9 @@ const DeployWatcherControlModal = dynamic(() => import("../../components/hardeni
 const TsserverControlModal = dynamic(() => import("../../components/hardening/tsserver/TsserverControlModal"), { ssr: false });
 const DomainDnsControlModal = dynamic(() => import("../../components/hardening/domain-dns/DomainDnsControlModal"), { ssr: false });
 const KeycloakControlModal = dynamic(() => import("../../components/hardening/keycloak/KeycloakControlModal"), { ssr: false });
-const BoxUsageControlModal = dynamic(() => import("../../components/hardening/box-usage/BoxUsageControlModal"), { ssr: false });
-const WorkshopDbControlModal = dynamic(() => import("../../components/hardening/workshop-db/WorkshopDbControlModal"), { ssr: false });
-const MigrationSnapshotsControlModal = dynamic(() => import("../../components/hardening/migration-snapshots/MigrationSnapshotsControlModal"), { ssr: false });
-const RcsGovControlModal = dynamic(() => import("../../components/hardening/rcs-gov/RcsGovControlModal"), { ssr: false });
+const CockpitModal = dynamic(() => import("../../components/cockpit/CockpitModal"), { ssr: false });
 const FoldingControlModal = dynamic(() => import("../../components/hardening/folding/FoldingControlModal"), { ssr: false });
 const FoldingQuickBar = dynamic(() => import("../../components/hardening/folding/FoldingQuickBar"), { ssr: false });
-const RcsMaintenanceControlModal = dynamic(() => import("../../components/hardening/rcs-maintenance/RcsMaintenanceControlModal"), { ssr: false });
-const PipelineControlModal = dynamic(() => import("../../components/hardening/pipeline/PipelineControlModal"), { ssr: false });
 const PrivacyControlModal = dynamic(() => import("../../components/hardening/privacy/PrivacyControlModal"), { ssr: false });
 const DemoModeControlModal = dynamic(() => import("../../components/dev-tooling/demo-mode/DemoModeControlModal"), { ssr: false });
 const MediaReducerModal = dynamic(() => import("../../components/media-reducer/MediaReducerModal"), { ssr: false });
@@ -1962,6 +1957,24 @@ function UtilsAdlSurface({
                         </HardeningTileSub>
                       </HardeningTile>
                     );
+                    if (tile.type === "cockpit") return (
+                      <HardeningTile key={i} type="button" onClick={() => onOpenHardening("cockpit")}>
+                        <HardeningTileTop>
+                          <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: "-2px", marginRight: 8 }}>
+                            <path d="M3 17a9 9 0 0 1 18 0" />
+                            <path d="M12 17l4-5" />
+                            <circle cx="12" cy="17" r="1.5" />
+                            <path d="M6 7h2M16 7h2M11 4h2" />
+                          </svg>
+                          Cockpit
+                        </HardeningTileTop>
+                        <HardeningTileSub>
+                          Everything happening on RCS2 in one full-screen view — live gauges, per-core CPU, temps,
+                          pm2 app tapes, warning lights — plus capacity &amp; health, dev server pool, pipeline,
+                          workshop DB, rollbacks and maintenance.
+                        </HardeningTileSub>
+                      </HardeningTile>
+                    );
                     if (tile.type === "box-usage") return (
                       <HardeningTile key={i} type="button" onClick={() => onOpenHardening("box-usage")}>
                         <HardeningTileTop>
@@ -2253,8 +2266,10 @@ type DefaultsOverlay = Record<string, Record<string, FieldValue>>;
 
 // Runtime list, not just a union: the ?view= deep-link reader has to validate a
 // string off the URL, and a second hand-kept list would drift.
-const HARDENING_KINDS = ["telephony", "tenant-apps", "member-auth", "office-staff", "mesh-vpn", "firewall", "build-guard", "deploy-watcher", "tsserver", "keycloak", "demo-mode", "domain-dns", "box-usage", "workshop-db", "rcs-gov", "folding", "migration-snapshots", "rcs-maintenance", "pipeline", "meet-captions", "commerce-readiness", "privacy", "media-folder"] as const;  // | "postgres" | "ssh" | "nginx" — future
+const HARDENING_KINDS = ["cockpit", "telephony", "tenant-apps", "member-auth", "office-staff", "mesh-vpn", "firewall", "build-guard", "deploy-watcher", "tsserver", "keycloak", "demo-mode", "domain-dns", "box-usage", "workshop-db", "rcs-gov", "folding", "migration-snapshots", "rcs-maintenance", "pipeline", "meet-captions", "commerce-readiness", "privacy", "media-folder"] as const;  // | "postgres" | "ssh" | "nginx" — future
 type HardeningKind = (typeof HARDENING_KINDS)[number];
+const COCKPIT_FOLDED = ["box-usage", "workshop-db", "rcs-gov", "migration-snapshots", "pipeline", "rcs-maintenance"] as const;
+type CockpitFolded = (typeof COCKPIT_FOLDED)[number];
 
 // ── Link Tools (TinyURL + QR generators) ──────────────────────────────────
 //
@@ -2301,6 +2316,7 @@ type TileSpec =
   | { type: "box-usage" }
   | { type: "workshop-db" }
   | { type: "rcs-gov" }
+  | { type: "cockpit" }
   | { type: "folding" }
   | { type: "migration-snapshots" }
   | { type: "rcs-maintenance" }
@@ -2357,7 +2373,7 @@ const SECTIONS: Section[] = [
     kind: "actions", actionIds: ["gitrepo", "gitdelrepo"] },
   { id: "hardening", title: "Hardening", accent: "cyan",
     subtitle: "defensive mechanisms installed on RCS — controls + status + audit log",
-    kind: "tiles", tiles: [{ type: "firewall" }, { type: "media-folder" }, { type: "telephony" }, { type: "tenant-apps" }, { type: "commerce-readiness" }, { type: "member-auth" }, { type: "keycloak" }, { type: "office-staff" }, { type: "mesh-vpn" }, { type: "build-guard" }, { type: "deploy-watcher" }, { type: "pipeline" }, { type: "privacy" }, { type: "tsserver" }, { type: "box-usage" }, { type: "workshop-db" }, { type: "rcs-gov" }, { type: "migration-snapshots" }, { type: "rcs-maintenance" }, { type: "domain-dns" }] },
+    kind: "tiles", tiles: [{ type: "cockpit" }, { type: "firewall" }, { type: "media-folder" }, { type: "telephony" }, { type: "tenant-apps" }, { type: "commerce-readiness" }, { type: "member-auth" }, { type: "keycloak" }, { type: "office-staff" }, { type: "mesh-vpn" }, { type: "build-guard" }, { type: "deploy-watcher" }, { type: "privacy" }, { type: "tsserver" }, { type: "domain-dns" }] },
   { id: "linktools", title: "Link Tools", accent: "cyan",
     subtitle: "shorten URLs and generate scannable QR codes — pair them for printable mini-flyers",
     kind: "tiles", tiles: [{ type: "tinyurl" }, { type: "qrcode" }] },
@@ -2891,6 +2907,13 @@ export default function UtilsPage() {
         />
       </PageMain>
 
+      {/* The Cockpit folds six surfaces (Gio 2026-11-22); their old ?view= links open it on that panel. */}
+      {(openHardening === "cockpit" || COCKPIT_FOLDED.includes(openHardening as CockpitFolded)) && (
+        <CockpitModal
+          onClose={() => setOpenHardening(null)}
+          initialPanel={openHardening === "cockpit" ? "deck" : (openHardening as CockpitFolded)}
+        />
+      )}
       {openHardening === "telephony" && (
         <TelephonyControlModal onClose={() => setOpenHardening(null)} />
       )}
@@ -2942,29 +2965,11 @@ export default function UtilsPage() {
       {openHardening === "demo-mode" && (
         <DemoModeControlModal onClose={() => setOpenHardening(null)} />
       )}
-      {openHardening === "box-usage" && (
-        <BoxUsageControlModal onClose={() => setOpenHardening(null)} />
-      )}
-      {openHardening === "workshop-db" && (
-        <WorkshopDbControlModal onClose={() => setOpenHardening(null)} />
-      )}
       {openHardening === "folding" && (
         <FoldingControlModal onClose={() => setOpenHardening(null)} />
       )}
-      {openHardening === "rcs-gov" && (
-        <RcsGovControlModal onClose={() => setOpenHardening(null)} />
-      )}
-      {openHardening === "migration-snapshots" && (
-        <MigrationSnapshotsControlModal onClose={() => setOpenHardening(null)} />
-      )}
-      {openHardening === "pipeline" && (
-        <PipelineControlModal onClose={() => setOpenHardening(null)} />
-      )}
       {openHardening === "privacy" && (
         <PrivacyControlModal onClose={() => setOpenHardening(null)} />
-      )}
-      {openHardening === "rcs-maintenance" && (
-        <RcsMaintenanceControlModal onClose={() => setOpenHardening(null)} />
       )}
       {openHardening === "meet-captions" && (
         <MeetCaptionsControlModal onClose={() => setOpenHardening(null)} />
