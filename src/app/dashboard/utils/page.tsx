@@ -677,6 +677,39 @@ const TerminalShortcut = styled.button<{ $running: boolean }>`
   }
 `;
 
+const HeaderLeft = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.6rem;
+`;
+
+const CockpitPill = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 1.1rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  color: ${colors.cyan};
+  background: rgba(${rgb.cyan}, 0.1);
+  border: 1px solid rgba(${rgb.cyan}, 0.55);
+  box-shadow: 0 0 16px rgba(${rgb.cyan}, 0.25);
+  transition: box-shadow 0.15s, background 0.15s;
+  &:hover { background: rgba(${rgb.cyan}, 0.18); box-shadow: 0 0 22px rgba(${rgb.cyan}, 0.45); }
+`;
+
+const CockpitPillSub = styled.span`
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: var(--t-textFaint);
+`;
+
 const TerminalLineCount = styled.span`
   color: var(--t-textGhost);
 `;
@@ -2373,7 +2406,7 @@ const SECTIONS: Section[] = [
     kind: "actions", actionIds: ["gitrepo", "gitdelrepo"] },
   { id: "hardening", title: "Hardening", accent: "cyan",
     subtitle: "defensive mechanisms installed on RCS — controls + status + audit log",
-    kind: "tiles", tiles: [{ type: "cockpit" }, { type: "firewall" }, { type: "media-folder" }, { type: "telephony" }, { type: "tenant-apps" }, { type: "commerce-readiness" }, { type: "member-auth" }, { type: "keycloak" }, { type: "office-staff" }, { type: "mesh-vpn" }, { type: "build-guard" }, { type: "deploy-watcher" }, { type: "privacy" }, { type: "tsserver" }, { type: "domain-dns" }] },
+    kind: "tiles", tiles: [{ type: "firewall" }, { type: "media-folder" }, { type: "telephony" }, { type: "tenant-apps" }, { type: "commerce-readiness" }, { type: "member-auth" }, { type: "keycloak" }, { type: "office-staff" }, { type: "mesh-vpn" }, { type: "build-guard" }, { type: "deploy-watcher" }, { type: "privacy" }, { type: "tsserver" }, { type: "domain-dns" }] },
   { id: "linktools", title: "Link Tools", accent: "cyan",
     subtitle: "shorten URLs and generate scannable QR codes — pair them for printable mini-flyers",
     kind: "tiles", tiles: [{ type: "tinyurl" }, { type: "qrcode" }] },
@@ -2853,11 +2886,23 @@ export default function UtilsPage() {
       <TopNav />
       <PageMain>
         <HeaderRow>
-          <div>
+          <HeaderLeft>
+            {/* The Cockpit sits on its own at the top of Utils (Gio 2026-11-22), not inside Hardening. */}
+            {isAdmin && (
+              <CockpitPill type="button" onClick={() => setOpenHardening("cockpit")} aria-label="Open the Cockpit">
+                <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                  <path d="M3 17a9 9 0 0 1 18 0" />
+                  <path d="M12 17l4-5" />
+                  <circle cx="12" cy="17" r="1.5" />
+                </svg>
+                Cockpit
+                <CockpitPillSub>RCS2 live</CockpitPillSub>
+              </CockpitPill>
+            )}
             <PageSubtitle>
               Server scripts — grouped, configured, and streamed to your terminal
             </PageSubtitle>
-          </div>
+          </HeaderLeft>
 
           <TerminalShortcut
             $running={isRunning}
