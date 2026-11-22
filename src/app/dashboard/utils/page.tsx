@@ -36,6 +36,7 @@ const DemoModeControlModal = dynamic(() => import("../../components/dev-tooling/
 const MediaReducerModal = dynamic(() => import("../../components/media-reducer/MediaReducerModal"), { ssr: false });
 const MeetCaptionsControlModal = dynamic(() => import("../../components/hardening/meet-captions/MeetCaptionsControlModal"), { ssr: false });
 const MediaFolderControlModal = dynamic(() => import("../../components/hardening/media-folder/MediaFolderControlModal"), { ssr: false });
+const FailoverControlModal = dynamic(() => import("../../components/hardening/failover/FailoverControlModal"), { ssr: false });
 import AutomationsTab from "../../components/automations/AutomationsTab";
 import type { ShortLink } from "@tgv/module-page-editor/editor/component-library/marketing/link-tools";
 // Heavy feature packages — lazy-loaded so they don't sit in the Utils page's first-load JS.
@@ -2056,6 +2057,23 @@ function UtilsAdlSurface({
                         </HardeningTileSub>
                       </HardeningTile>
                     );
+                    if (tile.type === "failover") return (
+                      <HardeningTile key={i} type="button" onClick={() => onOpenHardening("failover")}>
+                        <HardeningTileTop>
+                          <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: "-2px", marginRight: 8 }}>
+                            <rect x="2" y="4" width="8" height="16" rx="1.5" />
+                            <rect x="14" y="4" width="8" height="16" rx="1.5" />
+                            <path d="M10 10h4M12 8l2 2-2 2" />
+                            <path d="M5 8h2M17 8h2" />
+                          </svg>
+                          Failover
+                        </HardeningTileTop>
+                        <HardeningTileSub>
+                          RCS1 stands by for RCS2 and takes over if it goes down. Copy freshness, auto-takeover
+                          and hold switches, timings, alert email, quarterly sealed drills.
+                        </HardeningTileSub>
+                      </HardeningTile>
+                    );
                     if (tile.type === "rcs-gov") return (
                       <HardeningTile key={i} type="button" onClick={() => onOpenHardening("rcs-gov")}>
                         <HardeningTileTop>
@@ -2299,7 +2317,7 @@ type DefaultsOverlay = Record<string, Record<string, FieldValue>>;
 
 // Runtime list, not just a union: the ?view= deep-link reader has to validate a
 // string off the URL, and a second hand-kept list would drift.
-const HARDENING_KINDS = ["cockpit", "telephony", "tenant-apps", "member-auth", "office-staff", "mesh-vpn", "firewall", "build-guard", "deploy-watcher", "tsserver", "keycloak", "demo-mode", "domain-dns", "box-usage", "workshop-db", "rcs-gov", "folding", "migration-snapshots", "rcs-maintenance", "pipeline", "meet-captions", "commerce-readiness", "privacy", "media-folder"] as const;  // | "postgres" | "ssh" | "nginx" — future
+const HARDENING_KINDS = ["cockpit", "telephony", "tenant-apps", "member-auth", "office-staff", "mesh-vpn", "firewall", "build-guard", "deploy-watcher", "tsserver", "keycloak", "demo-mode", "domain-dns", "box-usage", "workshop-db", "rcs-gov", "folding", "migration-snapshots", "rcs-maintenance", "pipeline", "meet-captions", "commerce-readiness", "privacy", "media-folder", "failover"] as const;  // | "postgres" | "ssh" | "nginx" — future
 type HardeningKind = (typeof HARDENING_KINDS)[number];
 const COCKPIT_FOLDED = ["box-usage", "workshop-db", "rcs-gov", "migration-snapshots", "pipeline", "rcs-maintenance"] as const;
 type CockpitFolded = (typeof COCKPIT_FOLDED)[number];
@@ -2355,6 +2373,7 @@ type TileSpec =
   | { type: "rcs-maintenance" }
   | { type: "pipeline" }
   | { type: "privacy" }
+  | { type: "failover" }
   | { type: "keycloak" }
   | { type: "demo-mode" }
   | { type: "tinyurl" }
@@ -2406,7 +2425,7 @@ const SECTIONS: Section[] = [
     kind: "actions", actionIds: ["gitrepo", "gitdelrepo"] },
   { id: "hardening", title: "Hardening", accent: "cyan",
     subtitle: "defensive mechanisms installed on RCS — controls + status + audit log",
-    kind: "tiles", tiles: [{ type: "firewall" }, { type: "media-folder" }, { type: "telephony" }, { type: "tenant-apps" }, { type: "commerce-readiness" }, { type: "member-auth" }, { type: "keycloak" }, { type: "office-staff" }, { type: "mesh-vpn" }, { type: "build-guard" }, { type: "deploy-watcher" }, { type: "privacy" }, { type: "tsserver" }, { type: "domain-dns" }] },
+    kind: "tiles", tiles: [{ type: "firewall" }, { type: "media-folder" }, { type: "telephony" }, { type: "tenant-apps" }, { type: "commerce-readiness" }, { type: "member-auth" }, { type: "keycloak" }, { type: "office-staff" }, { type: "mesh-vpn" }, { type: "build-guard" }, { type: "deploy-watcher" }, { type: "privacy" }, { type: "tsserver" }, { type: "domain-dns" }, { type: "failover" }] },
   { id: "linktools", title: "Link Tools", accent: "cyan",
     subtitle: "shorten URLs and generate scannable QR codes — pair them for printable mini-flyers",
     kind: "tiles", tiles: [{ type: "tinyurl" }, { type: "qrcode" }] },
@@ -3027,6 +3046,10 @@ export default function UtilsPage() {
 
       {openHardening === "firewall" && (
         <FirewallControlModal onClose={() => setOpenHardening(null)} />
+      )}
+
+      {openHardening === "failover" && (
+        <FailoverControlModal onClose={() => setOpenHardening(null)} />
       )}
 
       {openHardening === "media-folder" && (
