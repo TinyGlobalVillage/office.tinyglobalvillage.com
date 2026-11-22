@@ -18,9 +18,12 @@ const handlers = createAgentRouteHandlers({
     const token = await requireAuth(req as NextRequest);
     const email = emailForOfficeUser(token?.username ?? token?.sub);
     if (!email) return null;
-    const r = (await db.execute(sql`SELECT m.id FROM public.members m
-      LEFT JOIN public.member_emails e ON e.member_id = m.id
-      WHERE m.deleted_at IS NULL AND (lower(m.email) = ${email} OR lower(e.email) = ${email}) LIMIT 1`)) as unknown as { rows?: Array<{ id: string }> };
+    // Primary address first; a secondary address counts only once verified (an unverified one proves nothing).
+    const r = (await db.execute(sql`SELECT m.id, 0 AS rank FROM public.members m WHERE m.deleted_at IS NULL AND lower(m.email) = ${email}
+      UNION ALL
+      SELECT m.id, 1 FROM public.member_emails e JOIN public.members m ON m.id = e.member_id
+      WHERE m.deleted_at IS NULL AND lower(e.email) = ${email} AND e.verified_at IS NOT NULL
+      ORDER BY rank LIMIT 1`)) as unknown as { rows?: Array<{ id: string }> };
     return r.rows?.[0]?.id ?? null;
   },
 });
