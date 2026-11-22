@@ -27,6 +27,8 @@ const FIELDS = [
   "rebootAlerts",
   "diskWearWarnPct",
   "diskTempWarnC",
+  "emailCritical",
+  "emailRecipients",
 ] as const;
 
 export async function GET(req: NextRequest) {
@@ -52,8 +54,10 @@ export async function PATCH(req: NextRequest) {
   for (const f of FIELDS) {
     if (!(f in o)) continue;
     const v = o[f];
-    if (f === "samplingEnabled" || f === "alertsEnabled" || f === "healthEnabled" || f === "rebootAlerts") {
+    if (f === "samplingEnabled" || f === "alertsEnabled" || f === "healthEnabled" || f === "rebootAlerts" || f === "emailCritical") {
       if (typeof v === "boolean") patch[f] = v;
+    } else if (f === "emailRecipients") {
+      if (Array.isArray(v)) patch.emailRecipients = v.filter((x): x is string => typeof x === "string");
     } else if (typeof v === "number" && Number.isFinite(v)) {
       patch[f] = v;
     }
@@ -64,7 +68,7 @@ export async function PATCH(req: NextRequest) {
 
   // Retuning a threshold changes what the box is allowed to do quietly, so it
   // belongs in the audit log next to the other hardening changes.
-  const changed = FIELDS.filter((f) => before[f] !== next[f]);
+  const changed = FIELDS.filter((f) => JSON.stringify(before[f]) !== JSON.stringify(next[f]));
   if (changed.length) {
     logHardeningAction({
       action: "host-metrics.config.update",

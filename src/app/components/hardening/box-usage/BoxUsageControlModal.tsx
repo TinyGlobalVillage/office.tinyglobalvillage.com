@@ -366,6 +366,13 @@ export default function BoxUsageControlModal({ onClose }: { onClose: () => void 
                 </TBtn>
                 <Muted>Alerts share the capacity switch in Thresholds &amp; retention.</Muted>
               </Rowline>
+              <Rowline>
+                <TBtn $active={cfg.emailCritical} disabled={busy} onClick={() => saveConfig({ emailCritical: !cfg.emailCritical })}>
+                  Email critical {cfg.emailCritical ? "on" : "off"}
+                </TBtn>
+                <RecipientsField value={cfg.emailRecipients} disabled={busy} onCommit={(v) => saveConfig({ emailRecipients: v })} />
+              </Rowline>
+              <Muted>Every alert lands on the Front Desk. Critical ones (degraded RAID, failing disk, disk nearly full, swap maxed) and their all-clear are also emailed.</Muted>
             </>
           )}
         </Body>
@@ -980,3 +987,40 @@ function StorageTables({ storage, wearWarn, tempWarn }: { storage: StorageReadin
     </>
   );
 }
+
+/** Comma-separated email list; saves on blur/Enter. The server cleans and caps it. */
+function RecipientsField({ value, disabled, onCommit }: { value: string[]; disabled?: boolean; onCommit: (v: string[]) => void }) {
+  const joined = value.join(", ");
+  const [draft, setDraft] = useState(joined);
+  const [seen, setSeen] = useState(joined);
+  if (seen !== joined) {
+    setSeen(joined);
+    setDraft(joined);
+  }
+  const commit = () => {
+    const next = draft.split(/[\s,;]+/).map((x) => x.trim()).filter(Boolean);
+    if (next.join(", ") !== joined) onCommit(next);
+  };
+  return (
+    <RecipientsInput
+      aria-label="Alert email recipients"
+      value={draft}
+      disabled={disabled}
+      placeholder="name@example.com, …"
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={commit}
+      onKeyDown={(e) => { if (e.key === "Enter") commit(); }}
+    />
+  );
+}
+
+const RecipientsInput = styled.input`
+  flex: 1 1 16rem;
+  min-width: 12rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: 0.4rem;
+  font-size: 0.78rem;
+  background: var(--t-inputBg, transparent);
+  color: var(--t-text);
+  border: 1px solid var(--t-border);
+`;
