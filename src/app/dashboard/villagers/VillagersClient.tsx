@@ -881,13 +881,45 @@ export default function VillagersClient() {
    *
    * The param stays in the URL: it is the shareable address of the console.
    */
+  // The address bar follows the console (Gio 2026-11-22: every surface shareable by link): clicking
+  // a tile pushes ?view=<tileId>, closing the console drops it, Back closes it.
+  const [linkedTile, setLinkedTile] = useState<string | null>(null);
+  const urlRead = useRef(false);
+  const anyConsoleOpen = [openMemberWallet, openMemberBilling, openMemberLookup, openDashboardConfig, openDashboardStorage, openProfileEngines, openAccessGrant, openPayouts, openWalletControl, openManaged, openDiscounts, openProducts, openCourse, openStudio, openPerformers, openDns, openEcosystem, openPaypal, openMoney, openKeycloakWire, openGuestClaims, openHandshake, openOnboardVillager, openOnboardConfig, openSiteVersions, openStudioConfig].some(Boolean);
+  const closeAllConsoles = () => {
+    setOpenMemberWallet(false); setOpenMemberBilling(false); setOpenMemberLookup(false); setOpenDashboardConfig(false); setOpenDashboardStorage(false); setOpenProfileEngines(false); setOpenAccessGrant(false); setOpenPayouts(false); setOpenWalletControl(false); setOpenManaged(false); setOpenDiscounts(false); setOpenProducts(false); setOpenCourse(false); setOpenStudio(false); setOpenPerformers(false); setOpenDns(false); setOpenEcosystem(false); setOpenPaypal(false); setOpenMoney(false); setOpenKeycloakWire(false); setOpenGuestClaims(false); setOpenHandshake(false); setOpenOnboardVillager(false); setOpenOnboardConfig(false); setOpenSiteVersions(false); setOpenStudioConfig(false);
+  };
+  const openTile = (id: string) => {
+    setLinkedTile(id);
+    TILES[id]?.onClick();
+  };
+
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const view = new URLSearchParams(window.location.search).get("view");
-    if (view) TILES[view]?.onClick();
+    const consume = () => {
+      const view = new URLSearchParams(window.location.search).get("view");
+      if (view && TILES[view]) { setLinkedTile(view); TILES[view].onClick(); }
+      else { setLinkedTile(null); closeAllConsoles(); }
+      urlRead.current = true;
+    };
+    consume();
+    window.addEventListener("popstate", consume);
+    return () => window.removeEventListener("popstate", consume);
     // Registry ids are static; the tile's onClick only calls a setter.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !urlRead.current) return;
+    const want = anyConsoleOpen ? linkedTile : null;
+    if (!anyConsoleOpen && linkedTile) setLinkedTile(null);
+    const params = new URLSearchParams(window.location.search);
+    if ((params.get("view") ?? null) === want) return;
+    if (want) params.set("view", want);
+    else params.delete("view");
+    const qs = params.toString();
+    window.history.pushState({}, "", `${window.location.pathname}${qs ? `?${qs}` : ""}`);
+  }, [anyConsoleOpen, linkedTile]);
 
   // ── Layout state (persisted per-browser) ──
   const [layout, setLayout] = useState<SectionLayout[]>(DEFAULT_LAYOUT);
@@ -974,7 +1006,7 @@ export default function VillagersClient() {
     >
       <Tile
         type="button"
-        onClick={editMode ? undefined : tile.onClick}
+        onClick={editMode ? undefined : () => openTile(tile.id)}
         $edit={editMode}
       >
         <TileTop>
