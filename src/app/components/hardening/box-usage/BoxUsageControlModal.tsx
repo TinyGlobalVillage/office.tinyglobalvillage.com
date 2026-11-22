@@ -19,6 +19,7 @@ import DiskBreakdown from "./DiskBreakdown";
 import type { Bucket, Resource, ThresholdStatus } from "@/lib/host-metrics/compute";
 import type { HostMetricsConfig } from "@/lib/host-metrics/config";
 import type { HealthReport } from "@/lib/host-metrics/health";
+import type { StorageReading } from "@/lib/host-metrics/storage-policy";
 
 type WindowKey = "24h" | "7d" | "30d";
 
@@ -307,6 +308,10 @@ export default function BoxUsageControlModal({ onClose }: { onClose: () => void 
             </Findings>
           )}
 
+          {health?.reading.storage && (
+            <StorageTables storage={health.reading.storage} wearWarn={cfg?.diskWearWarnPct ?? 80} tempWarn={cfg?.diskTempWarnC ?? 70} />
+          )}
+
           {health && health.rates.length > 0 && (
             <AppTable>
               <thead>
@@ -349,6 +354,8 @@ export default function BoxUsageControlModal({ onClose }: { onClose: () => void 
                 <NumField label="Swap warn at (%)" value={cfg.swapWarnPct} min={1} max={100} disabled={busy} onCommit={(v) => saveConfig({ swapWarnPct: v })} />
                 <NumField label="Restarts per hour" value={cfg.restartsPerHourWarn} min={1} max={10_000} disabled={busy} onCommit={(v) => saveConfig({ restartsPerHourWarn: v })} />
                 <NumField label="Error log KB per hour" value={cfg.errorLogKbPerHourWarn} min={1} max={1_000_000} disabled={busy} onCommit={(v) => saveConfig({ errorLogKbPerHourWarn: v })} />
+                <NumField label="Disk wear warn at (%)" value={cfg.diskWearWarnPct} min={10} max={100} disabled={busy} onCommit={(v) => saveConfig({ diskWearWarnPct: v })} />
+                <NumField label="Disk temp warn at (°C)" value={cfg.diskTempWarnC} min={40} max={85} disabled={busy} onCommit={(v) => saveConfig({ diskTempWarnC: v })} />
               </Grid>
               <Rowline>
                 <TBtn $active={cfg.healthEnabled} disabled={busy} onClick={() => saveConfig({ healthEnabled: !cfg.healthEnabled })}>
@@ -914,3 +921,62 @@ const ChartEmpty = styled.div`
   border: 1px dashed var(--t-border);
   border-radius: 0.5rem;
 `;
+
+/** RAID arrays (/proc/mdstat) and per-disk SMART, under Box health. A box with neither says so. */
+function StorageTables({ storage, wearWarn, tempWarn }: { storage: StorageReading; wearWarn: number; tempWarn: number }) {
+  const raid = storage.raid ?? [];
+  const smart = storage.smart;
+  return (
+    <>
+      {raid.length > 0 ? (
+        <AppTable>
+          <thead>
+            <tr><th>RAID array</th><th>level</th><th>state</th><th>members</th></tr>
+          </thead>
+          <tbody>
+            {raid.map((a) => (
+              <tr key={a.name}>
+                <td>{a.name}</td>
+                <td>{a.level}</td>
+                <td style={{ color: a.state === "healthy" ? colors.green : a.state === "rebuilding" ? colors.gold : colors.red }}>
+                  {a.state === "rebuilding" ? `rebuilding${a.progressPct === null ? "" : ` ${a.progressPct}%`}` : a.state}
+                  {a.map ? ` [${a.map}]` : ""}
+                  {a.sync === "check" && a.progressPct !== null ? ` · scrub ${a.progressPct}%` : ""}
+                </td>
+                <td>{a.members.map((m) => (a.failed.includes(m) ? `${m} (failed)` : m)).join(", ")}</td>
+              </tr>
+            ))}
+          </tbody>
+        </AppTable>
+      ) : (
+        <Muted>RAID: not applicable — no software RAID on this box (virtual disk or a single drive).</Muted>
+      )}
+      {smart ? (
+        <>
+          <AppTable>
+            <thead>
+              <tr><th>disk</th><th>SMART</th><th>wear</th><th>temp</th><th>media errors</th><th>warning</th></tr>
+            </thead>
+            <tbody>
+              {smart.disks.map((d) => (
+                <tr key={d.dev}>
+                  <td>{d.dev.replace("/dev/", "")}{d.model ? <Muted as="span"> · {d.model}</Muted> : null}</td>
+                  <td style={{ color: d.passed === false ? colors.red : d.passed ? colors.green : colors.gold }}>
+                    {d.error ? "unreadable" : d.passed === false ? "FAILED" : d.passed ? "passed" : "—"}
+                  </td>
+                  <td style={{ color: d.percentUsed !== null && d.percentUsed >= wearWarn ? colors.gold : undefined }}>{d.percentUsed === null ? "—" : `${d.percentUsed}%`}</td>
+                  <td style={{ color: d.tempC !== null && d.tempC >= tempWarn ? colors.gold : undefined }}>{d.tempC === null ? "—" : `${d.tempC} °C`}</td>
+                  <td style={{ color: d.mediaErrors ? colors.red : undefined }}>{d.mediaErrors ?? "—"}</td>
+                  <td style={{ color: d.criticalWarning ? colors.red : undefined }}>{d.criticalWarning ? `0x${d.criticalWarning.toString(16)}` : d.criticalWarning === 0 ? "none" : "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </AppTable>
+          <Muted>SMART read {new Date(smart.at).toLocaleString()} by the root disk-health timer (every 15 min).</Muted>
+        </>
+      ) : (
+        <Muted>Disk SMART: not applicable — no readings on this box (virtual disk, or the disk-health collector isn&apos;t installed).</Muted>
+      )}
+    </>
+  );
+}

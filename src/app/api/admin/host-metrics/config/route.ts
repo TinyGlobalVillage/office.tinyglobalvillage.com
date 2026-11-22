@@ -25,6 +25,8 @@ const FIELDS = [
   "restartsPerHourWarn",
   "errorLogKbPerHourWarn",
   "rebootAlerts",
+  "diskWearWarnPct",
+  "diskTempWarnC",
 ] as const;
 
 export async function GET(req: NextRequest) {

@@ -46,6 +46,10 @@ export type HostMetricsConfig = {
   errorLogKbPerHourWarn: number;
   /** Whether a pending OS reboot raises a team alert (the pill shows either way). */
   rebootAlerts: boolean;
+  /** Warn when a disk's wear estimate (NVMe percentage used) reaches this; critical at 100. */
+  diskWearWarnPct: number;
+  /** Warn when a disk runs this hot (°C); critical 10 °C above. */
+  diskTempWarnC: number;
   lastUpdated: string | null;
   /** Orientation for whoever opens the raw file. Carried through writes. */
   _note?: string;
@@ -65,6 +69,8 @@ export const CONFIG_DEFAULTS: HostMetricsConfig = {
   restartsPerHourWarn: 5,
   errorLogKbPerHourWarn: 256,
   rebootAlerts: true,
+  diskWearWarnPct: 80,
+  diskTempWarnC: 70,
   lastUpdated: null,
 };
 
@@ -84,6 +90,8 @@ const CLAMPS = {
   swapWarnPct: [1, 100],
   restartsPerHourWarn: [1, 10_000],
   errorLogKbPerHourWarn: [1, 1_000_000],
+  diskWearWarnPct: [10, 100],
+  diskTempWarnC: [40, 85],
 } as const;
 
 function clampNum(key: keyof typeof CLAMPS, value: unknown, fallback: number): number {
@@ -113,6 +121,8 @@ function coerce(raw: unknown): HostMetricsConfig {
     restartsPerHourWarn: clampNum("restartsPerHourWarn", o.restartsPerHourWarn, CONFIG_DEFAULTS.restartsPerHourWarn),
     errorLogKbPerHourWarn: clampNum("errorLogKbPerHourWarn", o.errorLogKbPerHourWarn, CONFIG_DEFAULTS.errorLogKbPerHourWarn),
     rebootAlerts: o.rebootAlerts !== false,
+    diskWearWarnPct: clampNum("diskWearWarnPct", o.diskWearWarnPct, CONFIG_DEFAULTS.diskWearWarnPct),
+    diskTempWarnC: clampNum("diskTempWarnC", o.diskTempWarnC, CONFIG_DEFAULTS.diskTempWarnC),
     lastUpdated: typeof o.lastUpdated === "string" ? o.lastUpdated : null,
     ...(typeof o._note === "string" ? { _note: o._note } : {}),
   };
