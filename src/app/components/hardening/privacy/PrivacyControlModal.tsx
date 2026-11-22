@@ -80,7 +80,7 @@ export default function PrivacyControlModal({ onClose }: { onClose: () => void }
     {
       id: "status",
       title: "Status",
-      qmbm: "Migration 0209 creates the privacy tables; until it has run on tgv_db this board is empty. The field key seals birth data at rest — it must be present in BOTH .env.local files (TGV and demo-hq) or sealed reads fail. The nightly cron on TGV hard-deletes accounts past their window at 03:30.",
+      qmbm: "Migration 0209 creates the privacy tables; until it has run on tgv_db this board is empty. The field key seals birth data at rest — it must be present in BOTH env files (TGV's .env.local and the demo's demo-runtime/.env.demo) or sealed reads fail. The nightly cron on TGV hard-deletes accounts past their window at 03:30.",
       body: (
         <Body>
           {err && <ErrText>{err}</ErrText>}
