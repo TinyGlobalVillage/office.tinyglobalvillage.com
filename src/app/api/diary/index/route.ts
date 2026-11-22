@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 import { listDates, listEntriesForDate } from "../_lib";
+import { linkNames } from "@/lib/diary-links";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const dates = await listDates();
+    const [dates, links] = await Promise.all([listDates(), linkNames()]);
     const days = await Promise.all(
       dates.map(async (date) => {
         const items = await listEntriesForDate(date);
@@ -21,6 +22,8 @@ export async function GET() {
             summary: it.summary,
             featured: it.meta.featured ?? false,
             subtitle: it.meta.subtitle ?? "",
+            glow: it.meta.glow ?? "",
+            link: links[`${date}/${it.slug}`] ?? it.slug,
           })),
         };
       }),

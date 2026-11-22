@@ -1,0 +1,8 @@
+[
+  {
+    "at": "2026-11-21T18:13:00-08:00",
+    "actor": "Pipeline",
+    "event": "Builds go parallel — tgv.com, Office and Demo compile side by side. A full build round dropped from ~10 min to 3.5 min; push-to-live for all three ≈ 4 min.",
+    "glow": "cyan"
+  }
+]

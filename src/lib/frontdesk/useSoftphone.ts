@@ -2,9 +2,8 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import {
-  initSoftphone,
-  registerSoftphone,
-  unregisterSoftphone,
+  acquireSoftphone,
+  releaseSoftphone,
   invite,
   hangupCurrent,
   acceptIncoming,
@@ -42,12 +41,10 @@ export function useSoftphone() {
   const lastCallStateRef = useRef<CallState>(getCurrentCallState());
 
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      await initSoftphone();
-      if (cancelled) return;
-      await registerSoftphone();
-    })();
+    // Ref-counted: the shared registration lives while any consumer is mounted.
+    void acquireSoftphone();
+    // A consumer mounting after registration finished still needs the current status.
+    setStatus(getSoftphoneStatus());
     const notificationRef: { current: Notification | null } = { current: null };
     const off = onEvent((ev) => {
       if (ev.kind === "status") setStatus(ev.status);
@@ -110,12 +107,11 @@ export function useSoftphone() {
       }
     });
     return () => {
-      cancelled = true;
       off();
       stopRingback();
       stopInboundRing();
       notificationRef.current?.close();
-      unregisterSoftphone().catch(() => {});
+      releaseSoftphone().catch(() => {});
     };
   }, []);
 

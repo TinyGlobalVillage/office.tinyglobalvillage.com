@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, useCallback, type ReactNode } from "react";
 import { useEscapeToClose } from "@tgv/module-component-library/components/hooks/useEscapeToClose";
 import styled from "styled-components";
 import { colors, rgb } from "@/app/theme";
@@ -14,6 +14,9 @@ import {
 } from "@/app/styled";
 import NeonX from "../NeonX";
 import AddmToggle from "@tgv/module-component-library/components/ui/AddmToggle";
+import { CopyIcon, EditIcon, EyeIcon, LinkIcon } from "../icons";
+import { cleanLinkName, isValidLinkName } from "@/lib/template-link-name";
+import { replaceTileUrl } from "@/app/lib/tileUrl";
 
 type EntryType = "log" | "decision" | "observation" | "learning" | "incident";
 type FilterValue = "all" | EntryType;
@@ -27,6 +30,10 @@ interface DayHeadline {
   summary: string;
   featured?: boolean;
   subtitle?: string;
+  /** Featured-card accent (a theme colour name); default gold. */
+  glow?: string;
+  /** Share-link name: /diary/<link> opens this entry. */
+  link?: string;
 }
 
 interface Day {
@@ -270,38 +277,41 @@ const AddmOuterBody = styled.div`
   gap: 0.4rem;
 `;
 
-const AddmInner = styled.div<{ $type: EntryType; $featured?: boolean }>`
-  border-left: 4px solid ${(p) => (p.$featured ? `rgb(${rgb.gold})` : TYPE_RGB[p.$type])};
+/** A featured card's accent: frontmatter `glow:` when it names a theme colour, else gold. */
+const glowOf = (g?: string): string => (g && g in rgb ? rgb[g as keyof typeof rgb] : rgb.gold);
+
+const AddmInner = styled.div<{ $type: EntryType; $featured?: boolean; $glow?: string }>`
+  border-left: 4px solid ${(p) => (p.$featured ? `rgb(${glowOf(p.$glow)})` : TYPE_RGB[p.$type])};
   padding-left: 0;
   ${(p) =>
     p.$featured &&
     `
-    border: 1px solid rgba(${rgb.gold}, 0.55);
-    border-left: 4px solid rgb(${rgb.gold});
+    border: 1px solid rgba(${glowOf(p.$glow)}, 0.55);
+    border-left: 4px solid rgb(${glowOf(p.$glow)});
     border-radius: 8px;
-    background: rgba(${rgb.gold}, 0.07);
-    box-shadow: 0 0 22px rgba(${rgb.gold}, 0.2), inset 0 0 30px rgba(${rgb.gold}, 0.04);
+    background: rgba(${glowOf(p.$glow)}, 0.07);
+    box-shadow: 0 0 22px rgba(${glowOf(p.$glow)}, 0.2), inset 0 0 30px rgba(${glowOf(p.$glow)}, 0.04);
   `}
 `;
 
-const Star = styled.span`
-  color: rgb(${rgb.gold});
-  filter: drop-shadow(0 0 6px rgba(${rgb.gold}, 0.75));
+const Star = styled.span<{ $glow?: string }>`
+  color: rgb(${(p) => glowOf(p.$glow)});
+  filter: drop-shadow(0 0 6px rgba(${(p) => glowOf(p.$glow)}, 0.75));
   flex-shrink: 0;
   font-size: 0.85rem;
 `;
 
-const FeaturedBadge = styled.span`
+const FeaturedBadge = styled.span<{ $glow?: string }>`
   font-size: 0.6rem;
   font-weight: 800;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   padding: 0.14rem 0.55rem;
   border-radius: 999px;
-  color: rgb(${rgb.gold});
-  border: 1px solid rgba(${rgb.gold}, 0.6);
-  background: rgba(${rgb.gold}, 0.12);
-  box-shadow: 0 0 10px rgba(${rgb.gold}, 0.3);
+  color: rgb(${(p) => glowOf(p.$glow)});
+  border: 1px solid rgba(${(p) => glowOf(p.$glow)}, 0.6);
+  background: rgba(${(p) => glowOf(p.$glow)}, 0.12);
+  box-shadow: 0 0 10px rgba(${(p) => glowOf(p.$glow)}, 0.3);
   flex-shrink: 0;
   white-space: nowrap;
 `;
@@ -405,6 +415,137 @@ const EntryBody = styled.div`
   }
   .fix code { color: inherit; background: rgba(${rgb.green}, 0.14); }
   .fix strong { color: inherit; }
+`;
+
+const MenuBox = styled.div`
+  position: fixed;
+  z-index: 1000;
+  min-width: 12rem;
+  max-width: 20rem;
+  padding: 0.3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.05rem;
+  background: var(--t-cardGrad);
+  border: 1px solid rgba(${rgb.violet}, 0.4);
+  border-radius: 0.5rem;
+  box-shadow: 0 10px 28px rgba(${rgb.violet}, 0.18);
+`;
+const MenuLabel = styled.div`
+  font-size: 0.5625rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--t-textFaint);
+  padding: 0.3rem 0.45rem 0.15rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+const MenuItem = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  width: 100%;
+  text-align: left;
+  padding: 0.4rem 0.45rem;
+  border: none;
+  border-radius: 0.35rem;
+  cursor: pointer;
+  background: transparent;
+  font-size: 0.78rem;
+  color: var(--t-text);
+  &:hover:not(:disabled) { background: rgba(${rgb.violet}, 0.14); }
+  &:disabled { opacity: 0.45; cursor: not-allowed; }
+`;
+const MenuItemLink = styled(MenuItem).attrs({ as: "a" })`
+  text-decoration: none;
+`;
+const MenuSep = styled.div`
+  height: 1px;
+  margin: 0.2rem 0.1rem;
+  background: var(--t-border);
+`;
+const DialogScrim = styled.div`
+  position: fixed;
+  inset: 0;
+  z-index: 1001;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--t-overlay);
+`;
+const Dialog = styled.div`
+  width: min(32rem, calc(100vw - 2rem));
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 1rem 1.1rem;
+  background: var(--t-cardGrad);
+  border: 1px solid rgba(${rgb.cyan}, 0.45);
+  border-radius: 0.75rem;
+  box-shadow: 0 0 28px rgba(${rgb.cyan}, 0.18);
+`;
+const DialogTitle = styled.div`
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: ${colors.cyan};
+`;
+const LinkRow = styled.div`
+  display: flex;
+  align-items: stretch;
+  border: 1px solid var(--t-border);
+  border-radius: 0.45rem;
+  overflow: hidden;
+`;
+const LinkPrefix = styled.span`
+  display: flex;
+  align-items: center;
+  padding: 0 0.5rem;
+  font-size: 0.75rem;
+  font-family: ui-monospace, monospace;
+  color: var(--t-textFaint);
+  background: var(--t-inputBg, transparent);
+  border-right: 1px solid var(--t-border);
+  white-space: nowrap;
+`;
+const LinkInput = styled.input`
+  flex: 1;
+  min-width: 0;
+  padding: 0.45rem 0.5rem;
+  border: none;
+  outline: none;
+  font-size: 0.8rem;
+  font-family: ui-monospace, monospace;
+  background: transparent;
+  color: var(--t-text);
+`;
+const Hint = styled.div`
+  font-size: 0.7rem;
+  color: var(--t-textFaint);
+`;
+const ErrLine = styled.div`
+  font-size: 0.75rem;
+  color: ${colors.red};
+`;
+const DialogRow = styled.div`
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+`;
+const Toast = styled.div`
+  position: fixed;
+  left: 50%;
+  bottom: 2rem;
+  transform: translateX(-50%);
+  z-index: 1002;
+  padding: 0.45rem 0.9rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  color: ${colors.cyan};
+  background: var(--t-cardGrad);
+  border: 1px solid rgba(${rgb.cyan}, 0.5);
+  box-shadow: 0 0 16px rgba(${rgb.cyan}, 0.25);
 `;
 
 const Empty = styled.div`
@@ -519,11 +660,23 @@ The motivation. The "why" tends to fade from memory faster than the "what".
 
 interface Props {
   onClose: () => void;
+  /** "<date>/<slug>" — open the diary on this entry (from /diary/<link> or ?tile=Diary&view=…). */
+  initialEntry?: string;
+}
+
+const diaryUrl = (link: string) => `${window.location.origin}/diary/${link}`;
+async function copyText(text: string): Promise<boolean> {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 const FILTER_OPTIONS: FilterValue[] = ["all", "log", "decision", "observation", "learning", "incident"];
 
-export default function RcsDiaryModal({ onClose }: Props) {
+export default function RcsDiaryModal({ onClose, initialEntry }: Props) {
   const [days, setDays] = useState<Day[]>([]);
   const [loading, setLoading] = useState(true);
   const [openDates, setOpenDates] = useState<Set<string>>(new Set());
@@ -533,6 +686,10 @@ export default function RcsDiaryModal({ onClose }: Props) {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [template, setTemplate] = useState<string>("");
+  const [ctx, setCtx] = useState<{ x: number; y: number; date: string; h: DayHeadline } | null>(null);
+  const [renaming, setRenaming] = useState<{ date: string; h: DayHeadline } | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
+  const deepLinked = useRef(false);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -573,6 +730,9 @@ export default function RcsDiaryModal({ onClose }: Props) {
 
   const toggleEntry = async (date: string, slug: string) => {
     const key = `${date}/${slug}`;
+    const closing = openEntries.has(key);
+    // The address bar names the entry you opened, so it can be copied and shared as is.
+    replaceTileUrl("Diary", closing ? null : key);
     setOpenEntries((prev) => {
       const next = new Map(prev);
       if (next.has(key)) {
@@ -591,6 +751,26 @@ export default function RcsDiaryModal({ onClose }: Props) {
       return next;
     });
   };
+
+  // Arriving from a link: open that day + entry once, and bring it into view.
+  useEffect(() => {
+    if (deepLinked.current || !initialEntry || days.length === 0) return;
+    const [date, slug] = initialEntry.split("/");
+    if (!days.some((d) => d.date === date && d.headlines.some((h) => h.slug === slug))) return;
+    deepLinked.current = true;
+    setOpenDates((prev) => new Set(prev).add(date));
+    if (!openEntries.has(initialEntry)) void toggleEntry(date, slug);
+    setTimeout(() => document.getElementById(`diary-${date}-${slug}`)?.scrollIntoView({ block: "center", behavior: "smooth" }), 150);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialEntry, days]);
+
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 2500);
+    return () => clearTimeout(t);
+  }, [toast]);
+
+  const copy = async (text: string, what: string) => setToast((await copyText(text)) ? `${what} copied` : "Copy failed");
 
   const visibleDays = useMemo(() => {
     return days
@@ -667,17 +847,22 @@ export default function RcsDiaryModal({ onClose }: Props) {
                         const isOpen = openEntries.has(key);
                         const full = isOpen ? openEntries.get(key) : null;
                         return (
-                          <AddmInner key={key} $type={h.type} $featured={h.featured}>
+                          <AddmInner key={key} id={`diary-${d.date}-${h.slug}`} $type={h.type} $featured={h.featured} $glow={h.glow}>
                             <AddmInnerHeader
                               $open={isOpen}
                               $type={h.type}
                               onClick={() => toggleEntry(d.date, h.slug)}
+                              onContextMenu={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setCtx({ x: e.clientX, y: e.clientY, date: d.date, h });
+                              }}
                             >
                               <Caret $open={isOpen}>▶</Caret>
-                              {h.featured && <Star>⭐</Star>}
+                              {h.featured && <Star $glow={h.glow}>⭐</Star>}
                               <TimeSpan>{h.time || "--:--"}</TimeSpan>
                               {h.featured && h.subtitle ? (
-                                <FeaturedBadge>{h.subtitle}</FeaturedBadge>
+                                <FeaturedBadge $glow={h.glow}>{h.subtitle}</FeaturedBadge>
                               ) : (
                                 <TypeChip $type={h.type}>{TYPE_LABEL[h.type]}</TypeChip>
                               )}
@@ -700,8 +885,166 @@ export default function RcsDiaryModal({ onClose }: Props) {
             </DayList>
           )}
         </ModalBody>
+        {ctx && (
+          <EntryMenu
+            x={ctx.x}
+            y={ctx.y}
+            onClose={() => setCtx(null)}
+          >
+            <MenuLabel>{ctx.h.title}</MenuLabel>
+            <MenuItem role="menuitem" type="button" onClick={() => { setCtx(null); void toggleEntry(ctx.date, ctx.h.slug); }}>
+              <EyeIcon size={13} /> {openEntries.has(`${ctx.date}/${ctx.h.slug}`) ? "Close entry" : "Open entry"}
+            </MenuItem>
+            <MenuItemLink role="menuitem" href={`/diary/${ctx.h.link ?? ctx.h.slug}`} target="_blank" rel="noopener noreferrer" onClick={() => setCtx(null)}>
+              <LinkIcon size={13} /> Open in new tab
+            </MenuItemLink>
+            <MenuSep />
+            <MenuItem role="menuitem" type="button" onClick={() => { setCtx(null); void copy(diaryUrl(ctx.h.link ?? ctx.h.slug), "Link"); }}>
+              <CopyIcon size={13} /> Copy link
+            </MenuItem>
+            <MenuItem role="menuitem" type="button" onClick={() => { setRenaming({ date: ctx.date, h: ctx.h }); setCtx(null); }}>
+              <EditIcon size={13} /> Rename link…
+            </MenuItem>
+            <MenuSep />
+            <MenuItem role="menuitem" type="button" onClick={() => { setCtx(null); void copy(ctx.h.title, "Title"); }}>
+              <CopyIcon size={13} /> Copy title
+            </MenuItem>
+            <MenuItem role="menuitem" type="button" onClick={() => {
+              const c = ctx; setCtx(null);
+              void fetch(`/api/diary/${c.date}/${c.h.slug}`).then((r) => r.json()).then((j) => copy(String(j.raw ?? ""), "Markdown"));
+            }}>
+              <CopyIcon size={13} /> Copy markdown
+            </MenuItem>
+          </EntryMenu>
+        )}
+        {renaming && (
+          <RenameLinkDialog
+            date={renaming.date}
+            h={renaming.h}
+            onClose={() => setRenaming(null)}
+            onSaved={(name) => {
+              setDays((ds) => ds.map((d) => d.date !== renaming.date ? d : {
+                ...d, headlines: d.headlines.map((x) => (x.slug === renaming.h.slug ? { ...x, link: name } : x)),
+              }));
+              setRenaming((r) => (r ? { ...r, h: { ...r.h, link: name } } : r));
+              setToast("Link renamed — the old one still works");
+            }}
+            onCopy={(url) => void copy(url, "Link")}
+          />
+        )}
+        {toast && <Toast role="status">{toast}</Toast>}
       </ModalContainer>
     </ModalBackdrop>
+  );
+}
+
+/* ── Right-click menu (the template gallery's menu skin) ─────────── */
+
+/** Opens at the pointer; nudges itself back on screen near the right/bottom edge.
+ *  Closes on Escape (top of the escape stack) or a press anywhere outside it. */
+function EntryMenu({ x, y, onClose, children }: { x: number; y: number; onClose: () => void; children: ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEscapeToClose({ open: true, onClose });
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.left = `${x}px`;
+    el.style.top = `${y}px`;
+    const r = el.getBoundingClientRect();
+    const overX = r.right - (window.innerWidth - 8);
+    const overY = r.bottom - (window.innerHeight - 8);
+    if (overX > 0) el.style.left = `${Math.max(8, x - overX)}px`;
+    if (overY > 0) el.style.top = `${Math.max(8, y - r.height)}px`;
+  }, [x, y]);
+  useEffect(() => {
+    // mousedown, not click: the menu must survive its own presses (see TemplateGalleryPanel's note).
+    const onDown = (e: MouseEvent) => {
+      if (e.target instanceof Element && e.target.closest("[data-diary-menu]")) return;
+      onClose();
+    };
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, [onClose]);
+  return (
+    <MenuBox ref={ref} role="menu" data-diary-menu="" onClick={(e) => e.stopPropagation()}>
+      {children}
+    </MenuBox>
+  );
+}
+
+/* ── Rename link ─────────────────────────────────────────────────── */
+
+/** Only the name after /diary/ is editable; it cleans as you type. The old name keeps redirecting. */
+function RenameLinkDialog({ date, h, onClose, onSaved, onCopy }: {
+  date: string;
+  h: DayHeadline;
+  onClose: () => void;
+  onSaved: (name: string) => void;
+  onCopy: (url: string) => void;
+}) {
+  const saved = h.link ?? h.slug;
+  const [name, setName] = useState(saved);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const [olds, setOlds] = useState<string[]>([]);
+  useEscapeToClose({ open: true, onClose });
+  const trimmed = name.replace(/-+$/, "");
+  const valid = isValidLinkName(trimmed);
+  const dirty = trimmed !== saved;
+
+  useEffect(() => {
+    fetch(`/api/diary/${date}/${h.slug}/link`).then((r) => r.json()).then((j) => setOlds(j.redirects ?? [])).catch(() => {});
+  }, [date, h.slug]);
+
+  const save = async () => {
+    if (!valid || !dirty || busy) return;
+    setBusy(true);
+    setErr(null);
+    try {
+      const r = await fetch(`/api/diary/${date}/${h.slug}/link`, {
+        method: "PUT",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ name: trimmed }),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(j.error ?? `HTTP ${r.status}`);
+      setName(j.name);
+      setOlds(j.redirects ?? []);
+      onSaved(j.name);
+    } catch (e) {
+      setErr((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <DialogScrim onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }} onClick={(e) => e.stopPropagation()}>
+      <Dialog role="dialog" aria-label="Rename link">
+        <DialogTitle>Rename link</DialogTitle>
+        <MenuLabel as="div" style={{ padding: 0 }}>{h.title}</MenuLabel>
+        <LinkRow>
+          <LinkPrefix>{typeof window !== "undefined" ? window.location.host : ""}/diary/</LinkPrefix>
+          <LinkInput
+            value={name}
+            autoFocus
+            spellCheck={false}
+            autoComplete="off"
+            aria-label="Link name"
+            onChange={(e) => { setErr(null); setName(cleanLinkName(e.target.value)); }}
+            onKeyDown={(e) => { if (e.key === "Enter") void save(); }}
+          />
+        </LinkRow>
+        <Hint>Lowercase letters, numbers and dashes. The old link keeps working — it redirects here.</Hint>
+        {olds.length > 0 && <Hint>Also opens from: {olds.map((o) => `/diary/${o}`).join(" · ")}</Hint>}
+        {err && <ErrLine role="alert">{err}</ErrLine>}
+        <DialogRow>
+          <NewBtn type="button" disabled={!valid || !dirty || busy} onClick={() => void save()}>{busy ? "Saving…" : "Save"}</NewBtn>
+          <Pill type="button" $active={false} disabled={dirty} onClick={() => onCopy(diaryUrl(saved))}>Copy link</Pill>
+          <Pill type="button" $active={false} onClick={onClose}>Done</Pill>
+        </DialogRow>
+      </Dialog>
+    </DialogScrim>
   );
 }
 

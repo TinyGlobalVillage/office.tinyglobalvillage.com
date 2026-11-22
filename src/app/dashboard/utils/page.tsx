@@ -30,6 +30,8 @@ const DomainDnsControlModal = dynamic(() => import("../../components/hardening/d
 const KeycloakControlModal = dynamic(() => import("../../components/hardening/keycloak/KeycloakControlModal"), { ssr: false });
 const BoxUsageControlModal = dynamic(() => import("../../components/hardening/box-usage/BoxUsageControlModal"), { ssr: false });
 const WorkshopDbControlModal = dynamic(() => import("../../components/hardening/workshop-db/WorkshopDbControlModal"), { ssr: false });
+const MigrationSnapshotsControlModal = dynamic(() => import("../../components/hardening/migration-snapshots/MigrationSnapshotsControlModal"), { ssr: false });
+const RcsGovControlModal = dynamic(() => import("../../components/hardening/rcs-gov/RcsGovControlModal"), { ssr: false });
 const RcsMaintenanceControlModal = dynamic(() => import("../../components/hardening/rcs-maintenance/RcsMaintenanceControlModal"), { ssr: false });
 const PipelineControlModal = dynamic(() => import("../../components/hardening/pipeline/PipelineControlModal"), { ssr: false });
 const PrivacyControlModal = dynamic(() => import("../../components/hardening/privacy/PrivacyControlModal"), { ssr: false });
@@ -1978,6 +1980,38 @@ function UtilsAdlSurface({
                         </HardeningTileSub>
                       </HardeningTile>
                     );
+                    if (tile.type === "migration-snapshots") return (
+                      <HardeningTile key={i} type="button" onClick={() => onOpenHardening("migration-snapshots")}>
+                        <HardeningTileTop>
+                          <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: "-2px", marginRight: 8 }}>
+                            <path d="M3 12a9 9 0 1 0 3-6.7" />
+                            <path d="M3 4v5h5" />
+                            <path d="M12 8v4l3 2" />
+                          </svg>
+                          Rollbacks
+                        </HardeningTileTop>
+                        <HardeningTileSub>
+                          Roll a site back to its previous build, or restore data a destructive migration
+                          removed from the snapshot taken before it. Inspect, scratch restore, copy rows back.
+                        </HardeningTileSub>
+                      </HardeningTile>
+                    );
+                    if (tile.type === "rcs-gov") return (
+                      <HardeningTile key={i} type="button" onClick={() => onOpenHardening("rcs-gov")}>
+                        <HardeningTileTop>
+                          <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: "-2px", marginRight: 8 }}>
+                            <rect x="3" y="6" width="18" height="12" rx="2" />
+                            <path d="M7 10v4M11 10v4M15 10v4" />
+                            <path d="M3 18v2M21 18v2" />
+                          </svg>
+                          Dev Server Pool
+                        </HardeningTileTop>
+                        <HardeningTileSub>
+                          Workshop dev servers on RCS2 share one memory pool. The governor restarts idle
+                          ones when it fills — never one in use. Live pool, switch, thresholds, log.
+                        </HardeningTileSub>
+                      </HardeningTile>
+                    );
                     if (tile.type === "privacy") return (
                       <HardeningTile key={i} type="button" onClick={() => onOpenHardening("privacy")}>
                         <HardeningTileTop>
@@ -2205,7 +2239,7 @@ type DefaultsOverlay = Record<string, Record<string, FieldValue>>;
 
 // Runtime list, not just a union: the ?view= deep-link reader has to validate a
 // string off the URL, and a second hand-kept list would drift.
-const HARDENING_KINDS = ["telephony", "tenant-apps", "member-auth", "office-staff", "mesh-vpn", "firewall", "build-guard", "deploy-watcher", "tsserver", "keycloak", "demo-mode", "domain-dns", "box-usage", "workshop-db", "rcs-maintenance", "pipeline", "meet-captions", "commerce-readiness", "privacy", "media-folder"] as const;  // | "postgres" | "ssh" | "nginx" — future
+const HARDENING_KINDS = ["telephony", "tenant-apps", "member-auth", "office-staff", "mesh-vpn", "firewall", "build-guard", "deploy-watcher", "tsserver", "keycloak", "demo-mode", "domain-dns", "box-usage", "workshop-db", "rcs-gov", "migration-snapshots", "rcs-maintenance", "pipeline", "meet-captions", "commerce-readiness", "privacy", "media-folder"] as const;  // | "postgres" | "ssh" | "nginx" — future
 type HardeningKind = (typeof HARDENING_KINDS)[number];
 
 // ── Link Tools (TinyURL + QR generators) ──────────────────────────────────
@@ -2252,6 +2286,8 @@ type TileSpec =
   | { type: "tsserver" }
   | { type: "box-usage" }
   | { type: "workshop-db" }
+  | { type: "rcs-gov" }
+  | { type: "migration-snapshots" }
   | { type: "rcs-maintenance" }
   | { type: "pipeline" }
   | { type: "privacy" }
@@ -2306,7 +2342,7 @@ const SECTIONS: Section[] = [
     kind: "actions", actionIds: ["gitrepo", "gitdelrepo"] },
   { id: "hardening", title: "Hardening", accent: "cyan",
     subtitle: "defensive mechanisms installed on RCS — controls + status + audit log",
-    kind: "tiles", tiles: [{ type: "firewall" }, { type: "media-folder" }, { type: "telephony" }, { type: "tenant-apps" }, { type: "commerce-readiness" }, { type: "member-auth" }, { type: "keycloak" }, { type: "office-staff" }, { type: "mesh-vpn" }, { type: "build-guard" }, { type: "deploy-watcher" }, { type: "pipeline" }, { type: "privacy" }, { type: "tsserver" }, { type: "box-usage" }, { type: "workshop-db" }, { type: "rcs-maintenance" }, { type: "domain-dns" }] },
+    kind: "tiles", tiles: [{ type: "firewall" }, { type: "media-folder" }, { type: "telephony" }, { type: "tenant-apps" }, { type: "commerce-readiness" }, { type: "member-auth" }, { type: "keycloak" }, { type: "office-staff" }, { type: "mesh-vpn" }, { type: "build-guard" }, { type: "deploy-watcher" }, { type: "pipeline" }, { type: "privacy" }, { type: "tsserver" }, { type: "box-usage" }, { type: "workshop-db" }, { type: "rcs-gov" }, { type: "migration-snapshots" }, { type: "rcs-maintenance" }, { type: "domain-dns" }] },
   { id: "linktools", title: "Link Tools", accent: "cyan",
     subtitle: "shorten URLs and generate scannable QR codes — pair them for printable mini-flyers",
     kind: "tiles", tiles: [{ type: "tinyurl" }, { type: "qrcode" }] },
@@ -2888,6 +2924,12 @@ export default function UtilsPage() {
       )}
       {openHardening === "workshop-db" && (
         <WorkshopDbControlModal onClose={() => setOpenHardening(null)} />
+      )}
+      {openHardening === "rcs-gov" && (
+        <RcsGovControlModal onClose={() => setOpenHardening(null)} />
+      )}
+      {openHardening === "migration-snapshots" && (
+        <MigrationSnapshotsControlModal onClose={() => setOpenHardening(null)} />
       )}
       {openHardening === "pipeline" && (
         <PipelineControlModal onClose={() => setOpenHardening(null)} />

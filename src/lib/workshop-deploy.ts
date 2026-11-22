@@ -204,7 +204,7 @@ export type PipelineAlertConfig = {
 export type WatcherHealth = { online: boolean; host: string | null; at: string | null; enabled: boolean | null; pollSec: number | null };
 
 export const WATCHER_DEFAULTS: WatcherConfig = {
-  enabled: true, pollSec: 30, debounceSec: 60, maxBuildsPerHour: 6, smokeTimeoutSec: 60, requestTtlMin: 30,
+  enabled: true, pollSec: 30, debounceSec: 60, maxBuildsPerHour: 20, smokeTimeoutSec: 60, requestTtlMin: 30,
   targets: ["tinyglobalvillage.com", "office.tinyglobalvillage.com"],
   follow: { "tinyglobalvillage.com": ["demo-hq"] },
   directRoute: { hardCapMin: 120, closeWhenIdle: true, closeOnIpChange: true, idleGraceSec: 60, unusedMin: 15, silentMin: 15 },

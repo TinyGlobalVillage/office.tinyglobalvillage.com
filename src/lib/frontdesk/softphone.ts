@@ -18,6 +18,7 @@
 import {
   UserAgent,
   Registerer,
+  RegistererState,
   Inviter,
   SessionState,
   type Session,
@@ -243,7 +244,18 @@ export function onEvent(cb: Listener): () => void {
   return () => listeners.delete(cb);
 }
 
-export async function initSoftphone(): Promise<void> {
+// Two consumers (IncomingCallOverlay, always mounted, and PhoneTab) can call init at
+// the same moment; without one shared promise both pass `if (ua)` during the config
+// fetch and build two UserAgents.
+let initPromise: Promise<void> | null = null;
+
+export function initSoftphone(): Promise<void> {
+  if (ua) return Promise.resolve();
+  if (!initPromise) initPromise = doInit().finally(() => { initPromise = null; });
+  return initPromise;
+}
+
+async function doInit(): Promise<void> {
   if (ua) return;
   const cfg = await fetchConfig();
   if (!cfg) {
@@ -325,9 +337,20 @@ export async function initSoftphone(): Promise<void> {
 export async function registerSoftphone(): Promise<void> {
   if (!ua || !registerer) await initSoftphone();
   if (!registerer) return;
-  setStatus("registering");
+  // Already registered (another consumer got here first): a refresh REGISTER leaves the
+  // Registerer's state unchanged, so stateChange never fires — flipping to "registering"
+  // here left the shared status stuck there and the Call button disabled (2026-11-21).
+  const already = registerer.state === RegistererState.Registered;
+  if (already) setStatus("registered");
+  else setStatus("registering");
   try {
-    await registerer.register();
+    // Every answer re-syncs the shared status, whether or not the state changed.
+    await registerer.register({
+      requestDelegate: {
+        onAccept: () => setStatus("registered"),
+        onReject: (r) => setStatus("failed", `REGISTER rejected ${r.message.statusCode}`),
+      },
+    });
   } catch (err) {
     setStatus("failed", (err as Error).message);
   }
@@ -336,6 +359,22 @@ export async function registerSoftphone(): Promise<void> {
 export async function unregisterSoftphone(): Promise<void> {
   if (!registerer) return;
   try { await registerer.unregister(); } catch { /* ignore */ }
+}
+
+// One registration per tab, shared by every useSoftphone() consumer. The first consumer
+// registers; only the last one to unmount unregisters — closing the Phone tab must not
+// take the always-mounted incoming-call overlay off the line (calls went to voicemail).
+let consumers = 0;
+
+export async function acquireSoftphone(): Promise<void> {
+  consumers += 1;
+  await initSoftphone();
+  await registerSoftphone();
+}
+
+export async function releaseSoftphone(): Promise<void> {
+  consumers = Math.max(0, consumers - 1);
+  if (consumers === 0) await unregisterSoftphone();
 }
 
 export async function invite(

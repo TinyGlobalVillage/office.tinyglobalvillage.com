@@ -47,6 +47,7 @@ export default function GlobalModals() {
   const [suggestionOpen, setSuggestionOpen] = useState(false);
   const [activityOpen, setActivityOpen] = useState(false);
   const [diaryOpen, setDiaryOpen] = useState(false);
+  const [diaryEntry, setDiaryEntry] = useState<string | undefined>();
 
   useEffect(() => {
     const w = window as Window & { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number; cancelIdleCallback?: (id: number) => void };
@@ -77,7 +78,10 @@ export default function GlobalModals() {
         setActivityView((e as CustomEvent<string | undefined>).detail);
         setActivityOpen(true);
       },
-      "open-rcs-diary": () => setDiaryOpen(true),
+      "open-rcs-diary": (e) => {
+        setDiaryEntry((e as CustomEvent<string | undefined>).detail);
+        setDiaryOpen(true);
+      },
     };
     const entries = Object.entries(handlers);
     entries.forEach(([ev, fn]) => window.addEventListener(ev, fn));
@@ -118,7 +122,7 @@ export default function GlobalModals() {
       {libraryOpen && <LibraryModal onClose={close(setLibraryOpen, "Library")} initialChild={libraryChild} />}
       {suggestionOpen && <SuggestionBoxModal onClose={close(setSuggestionOpen, "Suggest")} />}
       {activityOpen && <ActivityModal onClose={close(setActivityOpen, "Logs")} initialTab={activityView} />}
-      {diaryOpen && <RcsDiaryModal onClose={close(setDiaryOpen, "Diary")} />}
+      {diaryOpen && <RcsDiaryModal onClose={close(setDiaryOpen, "Diary")} initialEntry={diaryEntry} />}
       {/* self-listens for "open-my-alerts" */}
       <MyAlertsAccess headless />
     </>

@@ -4,7 +4,7 @@ import { useEscapeToClose } from "@tgv/module-component-library/components/hooks
 import { useState, useEffect, useRef } from "react";
 import styled from "styled-components";
 import LogsModal, { type TabMode } from "./LogsModal";
-import { colors, rgb, glowRgba } from "../theme";
+import { colors, rgb, glowRgba, type GlowColor } from "../theme";
 import NeonX from "./NeonX";
 import { LogsIcon, ArchiveIcon } from "./icons";
 import { useModalLifecycle } from "../lib/drawerKnobs";
@@ -13,14 +13,18 @@ type ActivityEvent = {
   timeLabel: string;
   actor: string;
   event: string;
-  type: "pm2" | "git" | "system";
+  type: "pm2" | "git" | "system" | "milestone";
+  /** milestone rows: theme accent they glow in */
+  glow?: string;
 };
 
 const TYPE_COLOR: Record<string, string> = {
   pm2:    colors.gold,
   git:    colors.pink,
   system: colors.green,
+  milestone: colors.cyan,
 };
+const glowName = (g?: string): GlowColor => (g && g in colors ? (g as GlowColor) : "cyan");
 
 const PAGE_OPTIONS = [5, 10, 25, 50] as const;
 
@@ -213,12 +217,21 @@ const Empty = styled.div`
   color: var(--t-textGhost);
 `;
 
-const Row = styled.div`
+const Row = styled.div<{ $glow?: GlowColor }>`
   display: flex;
   align-items: center;
   gap: 0.75rem;
   padding: 0.625rem 0;
   border-bottom: 1px solid var(--t-border);
+  ${(p) => p.$glow && `
+    margin: 0.35rem 0;
+    padding: 0.625rem 0.75rem;
+    border: 1px solid ${glowRgba(p.$glow, 0.55)};
+    border-left: 4px solid ${colors[p.$glow]};
+    border-radius: 8px;
+    background: ${glowRgba(p.$glow, 0.07)};
+    box-shadow: 0 0 22px ${glowRgba(p.$glow, 0.2)}, inset 0 0 30px ${glowRgba(p.$glow, 0.04)};
+  `}
 `;
 
 const TimeLabel = styled.span`
@@ -240,12 +253,12 @@ const TypeBadge = styled.span<{ $color: string }>`
   color: ${(p) => p.$color};
 `;
 
-const EventText = styled.span`
+const EventText = styled.span<{ $wrap?: boolean }>`
   font-size: 0.75rem;
-  color: var(--t-textMuted);
+  color: ${(p) => (p.$wrap ? "var(--t-text)" : "var(--t-textMuted)")};
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: ${(p) => (p.$wrap ? "normal" : "nowrap")};
 `;
 
 export default function ActivityModal({
@@ -360,10 +373,12 @@ export default function ActivityModal({
           {loading ? <Empty>Loading…</Empty>
           : pageItems.length === 0 ? <Empty>No activity yet.</Empty>
           : pageItems.map((item, i) => (
-            <Row key={i}>
+            <Row key={i} $glow={item.type === "milestone" ? glowName(item.glow) : undefined}>
               <TimeLabel>{item.timeLabel}</TimeLabel>
-              <TypeBadge $color={TYPE_COLOR[item.type] ?? "var(--t-text)"}>{item.type}</TypeBadge>
-              <EventText>{item.event}</EventText>
+              <TypeBadge $color={item.type === "milestone" ? colors[glowName(item.glow)] : TYPE_COLOR[item.type] ?? "var(--t-text)"}>
+                {item.type === "milestone" ? "★ win" : item.type}
+              </TypeBadge>
+              <EventText $wrap={item.type === "milestone"}>{item.event}</EventText>
             </Row>
           ))}
         </ListBody>

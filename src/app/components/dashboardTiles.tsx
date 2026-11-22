@@ -182,6 +182,8 @@ export const OFFICE_CHILDREN: OfficeChildDef[] = [
   { key: "UtilsBackups", title: "Backups", subtitle: "in Utils · off-site restic pipeline", parent: "Utils", detail: "backups" },
   { key: "UtilsBoxUsage", title: "Box Usage", subtitle: "in Utils · CPU RAM disk bandwidth capacity", parent: "Utils", detail: "box-usage" },
   { key: "UtilsWorkshopDb", title: "Workshop DB", subtitle: "in Utils · dev copy of prod, masked", parent: "Utils", detail: "workshop-db" },
+  { key: "UtilsRcsGov", title: "Dev Server Pool", subtitle: "in Utils · workshop dev-server memory governor", parent: "Utils", detail: "rcs-gov" },
+  { key: "UtilsRollbacks", title: "Rollbacks", subtitle: "in Utils · build + data rollback, migration snapshots", parent: "Utils", detail: "migration-snapshots" },
   { key: "UtilsCommerceReadiness", title: "Commerce Readiness", subtitle: "in Utils · fleet-wide store audit", parent: "Utils", detail: "commerce-readiness" },
   { key: "UtilsBuildGuard", title: "Build Guard", subtitle: "in Utils · parallel-build safety", parent: "Utils", detail: "build-guard" },
   { key: "UtilsDemoMode", title: "Demo Mode", subtitle: "in Utils · package previews on demo-N", parent: "Utils", detail: "demo-mode" },
