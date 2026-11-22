@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { closeTop, getTopId, bringToTop, DRAWER_DATA_ATTR } from "../lib/drawerStack";
+import { closeTop, getTopId, bringToTop, restoreOpenDrawers, DRAWER_DATA_ATTR } from "../lib/drawerStack";
 
 // Mounted once at the app shell. Owns ESC + outside-click semantics for the
 // drawer stack: ESC closes the topmost drawer; a click whose target is not
@@ -9,6 +9,9 @@ import { closeTop, getTopId, bringToTop, DRAWER_DATA_ATTR } from "../lib/drawerS
 // underneath until the user closes them one by one.
 
 export default function DrawerStackController() {
+  // A refresh reopens whatever drawers were open (each on the tab it was showing).
+  useEffect(() => { restoreOpenDrawers(); }, []);
+
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;

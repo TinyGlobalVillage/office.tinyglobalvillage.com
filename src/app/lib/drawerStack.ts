@@ -21,8 +21,40 @@ let stack: DrawerEntry[] = [];
 export const DRAWER_STACK_EVENT = "tgv-drawer-stack-change";
 const CHANGE_EVENT = DRAWER_STACK_EVENT;
 
+// Open drawers survive a refresh (Gio 2026-11-21): the stack, bottom → top, is kept in
+// this tab's sessionStorage and reopened on load. Each drawer already persists its own
+// tab/position (useDrawerPersistedState), so it comes back where it was. sessionStorage,
+// not localStorage: a new tab starts clean; only a reload of this tab restores.
+const RESTORE_KEY = "tgv-open-drawers";
+
+function persistStack() {
+  try {
+    window.sessionStorage.setItem(RESTORE_KEY, JSON.stringify(stack.map((e) => e.id)));
+  } catch { /* storage blocked — refresh just won't restore */ }
+}
+
+/** Reopen the drawers that were open when this tab was last refreshed, in stack order
+ *  (so the one on top ends up on top). Safe before the deferred drawers load: their
+ *  open events are buffered and replayed (lib/deferredShell). Call once per page load. */
+export function restoreOpenDrawers() {
+  if (typeof window === "undefined") return;
+  let ids: unknown;
+  try {
+    ids = JSON.parse(window.sessionStorage.getItem(RESTORE_KEY) || "[]");
+  } catch {
+    return;
+  }
+  if (!Array.isArray(ids)) return;
+  for (const id of ids) {
+    if (typeof id === "string" && /^[a-z0-9-]{1,40}$/.test(id)) {
+      window.dispatchEvent(new CustomEvent("tgv-drawer-open", { detail: id }));
+    }
+  }
+}
+
 function emitChange() {
   if (typeof window === "undefined") return;
+  persistStack();
   window.dispatchEvent(
     new CustomEvent(CHANGE_EVENT, { detail: stack.map((e) => e.id) })
   );
