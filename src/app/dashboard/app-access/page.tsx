@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from "react";
 import styled from "styled-components";
 import { GlassCard, GlowButton, Input, Label, PillButton, SubtleButton, TextArea } from "@/app/styled";
 import { askConfirm, showNotice } from "@/app/components/dialogService";
+import { colors, t } from "@/app/theme";
 
 type Level = {
   id?: string; name: string; modes: string[]; backend_roots: string[];
@@ -21,7 +22,7 @@ const Grid = styled.div`display: grid; gap: 14px; grid-template-columns: repeat(
 const H = styled.h2`margin: 0; font-size: 18px;`;
 const Small = styled.p`margin: 4px 0 0; font-size: 12px; opacity: 0.6;`;
 const Check = styled.label`display: inline-flex; gap: 6px; align-items: center; font-size: 13px; cursor: pointer;`;
-const Table = styled.table`width: 100%; border-collapse: collapse; font-size: 13px; td { padding: 6px 4px; border-top: 1px solid rgba(127,127,127,0.15); }`;
+const Table = styled.table`width: 100%; border-collapse: collapse; font-size: 13px; td { padding: 6px 4px; border-top: 1px solid ${t("border")}; }`;
 
 async function api(body?: Record<string, unknown>, village = "hq") {
   const res = body
@@ -124,7 +125,7 @@ export default function AppAccessPage() {
           <Input style={{ width: 160 }} value={village} onChange={(e) => setVillage(e.target.value.toLowerCase())} />
         </Row>
       )}
-      {err && <Small style={{ color: "#ef4444", opacity: 1 }}>{err}</Small>}
+      {err && <Small style={{ color: colors.red, opacity: 1 }}>{err}</Small>}
       {data && (
         <>
           <Row><H style={{ fontSize: 15 }}>Staff levels</H><SubtleButton type="button" onClick={() => setAdding(true)}>+ New level</SubtleButton></Row>
