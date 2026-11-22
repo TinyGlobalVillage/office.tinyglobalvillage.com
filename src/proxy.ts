@@ -14,6 +14,9 @@ import { validateMemberSession } from "@/lib/member-auth/edge-validate";
 //       Telegram can POST without a session cookie.
 const PUBLIC = [
   "/login", "/passkey", "/api/auth", "/_next", "/favicon", "/og.png",
+  // TGV desktop app Backend (plan tgv-desktop-app.md P3): called with an app bearer token, not a cookie.
+  // Every route resolves the caller itself (getBackendCaller → member session or bearer + entitlements).
+  "/api/backend/",
   "/api/announcements",
   "/api/frontdesk/calls/webhook",
   "/api/frontdesk/sms/webhook",
