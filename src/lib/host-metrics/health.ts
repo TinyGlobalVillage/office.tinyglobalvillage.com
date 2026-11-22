@@ -40,6 +40,7 @@ import {
 import { maintenanceOwnsReboot } from "../rcs-maintenance/maintenance";
 import { parseMdstat, type DiskHealthFile, type StorageReading } from "./storage-policy";
 import { hostMetricsState } from "./state";
+import { emailHealthAlert } from "./email";
 
 const DIR = path.join(process.cwd(), "data", "host-metrics");
 const FILE = path.join(DIR, "health-state.json");
@@ -262,6 +263,18 @@ export async function evaluateHealth(now: number = Date.now()): Promise<HealthRe
         details: { level: fire.level, label: f.label, apps: f.apps ?? [] },
       });
       fired.push({ check: f.check, kind: fire.kind, level: fire.level });
+      // Email the critical ones (and the all-clear for something that was critical).
+      const wasCritical = fire.kind === "recover" && prev.firedLevel === "critical";
+      if (cfg.emailCritical && (fire.level === "critical" || wasCritical)) {
+        await emailHealthAlert({
+          to: cfg.emailRecipients,
+          host,
+          check: f.check,
+          kind: fire.kind,
+          title: titleFor(host, f, fire.kind),
+          detail: descriptionFor(host, f, fire.kind),
+        });
+      }
     } catch {
       // Not delivered: keep the previous marker so the next tick retries.
       state.alerts[key] = prev;

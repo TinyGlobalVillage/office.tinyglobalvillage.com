@@ -50,6 +50,10 @@ export type HostMetricsConfig = {
   diskWearWarnPct: number;
   /** Warn when a disk runs this hot (°C); critical 10 °C above. */
   diskTempWarnC: number;
+  /** Email critical Box health alerts (degraded RAID, failing disk, disk nearly full…) and their recovery. */
+  emailCritical: boolean;
+  /** Who gets those emails. */
+  emailRecipients: string[];
   lastUpdated: string | null;
   /** Orientation for whoever opens the raw file. Carried through writes. */
   _note?: string;
@@ -71,8 +75,17 @@ export const CONFIG_DEFAULTS: HostMetricsConfig = {
   rebootAlerts: true,
   diskWearWarnPct: 80,
   diskTempWarnC: 70,
+  emailCritical: true,
+  // An org mailbox, same default as the Pipeline alerts; edit it in the modal.
+  emailRecipients: [process.env.HOST_ALERT_EMAIL || "admin@tinyglobalvillage.com"],
   lastUpdated: null,
 };
+
+const EMAIL_RE = /^[^@\s,]+@[a-z0-9-]+(\.[a-z0-9-]+)+$/;
+function cleanRecipients(v: unknown, fallback: string[]): string[] {
+  if (!Array.isArray(v)) return [...fallback];
+  return [...new Set(v.filter((r): r is string => typeof r === "string").map((r) => r.trim().toLowerCase()).filter((r) => EMAIL_RE.test(r)))].slice(0, 20);
+}
 
 /**
  * Bounds, not validation-with-an-error. A 5-second cadence would hammer the
@@ -123,6 +136,8 @@ function coerce(raw: unknown): HostMetricsConfig {
     rebootAlerts: o.rebootAlerts !== false,
     diskWearWarnPct: clampNum("diskWearWarnPct", o.diskWearWarnPct, CONFIG_DEFAULTS.diskWearWarnPct),
     diskTempWarnC: clampNum("diskTempWarnC", o.diskTempWarnC, CONFIG_DEFAULTS.diskTempWarnC),
+    emailCritical: o.emailCritical !== false,
+    emailRecipients: cleanRecipients(o.emailRecipients, CONFIG_DEFAULTS.emailRecipients),
     lastUpdated: typeof o.lastUpdated === "string" ? o.lastUpdated : null,
     ...(typeof o._note === "string" ? { _note: o._note } : {}),
   };
