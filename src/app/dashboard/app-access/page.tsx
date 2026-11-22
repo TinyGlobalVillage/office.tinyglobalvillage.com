@@ -69,7 +69,7 @@ function LevelCard({ level, modes, ceiling, onSaved, village }: { level: Level; 
           <Small>Allowed inside: {ceiling.join(", ") || "nothing yet — ask HQ"}</Small>
           <Row>
             <Check><input type="checkbox" checked={l.backend_writable} onChange={(e) => set({ backend_writable: e.target.checked })} /> Can edit</Check>
-            <Check><input type="checkbox" checked={l.backend_terminal} onChange={(e) => set({ backend_terminal: e.target.checked })} /> Terminal</Check>
+            <Check style={{ opacity: 0.5 }}><input type="checkbox" checked={false} disabled /> Terminal (superadmin only)</Check>
             <Check><input type="checkbox" checked={l.backend_git} onChange={(e) => set({ backend_git: e.target.checked })} /> Git commit</Check>
           </Row>
         </>

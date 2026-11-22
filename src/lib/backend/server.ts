@@ -28,7 +28,8 @@ const PYTHON = process.env.TGV_PYTHON || "python3";
 
 /** null → 401 (no session); "forbidden" → 403 (signed in, no Backend grant). Cookie or app bearer. */
 export async function getBackendCaller(): Promise<BackendCaller | null | "forbidden"> {
-  const s = await officeMemberAuth.getActiveSession();
+  // Cookie (Office in a browser) or the app's bearer (opt-in here only).
+  const s = (await officeMemberAuth.getActiveSession()) ?? (await officeMemberAuth.getAppSession());
   if (!s || !s.twoFactorVerified) return null;
   if (s.impersonatedBy) return "forbidden";
   const e = await computeEntitlements(db, { id: s.userId, role: s.user.role });

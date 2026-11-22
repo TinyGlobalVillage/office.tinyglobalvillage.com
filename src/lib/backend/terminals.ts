@@ -28,6 +28,17 @@ export type Term = {
 const g = globalThis as unknown as { __tgvBackendTerms?: Map<string, Term> };
 const terms: Map<string, Term> = (g.__tgvBackendTerms ??= new Map());
 
+function cleanEnv(): Record<string, string> {
+  const keep = ["PATH", "HOME", "USER", "LOGNAME", "SHELL", "LANG", "LC_ALL", "TZ"];
+  const env: Record<string, string> = {};
+  for (const k of keep) {
+    const v = process.env[k];
+    if (v) env[k] = v;
+  }
+  env.HOME ??= "/tmp";
+  return env;
+}
+
 function armIdle(t: Term) {
   if (t.idleTimer) clearTimeout(t.idleTimer);
   t.idleTimer = t.listeners.size ? null : setTimeout(() => closeTerm(t.id), IDLE_MS);
@@ -40,7 +51,8 @@ export function openTerm(memberId: string, cwd: string, cols: number, rows: numb
   const child = spawn(
     PYTHON,
     ["-I", path.join(helperDir(), "tgv_pty.py"), cwd, String(cols | 0 || 120), String(rows | 0 || 32)],
-    { stdio: ["pipe", "pipe", "pipe"], env: { ...process.env, HOME: process.env.HOME ?? "/tmp" } },
+    // Never hand Office's own env (DB URLs, API keys) to the shell.
+    { stdio: ["pipe", "pipe", "pipe"], env: cleanEnv() as unknown as NodeJS.ProcessEnv },
   );
   const t: Term = { id, memberId, cwd, child, backlog: [], backlogSize: 0, listeners: new Set(), idleTimer: null, exited: false };
   child.stdout.on("data", (c: Buffer) => {
