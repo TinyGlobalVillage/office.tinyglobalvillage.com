@@ -50,11 +50,11 @@ export async function act(hostId: string, verb: "start" | "stop" | "team", team?
   return run(h, verb, 45000);
 }
 
-// Public donor stats — cached 5 min; a brand-new donor 404s until its first unit is credited.
+// Public donor stats for the name the box actually folds under (falls back to FOLDING_DONOR) — cached 5 min; a brand-new donor 404s until its first unit is credited.
 let cache: { at: number; v: FoldingDonorStats } | null = null;
-export async function donorStats(): Promise<FoldingDonorStats> {
-  if (cache && Date.now() - cache.at < 5 * 60_000) return cache.v;
-  const name = donorName();
+export async function donorStats(reported?: string | null): Promise<FoldingDonorStats> {
+  const name = reported || donorName();
+  if (cache && cache.v?.name === name && Date.now() - cache.at < 5 * 60_000) return cache.v;
   let v: FoldingDonorStats = { name, score: null, wus: null, rank: null };
   try {
     const r = await fetch(`https://api.foldingathome.org/user/${encodeURIComponent(name)}`, { signal: AbortSignal.timeout(6000), cache: "no-store" });
