@@ -6,6 +6,7 @@ import { colors, rgb } from "../../theme";
 import type { CallRecord, Contact } from "@/lib/frontdesk/types";
 import { PhoneIcon } from "../icons";
 import { useSoftphone } from "@/lib/frontdesk/useSoftphone";
+import { ringAudioReady } from "@/lib/frontdesk/ringTones";
 
 // ── Styled ───────────────────────────────────────────────────────
 
@@ -36,6 +37,12 @@ const Panel = styled.div`
   box-shadow: 0 0 40px rgba(${rgb.gold}, 0.35);
   color: var(--t-textBase);
   text-align: center;
+`;
+
+const SoundHint = styled.div`
+  font-size: 0.72rem;
+  color: ${colors.gold};
+  margin-top: 0.25rem;
 `;
 
 const Label = styled.div`
@@ -160,6 +167,8 @@ export default function IncomingCallOverlay() {
   // Accept → media/ICE setup takes a beat; without feedback users re-click
   // thinking it broke (operator feedback 2026-07-03).
   const [accepting, setAccepting] = useState(false);
+  // Re-render after a press so the "click to hear the ring" hint drops once sound is unlocked.
+  const [, bumpAudio] = useState(0);
   const lastRingKeyRef = useRef<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -235,13 +244,15 @@ export default function IncomingCallOverlay() {
     const peerLabel = softphone.incoming!.displayName;
     const peerNum = softphone.incoming!.from;
     return (
-      <Backdrop data-tgv-modal="1">
+      <Backdrop data-tgv-modal="1" onPointerDownCapture={() => setTimeout(() => bumpAudio((n) => n + 1), 50)}>
         <Panel>
           <Label>Incoming call</Label>
           <RingDot><PhoneIcon size={44} /></RingDot>
           <NameLine>{peerLabel}</NameLine>
           <NumberLine>{peerNum}</NumberLine>
           <MetaLine>{accepting ? "Connecting…" : "Ringing (SIP direct)"}</MetaLine>
+          {/* The browser holds sound until this tab has had a click; any press here starts the ring. */}
+          {!accepting && !ringAudioReady() && <SoundHint>Click anywhere to hear the ring</SoundHint>}
           <CountdownBar $pct={100} />
           <ButtonRow>
             <ActionBtn $variant="decline" disabled={accepting} onClick={() => softphone.hangup()}>Decline</ActionBtn>

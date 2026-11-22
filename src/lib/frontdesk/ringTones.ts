@@ -208,3 +208,27 @@ export const RING_PROFILE_LABELS: Record<RingProfile, string> = {
 
 export const RING_PROFILE_KEY = "frontdesk:ringtone-profile";
 export const NOTIFICATIONS_ENABLED_KEY = "frontdesk:notifications-enabled";
+
+// ── Audio unlock ──────────────────────────────────────────────────
+// Browsers keep an AudioContext created without a user gesture SUSPENDED, so a ring
+// that arrives on a freshly loaded/refreshed Office tab (nothing clicked yet) was
+// silent even though the call reached the softphone and it sent 180 Ringing
+// (Gio 2026-11-21). Create + resume the context on the first press/key anywhere,
+// so it is already running when a call comes in; until then any press unlocks it
+// mid-ring. Listeners drop off once the context is running.
+if (typeof window !== "undefined") {
+  const GESTURES = ["pointerdown", "keydown", "touchstart"] as const;
+  const unlock = () => {
+    const c = ensureCtx();
+    if (!c) return;
+    const done = () => GESTURES.forEach((g) => window.removeEventListener(g, unlock, true));
+    if (c.state === "running") done();
+    else c.resume().then(() => { if (c.state === "running") done(); }).catch(() => {});
+  };
+  GESTURES.forEach((g) => window.addEventListener(g, unlock, { capture: true, passive: true }));
+}
+
+/** True when the browser will actually play the ring (the tab has had a click/key since load). */
+export function ringAudioReady(): boolean {
+  return !!ctx && ctx.state === "running";
+}
