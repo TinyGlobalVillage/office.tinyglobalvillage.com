@@ -32,6 +32,8 @@ const BoxUsageControlModal = dynamic(() => import("../../components/hardening/bo
 const WorkshopDbControlModal = dynamic(() => import("../../components/hardening/workshop-db/WorkshopDbControlModal"), { ssr: false });
 const MigrationSnapshotsControlModal = dynamic(() => import("../../components/hardening/migration-snapshots/MigrationSnapshotsControlModal"), { ssr: false });
 const RcsGovControlModal = dynamic(() => import("../../components/hardening/rcs-gov/RcsGovControlModal"), { ssr: false });
+const FoldingControlModal = dynamic(() => import("../../components/hardening/folding/FoldingControlModal"), { ssr: false });
+const FoldingQuickBar = dynamic(() => import("../../components/hardening/folding/FoldingQuickBar"), { ssr: false });
 const RcsMaintenanceControlModal = dynamic(() => import("../../components/hardening/rcs-maintenance/RcsMaintenanceControlModal"), { ssr: false });
 const PipelineControlModal = dynamic(() => import("../../components/hardening/pipeline/PipelineControlModal"), { ssr: false });
 const PrivacyControlModal = dynamic(() => import("../../components/hardening/privacy/PrivacyControlModal"), { ssr: false });
@@ -1753,6 +1755,18 @@ function UtilsAdlSurface({
                         </HardeningTileSub>
                       </HardeningTile>
                     );
+                    if (tile.type === "folding") return (
+                      <FoldingTileWrap key={i}>
+                        <HardeningTile type="button" onClick={() => onOpenHardening("folding")}>
+                          <HardeningTileTop>🧬 Folding@home</HardeningTileTop>
+                          <HardeningTileSub>
+                            The standby box lends spare CPU to protein-folding research. One click
+                            frees it the moment we need it.
+                          </HardeningTileSub>
+                        </HardeningTile>
+                        <FoldingQuickBar />
+                      </FoldingTileWrap>
+                    );
                     if (tile.type === "migrate") return (
                       <HardeningTile key={i} type="button" onClick={onOpenMigrate}>
                         <HardeningTileTop>🚚 Migrate a Site</HardeningTileTop>
@@ -2239,7 +2253,7 @@ type DefaultsOverlay = Record<string, Record<string, FieldValue>>;
 
 // Runtime list, not just a union: the ?view= deep-link reader has to validate a
 // string off the URL, and a second hand-kept list would drift.
-const HARDENING_KINDS = ["telephony", "tenant-apps", "member-auth", "office-staff", "mesh-vpn", "firewall", "build-guard", "deploy-watcher", "tsserver", "keycloak", "demo-mode", "domain-dns", "box-usage", "workshop-db", "rcs-gov", "migration-snapshots", "rcs-maintenance", "pipeline", "meet-captions", "commerce-readiness", "privacy", "media-folder"] as const;  // | "postgres" | "ssh" | "nginx" — future
+const HARDENING_KINDS = ["telephony", "tenant-apps", "member-auth", "office-staff", "mesh-vpn", "firewall", "build-guard", "deploy-watcher", "tsserver", "keycloak", "demo-mode", "domain-dns", "box-usage", "workshop-db", "rcs-gov", "folding", "migration-snapshots", "rcs-maintenance", "pipeline", "meet-captions", "commerce-readiness", "privacy", "media-folder"] as const;  // | "postgres" | "ssh" | "nginx" — future
 type HardeningKind = (typeof HARDENING_KINDS)[number];
 
 // ── Link Tools (TinyURL + QR generators) ──────────────────────────────────
@@ -2287,6 +2301,7 @@ type TileSpec =
   | { type: "box-usage" }
   | { type: "workshop-db" }
   | { type: "rcs-gov" }
+  | { type: "folding" }
   | { type: "migration-snapshots" }
   | { type: "rcs-maintenance" }
   | { type: "pipeline" }
@@ -2314,8 +2329,8 @@ const SECTIONS: Section[] = [
     subtitle: "cron-driven scheduled tasks · milestone triggers · recurring announcements",
     hint: "" },
   { id: "backups", title: "Backups & Disaster Recovery", accent: "cyan",
-    subtitle: "off-site backup pipeline · restore drills · disaster-recovery posture",
-    kind: "tiles", tiles: [{ type: "backups" }] },
+    subtitle: "off-site backup pipeline · restore drills · disaster-recovery posture · standby box",
+    kind: "tiles", tiles: [{ type: "backups" }, { type: "folding" }] },
   { id: "communications", title: "Communications / Relay", accent: "cyan", kind: "placeholder",
     hint: "Telegram + WhatsApp relay operator UX · sessions, decisions, recipients, billing, dispatch attempts (coming with tgv-module-connect-relay-operator-ux)." },
   { id: "database", title: "Database / Storage", accent: "cyan", kind: "placeholder",
@@ -2668,6 +2683,14 @@ const HardeningTile = styled.button`
   }
 `;
 
+// Folding tile = the tile button + its quick-bar (a button can't nest in a button), framed as one.
+const FoldingTileWrap = styled.div`
+  display: flex; flex-direction: column;
+  border: 1px solid rgba(${rgb.gold}, 0.3); border-radius: 0.625rem;
+  background: rgba(${rgb.gold}, 0.04);
+  & > button { border: none; background: transparent; }
+`;
+
 const HardeningTileTop = styled.div`
   display: flex; align-items: center; gap: 0.5rem;
   font-size: 1.05rem;
@@ -2924,6 +2947,9 @@ export default function UtilsPage() {
       )}
       {openHardening === "workshop-db" && (
         <WorkshopDbControlModal onClose={() => setOpenHardening(null)} />
+      )}
+      {openHardening === "folding" && (
+        <FoldingControlModal onClose={() => setOpenHardening(null)} />
       )}
       {openHardening === "rcs-gov" && (
         <RcsGovControlModal onClose={() => setOpenHardening(null)} />
