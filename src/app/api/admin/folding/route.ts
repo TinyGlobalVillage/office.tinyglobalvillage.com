@@ -11,7 +11,8 @@ import type { FoldingSnapshot } from "@/lib/folding/types";
 export const dynamic = "force-dynamic";
 
 async function snapshot(): Promise<FoldingSnapshot> {
-  const [hosts, donor] = await Promise.all([statusAll(), donorStats()]);
+  const hosts = await statusAll();
+  const donor = await donorStats(hosts.find((h) => h.reachable && h.user)?.user);
   return { hosts, donor, checkedAt: new Date().toISOString() };
 }
 

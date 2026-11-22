@@ -180,6 +180,7 @@ export const OFFICE_CHILDREN: OfficeChildDef[] = [
   // type / HardeningKind the Utils page already switches on, so the ?view=
   // reader there needs no second naming scheme.
   { key: "UtilsBackups", title: "Backups", subtitle: "in Utils · off-site restic pipeline", parent: "Utils", detail: "backups" },
+  { key: "UtilsCockpit", title: "Cockpit", subtitle: "in Utils · everything on RCS2, live", parent: "Utils", detail: "cockpit" },
   { key: "UtilsBoxUsage", title: "Box Usage", subtitle: "in Utils · CPU RAM disk bandwidth capacity", parent: "Utils", detail: "box-usage" },
   { key: "UtilsWorkshopDb", title: "Workshop DB", subtitle: "in Utils · dev copy of prod, masked", parent: "Utils", detail: "workshop-db" },
   { key: "UtilsRcsGov", title: "Dev Server Pool", subtitle: "in Utils · workshop dev-server memory governor", parent: "Utils", detail: "rcs-gov" },

@@ -77,7 +77,7 @@ export default function FoldingControlModal({ onClose }: { onClose: () => void }
     {
       id: "rewards",
       title: "Points & team",
-      qmbm: "Points are credited to the donor name below and show on Folding@home's public stats once the first work unit is returned. Team 0 means no team. Folding@home itself pays nothing. Checked 2026-11-22: Banano (team 234980) and Gridcoin still pay, Curecoin is unproven, FoldingCoin is dead — at our rate each is worth under $3 a year, and both paying ones need a new folding name. Details: mono rcs-stack/folding-at-home.md.",
+      qmbm: "Points are credited to the donor name below and show on Folding@home's public stats once the first work unit is returned. Team 0 means no team. Folding@home itself pays nothing. Since 2026-11-22 RCS1 folds for Banano (team 234980) under a bananominer.com user ID that pays out to our Banano wallet twice a day. Checked 2026-11-22: Banano (team 234980) and Gridcoin still pay, Curecoin is unproven, FoldingCoin is dead — at our rate each is worth under $3 a year, and both paying ones need a new folding name. Details: mono rcs-stack/folding-at-home.md.",
       body: (
         <Body>
           <Rowline>
