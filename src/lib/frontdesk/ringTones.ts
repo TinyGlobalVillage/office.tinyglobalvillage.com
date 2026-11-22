@@ -48,6 +48,48 @@ function playToneBurst(
   }
 }
 
+/**
+ * A phone-bell burst: a dual tone whose loudness flutters at `trillHz` (≈20 Hz, the
+ * clapper hitting the bells), so it reads as a phone RINGING rather than the steady
+ * hum a caller hears while waiting (ringback). Gain is stepped on the audio clock,
+ * so the trill stays even in a background tab.
+ */
+function playBellTrill(
+  freqs: number[],
+  durationMs: number,
+  gain = 0.12,
+  trillHz = 20,
+): void {
+  const c = ensureCtx();
+  if (!c) return;
+  const now = c.currentTime;
+  const dur = durationMs / 1000;
+  const half = 1 / trillHz / 2;
+  const master = c.createGain();
+  master.gain.setValueAtTime(0, now);
+  // Strike high, fall back low, every half trill period: a bright metallic flutter.
+  for (let t = 0; t < dur; t += half * 2) {
+    master.gain.setValueAtTime(gain, now + t);
+    master.gain.exponentialRampToValueAtTime(gain * 0.2, now + Math.min(dur, t + half * 1.6));
+  }
+  master.gain.setValueAtTime(gain * 0.2, now + dur);
+  master.gain.linearRampToValueAtTime(0, now + dur + 0.04);
+  master.connect(c.destination);
+  for (const f of freqs) {
+    for (const [mult, level] of [[1, 1], [2.76, 0.25]] as const) {
+      // A quiet inharmonic overtone (×2.76, a struck bell's) gives the "brrring" its metal.
+      const osc = c.createOscillator();
+      const g = c.createGain();
+      osc.type = "sine";
+      osc.frequency.value = f * mult;
+      g.gain.value = level;
+      osc.connect(g).connect(master);
+      osc.start(now);
+      osc.stop(now + dur + 0.1);
+    }
+  }
+}
+
 export function startRingback(): void {
   if (ringbackActive) return;
   ringbackActive = true;
@@ -110,8 +152,11 @@ export type RingProfile = "classic" | "chime" | "neon" | "soft";
 
 const RING_PROFILES: Record<RingProfile, () => void> = {
   classic: () => {
-    // North-American 2-second on / 4-second off cadence, but doubled-up.
-    playToneBurst([440, 480], 1800, 0.12, 25, 80);
+    // A real phone ringing: bell trill in a "ring-ring" cadence (0.4 s on, 0.2 s off,
+    // 0.4 s on, then a pause). NOT 440+480 Hz — that pair is US ringback, what the
+    // CALLER hears, and made incoming calls sound like outgoing ones (Gio 2026-11-21).
+    playBellTrill([1000, 1250], 400, 0.1);
+    setTimeout(() => playBellTrill([1000, 1250], 400, 0.1), 600);
   },
   chime: () => {
     // Rising 3-tone arpeggio that loops every 2.5s.
@@ -129,6 +174,9 @@ const RING_PROFILES: Record<RingProfile, () => void> = {
   },
 };
 
+/** Time from one ring to the next, per profile (the classic ring-ring wants a longer pause). */
+const RING_PERIOD_MS: Partial<Record<RingProfile, number>> = { classic: 3000 };
+
 let inboundActive = false;
 let inboundTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -138,7 +186,7 @@ export function startInboundRing(profile: RingProfile = "classic"): void {
   const tick = () => {
     if (!inboundActive) return;
     (RING_PROFILES[profile] ?? RING_PROFILES.classic)();
-    inboundTimer = setTimeout(tick, 2500);
+    inboundTimer = setTimeout(tick, RING_PERIOD_MS[profile] ?? 2500);
   };
   tick();
 }
