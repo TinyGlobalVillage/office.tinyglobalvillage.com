@@ -21,6 +21,8 @@ export interface EntryFrontmatter {
   featured?: boolean;
   /** Optional short ALL-CAPS overline shown above the headline on a featured card. */
   subtitle?: string;
+  /** Optional theme accent for a featured card's glow (cyan, violet, …). Default gold. */
+  glow?: string;
   tags?: string[];
   links?: Array<{ kind: string; target: string; label?: string }>;
 }
@@ -52,7 +54,7 @@ export function parseFrontmatter(raw: string): ParsedEntry {
         meta.links = [];
       } else if (k === "featured") {
         meta.featured = v === "true";
-      } else if (k in meta || ["date", "time", "slug", "title", "type", "subtitle"].includes(k)) {
+      } else if (k in meta || ["date", "time", "slug", "title", "type", "subtitle", "glow"].includes(k)) {
         (meta as Record<string, unknown>)[k] = v;
       }
     }

@@ -27,6 +27,8 @@ interface DayHeadline {
   summary: string;
   featured?: boolean;
   subtitle?: string;
+  /** Featured-card accent (a theme colour name); default gold. */
+  glow?: string;
 }
 
 interface Day {
@@ -270,38 +272,41 @@ const AddmOuterBody = styled.div`
   gap: 0.4rem;
 `;
 
-const AddmInner = styled.div<{ $type: EntryType; $featured?: boolean }>`
-  border-left: 4px solid ${(p) => (p.$featured ? `rgb(${rgb.gold})` : TYPE_RGB[p.$type])};
+/** A featured card's accent: frontmatter `glow:` when it names a theme colour, else gold. */
+const glowOf = (g?: string): string => (g && g in rgb ? rgb[g as keyof typeof rgb] : rgb.gold);
+
+const AddmInner = styled.div<{ $type: EntryType; $featured?: boolean; $glow?: string }>`
+  border-left: 4px solid ${(p) => (p.$featured ? `rgb(${glowOf(p.$glow)})` : TYPE_RGB[p.$type])};
   padding-left: 0;
   ${(p) =>
     p.$featured &&
     `
-    border: 1px solid rgba(${rgb.gold}, 0.55);
-    border-left: 4px solid rgb(${rgb.gold});
+    border: 1px solid rgba(${glowOf(p.$glow)}, 0.55);
+    border-left: 4px solid rgb(${glowOf(p.$glow)});
     border-radius: 8px;
-    background: rgba(${rgb.gold}, 0.07);
-    box-shadow: 0 0 22px rgba(${rgb.gold}, 0.2), inset 0 0 30px rgba(${rgb.gold}, 0.04);
+    background: rgba(${glowOf(p.$glow)}, 0.07);
+    box-shadow: 0 0 22px rgba(${glowOf(p.$glow)}, 0.2), inset 0 0 30px rgba(${glowOf(p.$glow)}, 0.04);
   `}
 `;
 
-const Star = styled.span`
-  color: rgb(${rgb.gold});
-  filter: drop-shadow(0 0 6px rgba(${rgb.gold}, 0.75));
+const Star = styled.span<{ $glow?: string }>`
+  color: rgb(${(p) => glowOf(p.$glow)});
+  filter: drop-shadow(0 0 6px rgba(${(p) => glowOf(p.$glow)}, 0.75));
   flex-shrink: 0;
   font-size: 0.85rem;
 `;
 
-const FeaturedBadge = styled.span`
+const FeaturedBadge = styled.span<{ $glow?: string }>`
   font-size: 0.6rem;
   font-weight: 800;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   padding: 0.14rem 0.55rem;
   border-radius: 999px;
-  color: rgb(${rgb.gold});
-  border: 1px solid rgba(${rgb.gold}, 0.6);
-  background: rgba(${rgb.gold}, 0.12);
-  box-shadow: 0 0 10px rgba(${rgb.gold}, 0.3);
+  color: rgb(${(p) => glowOf(p.$glow)});
+  border: 1px solid rgba(${(p) => glowOf(p.$glow)}, 0.6);
+  background: rgba(${(p) => glowOf(p.$glow)}, 0.12);
+  box-shadow: 0 0 10px rgba(${(p) => glowOf(p.$glow)}, 0.3);
   flex-shrink: 0;
   white-space: nowrap;
 `;
@@ -667,17 +672,17 @@ export default function RcsDiaryModal({ onClose }: Props) {
                         const isOpen = openEntries.has(key);
                         const full = isOpen ? openEntries.get(key) : null;
                         return (
-                          <AddmInner key={key} $type={h.type} $featured={h.featured}>
+                          <AddmInner key={key} $type={h.type} $featured={h.featured} $glow={h.glow}>
                             <AddmInnerHeader
                               $open={isOpen}
                               $type={h.type}
                               onClick={() => toggleEntry(d.date, h.slug)}
                             >
                               <Caret $open={isOpen}>▶</Caret>
-                              {h.featured && <Star>⭐</Star>}
+                              {h.featured && <Star $glow={h.glow}>⭐</Star>}
                               <TimeSpan>{h.time || "--:--"}</TimeSpan>
                               {h.featured && h.subtitle ? (
-                                <FeaturedBadge>{h.subtitle}</FeaturedBadge>
+                                <FeaturedBadge $glow={h.glow}>{h.subtitle}</FeaturedBadge>
                               ) : (
                                 <TypeChip $type={h.type}>{TYPE_LABEL[h.type]}</TypeChip>
                               )}

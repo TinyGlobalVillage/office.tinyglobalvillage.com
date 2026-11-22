@@ -12,9 +12,34 @@ type Event = {
   timeLabel: string;
   actor: string;
   event: string;
-  type: "pm2" | "git" | "system";
+  type: "pm2" | "git" | "system" | "milestone";
   project?: string;
+  /** milestone only: a theme accent name the row glows in (cyan, gold, …). */
+  glow?: string;
 };
+
+// ── Milestones (data/activity-milestones.json) ────────────────────
+// Hand-recorded wins that should stand out in the feed — e.g. "builds went parallel".
+// [{ at: ISO, actor, event, glow? }]. Kept beside Office's other data files.
+async function getMilestones(): Promise<Event[]> {
+  try {
+    const raw = JSON.parse(await readFile(`${process.cwd()}/data/activity-milestones.json`, "utf-8")) as unknown;
+    if (!Array.isArray(raw)) return [];
+    return raw.flatMap((m) => {
+      const o = (m ?? {}) as Record<string, unknown>;
+      const time = new Date(String(o.at ?? ""));
+      if (isNaN(time.getTime()) || typeof o.event !== "string") return [];
+      return [{
+        time, timeLabel: "", type: "milestone" as const,
+        actor: typeof o.actor === "string" ? o.actor : "TGV",
+        event: o.event,
+        ...(typeof o.glow === "string" ? { glow: o.glow } : {}),
+      }];
+    });
+  } catch {
+    return [];
+  }
+}
 
 // ── PM2 log parser ────────────────────────────────────────────────
 async function getPm2Events(): Promise<Event[]> {
@@ -101,9 +126,9 @@ export async function GET(req: NextRequest) {
   const auth = await requireAuth(req);
   if (!auth?.username) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const [pm2, git] = await Promise.all([getPm2Events(), getGitEvents()]);
+  const [pm2, git, milestones] = await Promise.all([getPm2Events(), getGitEvents(), getMilestones()]);
 
-  const all = [...pm2, ...git]
+  const all = [...pm2, ...git, ...milestones]
     .sort((a, b) => b.time.getTime() - a.time.getTime())
     .slice(0, 40)
     .map((e) => ({ ...e, timeLabel: relTime(e.time), time: e.time.toISOString() }));

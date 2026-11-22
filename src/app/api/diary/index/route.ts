@@ -21,6 +21,7 @@ export async function GET() {
             summary: it.summary,
             featured: it.meta.featured ?? false,
             subtitle: it.meta.subtitle ?? "",
+            glow: it.meta.glow ?? "",
           })),
         };
       }),
