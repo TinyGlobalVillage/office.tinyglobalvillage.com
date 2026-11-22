@@ -3677,11 +3677,16 @@ export default function ChatDrawer({ popout = false, popoutPeer = null, popoutGr
   const [sidebarCollapsed, setSidebarCollapsed] = useDrawerPersistedState<boolean>(DRAWER_ID, "sidebarCollapsed", false);
   const [sidebarWidth, setSidebarWidth] = useDrawerPersistedState<number>(DRAWER_ID, "sidebarWidth", SIDEBAR_DEFAULT);
   const [mobileCompact, setMobileCompact] = useState(false);
+  /** A dm:<username> from a shared link, held until the profile list has loaded. */
+  const [pendingDm, setPendingDm] = useState<string | null>(null);
 
   const { position: stackPosition } = useDrawerLifecycle({
     id: DRAWER_ID,
     open,
     setOpen,
+      // The open conversation is the address: tgv · dm:<username> · group:<id>; else the sidebar tab.
+    urlView: selection.type === "dm" ? `dm:${selection.peer.username}` : selection.type === "group" ? `group:${selection.groupId}` : selection.type === "tgv" ? "tgv" : sidebarTab,
+    url: !popout,
   });
 
   // Child-surface opener: searching "groups" on the dashboard opens this
@@ -3690,12 +3695,15 @@ export default function ChatDrawer({ popout = false, popoutPeer = null, popoutGr
     const handler = (e: Event) => {
       const d = (e as CustomEvent<DrawerTabDetail>).detail;
       if (!d || d.drawer !== DRAWER_ID) return;
-      if (d.tab !== "users" && d.tab !== "groups") return;
-      setSidebarTab(d.tab);
+      if (d.tab === "users" || d.tab === "groups") { setSidebarTab(d.tab); return; }
+      // A shared conversation link. A dm waits for the profile list (pendingDm below).
+      if (d.tab === "tgv") setSelection({ type: "tgv" });
+      else if (d.tab.startsWith("group:")) { setSidebarTab("groups"); setSelection({ type: "group", groupId: d.tab.slice(6) }); }
+      else if (d.tab.startsWith("dm:")) setPendingDm(d.tab.slice(3));
     };
     window.addEventListener(DRAWER_TAB_EVENT, handler);
     return () => window.removeEventListener(DRAWER_TAB_EVENT, handler);
-  }, [setSidebarTab]);
+  }, [setSidebarTab, setSelection]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -3792,6 +3800,12 @@ export default function ChatDrawer({ popout = false, popoutPeer = null, popoutGr
 
   const [messages, setMessages]   = useState<ChatMessage[]>([]);
   const [profiles, setProfiles]   = useState<Profile[]>([]);
+  useEffect(() => {
+    if (!pendingDm || profiles.length === 0) return;
+    const peer = profiles.find((p) => p.username === pendingDm);
+    if (peer) setSelection({ type: "dm", peer });
+    setPendingDm(null);
+  }, [pendingDm, profiles, setSelection]);
   const [presence, setPresence]   = useState<{ sysUser: string; online: boolean }[]>([]);
   const [currentUser, setCurrentUser] = useState<string>("");
   const isExec = currentUser === "admin" || currentUser === "marmar";

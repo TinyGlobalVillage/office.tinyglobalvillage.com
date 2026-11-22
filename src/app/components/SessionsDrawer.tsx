@@ -17,6 +17,7 @@ import { DrawerSessionsIcon, SearchIcon, EditIcon } from "./icons";
 import NeonX from "./NeonX";
 import { useKnobVisibility } from "../lib/drawerKnobs";
 import { useDrawerLifecycle, DRAWER_DATA_ATTR } from "../lib/drawerStack";
+import { DRAWER_TAB_EVENT, type DrawerTabDetail } from "./dashboardTiles";
 import { useDrawerPersistedState } from "../lib/drawerPersist";
 import { CallSurface, CallButton } from "./call";
 import type { RingChannel } from "./call";
@@ -532,10 +533,24 @@ export default function SessionsDrawer() {
 
   useEffect(() => { setTabY(getDefaultTabY()); }, []);
 
+  // Arrival from a shared link (?tile=Sessions&view=room:<id>): TileUrlSync fires DRAWER_TAB_EVENT.
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const d = (e as CustomEvent<DrawerTabDetail>).detail;
+      if (!d || d.drawer !== DRAWER_ID || !d.tab.startsWith("room:")) return;
+      setOpen(true);
+      setSelection({ type: "room", sessionId: d.tab.slice(5) });
+      setMobileView("room");
+    };
+    window.addEventListener(DRAWER_TAB_EVENT, handler);
+    return () => window.removeEventListener(DRAWER_TAB_EVENT, handler);
+  }, [setSelection, setMobileView]);
+
   const { position: stackPosition } = useDrawerLifecycle({
     id: DRAWER_ID,
     open,
     setOpen,
+      urlView: selection.type === "room" ? `room:${selection.sessionId}` : null,
   });
 
   // ── Sessions fetch ────────────────────────────────────────────────────────

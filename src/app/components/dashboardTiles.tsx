@@ -360,4 +360,6 @@ export const OFFICE_TILES: OfficeTileDef[] = [
   // Menu-only shortcut — jumps straight to the Front Desk drawer's Alerts tab
   // (FrontDeskDrawer treats detail "alerts" as a legacy opener).
   { key: "Alerts", group: "Communication", title: "Alerts", subtitle: "Front Desk alerts", glow: "gold", icon: (s) => <DrawerAlertsIcon size={s} style={{ color: colors.gold }} />, action: { drawer: "alerts" }, inTiles: false },
+  // Menu-less: exists so ?tile=Legend links open the Legend drawer (every surface linkable, 2026-11-22).
+  { key: "Legend", group: "Records & Notes", title: "Legend", subtitle: "Office key", glow: "violet", icon: () => <span style={{ fontSize: 24 }}>🗺️</span>, action: { drawer: "legend" }, inTiles: false },
 ];

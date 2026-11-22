@@ -393,6 +393,7 @@ export default function FrontDeskDrawer() {
     open,
     setOpen,
     onClose: () => setFullscreen(false),
+      urlView: activeTab,
   });
 
   // Legacy openers: the dashboard tile fires "alerts" and "frontdesk-dial-prefill"
