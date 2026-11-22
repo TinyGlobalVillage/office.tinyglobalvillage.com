@@ -64,9 +64,20 @@ const fmtUp = (s: number) => {
   return d ? `${d}d ${h}h` : h ? `${h}h ${m}m` : `${m}m`;
 };
 
-export default function CockpitModal({ onClose, initialPanel = "deck" }: { onClose: () => void; initialPanel?: CockpitPanel }) {
+export default function CockpitModal({ onClose, initialPanel = "deck", onPanelChange }: {
+  onClose: () => void;
+  initialPanel?: CockpitPanel;
+  /** The host writes the panel into the URL (?view=cockpit | box-usage | pipeline | …) so it can be shared. */
+  onPanelChange?: (panel: CockpitPanel) => void;
+}) {
   useEscapeToClose({ open: true, onClose });
-  const [panel, setPanel] = useState<CockpitPanel>(initialPanel);
+  const [panel, setPanelState] = useState<CockpitPanel>(initialPanel);
+  // Back/forward (or a pasted link) changes initialPanel while the Cockpit stays open.
+  useEffect(() => { setPanelState(initialPanel); }, [initialPanel]);
+  const setPanel = (p: CockpitPanel) => {
+    setPanelState(p);
+    onPanelChange?.(p);
+  };
   const [prefs, setPrefs] = useState<Prefs>(DEFAULT_PREFS);
   const [frame, setFrame] = useState<LiveFrame | null>(null);
   const [error, setError] = useState<string | null>(null);

@@ -2846,16 +2846,58 @@ export default function UtilsPage() {
     }
   }, []);
 
+  /** Everything this page can have open, closed — what Back to a bare /dashboard/utils means. */
+  const closeAllViews = useCallback(() => {
+    setOpenHardening(null);
+    setOpenBackups(false);
+    setOpenMigrate(false);
+    setOpenEsign(false);
+    setOpenEsignVault(false);
+    setOpenDomainConsole(false);
+    setOpenLinkTool(null);
+    setOpenTranscriber(null);
+    setOpenMediaReducer(false);
+  }, []);
+
+  // The address bar follows what is open (Gio 2026-11-22: "every single modal and pane should
+  // be able to have a URL … so I could share the link to a staff member"). Opening something is
+  // a pushState (Back closes it); moving between panes of the same modal — the Cockpit's tabs —
+  // is a replaceState, so clicking around doesn't bury the page under history entries.
+  const currentView: string | null =
+    openHardening ??
+    (openBackups ? "backups" : openMigrate ? "migrate" : openEsign ? "esign" : openEsignVault ? "esign-vault"
+      : openDomainConsole ? "domain-console" : openLinkTool ? openLinkTool
+      : openTranscriber === "create" ? "transcriber" : openTranscriber === "browse" ? "transcriptions"
+      : openMediaReducer ? "media-reducer" : null);
+  // Don't write until the arrival ?view= has been read, or the first render (nothing open yet)
+  // would strip a shared link before it opens.
+  const urlRead = useRef(false);
+  useEffect(() => {
+    if (typeof window === "undefined" || !urlRead.current) return;
+    const params = new URLSearchParams(window.location.search);
+    const inUrl = params.get("view");
+    if (inUrl === currentView) return;
+    if (currentView) params.set("view", currentView);
+    else params.delete("view");
+    const qs = params.toString();
+    const next = `${window.location.pathname}${qs ? `?${qs}` : ""}`;
+    const cockpitFamily = (v: string | null) => v === "cockpit" || COCKPIT_FOLDED.includes(v as CockpitFolded);
+    if (inUrl && currentView && cockpitFamily(inUrl) && cockpitFamily(currentView)) window.history.replaceState({}, "", next);
+    else window.history.pushState({}, "", next);
+  }, [currentView]);
+
   useEffect(() => {
     if (typeof window === "undefined") return;
     const consume = () => {
       const view = new URLSearchParams(window.location.search).get("view");
       if (view) openUtilsView(view);
+      else closeAllViews();
+      urlRead.current = true;
     };
     consume();
     window.addEventListener("popstate", consume);
     return () => window.removeEventListener("popstate", consume);
-  }, [openUtilsView]);
+  }, [openUtilsView, closeAllViews]);
 
   const handleMakeQR = (shortUrl: string, link: ShortLink) => {
     setQrSeed(shortUrl);
@@ -2957,6 +2999,7 @@ export default function UtilsPage() {
         <CockpitModal
           onClose={() => setOpenHardening(null)}
           initialPanel={openHardening === "cockpit" ? "deck" : (openHardening as CockpitFolded)}
+          onPanelChange={(p) => setOpenHardening(p === "deck" ? "cockpit" : p)}
         />
       )}
       {openHardening === "telephony" && (
