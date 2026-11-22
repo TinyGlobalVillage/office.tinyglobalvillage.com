@@ -14,7 +14,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const TGV_DIR = "/srv/refusion-core/clients/tinyglobalvillage.com";
-// The demo runs tgv.com's build with its own env file since t560 (clients/demo-runtime/.env.demo).
+// The demo runs tgv.com's build with its own env file since the one-build demo (clients/demo-runtime/.env.demo).
 const DEMO_ENV_FILE = "/srv/refusion-core/clients/demo-runtime/.env.demo";
 const CRON_LOG = `${TGV_DIR}/data/privacy/erase-cron.log`;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
