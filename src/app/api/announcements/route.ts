@@ -105,7 +105,7 @@ ${(body.data.projects as ProjectUpdates[])
   )
   .join("")}
 <p style="font-family:sans-serif;margin-top:20px;">
-  <a href="${officeUrl}/dashboard" style="color:#f7b700;">Open TGV Office →</a>
+  <a href="${officeUrl}/dashboard" style="color:${EMAIL_ACCENT};">Open TGV Office →</a>
 </p>`;
     } else if (body.type === "stack-update") {
       const items = body.data.items as StackUpdateItem[];
@@ -124,7 +124,7 @@ ${items
 </ul>
 <p style="font-family:sans-serif;">Nothing is upgraded automatically.</p>
 <p style="font-family:sans-serif;margin-top:20px;">
-  <a href="${officeUrl}/dashboard" style="color:#f7b700;">Open TGV Office →</a>
+  <a href="${officeUrl}/dashboard" style="color:${EMAIL_ACCENT};">Open TGV Office →</a>
 </p>`;
     } else {
       // Generic fallback used by recordings-storage and any future types.
@@ -133,7 +133,7 @@ ${items
       html = `
 <h2 style="font-family:sans-serif;color:#f7b700;">${body.title}</h2>
 <p style="font-family:sans-serif;margin-top:20px;">
-  <a href="${officeUrl}/dashboard" style="color:#f7b700;">Open TGV Office →</a>
+  <a href="${officeUrl}/dashboard" style="color:${EMAIL_ACCENT};">Open TGV Office →</a>
 </p>`;
     }
 
