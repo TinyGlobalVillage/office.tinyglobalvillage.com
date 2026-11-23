@@ -11,6 +11,8 @@ import {
   type StackUpdateItem,
 } from "@/lib/announcements-store";
 
+const EMAIL_ACCENT = "#f7b700"; // colour-literal: mail clients cannot read CSS tokens; matches the older announcement emails
+
 const CLASS_ORDER = { security: 0, major: 1, perf: 2, feature: 3 } as const;
 const CLASS_WORD = { security: "SECURITY", major: "MAJOR", perf: "PERF", feature: "FEATURE" } as const;
 const esc = (v: string) => v.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
@@ -111,7 +113,7 @@ ${(body.data.projects as ProjectUpdates[])
         .map((u) => `  • [${CLASS_WORD[u.class]}] ${u.name}: ${u.current} → ${u.latest} — ${u.why}`)
         .join("\n")}\n\nNothing is upgraded automatically.\nView in TGV Office: ${officeUrl}/dashboard`;
       html = `
-<h2 style="font-family:sans-serif;color:#f7b700;">${esc(body.title)}</h2>
+<h2 style="font-family:sans-serif;color:${EMAIL_ACCENT};">${esc(body.title)}</h2>
 <ul style="font-family:monospace;font-size:13px;">
 ${items
   .map(
