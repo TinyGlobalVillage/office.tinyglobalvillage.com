@@ -24,6 +24,8 @@ const EmailErrorBoundary = dynamic(
   () => import("@tgv/module-inbox/components/EmailErrorBoundary"),
   { ssr: false }
 );
+const InboxAccounts = dynamic(() => import("./InboxAccounts"), { ssr: false });
+
 const MailApp = dynamic(
   () => import("@tgv/module-inbox/components/mail/MailApp"),
   { ssr: false }
@@ -190,6 +192,9 @@ export default function InboxDrawer() {
   // The path a shared link arrived with; the client reads it once when it mounts.
   const [arrival, setArrival] = useState<{ view: string; n: number } | null>(null);
   const [everOpen, setEverOpen] = useState(false);
+  // The "Mail accounts" screen (connect / disconnect your own mailboxes) replaces the client while open.
+  const [accounts, setAccounts] = useState(false);
+  const [reload, setReload] = useState(0);
   useEffect(() => { if (open) setEverOpen(true); }, [open]);
 
   useEffect(() => {
@@ -197,6 +202,9 @@ export default function InboxDrawer() {
       const d = (e as CustomEvent<DrawerTabDetail>).detail;
       if (!d || d.drawer !== DRAWER_ID || !d.tab) return;
       setOpen(true);
+      // ?tile=Inbox&view=accounts is the "Mail accounts" screen (also where an OAuth sign-in returns to).
+      if (d.tab === "accounts") { setAccounts(true); return; }
+      setAccounts(false);
       setArrival((a) => ({ view: d.tab, n: (a?.n ?? 0) + 1 }));
     };
     window.addEventListener(DRAWER_TAB_EVENT, handler);
@@ -208,7 +216,7 @@ export default function InboxDrawer() {
     open,
     setOpen,
     onClose: () => setFullscreen(false),
-    urlView: view,
+    urlView: accounts ? "accounts" : view,
   });
 
   // Body flag so DrawerStackController suspends its ESC close while a drawer
@@ -374,7 +382,12 @@ export default function InboxDrawer() {
 
         <ContentWrap style={{ fontSize: `${zoom}rem` }}>
           <EmailErrorBoundary>
-            {everOpen && <MailApp key={arrival?.n ?? 0} zoom={zoom} view={arrival?.view ?? null} onViewChange={setView} />}
+            {everOpen && accounts && (
+              <InboxAccounts onDone={(changed) => { setAccounts(false); if (changed) setReload((n) => n + 1); }} />
+            )}
+            {everOpen && !accounts && (
+              <MailApp key={`${arrival?.n ?? 0}:${reload}`} zoom={zoom} view={arrival?.view ?? null} onViewChange={setView} onManageAccounts={() => setAccounts(true)} />
+            )}
           </EmailErrorBoundary>
         </ContentWrap>
 

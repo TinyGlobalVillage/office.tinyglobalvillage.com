@@ -103,9 +103,9 @@ export default function CockpitModal({ onClose, initialPanel = "deck", onPanelCh
       setError(null);
       hist.current.push({
         at: f.at, cpu: f.cpuPct, ram: f.ram.pct, swap: f.swap.pct, rx: f.net.rxMbps, tx: f.net.txMbps,
-        rd: f.io.readMBs, wr: f.io.writeMBs, load: f.load[0],
+        rd: f.io.readMBs, wr: f.io.writeMBs, load: f.runq?.total ?? f.load[0],
       });
-      for (const [k, v] of [["cpu", f.cpuPct], ["ram", f.ram.pct], ["swap", f.swap.pct], ["disk", f.disk.pct], ["load", f.load[0]]] as const) {
+      for (const [k, v] of [["cpu", f.cpuPct], ["ram", f.ram.pct], ["swap", f.swap.pct], ["disk", f.disk.pct], ["load", f.runq?.total ?? f.load[0]]] as const) {
         peaks.current[k] = Math.max(peaks.current[k] ?? 0, v);
       }
       tick((n) => n + 1);
@@ -230,11 +230,17 @@ export default function CockpitModal({ onClose, initialPanel = "deck", onPanelCh
               <Card $wide>
                 <CardTitle>Primary gauges</CardTitle>
                 <Gauges>
-                  <Gauge label="CPU" value={frame.cpuPct} warn={t.warnPct} crit={t.criticalPct} peak={peaks.current.cpu} sub={`load ${frame.load.map((l) => l.toFixed(1)).join(" · ")}`} />
+                  <Gauge label="CPU" value={frame.cpuPct} warn={t.warnPct} crit={t.criticalPct} peak={peaks.current.cpu} sub={`${frame.cores.length} threads`} />
                   <Gauge label="RAM" value={frame.ram.pct} warn={t.warnPct} crit={t.criticalPct} peak={peaks.current.ram} sub={`${(frame.ram.usedMb / 1024).toFixed(1)} / ${(frame.ram.totalMb / 1024).toFixed(0)} GB`} />
                   <Gauge label="Swap" value={frame.swap.pct} warn={t.warnPct} crit={t.criticalPct} peak={peaks.current.swap} sub={`${(frame.swap.usedMb / 1024).toFixed(1)} / ${(frame.swap.totalMb / 1024).toFixed(0)} GB`} />
                   <Gauge label="Disk /" value={frame.disk.pct} warn={t.warnPct} crit={t.criticalPct} peak={peaks.current.disk} sub={`${frame.disk.usedGb.toFixed(0)} / ${frame.disk.totalGb.toFixed(0)} GB`} />
-                  <Gauge label="Load" value={frame.load[0]} max={cores * 1.5} unit="" warn={cores * 0.75} crit={cores} peak={peaks.current.load} sub={`per-core ${(frame.load[0] / cores).toFixed(2)}`} />
+                  {/* Measured load (scheduler accounting), not the kernel's sampled estimate — see lib/cockpit/live.ts runq. */}
+                  {frame.runq ? (
+                    <Gauge label="Load" value={frame.runq.total} max={cores * 1.5} unit="" warn={cores} crit={cores * 1.25} peak={peaks.current.load}
+                      sub={`${frame.runq.running.toFixed(1)} running · ${frame.runq.waiting.toFixed(1)} waiting`} />
+                  ) : (
+                    <Gauge label="Load" value={frame.load[0]} max={cores * 1.5} unit="" warn={cores * 0.75} crit={cores} peak={peaks.current.load} sub="kernel estimate" />
+                  )}
                   {frame.slice && (
                     <Gauge
                       label="Workshop"
@@ -247,6 +253,12 @@ export default function CockpitModal({ onClose, initialPanel = "deck", onPanelCh
                     />
                   )}
                 </Gauges>
+                {frame.runq && (
+                  <LoadNote>
+                    Load is measured from the scheduler: tasks on a processor plus tasks waiting for one, averaged over the last {frame.runq.windowSec}s. At {cores} it means every thread is busy; above that, work is queuing.
+                    The system&rsquo;s own &ldquo;load average&rdquo; ({frame.load.map((l) => l.toFixed(1)).join(" · ")}) is a 5-second snapshot estimate and reads high on this box.
+                  </LoadNote>
+                )}
               </Card>
             )}
             {prefs.groups.engine && (
@@ -369,6 +381,7 @@ const Tweaks = styled.div`
   border-bottom: 1px solid var(--t-border); background: rgba(${rgb.cyan}, 0.04);
 `;
 const TweakGroup = styled.div`display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap;`;
+const LoadNote = styled.p`margin: 0.7rem 0 0; font-size: 0.72rem; line-height: 1.5; color: var(--t-textMuted);`;
 const TweakLabel = styled.span`font-size: 0.62rem; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: var(--t-textMuted); margin-right: 0.2rem;`;
 const Chip = styled.button<{ $on: boolean }>`
   font-size: 0.7rem; padding: 0.2rem 0.55rem; border-radius: 999px; cursor: pointer; text-transform: capitalize;

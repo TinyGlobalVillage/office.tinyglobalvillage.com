@@ -35,6 +35,10 @@ const FIELDS: { key: NumericKey; label: string; unit: string; hint: string }[] =
   { key: "cpuCapThreads", label: "CPU cap", unit: "threads", hint: "Most CPU threads the workshop may use at once (0 = no cap). Production keeps the rest." },
   { key: "cpuAlertPct", label: "CPU alert at", unit: "%", hint: "Raise an alert when the whole box stays at or above this." },
   { key: "cpuAlertMin", label: "CPU alert after", unit: "min", hint: "How long it must stay that high before the alert." },
+  { key: "teglovIdleThreads", label: "Teglov, no builds", unit: "threads", hint: "Threads Teglov may use while no build runs. Taken out of the workshop's CPU cap while it answers." },
+  { key: "teglovBuildThreads", label: "Teglov, during builds", unit: "threads", hint: "Threads Teglov may use while a build runs." },
+  { key: "teglovMemHighGB", label: "Teglov soft memory", unit: "GB", hint: "MemoryHigh for Teglov's model server. The model needs about 25 GB; lower makes it slow." },
+  { key: "teglovMemMaxGB", label: "Teglov hard memory", unit: "GB", hint: "MemoryMax for Teglov's model server: the wall." },
 ];
 
 export default function RcsGovControlModal({ onClose }: { onClose: () => void }) {
@@ -108,7 +112,8 @@ export default function RcsGovControlModal({ onClose }: { onClose: () => void })
                   {st?.over ? (cfg?.enabled ? "Over trigger — governing" : "Over trigger — governor off") : "Under trigger"}
                 </Pill>
                 <Muted>{gb(sl.usedMb)} {cfg?.metric === "workingSet" ? "working set" : "in use"} · {gb(sl.anonMb)} anon · last action {ago(st?.lastActionAt)}</Muted>
-                {st?.cpu && <Muted>CPU: box at {st.cpu.boxPct}% · workshop capped at {st.cpu.capThreads || "no"} thread{st.cpu.capThreads === 1 ? "" : "s"}{st.cpu.alerted ? " · high-CPU alert raised" : ""}</Muted>}
+                {st?.cpu && <Muted>CPU: box at {st.cpu.boxPct}% · workshop capped at {st.cpu.capThreads || "no"} thread{st.cpu.capThreads === 1 ? "" : "s"}{st.cpu.lentToTeglov ? ` (${st.cpu.lentToTeglov} lent to Teglov)` : ""}{st.cpu.alerted ? " · high-CPU alert raised" : ""}</Muted>}
+                {st?.teglov?.running && <Muted>Teglov: {st.teglov.busy ? `answering, ${st.teglov.threads ?? "?"} threads` : "idle"} · cap {st.teglov.capThreads} thread{st.teglov.capThreads === 1 ? "" : "s"}{st.teglov.build ? " (build running)" : ""} · {Math.round((st.teglov.memMb ?? 0) / 1024)} of {st.teglov.memHighGB} GB</Muted>}
               </Rowline>
               <Bar aria-label="Workshop slice memory">
                 <Fill style={{ width: `${pct(sl.usedMb)}%` }} $over={!!st?.over} />
