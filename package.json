@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev --webpack",
-    "prebuild": "node scripts/check-override-scope.mjs",
+    "predev": "node scripts/sync-media-processors.mjs",
+    "prebuild": "node scripts/check-override-scope.mjs && node scripts/sync-media-processors.mjs",
     "build": "NODE_OPTIONS=--max-old-space-size=6144 next build --webpack",
     "start": "next start",
     "lint": "eslint",
