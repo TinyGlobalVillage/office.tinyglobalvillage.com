@@ -40,7 +40,13 @@ export type LiveFrame = {
   uptimeSec: number;
   cores: number[];          // % busy per core since the previous frame
   cpuPct: number;           // all cores
+  /** The kernel's load averages (1 / 5 / 15 min). An estimate sampled every 5 s — on this box it reads
+   *  well above the truth, because many sessions wake on the same ticks. Kept for reference only. */
   load: [number, number, number];
+  /** Measured, not sampled: the scheduler's own accounting of how many tasks were on a CPU and how
+   *  many were waiting for one, averaged over `windowSec`. `total` is the true load. Null on a host
+   *  without /proc/schedstat. */
+  runq: { running: number; waiting: number; total: number; windowSec: number } | null;
   ram: { totalMb: number; usedMb: number; pct: number };
   swap: { totalMb: number; usedMb: number; pct: number };
   disk: { totalGb: number; usedGb: number; pct: number };
@@ -56,6 +62,41 @@ export type LiveFrame = {
 
 type Prev = { at: number; cpu: number[][]; net: { rx: number; tx: number } | null; io: { r: number; w: number } | null };
 let prev: Prev | null = null;
+
+// Cumulative scheduler time (ns): tasks' time on a CPU, and time spent runnable but waiting for one.
+// /proc/schedstat, per-cpu line: fields 7 and 8 after the name. Their growth over an interval, divided
+// by the interval, is exactly the average number of tasks running / waiting — no sampling involved.
+type Sched = { at: number; run: number; wait: number };
+let schedRing: Sched[] = [];
+const RUNQ_WINDOW_MS = 60_000;
+
+function schedNow(at: number): Sched | null {
+  const lines = read("/proc/schedstat").split("\n").filter((l) => /^cpu\d+ /.test(l));
+  if (!lines.length) return null;
+  let run = 0, wait = 0;
+  for (const l of lines) {
+    const f = l.trim().split(/\s+/);
+    run += Number(f[7] ?? 0);
+    wait += Number(f[8] ?? 0);
+  }
+  return Number.isFinite(run) && Number.isFinite(wait) ? { at, run, wait } : null;
+}
+
+/** Average tasks running / waiting over (up to) the last minute of frames. */
+function measuredLoad(now: number): LiveFrame["runq"] {
+  const cur = schedNow(now);
+  if (!cur) return null;
+  schedRing = schedRing.filter((x) => now - x.at <= RUNQ_WINDOW_MS + 15_000 && x.run <= cur.run);
+  // The oldest snapshot still inside the window is the baseline; a lone first frame has none yet.
+  const base = schedRing.find((x) => now - x.at <= RUNQ_WINDOW_MS) ?? schedRing[schedRing.length - 1];
+  schedRing.push(cur);
+  if (!base || cur.at - base.at < 500) return null;
+  const secs = (cur.at - base.at) / 1000;
+  const running = (cur.run - base.run) / 1e9 / secs;
+  const waiting = (cur.wait - base.wait) / 1e9 / secs;
+  return { running, waiting, total: running + waiting, windowSec: Math.round(secs) };
+}
+
 let pm2Cache: { at: number; apps: Pm2App[] } | null = null;
 
 const read = (p: string) => { try { return readFileSync(p, "utf8"); } catch { return ""; } };
@@ -235,6 +276,7 @@ export async function liveFrame(): Promise<LiveFrame> {
     cores,
     cpuPct: all,
     load: os.loadavg() as [number, number, number],
+    runq: measuredLoad(now),
     ram, swap, disk,
     psiMemSome: psi ? Number(psi[1]) : null,
     temps: temps(),
