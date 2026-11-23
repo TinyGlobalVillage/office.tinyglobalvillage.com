@@ -17,20 +17,21 @@ import { DrawerInboxIcon } from "./icons";
 import NeonX from "./NeonX";
 import { useKnobVisibility } from "../lib/drawerKnobs";
 import { useDrawerLifecycle, DRAWER_DATA_ATTR } from "../lib/drawerStack";
+import { DRAWER_TAB_EVENT, type DrawerTabDetail } from "./dashboardTiles";
 import { useDrawerPersistedState } from "../lib/drawerPersist";
 
 const EmailErrorBoundary = dynamic(
   () => import("@tgv/module-inbox/components/EmailErrorBoundary"),
   { ssr: false }
 );
-const EmailClient = dynamic(
-  () => import("@tgv/module-inbox/components/EmailClient"),
+const MailApp = dynamic(
+  () => import("@tgv/module-inbox/components/mail/MailApp"),
   { ssr: false }
 );
 
 const MIN_W = 420;
 const MAX_W = 1400;
-const DEFAULT_W = 720;
+const DEFAULT_W = 1080;
 const TAB_STORAGE_KEY = "tgv-drawer-tab-inbox-y";
 const DRAWER_ID = "inbox";
 
@@ -183,11 +184,31 @@ export default function InboxDrawer() {
 
   const { hideKnob } = useKnobVisibility();
 
+  // Where the client is (app / folder / conversation / settings section), as a short path —
+  // written to ?tile=Inbox&view=<path> so a copied link reopens the same place.
+  const [view, setView] = useState<string | null>(null);
+  // The path a shared link arrived with; the client reads it once when it mounts.
+  const [arrival, setArrival] = useState<{ view: string; n: number } | null>(null);
+  const [everOpen, setEverOpen] = useState(false);
+  useEffect(() => { if (open) setEverOpen(true); }, [open]);
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const d = (e as CustomEvent<DrawerTabDetail>).detail;
+      if (!d || d.drawer !== DRAWER_ID || !d.tab) return;
+      setOpen(true);
+      setArrival((a) => ({ view: d.tab, n: (a?.n ?? 0) + 1 }));
+    };
+    window.addEventListener(DRAWER_TAB_EVENT, handler);
+    return () => window.removeEventListener(DRAWER_TAB_EVENT, handler);
+  }, []);
+
   const { position: stackPosition } = useDrawerLifecycle({
     id: DRAWER_ID,
     open,
     setOpen,
     onClose: () => setFullscreen(false),
+    urlView: view,
   });
 
   // Body flag so DrawerStackController suspends its ESC close while a drawer
@@ -353,7 +374,7 @@ export default function InboxDrawer() {
 
         <ContentWrap style={{ fontSize: `${zoom}rem` }}>
           <EmailErrorBoundary>
-            <EmailClient zoom={zoom} />
+            {everOpen && <MailApp key={arrival?.n ?? 0} zoom={zoom} view={arrival?.view ?? null} onViewChange={setView} />}
           </EmailErrorBoundary>
         </ContentWrap>
 

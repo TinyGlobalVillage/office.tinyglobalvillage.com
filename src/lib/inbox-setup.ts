@@ -29,11 +29,12 @@ import {
   registerAuthAdapter,
   registerProviderResolver,
   registerThemeAdapter,
+  registerDavResolver,
   type ResolvedAccount,
 } from "@tgv/module-inbox";
 import { enumerateAccounts } from "@tgv/module-inbox/fastmail/client";
 import { requireAuth, requirePersonalAccess } from "@/lib/api-auth";
-import { tokenForUser } from "@/lib/fastmail-token";
+import { tokenForUser, appPasswordForUser } from "@/lib/fastmail-token";
 import { colors, rgb } from "@/app/theme";
 
 let registered = false;
@@ -79,6 +80,13 @@ export function setupInbox(): void {
   });
 
   registerThemeAdapter({ colors, rgb });
+
+  // Calendar (CalDAV), Notes (IMAP) and Files (WebDAV) need a Fastmail app password —
+  // the JMAP token doesn't cover them. The DAV/IMAP username is the Fastmail login address.
+  registerDavResolver((username, loginEmail, service) => {
+    const password = appPasswordForUser(username, service);
+    return password ? { user: loginEmail, password } : null;
+  });
 }
 
 setupInbox();

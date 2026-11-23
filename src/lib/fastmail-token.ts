@@ -13,3 +13,20 @@ export function tokenForUser(username: string): string | null {
   if (username === "marmar") return process.env.FASTMAIL_TOKEN_MARMAR ?? null;
   return null;
 }
+
+/**
+ * Office username → Fastmail *app password* for the protocols a JMAP token can't reach:
+ * CalDAV (Calendar), IMAP (Notes) and WebDAV (Files).
+ *
+ * Fastmail issues app passwords per access type, and "Files (WebDAV)" is a separate
+ * type from "Mail, Contacts & Calendars" — so Files may carry its own password in
+ * FASTMAIL_FILES_PASSWORD_<USER>; without one it falls back to the main app password.
+ * No env var → null → the Calendar / Notes / Files screens show "not connected".
+ */
+export function appPasswordForUser(username: string, service: "caldav" | "webdav" | "imap" = "caldav"): string | null {
+  const who = username === "admin" ? "GIO" : username === "marmar" ? "MARMAR" : null;
+  if (!who) return null;
+  const main = process.env[`FASTMAIL_APP_PASSWORD_${who}`]?.trim() || null;
+  if (service === "webdav") return process.env[`FASTMAIL_FILES_PASSWORD_${who}`]?.trim() || main;
+  return main;
+}
