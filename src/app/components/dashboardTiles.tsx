@@ -37,6 +37,7 @@ import {
   MembersIcon,
   ModulesIcon,
   CashIcon,
+  TargetIcon,
 } from "./icons";
 
 export type OfficeTileAction =
@@ -81,6 +82,9 @@ export type OfficeTileDef = {
   menuLabel?: string;
   inMenu?: boolean;
   inTiles?: boolean;
+  /** Drawn only for TGV staff (roster admin or employee) — on the tile grid, in the Menu and in Find.
+   *  Callers filter with `tilesFor(isStaff)`; the surface behind the tile enforces it again server-side. */
+  staffOnly?: boolean;
 };
 
 /**
@@ -343,6 +347,9 @@ export const OFFICE_TILES: OfficeTileDef[] = [
   { key: "AppAccess", group: "People & Money", title: "App access", subtitle: "TGV app staff levels", glow: "violet", icon: (s) => <MembersIcon size={s} style={{ color: colors.violet }} />, action: { page: "app-access" } },
   { key: "Payroll", group: "People & Money", title: "Payroll", subtitle: "Staff hours & rates", glow: "gold", icon: (s) => <CashIcon size={s} style={{ color: colors.gold }} />, action: { page: "payroll" } },
   { key: "Wallet", group: "People & Money", title: "Wallet", subtitle: "TGV business money", glow: "gold", icon: (s) => <CashIcon size={s} style={{ color: colors.gold }} />, action: { page: "wallet" } },
+  // Fundraiser (Gio 2026-11-22) — staff's view of every fundraiser on tgv.com (beta). STAFF ONLY: the
+  // tile is drawn for roster staff alone, and dashboard/fundraiser + /api/admin/fundraiser check again.
+  { key: "Fundraiser", group: "People & Money", title: "Fundraiser", subtitle: "Beta · staff only", glow: "green", icon: (s) => <TargetIcon size={s} style={{ color: colors.green }} />, action: { page: "fundraiser" }, staffOnly: true },
   // Email Campaigns is NOT a top-level tile — it lives inside Modules (Modules tile →
   // Email Campaigns) as a platform module surface. See dashboard/modules/ModulesClient.
   { key: "Claude", group: "Build & Design", title: "Claude", subtitle: "AI Assistant", glow: "orange", icon: (s) => <ClaudeIcon size={s} color={colors.orange} />, action: { event: "open-claude" } },
@@ -365,3 +372,8 @@ export const OFFICE_TILES: OfficeTileDef[] = [
   // Menu-less: exists so ?tile=Legend links open the Legend drawer (every surface linkable, 2026-11-22).
   { key: "Legend", group: "Records & Notes", title: "Legend", subtitle: "Office key", glow: "violet", icon: () => <span style={{ fontSize: 24 }}>🗺️</span>, action: { drawer: "legend" }, inTiles: false },
 ];
+
+/** The tiles this viewer may be shown: everything, minus staff-only tiles for anyone who isn't staff. */
+export function tilesFor(isStaff: boolean): OfficeTileDef[] {
+  return isStaff ? OFFICE_TILES : OFFICE_TILES.filter((t) => !t.staffOnly);
+}

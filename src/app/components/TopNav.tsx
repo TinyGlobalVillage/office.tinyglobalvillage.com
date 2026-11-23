@@ -24,6 +24,7 @@ import { colors, rgb } from "@/app/theme";
 import { MembersIcon } from "./icons";
 import Tooltip from "./ui/Tooltip";
 import { OFFICE_TILES, dispatchTileAction, tileHref } from "./dashboardTiles";
+import { useIsStaff } from "../lib/useIsStaff";
 
 // Opens on a face click — its own chunk, with ChatSettingsModal behind it (stack-efficiency P2).
 // The one call-to-action in the middle of the bar: staff sign a person up (SignUpModal).
@@ -322,6 +323,7 @@ function TopNavInner() {
     );
   };
 
+  const isStaff = useIsStaff();
   // Menu content: the Dashboard link, then every office tool straight from
   // the tile registry — drawers/modals dispatch their window events, pages navigate.
   const sections: TgvNavSection[] = [
@@ -331,7 +333,8 @@ function TopNavInner() {
     },
     {
       key: "tools",
-      items: menuTools.map((t) => {
+      // Staff-only tools (Fundraiser) are listed for roster staff alone.
+      items: menuTools.filter((t) => !t.staffOnly || isStaff).map((t) => {
         const href = tileHref(t.action);
         return {
           label: t.menuLabel ?? t.title,
