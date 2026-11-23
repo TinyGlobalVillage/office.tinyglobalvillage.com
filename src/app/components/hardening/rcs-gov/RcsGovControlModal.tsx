@@ -32,6 +32,9 @@ const FIELDS: { key: NumericKey; label: string; unit: string; hint: string }[] =
   { key: "floorMB", label: "Floor", unit: "MB", hint: "Guaranteed memory per dev server (its MemoryLow). New servers only." },
   { key: "sliceHighGB", label: "Slice soft cap", unit: "GB", hint: "MemoryHigh: the kernel reclaims hard above this." },
   { key: "sliceMaxGB", label: "Slice hard cap", unit: "GB", hint: "MemoryMax: the wall. The OOM killer acts inside the workshop above it." },
+  { key: "cpuCapThreads", label: "CPU cap", unit: "threads", hint: "Most CPU threads the workshop may use at once (0 = no cap). Production keeps the rest." },
+  { key: "cpuAlertPct", label: "CPU alert at", unit: "%", hint: "Raise an alert when the whole box stays at or above this." },
+  { key: "cpuAlertMin", label: "CPU alert after", unit: "min", hint: "How long it must stay that high before the alert." },
 ];
 
 export default function RcsGovControlModal({ onClose }: { onClose: () => void }) {
@@ -105,6 +108,7 @@ export default function RcsGovControlModal({ onClose }: { onClose: () => void })
                   {st?.over ? (cfg?.enabled ? "Over trigger — governing" : "Over trigger — governor off") : "Under trigger"}
                 </Pill>
                 <Muted>{gb(sl.usedMb)} {cfg?.metric === "workingSet" ? "working set" : "in use"} · {gb(sl.anonMb)} anon · last action {ago(st?.lastActionAt)}</Muted>
+                {st?.cpu && <Muted>CPU: box at {st.cpu.boxPct}% · workshop capped at {st.cpu.capThreads || "no"} thread{st.cpu.capThreads === 1 ? "" : "s"}{st.cpu.alerted ? " · high-CPU alert raised" : ""}</Muted>}
               </Rowline>
               <Bar aria-label="Workshop slice memory">
                 <Fill style={{ width: `${pct(sl.usedMb)}%` }} $over={!!st?.over} />

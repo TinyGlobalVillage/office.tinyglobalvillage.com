@@ -11,6 +11,12 @@ export type RcsGovConfig = {
   floorMB: number;
   sliceHighGB: number;
   sliceMaxGB: number;
+  /** Workshop CPU cap in threads (0 = off). */
+  cpuCapThreads: number;
+  /** Alert when the whole box stays at or above this CPU % … */
+  cpuAlertPct: number;
+  /** … for this many minutes. */
+  cpuAlertMin: number;
 };
 export type NumericKey = Exclude<keyof RcsGovConfig, "enabled" | "metric">;
 
@@ -42,6 +48,7 @@ export type RcsGovStatus = {
     triggerMb: number;
   } | null;
   servers?: RcsGovServer[];
+  cpu?: { boxPct: number; capThreads: number; highSince: number | null; alerted: boolean } | null;
 };
 export type RcsGovLogLine = {
   t: number;
@@ -68,6 +75,9 @@ export const DEFAULTS: RcsGovConfig = {
   floorMB: 1536,
   sliceHighGB: 36,
   sliceMaxGB: 40,
+  cpuCapThreads: 10,
+  cpuAlertPct: 80,
+  cpuAlertMin: 5,
 };
 
 // CLAMPS — mirror rcs-gov.py's CLAMPS (box: 62 GB, prod floor 24 GB). Keep the two in step.
@@ -79,6 +89,9 @@ export const CLAMPS: Record<NumericKey, [number, number]> = {
   floorMB: [0, 4096],
   sliceHighGB: [16, 46],
   sliceMaxGB: [18, 48],
+  cpuCapThreads: [0, 15],
+  cpuAlertPct: [50, 100],
+  cpuAlertMin: [1, 60],
 };
 export const TUNABLE = ["enabled", "metric", ...(Object.keys(CLAMPS) as NumericKey[])] as const;
 
