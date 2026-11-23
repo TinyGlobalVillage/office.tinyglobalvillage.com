@@ -35,6 +35,7 @@ const PrivacyControlModal = dynamic(() => import("../../components/hardening/pri
 const DemoModeControlModal = dynamic(() => import("../../components/dev-tooling/demo-mode/DemoModeControlModal"), { ssr: false });
 const MediaReducerModal = dynamic(() => import("../../components/media-reducer/MediaReducerModal"), { ssr: false });
 const MeetCaptionsControlModal = dynamic(() => import("../../components/hardening/meet-captions/MeetCaptionsControlModal"), { ssr: false });
+const CallFeaturesControlModal = dynamic(() => import("../../components/hardening/call-features/CallFeaturesControlModal"), { ssr: false });
 const MediaFolderControlModal = dynamic(() => import("../../components/hardening/media-folder/MediaFolderControlModal"), { ssr: false });
 const FailoverControlModal = dynamic(() => import("../../components/hardening/failover/FailoverControlModal"), { ssr: false });
 import AutomationsTab from "../../components/automations/AutomationsTab";
@@ -2257,6 +2258,15 @@ function UtilsAdlSurface({
                         </LinkToolsTileSub>
                       </LinkToolsTile>
                     );
+                    if (tile.type === "call-features") return (
+                      <LinkToolsTile key={i} type="button" onClick={() => onOpenHardening("call-features")}>
+                        <LinkToolsTileTop>📞 Call Features</LinkToolsTileTop>
+                        <LinkToolsTileSub>
+                          One call package — switch what Meetings, TIM calls and Sessions each offer
+                          (recording, screen share, pop-out, chat…).
+                        </LinkToolsTileSub>
+                      </LinkToolsTile>
+                    );
                     if (tile.type === "transcriptions") return (
                       <LinkToolsTile key={i} type="button" onClick={onOpenTranscriptions}>
                         <LinkToolsTileTop>
@@ -2317,7 +2327,7 @@ type DefaultsOverlay = Record<string, Record<string, FieldValue>>;
 
 // Runtime list, not just a union: the ?view= deep-link reader has to validate a
 // string off the URL, and a second hand-kept list would drift.
-const HARDENING_KINDS = ["cockpit", "telephony", "tenant-apps", "member-auth", "office-staff", "mesh-vpn", "firewall", "build-guard", "deploy-watcher", "tsserver", "keycloak", "demo-mode", "domain-dns", "box-usage", "workshop-db", "rcs-gov", "folding", "migration-snapshots", "rcs-maintenance", "pipeline", "meet-captions", "commerce-readiness", "privacy", "media-folder", "failover"] as const;  // | "postgres" | "ssh" | "nginx" — future
+const HARDENING_KINDS = ["cockpit", "telephony", "tenant-apps", "member-auth", "office-staff", "mesh-vpn", "firewall", "build-guard", "deploy-watcher", "tsserver", "keycloak", "demo-mode", "domain-dns", "box-usage", "workshop-db", "rcs-gov", "folding", "migration-snapshots", "rcs-maintenance", "pipeline", "meet-captions", "call-features", "commerce-readiness", "privacy", "media-folder", "failover"] as const;  // | "postgres" | "ssh" | "nginx" — future
 type HardeningKind = (typeof HARDENING_KINDS)[number];
 const COCKPIT_FOLDED = ["box-usage", "workshop-db", "rcs-gov", "migration-snapshots", "pipeline", "rcs-maintenance"] as const;
 type CockpitFolded = (typeof COCKPIT_FOLDED)[number];
@@ -2382,6 +2392,7 @@ type TileSpec =
   | { type: "media-reducer" }
   | { type: "transcriptions" }
   | { type: "meet-captions" }
+  | { type: "call-features" }
   | { type: "queued-job"; job: import("@tgv/module-transcriber").TranscriptionJob };
 
 type SectionAccent = "pink" | "cyan" | "gold";
@@ -2434,7 +2445,7 @@ const SECTIONS: Section[] = [
     kind: "actions", actionIds: ["mail-domain-setup"] },
   { id: "media", title: "Media & Transcription", accent: "cyan",
     subtitle: "open-source audio transcription, subtitle export, voice utilities, batch media reduction",
-    kind: "tiles", tiles: [{ type: "transcriber" }, { type: "transcriptions" }, { type: "media-reducer" }, { type: "meet-captions" }] },
+    kind: "tiles", tiles: [{ type: "transcriber" }, { type: "transcriptions" }, { type: "media-reducer" }, { type: "meet-captions" }, { type: "call-features" }] },
   { id: "migrations", title: "Migrations", accent: "cyan",
     subtitle: "absorb a legacy site into TGV — per-surface fidelity, halt-review, dogfood",
     kind: "tiles", tiles: [{ type: "migrate" }] },
@@ -3084,6 +3095,9 @@ export default function UtilsPage() {
       )}
       {openHardening === "meet-captions" && (
         <MeetCaptionsControlModal onClose={() => setOpenHardening(null)} />
+      )}
+      {openHardening === "call-features" && (
+        <CallFeaturesControlModal onClose={() => setOpenHardening(null)} />
       )}
 
       {openBackups && (
