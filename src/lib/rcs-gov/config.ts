@@ -17,6 +17,11 @@ export type RcsGovConfig = {
   cpuAlertPct: number;
   /** … for this many minutes. */
   cpuAlertMin: number;
+  /** Teglov (the assistant's model server) — threads with no build running / while one runs, and its memory caps. */
+  teglovIdleThreads: number;
+  teglovBuildThreads: number;
+  teglovMemHighGB: number;
+  teglovMemMaxGB: number;
 };
 export type NumericKey = Exclude<keyof RcsGovConfig, "enabled" | "metric">;
 
@@ -48,7 +53,8 @@ export type RcsGovStatus = {
     triggerMb: number;
   } | null;
   servers?: RcsGovServer[];
-  cpu?: { boxPct: number; capThreads: number; highSince: number | null; alerted: boolean } | null;
+  cpu?: { boxPct: number; capThreads: number; lentToTeglov?: number; highSince: number | null; alerted: boolean } | null;
+  teglov?: { running: boolean; busy?: boolean; threads?: number | null; capThreads?: number; build?: boolean; memMb?: number; memHighGB?: number } | null;
 };
 export type RcsGovLogLine = {
   t: number;
@@ -78,6 +84,10 @@ export const DEFAULTS: RcsGovConfig = {
   cpuCapThreads: 10,
   cpuAlertPct: 80,
   cpuAlertMin: 5,
+  teglovIdleThreads: 8,
+  teglovBuildThreads: 3,
+  teglovMemHighGB: 27,
+  teglovMemMaxGB: 31,
 };
 
 // CLAMPS — mirror rcs-gov.py's CLAMPS (box: 62 GB, prod floor 24 GB). Keep the two in step.
@@ -92,6 +102,10 @@ export const CLAMPS: Record<NumericKey, [number, number]> = {
   cpuCapThreads: [0, 15],
   cpuAlertPct: [50, 100],
   cpuAlertMin: [1, 60],
+  teglovIdleThreads: [1, 12],
+  teglovBuildThreads: [1, 8],
+  teglovMemHighGB: [8, 32],
+  teglovMemMaxGB: [10, 34],
 };
 export const TUNABLE = ["enabled", "metric", ...(Object.keys(CLAMPS) as NumericKey[])] as const;
 
@@ -108,6 +122,8 @@ export function coerce(raw: unknown, base: RcsGovConfig = DEFAULTS): RcsGovConfi
       out[k] = Math.trunc(Math.min(hi, Math.max(lo, v)));
     }
   }
+  if (out.teglovMemMaxGB < out.teglovMemHighGB + 2) out.teglovMemMaxGB = Math.min(CLAMPS.teglovMemMaxGB[1], out.teglovMemHighGB + 2);
+  if (out.teglovBuildThreads > out.teglovIdleThreads) out.teglovBuildThreads = out.teglovIdleThreads;
   if (out.sliceMaxGB < out.sliceHighGB + 2) out.sliceMaxGB = Math.min(CLAMPS.sliceMaxGB[1], out.sliceHighGB + 2);
   if (out.triggerGB > out.sliceHighGB - 2) out.triggerGB = Math.max(CLAMPS.triggerGB[0], out.sliceHighGB - 2);
   return out;
