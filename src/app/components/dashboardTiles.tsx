@@ -201,6 +201,7 @@ export const OFFICE_CHILDREN: OfficeChildDef[] = [
   { key: "UtilsFirewall", title: "Firewall", subtitle: "in Utils · UFW + fail2ban", parent: "Utils", detail: "firewall" },
   { key: "UtilsKeycloak", title: "Keycloak", subtitle: "in Utils · IdP realm health", parent: "Utils", detail: "keycloak" },
   { key: "UtilsMediaReducer", title: "Media Reducer", subtitle: "in Utils · batch media compression", parent: "Utils", detail: "media-reducer" },
+  { key: "UtilsCallFeatures", title: "Call Features", subtitle: "in Utils · Meetings vs TIM calls", parent: "Utils", detail: "call-features" },
   { key: "UtilsMeetCaptions", title: "Meet Captions", subtitle: "in Utils · live captions killswitch", parent: "Utils", detail: "meet-captions" },
   { key: "UtilsMemberAuth", title: "Member Auth", subtitle: "in Utils · passkey sessions", parent: "Utils", detail: "member-auth" },
   { key: "UtilsMeshVpn", title: "Mesh VPN", subtitle: "in Utils · Headscale mesh", parent: "Utils", detail: "mesh-vpn" },
