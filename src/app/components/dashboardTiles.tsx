@@ -360,6 +360,8 @@ export const OFFICE_TILES: OfficeTileDef[] = [
   // Menu-only shortcut — jumps straight to the Front Desk drawer's Alerts tab
   // (FrontDeskDrawer treats detail "alerts" as a legacy opener).
   { key: "Alerts", group: "Communication", title: "Alerts", subtitle: "Front Desk alerts", glow: "gold", icon: (s) => <DrawerAlertsIcon size={s} style={{ color: colors.gold }} />, action: { drawer: "alerts" }, inTiles: false },
+  // The navbar's centre "Sign Up" hot button; menu-less, here so ?tile=SignUp is a shareable link.
+  { key: "SignUp", group: "People & Money", title: "Sign Up", subtitle: "Sign someone up", glow: "cyan", icon: (s) => <MembersIcon size={s} style={{ color: colors.cyan }} />, action: { event: "open-signup" }, inTiles: false, inMenu: false },
   // Menu-less: exists so ?tile=Legend links open the Legend drawer (every surface linkable, 2026-11-22).
   { key: "Legend", group: "Records & Notes", title: "Legend", subtitle: "Office key", glow: "violet", icon: () => <span style={{ fontSize: 24 }}>🗺️</span>, action: { drawer: "legend" }, inTiles: false },
 ];

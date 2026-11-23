@@ -22,9 +22,20 @@ import { clearAllDrawerState } from "../lib/drawerPersist";
 import LDM from "./LDM";
 import { colors, rgb } from "@/app/theme";
 import { MembersIcon } from "./icons";
+import Tooltip from "./ui/Tooltip";
 import { OFFICE_TILES, dispatchTileAction, tileHref } from "./dashboardTiles";
 
 // Opens on a face click — its own chunk, with ChatSettingsModal behind it (stack-efficiency P2).
+// The one call-to-action in the middle of the bar: staff sign a person up (SignUpModal).
+const SignUpBtn = styled.button`
+  all: unset; cursor: pointer; white-space: nowrap; padding: 0.4rem 1.1rem; border-radius: 999px;
+  font-size: 0.78rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
+  color: ${colors.cyan}; background: rgba(${rgb.cyan}, 0.12); border: 1px solid rgba(${rgb.cyan}, 0.55);
+  box-shadow: 0 0 14px rgba(${rgb.cyan}, 0.25); transition: background 0.15s, box-shadow 0.15s;
+  &:hover { background: rgba(${rgb.cyan}, 0.22); box-shadow: 0 0 20px rgba(${rgb.cyan}, 0.45); }
+  &:focus-visible { outline: 2px solid ${colors.cyan}; outline-offset: 2px; }
+`;
+
 const ProfileModal = dynamic(() => import("./ProfileModal"), { ssr: false });
 
 const navLinks = [
@@ -346,6 +357,11 @@ function TopNavInner() {
             <ArrowBtn onClick={back} disabled={!canBack} title="Back (⌘[ / Alt+←)">‹</ArrowBtn>
             <ArrowBtn onClick={forward} disabled={!canForward} title="Forward (⌘] / Alt+→)">›</ArrowBtn>
           </div>
+        }
+        centerSlot={
+          <Tooltip label="Sign someone up">
+            <SignUpBtn type="button" onClick={() => dispatchTileAction({ event: "open-signup" })}>Sign Up</SignUpBtn>
+          </Tooltip>
         }
         rightSlot={
           <>
