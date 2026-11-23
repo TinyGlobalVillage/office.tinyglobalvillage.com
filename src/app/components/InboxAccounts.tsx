@@ -5,7 +5,7 @@
 // one. The list + wizard are @tgv/module-inbox's EmailManage / EmailSetupWizard — the same
 // ones the tinyglobalvillage.com dashboard uses — against Office's /api/email routes.
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 import EmailManage from "@tgv/module-inbox/components/EmailManage";
 import { createEmailDockClient } from "@tgv/module-inbox/dock/client";
@@ -37,7 +37,14 @@ const OUTCOME: Record<string, string> = {
   off: "Connecting your own mailbox is not switched on in Office yet.",
 };
 
-export default function InboxAccounts({ onDone }: { onDone: (changed: boolean) => void }) {
+export default function InboxAccounts({ onDone, title = "Mail accounts", backLabel = "‹ Back to mail", intro }: {
+  onDone: (changed: boolean) => void;
+  /** Another host of the same pane (Villagers → Onboard Villager → Mailbox) names it and its way back. */
+  title?: string;
+  backLabel?: string;
+  /** A line above the list saying what connecting here does. */
+  intro?: React.ReactNode;
+}) {
   const api = useMemo(() => createEmailDockClient("/api/email"), []);
   const [boot, setBoot] = useState<EmailDockBoot | null>(null);
   const [failed, setFailed] = useState(false);
@@ -65,10 +72,11 @@ export default function InboxAccounts({ onDone }: { onDone: (changed: boolean) =
   return (
     <Wrap>
       <Bar>
-        <Back type="button" onClick={() => onDone(changed)}>‹ Back to mail</Back>
-        <h2>Mail accounts</h2>
+        <Back type="button" onClick={() => onDone(changed)}>{backLabel}</Back>
+        <h2>{title}</h2>
       </Bar>
       <Body>
+        {intro && <Note style={{ marginBottom: "0.9rem" }}>{intro}</Note>}
         {outcome && <Note role="status" style={{ marginBottom: "0.9rem" }}>{outcome}</Note>}
         {failed ? <Note>Could not load your mail accounts. You may need to sign in again.</Note>
           : !boot ? <Note>Loading…</Note>
