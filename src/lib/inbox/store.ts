@@ -8,9 +8,10 @@ import type { InboxCredentials, InboxProvider } from "@tgv/module-inbox/db/accou
 import type { ResolvedAccount } from "@tgv/module-inbox/adapters/provider";
 import { readSetupProgress, type EmailDockAccount, type EmailSetupProgress } from "@tgv/module-inbox/dock/types";
 import { db } from "@/lib/db-drizzle";
+import { ensureFreshFastmail } from "@tgv/module-inbox/oauth/fastmail";
 import { canSealInbox, openInbox, sealInbox } from "./seal";
 
-type Row = { account_key: string; email: string; label: string | null; provider: string; credentials: { sealed?: string } | null };
+type Row = { id?: string; account_key: string; email: string; label: string | null; provider: string; credentials: { sealed?: string } | null };
 const rowsOf = (r: unknown): Row[] => ((r as { rows?: Row[] })?.rows ?? []) as Row[];
 
 // 42P01: the table is not there. 42501: it is, but this app was never granted it.
@@ -53,6 +54,38 @@ function resolved(x: Row | undefined): ResolvedAccount | null {
   }
 }
 
+/**
+ * A "Sign in with Fastmail" mailbox holds a one-hour access token and a refresh token that
+ * Fastmail ROTATES on every use. Refresh when stale and write the new pair to every row of this
+ * member still holding the old refresh token (same rows the dashboard reads), or the next
+ * refresh, here or there, would be refused. Mirrors tinyglobalvillage.com src/lib/inbox/store.ts.
+ * A failed refresh leaves the stale token: the call fails as "unauthorized" and they reconnect.
+ */
+async function freshen(memberId: string, a: ResolvedAccount): Promise<ResolvedAccount> {
+  const c = a.credentials;
+  if (c.provider !== "fastmail" || !c.oauth) return a;
+  const old = c.oauth.refreshToken;
+  try {
+    const next = await ensureFreshFastmail(c, async (n) => {
+      const r = await db.execute(sql`
+        SELECT id, account_key, email, label, provider, credentials FROM public.inbox_accounts
+         WHERE member_id = ${memberId}::uuid AND provider = 'fastmail'`);
+      for (const row of rowsOf(r)) {
+        const plain = openInbox(row?.credentials?.sealed);
+        if (!plain || !row.id) continue;
+        let cur: InboxCredentials;
+        try { cur = JSON.parse(plain) as InboxCredentials; } catch { continue; }
+        if (cur.provider !== "fastmail" || cur.oauth?.refreshToken !== old) continue;
+        const sealed = JSON.stringify({ sealed: sealInbox(JSON.stringify({ ...cur, token: n.token, oauth: n.oauth })) });
+        await db.execute(sql`UPDATE public.inbox_accounts SET credentials = ${sealed}::jsonb, updated_at = now() WHERE id = ${row.id}::uuid`);
+      }
+    });
+    return next === c ? a : { ...a, credentials: next };
+  } catch {
+    return a;
+  }
+}
+
 export async function resolveInboxAccounts(memberId: string): Promise<ResolvedAccount[]> {
   if (!canSealInbox()) return [];
   try {
@@ -60,7 +93,8 @@ export async function resolveInboxAccounts(memberId: string): Promise<ResolvedAc
       SELECT account_key, email, label, provider, credentials FROM public.inbox_accounts
        WHERE member_id = ${memberId}::uuid
        ORDER BY is_default DESC, created_at ASC`);
-    return rowsOf(r).map(resolved).filter((a): a is ResolvedAccount => a !== null);
+    const list = rowsOf(r).map(resolved).filter((a): a is ResolvedAccount => a !== null);
+    return Promise.all(list.map((a) => freshen(memberId, a)));
   } catch (e) {
     if (missingTable(e)) return [];
     throw e;
@@ -73,7 +107,8 @@ export async function resolveInboxAccount(memberId: string, accountKey: string):
     const r = await db.execute(sql`
       SELECT account_key, email, label, provider, credentials FROM public.inbox_accounts
        WHERE member_id = ${memberId}::uuid AND account_key = ${accountKey} LIMIT 1`);
-    return resolved(rowsOf(r)[0]);
+    const a = resolved(rowsOf(r)[0]);
+    return a ? freshen(memberId, a) : null;
   } catch (e) {
     if (missingTable(e)) return null;
     throw e;
