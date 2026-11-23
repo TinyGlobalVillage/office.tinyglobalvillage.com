@@ -107,3 +107,9 @@ data/templates/
 
 # Runtime-written on RCS (Gio 2026-11-02): the live login-session store never ships through git.
 data/sessions.json
+
+# Synced by scripts/sync-media-processors.mjs on every dev/build (wasm from node_modules).
+# The MediaPipe model and the DeepFilterNet3 build are checked in (no npm source).
+public/media-processors/*
+!public/media-processors/selfie_segmenter.tflite
+!public/media-processors/deepfilternet3/
