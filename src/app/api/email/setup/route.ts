@@ -4,6 +4,9 @@
 //                                        from the member's own dashboard, where its billing lives)
 //   PUT  { setup }                       remember how far they got
 //   POST { provider: "fastmail", token } check the key with Fastmail, keep it sealed
+//   POST { provider: "fastmail-apps", account, appPassword?, filesPassword? }
+//                                        add the app passwords Calendar / Notes / Files need (checked, sealed);
+//                                        a mailbox that came from the env token is copied into inbox_accounts
 //   POST { provider: "opensrs", email, password }
 //                                        sign in to an existing TGV Mailbox, keep it sealed
 //   POST { provider: "imap", preset, email, password, imapHost?, imapPort?, smtpHost?, smtpPort? }
@@ -20,7 +23,10 @@ export const dynamic = "force-dynamic";
 import crypto from "node:crypto";
 import { type NextRequest, NextResponse } from "next/server";
 import { EMAIL_SETUP_START, readSetupProgress } from "@tgv/module-inbox/dock/types";
-import { enumerateAccounts } from "@tgv/module-inbox/fastmail/client";
+import { enumerateAccounts, getSession } from "@tgv/module-inbox/fastmail/client";
+import { cleanAppPassword, verifyAppPassword } from "@tgv/module-inbox/dav/verify";
+import { getProviderResolver } from "@tgv/module-inbox/adapters/provider";
+import "@/lib/inbox-setup";
 import { OmaClient } from "@tgv/module-inbox/oma/client";
 import { imapPreset } from "@tgv/module-inbox/imap/presets";
 import { validateHost, validateImapPort, validateSmtpPort } from "@tgv/module-inbox/imap/validateHost";
@@ -95,11 +101,57 @@ export async function POST(req: NextRequest) {
       return refuse("Fastmail did not accept that key. Check it was copied whole, and that it allows Email.");
     }
     if (found.length === 0) return refuse("That key works, but it cannot see any mail. Give it Email access and try again.");
+    // Optional: the app password that adds Calendar and Notes (checked before anything is kept).
+    const appPassword = body.appPassword === undefined || body.appPassword === "" ? undefined : cleanAppPassword(body.appPassword);
+    if (appPassword === null) return refuse("That does not look like a Fastmail app password.");
+    if (appPassword) {
+      let loginEmail = "";
+      try { loginEmail = (await getSession(token)).username; } catch { /* checked below */ }
+      const check = loginEmail ? await verifyAppPassword(loginEmail, appPassword, "caldav") : "unreachable";
+      if (check === "auth_failed") return refuse('Fastmail did not accept that app password. Make one with "Mail, Contacts & Calendars" access, or leave it blank for now.');
+      if (check === "unreachable") return refuse("Fastmail could not be reached to check the app password. Try again in a moment.", 502);
+    }
     for (const a of found) {
-      await saveInboxAccount(who.memberId, { email: a.email, label: a.label || a.email, accountKey: a.key, credentials: { provider: "fastmail", token } });
+      await saveInboxAccount(who.memberId, { email: a.email, label: a.label || a.email, accountKey: a.key, credentials: { provider: "fastmail", token, ...(appPassword ? { appPassword } : {}) } });
       log("fastmail", a.email, true);
     }
     await writeSetup(who.memberId, EMAIL_SETUP_START);
+    return NextResponse.json({ ok: true });
+  }
+
+  // Add or replace the app passwords of a Fastmail mailbox already connected — what Calendar,
+  // Notes (appPassword) and Files (filesPassword) use; the API key cannot reach them.
+  if (body?.provider === "fastmail-apps") {
+    const accountKey = typeof body.account === "string" ? body.account.slice(0, 200) : "";
+    const appPassword = body.appPassword === undefined ? undefined : cleanAppPassword(body.appPassword);
+    const filesPassword = body.filesPassword === undefined ? undefined : cleanAppPassword(body.filesPassword);
+    if (!accountKey) return refuse("Which mailbox?");
+    if (appPassword === null || filesPassword === null || (!appPassword && !filesPassword)) return refuse("That does not look like a Fastmail app password.");
+    const acct = await getProviderResolver().resolve(who.username, accountKey);
+    if (!acct || acct.credentials.provider !== "fastmail") return refuse("Calendar, Notes and Files work with a Fastmail mailbox.", 404);
+    let loginEmail: string;
+    try {
+      loginEmail = (await getSession(acct.credentials.token)).username;
+    } catch {
+      return refuse("Fastmail could not be reached. Try again in a moment.", 502);
+    }
+    for (const [password, service, what] of [[appPassword, "caldav", "Mail, Contacts & Calendars"], [filesPassword, "webdav", "Files"]] as const) {
+      if (!password) continue;
+      const check = await verifyAppPassword(loginEmail, password, service);
+      if (check === "auth_failed") return refuse(`Fastmail did not accept that app password. Make one with "${what}" access and paste it whole.`);
+      if (check === "unreachable") return refuse("Fastmail could not be reached to check it. Try again in a moment.", 502);
+    }
+    await saveInboxAccount(who.memberId, {
+      email: acct.email,
+      label: acct.email,
+      accountKey: acct.accountId,
+      credentials: {
+        ...acct.credentials,
+        ...(appPassword ? { appPassword } : {}),
+        ...(filesPassword ? { filesPassword } : {}),
+      },
+    });
+    log("fastmail-apps", acct.email, true);
     return NextResponse.json({ ok: true });
   }
 
