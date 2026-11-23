@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import styled, { keyframes } from "styled-components";
 import { colors, rgb } from "../theme";
+import Tooltip from "./ui/Tooltip";
 
 /* ── Types ─────────────────────────────────────────────────── */
 
@@ -27,11 +28,22 @@ type RecordingsStorageData = {
   recordingsDir: string;
 };
 
+type StackUpdateItem = {
+  key: string;
+  name: string;
+  kind: "npm" | "server";
+  current: string;
+  latest: string;
+  class: "security" | "perf" | "feature" | "major";
+  why: string;
+  url?: string;
+};
+
 type Announcement = {
   id: string;
   created_at: string;
   title: string;
-  type: "dep-update" | "recordings-storage" | "sip-attack";
+  type: "dep-update" | "recordings-storage" | "sip-attack" | "stack-update";
   status: "pending" | "dismissed";
   dismissed_by?: string;
   dismissed_at?: string;
@@ -40,6 +52,71 @@ type Announcement = {
     | RecordingsStorageData
     | Record<string, unknown>;
 };
+
+/* ── Stack updates (utils/scripts/stack-updates) ───────────── */
+
+const CLASS_TONE: Record<StackUpdateItem["class"], keyof typeof rgb> = {
+  security: "red",
+  major: "pink",
+  perf: "green",
+  feature: "cyan",
+};
+const CLASS_LABEL: Record<StackUpdateItem["class"], string> = {
+  security: "Security",
+  major: "Major",
+  perf: "Faster",
+  feature: "Feature",
+};
+
+const UpdRows = styled.ul`
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+`;
+
+const UpdRow = styled.li`
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--t-text);
+`;
+
+const ClassTag = styled.span<{ $tone: keyof typeof rgb }>`
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgb(${(p) => rgb[p.$tone]});
+  border: 1px solid rgba(${(p) => rgb[p.$tone]}, 0.45);
+  background: rgba(${(p) => rgb[p.$tone]}, 0.08);
+`;
+
+const UpdText = styled.div`
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+`;
+
+const UpdHead = styled.span`
+  font-family: var(--font-geist-mono), monospace;
+  overflow-wrap: anywhere;
+  b { font-weight: 700; }
+  a { color: ${colors.cyan}; margin-left: 6px; }
+`;
+
+const UpdWhy = styled.span`
+  color: var(--t-textMuted);
+  overflow-wrap: anywhere;
+`;
 
 /* ── Animations ────────────────────────────────────────────── */
 
@@ -343,6 +420,26 @@ export default function AnnouncementsPanel({
                     ))}
                   </ProjectGroup>
                 )}
+              {ann.type === "stack-update" && Array.isArray((ann.data as { items?: unknown }).items) && (
+                <UpdRows>
+                  {(ann.data as { items: StackUpdateItem[] }).items.map((u) => (
+                    <UpdRow key={u.key}>
+                      <Tooltip label={u.kind === "server" ? "RCS service" : "App package"}>
+                        <ClassTag $tone={CLASS_TONE[u.class] ?? "cyan"}>{CLASS_LABEL[u.class] ?? u.class}</ClassTag>
+                      </Tooltip>
+                      <UpdText>
+                        <UpdHead>
+                          <b>{u.name}</b> {u.current} &rarr; {u.latest}
+                          {u.url && (
+                            <a href={u.url} target="_blank" rel="noreferrer noopener">notes</a>
+                          )}
+                        </UpdHead>
+                        <UpdWhy>{u.why}</UpdWhy>
+                      </UpdText>
+                    </UpdRow>
+                  ))}
+                </UpdRows>
+              )}
               {ann.type === "sip-attack" && "totalHits" in ann.data && (
                 <div style={{
                   padding: "0.75rem 1rem",
