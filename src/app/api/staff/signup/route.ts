@@ -6,7 +6,9 @@
 // tgv.com send the sign-up email: "Sign up in your browser" + "Download the app".
 // The claim link drops them into the wizard, which offers payment or the demo.
 //
-//   GET  → the caller's recent sign-ups (status: sent / joined / expired / revoked)
+//   GET  → the caller's recent sign-ups (status: sent / joined / expired / revoked) + the
+//          "Free month" totals (codes sent / used) shown in Discount Codes
+//   POST body may carry freeMonth:false to leave the 30 free days off (default: on)
 //   POST → { name, email, note? } sign someone up, or { action: "resend", id }
 //
 // Gated by requireAuth (staff — not admin-only: front desk signs people up too).
@@ -23,6 +25,7 @@ export const runtime = "nodejs";
 const NOTE_PREFIX = "Sign Up";
 const EXPIRES_DAYS = 30;
 const MAX_PER_HOUR = 30;
+const FREE_MONTH_DAYS = 30;
 const ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
 
 function generateInviteCode(): string {
@@ -61,7 +64,7 @@ export async function GET(req: NextRequest) {
   const actor = await resolveAdminActorId(me.username);
   if (!actor) return NextResponse.json({ ok: true, signups: [] });
   const res = await db.execute(sql`
-    select c.id, c.code, c.email, c.note, c.active, c.expires_at, c.created_at,
+    select c.id, c.code, c.email, c.note, c.active, c.expires_at, c.created_at, c.free_days,
            (select count(*) from invite_redemptions r where r.invite_code_id = c.id)::int as redeemed
       from invite_codes c
      where c.note like ${NOTE_PREFIX + " · %"} and c.created_by = ${actor}::uuid
@@ -69,15 +72,22 @@ export async function GET(req: NextRequest) {
      limit 12
   `);
   const now = Date.now();
-  const rows = (res.rows as { id: string; code: string; email: string | null; note: string | null; active: boolean; expires_at: string | null; created_at: string; redeemed: number }[]).map((r) => ({
+  const rows = (res.rows as { id: string; code: string; email: string | null; note: string | null; active: boolean; expires_at: string | null; created_at: string; free_days: number | null; redeemed: number }[]).map((r) => ({
     id: r.id,
     email: r.email,
     name: nameFromNote(r.note),
     link: inviteLink(r.code),
     createdAt: r.created_at,
+    freeDays: r.free_days,
     status: r.redeemed > 0 ? "joined" : !r.active ? "revoked" : r.expires_at && new Date(r.expires_at).getTime() < now ? "expired" : "sent",
   }));
-  return NextResponse.json({ ok: true, signups: rows });
+  // The "Free month" line of Discount Codes: every code that carries free days, across all staff.
+  const tot = await db.execute(sql`
+    select count(*)::int as sent,
+           count(*) filter (where exists (select 1 from invite_redemptions r where r.invite_code_id = c.id))::int as used
+      from invite_codes c where c.free_days is not null and c.free_days > 0`);
+  const freeMonth = (tot.rows[0] as { sent: number; used: number } | undefined) ?? { sent: 0, used: 0 };
+  return NextResponse.json({ ok: true, signups: rows, freeMonth });
 }
 
 export async function POST(req: NextRequest) {
@@ -88,7 +98,7 @@ export async function POST(req: NextRequest) {
   if (!actorUserId) return NextResponse.json({ error: "no_staff_record" }, { status: 403 });
   const staffName = (me.name ?? "").trim() || me.username;
 
-  const body = (await req.json().catch(() => null)) as { action?: string; id?: string; name?: string; email?: string; note?: string } | null;
+  const body = (await req.json().catch(() => null)) as { action?: string; id?: string; name?: string; email?: string; note?: string; freeMonth?: boolean } | null;
 
   if (body?.action === "resend") {
     if (!body.id) return NextResponse.json({ error: "missing_id" }, { status: 400 });
@@ -126,14 +136,17 @@ export async function POST(req: NextRequest) {
   if (((recent.rows[0] as { n: number } | undefined)?.n ?? 0) >= MAX_PER_HOUR)
     return NextResponse.json({ error: "rate_limited" }, { status: 429 });
 
+  // The free month: 30 days of publishing from the moment they sign up (on by default; staff can leave it off).
+  // tgv.com grants it when the code is redeemed (src/lib/billing/freeMonth.ts) and runs the countdown reminders.
+  const freeDays = body?.freeMonth === false ? null : FREE_MONTH_DAYS;
   const code = generateInviteCode();
   const expiresAt = new Date(Date.now() + EXPIRES_DAYS * 86_400_000).toISOString();
   const note = noteFor(name, body?.note?.trim() ? `${body.note.trim().slice(0, 300)} (by ${me.username})` : `by ${me.username}`);
   let id: string;
   try {
     const ins = await db.execute(sql`
-      insert into invite_codes (code, email, max_uses, expires_at, note, created_by)
-      values (${code}, ${email}, 1, ${expiresAt}, ${note}, ${actorUserId})
+      insert into invite_codes (code, email, max_uses, expires_at, note, created_by, free_days)
+      values (${code}, ${email}, 1, ${expiresAt}, ${note}, ${actorUserId}, ${freeDays})
       returning id
     `);
     id = (ins.rows[0] as { id: string }).id;
@@ -144,9 +157,9 @@ export async function POST(req: NextRequest) {
   const emailed = await sendSignupEmail(email, code, name, staffName);
   await db.insert(schema.adminAuditLog).values({
     actorUserId, action: "signup_invite_created", targetType: "invite_code", targetId: id,
-    after: { email, name, expiresAt },
+    after: { email, name, expiresAt, freeDays },
     note: `${name} <${email}> signed up by ${me.username}${emailed ? "" : " (email not sent)"}`,
   });
 
-  return NextResponse.json({ ok: true, id, emailed, link: inviteLink(code), expiresAt });
+  return NextResponse.json({ ok: true, id, emailed, link: inviteLink(code), expiresAt, freeDays });
 }

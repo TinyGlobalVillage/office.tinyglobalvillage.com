@@ -21,7 +21,7 @@ import {
 import NeonX from "../NeonX";
 import Tooltip from "../ui/Tooltip";
 
-type Signup = { id: string; email: string | null; name: string | null; link: string; createdAt: string; status: "sent" | "joined" | "expired" | "revoked" };
+type Signup = { id: string; email: string | null; name: string | null; link: string; createdAt: string; freeDays?: number | null; status: "sent" | "joined" | "expired" | "revoked" };
 
 const Form = styled.form`display: flex; flex-direction: column; gap: 0.9rem;`;
 const Field = styled.label`display: flex; flex-direction: column; gap: 0.35rem;`;
@@ -30,6 +30,12 @@ const Msg = styled.div<{ $tone: "ok" | "error" | "info" }>`
   padding: 0.7rem 0.9rem; border-radius: 0.75rem; font-size: 0.82rem; line-height: 1.45; color: var(--t-text);
   background: rgba(${(p) => rgb[p.$tone === "ok" ? "green" : p.$tone === "error" ? "red" : "cyan"]}, 0.08);
   border: 1px solid rgba(${(p) => rgb[p.$tone === "ok" ? "green" : p.$tone === "error" ? "red" : "cyan"]}, 0.3);
+`;
+const FreeRow = styled.div`
+  display: flex; align-items: flex-start; gap: 0.6rem; padding: 0.7rem 0.9rem; border-radius: 0.75rem; font-size: 0.82rem; line-height: 1.45;
+  color: var(--t-text); background: rgba(${rgb.cyan}, 0.06); border: 1px solid rgba(${rgb.cyan}, 0.25);
+  input { margin-top: 0.2rem; accent-color: ${colors.cyan}; width: 1rem; height: 1rem; flex: none; }
+  label { cursor: pointer; }
 `;
 const Steps = styled.ol`
   margin: 0; padding: 0 0 0 1.1rem; font-size: 0.8rem; line-height: 1.6; color: var(--t-textMuted);
@@ -72,6 +78,8 @@ export default function SignUpModal({ onClose }: { onClose: () => void }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [note, setNote] = useState("");
+  const [freeMonth, setFreeMonth] = useState(true);
+  const [totals, setTotals] = useState<{ sent: number; used: number } | null>(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ tone: "ok" | "error" | "info"; text: string; link?: string } | null>(null);
   const [recent, setRecent] = useState<Signup[]>([]);
@@ -80,7 +88,7 @@ export default function SignUpModal({ onClose }: { onClose: () => void }) {
   const load = useCallback(() => {
     fetch("/api/staff/signup", { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : null))
-      .then((d) => { if (d?.signups) setRecent(d.signups as Signup[]); })
+      .then((d) => { if (d?.signups) setRecent(d.signups as Signup[]); if (d?.freeMonth) setTotals(d.freeMonth); })
       .catch(() => {});
   }, []);
   useEffect(() => { load(); }, [load]);
@@ -96,7 +104,7 @@ export default function SignUpModal({ onClose }: { onClose: () => void }) {
     try {
       const r = await fetch("/api/staff/signup", {
         method: "POST", headers: { "content-type": "application/json" },
-        body: JSON.stringify({ name, email, note }),
+        body: JSON.stringify({ name, email, note, freeMonth }),
       });
       const d = await r.json().catch(() => ({}));
       if (!r.ok) { setMsg({ tone: "error", text: ERRORS[d?.error as string] ?? "Couldn't sign them up. Try again." }); return; }
@@ -147,9 +155,16 @@ export default function SignUpModal({ onClose }: { onClose: () => void }) {
               <AccentLabel $accent="cyan">Note for staff (optional)</AccentLabel>
               <TextArea $accent="cyan" rows={2} value={note} maxLength={300} placeholder="Where they came from, what they want…" onChange={(e) => setNote(e.target.value)} />
             </Field>
+            <FreeRow>
+              <input id="signup-free-month" type="checkbox" checked={freeMonth} onChange={(e) => setFreeMonth(e.target.checked)} />
+              <label htmlFor="signup-free-month">
+                <b>Free month</b> — 30 days of publishing, starting the moment they sign up.
+              </label>
+            </FreeRow>
             <Steps>
               <li>They get an email with two buttons: sign up in the browser, or download the app.</li>
               <li>The wizard walks them through, then offers payment or the free demo.</li>
+              {freeMonth && <li>As the free month runs down they are reminded to subscribe at 15 days, 1 week, 3 days, 24 hours and 1 hour left, by email and in their dashboard. They can stop the emails.</li>}
               <li>The invite works once, for that email, for 30 days.</li>
             </Steps>
             {msg && (
@@ -167,6 +182,7 @@ export default function SignUpModal({ onClose }: { onClose: () => void }) {
           {recent.length > 0 && (
             <div style={{ marginTop: "1.4rem" }}>
               <AccentLabel $accent="cyan">Your recent sign-ups</AccentLabel>
+              {totals && <div style={{ fontSize: "0.74rem", color: "var(--t-textMuted)", marginTop: "0.25rem" }}>Free month codes, all staff: {totals.sent} sent · {totals.used} used</div>}
               <List>
                 {recent.map((s) => (
                   <Item key={s.id}>
@@ -174,6 +190,7 @@ export default function SignUpModal({ onClose }: { onClose: () => void }) {
                       <div className="n">{s.name ?? s.email}</div>
                       <div className="e">{s.email} · {new Date(s.createdAt).toLocaleDateString([], { month: "short", day: "numeric" })}</div>
                     </div>
+                    {s.freeDays ? <Pill $s="sent">Free month</Pill> : null}
                     <Pill $s={s.status}>{STATUS_LABEL[s.status]}</Pill>
                     {s.status === "sent" && (
                       <>

@@ -7,7 +7,7 @@
 // wizard reads. Wraps the SHARED @tgv/module-component-library PlatformDiscountCodesPanel (the same
 // UI the HQ dashboard mounts) with an Office adapter that proxies to HQ over the internal-secret
 // seam (Office holds no Stripe keys — see promo-proxy.ts). Same codes, either place.
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useEscapeToClose } from "@tgv/module-component-library/components/hooks/useEscapeToClose";
 import PillBar from "@tgv/module-component-library/components/ui/PillBar";
 import {
@@ -165,6 +165,33 @@ const inviteAdapter: InviteCodesAdapter = {
   setActive: async (id, active) => { await invitePost({ op: "setActive", id, active }); },
 };
 
+/**
+ * The "Free month" line (Gio 2026-11-22): every staff sign-up's own invite code doubles as a
+ * 30-days-free code. This is its tally — how many were sent and how many have been used.
+ */
+function FreeMonthLine() {
+  const [t, setT] = useState<{ sent: number; used: number } | null>(null);
+  useEffect(() => {
+    fetch("/api/staff/signup", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (d?.freeMonth) setT(d.freeMonth); })
+      .catch(() => {});
+  }, []);
+  if (!t) return null;
+  return (
+    <div
+      style={{
+        display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap", marginBottom: "0.9rem", padding: "0.7rem 0.9rem",
+        borderRadius: "0.75rem", border: "1px solid var(--t-border)", background: "var(--t-inputBg)", fontSize: "0.84rem", color: "var(--t-text)",
+      }}
+    >
+      <strong>Free month</strong>
+      <span style={{ color: "var(--t-textMuted)" }}>30 days of publishing, carried by each Sign Up invite code</span>
+      <span style={{ marginLeft: "auto", fontWeight: 700 }}>{t.sent} sent · {t.used} used</span>
+    </div>
+  );
+}
+
 type View = "discount" | "referral" | "invite";
 
 export default function DiscountCodesModal({ onClose }: { onClose: () => void }) {
@@ -192,7 +219,10 @@ export default function DiscountCodesModal({ onClose }: { onClose: () => void })
           />
           <div style={{ marginTop: 14 }}>
             {view === "invite" ? (
-              <InviteCodesPanel adapter={inviteAdapter} />
+              <>
+                <FreeMonthLine />
+                <InviteCodesPanel adapter={inviteAdapter} />
+              </>
             ) : view === "referral" ? (
               <PlatformReferralCodesPanel adapter={referralAdapter} />
             ) : (
