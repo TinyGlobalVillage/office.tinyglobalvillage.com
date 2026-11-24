@@ -9,7 +9,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 import EmailManage from "@tgv/module-inbox/components/EmailManage";
 import { createEmailDockClient } from "@tgv/module-inbox/dock/client";
-import type { EmailDockBoot } from "@tgv/module-inbox/dock/types";
+import { EMAIL_SETUP_START, type EmailDockBoot } from "@tgv/module-inbox/dock/types";
 import { colors, rgb } from "../theme";
 
 const Wrap = styled.div`flex: 1; min-height: 0; height: 100%; display: flex; flex-direction: column; color: var(--t-text);`;
@@ -80,7 +80,7 @@ export default function InboxAccounts({ onDone, title = "Mail accounts", backLab
         {outcome && <Note role="status" style={{ marginBottom: "0.9rem" }}>{outcome}</Note>}
         {failed ? <Note>Could not load your mail accounts. You may need to sign in again.</Note>
           : !boot ? <Note>Loading…</Note>
-          : <EmailManage api={api} boot={boot} onChanged={() => { setChanged(true); load(); }} onConnected={() => { setChanged(true); load(); }} />}
+          : <EmailManage api={api} boot={{ ...boot, setup: EMAIL_SETUP_START }} onChanged={() => { setChanged(true); load(); }} onConnected={() => { setChanged(true); load(); }} />}
       </Body>
     </Wrap>
   );
