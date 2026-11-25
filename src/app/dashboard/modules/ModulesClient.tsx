@@ -225,7 +225,8 @@ export default function ModulesClient() {
     // url (the one in the address bar) follows along. No-op when standalone.
     if (window.parent !== window) {
       window.parent.postMessage(
-        { type: "tgv-view-change", view: next === "grid" ? null : next },
+        // push: each Modules panel is a destination — Back from the grid returns to Home Screen etc. (Gio 2026-11-25)
+        { type: "tgv-view-change", view: next === "grid" ? null : next, push: true },
         window.location.origin,
       );
     }
