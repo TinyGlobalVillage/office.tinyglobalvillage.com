@@ -22,7 +22,9 @@ export function defaultDrawerTabY(id: DrawerTabId, fallback = 400): number {
     : DRAWER_TAB_EDGES.right;
   const n = stack.length;
   const i = stack.indexOf(id);
-  const gap = Math.max(h / (n + 1), MIN_GAP);
+  // MIN_GAP, but never wider than the window allows: on a short window (the desktop app's Office
+  // view) clamping each tab separately piled the bottom ones onto each other.
+  const gap = n > 1 ? Math.min(Math.max(h / (n + 1), MIN_GAP), (h - 140) / (n - 1)) : 0;
   const y = h / 2 + (i - (n - 1) / 2) * gap;
   return Math.round(Math.max(40, Math.min(h - 100, y)));
 }
