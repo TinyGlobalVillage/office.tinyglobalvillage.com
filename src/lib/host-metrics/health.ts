@@ -192,6 +192,22 @@ function readStorage(): StorageReading {
 }
 
 /** One reading of everything the checks look at. Never throws. */
+function memPressure(): { some60: number; full60: number } | null {
+  try {
+    const text = readFileSync("/proc/pressure/memory", "utf8");
+    const grab = (k: string) => {
+      const m = text.match(new RegExp(`^${k} .*?avg60=([\\d.]+)`, "m"));
+      return m ? Number(m[1]) : null;
+    };
+    const some60 = grab("some");
+    const full60 = grab("full");
+    if (some60 === null || full60 === null) return null;
+    return { some60, full60 };
+  } catch {
+    return null;
+  }
+}
+
 export async function readHealth(at: number = Date.now()): Promise<HealthReading> {
   const [disk, apps] = await Promise.all([diskFreeGb(), pm2Apps()]);
   const reboot = rebootRequired();
@@ -199,6 +215,7 @@ export async function readHealth(at: number = Date.now()): Promise<HealthReading
     at,
     diskFreeGb: disk,
     swapPct: swapPct(),
+    memPressure: memPressure(),
     rebootRequired: reboot.required,
     rebootPkgs: reboot.pkgs,
     uptimeDays: os.uptime() / 86_400,
