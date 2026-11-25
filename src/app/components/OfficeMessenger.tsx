@@ -11,6 +11,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 import { lazy } from "react";
 import { InstantMessenger, registerTimCallSurface, useIM } from "@tgv/module-tim";
+import { configureTones } from "@tgv/module-component-library/sounds/play";
 
 // TIM calls ride the shared call package (module-video-calls): E2EE stage, pop-out, fullscreen,
 // with the "tim" feature profile set in Utils → Call Features. Lazy: LiveKit's UI loads per call.
@@ -20,6 +21,9 @@ import { DrawerTab, DrawerTabLabel } from "../styled";
 import { DRAWER_DATA_ATTR } from "../lib/drawerStack";
 import { useKnobVisibility } from "../lib/drawerKnobs";
 import { DrawerChatsIcon } from "./icons";
+
+// The tone files (message tones, ringtones) are served by the Village site, not by Office.
+configureTones({ base: process.env.NEXT_PUBLIC_TGV_TONES_BASE ?? "https://tinyglobalvillage.com/sounds/tones" });
 
 const DRAWER_ID = "chat";
 const TAB_STORAGE_KEY = "tgv-drawer-tab-chat-y";

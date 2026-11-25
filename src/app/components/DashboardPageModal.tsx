@@ -21,7 +21,7 @@ type Props = {
   view?: string;
   /** The embedded page reporting that its own sub-view changed, so the parent
    *  can keep the address bar shareable while you click around inside. */
-  onViewChange?: (view: string | null) => void;
+  onViewChange?: (view: string | null, push?: boolean) => void;
   onClose: () => void;
 };
 
@@ -363,8 +363,17 @@ export default function DashboardPageModal({ pageKey, title, glow, view, onViewC
   // reports its own view changes upward (tgv-view-change) and the parent writes
   // them to the address bar — feeding those back into src would reload the
   // iframe on every click and throw away whatever the operator was doing.
-  const openedAtView = useRef(view).current;
-  const viewQS = openedAtView ? `&view=${encodeURIComponent(openedAtView)}` : "";
+  // A view change that did NOT come from the iframe (Back/Forward, the Find palette) reloads the
+  // iframe at that view — otherwise Back to ?view=home left the modal showing whatever it last had.
+  const [srcView, setSrcView] = useState(view);
+  const reportedView = useRef(view ?? null);
+  useEffect(() => {
+    if ((view ?? null) === reportedView.current) return;
+    reportedView.current = view ?? null;
+    setSrcView(view);
+    setIframeKey((k) => k + 1);
+  }, [view]);
+  const viewQS = srcView ? `&view=${encodeURIComponent(srcView)}` : "";
   const iframeSrc = `/dashboard/${pageKey}?embedded=1${viewQS}`;
 
   useEffect(() => {
@@ -417,7 +426,10 @@ export default function DashboardPageModal({ pageKey, title, glow, view, onViewC
         openPreview(e.data.domain);
       }
       else if (t === "tgv-view-change") {
-        onViewChange?.(typeof e.data?.view === "string" && e.data.view ? e.data.view : null);
+        const v = typeof e.data?.view === "string" && e.data.view ? e.data.view : null;
+        reportedView.current = v;
+        // `push`: the page says this move is a destination (Modules' panels), so Back returns to it.
+        onViewChange?.(v, e.data?.push === true);
       }
     };
     window.addEventListener("message", onMsg);

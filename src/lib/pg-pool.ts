@@ -26,7 +26,9 @@ function build(): Pool {
       "DATABASE_URL is not set in office .env.local — required for personal alerts and any other Postgres-backed office feature"
     );
   }
-  return new Pool({ connectionString, max: 10 });
+  // JIT off (2026-11-25): the planner over-estimates the shared docs/storage CTEs and JIT then spends ~400 ms
+  // compiling queries that run in ~10 ms. Same setting as tgv.com's src/db/db.ts.
+  return new Pool({ connectionString, max: 10, options: "-c jit=off" });
 }
 
 export const pgPool: Pool = global.__officePgPool ?? (global.__officePgPool = build());
