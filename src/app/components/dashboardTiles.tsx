@@ -351,6 +351,9 @@ export const OFFICE_TILES: OfficeTileDef[] = [
   // Fundraiser (Gio 2026-11-22) — staff's view of every fundraiser on tgv.com (beta). STAFF ONLY: the
   // tile is drawn for roster staff alone, and dashboard/fundraiser + /api/admin/fundraiser check again.
   { key: "Fundraiser", group: "People & Money", title: "Fundraiser", subtitle: "Beta · staff only", glow: "green", icon: (s) => <TargetIcon size={s} style={{ color: colors.green }} />, action: { page: "fundraiser" }, staffOnly: true },
+  // Wishlist orders (Gio 2026-11-23) — TGV's buying queue: visitors chose "Add to cart" on a wishlist and paid
+  // TGV; staff order the item and ship it to the list's owner. STAFF ONLY (tile, page and API).
+  { key: "WishlistOrders", group: "People & Money", title: "Wishlist orders", subtitle: "Staff only", glow: "gold", icon: (s) => <CashIcon size={s} style={{ color: colors.gold }} />, action: { page: "wishlist-orders" }, staffOnly: true },
   // Email Campaigns is NOT a top-level tile — it lives inside Modules (Modules tile →
   // Email Campaigns) as a platform module surface. See dashboard/modules/ModulesClient.
   { key: "Claude", group: "Build & Design", title: "Claude", subtitle: "AI Assistant", glow: "orange", icon: (s) => <ClaudeIcon size={s} color={colors.orange} />, action: { event: "open-claude" } },

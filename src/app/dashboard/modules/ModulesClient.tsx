@@ -37,6 +37,7 @@ const viewLoaders = {
   docs: () => import("../../components/modules/DocEditorHost"),
   templates: () => import("../../components/modules/TemplateGalleryPanel"),
   storefront: () => import("../../components/modules/ModuleStorefrontPanel"),
+  home: () => import("../../components/modules/HomeScreenEditor"),
 };
 const warmView = (v: keyof typeof viewLoaders) => { void viewLoaders[v]().catch(() => {}); };
 const SystemEmailCampaigns = dynamic(viewLoaders.email, { ssr: false });
@@ -45,6 +46,7 @@ const ComponentLibraryPanel = dynamic(viewLoaders.library, { ssr: false });
 const DocEditorHost = dynamic(viewLoaders.docs, { ssr: false });
 const TemplateGalleryPanel = dynamic(viewLoaders.templates, { ssr: false });
 const ModuleStorefrontPanel = dynamic(viewLoaders.storefront, { ssr: false });
+const HomeScreenEditor = dynamic(viewLoaders.home, { ssr: false });
 const ModuleDashboardConfigModal = dynamic(() => import("../../components/modules/ModuleDashboardConfigModal"), { ssr: false });
 
 
@@ -189,8 +191,8 @@ const BackBtn = styled.button`
 
 /* ── Page ──────────────────────────────────────────────────────── */
 
-type ModulesView = "grid" | "email" | "templates" | "storefront" | "wizards" | "library" | "docs";
-const VIEWS: ModulesView[] = ["grid", "email", "templates", "storefront", "wizards", "library", "docs"];
+type ModulesView = "grid" | "email" | "templates" | "storefront" | "wizards" | "library" | "docs" | "home";
+const VIEWS: ModulesView[] = ["grid", "email", "templates", "storefront", "wizards", "library", "docs", "home"];
 
 export default function ModulesClient() {
   const [openMdConfig, setOpenMdConfig] = useState(false);
@@ -327,6 +329,26 @@ export default function ModulesClient() {
   // Template Gallery opens INLINE for the same reason Email Campaigns does —
   // it's a platform-library surface, not a separate destination. Edit hops out
   // to the tgv.com editor in a new tab (see TemplateGalleryPanel's header).
+  // Home Screen (Gio 2026-11-24): the living sun on the TGV apps' Home — every mode and control, a live preview, and
+  // the apps follow the saved look in real time (tgv.com /api/app/home-sun).
+  if (view === "home") {
+    return (
+      <>
+        <TopNav />
+        <PageMain>
+          <HeaderRow>
+            <BackBtn type="button" onClick={() => setView("grid")}>← Modules</BackBtn>
+            <TitleWrap>
+              <EditorIcon size={22} style={{ color: colors.violet }} />
+              <PageTitle>Home Screen</PageTitle>
+            </TitleWrap>
+          </HeaderRow>
+          <HomeScreenEditor />
+        </PageMain>
+      </>
+    );
+  }
+
   // Component Library — the living library is the tgv.com Page Editor in
   // library mode; this view is the explainer + door (new tab). Decoupled from
   // the Sandbox on 2026-10-22: the Sandbox stays a lab, the library is fleet.
@@ -460,6 +482,16 @@ export default function ModulesClient() {
             >
               <SettingsIcon size={14} />
             </TileGear>
+          </TileWrap>
+
+          <TileWrap>
+            <Tile type="button" onPointerEnter={() => warmView("home")} onFocus={() => warmView("home")} onClick={() => setView("home")}>
+              <TileTop><EditorIcon size={18} /> Home Screen</TileTop>
+              <TileSub>
+                The living sun behind the TGV apps&apos; Home — pick a mode, tune every control, and the
+                desktop and phone apps follow along live.
+              </TileSub>
+            </Tile>
           </TileWrap>
 
           <TileWrap>
