@@ -7,7 +7,7 @@
  * Add a new drawer by inserting its id, alphabetically, in its edge's list.
  */
 export const DRAWER_TAB_EDGES = {
-  left: ["frontdesk", "inbox", "sessions"],
+  left: ["chat", "frontdesk", "inbox", "sessions"],
   right: ["legend"],
 } as const;
 export type DrawerTabId = (typeof DRAWER_TAB_EDGES)[keyof typeof DRAWER_TAB_EDGES][number];

@@ -21,6 +21,7 @@ import { DrawerTab, DrawerTabLabel } from "../styled";
 import { DRAWER_DATA_ATTR } from "../lib/drawerStack";
 import { useKnobVisibility } from "../lib/drawerKnobs";
 import { DrawerChatsIcon } from "./icons";
+import { defaultDrawerTabY } from "../lib/drawerTabSlots";
 
 // The tone files (message tones, ringtones) are served by the Village site, not by Office.
 configureTones({ base: process.env.NEXT_PUBLIC_TGV_TONES_BASE ?? "https://tinyglobalvillage.com/sounds/tones" });
@@ -69,9 +70,10 @@ function ChatTab({ accent }: { accent: string | null }) {
   const [tabY, setTabY] = useState(480);
   const drag = useRef({ y: 0, pos: 0, moved: false });
 
+  // Default slot comes from the shared left-edge stack — a fixed 480 sat under Inbox (Gio 2026-11-25).
   useEffect(() => {
     const saved = Number(window.localStorage.getItem(TAB_STORAGE_KEY));
-    if (saved > 0) setTabY(Math.max(40, Math.min(window.innerHeight - 100, saved)));
+    setTabY(saved > 0 ? Math.max(40, Math.min(window.innerHeight - 100, saved)) : defaultDrawerTabY("chat"));
   }, []);
 
   // Every Office surface that opens the chat (dashboard tile, search, a ring) says so with this.
@@ -120,7 +122,6 @@ function ChatTab({ accent }: { accent: string | null }) {
       $hex={accent && toRgb(accent) ? accent : colors.green}
       $rgb={(accent && toRgb(accent)) || rgb.green}
       onMouseDown={onMouseDown}
-      title="Open chat"
       aria-label={unreadTotal > 0 ? `Open chat, ${unreadTotal} unread` : "Open chat"}
       style={{ top: tabY }}
     >
