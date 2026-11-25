@@ -41,7 +41,10 @@ const Side = styled.div`
   overflow-y: auto;
   display: grid;
   align-content: start;
+  /* every section keeps its full height and the panel scrolls (a fixed-height grid squeezes overflow:hidden rows) */
+  grid-auto-rows: max-content;
   gap: 10px;
+  min-height: 0;
   padding-right: 6px;
   min-width: 0;
 `;
