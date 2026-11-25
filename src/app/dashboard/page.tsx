@@ -820,11 +820,13 @@ export default function Home() {
 
   /** The embedded page moved to another panel. Replace, not push — clicking
    *  around inside one tile shouldn't bury the dashboard under history. */
-  const setTileView = useCallback((view: string | null) => {
+  const setTileView = useCallback((view: string | null, push?: boolean) => {
     setModalPage((prev) => {
       if (!prev) return prev;
       const next = { ...prev, view: view ?? undefined };
-      window.history.replaceState({}, "", tileUrl(next));
+      // A page whose panels are destinations (Modules) asks for push, so Back returns to the panel.
+      if (push && (prev.view ?? null) !== (view ?? null)) window.history.pushState({}, "", tileUrl(next));
+      else window.history.replaceState({}, "", tileUrl(next));
       return next;
     });
   }, []);

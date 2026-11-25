@@ -1,94 +1,48 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { requireAuth } from "@/lib/api-auth";
-import { getOfficeRole } from "@/lib/member-auth/bridge";
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
+import { requireAdmin } from "@/lib/api-admin";
+import { logHardeningAction } from "@/lib/audit-log";
+import { filePromoteRequests, readWatcherConfig } from "@/lib/workshop-deploy";
 
-const execFileAsync = promisify(execFile);
-
-const WEBHOOK_URL = process.env.TGV_COMPONENT_WEBHOOK_URL || "http://localhost:4003";
-const TRIGGER_TOKEN = process.env.TGV_COMPONENT_WEBHOOK_TRIGGER_TOKEN || "";
-const REPO_ROOT = "/srv/refusion-core";
-
-// Roster-first (data/office-staff.json), legacy users.json only as fallback —
-// same resolver every other admin surface uses, so an admin who exists solely
-// on the roster isn't refused here.
-function isAdmin(username: string | undefined): boolean {
-  return getOfficeRole(username) === "admin";
-}
-
-/**
- * Best-effort auto-commit of pending @tgv/* package changes before
- * dispatching the deploy webhook. Scoped to packages/@tgv/ so other
- * dirty paths (clients, webhooks, etc.) are not bundled. Silently
- * skipped if there is nothing to commit; logged but not fatal on
- * failure (deploy still proceeds with the working-tree state).
- */
-async function autoCommitPendingPackageChanges(
-  components: string[],
-  username: string,
-): Promise<{ committed: boolean; sha?: string; reason?: string }> {
-  try {
-    await execFileAsync("git", ["-C", REPO_ROOT, "add", "packages/@tgv/"]);
-    const { stdout: cached } = await execFileAsync("git", [
-      "-C", REPO_ROOT, "diff", "--cached", "--name-only", "--", "packages/@tgv/",
-    ]);
-    if (!cached.trim()) {
-      return { committed: false, reason: "no @tgv/* changes" };
-    }
-    const label = components.join(", ") || "@tgv/*";
-    const message = `deploy(sandbox): ${label}\n\nAuto-committed by Office sandbox Deploy action.\nTriggered by: ${username}`;
-    await execFileAsync("git", ["-C", REPO_ROOT, "commit", "-m", message]);
-    const { stdout: sha } = await execFileAsync("git", ["-C", REPO_ROOT, "rev-parse", "HEAD"]);
-    return { committed: true, sha: sha.trim() };
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
-    console.warn("[sandbox-deploy] auto-commit failed:", msg);
-    return { committed: false, reason: msg };
-  }
-}
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 /**
  * POST /api/sandbox/deploy
  * Body: { components: ["@tgv/module-ui"], targets?: ["refusionist.com"], preview?: boolean }
  *
- * Admin-only. Proxies to tgv-component-webhook /trigger so the bearer token
- * never leaves the server.
+ * Admin-only. Files a durable deploy request (deploy-request.sh) per target client for
+ * origin/main as it is now; deploy-watch stages main and promotes it (Office → Deploy →
+ * Releases shows it and can cancel it). Code reaches main through a lane push first —
+ * this button never commits. Replaces the retired tgv-component-webhook (2026-11-25).
+ * No targets → every release target the deploy watcher tracks.
  */
 export async function POST(req: NextRequest) {
-  const token = await requireAuth(req);
-  if (!token?.username) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  if (!isAdmin(token.username)) return NextResponse.json({ error: "admin only" }, { status: 403 });
+  const auth = await requireAdmin(req);
+  if (auth instanceof NextResponse) return auth;
 
   let body: { components?: string[]; targets?: string[]; preview?: boolean };
   try { body = await req.json(); } catch { return NextResponse.json({ error: "bad json" }, { status: 400 }); }
 
-  if (!body.components || !body.components.length) {
-    return NextResponse.json({ error: "components[] required" }, { status: 400 });
-  }
-  if (!TRIGGER_TOKEN) {
-    return NextResponse.json({ error: "TGV_COMPONENT_WEBHOOK_TRIGGER_TOKEN not configured" }, { status: 500 });
-  }
+  const targets = body.targets?.length ? body.targets : readWatcherConfig().targets;
+  if (!targets.length) return NextResponse.json({ error: "no deploy targets" }, { status: 400 });
 
-  // Preview mode: not yet implemented downstream; for now we just return the plan
   if (body.preview) {
-    return NextResponse.json({ preview: true, plan: { components: body.components, targets: body.targets ?? "all" } });
+    return NextResponse.json({ preview: true, plan: { components: body.components ?? [], targets } });
   }
 
-  // Auto-commit any pending @tgv/* changes so this deploy is reproducible
-  // and revertable. Best-effort: failure is logged but does NOT block the
-  // webhook trigger — the rebuild still picks up the working-tree state.
-  const commit = await autoCommitPendingPackageChanges(body.components, token.username);
-
-  const res = await fetch(`${WEBHOOK_URL}/trigger`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${TRIGGER_TOKEN}` },
-    body: JSON.stringify({ components: body.components, targets: body.targets }),
-  }).catch((e) => ({ ok: false, status: 502, json: async () => ({ error: e.message }) } as Response));
-
-  if (!res.ok) {
-    return NextResponse.json({ error: "webhook unreachable", status: res.status, commit }, { status: 502 });
+  try {
+    const { mono, filed } = await filePromoteRequests(targets, auth.username);
+    const failed = filed.filter((f) => !f.ok);
+    logHardeningAction({
+      action: "deploy.request", target: targets.join(","), user: auth.username,
+      success: failed.length === 0, details: { source: "sandbox", mono, filed },
+    });
+    if (failed.length === filed.length) {
+      return NextResponse.json({ error: failed[0]?.error ?? "deploy request failed", filed }, { status: 502 });
+    }
+    return NextResponse.json({ accepted: true, mono, filed });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    return NextResponse.json({ error: msg }, { status: 502 });
   }
-  const data = await res.json().catch(() => ({}));
-  return NextResponse.json({ accepted: true, commit, ...data });
 }
