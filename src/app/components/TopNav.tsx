@@ -23,6 +23,8 @@ import LDM from "./LDM";
 import { colors, rgb } from "@/app/theme";
 import { MembersIcon, SettingsIcon } from "./icons";
 import IconButton from "@tgv/module-component-library/components/ui/IconButton";
+import SBDM from "@tgv/module-component-library/components/ui/SBDM";
+import AddmToggle from "@tgv/module-component-library/components/ui/AddmToggle";
 import Tooltip from "./ui/Tooltip";
 import { OFFICE_TILES, dispatchTileAction, tileHref } from "./dashboardTiles";
 import { useIsStaff } from "../lib/useIsStaff";
@@ -39,12 +41,6 @@ const SignUpBtn = styled.button`
 `;
 
 /* Balloon-menu header: the link-picker gear, and the picker itself (Gio 2026-11-25). */
-const MenuHead = styled.div`
-  display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;
-  padding: 0.55rem 0.75rem 0.45rem 1rem;
-  font-size: 0.68rem; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase;
-  color: rgba(${rgb.pink}, 0.75);
-`;
 const PickRow = styled.button<{ $on: boolean }>`
   all: unset; box-sizing: border-box; cursor: pointer; display: flex; align-items: center; gap: 0.6rem;
   width: 100%; padding: 0.4rem 1rem; font-size: 0.85rem;
@@ -52,15 +48,23 @@ const PickRow = styled.button<{ $on: boolean }>`
   &:hover { background: rgba(${rgb.pink}, 0.08); }
   &:focus-visible { outline: 2px solid ${colors.pink}; outline-offset: -2px; }
 `;
-const SiteLink = styled.a`
-  display: block; padding: 0.4rem 1rem; font-size: 0.85rem; text-decoration: none;
-  color: var(--t-text);
-  &:hover { background: rgba(${rgb.pink}, 0.08); color: ${colors.pink}; }
-  &:focus-visible { outline: 2px solid ${colors.pink}; outline-offset: -2px; }
+const SitesRow = styled.div`
+  padding: 0.6rem 0.75rem 0.35rem;
+  /* Match the dashboard bar's switcher trigger: menu-button shape, full width. */
+  & > * { width: 100%; }
+  & button[aria-haspopup="listbox"] { width: 100%; height: 2rem; padding-top: 0; padding-bottom: 0; border-radius: 0.5rem; }
 `;
-const MenuRule = styled.div`
-  height: 1px; margin: 0.35rem 0.75rem; background: rgba(${rgb.pink}, 0.18);
+const LinksHead = styled.div<{ $open: boolean }>`
+  display: flex; align-items: center; gap: 0.4rem; cursor: pointer; user-select: none;
+  margin: 0.35rem 0.75rem 0.25rem; padding: 0.3rem 0.5rem 0.3rem 0.6rem; border-radius: 0.45rem;
+  font-size: 0.68rem; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase;
+  color: rgba(${rgb.pink}, ${(p) => (p.$open ? 1 : 0.65)});
+  background: rgba(${rgb.pink}, ${(p) => (p.$open ? 0.1 : 0.03)});
+  border: 1px solid rgba(${rgb.pink}, ${(p) => (p.$open ? 0.5 : 0.2)});
+  &:hover { background: rgba(${rgb.pink}, 0.12); }
+  &:focus-visible { outline: 2px solid ${colors.pink}; outline-offset: 2px; }
 `;
+const LinksSpacer = styled.span`flex: 1;`;
 const PickBox = styled.span<{ $on: boolean }>`
   flex: none; width: 0.9rem; height: 0.9rem; border-radius: 0.25rem; display: grid; place-items: center;
   font-size: 0.65rem; line-height: 1;
@@ -360,7 +364,16 @@ function TopNavInner() {
   const [hiddenLinks, setHiddenLinks] = useState<string[]>([]);
   const [pickingLinks, setPickingLinks] = useState(false);
   // Site switcher: TGV Dashboard + the villager sites this user is connected to.
-  const [mySites, setMySites] = useState<{ id: string; label: string; href: string }[]>([]);
+  const [mySites, setMySites] = useState<{ id: string; label: string; href: string; hq?: boolean }[]>([]);
+  // Office Links accordion (+/−), remembered per browser.
+  const [linksOpen, setLinksOpen] = useState(true);
+  useEffect(() => {
+    try { if (window.localStorage.getItem("tgv-office-menu-links-open") === "0") setLinksOpen(false); } catch { /* */ }
+  }, []);
+  const toggleLinksOpen = () => setLinksOpen((o) => {
+    try { window.localStorage.setItem("tgv-office-menu-links-open", o ? "0" : "1"); } catch { /* */ }
+    return !o;
+  });
   useEffect(() => {
     fetch("/api/users/my-sites").then((r) => (r.ok ? r.json() : null)).then((d) => {
       if (Array.isArray(d?.sites)) setMySites(d.sites);
@@ -389,12 +402,12 @@ function TopNavInner() {
   const sections: TgvNavSection[] = [
     {
       key: "nav",
-      items: pickingLinks ? [] : navLinks.filter((l) => !hiddenLinks.includes(l.label)).map((l) => ({ label: l.label, href: l.href })),
+      items: pickingLinks || !linksOpen ? [] : navLinks.filter((l) => !hiddenLinks.includes(l.label)).map((l) => ({ label: l.label, href: l.href })),
     },
     {
       key: "tools",
       // Staff-only tools (Fundraiser) are listed for roster staff alone.
-      items: pickingLinks ? [] : menuTools.filter((t) => (!t.staffOnly || isStaff) && !hiddenLinks.includes(t.key)).map((t) => {
+      items: pickingLinks || !linksOpen ? [] : menuTools.filter((t) => (!t.staffOnly || isStaff) && !hiddenLinks.includes(t.key)).map((t) => {
         const href = tileHref(t.action);
         return {
           label: t.menuLabel ?? t.title,
@@ -421,26 +434,46 @@ function TopNavInner() {
         hideToggle={false}
         menuHeader={
           <>
+            {/* Sites — the same searchable switcher the TGV dashboard bar uses (SBDM). Office
+                itself isn't listed: you're already here. Gio 2026-11-25. */}
             {mySites.length > 0 && (
-              <>
-                <MenuHead><span>Sites</span></MenuHead>
-                {mySites.map((st) => (
-                  <SiteLink key={st.id} href={st.href} role="menuitem">{st.label}</SiteLink>
-                ))}
-                <MenuRule />
-              </>
+              <SitesRow>
+                <SBDM
+                  items={mySites.map((st) => ({ key: st.id, label: st.label, group: st.hq ? "TGV" : "Your sites" }))}
+                  onSelect={(key) => {
+                    const st = mySites.find((x) => x.id === key);
+                    if (st) window.location.href = st.href;
+                  }}
+                  triggerLabel="Sites"
+                  placeholder="Sites"
+                  ariaLabel="Switch to a site's dashboard"
+                  searchPlaceholder="Search dashboards…"
+                  align="left"
+                />
+              </SitesRow>
             )}
-            <MenuHead>
-              <span>{pickingLinks ? "Pick your links" : "Office"}</span>
-              <IconButton
-                label={pickingLinks ? "Done picking" : "Pick menu links"}
-                pressed={pickingLinks}
-                onClick={() => setPickingLinks((p) => !p)}
-              >
-                <SettingsIcon size={12} />
-              </IconButton>
-            </MenuHead>
-            {pickingLinks && allLinks.map((l) => {
+            <LinksHead
+              role="button"
+              tabIndex={0}
+              aria-expanded={linksOpen}
+              $open={linksOpen}
+              onClick={toggleLinksOpen}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleLinksOpen(); } }}
+            >
+              <span>{pickingLinks ? "Pick your links" : "Office Links"}</span>
+              <span onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+                <IconButton
+                  label={pickingLinks ? "Done picking" : "Pick menu links"}
+                  pressed={pickingLinks}
+                  onClick={() => { setPickingLinks((p) => !p); if (!linksOpen) toggleLinksOpen(); }}
+                >
+                  <SettingsIcon size={12} />
+                </IconButton>
+              </span>
+              <LinksSpacer />
+              <AddmToggle open={linksOpen} size={14} />
+            </LinksHead>
+            {pickingLinks && linksOpen && allLinks.map((l) => {
               const on = !hiddenLinks.includes(l.key);
               return (
                 <PickRow key={l.key} type="button" role="menuitemcheckbox" aria-checked={on} $on={on} onClick={() => toggleLink(l.key)}>
