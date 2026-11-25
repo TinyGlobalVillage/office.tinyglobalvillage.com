@@ -206,7 +206,9 @@ export type WatcherHealth = { online: boolean; host: string | null; at: string |
 export const WATCHER_DEFAULTS: WatcherConfig = {
   enabled: true, pollSec: 30, debounceSec: 60, maxBuildsPerHour: 20, smokeTimeoutSec: 60, requestTtlMin: 30,
   targets: ["tinyglobalvillage.com", "office.tinyglobalvillage.com"],
-  follow: { "tinyglobalvillage.com": ["demo-hq"] },
+  // No followers since the one-build demo (2026-11-21): the demo runs tgv.com's build as a deploy-map rider.
+  // Rollback for one release: { "tinyglobalvillage.com": ["demo-hq"] } (demo-parity-deploy.README.md).
+  follow: {},
   directRoute: { hardCapMin: 120, closeWhenIdle: true, closeOnIpChange: true, idleGraceSec: 60, unusedMin: 15, silentMin: 15 },
   alerts: {
     enabled: true, frontDesk: true, email: true, recipients: ["admin@tinyglobalvillage.com"],

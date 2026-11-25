@@ -14,14 +14,15 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const TGV_DIR = "/srv/refusion-core/clients/tinyglobalvillage.com";
-const DEMO_DIR = "/srv/refusion-core/clients/demo-hq";
+// The demo runs tgv.com's build with its own env file since the one-build demo (clients/demo-runtime/.env.demo).
+const DEMO_ENV_FILE = "/srv/refusion-core/clients/demo-runtime/.env.demo";
 const CRON_LOG = `${TGV_DIR}/data/privacy/erase-cron.log`;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** Presence only — the value is never read into a response. */
-function keyPresent(dir: string): boolean | null {
+function keyPresent(file: string): boolean | null {
   try {
-    const env = fs.readFileSync(`${dir}/.env.local`, "utf8");
+    const env = fs.readFileSync(file, "utf8");
     return /^PRIVACY_FIELD_KEY=\S+/m.test(env);
   } catch { return null; }
 }
@@ -39,7 +40,7 @@ const iso = (v: unknown) => (v instanceof Date ? v.toISOString() : v == null ? n
 export async function GET(req: NextRequest) {
   const auth = await requireAdmin(req);
   if (auth instanceof NextResponse) return auth;
-  const base = { at: new Date().toISOString(), keys: { tgv: keyPresent(TGV_DIR), demo: keyPresent(DEMO_DIR) }, cron: cronStatus() };
+  const base = { at: new Date().toISOString(), keys: { tgv: keyPresent(`${TGV_DIR}/.env.local`), demo: keyPresent(DEMO_ENV_FILE) }, cron: cronStatus() };
   try {
     const [consents, reqs, openCounts, pending] = await Promise.all([
       pgPool.query(`SELECT purpose, COUNT(*) FILTER (WHERE withdrawn_at IS NULL AND granted) AS active,

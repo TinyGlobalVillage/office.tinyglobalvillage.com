@@ -29,7 +29,7 @@ const lk = livekitEnv();
 const mintCallGrant = lk
   ? async (p: { room: string; identity: string; name: string }) => {
       const g = await mintToken({ env: lk, identity: p.identity, name: p.name, room: p.room, canPublish: true, canSubscribe: true });
-      return { token: g.token, url: g.url };
+      return { token: g.token, url: g.url, e2eeKey: g.e2eeKey };
     }
   : undefined;
 const files = { root: process.env.IM_FILES_ROOT ?? "/srv/refusion-core/cdn-private/im" };

@@ -119,7 +119,7 @@ export default function DeployWatcherControlModal({ onClose }: { onClose: () => 
     {
       id: "targets",
       title: "Targets",
-      qmbm: "The apps the watcher builds. A follower rebuilds whenever its target does (demo-hq is the same code as tgv.com) and is deployed on its own tile.",
+      qmbm: "The apps the watcher builds. A follower rebuilds whenever its target does and is deployed on its own tile. The demo has none since the one-build demo: it runs tgv.com's own build.",
       body: (
         <Body>
           {releases.map((r) => (

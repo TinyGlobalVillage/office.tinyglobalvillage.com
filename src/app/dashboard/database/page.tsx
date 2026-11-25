@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import styled from "styled-components";
 import { colors, rgb } from "../../theme";
 import TopNav from "../../components/TopNav";
+import { initialPageView, usePublishPageView } from "@/app/lib/pageView";
 
 /* ── Types ─────────────────────────────────────────────────────── */
 
@@ -394,6 +395,10 @@ export default function DatabasePage() {
       .finally(() => setLoadingDbs(false));
   }, []);
 
+  // ?view=<db> or <db>/<table> — the open database (and table) is the shareable address.
+  const publishView = usePublishPageView();
+  const arrived = useRef(false);
+
   const selectDb = useCallback(async (dbName: string) => {
     setSelectedDb(dbName);
     setSelectedTable(null);
@@ -424,6 +429,19 @@ export default function DatabasePage() {
       setLoadingData(false);
     }
   }, []);
+
+  useEffect(() => {
+    if (arrived.current) return;
+    arrived.current = true;
+    const v = initialPageView();
+    const m = v?.match(/^([A-Za-z0-9_]+)(?:\/([A-Za-z0-9_.]+))?$/);
+    if (!m) return;
+    void selectDb(m[1]).then(() => { if (m[2]) void selectTable(m[1], m[2]); });
+  }, [selectDb, selectTable]);
+  useEffect(() => {
+    if (!arrived.current) return;
+    publishView(selectedDb ? (selectedTable ? `${selectedDb}/${selectedTable}` : selectedDb) : null);
+  }, [selectedDb, selectedTable, publishView]);
 
   const runSql = useCallback(async () => {
     if (!selectedDb || !sql.trim() || sqlRunning) return;

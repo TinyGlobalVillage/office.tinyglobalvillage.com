@@ -46,6 +46,14 @@ export type HostMetricsConfig = {
   errorLogKbPerHourWarn: number;
   /** Whether a pending OS reboot raises a team alert (the pill shows either way). */
   rebootAlerts: boolean;
+  /** Warn when a disk's wear estimate (NVMe percentage used) reaches this; critical at 100. */
+  diskWearWarnPct: number;
+  /** Warn when a disk runs this hot (°C); critical 10 °C above. */
+  diskTempWarnC: number;
+  /** Email critical Box health alerts (degraded RAID, failing disk, disk nearly full…) and their recovery. */
+  emailCritical: boolean;
+  /** Who gets those emails. */
+  emailRecipients: string[];
   lastUpdated: string | null;
   /** Orientation for whoever opens the raw file. Carried through writes. */
   _note?: string;
@@ -65,8 +73,19 @@ export const CONFIG_DEFAULTS: HostMetricsConfig = {
   restartsPerHourWarn: 5,
   errorLogKbPerHourWarn: 256,
   rebootAlerts: true,
+  diskWearWarnPct: 80,
+  diskTempWarnC: 70,
+  emailCritical: true,
+  // An org mailbox, same default as the Pipeline alerts; edit it in the modal.
+  emailRecipients: [process.env.HOST_ALERT_EMAIL || "admin@tinyglobalvillage.com"],
   lastUpdated: null,
 };
+
+const EMAIL_RE = /^[^@\s,]+@[a-z0-9-]+(\.[a-z0-9-]+)+$/;
+function cleanRecipients(v: unknown, fallback: string[]): string[] {
+  if (!Array.isArray(v)) return [...fallback];
+  return [...new Set(v.filter((r): r is string => typeof r === "string").map((r) => r.trim().toLowerCase()).filter((r) => EMAIL_RE.test(r)))].slice(0, 20);
+}
 
 /**
  * Bounds, not validation-with-an-error. A 5-second cadence would hammer the
@@ -84,6 +103,8 @@ const CLAMPS = {
   swapWarnPct: [1, 100],
   restartsPerHourWarn: [1, 10_000],
   errorLogKbPerHourWarn: [1, 1_000_000],
+  diskWearWarnPct: [10, 100],
+  diskTempWarnC: [40, 85],
 } as const;
 
 function clampNum(key: keyof typeof CLAMPS, value: unknown, fallback: number): number {
@@ -113,6 +134,10 @@ function coerce(raw: unknown): HostMetricsConfig {
     restartsPerHourWarn: clampNum("restartsPerHourWarn", o.restartsPerHourWarn, CONFIG_DEFAULTS.restartsPerHourWarn),
     errorLogKbPerHourWarn: clampNum("errorLogKbPerHourWarn", o.errorLogKbPerHourWarn, CONFIG_DEFAULTS.errorLogKbPerHourWarn),
     rebootAlerts: o.rebootAlerts !== false,
+    diskWearWarnPct: clampNum("diskWearWarnPct", o.diskWearWarnPct, CONFIG_DEFAULTS.diskWearWarnPct),
+    diskTempWarnC: clampNum("diskTempWarnC", o.diskTempWarnC, CONFIG_DEFAULTS.diskTempWarnC),
+    emailCritical: o.emailCritical !== false,
+    emailRecipients: cleanRecipients(o.emailRecipients, CONFIG_DEFAULTS.emailRecipients),
     lastUpdated: typeof o.lastUpdated === "string" ? o.lastUpdated : null,
     ...(typeof o._note === "string" ? { _note: o._note } : {}),
   };

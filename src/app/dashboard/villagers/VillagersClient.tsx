@@ -60,6 +60,7 @@ const GuestClaimsModal = dynamic(() => import("../../components/villagers/GuestC
 const HandshakeModal = dynamic(() => import("../../components/villagers/HandshakeModal"), { ssr: false });
 const StudioConfigModal = dynamic(() => import("../../components/villagers/StudioConfigModal"), { ssr: false });
 const OnboardVillagerModal = dynamic(() => import("../../components/villagers/OnboardVillagerModal"), { ssr: false });
+type OnboardPane = import("../../components/villagers/OnboardVillagerModal").OnboardPane;
 const OnboardConfigModal = dynamic(() => import("../../components/villagers/OnboardConfigModal"), { ssr: false });
 const SiteVersionsModal = dynamic(() => import("../../components/villagers/SiteVersionsModal"), { ssr: false });
 
@@ -489,6 +490,8 @@ export default function VillagersClient() {
   const [openGuestClaims, setOpenGuestClaims] = useState(false);
   const [openHandshake, setOpenHandshake] = useState(false);
   const [openOnboardVillager, setOpenOnboardVillager] = useState(false);
+  // A pane inside Onboard Villager with its own address: ?view=onboardVillager:mailbox.
+  const [onboardPane, setOnboardPane] = useState<OnboardPane | null>(null);
   const [openOnboardConfig, setOpenOnboardConfig] = useState(false);
   const [openSiteVersions, setOpenSiteVersions] = useState(false);
   // Open the TGV Template Studio in a NEW TAB (not an iframe). The tgv.com
@@ -881,13 +884,49 @@ export default function VillagersClient() {
    *
    * The param stays in the URL: it is the shareable address of the console.
    */
+  // The address bar follows the console (Gio 2026-11-22: every surface shareable by link): clicking
+  // a tile pushes ?view=<tileId>, closing the console drops it, Back closes it.
+  const [linkedTile, setLinkedTile] = useState<string | null>(null);
+  const urlRead = useRef(false);
+  const anyConsoleOpen = [openMemberWallet, openMemberBilling, openMemberLookup, openDashboardConfig, openDashboardStorage, openProfileEngines, openAccessGrant, openPayouts, openWalletControl, openManaged, openDiscounts, openProducts, openCourse, openStudio, openPerformers, openDns, openEcosystem, openPaypal, openMoney, openKeycloakWire, openGuestClaims, openHandshake, openOnboardVillager, openOnboardConfig, openSiteVersions, openStudioConfig].some(Boolean);
+  const closeAllConsoles = () => {
+    setOpenMemberWallet(false); setOpenMemberBilling(false); setOpenMemberLookup(false); setOpenDashboardConfig(false); setOpenDashboardStorage(false); setOpenProfileEngines(false); setOpenAccessGrant(false); setOpenPayouts(false); setOpenWalletControl(false); setOpenManaged(false); setOpenDiscounts(false); setOpenProducts(false); setOpenCourse(false); setOpenStudio(false); setOpenPerformers(false); setOpenDns(false); setOpenEcosystem(false); setOpenPaypal(false); setOpenMoney(false); setOpenKeycloakWire(false); setOpenGuestClaims(false); setOpenHandshake(false); setOpenOnboardVillager(false); setOpenOnboardConfig(false); setOpenSiteVersions(false); setOpenStudioConfig(false);
+  };
+  const openTile = (id: string) => {
+    setLinkedTile(id);
+    if (id === "onboardVillager") setOnboardPane(null);
+    TILES[id]?.onClick();
+  };
+  /** `?view=<tileId>` or `?view=<tileId>:<pane>` — the pane half is only Onboard Villager's so far. */
+  const paneOf = (view: string): OnboardPane | null => (view === "onboardVillager:mailbox" ? "mailbox" : null);
+
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const view = new URLSearchParams(window.location.search).get("view");
-    if (view) TILES[view]?.onClick();
+    const consume = () => {
+      const view = new URLSearchParams(window.location.search).get("view");
+      const id = view?.split(":")[0];
+      if (view && id && TILES[id]) { setLinkedTile(view); setOnboardPane(paneOf(view)); TILES[id].onClick(); }
+      else { setLinkedTile(null); setOnboardPane(null); closeAllConsoles(); }
+      urlRead.current = true;
+    };
+    consume();
+    window.addEventListener("popstate", consume);
+    return () => window.removeEventListener("popstate", consume);
     // Registry ids are static; the tile's onClick only calls a setter.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !urlRead.current) return;
+    const want = anyConsoleOpen ? linkedTile : null;
+    if (!anyConsoleOpen && linkedTile) setLinkedTile(null);
+    const params = new URLSearchParams(window.location.search);
+    if ((params.get("view") ?? null) === want) return;
+    if (want) params.set("view", want);
+    else params.delete("view");
+    const qs = params.toString();
+    window.history.pushState({}, "", `${window.location.pathname}${qs ? `?${qs}` : ""}`);
+  }, [anyConsoleOpen, linkedTile]);
 
   // ── Layout state (persisted per-browser) ──
   const [layout, setLayout] = useState<SectionLayout[]>(DEFAULT_LAYOUT);
@@ -974,7 +1013,7 @@ export default function VillagersClient() {
     >
       <Tile
         type="button"
-        onClick={editMode ? undefined : tile.onClick}
+        onClick={editMode ? undefined : () => openTile(tile.id)}
         $edit={editMode}
       >
         <TileTop>
@@ -1112,7 +1151,13 @@ export default function VillagersClient() {
       {openManaged && <ManagedOnboardingModal onClose={() => setOpenManaged(false)} />}
       {openDiscounts && <DiscountCodesModal onClose={() => setOpenDiscounts(false)} />}
       {openProducts && <ProductsControlModal onClose={() => setOpenProducts(false)} />}
-      {openOnboardVillager && <OnboardVillagerModal onClose={() => setOpenOnboardVillager(false)} />}
+      {openOnboardVillager && (
+        <OnboardVillagerModal
+          onClose={() => { setOpenOnboardVillager(false); setOnboardPane(null); }}
+          pane={onboardPane}
+          onPane={(p) => { setOnboardPane(p); setLinkedTile(p ? `onboardVillager:${p}` : "onboardVillager"); }}
+        />
+      )}
       {openOnboardConfig && <OnboardConfigModal onClose={() => setOpenOnboardConfig(false)} />}
 
       {openCourse && <CourseControlModal onClose={() => setOpenCourse(false)} />}

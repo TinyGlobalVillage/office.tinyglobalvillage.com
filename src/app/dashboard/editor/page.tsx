@@ -849,7 +849,7 @@ function EditorPageInner() {
       {showBuild && activeProject && (
         <BuildPanel project={activeProject} onClose={() => setShowBuild(false)} />
       )}
-      {sandboxOpen && <SandboxModal onClose={() => setSandboxOpen(false)} />}
+      {sandboxOpen && <SandboxModal onClose={() => setSandboxOpen(false)} urlSync={false} />}
 
       <EditorTerminalDock project={activeProject} />
 

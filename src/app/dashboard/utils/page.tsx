@@ -28,17 +28,16 @@ const DeployWatcherControlModal = dynamic(() => import("../../components/hardeni
 const TsserverControlModal = dynamic(() => import("../../components/hardening/tsserver/TsserverControlModal"), { ssr: false });
 const DomainDnsControlModal = dynamic(() => import("../../components/hardening/domain-dns/DomainDnsControlModal"), { ssr: false });
 const KeycloakControlModal = dynamic(() => import("../../components/hardening/keycloak/KeycloakControlModal"), { ssr: false });
-const BoxUsageControlModal = dynamic(() => import("../../components/hardening/box-usage/BoxUsageControlModal"), { ssr: false });
-const WorkshopDbControlModal = dynamic(() => import("../../components/hardening/workshop-db/WorkshopDbControlModal"), { ssr: false });
-const MigrationSnapshotsControlModal = dynamic(() => import("../../components/hardening/migration-snapshots/MigrationSnapshotsControlModal"), { ssr: false });
-const RcsGovControlModal = dynamic(() => import("../../components/hardening/rcs-gov/RcsGovControlModal"), { ssr: false });
-const RcsMaintenanceControlModal = dynamic(() => import("../../components/hardening/rcs-maintenance/RcsMaintenanceControlModal"), { ssr: false });
-const PipelineControlModal = dynamic(() => import("../../components/hardening/pipeline/PipelineControlModal"), { ssr: false });
+const CockpitModal = dynamic(() => import("../../components/cockpit/CockpitModal"), { ssr: false });
+const FoldingControlModal = dynamic(() => import("../../components/hardening/folding/FoldingControlModal"), { ssr: false });
+const FoldingQuickBar = dynamic(() => import("../../components/hardening/folding/FoldingQuickBar"), { ssr: false });
 const PrivacyControlModal = dynamic(() => import("../../components/hardening/privacy/PrivacyControlModal"), { ssr: false });
 const DemoModeControlModal = dynamic(() => import("../../components/dev-tooling/demo-mode/DemoModeControlModal"), { ssr: false });
 const MediaReducerModal = dynamic(() => import("../../components/media-reducer/MediaReducerModal"), { ssr: false });
 const MeetCaptionsControlModal = dynamic(() => import("../../components/hardening/meet-captions/MeetCaptionsControlModal"), { ssr: false });
+const CallFeaturesControlModal = dynamic(() => import("../../components/hardening/call-features/CallFeaturesControlModal"), { ssr: false });
 const MediaFolderControlModal = dynamic(() => import("../../components/hardening/media-folder/MediaFolderControlModal"), { ssr: false });
+const FailoverControlModal = dynamic(() => import("../../components/hardening/failover/FailoverControlModal"), { ssr: false });
 import AutomationsTab from "../../components/automations/AutomationsTab";
 import type { ShortLink } from "@tgv/module-page-editor/editor/component-library/marketing/link-tools";
 // Heavy feature packages — lazy-loaded so they don't sit in the Utils page's first-load JS.
@@ -678,6 +677,39 @@ const TerminalShortcut = styled.button<{ $running: boolean }>`
   [data-theme="light"] & {
     background: var(--t-surface);
   }
+`;
+
+const HeaderLeft = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.6rem;
+`;
+
+const CockpitPill = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 1.1rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  color: ${colors.cyan};
+  background: rgba(${rgb.cyan}, 0.1);
+  border: 1px solid rgba(${rgb.cyan}, 0.55);
+  box-shadow: 0 0 16px rgba(${rgb.cyan}, 0.25);
+  transition: box-shadow 0.15s, background 0.15s;
+  &:hover { background: rgba(${rgb.cyan}, 0.18); box-shadow: 0 0 22px rgba(${rgb.cyan}, 0.45); }
+`;
+
+const CockpitPillSub = styled.span`
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: var(--t-textFaint);
 `;
 
 const TerminalLineCount = styled.span`
@@ -1753,6 +1785,18 @@ function UtilsAdlSurface({
                         </HardeningTileSub>
                       </HardeningTile>
                     );
+                    if (tile.type === "folding") return (
+                      <FoldingTileWrap key={i}>
+                        <HardeningTile type="button" onClick={() => onOpenHardening("folding")}>
+                          <HardeningTileTop>🧬 Folding@home</HardeningTileTop>
+                          <HardeningTileSub>
+                            The standby box lends spare CPU to protein-folding research. One click
+                            frees it the moment we need it.
+                          </HardeningTileSub>
+                        </HardeningTile>
+                        <FoldingQuickBar />
+                      </FoldingTileWrap>
+                    );
                     if (tile.type === "migrate") return (
                       <HardeningTile key={i} type="button" onClick={onOpenMigrate}>
                         <HardeningTileTop>🚚 Migrate a Site</HardeningTileTop>
@@ -1948,6 +1992,24 @@ function UtilsAdlSurface({
                         </HardeningTileSub>
                       </HardeningTile>
                     );
+                    if (tile.type === "cockpit") return (
+                      <HardeningTile key={i} type="button" onClick={() => onOpenHardening("cockpit")}>
+                        <HardeningTileTop>
+                          <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: "-2px", marginRight: 8 }}>
+                            <path d="M3 17a9 9 0 0 1 18 0" />
+                            <path d="M12 17l4-5" />
+                            <circle cx="12" cy="17" r="1.5" />
+                            <path d="M6 7h2M16 7h2M11 4h2" />
+                          </svg>
+                          Cockpit
+                        </HardeningTileTop>
+                        <HardeningTileSub>
+                          Everything happening on RCS2 in one full-screen view — live gauges, per-core CPU, temps,
+                          pm2 app tapes, warning lights — plus capacity &amp; health, dev server pool, pipeline,
+                          workshop DB, rollbacks and maintenance.
+                        </HardeningTileSub>
+                      </HardeningTile>
+                    );
                     if (tile.type === "box-usage") return (
                       <HardeningTile key={i} type="button" onClick={() => onOpenHardening("box-usage")}>
                         <HardeningTileTop>
@@ -1993,6 +2055,23 @@ function UtilsAdlSurface({
                         <HardeningTileSub>
                           Roll a site back to its previous build, or restore data a destructive migration
                           removed from the snapshot taken before it. Inspect, scratch restore, copy rows back.
+                        </HardeningTileSub>
+                      </HardeningTile>
+                    );
+                    if (tile.type === "failover") return (
+                      <HardeningTile key={i} type="button" onClick={() => onOpenHardening("failover")}>
+                        <HardeningTileTop>
+                          <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: "-2px", marginRight: 8 }}>
+                            <rect x="2" y="4" width="8" height="16" rx="1.5" />
+                            <rect x="14" y="4" width="8" height="16" rx="1.5" />
+                            <path d="M10 10h4M12 8l2 2-2 2" />
+                            <path d="M5 8h2M17 8h2" />
+                          </svg>
+                          Failover
+                        </HardeningTileTop>
+                        <HardeningTileSub>
+                          RCS1 stands by for RCS2 and takes over if it goes down. Copy freshness, auto-takeover
+                          and hold switches, timings, alert email, quarterly sealed drills.
                         </HardeningTileSub>
                       </HardeningTile>
                     );
@@ -2179,6 +2258,15 @@ function UtilsAdlSurface({
                         </LinkToolsTileSub>
                       </LinkToolsTile>
                     );
+                    if (tile.type === "call-features") return (
+                      <LinkToolsTile key={i} type="button" onClick={() => onOpenHardening("call-features")}>
+                        <LinkToolsTileTop>📞 Call Features</LinkToolsTileTop>
+                        <LinkToolsTileSub>
+                          One call package — switch what Meetings, TIM calls and Sessions each offer
+                          (recording, screen share, pop-out, chat…).
+                        </LinkToolsTileSub>
+                      </LinkToolsTile>
+                    );
                     if (tile.type === "transcriptions") return (
                       <LinkToolsTile key={i} type="button" onClick={onOpenTranscriptions}>
                         <LinkToolsTileTop>
@@ -2239,8 +2327,10 @@ type DefaultsOverlay = Record<string, Record<string, FieldValue>>;
 
 // Runtime list, not just a union: the ?view= deep-link reader has to validate a
 // string off the URL, and a second hand-kept list would drift.
-const HARDENING_KINDS = ["telephony", "tenant-apps", "member-auth", "office-staff", "mesh-vpn", "firewall", "build-guard", "deploy-watcher", "tsserver", "keycloak", "demo-mode", "domain-dns", "box-usage", "workshop-db", "rcs-gov", "migration-snapshots", "rcs-maintenance", "pipeline", "meet-captions", "commerce-readiness", "privacy", "media-folder"] as const;  // | "postgres" | "ssh" | "nginx" — future
+const HARDENING_KINDS = ["cockpit", "telephony", "tenant-apps", "member-auth", "office-staff", "mesh-vpn", "firewall", "build-guard", "deploy-watcher", "tsserver", "keycloak", "demo-mode", "domain-dns", "box-usage", "workshop-db", "rcs-gov", "folding", "migration-snapshots", "rcs-maintenance", "pipeline", "meet-captions", "call-features", "commerce-readiness", "privacy", "media-folder", "failover"] as const;  // | "postgres" | "ssh" | "nginx" — future
 type HardeningKind = (typeof HARDENING_KINDS)[number];
+const COCKPIT_FOLDED = ["box-usage", "workshop-db", "rcs-gov", "migration-snapshots", "pipeline", "rcs-maintenance"] as const;
+type CockpitFolded = (typeof COCKPIT_FOLDED)[number];
 
 // ── Link Tools (TinyURL + QR generators) ──────────────────────────────────
 //
@@ -2287,10 +2377,13 @@ type TileSpec =
   | { type: "box-usage" }
   | { type: "workshop-db" }
   | { type: "rcs-gov" }
+  | { type: "cockpit" }
+  | { type: "folding" }
   | { type: "migration-snapshots" }
   | { type: "rcs-maintenance" }
   | { type: "pipeline" }
   | { type: "privacy" }
+  | { type: "failover" }
   | { type: "keycloak" }
   | { type: "demo-mode" }
   | { type: "tinyurl" }
@@ -2299,6 +2392,7 @@ type TileSpec =
   | { type: "media-reducer" }
   | { type: "transcriptions" }
   | { type: "meet-captions" }
+  | { type: "call-features" }
   | { type: "queued-job"; job: import("@tgv/module-transcriber").TranscriptionJob };
 
 type SectionAccent = "pink" | "cyan" | "gold";
@@ -2314,8 +2408,8 @@ const SECTIONS: Section[] = [
     subtitle: "cron-driven scheduled tasks · milestone triggers · recurring announcements",
     hint: "" },
   { id: "backups", title: "Backups & Disaster Recovery", accent: "cyan",
-    subtitle: "off-site backup pipeline · restore drills · disaster-recovery posture",
-    kind: "tiles", tiles: [{ type: "backups" }] },
+    subtitle: "off-site backup pipeline · restore drills · disaster-recovery posture · standby box",
+    kind: "tiles", tiles: [{ type: "backups" }, { type: "folding" }] },
   { id: "communications", title: "Communications / Relay", accent: "cyan", kind: "placeholder",
     hint: "Telegram + WhatsApp relay operator UX · sessions, decisions, recipients, billing, dispatch attempts (coming with tgv-module-connect-relay-operator-ux)." },
   { id: "database", title: "Database / Storage", accent: "cyan", kind: "placeholder",
@@ -2342,7 +2436,7 @@ const SECTIONS: Section[] = [
     kind: "actions", actionIds: ["gitrepo", "gitdelrepo"] },
   { id: "hardening", title: "Hardening", accent: "cyan",
     subtitle: "defensive mechanisms installed on RCS — controls + status + audit log",
-    kind: "tiles", tiles: [{ type: "firewall" }, { type: "media-folder" }, { type: "telephony" }, { type: "tenant-apps" }, { type: "commerce-readiness" }, { type: "member-auth" }, { type: "keycloak" }, { type: "office-staff" }, { type: "mesh-vpn" }, { type: "build-guard" }, { type: "deploy-watcher" }, { type: "pipeline" }, { type: "privacy" }, { type: "tsserver" }, { type: "box-usage" }, { type: "workshop-db" }, { type: "rcs-gov" }, { type: "migration-snapshots" }, { type: "rcs-maintenance" }, { type: "domain-dns" }] },
+    kind: "tiles", tiles: [{ type: "firewall" }, { type: "media-folder" }, { type: "telephony" }, { type: "tenant-apps" }, { type: "commerce-readiness" }, { type: "member-auth" }, { type: "keycloak" }, { type: "office-staff" }, { type: "mesh-vpn" }, { type: "build-guard" }, { type: "deploy-watcher" }, { type: "privacy" }, { type: "tsserver" }, { type: "domain-dns" }, { type: "failover" }] },
   { id: "linktools", title: "Link Tools", accent: "cyan",
     subtitle: "shorten URLs and generate scannable QR codes — pair them for printable mini-flyers",
     kind: "tiles", tiles: [{ type: "tinyurl" }, { type: "qrcode" }] },
@@ -2351,7 +2445,7 @@ const SECTIONS: Section[] = [
     kind: "actions", actionIds: ["mail-domain-setup"] },
   { id: "media", title: "Media & Transcription", accent: "cyan",
     subtitle: "open-source audio transcription, subtitle export, voice utilities, batch media reduction",
-    kind: "tiles", tiles: [{ type: "transcriber" }, { type: "transcriptions" }, { type: "media-reducer" }, { type: "meet-captions" }] },
+    kind: "tiles", tiles: [{ type: "transcriber" }, { type: "transcriptions" }, { type: "media-reducer" }, { type: "meet-captions" }, { type: "call-features" }] },
   { id: "migrations", title: "Migrations", accent: "cyan",
     subtitle: "absorb a legacy site into TGV — per-surface fidelity, halt-review, dogfood",
     kind: "tiles", tiles: [{ type: "migrate" }] },
@@ -2668,6 +2762,14 @@ const HardeningTile = styled.button`
   }
 `;
 
+// Folding tile = the tile button + its quick-bar (a button can't nest in a button), framed as one.
+const FoldingTileWrap = styled.div`
+  display: flex; flex-direction: column;
+  border: 1px solid rgba(${rgb.gold}, 0.3); border-radius: 0.625rem;
+  background: rgba(${rgb.gold}, 0.04);
+  & > button { border: none; background: transparent; }
+`;
+
 const HardeningTileTop = styled.div`
   display: flex; align-items: center; gap: 0.5rem;
   font-size: 1.05rem;
@@ -2774,16 +2876,58 @@ export default function UtilsPage() {
     }
   }, []);
 
+  /** Everything this page can have open, closed — what Back to a bare /dashboard/utils means. */
+  const closeAllViews = useCallback(() => {
+    setOpenHardening(null);
+    setOpenBackups(false);
+    setOpenMigrate(false);
+    setOpenEsign(false);
+    setOpenEsignVault(false);
+    setOpenDomainConsole(false);
+    setOpenLinkTool(null);
+    setOpenTranscriber(null);
+    setOpenMediaReducer(false);
+  }, []);
+
+  // The address bar follows what is open (Gio 2026-11-22: "every single modal and pane should
+  // be able to have a URL … so I could share the link to a staff member"). Opening something is
+  // a pushState (Back closes it); moving between panes of the same modal — the Cockpit's tabs —
+  // is a replaceState, so clicking around doesn't bury the page under history entries.
+  const currentView: string | null =
+    openHardening ??
+    (openBackups ? "backups" : openMigrate ? "migrate" : openEsign ? "esign" : openEsignVault ? "esign-vault"
+      : openDomainConsole ? "domain-console" : openLinkTool ? openLinkTool
+      : openTranscriber === "create" ? "transcriber" : openTranscriber === "browse" ? "transcriptions"
+      : openMediaReducer ? "media-reducer" : null);
+  // Don't write until the arrival ?view= has been read, or the first render (nothing open yet)
+  // would strip a shared link before it opens.
+  const urlRead = useRef(false);
+  useEffect(() => {
+    if (typeof window === "undefined" || !urlRead.current) return;
+    const params = new URLSearchParams(window.location.search);
+    const inUrl = params.get("view");
+    if (inUrl === currentView) return;
+    if (currentView) params.set("view", currentView);
+    else params.delete("view");
+    const qs = params.toString();
+    const next = `${window.location.pathname}${qs ? `?${qs}` : ""}`;
+    const cockpitFamily = (v: string | null) => v === "cockpit" || COCKPIT_FOLDED.includes(v as CockpitFolded);
+    if (inUrl && currentView && cockpitFamily(inUrl) && cockpitFamily(currentView)) window.history.replaceState({}, "", next);
+    else window.history.pushState({}, "", next);
+  }, [currentView]);
+
   useEffect(() => {
     if (typeof window === "undefined") return;
     const consume = () => {
       const view = new URLSearchParams(window.location.search).get("view");
       if (view) openUtilsView(view);
+      else closeAllViews();
+      urlRead.current = true;
     };
     consume();
     window.addEventListener("popstate", consume);
     return () => window.removeEventListener("popstate", consume);
-  }, [openUtilsView]);
+  }, [openUtilsView, closeAllViews]);
 
   const handleMakeQR = (shortUrl: string, link: ShortLink) => {
     setQrSeed(shortUrl);
@@ -2814,11 +2958,23 @@ export default function UtilsPage() {
       <TopNav />
       <PageMain>
         <HeaderRow>
-          <div>
+          <HeaderLeft>
+            {/* The Cockpit sits on its own at the top of Utils (Gio 2026-11-22), not inside Hardening. */}
+            {isAdmin && (
+              <CockpitPill type="button" onClick={() => setOpenHardening("cockpit")} aria-label="Open the Cockpit">
+                <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                  <path d="M3 17a9 9 0 0 1 18 0" />
+                  <path d="M12 17l4-5" />
+                  <circle cx="12" cy="17" r="1.5" />
+                </svg>
+                Cockpit
+                <CockpitPillSub>RCS2 live</CockpitPillSub>
+              </CockpitPill>
+            )}
             <PageSubtitle>
               Server scripts — grouped, configured, and streamed to your terminal
             </PageSubtitle>
-          </div>
+          </HeaderLeft>
 
           <TerminalShortcut
             $running={isRunning}
@@ -2868,6 +3024,14 @@ export default function UtilsPage() {
         />
       </PageMain>
 
+      {/* The Cockpit folds six surfaces (Gio 2026-11-22); their old ?view= links open it on that panel. */}
+      {(openHardening === "cockpit" || COCKPIT_FOLDED.includes(openHardening as CockpitFolded)) && (
+        <CockpitModal
+          onClose={() => setOpenHardening(null)}
+          initialPanel={openHardening === "cockpit" ? "deck" : (openHardening as CockpitFolded)}
+          onPanelChange={(p) => setOpenHardening(p === "deck" ? "cockpit" : p)}
+        />
+      )}
       {openHardening === "telephony" && (
         <TelephonyControlModal onClose={() => setOpenHardening(null)} />
       )}
@@ -2895,6 +3059,10 @@ export default function UtilsPage() {
         <FirewallControlModal onClose={() => setOpenHardening(null)} />
       )}
 
+      {openHardening === "failover" && (
+        <FailoverControlModal onClose={() => setOpenHardening(null)} />
+      )}
+
       {openHardening === "media-folder" && (
         <MediaFolderControlModal onClose={() => setOpenHardening(null)} />
       )}
@@ -2919,29 +3087,17 @@ export default function UtilsPage() {
       {openHardening === "demo-mode" && (
         <DemoModeControlModal onClose={() => setOpenHardening(null)} />
       )}
-      {openHardening === "box-usage" && (
-        <BoxUsageControlModal onClose={() => setOpenHardening(null)} />
-      )}
-      {openHardening === "workshop-db" && (
-        <WorkshopDbControlModal onClose={() => setOpenHardening(null)} />
-      )}
-      {openHardening === "rcs-gov" && (
-        <RcsGovControlModal onClose={() => setOpenHardening(null)} />
-      )}
-      {openHardening === "migration-snapshots" && (
-        <MigrationSnapshotsControlModal onClose={() => setOpenHardening(null)} />
-      )}
-      {openHardening === "pipeline" && (
-        <PipelineControlModal onClose={() => setOpenHardening(null)} />
+      {openHardening === "folding" && (
+        <FoldingControlModal onClose={() => setOpenHardening(null)} />
       )}
       {openHardening === "privacy" && (
         <PrivacyControlModal onClose={() => setOpenHardening(null)} />
       )}
-      {openHardening === "rcs-maintenance" && (
-        <RcsMaintenanceControlModal onClose={() => setOpenHardening(null)} />
-      )}
       {openHardening === "meet-captions" && (
         <MeetCaptionsControlModal onClose={() => setOpenHardening(null)} />
+      )}
+      {openHardening === "call-features" && (
+        <CallFeaturesControlModal onClose={() => setOpenHardening(null)} />
       )}
 
       {openBackups && (

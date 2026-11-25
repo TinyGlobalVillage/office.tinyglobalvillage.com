@@ -1,5 +1,6 @@
 "use client";
 
+import { usePaneUrl } from "@/app/lib/tileUrl";
 import { useEscapeToClose } from "@tgv/module-component-library/components/hooks/useEscapeToClose";
 import dynamic from "next/dynamic";
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
@@ -2622,6 +2623,7 @@ export default function SandboxModal({
   title = "Sandbox",
   surface = "workshop",
   initialView,
+  urlSync = true,
 }: {
   onClose: () => void;
   mode?: SandboxMode;
@@ -2641,12 +2643,15 @@ export default function SandboxModal({
   surface?: "library" | "workshop";
   /** Open straight to one column — a search result for a child surface. */
   initialView?: string;
+  /** false when a page mounts its own Sandbox (the editor) — only the global one owns the URL. */
+  urlSync?: boolean;
 }) {
   useModalLifecycle();
   // Start with NO selection (Gio 2026-07-08): the picker SBDM shows its blank
   // "Pick a component…" search bar (type to filter, or open the arrow and
   // scroll) instead of defaulting to the first registry entry (ResetButton).
-  const [activeKey, setActiveKey] = useState<string>("");
+  // A shared link can name a component entry: ?tile=Sandbox&view=c:<registry key>.
+  const [activeKey, setActiveKey] = useState<string>(initialView?.startsWith("c:") ? initialView.slice(2) : "");
   // Sandbox view — "components" (classic registry sandbox) | "atoms" (Atom
   // Library Sandbox). Switched by the header PillBar; the atoms view swaps
   // the entire Body for AtomLabView and hides the components-only chrome.
@@ -2655,6 +2660,8 @@ export default function SandboxModal({
       ? initialView
       : "components",
   );
+  // The address bar follows the Sandbox view and, in Components, the open entry.
+  usePaneUrl("Sandbox", labView === "components" ? (activeKey ? `c:${activeKey}` : "components") : labView, urlSync && mode === "main");
   // Header slot the Atom Lab portals its atom DDM into when its menu drawer
   // is collapsed (drawer-collapsed → DDM-on-header-row behavior).
   const [atomHeaderSlot, setAtomHeaderSlot] = useState<HTMLDivElement | null>(null);

@@ -38,7 +38,9 @@ import {
   worstLevel,
 } from "./health-policy";
 import { maintenanceOwnsReboot } from "../rcs-maintenance/maintenance";
+import { parseMdstat, type DiskHealthFile, type StorageReading } from "./storage-policy";
 import { hostMetricsState } from "./state";
+import { emailHealthAlert } from "./email";
 
 const DIR = path.join(process.cwd(), "data", "host-metrics");
 const FILE = path.join(DIR, "health-state.json");
@@ -169,6 +171,26 @@ async function pm2Apps(): Promise<AppReading[]> {
   }
 }
 
+/** Where the root collector (mono utils/scripts/system/disk-health-collect.sh) leaves SMART readings. */
+const DISK_HEALTH_FILE = process.env.TGV_DISK_HEALTH_FILE || "/var/lib/tgv-host/disk-health.json";
+
+function readStorage(): StorageReading {
+  let raid: StorageReading["raid"] = null;
+  try {
+    raid = parseMdstat(readFileSync("/proc/mdstat", "utf8"));
+  } catch {
+    raid = existsSync("/proc") ? [] : null;
+  }
+  let smart: DiskHealthFile | null = null;
+  try {
+    const j = JSON.parse(readFileSync(DISK_HEALTH_FILE, "utf8")) as DiskHealthFile;
+    if (j && typeof j.at === "string" && Array.isArray(j.disks)) smart = j;
+  } catch {
+    smart = null;
+  }
+  return { raid, smart };
+}
+
 /** One reading of everything the checks look at. Never throws. */
 export async function readHealth(at: number = Date.now()): Promise<HealthReading> {
   const [disk, apps] = await Promise.all([diskFreeGb(), pm2Apps()]);
@@ -181,6 +203,7 @@ export async function readHealth(at: number = Date.now()): Promise<HealthReading
     rebootPkgs: reboot.pkgs,
     uptimeDays: os.uptime() / 86_400,
     apps,
+    storage: readStorage(),
   };
 }
 
@@ -240,6 +263,18 @@ export async function evaluateHealth(now: number = Date.now()): Promise<HealthRe
         details: { level: fire.level, label: f.label, apps: f.apps ?? [] },
       });
       fired.push({ check: f.check, kind: fire.kind, level: fire.level });
+      // Email the critical ones (and the all-clear for something that was critical).
+      const wasCritical = fire.kind === "recover" && prev.firedLevel === "critical";
+      if (cfg.emailCritical && (fire.level === "critical" || wasCritical)) {
+        await emailHealthAlert({
+          to: cfg.emailRecipients,
+          host,
+          check: f.check,
+          kind: fire.kind,
+          title: titleFor(host, f, fire.kind),
+          detail: descriptionFor(host, f, fire.kind),
+        });
+      }
     } catch {
       // Not delivered: keep the previous marker so the next tick retries.
       state.alerts[key] = prev;

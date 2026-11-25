@@ -1,6 +1,17 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { clearTileUrl, currentTile, pushTileUrl, replaceTileUrl } from "./tileUrl";
+
+/** Drawer id → the ?tile= key that opens it (OFFICE_TILES keys; kept here so this lib stays light). */
+const DRAWER_TILE: Record<string, string> = {
+  frontdesk: "FrontDesk",
+  chat: "Chats",
+  inbox: "Inbox",
+  sessions: "Sessions",
+  legend: "Legend",
+  alerts: "Alerts",
+};
 
 // Centralized open-drawer stack. Drawers register themselves via `registerDrawer`
 // when their `open` flag flips true and unregister when it flips false. The
@@ -136,8 +147,28 @@ export function useDrawerLifecycle(opts: {
   open: boolean;
   setOpen: (v: boolean) => void;
   onClose?: () => void;
+  /**
+   * The pane this drawer is showing (a tab, a conversation…). The address bar follows the drawer
+   * (Gio 2026-11-22: every surface shareable by link): opening pushes ?tile=<Key>&view=<urlView>,
+   * changing pane replaces it, closing clears it. Arrival goes the other way through TileUrlSync
+   * → DRAWER_TAB_EVENT, which each drawer already handles.
+   */
+  urlView?: string | null;
+  /** Popout windows and embedded copies must not touch the host page's URL. */
+  url?: boolean;
 }) {
-  const { id, open, setOpen, onClose } = opts;
+  const { id, open, setOpen, onClose, urlView = null, url = true } = opts;
+
+  const wasOpen = useRef(false);
+  useEffect(() => {
+    const tile = DRAWER_TILE[id];
+    if (!url || !tile || typeof window === "undefined") return;
+    const named = (currentTile().tile ?? "").toLowerCase() === tile.toLowerCase();
+    if (open && !wasOpen.current) pushTileUrl(tile, urlView);
+    else if (open && named) replaceTileUrl(tile, urlView);
+    else if (!open && wasOpen.current) clearTileUrl(tile);
+    wasOpen.current = open;
+  }, [id, open, urlView, url]);
 
   // Hold onClose in a ref so it doesn't trigger re-registration. Without this,
   // a fresh arrow function on every render would re-register the drawer each

@@ -1,5 +1,6 @@
 "use client";
 
+import { usePaneUrl } from "@/app/lib/tileUrl";
 import { useEscapeToClose } from "@tgv/module-component-library/components/hooks/useEscapeToClose";
 import { useState, useEffect, useRef } from "react";
 import styled from "styled-components";
@@ -282,6 +283,7 @@ export default function ActivityModal({
     initialTab === "logs" || initialTab === "archive" ? initialTab : null,
   );
   const [showDropdown, setShowDropdown] = useState(false);
+  usePaneUrl("Logs", logsTab);
   const dropRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {

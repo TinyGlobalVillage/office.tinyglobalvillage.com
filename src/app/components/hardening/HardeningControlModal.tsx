@@ -24,7 +24,17 @@
 //   │ [Fail2ban + UFW — RCS-wide]                         │  (if globalSystemViews)
 //   └─────────────────────────────────────────────────────┘
 
-import { type ReactNode } from "react";
+import { createContext, useContext, type ReactNode } from "react";
+
+/**
+ * Embedded mode (the Cockpit, 2026-11-22): a surface rendered INSIDE another modal drops its own
+ * backdrop, frame, title bar and Escape handler and renders just its sections. Any HCM gets this
+ * for free — the Cockpit wraps it in <HCMEmbed> instead of the surface being rewritten.
+ */
+const HCMEmbedContext = createContext(false);
+export function HCMEmbed({ children }: { children: ReactNode }) {
+  return <HCMEmbedContext.Provider value={true}>{children}</HCMEmbedContext.Provider>;
+}
 import styled from "styled-components";
 import { useEscapeToClose } from "@tgv/module-component-library/components/hooks/useEscapeToClose";
 import { colors, rgb } from "@/app/theme";
@@ -147,9 +157,29 @@ function Section({ section }: { section: HCMSection }) {
 }
 
 export default function HardeningControlModal(props: HardeningControlModalProps) {
-  useEscapeToClose({ open: true, onClose: props.onClose });
+  const embedded = useContext(HCMEmbedContext);
+  useEscapeToClose({ open: !embedded, onClose: props.onClose });
 
   const [qmbmOpen, setQmbmOpen] = useState(false);
+  if (embedded) {
+    return (
+      <Stack>
+        {props.qmbm && <Sub>{props.qmbm}</Sub>}
+        {props.sections.map(s => (
+          <Section key={s.id} section={s} />
+        ))}
+        {props.auditLogView && (
+          <SectionWrap>
+            <SectionHeader>
+              <SectionTitle>Activity Timeline</SectionTitle>
+            </SectionHeader>
+            <div>{props.auditLogView}</div>
+          </SectionWrap>
+        )}
+        {props.globalSystemViews && <SectionWrap>{props.globalSystemViews}</SectionWrap>}
+      </Stack>
+    );
+  }
   return (
     <ModalBackdrop onClick={props.onClose}>
       <ModalContainer

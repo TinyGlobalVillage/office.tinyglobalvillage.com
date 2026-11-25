@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/api-auth";
-import { canUseTerminal } from "@/lib/member-auth/bridge";
+import { canUseTerminal, getOfficeRole } from "@/lib/member-auth/bridge";
+import { isStaffRole } from "@/lib/api-staff";
 import fs from "fs";
 import path from "path";
 
@@ -29,5 +30,7 @@ export async function GET(req: NextRequest) {
     email,
     role,
     canUseTerminal: canUseTerminal(token.username),
+    // Roster-first (office-staff.json): admin or employee. Decides which staff-only tiles are drawn.
+    isStaff: isStaffRole(getOfficeRole(token.username)),
   });
 }

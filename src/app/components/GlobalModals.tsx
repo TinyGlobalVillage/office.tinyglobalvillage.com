@@ -14,6 +14,7 @@ const loaders = {
   sandbox: () => import("./sandbox/SandboxModal"),
   library: () => import("./LibraryModal"),
   suggestion: () => import("./suggestion/SuggestionBoxModal"),
+  signup: () => import("./signup/SignUpModal"),
   activity: () => import("./ActivityModal"),
   diary: () => import("./diary/RcsDiaryModal"),
 };
@@ -21,6 +22,7 @@ const ClaudeMenuModal = dynamic(loaders.claude, { ssr: false });
 const SandboxModal = dynamic(loaders.sandbox, { ssr: false });
 const LibraryModal = dynamic(loaders.library, { ssr: false });
 const SuggestionBoxModal = dynamic(loaders.suggestion, { ssr: false });
+const SignUpModal = dynamic(loaders.signup, { ssr: false });
 const ActivityModal = dynamic(loaders.activity, { ssr: false });
 const RcsDiaryModal = dynamic(loaders.diary, { ssr: false });
 
@@ -45,6 +47,7 @@ export default function GlobalModals() {
   const [sandboxOpen, setSandboxOpen] = useState(false);
   const [libraryOpen, setLibraryOpen] = useState(false);
   const [suggestionOpen, setSuggestionOpen] = useState(false);
+  const [signupOpen, setSignupOpen] = useState(false);
   const [activityOpen, setActivityOpen] = useState(false);
   const [diaryOpen, setDiaryOpen] = useState(false);
   const [diaryEntry, setDiaryEntry] = useState<string | undefined>();
@@ -74,6 +77,7 @@ export default function GlobalModals() {
         setLibraryOpen(true);
       },
       "open-suggestion": () => setSuggestionOpen(true),
+      "open-signup": () => setSignupOpen(true),
       "open-activity": (e) => {
         setActivityView((e as CustomEvent<string | undefined>).detail);
         setActivityOpen(true);
@@ -98,6 +102,7 @@ export default function GlobalModals() {
       if (named !== "sandbox") setSandboxOpen(false);
       if (named !== "library") setLibraryOpen(false);
       if (named !== "suggest") setSuggestionOpen(false);
+      if (named !== "signup") setSignupOpen(false);
       if (named !== "logs") setActivityOpen(false);
       if (named !== "diary") setDiaryOpen(false);
     };
@@ -121,6 +126,7 @@ export default function GlobalModals() {
       {sandboxOpen && <SandboxModal onClose={close(setSandboxOpen, "Sandbox")} initialView={sandboxView} />}
       {libraryOpen && <LibraryModal onClose={close(setLibraryOpen, "Library")} initialChild={libraryChild} />}
       {suggestionOpen && <SuggestionBoxModal onClose={close(setSuggestionOpen, "Suggest")} />}
+      {signupOpen && <SignUpModal onClose={close(setSignupOpen, "SignUp")} />}
       {activityOpen && <ActivityModal onClose={close(setActivityOpen, "Logs")} initialTab={activityView} />}
       {diaryOpen && <RcsDiaryModal onClose={close(setDiaryOpen, "Diary")} initialEntry={diaryEntry} />}
       {/* self-listens for "open-my-alerts" */}

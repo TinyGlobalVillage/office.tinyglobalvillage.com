@@ -15,7 +15,9 @@
  * whether the box was sampled every 2 minutes or every 10.
  */
 
-export type HealthCheck = "diskFree" | "swap" | "reboot" | "restarts" | "errorLog";
+import { diskFinding, raidFinding, type StorageReading } from "./storage-policy";
+
+export type HealthCheck = "diskFree" | "swap" | "reboot" | "restarts" | "errorLog" | "raid" | "disks";
 export type HealthLevel = "ok" | "warn" | "critical";
 
 export type AppReading = {
@@ -35,6 +37,8 @@ export type HealthReading = {
   rebootPkgs: string[];
   uptimeDays: number | null;
   apps: AppReading[];
+  /** RAID (/proc/mdstat) + disk SMART (root collector's JSON). Absent = not read this time. */
+  storage?: StorageReading;
 };
 
 /** One remembered reading, kept only as long as the rate window needs. */
@@ -59,6 +63,10 @@ export type HealthThresholds = {
   restartsPerHourWarn: number;
   errorLogKbPerHourWarn: number;
   rebootAlerts: boolean;
+  /** Disk wear (NVMe "percentage used") warn line. */
+  diskWearWarnPct?: number;
+  /** Disk temperature warn line, °C; critical 10 °C above. */
+  diskTempWarnC?: number;
 };
 
 export type HealthFinding = {
@@ -217,6 +225,11 @@ export function assessHealth(reading: HealthReading, rates: AppRate[], t: Health
         : `No pm2 error log grew more than ${t.errorLogKbPerHourWarn} KB in the last hour.`,
       apps: loud.map((r) => r.name),
     });
+  }
+
+  if (reading.storage) {
+    out.push(raidFinding(reading.storage.raid));
+    out.push(diskFinding(reading.storage.smart, { diskWearWarnPct: t.diskWearWarnPct ?? 80, diskTempWarnC: t.diskTempWarnC ?? 70 }, reading.at));
   }
 
   return out;

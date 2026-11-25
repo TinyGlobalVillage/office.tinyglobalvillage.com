@@ -9,7 +9,12 @@
 // a press inside it as a press inside a drawer and leaves the others alone.
 import { useCallback, useEffect, useRef, useState } from "react";
 import styled from "styled-components";
-import { InstantMessenger, useIM } from "@tgv/module-tim";
+import { lazy } from "react";
+import { InstantMessenger, registerTimCallSurface, useIM } from "@tgv/module-tim";
+
+// TIM calls ride the shared call package (module-video-calls): E2EE stage, pop-out, fullscreen,
+// with the "tim" feature profile set in Utils → Call Features. Lazy: LiveKit's UI loads per call.
+registerTimCallSurface(lazy(() => import("@tgv/module-video-calls/tim/TimCallSurface")));
 import { colors, rgb } from "../theme";
 import { DrawerTab, DrawerTabLabel } from "../styled";
 import { DRAWER_DATA_ATTR } from "../lib/drawerStack";

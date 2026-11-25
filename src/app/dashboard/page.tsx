@@ -9,6 +9,7 @@ import AnnouncementsPanel from "../components/AnnouncementsPanel";
 import AddmToggle from "@tgv/module-component-library/components/ui/AddmToggle";
 import {
   OFFICE_TILES,
+  tilesFor,
   TILE_GROUPS,
   TILE_GROUP_ACCENT,
   OFFICE_CHILDREN,
@@ -20,6 +21,7 @@ import {
 import CopyLinkButton from "../components/CopyLinkButton";
 import { TILE_PARAM, VIEW_PARAM, tileUrlFor } from "@/app/lib/tileUrl";
 import { SearchIcon } from "../components/icons";
+import { useIsStaff } from "../lib/useIsStaff";
 import { colors, rgb, type GlowColor } from "@/app/theme";
 
 // Renders only while a tile page is open — its own chunk (stack-efficiency P2).
@@ -843,8 +845,10 @@ export default function Home() {
 
   // Tiles come from the shared registry (dashboardTiles.tsx) — the TgvNav
   // Menu derives from the same list, so adding there updates both surfaces.
+  // Staff-only tiles (Fundraiser) are drawn for roster staff alone — fail-closed until known.
+  const isStaff = useIsStaff();
   const tiles: DashTile[] = useMemo(() =>
-    OFFICE_TILES.filter((t) => t.inTiles !== false).map((t) => ({
+    tilesFor(isStaff).filter((t) => t.inTiles !== false).map((t) => ({
       key: t.key,
       title: t.title,
       subtitle: t.subtitle,
@@ -854,7 +858,7 @@ export default function Home() {
       pageKey: "page" in t.action ? t.action.page : undefined,
       shareKey: t.key,
       onClick: "page" in t.action ? undefined : () => dispatchTileAction(t.action),
-    })), []);
+    })), [isStaff]);
 
   // Scored search (see tileMatchScore): closest match first, alphabetical
   // within a tier. Suggest is pinned last only while browsing — once you've

@@ -6,8 +6,16 @@ import {
   getAllAnnouncements,
   addAnnouncement,
   dismissAnnouncement,
+  takeUnseenStackUpdates,
   type ProjectUpdates,
+  type StackUpdateItem,
 } from "@/lib/announcements-store";
+
+const EMAIL_ACCENT = "#f7b700"; // colour-literal: mail clients cannot read CSS tokens; matches the older announcement emails
+
+const CLASS_ORDER = { security: 0, major: 1, perf: 2, feature: 3 } as const;
+const CLASS_WORD = { security: "SECURITY", major: "MAJOR", perf: "PERF", feature: "FEATURE" } as const;
+const esc = (v: string) => v.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
 
 const ANNOUNCE_TOKEN = process.env.ANNOUNCE_TOKEN;
 
@@ -39,6 +47,18 @@ export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null);
   if (!body?.type || !body?.title || !body?.data) {
     return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+  }
+
+  // stack-update: one alert per version, ever. Already-announced versions are dropped here;
+  // nothing new → nothing posted, nobody emailed.
+  if (body.type === "stack-update") {
+    const raw = Array.isArray(body.data?.items) ? (body.data.items as StackUpdateItem[]) : [];
+    const fresh = takeUnseenStackUpdates(raw.slice(0, 500))
+      .sort((a, b) => (CLASS_ORDER[a.class] ?? 9) - (CLASS_ORDER[b.class] ?? 9) || a.name.localeCompare(b.name));
+    if (!fresh.length) return NextResponse.json({ ok: true, skipped: true, new: 0 });
+    const sec = fresh.filter((i) => i.class === "security").length;
+    body.title = `${fresh.length} stack update${fresh.length === 1 ? "" : "s"}${sec ? ` · ${sec} security` : ""}`;
+    body.data = { items: fresh };
   }
 
   const announcement = addAnnouncement({
@@ -85,7 +105,26 @@ ${(body.data.projects as ProjectUpdates[])
   )
   .join("")}
 <p style="font-family:sans-serif;margin-top:20px;">
-  <a href="${officeUrl}/dashboard" style="color:#f7b700;">Open TGV Office →</a>
+  <a href="${officeUrl}/dashboard" style="color:${EMAIL_ACCENT};">Open TGV Office →</a>
+</p>`;
+    } else if (body.type === "stack-update") {
+      const items = body.data.items as StackUpdateItem[];
+      text = `${body.title}\n\n${items
+        .map((u) => `  • [${CLASS_WORD[u.class]}] ${u.name}: ${u.current} → ${u.latest} — ${u.why}`)
+        .join("\n")}\n\nNothing is upgraded automatically.\nView in TGV Office: ${officeUrl}/dashboard`;
+      html = `
+<h2 style="font-family:sans-serif;color:${EMAIL_ACCENT};">${esc(body.title)}</h2>
+<ul style="font-family:monospace;font-size:13px;">
+${items
+  .map(
+    (u) =>
+      `<li><b>[${CLASS_WORD[u.class]}] ${esc(u.name)}</b>: ${esc(u.current)} → ${esc(u.latest)} — ${esc(u.why)}${u.url ? ` <a href="${esc(u.url)}">notes</a>` : ""}</li>`
+  )
+  .join("")}
+</ul>
+<p style="font-family:sans-serif;">Nothing is upgraded automatically.</p>
+<p style="font-family:sans-serif;margin-top:20px;">
+  <a href="${officeUrl}/dashboard" style="color:${EMAIL_ACCENT};">Open TGV Office →</a>
 </p>`;
     } else {
       // Generic fallback used by recordings-storage and any future types.
@@ -94,7 +133,7 @@ ${(body.data.projects as ProjectUpdates[])
       html = `
 <h2 style="font-family:sans-serif;color:#f7b700;">${body.title}</h2>
 <p style="font-family:sans-serif;margin-top:20px;">
-  <a href="${officeUrl}/dashboard" style="color:#f7b700;">Open TGV Office →</a>
+  <a href="${officeUrl}/dashboard" style="color:${EMAIL_ACCENT};">Open TGV Office →</a>
 </p>`;
     }
 

@@ -10,6 +10,12 @@
 // Fees waived = member_billing.waiver_until (intent only — no Stripe objects;
 // the billing engine reads it as comp). The person claims their login via the
 // Keycloak execute-actions email (passkey + recovery codes).
+//
+// Mailbox (optional step, ?view=onboardVillager:mailbox): the same mailbox wizard as
+// Inbox → Mail accounts, against Office's /api/email/dock + /api/email/setup. Those
+// routes belong to whoever is signed in, so it connects the mailbox to the OPERATOR's
+// Office inbox (a mailbox they run for this villager); the villager connects their own
+// mail from their dashboard. The form underneath stays mounted, so nothing typed is lost.
 
 import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
@@ -38,6 +44,10 @@ import {
   ModalBody,
 } from "@/app/styled";
 import NeonX from "../NeonX";
+import InboxAccounts from "../InboxAccounts";
+
+/** The panes of this modal that have their own address (?view=onboardVillager:<pane>). */
+export type OnboardPane = "mailbox";
 import TPG from "@tgv/module-component-library/components/ui/TPG";
 
 type Template = {
@@ -488,8 +498,18 @@ function SiteFields({
   );
 }
 
-export default function OnboardVillagerModal({ onClose }: { onClose: () => void }) {
+export default function OnboardVillagerModal({ onClose, pane: paneProp, onPane }: {
+  onClose: () => void;
+  /** The open pane, when the host keeps it in the address bar; left out, the modal keeps it itself. */
+  pane?: OnboardPane | null;
+  onPane?: (pane: OnboardPane | null) => void;
+}) {
   useEscapeToClose({ open: true, onClose });
+
+  const [ownPane, setOwnPane] = useState<OnboardPane | null>(null);
+  const pane = paneProp !== undefined ? paneProp : ownPane;
+  const setPane = (next: OnboardPane | null) => { setOwnPane(next); onPane?.(next); };
+  const [mailboxAdded, setMailboxAdded] = useState(false);
 
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
@@ -690,6 +710,16 @@ export default function OnboardVillagerModal({ onClose }: { onClose: () => void 
           <NeonX onClick={onClose} />
         </ModalHeader>
         <ModalBody>
+          {pane === "mailbox" && (
+            <MailboxPane>
+              <InboxAccounts
+                title="Mailbox" backLabel="‹ Back to onboarding"
+                intro="A mailbox connected here opens in your own Office inbox — use it for one you run for this villager. Their own mail is connected from their dashboard."
+                onDone={(changed) => { if (changed) setMailboxAdded(true); setPane(null); }}
+              />
+            </MailboxPane>
+          )}
+          <div hidden={pane === "mailbox"}>
           {result ? (
             <Stack>
               <OkCard>
@@ -751,6 +781,7 @@ export default function OnboardVillagerModal({ onClose }: { onClose: () => void 
               </OkCard>
               <Actions>
                 <SecondaryBtn type="button" onClick={onClose}>Done</SecondaryBtn>
+                <SecondaryBtn type="button" onClick={() => setPane("mailbox")}>{mailboxAdded ? "Mailboxes" : "Set up a mailbox"}</SecondaryBtn>
               </Actions>
             </Stack>
           ) : (
@@ -1025,6 +1056,18 @@ export default function OnboardVillagerModal({ onClose }: { onClose: () => void 
                 )}
               </div>
 
+              <div>
+                <Label>Mailbox (optional)</Label>
+                <Note>
+                  Running a mailbox for this villager? Connect it to your Office inbox — Fastmail, another
+                  provider, or an existing TGV Mailbox. Their own mail is connected from their dashboard.
+                  {mailboxAdded && " ✓ Connected — it is in your Inbox now."}
+                </Note>
+                <Actions style={{ marginTop: "0.5rem" }}>
+                  <SecondaryBtn type="button" onClick={() => setPane("mailbox")}>{mailboxAdded ? "Mailboxes" : "Set up a mailbox"}</SecondaryBtn>
+                </Actions>
+              </div>
+
               {err && <ErrText>{err}</ErrText>}
 
               <Actions>
@@ -1034,6 +1077,7 @@ export default function OnboardVillagerModal({ onClose }: { onClose: () => void 
               </Actions>
             </Stack>
           )}
+          </div>
         </ModalBody>
       </ModalContainer>
     </ModalBackdrop>
@@ -1043,6 +1087,7 @@ export default function OnboardVillagerModal({ onClose }: { onClose: () => void 
 /* ── styles (Villagers modal idiom — see ManagedOnboardingModal) ─────────── */
 const Sub = styled.div`font-size: 0.75rem; color: var(--t-textFaint); letter-spacing: 0.04em; margin-top: 0.125rem;`;
 const Stack = styled.div`display: flex; flex-direction: column; gap: 1rem;`;
+const MailboxPane = styled.div`display: flex; flex-direction: column; min-height: 24rem; margin: -0.5rem;`;
 const Label = styled.div`font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: ${colors.cyan}; margin-bottom: 0.35rem;`;
 const Dim = styled.span`color: var(--t-textFaint); font-size: 0.72rem; white-space: nowrap;`;
 const Note = styled.div`font-size: 0.72rem; line-height: 1.45; color: var(--t-textFaint);`;

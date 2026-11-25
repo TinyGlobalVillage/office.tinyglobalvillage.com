@@ -8,9 +8,11 @@ import { ModalContainer, Input } from "../styled";
 import { colors, rgb, type GlowColor } from "../theme";
 import { useModalLifecycle } from "../lib/drawerKnobs";
 import { pushTileUrl } from "../lib/tileUrl";
+import { useIsStaff } from "../lib/useIsStaff";
 import {
   OFFICE_CHILDREN,
   OFFICE_TILES,
+  tilesFor,
   TILE_GROUPS,
   dispatchTileAction,
   tileMatchScore,
@@ -54,9 +56,9 @@ type FindEntry = {
   parentKey: string;
 };
 
-function buildIndex(): FindEntry[] {
+function buildIndex(isStaff: boolean): FindEntry[] {
   const out: FindEntry[] = [];
-  for (const t of OFFICE_TILES) {
+  for (const t of tilesFor(isStaff)) {
     out.push({
       id: `tile:${t.key}`,
       title: t.title,
@@ -119,7 +121,9 @@ export default function FindPalette() {
   const router = useRouter();
   const pathname = usePathname();
 
-  const index = useMemo(buildIndex, []);
+  // Staff-only tiles (Fundraiser) are findable by roster staff alone.
+  const isStaff = useIsStaff();
+  const index = useMemo(() => buildIndex(isStaff), [isStaff]);
 
   const results = useMemo(() => {
     const searching = query.trim().length > 0;

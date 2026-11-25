@@ -1,5 +1,6 @@
 "use client";
 
+import { usePaneUrl } from "@/app/lib/tileUrl";
 import { useEscapeToClose } from "@tgv/module-component-library/components/hooks/useEscapeToClose";
 import { useState, useEffect } from "react";
 import styled from "styled-components";
@@ -152,6 +153,7 @@ export default function ClaudeMenuModal({
 }) {
   useModalLifecycle();
   const [sub, setSub] = useState<SubModal>(() => toolFromDetail(initialTool));
+  usePaneUrl("Claude", sub);
   const [fullscreen, setFullscreen] = useState(false);
 
   useEscapeToClose({

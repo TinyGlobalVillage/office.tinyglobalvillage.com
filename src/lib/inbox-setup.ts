@@ -29,11 +29,14 @@ import {
   registerAuthAdapter,
   registerProviderResolver,
   registerThemeAdapter,
+  registerDavResolver,
   type ResolvedAccount,
 } from "@tgv/module-inbox";
 import { enumerateAccounts } from "@tgv/module-inbox/fastmail/client";
 import { requireAuth, requirePersonalAccess } from "@/lib/api-auth";
-import { tokenForUser } from "@/lib/fastmail-token";
+import { memberIdFor } from "@/lib/inbox/caller";
+import { resolveInboxAccount, resolveInboxAccounts } from "@/lib/inbox/store";
+import { tokenForUser, appPasswordForUser } from "@/lib/fastmail-token";
 import { colors, rgb } from "@/app/theme";
 
 let registered = false;
@@ -61,24 +64,52 @@ export function setupInbox(): void {
     requirePersonalAccess,
   });
 
+  // Accounts come from two places: the mailboxes this staff member connected themselves
+  // (inbox_accounts, shared with their tinyglobalvillage.com dashboard — any provider), and
+  // the legacy FASTMAIL_TOKEN_<USER> env token, kept as a fallback so the original staff
+  // inboxes keep working. A mailbox present in both is listed once, from the database.
+  const envAccounts = async (username: string): Promise<ResolvedAccount[]> => {
+    const token = tokenForUser(username);
+    if (!token) return [];
+    try {
+      return (await enumerateAccounts(token)).map((a) => toResolvedAccount(a.key, a.email, token));
+    } catch {
+      return [];
+    }
+  };
+  const ownAccounts = async (username: string): Promise<ResolvedAccount[]> => {
+    try {
+      const memberId = await memberIdFor(username);
+      return memberId ? await resolveInboxAccounts(memberId) : [];
+    } catch {
+      return [];
+    }
+  };
+
   registerProviderResolver({
     listAccountsForUser: async (username) => {
-      const token = tokenForUser(username);
-      if (!token) return [];
-      const accounts = await enumerateAccounts(token);
-      return accounts.map((a) => toResolvedAccount(a.key, a.email, token));
+      const [own, env] = await Promise.all([ownAccounts(username), envAccounts(username)]);
+      const seen = new Set(own.map((a) => a.accountId));
+      return [...own, ...env.filter((a) => !seen.has(a.accountId))];
     },
     resolve: async (username, accountKey) => {
-      const token = tokenForUser(username);
-      if (!token) return null;
-      const accounts = await enumerateAccounts(token);
-      const match = accounts.find((a) => a.key === accountKey);
-      if (!match) return null;
-      return toResolvedAccount(match.key, match.email, token);
+      try {
+        const memberId = await memberIdFor(username);
+        const own = memberId ? await resolveInboxAccount(memberId, accountKey) : null;
+        if (own) return own;
+      } catch { /* fall through to the env token */ }
+      return (await envAccounts(username)).find((a) => a.accountId === accountKey) ?? null;
     },
   });
 
   registerThemeAdapter({ colors, rgb });
+
+  // Calendar (CalDAV), Notes (IMAP) and Files (WebDAV) need a Fastmail app password —
+  // the JMAP token doesn't cover them. The DAV/IMAP username is the Fastmail login address.
+  registerDavResolver((username, loginEmail, service) => {
+    const password = appPasswordForUser(username, service);
+    return password ? { user: loginEmail, password } : null;
+  });
 }
 
 setupInbox();

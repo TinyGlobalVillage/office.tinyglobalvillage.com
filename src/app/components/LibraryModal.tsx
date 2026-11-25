@@ -1,5 +1,6 @@
 "use client";
 
+import { usePaneUrl } from "@/app/lib/tileUrl";
 import { useEscapeToClose } from "@tgv/module-component-library/components/hooks/useEscapeToClose";
 import { useState } from "react";
 import styled from "styled-components";
@@ -160,6 +161,7 @@ export default function LibraryModal({
   const [playbooksOpen, setPlaybooksOpen] = useState(initialChild === "playbooks");
   const [utilsLibraryOpen, setUtilsLibraryOpen] = useState(initialChild === "utils");
   const [glossaryOpen, setGlossaryOpen] = useState(initialChild === "glossary");
+  usePaneUrl("Library", skillsOpen ? "skills" : playbooksOpen ? "playbooks" : utilsLibraryOpen ? "utils" : glossaryOpen ? "glossary" : null);
   // A search result names a shelf; open it with the Library, not after it.
 
   useEscapeToClose({ open: true, onClose });

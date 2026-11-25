@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect } from "react";
+
 /**
  * The address bar as a description of what you are looking at.
  *
@@ -72,4 +74,18 @@ export function clearTileUrl(only?: string): void {
   if (!tile) return;
   if (only && tile.toLowerCase() !== only.toLowerCase()) return;
   window.history.pushState({}, "", tileUrlFor(null));
+}
+
+/**
+ * A modal's inner pane follows the address bar (Gio 2026-11-22: every pane shareable by link).
+ * Call it with the surface's tile key and a view string its `initial…` prop understands;
+ * moving between panes replaces the entry, so Back still closes the modal in one step.
+ */
+export function usePaneUrl(tile: string, view: string | null | undefined, enabled = true): void {
+  useEffect(() => {
+    if (!enabled || typeof window === "undefined") return;
+    const cur = currentTile();
+    if ((cur.tile ?? "").toLowerCase() === tile.toLowerCase() && (cur.view ?? null) === (view ?? null)) return;
+    replaceTileUrl(tile, view ?? null);
+  }, [tile, view, enabled]);
 }

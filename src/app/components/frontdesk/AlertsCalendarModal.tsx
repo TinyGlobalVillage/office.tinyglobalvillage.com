@@ -20,9 +20,12 @@
  * context.
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import styled from "styled-components";
+import { WeekNumCell as WeekNumCellBase, WeekNumHead as WeekNumHeadBase, withWeekCol } from "@tgv/module-component-library/components/calendar/WeekNumber";
+import { isoWeekOfRow } from "@tgv/module-component-library/helpers/utils";
+import { useWeekNumbers } from "@tgv/module-component-library/helpers/weekNumbersPref";
 import NeonSelect, { inkWhite } from "./NeonSelect";
 import { colors, rgb } from "../../theme";
 import { CloseBtn, ModalBackdrop } from "../../styled";
@@ -279,9 +282,9 @@ const MonthLabel = styled.div`
   margin-bottom: 0.45rem;
 `;
 
-const WeekHead = styled.div`
+const WeekHead = styled.div<{ $wk: boolean }>`
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: ${(p) => withWeekCol(p.$wk)};
   gap: 2px;
   margin-bottom: 2px;
   span {
@@ -292,9 +295,9 @@ const WeekHead = styled.div`
   }
 `;
 
-const DayGrid = styled.div`
+const DayGrid = styled.div<{ $wk: boolean }>`
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: ${(p) => withWeekCol(p.$wk)};
   gap: 2px;
 `;
 
@@ -535,6 +538,16 @@ const MiniTime = styled.input`
 `;
 
 const WEEKDAYS = ["S", "M", "T", "W", "T", "F", "S"];
+
+/** Week-number column in Office's own faint ink (same as the weekday letters). */
+const WeekNumCell = styled(WeekNumCellBase)`color: var(--t-textFaint);`;
+const WeekNumHead = styled(WeekNumHeadBase)`color: var(--t-textFaint); font-size: 0.5625rem;`;
+
+/** ISO week number of the Sunday-first row holding y-m-d (its Monday decides). */
+function rowWeek(y: number, m: number, d: number): number {
+  const date = new Date(y, m, d);
+  return isoWeekOfRow(new Date(y, m, d - date.getDay()));
+}
 const MONTH_NAMES = [
   "January", "February", "March", "April", "May", "June",
   "July", "August", "September", "October", "November", "December",
@@ -640,6 +653,7 @@ function MiniDatePicker({ value, onChange }: { value: string; onChange: (v: stri
   const time = parsed ? `${pad(parsed.hh)}:${pad(parsed.mm)}` : "09:00";
   const todayIso = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
 
+  const { show: weekNums } = useWeekNumbers();
   const daysInMonth = new Date(view.y, view.m + 1, 0).getDate();
   const firstDow = new Date(view.y, view.m, 1).getDay();
   const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
@@ -682,22 +696,25 @@ function MiniDatePicker({ value, onChange }: { value: string; onChange: (v: stri
               <MiniLabel>{MONTH_NAMES[view.m]} {view.y}</MiniLabel>
               <MiniNav type="button" onClick={() => shiftMonth(1)}>›</MiniNav>
             </MiniHead>
-            <WeekHead>{WEEKDAYS.map((d, i) => <span key={i}>{d}</span>)}</WeekHead>
-            <DayGrid>
+            <WeekHead $wk={weekNums}>{weekNums ? <WeekNumHead>W</WeekNumHead> : null}{WEEKDAYS.map((d, i) => <span key={i}>{d}</span>)}</WeekHead>
+            <DayGrid $wk={weekNums}>
               {days.map((d, idx) => {
                 const iso = `${view.y}-${pad(view.m + 1)}-${pad(d)}`;
                 const selected = !!parsed && parsed.y === view.y && parsed.m === view.m && parsed.d === d;
+                const rowStart = idx === 0 || (firstDow + idx) % 7 === 0;
                 return (
+                  <Fragment key={d}>
+                  {weekNums && rowStart ? <WeekNumCell>{rowWeek(view.y, view.m, d)}</WeekNumCell> : null}
                   <MiniDay
-                    key={d}
                     type="button"
                     $selected={selected}
                     $today={iso === todayIso}
-                    style={idx === 0 ? { gridColumnStart: firstDow + 1 } : undefined}
+                    style={idx === 0 ? { gridColumnStart: firstDow + (weekNums ? 2 : 1) } : undefined}
                     onClick={() => pickDay(d)}
                   >
                     {d}
                   </MiniDay>
+                  </Fragment>
                 );
               })}
             </DayGrid>
@@ -791,6 +808,7 @@ type Props = {
 };
 
 export default function AlertsCalendarModal({ open, onClose, startInCreate = false, viewAlert = null }: Props) {
+  const { show: weekNums } = useWeekNumbers();
   const [alerts, setAlerts] = useState<PersonalAlert[]>([]);
   const [staff, setStaff] = useState<StaffMember[]>([]);
   const [kind, setKind] = useState<ViewKind>("calendar");
@@ -1178,15 +1196,17 @@ export default function AlertsCalendarModal({ open, onClose, startInCreate = fal
                   return (
                     <MonthCard key={`${month.year}-${month.monthIndex}`}>
                       <MonthLabel>{month.label}</MonthLabel>
-                      <WeekHead>{WEEKDAYS.map((d, i) => <span key={i}>{d}</span>)}</WeekHead>
-                      <DayGrid>
+                      <WeekHead $wk={weekNums}>{weekNums ? <WeekNumHead>W</WeekNumHead> : null}{WEEKDAYS.map((d, i) => <span key={i}>{d}</span>)}</WeekHead>
+                      <DayGrid $wk={weekNums}>
                         {monthCells.map((cell, idx) => {
                           const items = byDay[cell.iso] ?? [];
                           const hasRcs = items.some((e) => e.source.source !== "manual");
+                          const rowStart = idx === 0 || (firstDow + idx) % 7 === 0;
                           return (
+                            <Fragment key={cell.iso}>
+                            {weekNums && rowStart ? <WeekNumCell>{rowWeek(month.year, month.monthIndex, cell.dayNumber)}</WeekNumCell> : null}
                             <DayCell
-                              key={cell.iso}
-                              style={idx === 0 ? { gridColumnStart: firstDow + 1 } : undefined}
+                              style={idx === 0 ? { gridColumnStart: firstDow + (weekNums ? 2 : 1) } : undefined}
                               title={items.length ? `${items.length} alert${items.length > 1 ? "s" : ""}` : undefined}
                               onClick={() => setSelectedIso(cell.iso === selectedIso ? null : cell.iso)}
                             >
@@ -1195,6 +1215,7 @@ export default function AlertsCalendarModal({ open, onClose, startInCreate = fal
                               </DayNum>
                               {items.length > 1 && <CountBadge $rcs={hasRcs}>{items.length}</CountBadge>}
                             </DayCell>
+                            </Fragment>
                           );
                         })}
                       </DayGrid>
