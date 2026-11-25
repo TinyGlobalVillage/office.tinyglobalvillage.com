@@ -105,7 +105,12 @@ export default function CockpitModal({ onClose, initialPanel = "deck", onPanelCh
         at: f.at, cpu: f.cpuPct, ram: f.ram.pct, swap: f.swap.pct, rx: f.net.rxMbps, tx: f.net.txMbps,
         rd: f.io.readMBs, wr: f.io.writeMBs, load: f.runq?.total ?? f.load[0],
       });
-      for (const [k, v] of [["cpu", f.cpuPct], ["ram", f.ram.pct], ["swap", f.swap.pct], ["disk", f.disk.pct], ["load", f.runq?.total ?? f.load[0]]] as const) {
+      for (const [k, v] of [
+        ["cpu", f.cpuPct], ["ram", f.ram.pct], ["swap", f.swap.pct], ["disk", f.disk.pct], ["load", f.runq?.total ?? f.load[0]],
+        ["prodPsi", f.psiMemSome], ["wsPsi", f.psiWorkshopSome], ["wsMem", f.slice ? f.slice.usedMb / 1024 : null],
+        ["wsCpu", f.workshop?.cpuPct ?? null], ["wsSwap", f.workshop?.swapMb != null ? f.workshop.swapMb / 1024 : null],
+      ] as const) {
+        if (v == null) continue;
         peaks.current[k] = Math.max(peaks.current[k] ?? 0, v);
       }
       tick((n) => n + 1);
@@ -228,11 +233,21 @@ export default function CockpitModal({ onClose, initialPanel = "deck", onPanelCh
           <Deck>
             {prefs.groups.gauges && (
               <Card $wide>
-                <CardTitle>Primary gauges</CardTitle>
+                <CardTitle>Server — prod and everything on the box</CardTitle>
                 <Gauges>
-                  <Gauge label="CPU" value={frame.cpuPct} warn={t.warnPct} crit={t.criticalPct} peak={peaks.current.cpu} sub={`${frame.cores.length} threads`} />
-                  <Gauge label="RAM" value={frame.ram.pct} warn={t.warnPct} crit={t.criticalPct} peak={peaks.current.ram} sub={`${(frame.ram.usedMb / 1024).toFixed(1)} / ${(frame.ram.totalMb / 1024).toFixed(0)} GB`} />
-                  <Gauge label="Swap" value={frame.swap.pct} warn={t.warnPct} crit={t.criticalPct} peak={peaks.current.swap} sub={`${(frame.swap.usedMb / 1024).toFixed(1)} / ${(frame.swap.totalMb / 1024).toFixed(0)} GB`} />
+                  <Gauge label="CPU" value={frame.cpuPct} warn={t.warnPct} crit={t.criticalPct} peak={peaks.current.cpu}
+                    sub={frame.workshop?.cpuPct != null ? `workshop ${frame.workshop.cpuPct.toFixed(0)}% of it` : `${frame.cores.length} threads`} />
+                  <Gauge label="RAM" value={frame.ram.pct} warn={t.warnPct} crit={t.criticalPct} peak={peaks.current.ram}
+                    sub={frame.workshop?.memMb != null
+                      ? `${(frame.ram.usedMb / 1024).toFixed(1)} / ${(frame.ram.totalMb / 1024).toFixed(0)} GB · workshop ${(frame.workshop.memMb / 1024).toFixed(1)}`
+                      : `${(frame.ram.usedMb / 1024).toFixed(1)} / ${(frame.ram.totalMb / 1024).toFixed(0)} GB`} />
+                  <Gauge label="Swap" value={frame.swap.pct} warn={t.warnPct} crit={t.criticalPct} peak={peaks.current.swap}
+                    sub={frame.workshop?.swapMb != null
+                      ? `${(frame.swap.usedMb / 1024).toFixed(1)} / ${(frame.swap.totalMb / 1024).toFixed(0)} GB · workshop ${(frame.workshop.swapMb / 1024).toFixed(1)}`
+                      : `${(frame.swap.usedMb / 1024).toFixed(1)} / ${(frame.swap.totalMb / 1024).toFixed(0)} GB`} />
+                  {frame.psiMemSome !== null && (
+                    <Gauge label="Prod pressure" value={frame.psiMemSome} warn={5} crit={20} peak={peaks.current.prodPsi} sub="prod tasks waiting on RAM" />
+                  )}
                   <Gauge label="Disk /" value={frame.disk.pct} warn={t.warnPct} crit={t.criticalPct} peak={peaks.current.disk} sub={`${frame.disk.usedGb.toFixed(0)} / ${frame.disk.totalGb.toFixed(0)} GB`} />
                   {/* Measured load (scheduler accounting), not the kernel's sampled estimate — see lib/cockpit/live.ts runq. */}
                   {frame.runq ? (
@@ -241,17 +256,6 @@ export default function CockpitModal({ onClose, initialPanel = "deck", onPanelCh
                   ) : (
                     <Gauge label="Load" value={frame.load[0]} max={cores * 1.5} unit="" warn={cores * 0.75} crit={cores} peak={peaks.current.load} sub="kernel estimate" />
                   )}
-                  {frame.slice && (
-                    <Gauge
-                      label="Workshop"
-                      value={frame.slice.usedMb / 1024}
-                      max={(frame.slice.maxMb ?? 40960) / 1024}
-                      unit="G"
-                      warn={frame.slice.triggerMb / 1024}
-                      crit={(frame.slice.highMb ?? frame.slice.maxMb ?? 40960) / 1024}
-                      sub={`pool governor ${frame.slice.enabled ? "on" : "off"}`}
-                    />
-                  )}
                 </Gauges>
                 {frame.runq && (
                   <LoadNote>
@@ -259,6 +263,34 @@ export default function CockpitModal({ onClose, initialPanel = "deck", onPanelCh
                     The system&rsquo;s own &ldquo;load average&rdquo; ({frame.load.map((l) => l.toFixed(1)).join(" · ")}) is a 5-second snapshot estimate and reads high on this box.
                   </LoadNote>
                 )}
+              </Card>
+            )}
+            {prefs.groups.gauges && frame.slice && (
+              <Card $wide>
+                <CardTitle>Workshop — lanes, builds and dev servers (capped slice)</CardTitle>
+                <Gauges>
+                  <Gauge
+                    label="Memory"
+                    value={frame.slice.usedMb / 1024}
+                    max={(frame.slice.maxMb ?? 40960) / 1024}
+                    unit="G"
+                    warn={frame.slice.triggerMb / 1024}
+                    crit={(frame.slice.highMb ?? frame.slice.maxMb ?? 40960) / 1024}
+                    peak={peaks.current.wsMem}
+                    sub={`cap ${((frame.slice.maxMb ?? 0) / 1024).toFixed(0)} GB · governor ${frame.slice.enabled ? "on" : "off"}`}
+                  />
+                  {frame.psiWorkshopSome !== null && (
+                    <Gauge label="Pressure" value={frame.psiWorkshopSome} warn={5} crit={20} peak={peaks.current.wsPsi} sub="lane tasks waiting on RAM" />
+                  )}
+                  {frame.workshop?.cpuPct != null && (
+                    <Gauge label="CPU" value={frame.workshop.cpuPct} warn={t.warnPct} crit={t.criticalPct} peak={peaks.current.wsCpu} sub="share of all threads" />
+                  )}
+                  {frame.workshop?.swapMb != null && frame.workshop.swapMaxMb != null && (
+                    <Gauge label="Swap" value={frame.workshop.swapMb / 1024} max={frame.workshop.swapMaxMb / 1024} unit="G"
+                      warn={(frame.workshop.swapMaxMb / 1024) * 0.7} crit={(frame.workshop.swapMaxMb / 1024) * 0.9} peak={peaks.current.wsSwap}
+                      sub={`cap ${(frame.workshop.swapMaxMb / 1024).toFixed(0)} GB`} />
+                  )}
+                </Gauges>
               </Card>
             )}
             {prefs.groups.engine && (
@@ -277,7 +309,7 @@ export default function CockpitModal({ onClose, initialPanel = "deck", onPanelCh
                     <Readout><RLabel>Net out</RLabel><RVal>{frame.net.txMbps.toFixed(1)} Mb/s</RVal></Readout>
                     <Readout><RLabel>Disk read</RLabel><RVal>{frame.io.readMBs.toFixed(1)} MB/s</RVal></Readout>
                     <Readout><RLabel>Disk write</RLabel><RVal>{frame.io.writeMBs.toFixed(1)} MB/s</RVal></Readout>
-                    {frame.psiMemSome !== null && <Readout><RLabel>Mem pressure</RLabel><RVal $hot={frame.psiMemSome >= 5}>{frame.psiMemSome.toFixed(1)}%</RVal></Readout>}
+                    {frame.psiMemSome !== null && <Readout><RLabel>Prod pressure</RLabel><RVal $hot={frame.psiMemSome >= 5}>{frame.psiMemSome.toFixed(1)}%</RVal></Readout>}
                   </Readouts>
                 </EngineRow>
               </Card>

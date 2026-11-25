@@ -16,6 +16,7 @@ import os from "node:os";
 import { promisify } from "node:util";
 import { hostName, readConfig } from "@/lib/host-metrics/config";
 import { healthStatus } from "@/lib/host-metrics/health";
+import { prodMemPsi, workshopMemPsi, workshopUsage } from "@/lib/host-metrics/psi";
 import { readStatus as readGov } from "@/lib/rcs-gov/state";
 import { readStatus as readWorkshopDb } from "@/lib/workshop-db/state";
 import { readReleases } from "@/lib/workshop-deploy";
@@ -50,7 +51,10 @@ export type LiveFrame = {
   ram: { totalMb: number; usedMb: number; pct: number };
   swap: { totalMb: number; usedMb: number; pct: number };
   disk: { totalGb: number; usedGb: number; pct: number };
-  psiMemSome: number | null; // /proc/pressure/memory some avg10
+  psiMemSome: number | null; // prod (system.slice) memory PSI some avg10
+  psiWorkshopSome: number | null; // workshop slice memory PSI some avg10
+  /** The workshop slice on its own (lanes, builds, dev servers), so the deck can show it apart from the server. */
+  workshop: { cpuPct: number | null; memMb: number | null; swapMb: number | null; swapMaxMb: number | null } | null;
   temps: { cpuC: number | null; disks: Array<{ name: string; c: number }> };
   net: { iface: string | null; rxMbps: number; txMbps: number };
   io: { readMBs: number; writeMBs: number };
@@ -60,7 +64,7 @@ export type LiveFrame = {
   lights: Light[];
 };
 
-type Prev = { at: number; cpu: number[][]; net: { rx: number; tx: number } | null; io: { r: number; w: number } | null };
+type Prev = { at: number; wsCpuUsec: number | null; cpu: number[][]; net: { rx: number; tx: number } | null; io: { r: number; w: number } | null };
 let prev: Prev | null = null;
 
 // Cumulative scheduler time (ns): tasks' time on a CPU, and time spent runnable but waiting for one.
@@ -190,7 +194,7 @@ async function lights(frame: Omit<LiveFrame, "lights">): Promise<Light[]> {
   out.push({ id: "cpu", label: "CPU", level: band(frame.cpuPct), detail: `${frame.cpuPct.toFixed(0)}% busy across ${frame.cores.length} threads`, panel: "deck" });
   out.push({ id: "ram", label: "RAM", level: band(frame.ram.pct), detail: `${(frame.ram.usedMb / 1024).toFixed(1)} of ${(frame.ram.totalMb / 1024).toFixed(0)} GB in use`, panel: "deck" });
   if (frame.psiMemSome !== null) {
-    out.push({ id: "pressure", label: "MEM PRESSURE", level: frame.psiMemSome >= 20 ? "critical" : frame.psiMemSome >= 5 ? "warn" : "ok", detail: `PSI some avg10 ${frame.psiMemSome.toFixed(1)}%`, panel: "deck" });
+    out.push({ id: "pressure", label: "MEM PRESSURE", level: frame.psiMemSome >= 20 ? "critical" : frame.psiMemSome >= 5 ? "warn" : "ok", detail: `prod stalled ${frame.psiMemSome.toFixed(1)}% (PSI avg10)`, panel: "deck" });
   }
   if (frame.temps.cpuC !== null) {
     out.push({ id: "temp", label: "CPU TEMP", level: frame.temps.cpuC >= 90 ? "critical" : frame.temps.cpuC >= 80 ? "warn" : "ok", detail: `${frame.temps.cpuC} °C`, panel: "deck" });
@@ -210,8 +214,8 @@ async function lights(frame: Omit<LiveFrame, "lights">): Promise<Light[]> {
     const s = gov.status;
     out.push({
       id: "pool", label: "DEV POOL",
-      level: gov.stale ? "warn" : s?.over ? "warn" : "ok",
-      detail: gov.stale ? "governor daemon not reporting" : s?.slice ? `workshop ${(s.slice.usedMb / 1024).toFixed(1)} GB of ${((s.slice.maxMb ?? 0) / 1024).toFixed(0)} GB${s.over ? " — over the trigger" : ""}` : "no reading",
+      level: gov.stale ? "warn" : s?.over || (frame.psiWorkshopSome ?? 0) >= 20 ? "warn" : "ok",
+      detail: gov.stale ? "governor daemon not reporting" : s?.slice ? `workshop ${(s.slice.usedMb / 1024).toFixed(1)} GB of ${((s.slice.maxMb ?? 0) / 1024).toFixed(0)} GB${s.over ? " — over the trigger" : ""}${frame.psiWorkshopSome !== null && frame.psiWorkshopSome >= 5 ? ` · lanes stalled ${frame.psiWorkshopSome.toFixed(0)}%` : ""}` : "no reading",
       panel: "rcs-gov",
     });
   }
@@ -256,7 +260,12 @@ export async function liveFrame(): Promise<LiveFrame> {
   const txMbps = p && net && p.net && secs > 0 ? ((net.tx - p.net.tx) * 8) / secs / 1e6 : 0;
   const readMBs = p && p.io && secs > 0 ? ((io.r - p.io.r) * 512) / secs / 1e6 : 0;
   const writeMBs = p && p.io && secs > 0 ? ((io.w - p.io.w) * 512) / secs / 1e6 : 0;
-  prev = { at: now, cpu, net, io };
+  const ws = workshopUsage();
+  // Share of the whole box's CPU (all threads) the workshop used since the last frame.
+  const wsCpuPct = p && p.wsCpuUsec !== null && ws.cpuUsec !== null && secs > 0
+    ? Math.max(0, Math.min(100, ((ws.cpuUsec - p.wsCpuUsec) / 1e6 / secs / Math.max(1, cpu.length - 1)) * 100))
+    : null;
+  prev = { at: now, wsCpuUsec: ws.cpuUsec, cpu, net, io };
 
   const { ram, swap } = meminfo();
   let disk = { totalGb: 0, usedGb: 0, pct: 0 };
@@ -265,7 +274,8 @@ export async function liveFrame(): Promise<LiveFrame> {
     const total = Number(s.blocks) * Number(s.bsize), free = Number(s.bavail) * Number(s.bsize);
     disk = { totalGb: total / 1e9, usedGb: (total - free) / 1e9, pct: total ? ((total - free) / total) * 100 : 0 };
   } catch { /* not available */ }
-  const psi = read("/proc/pressure/memory").match(/^some avg10=([\d.]+)/m);
+  const psi = prodMemPsi();
+  const wpsi = workshopMemPsi();
   const cfg = readConfig();
   const gov = readGov();
   const sl = gov.status?.slice;
@@ -278,7 +288,9 @@ export async function liveFrame(): Promise<LiveFrame> {
     load: os.loadavg() as [number, number, number],
     runq: measuredLoad(now),
     ram, swap, disk,
-    psiMemSome: psi ? Number(psi[1]) : null,
+    psiMemSome: psi ? psi.some10 : null,
+    psiWorkshopSome: wpsi ? wpsi.some10 : null,
+    workshop: ws.memMb === null ? null : { cpuPct: wsCpuPct, memMb: ws.memMb, swapMb: ws.swapMb, swapMaxMb: ws.swapMaxMb },
     temps: temps(),
     net: { iface, rxMbps: Math.max(0, rxMbps), txMbps: Math.max(0, txMbps) },
     io: { readMBs: Math.max(0, readMBs), writeMBs: Math.max(0, writeMBs) },

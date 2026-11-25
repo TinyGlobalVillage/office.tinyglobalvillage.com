@@ -40,6 +40,7 @@ import {
 import { maintenanceOwnsReboot } from "../rcs-maintenance/maintenance";
 import { parseMdstat, type DiskHealthFile, type StorageReading } from "./storage-policy";
 import { hostMetricsState } from "./state";
+import { prodMemPsi } from "./psi";
 import { emailHealthAlert } from "./email";
 
 const DIR = path.join(process.cwd(), "data", "host-metrics");
@@ -193,19 +194,8 @@ function readStorage(): StorageReading {
 
 /** One reading of everything the checks look at. Never throws. */
 function memPressure(): { some60: number; full60: number } | null {
-  try {
-    const text = readFileSync("/proc/pressure/memory", "utf8");
-    const grab = (k: string) => {
-      const m = text.match(new RegExp(`^${k} .*?avg60=([\\d.]+)`, "m"));
-      return m ? Number(m[1]) : null;
-    };
-    const some60 = grab("some");
-    const full60 = grab("full");
-    if (some60 === null || full60 === null) return null;
-    return { some60, full60 };
-  } catch {
-    return null;
-  }
+  const p = prodMemPsi();
+  return p ? { some60: p.some60, full60: p.full60 } : null;
 }
 
 export async function readHealth(at: number = Date.now()): Promise<HealthReading> {
