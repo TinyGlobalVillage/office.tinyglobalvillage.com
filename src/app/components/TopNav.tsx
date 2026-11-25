@@ -52,6 +52,15 @@ const PickRow = styled.button<{ $on: boolean }>`
   &:hover { background: rgba(${rgb.pink}, 0.08); }
   &:focus-visible { outline: 2px solid ${colors.pink}; outline-offset: -2px; }
 `;
+const SiteLink = styled.a`
+  display: block; padding: 0.4rem 1rem; font-size: 0.85rem; text-decoration: none;
+  color: var(--t-text, #e8e8f0);
+  &:hover { background: rgba(${rgb.pink}, 0.08); color: ${colors.pink}; }
+  &:focus-visible { outline: 2px solid ${colors.pink}; outline-offset: -2px; }
+`;
+const MenuRule = styled.div`
+  height: 1px; margin: 0.35rem 0.75rem; background: rgba(${rgb.pink}, 0.18);
+`;
 const PickBox = styled.span<{ $on: boolean }>`
   flex: none; width: 0.9rem; height: 0.9rem; border-radius: 0.25rem; display: grid; place-items: center;
   font-size: 0.65rem; line-height: 1;
@@ -350,6 +359,13 @@ function TopNavInner() {
   // Which links this user hid from the balloon menu (server-stored per user).
   const [hiddenLinks, setHiddenLinks] = useState<string[]>([]);
   const [pickingLinks, setPickingLinks] = useState(false);
+  // Site switcher: TGV Dashboard + the villager sites this user is connected to.
+  const [mySites, setMySites] = useState<{ id: string; label: string; href: string }[]>([]);
+  useEffect(() => {
+    fetch("/api/users/my-sites").then((r) => (r.ok ? r.json() : null)).then((d) => {
+      if (Array.isArray(d?.sites)) setMySites(d.sites);
+    }).catch(() => {});
+  }, []);
   useEffect(() => {
     fetch("/api/users/nav-menu").then((r) => (r.ok ? r.json() : null)).then((d) => {
       if (Array.isArray(d?.hidden)) setHiddenLinks(d.hidden);
@@ -405,8 +421,17 @@ function TopNavInner() {
         hideToggle={false}
         menuHeader={
           <>
+            {mySites.length > 0 && (
+              <>
+                <MenuHead><span>Sites</span></MenuHead>
+                {mySites.map((st) => (
+                  <SiteLink key={st.id} href={st.href} role="menuitem">{st.label}</SiteLink>
+                ))}
+                <MenuRule />
+              </>
+            )}
             <MenuHead>
-              <span>{pickingLinks ? "Pick your links" : "Menu"}</span>
+              <span>{pickingLinks ? "Pick your links" : "Office"}</span>
               <IconButton
                 label={pickingLinks ? "Done picking" : "Pick menu links"}
                 pressed={pickingLinks}
