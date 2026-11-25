@@ -13,6 +13,8 @@ export const DRAWER_TAB_EDGES = {
 export type DrawerTabId = (typeof DRAWER_TAB_EDGES)[keyof typeof DRAWER_TAB_EDGES][number];
 
 const MIN_GAP = 190;
+const TOP = 40;
+const BOTTOM = 180;
 
 export function defaultDrawerTabY(id: DrawerTabId, fallback = 400): number {
   if (typeof window === "undefined") return fallback;
@@ -22,9 +24,11 @@ export function defaultDrawerTabY(id: DrawerTabId, fallback = 400): number {
     : DRAWER_TAB_EDGES.right;
   const n = stack.length;
   const i = stack.indexOf(id);
-  // MIN_GAP, but never wider than the window allows: on a short window (the desktop app's Office
-  // view) clamping each tab separately piled the bottom ones onto each other.
-  const gap = n > 1 ? Math.min(Math.max(h / (n + 1), MIN_GAP), (h - 140) / (n - 1)) : 0;
-  const y = h / 2 + (i - (n - 1) / 2) * gap;
-  return Math.round(Math.max(40, Math.min(h - 100, y)));
+  // Tabs live between TOP and h − BOTTOM (BOTTOM clears a tab's own height plus the desktop app's
+  // Home pill, fixed 20px off the bottom-left). MIN_GAP apart, but never wider than that band
+  // allows — on a short window (desktop min 640px) clamping each tab alone piled them up.
+  const lo = TOP, hi = h - BOTTOM;
+  const gap = n > 1 ? Math.max(0, Math.min(Math.max(h / (n + 1), MIN_GAP), (hi - lo) / (n - 1))) : 0;
+  const first = Math.max(lo, Math.min(h / 2 - ((n - 1) / 2) * gap, hi - (n - 1) * gap));
+  return Math.round(first + i * gap);
 }
