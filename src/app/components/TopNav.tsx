@@ -48,13 +48,13 @@ const MenuHead = styled.div`
 const PickRow = styled.button<{ $on: boolean }>`
   all: unset; box-sizing: border-box; cursor: pointer; display: flex; align-items: center; gap: 0.6rem;
   width: 100%; padding: 0.4rem 1rem; font-size: 0.85rem;
-  color: ${(p) => (p.$on ? "var(--t-text, #e8e8f0)" : "rgba(160, 160, 180, 0.6)")};
+  color: ${(p) => (p.$on ? "var(--t-text)" : "var(--t-textMuted)")};
   &:hover { background: rgba(${rgb.pink}, 0.08); }
   &:focus-visible { outline: 2px solid ${colors.pink}; outline-offset: -2px; }
 `;
 const SiteLink = styled.a`
   display: block; padding: 0.4rem 1rem; font-size: 0.85rem; text-decoration: none;
-  color: var(--t-text, #e8e8f0);
+  color: var(--t-text);
   &:hover { background: rgba(${rgb.pink}, 0.08); color: ${colors.pink}; }
   &:focus-visible { outline: 2px solid ${colors.pink}; outline-offset: -2px; }
 `;
