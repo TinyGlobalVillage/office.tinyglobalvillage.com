@@ -60,6 +60,7 @@ const GuestClaimsModal = dynamic(() => import("../../components/villagers/GuestC
 const HandshakeModal = dynamic(() => import("../../components/villagers/HandshakeModal"), { ssr: false });
 const StudioConfigModal = dynamic(() => import("../../components/villagers/StudioConfigModal"), { ssr: false });
 const OnboardVillagerModal = dynamic(() => import("../../components/villagers/OnboardVillagerModal"), { ssr: false });
+type OnboardPane = import("../../components/villagers/OnboardVillagerModal").OnboardPane;
 const OnboardConfigModal = dynamic(() => import("../../components/villagers/OnboardConfigModal"), { ssr: false });
 const SiteVersionsModal = dynamic(() => import("../../components/villagers/SiteVersionsModal"), { ssr: false });
 
@@ -489,6 +490,8 @@ export default function VillagersClient() {
   const [openGuestClaims, setOpenGuestClaims] = useState(false);
   const [openHandshake, setOpenHandshake] = useState(false);
   const [openOnboardVillager, setOpenOnboardVillager] = useState(false);
+  // A pane inside Onboard Villager with its own address: ?view=onboardVillager:mailbox.
+  const [onboardPane, setOnboardPane] = useState<OnboardPane | null>(null);
   const [openOnboardConfig, setOpenOnboardConfig] = useState(false);
   const [openSiteVersions, setOpenSiteVersions] = useState(false);
   // Open the TGV Template Studio in a NEW TAB (not an iframe). The tgv.com
@@ -891,15 +894,19 @@ export default function VillagersClient() {
   };
   const openTile = (id: string) => {
     setLinkedTile(id);
+    if (id === "onboardVillager") setOnboardPane(null);
     TILES[id]?.onClick();
   };
+  /** `?view=<tileId>` or `?view=<tileId>:<pane>` — the pane half is only Onboard Villager's so far. */
+  const paneOf = (view: string): OnboardPane | null => (view === "onboardVillager:mailbox" ? "mailbox" : null);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
     const consume = () => {
       const view = new URLSearchParams(window.location.search).get("view");
-      if (view && TILES[view]) { setLinkedTile(view); TILES[view].onClick(); }
-      else { setLinkedTile(null); closeAllConsoles(); }
+      const id = view?.split(":")[0];
+      if (view && id && TILES[id]) { setLinkedTile(view); setOnboardPane(paneOf(view)); TILES[id].onClick(); }
+      else { setLinkedTile(null); setOnboardPane(null); closeAllConsoles(); }
       urlRead.current = true;
     };
     consume();
@@ -1144,7 +1151,13 @@ export default function VillagersClient() {
       {openManaged && <ManagedOnboardingModal onClose={() => setOpenManaged(false)} />}
       {openDiscounts && <DiscountCodesModal onClose={() => setOpenDiscounts(false)} />}
       {openProducts && <ProductsControlModal onClose={() => setOpenProducts(false)} />}
-      {openOnboardVillager && <OnboardVillagerModal onClose={() => setOpenOnboardVillager(false)} />}
+      {openOnboardVillager && (
+        <OnboardVillagerModal
+          onClose={() => { setOpenOnboardVillager(false); setOnboardPane(null); }}
+          pane={onboardPane}
+          onPane={(p) => { setOnboardPane(p); setLinkedTile(p ? `onboardVillager:${p}` : "onboardVillager"); }}
+        />
+      )}
       {openOnboardConfig && <OnboardConfigModal onClose={() => setOpenOnboardConfig(false)} />}
 
       {openCourse && <CourseControlModal onClose={() => setOpenCourse(false)} />}

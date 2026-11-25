@@ -1,4 +1,5 @@
 "use client";
+import { defaultDrawerTabY } from "../lib/drawerTabSlots";
 
 import { useState, useRef, useCallback, useEffect } from "react";
 import dynamic from "next/dynamic";
@@ -37,10 +38,8 @@ const DEFAULT_W = 1080;
 const TAB_STORAGE_KEY = "tgv-drawer-tab-inbox-y";
 const DRAWER_ID = "inbox";
 
-// Alphabetical stack: Alerts=20%, Chats=40%, Inbox=60%, Sessions=80%
 function getDefaultTabY() {
-  if (typeof window === "undefined") return 540;
-  return Math.round(window.innerHeight * 0.6);
+  return defaultDrawerTabY("inbox");
 }
 
 // ── Styled ───────────────────────────────────────────────────────
