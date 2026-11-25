@@ -1,4 +1,5 @@
 "use client";
+import { defaultDrawerTabY } from "../lib/drawerTabSlots";
 
 import { useState, useRef, useCallback, useEffect } from "react";
 import styled from "styled-components";
@@ -55,10 +56,8 @@ const TAB_ROWS: FrontDeskTab[][] = [
   ["alerts", "recordings", "tickets", "voicemails"],
 ];
 
-// Alphabetical stack with Alerts slot (gold, ~20% from top).
 function getDefaultTabY() {
-  if (typeof window === "undefined") return 180;
-  return Math.round(window.innerHeight * 0.2);
+  return defaultDrawerTabY("frontdesk");
 }
 
 // ── Styled ───────────────────────────────────────────────────────

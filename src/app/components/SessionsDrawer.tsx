@@ -1,4 +1,5 @@
 "use client";
+import { defaultDrawerTabY } from "../lib/drawerTabSlots";
 
 import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import styled, { css } from "styled-components";
@@ -60,8 +61,7 @@ const MOBILE_BREAK    = 768;
 const POLL_MS         = 8000;
 
 function getDefaultTabY() {
-  if (typeof window === "undefined") return 720;
-  return Math.round(window.innerHeight * 0.8);
+  return defaultDrawerTabY("sessions");
 }
 
 // Category order + display metadata
