@@ -353,6 +353,9 @@ function TopNavInner() {
   const [pickingLinks, setPickingLinks] = useState(false);
   // Site switcher: TGV Dashboard + the villager sites this user is connected to.
   const [mySites, setMySites] = useState<{ id: string; label: string; href: string; hq?: boolean }[]>([]);
+  // App modes (Village / Backend …) this member may switch into — same rows as tgv.com's balloon.
+  const [appModes, setAppModes] = useState<string[]>([]);
+  const inApp = typeof navigator !== "undefined" && navigator.userAgent.includes("TGVApp/");
   // ★ default site — the same pref the TGV app's Home screen sets (member_app_prefs).
   const [defaultSiteId, setDefaultSiteId] = useState<string | null>(null);
   const setDefaultSite = (siteId: string | null) => {
@@ -375,6 +378,7 @@ function TopNavInner() {
     fetch("/api/users/my-sites").then((r) => (r.ok ? r.json() : null)).then((d) => {
       if (Array.isArray(d?.sites)) setMySites(d.sites);
       setDefaultSiteId(typeof d?.defaultSiteId === "string" ? d.defaultSiteId : null);
+      if (Array.isArray(d?.appModes)) setAppModes(d.appModes);
     }).catch(() => {});
   }, []);
   useEffect(() => {
@@ -411,7 +415,18 @@ function TopNavInner() {
       };
     }),
   ];
+  const HQ = "https://tinyglobalvillage.com";
+  const switchItems = inApp
+    ? [
+        { label: "Home", href: "tgv://home" },
+        ...(appModes.includes("village") ? [{ label: "Village", href: "tgv://mode/village" }] : []),
+        ...(appModes.includes("backend") ? [{ label: "Backend", href: "tgv://mode/backend" }] : []),
+        { label: "Open in new window", href: "tgv://mode/office?new=1" },
+      ]
+    : // On the web Backend is the desktop app's workspace, so it leads to the download page (as on tgv.com).
+      appModes.includes("backend") ? [{ label: "Backend", href: `${HQ}/en/download` }] : [];
   const sections: TgvNavSection[] = [
+    ...(switchItems.length ? [{ key: "switch-app", title: inApp ? "TGV app" : "Switch to", items: switchItems }] : []),
     {
       key: "office-links",
       title: pickingLinks ? "Pick your links" : "Office Links",

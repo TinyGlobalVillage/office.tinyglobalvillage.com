@@ -5,6 +5,21 @@ import { type NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/api-auth";
 import { pgPool } from "@/lib/pg-pool";
 import { resolveAdminActorId } from "@/lib/admin-actor";
+import { db } from "@/lib/db-drizzle";
+import { officeMemberAuth } from "@/lib/member-auth/config";
+import { computeEntitlements } from "@tgv/module-auth/auth/member-auth/appAccess";
+
+/** The TGV app modes this member may switch into (same check as tgv.com /api/app/sites). */
+async function appModes(): Promise<string[]> {
+  try {
+    const s = await officeMemberAuth.getActiveSession();
+    if (!s) return [];
+    const e = await computeEntitlements(db, { id: s.userId, role: s.user.role });
+    return e.modes.filter((m) => m !== "music");
+  } catch {
+    return [];
+  }
+}
 
 export const dynamic = "force-dynamic";
 
@@ -48,11 +63,12 @@ export async function GET(req: NextRequest) {
   const memberId = await resolveAdminActorId(t.username);
   if (!memberId) return NextResponse.json({ sites: [], defaultSiteId: null });
   try {
-    const [sites, pref] = await Promise.all([
+    const [sites, pref, modes] = await Promise.all([
       listSites(memberId, req.nextUrl.host.toLowerCase()),
       pgPool.query<{ default_site_id: string | null }>(`SELECT default_site_id FROM member_app_prefs WHERE member_id = $1`, [memberId]).catch(() => ({ rows: [] })),
+      appModes(),
     ]);
-    return NextResponse.json({ sites, defaultSiteId: pref.rows[0]?.default_site_id ?? null });
+    return NextResponse.json({ sites, defaultSiteId: pref.rows[0]?.default_site_id ?? null, appModes: modes });
   } catch {
     return NextResponse.json({ sites: [], defaultSiteId: null });
   }
