@@ -167,6 +167,12 @@ export default function SignUpModal({ onClose }: { onClose: () => void }) {
               {freeMonth && <li>As the free month runs down they are reminded to subscribe at 15 days, 1 week, 3 days, 24 hours and 1 hour left, by email and in their dashboard. They can stop the emails.</li>}
               <li>The invite works once, for that email, for 30 days.</li>
             </Steps>
+            <FreeRow>
+              <span>
+                <b>In person with no internet?</b> Hand them the app from the TGV desktop app — over local Wi-Fi or Bluetooth.{" "}
+                <Tooltip label="Open Nearby → Share the app"><LinkBtn as="a" href="tgv://share-app">Share the app</LinkBtn></Tooltip>
+              </span>
+            </FreeRow>
             {msg && (
               <Msg $tone={msg.tone} role="status">
                 {msg.text}

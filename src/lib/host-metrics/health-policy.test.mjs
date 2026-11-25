@@ -68,6 +68,16 @@ test("disk: warn under the floor, critical under half of it", () => {
   assert.equal(lvl(null), "ok");
 });
 
+test("memory: PSI decides, full swap with no pressure is ok", () => {
+  const lvl = (extra) => assessHealth(reading(0, [], extra), [], T).find((f) => f.check === "swap").level;
+  assert.equal(lvl({ swapPct: 100, memPressure: { some60: 0, full60: 0 } }), "ok", "stale swap, free RAM");
+  assert.equal(lvl({ swapPct: 100, memPressure: { some60: 3, full60: 0 } }), "warn");
+  assert.equal(lvl({ swapPct: 10, memPressure: { some60: 12, full60: 1 } }), "warn");
+  assert.equal(lvl({ swapPct: 10, memPressure: { some60: 45, full60: 2 } }), "critical");
+  assert.equal(lvl({ swapPct: 10, memPressure: { some60: 20, full60: 11 } }), "critical");
+  assert.equal(lvl({ swapPct: 95, memPressure: null }), "critical", "no PSI → swap % fallback");
+});
+
 test("swap, reboot and the worst-of pill", () => {
   const f = assessHealth(reading(0, [], { swapPct: 55, rebootRequired: true, rebootPkgs: ["linux-image"] }), [], T);
   assert.equal(f.find((x) => x.check === "swap").level, "warn");

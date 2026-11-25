@@ -33,6 +33,12 @@ export type HealthReading = {
   at: number;
   diskFreeGb: number | null;
   swapPct: number | null;
+  /**
+   * Memory pressure from /proc/pressure/memory (PSI), avg60 percentages. `some` = share of
+   * time at least one task stalled waiting for memory; `full` = all non-idle tasks stalled.
+   * Null when unreadable — then swap % alone decides, as before.
+   */
+  memPressure?: { some60: number; full60: number } | null;
   rebootRequired: boolean;
   rebootPkgs: string[];
   uptimeDays: number | null;
@@ -166,10 +172,29 @@ export function assessHealth(reading: HealthReading, rates: AppRate[], t: Health
     });
   }
 
-  if (reading.swapPct === null) {
+  // Swap FULLNESS is not pressure (2026-11-25): pages swapped out once during a build stay there
+  // after RAM frees up, so swap sat at 80–100% with 51 GB of RAM available and nothing stalled,
+  // and this check mailed CRITICAL. The level now comes from PSI — tasks actually waiting on
+  // memory. Swap % is still shown, and decides alone only when PSI can't be read.
+  const psi = reading.memPressure ?? null;
+  if (reading.swapPct === null && psi === null) {
     out.push({ check: "swap", level: "ok", label: "swap —", detail: "Swap usage could not be read." });
-  } else {
+  } else if (psi !== null) {
     const s = reading.swapPct;
+    const swapTxt = s === null ? "" : ` Swap ${fmt(s)}% used.`;
+    const level: HealthLevel =
+      psi.full60 >= 10 || psi.some60 >= 40 ? "critical" : psi.some60 >= 10 || (s !== null && s >= t.swapWarnPct && psi.some60 >= 2) ? "warn" : "ok";
+    out.push({
+      check: "swap",
+      level,
+      label: level === "ok" ? `memory ok${s === null ? "" : ` · swap ${fmt(s)}%`}` : `memory pressure ${fmt(psi.some60)}%`,
+      detail:
+        level === "ok"
+          ? `No memory pressure (tasks stalled ${fmt(psi.some60, 1)}% of the last minute).${swapTxt} Swap holding old pages while RAM is free is normal.`
+          : `Tasks stalled waiting for memory ${fmt(psi.some60, 1)}% of the last minute (all tasks ${fmt(psi.full60, 1)}%).${swapTxt} RAM is oversubscribed; builds and apps are running from disk.`,
+    });
+  } else {
+    const s = reading.swapPct as number;
     const level: HealthLevel = s >= Math.min(100, t.swapWarnPct + 40) ? "critical" : s >= t.swapWarnPct ? "warn" : "ok";
     out.push({
       check: "swap",
