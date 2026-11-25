@@ -388,6 +388,35 @@ export function readPromoteRequest(client: string): PromoteRequest | null {
   } catch { return null; }
 }
 
+const REQUEST_SCRIPT = `${ROOT}/utils/scripts/build-pipeline/deploy-request.sh`;
+
+/**
+ * File a durable "deploy" for each client (deploy-request.sh file) wanting origin/main as it is
+ * now — deploy-watch stages main and promotes it, even after the asker has gone. Joins an open
+ * request rather than duplicating it. Returns what was filed per client.
+ */
+export async function filePromoteRequests(
+  clients: string[], by: string,
+): Promise<{ mono: string; filed: Array<{ client: string; ok: boolean; error?: string }> }> {
+  const { execFile } = await import("node:child_process");
+  const run = (cmd: string, args: string[]) => new Promise<string>((res, rej) =>
+    execFile(cmd, args, { timeout: 30_000, env: { ...process.env, REFUSION_ROOT: ROOT } },
+      (e, out, err) => (e ? rej(new Error((err || e.message).trim().split("\n").pop())) : res(out))));
+  const mono = (await run("git", ["-C", ROOT, "ls-remote", "origin", "refs/heads/main"])).split(/\s/)[0];
+  if (!SHA_RE.test(mono)) throw new Error("could not read origin/main");
+  const filed: Array<{ client: string; ok: boolean; error?: string }> = [];
+  for (const c of clients) {
+    if (!SITE_RE.test(c)) { filed.push({ client: c, ok: false, error: "invalid client" }); continue; }
+    try {
+      await run("bash", [REQUEST_SCRIPT, "file", c, "--by", `office:${safeBy(by)}`, "--mono", mono, "--host", "office"]);
+      filed.push({ client: c, ok: true });
+    } catch (e) {
+      filed.push({ client: c, ok: false, error: e instanceof Error ? e.message : String(e) });
+    }
+  }
+  return { mono, filed };
+}
+
 /** Request history, newest first (the jsonl deploy-request.sh appends every final state to). */
 export function readPromoteRequestHistory(limit = 50): PromoteRequest[] {
   try {
