@@ -158,7 +158,10 @@ export default function CockpitModal({ onClose, initialPanel = "deck", onPanelCh
     else if (prefs.tapeSort === "name") a.sort((x, y) => x.name.localeCompare(y.name));
     return a;
   }, [frame, prefs.tapeSort]);
-  const tapeScale = Math.max(512, ...apps.map((a) => a.memMb));
+  // One real-MB scale for every tape: the biggest cap any app carries (or its usage, if larger), rounded up to a
+  // whole GB — so a tape's height is honest across apps and each pink line sits where pm2 would recycle that app.
+  const tapeScale = Math.ceil(Math.max(1024, ...apps.flatMap((a) => [a.memMb, a.capMb ?? 0, a.heapMb ?? 0])) / 1024) * 1024;
+  const appsMb = apps.reduce((s, a) => s + a.memMb, 0);
 
   return (
     <Overlay role="dialog" aria-label="Cockpit" data-tgv-modal="1">
@@ -347,10 +350,10 @@ export default function CockpitModal({ onClose, initialPanel = "deck", onPanelCh
             )}
             {prefs.groups.tapes && (
               <Card $wide>
-                <CardTitle>Fuel tapes — pm2 apps ({apps.length}) · scale {(tapeScale / 1024).toFixed(1)} GB</CardTitle>
+                <CardTitle>Fuel tapes — pm2 apps ({apps.length}) · {(appsMb / 1024).toFixed(1)} GB of {frame ? (frame.ram.totalMb / 1024).toFixed(0) : "?"} GB RAM · scale 0–{tapeScale / 1024} GB · pink = restart cap</CardTitle>
                 <TapesRow>
                   {apps.map((a) => (
-                    <TapeMeter key={a.name} name={a.name} valueMb={a.memMb} scaleMb={tapeScale} status={a.status} restarts={a.restarts} cpu={a.cpu} />
+                    <TapeMeter key={a.name} name={a.name} valueMb={a.memMb} scaleMb={tapeScale} status={a.status} restarts={a.restarts} cpu={a.cpu} capMb={a.capMb} heapMb={a.heapMb} cron={a.cron} />
                   ))}
                   {apps.length === 0 && <Faint>pm2 not visible from this process.</Faint>}
                 </TapesRow>

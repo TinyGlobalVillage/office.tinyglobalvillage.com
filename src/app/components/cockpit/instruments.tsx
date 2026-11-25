@@ -113,26 +113,43 @@ const CoreNum = styled.div`font-size: 0.55rem; color: var(--t-textGhost); font-v
 
 /* ── TapeMeter ───────────────────────────────────────────────────── */
 
-export function TapeMeter({ name, valueMb, scaleMb, status, restarts, cpu }: {
+/** One app's memory on the deck's shared scale (scaleMb — the biggest cap any app carries, in real MB), so tapes
+ *  compare honestly. Pink line = pm2's restart cap (the app is recycled past it); faint pink = V8's heap ceiling.
+ *  Colour is judged against the app's own cap; an app with no cap only warms past uncappedWarnMb. A scheduled job
+ *  that is stopped between runs is "off", not a fault. */
+export function TapeMeter({ name, valueMb, scaleMb, status, restarts, cpu, capMb, heapMb, cron, uncappedWarnMb = 2048 }: {
   name: string; valueMb: number; scaleMb: number; status: string; restarts: number; cpu: number;
+  capMb?: number | null; heapMb?: number | null; cron?: boolean; uncappedWarnMb?: number;
 }) {
-  const pct = scaleMb > 0 ? Math.min(100, (valueMb / scaleMb) * 100) : 0;
-  const level: Level = status === "online" ? (pct >= 90 ? "critical" : pct >= 70 ? "warn" : "ok") : status === "stopped" ? "off" : "critical";
+  const pos = (mb: number) => (scaleMb > 0 ? Math.min(100, (mb / scaleMb) * 100) : 0);
+  const pct = pos(valueMb);
+  const ofCap = capMb ? (valueMb / capMb) * 100 : null;
+  const resting = status === "stopped" && cron;
+  const level: Level = status === "online"
+    ? ofCap !== null ? (ofCap >= 90 ? "critical" : ofCap >= 70 ? "warn" : "ok") : valueMb >= uncappedWarnMb ? "warn" : "ok"
+    : status === "stopped" ? "off" : "critical";
+  const fmt = (mb: number) => (mb >= 1024 ? `${(mb / 1024).toFixed(1)}G` : `${mb}M`);
+  const short = name.replace(/\.tinyglobalvillage\.com$/, "").replace(/\.com$/, "");
   return (
-    <Tooltip label={`${name.replace(/\.tinyglobalvillage\.com$/, "").slice(0, 16)} ${status}`.slice(0, 25)}>
+    <Tooltip label={(resting ? `${short.slice(0, 18)} cron` : capMb ? `${short.slice(0, 13)} cap ${fmt(capMb)}` : `${short.slice(0, 16)} no cap`).slice(0, 25)}>
       <Tape>
-        <TapeVal>{valueMb >= 1024 ? `${(valueMb / 1024).toFixed(1)}G` : `${valueMb}M`}</TapeVal>
-        <TapeTrack><TapeFill style={{ height: `${Math.max(2, pct)}%`, background: LEVEL_COLOR[level] }} /></TapeTrack>
-        <TapeName>{name.replace(/\.tinyglobalvillage\.com$/, "").replace(/\.com$/, "")}</TapeName>
-        <TapeMeta $hot={restarts > 0 && status !== "online"}>{cpu.toFixed(0)}% · ↻{restarts > 999 ? `${Math.round(restarts / 1000)}k` : restarts}</TapeMeta>
+        <TapeVal>{fmt(valueMb)}</TapeVal>
+        <TapeTrack>
+          <TapeFill style={{ height: `${pct > 0 ? Math.max(2, pct) : 0}%`, background: LEVEL_COLOR[level] }} />
+          {heapMb && heapMb !== capMb && <TapeMark $faint style={{ bottom: `${pos(heapMb)}%` }} />}
+          {capMb && <TapeMark style={{ bottom: `${pos(capMb)}%` }} />}
+        </TapeTrack>
+        <TapeName>{short}</TapeName>
+        <TapeMeta $hot={restarts > 0 && status !== "online" && !resting}>{resting ? "cron · idle" : `${cpu.toFixed(0)}% · ↻${restarts > 999 ? `${Math.round(restarts / 1000)}k` : restarts}`}</TapeMeta>
       </Tape>
     </Tooltip>
   );
 }
+const TapeMark = styled.div<{ $faint?: boolean }>`position: absolute; left: -3px; right: -3px; height: 2px; background: ${colors.pink}; opacity: ${(p) => (p.$faint ? 0.45 : 1)}; transform: translateY(1px);`;
 const Tape = styled.div`display: flex; flex-direction: column; align-items: center; gap: 3px; width: 4.2rem;`;
 const TapeVal = styled.div`font-size: 0.68rem; font-weight: 700; color: var(--t-text); font-variant-numeric: tabular-nums;`;
-const TapeTrack = styled.div`height: 6.5rem; width: 1.1rem; border-radius: 4px; background: var(--t-border); display: flex; align-items: flex-end; overflow: hidden;`;
-const TapeFill = styled.div`width: 100%; transition: height 0.6s ease;`;
+const TapeTrack = styled.div`position: relative; height: 6.5rem; width: 1.1rem; border-radius: 4px; background: var(--t-border); display: flex; align-items: flex-end;`;
+const TapeFill = styled.div`width: 100%; border-radius: 4px; transition: height 0.6s ease;`;
 const TapeName = styled.div`font-size: 0.6rem; color: var(--t-textMuted); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center;`;
 const TapeMeta = styled.div<{ $hot: boolean }>`font-size: 0.55rem; color: ${(p) => (p.$hot ? colors.red : "var(--t-textGhost)")}; font-variant-numeric: tabular-nums;`;
 
