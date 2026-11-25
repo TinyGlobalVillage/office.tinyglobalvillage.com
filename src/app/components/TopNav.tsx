@@ -7,7 +7,7 @@
 // LDM, sign-out, and the ProfileModal. Layout, the balloon menu, and the
 // "Hide Menu"/"Show Menu" tab are the library's.
 
-import { useState, useEffect, useRef, Suspense } from "react";
+import { useState, useEffect, useRef, Suspense, type CSSProperties } from "react";
 import { useSearchParams } from "next/navigation";
 import styled from "styled-components";
 import TgvNav, {
@@ -24,7 +24,6 @@ import { colors, rgb } from "@/app/theme";
 import { MembersIcon, SettingsIcon } from "./icons";
 import IconButton from "@tgv/module-component-library/components/ui/IconButton";
 import SBDM from "@tgv/module-component-library/components/ui/SBDM";
-import AddmToggle from "@tgv/module-component-library/components/ui/AddmToggle";
 import Tooltip from "./ui/Tooltip";
 import { OFFICE_TILES, dispatchTileAction, tileHref } from "./dashboardTiles";
 import { useIsStaff } from "../lib/useIsStaff";
@@ -49,22 +48,11 @@ const PickRow = styled.button<{ $on: boolean }>`
   &:focus-visible { outline: 2px solid ${colors.pink}; outline-offset: -2px; }
 `;
 const SitesRow = styled.div`
-  padding: 0.6rem 0.75rem 0.35rem;
+  padding: 0.3rem 0.375rem 0.2rem;
   /* Match the dashboard bar's switcher trigger: menu-button shape, full width. */
   & > * { width: 100%; }
   & button[aria-haspopup="listbox"] { width: 100%; height: 2rem; padding-top: 0; padding-bottom: 0; border-radius: 0.5rem; }
 `;
-const LinksHead = styled.div<{ $open: boolean }>`
-  display: flex; align-items: center; gap: 0.4rem; cursor: pointer; user-select: none;
-  margin: 0.35rem 0.75rem 0.25rem; padding: 0.3rem 0.5rem 0.3rem 0.6rem; border-radius: 0.45rem;
-  font-size: 0.68rem; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase;
-  color: rgba(${rgb.pink}, ${(p) => (p.$open ? 1 : 0.65)});
-  background: rgba(${rgb.pink}, ${(p) => (p.$open ? 0.1 : 0.03)});
-  border: 1px solid rgba(${rgb.pink}, ${(p) => (p.$open ? 0.5 : 0.2)});
-  &:hover { background: rgba(${rgb.pink}, 0.12); }
-  &:focus-visible { outline: 2px solid ${colors.pink}; outline-offset: 2px; }
-`;
-const LinksSpacer = styled.span`flex: 1;`;
 const PickBox = styled.span<{ $on: boolean }>`
   flex: none; width: 0.9rem; height: 0.9rem; border-radius: 0.25rem; display: grid; place-items: center;
   font-size: 0.65rem; line-height: 1;
@@ -365,6 +353,15 @@ function TopNavInner() {
   const [pickingLinks, setPickingLinks] = useState(false);
   // Site switcher: TGV Dashboard + the villager sites this user is connected to.
   const [mySites, setMySites] = useState<{ id: string; label: string; href: string; hq?: boolean }[]>([]);
+  // ★ default site — the same pref the TGV app's Home screen sets (member_app_prefs).
+  const [defaultSiteId, setDefaultSiteId] = useState<string | null>(null);
+  const setDefaultSite = (siteId: string | null) => {
+    const prev = defaultSiteId;
+    setDefaultSiteId(siteId);
+    fetch("/api/users/my-sites", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ defaultSiteId: siteId }) })
+      .then((r) => { if (!r.ok) setDefaultSiteId(prev); })
+      .catch(() => setDefaultSiteId(prev));
+  };
   // Office Links accordion (+/−), remembered per browser.
   const [linksOpen, setLinksOpen] = useState(true);
   useEffect(() => {
@@ -377,6 +374,7 @@ function TopNavInner() {
   useEffect(() => {
     fetch("/api/users/my-sites").then((r) => (r.ok ? r.json() : null)).then((d) => {
       if (Array.isArray(d?.sites)) setMySites(d.sites);
+      setDefaultSiteId(typeof d?.defaultSiteId === "string" ? d.defaultSiteId : null);
     }).catch(() => {});
   }, []);
   useEffect(() => {
@@ -399,23 +397,49 @@ function TopNavInner() {
   ];
   // Menu content: the Dashboard link, then every office tool straight from
   // the tile registry — drawers/modals dispatch their window events, pages navigate.
+  // Every Office link lives INSIDE its tile: one "Office Links" ADDM (gear = pick links, +/− = fold).
+  const officeLinkItems = [
+    ...navLinks.filter((l) => !hiddenLinks.includes(l.label)).map((l) => ({ label: l.label, href: l.href })),
+    // Staff-only tools (Fundraiser) are listed for roster staff alone.
+    ...menuTools.filter((t) => (!t.staffOnly || isStaff) && !hiddenLinks.includes(t.key)).map((t) => {
+      const href = tileHref(t.action);
+      return {
+        label: t.menuLabel ?? t.title,
+        href,
+        accent: colors[t.glow],
+        onSelect: href ? undefined : () => dispatchTileAction(t.action),
+      };
+    }),
+  ];
   const sections: TgvNavSection[] = [
     {
-      key: "nav",
-      items: pickingLinks || !linksOpen ? [] : navLinks.filter((l) => !hiddenLinks.includes(l.label)).map((l) => ({ label: l.label, href: l.href })),
-    },
-    {
-      key: "tools",
-      // Staff-only tools (Fundraiser) are listed for roster staff alone.
-      items: pickingLinks || !linksOpen ? [] : menuTools.filter((t) => (!t.staffOnly || isStaff) && !hiddenLinks.includes(t.key)).map((t) => {
-        const href = tileHref(t.action);
-        return {
-          label: t.menuLabel ?? t.title,
-          href,
-          accent: colors[t.glow],
-          onSelect: href ? undefined : () => dispatchTileAction(t.action),
-        };
-      }),
+      key: "office-links",
+      title: pickingLinks ? "Pick your links" : "Office Links",
+      items: pickingLinks ? [] : officeLinkItems,
+      addm: {
+        open: linksOpen,
+        onToggle: toggleLinksOpen,
+        actions: (
+          <IconButton
+            label={pickingLinks ? "Done picking" : "Pick menu links"}
+            pressed={pickingLinks}
+            onClick={() => { setPickingLinks((p) => !p); if (!linksOpen) toggleLinksOpen(); }}
+          >
+            <SettingsIcon size={12} />
+          </IconButton>
+        ),
+        extra: pickingLinks
+          ? allLinks.map((l) => {
+              const on = !hiddenLinks.includes(l.key);
+              return (
+                <PickRow key={l.key} type="button" role="menuitemcheckbox" aria-checked={on} $on={on} onClick={() => toggleLink(l.key)}>
+                  <PickBox $on={on}>{on ? "✓" : ""}</PickBox>
+                  {l.label}
+                </PickRow>
+              );
+            })
+          : undefined,
+      },
     },
   ];
 
@@ -437,7 +461,7 @@ function TopNavInner() {
             {/* Sites — the same searchable switcher the TGV dashboard bar uses (SBDM). Office
                 itself isn't listed: you're already here. Gio 2026-11-25. */}
             {mySites.length > 0 && (
-              <SitesRow>
+              <SitesRow style={{ "--ddm-accent": colors.pink, "--ddm-accent-rgb": rgb.pink } as CSSProperties}>
                 <SBDM
                   items={mySites.map((st) => ({ key: st.id, label: st.label, group: st.hq ? "TGV" : "Your sites" }))}
                   onSelect={(key) => {
@@ -449,39 +473,10 @@ function TopNavInner() {
                   ariaLabel="Switch to a site's dashboard"
                   searchPlaceholder="Search dashboards…"
                   align="left"
+                  star={{ value: defaultSiteId, onChange: setDefaultSite, caption: "★ opens at sign-in · none = ask each time" }}
                 />
               </SitesRow>
             )}
-            <LinksHead
-              role="button"
-              tabIndex={0}
-              aria-expanded={linksOpen}
-              $open={linksOpen}
-              onClick={toggleLinksOpen}
-              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleLinksOpen(); } }}
-            >
-              <span>{pickingLinks ? "Pick your links" : "Office Links"}</span>
-              <span onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
-                <IconButton
-                  label={pickingLinks ? "Done picking" : "Pick menu links"}
-                  pressed={pickingLinks}
-                  onClick={() => { setPickingLinks((p) => !p); if (!linksOpen) toggleLinksOpen(); }}
-                >
-                  <SettingsIcon size={12} />
-                </IconButton>
-              </span>
-              <LinksSpacer />
-              <AddmToggle open={linksOpen} size={14} />
-            </LinksHead>
-            {pickingLinks && linksOpen && allLinks.map((l) => {
-              const on = !hiddenLinks.includes(l.key);
-              return (
-                <PickRow key={l.key} type="button" role="menuitemcheckbox" aria-checked={on} $on={on} onClick={() => toggleLink(l.key)}>
-                  <PickBox $on={on}>{on ? "✓" : ""}</PickBox>
-                  {l.label}
-                </PickRow>
-              );
-            })}
           </>
         }
         leftSlot={
