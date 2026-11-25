@@ -9,7 +9,7 @@ import "server-only";
 import type { NextRequest } from "next/server";
 import { Client } from "pg";
 import { createTenantIM, giphySearch } from "@tgv/module-tim/server";
-import { livekitEnv, mintToken } from "@tgv/module-video-calls/server/livekit";
+import { livekitEnv, mintToken, roomHeadcount } from "@tgv/module-video-calls/server/livekit";
 import { requireAuth } from "@/lib/api-auth";
 import { rosterEmailForUsername } from "@/lib/member-auth/bridge";
 import { getUser } from "@/lib/users";
@@ -32,12 +32,15 @@ const mintCallGrant = lk
       return { token: g.token, url: g.url, e2eeKey: g.e2eeKey };
     }
   : undefined;
+// A call whose room is empty is over even if nobody pressed End (store.closeAbandonedCall).
+const callRoomCount = lk ? (room: string) => roomHeadcount(lk, room) : undefined;
 const files = { root: process.env.IM_FILES_ROOT ?? "/srv/refusion-core/cdn-private/im" };
 
 export const im = createTenantIM({
   db,
   surface: "office",
   mintCallGrant,
+  callRoomCount,
   gifSearch: process.env.GIPHY_API_KEY ? giphySearch(process.env.GIPHY_API_KEY) : undefined,
   files,
   auth: async (req) => {
