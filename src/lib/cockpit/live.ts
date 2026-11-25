@@ -33,7 +33,9 @@ export type Light = {
 };
 export type CockpitPanel = "deck" | "box-usage" | "rcs-gov" | "pipeline" | "workshop-db" | "migration-snapshots" | "rcs-maintenance";
 
-export type Pm2App = { name: string; status: string; memMb: number; cpu: number; restarts: number; uptimeMs: number | null };
+/** capMb = pm2's max_memory_restart (pm2 restarts the app past it); heapMb = node --max-old-space-size (V8's heap
+ *  ceiling, from NODE_OPTIONS or node_args). Either is null when the app runs without one. */
+export type Pm2App = { name: string; status: string; memMb: number; cpu: number; restarts: number; uptimeMs: number | null; capMb: number | null; heapMb: number | null; cron: boolean };
 
 export type LiveFrame = {
   at: number;
@@ -54,7 +56,7 @@ export type LiveFrame = {
   psiMemSome: number | null; // prod (system.slice) memory PSI some avg10
   psiWorkshopSome: number | null; // workshop slice memory PSI some avg10
   /** The workshop slice on its own (lanes, builds, dev servers), so the deck can show it apart from the server. */
-  workshop: { cpuPct: number | null; memMb: number | null; swapMb: number | null; swapMaxMb: number | null } | null;
+  workshop: { cpuPct: number | null; cpuCapPct: number | null; memMb: number | null; swapMb: number | null; swapMaxMb: number | null } | null;
   temps: { cpuC: number | null; disks: Array<{ name: string; c: number }> };
   net: { iface: string | null; rxMbps: number; txMbps: number };
   io: { readMBs: number; writeMBs: number };
@@ -168,8 +170,15 @@ async function pm2Apps(): Promise<Pm2App[]> {
   try {
     const { stdout } = await execFileP("pm2", ["jlist"], { timeout: 10_000, maxBuffer: 16 * 1024 * 1024, env: { ...process.env, PM2_SILENT: "true" } });
     const rows = JSON.parse(stdout.slice(Math.max(0, stdout.indexOf("[")))) as Array<{
-      name?: string; monit?: { memory?: number; cpu?: number }; pm2_env?: { status?: string; restart_time?: number; pm_uptime?: number };
+      name?: string; monit?: { memory?: number; cpu?: number };
+      pm2_env?: { status?: string; restart_time?: number; pm_uptime?: number; max_memory_restart?: number | string; cron_restart?: string; autorestart?: boolean; node_args?: string[] | string; env?: Record<string, unknown> };
     }>;
+    const heapOf = (e: NonNullable<(typeof rows)[number]["pm2_env"]>) => {
+      const args = [String(e.env?.NODE_OPTIONS ?? ""), ...(Array.isArray(e.node_args) ? e.node_args : [String(e.node_args ?? "")])].join(" ");
+      const m = args.match(/--max-old-space-size=(\d+)/);
+      return m ? Number(m[1]) : null;
+    };
+    const capOf = (v: unknown) => { const n = Number(v); return Number.isFinite(n) && n > 0 ? Math.round(n / 1048576) : null; };
     const apps = rows.filter((r) => r.name).map((r) => ({
       name: r.name as string,
       status: r.pm2_env?.status ?? "unknown",
@@ -177,6 +186,9 @@ async function pm2Apps(): Promise<Pm2App[]> {
       cpu: r.monit?.cpu ?? 0,
       restarts: r.pm2_env?.restart_time ?? 0,
       uptimeMs: r.pm2_env?.status === "online" && r.pm2_env.pm_uptime ? Date.now() - r.pm2_env.pm_uptime : null,
+      capMb: capOf(r.pm2_env?.max_memory_restart),
+      heapMb: r.pm2_env ? heapOf(r.pm2_env) : null,
+      cron: Boolean(r.pm2_env?.cron_restart) && r.pm2_env?.autorestart === false,
     })).sort((a, b) => b.memMb - a.memMb);
     pm2Cache = { at: Date.now(), apps };
     return apps;
@@ -290,7 +302,11 @@ export async function liveFrame(): Promise<LiveFrame> {
     ram, swap, disk,
     psiMemSome: psi ? psi.some10 : null,
     psiWorkshopSome: wpsi ? wpsi.some10 : null,
-    workshop: ws.memMb === null ? null : { cpuPct: wsCpuPct, memMb: ws.memMb, swapMb: ws.swapMb, swapMaxMb: ws.swapMaxMb },
+    workshop: ws.memMb === null ? null : {
+      cpuPct: wsCpuPct,
+      cpuCapPct: ws.cpuMaxThreads === null ? null : Math.min(100, (ws.cpuMaxThreads / Math.max(1, cpu.length - 1)) * 100),
+      memMb: ws.memMb, swapMb: ws.swapMb, swapMaxMb: ws.swapMaxMb,
+    },
     temps: temps(),
     net: { iface, rxMbps: Math.max(0, rxMbps), txMbps: Math.max(0, txMbps) },
     io: { readMBs: Math.max(0, readMBs), writeMBs: Math.max(0, writeMBs) },

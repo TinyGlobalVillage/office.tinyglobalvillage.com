@@ -3,7 +3,7 @@
 // instruments"). Pure SVG + styled-components, no chart library — same stance as the analytics
 // charts. Every colour comes from the theme; amber/red bands come from the viewer's thresholds.
 //
-//   Gauge       dial with amber/red arcs, a needle and a peak tick
+//   Gauge       dial with amber/red arcs, a needle, a peak tick, pink cap lines and a share arc
 //   CoreStrip   one bar per CPU thread
 //   TapeMeter   vertical "fuel" tape (pm2 app memory) with a restart counter
 //   StripChart  live trend line over the last N frames
@@ -32,7 +32,10 @@ const arc = (cx: number, cy: number, r: number, from: number, to: number) => {
 };
 const degOf = (v: number, max: number) => -SWEEP / 2 + (Math.max(0, Math.min(max, v)) / max) * SWEEP;
 
-export function Gauge({ label, value, max = 100, unit = "%", warn, crit, peak, sub, size = 150 }: {
+/** A hard limit on the dial (a cgroup cap, the governor trigger, …), drawn as a pink line across the arc. */
+export type GaugeMark = { value: number; label: string };
+
+export function Gauge({ label, value, max = 100, unit = "%", warn, crit, peak, sub, size = 150, marks, share }: {
   label: string;
   value: number;
   max?: number;
@@ -42,6 +45,10 @@ export function Gauge({ label, value, max = 100, unit = "%", warn, crit, peak, s
   peak?: number | null;
   sub?: string;
   size?: number;
+  /** Caps, in the dial's own units. Pink, so the needle can be seen never crossing them. */
+  marks?: GaugeMark[];
+  /** Part of `value` that belongs to one consumer (the workshop), drawn as an inner cyan arc. Labels go in `sub`. */
+  share?: { value: number; label: string } | null;
 }) {
   const c = 60, r = 48;
   const level = levelFor(value, warn, crit);
@@ -54,11 +61,21 @@ export function Gauge({ label, value, max = 100, unit = "%", warn, crit, peak, s
         <path d={arc(c, c, r, degOf(warn, max), degOf(crit, max))} stroke={colors.gold} strokeOpacity={0.55} strokeWidth={7} fill="none" />
         <path d={arc(c, c, r, degOf(crit, max), SWEEP / 2)} stroke={colors.red} strokeOpacity={0.6} strokeWidth={7} fill="none" strokeLinecap="round" />
         <path d={arc(c, c, r, -SWEEP / 2, Math.max(-SWEEP / 2 + 0.5, needle))} stroke={LEVEL_COLOR[level]} strokeWidth={3} fill="none" strokeLinecap="round" />
+        {share && share.value > 0 && (
+          <path d={arc(c, c, r - 9, -SWEEP / 2, Math.max(-SWEEP / 2 + 0.5, degOf(share.value, max)))} stroke={colors.cyan} strokeOpacity={0.8} strokeWidth={3} fill="none" strokeLinecap="round" />
+        )}
         {peak != null && (() => {
-          const [px1, py1] = polar(c, c, r - 6, degOf(peak, max));
-          const [px2, py2] = polar(c, c, r + 6, degOf(peak, max));
-          return <line x1={px1} y1={py1} x2={px2} y2={py2} stroke={colors.pink} strokeWidth={2} />;
+          const [px1, py1] = polar(c, c, r - 4, degOf(peak, max));
+          const [px2, py2] = polar(c, c, r + 4, degOf(peak, max));
+          return <line x1={px1} y1={py1} x2={px2} y2={py2} stroke="var(--t-textMuted)" strokeWidth={1.5} />;
         })()}
+        {(marks ?? []).filter((m) => m.value > 0 && m.value <= max).map((m) => {
+          const [mx1, my1] = polar(c, c, r - 12, degOf(m.value, max));
+          const [mx2, my2] = polar(c, c, r + 8, degOf(m.value, max));
+          return (
+            <line key={m.label} x1={mx1} y1={my1} x2={mx2} y2={my2} stroke={colors.pink} strokeWidth={2.5} strokeLinecap="round" />
+          );
+        })}
         <line x1={c} y1={c} x2={nx} y2={ny} stroke={LEVEL_COLOR[level]} strokeWidth={2.5} strokeLinecap="round" style={{ transition: "all 0.6s ease" }} />
         <circle cx={c} cy={c} r={4} fill={LEVEL_COLOR[level]} />
         <text x={c} y={c + 26} textAnchor="middle" fontSize={15} fontWeight={700} fill="var(--t-text)">{value.toFixed(value < 10 && max <= 32 ? 1 : 0)}{unit}</text>
@@ -96,26 +113,43 @@ const CoreNum = styled.div`font-size: 0.55rem; color: var(--t-textGhost); font-v
 
 /* ── TapeMeter ───────────────────────────────────────────────────── */
 
-export function TapeMeter({ name, valueMb, scaleMb, status, restarts, cpu }: {
+/** One app's memory on the deck's shared scale (scaleMb — the biggest cap any app carries, in real MB), so tapes
+ *  compare honestly. Pink line = pm2's restart cap (the app is recycled past it); faint pink = V8's heap ceiling.
+ *  Colour is judged against the app's own cap; an app with no cap only warms past uncappedWarnMb. A scheduled job
+ *  that is stopped between runs is "off", not a fault. */
+export function TapeMeter({ name, valueMb, scaleMb, status, restarts, cpu, capMb, heapMb, cron, uncappedWarnMb = 2048 }: {
   name: string; valueMb: number; scaleMb: number; status: string; restarts: number; cpu: number;
+  capMb?: number | null; heapMb?: number | null; cron?: boolean; uncappedWarnMb?: number;
 }) {
-  const pct = scaleMb > 0 ? Math.min(100, (valueMb / scaleMb) * 100) : 0;
-  const level: Level = status === "online" ? (pct >= 90 ? "critical" : pct >= 70 ? "warn" : "ok") : status === "stopped" ? "off" : "critical";
+  const pos = (mb: number) => (scaleMb > 0 ? Math.min(100, (mb / scaleMb) * 100) : 0);
+  const pct = pos(valueMb);
+  const ofCap = capMb ? (valueMb / capMb) * 100 : null;
+  const resting = status === "stopped" && cron;
+  const level: Level = status === "online"
+    ? ofCap !== null ? (ofCap >= 90 ? "critical" : ofCap >= 70 ? "warn" : "ok") : valueMb >= uncappedWarnMb ? "warn" : "ok"
+    : status === "stopped" ? "off" : "critical";
+  const fmt = (mb: number) => (mb >= 1024 ? `${(mb / 1024).toFixed(1)}G` : `${mb}M`);
+  const short = name.replace(/\.tinyglobalvillage\.com$/, "").replace(/\.com$/, "");
   return (
-    <Tooltip label={`${name.replace(/\.tinyglobalvillage\.com$/, "").slice(0, 16)} ${status}`.slice(0, 25)}>
+    <Tooltip label={(resting ? `${short.slice(0, 18)} cron` : capMb ? `${short.slice(0, 13)} cap ${fmt(capMb)}` : `${short.slice(0, 16)} no cap`).slice(0, 25)}>
       <Tape>
-        <TapeVal>{valueMb >= 1024 ? `${(valueMb / 1024).toFixed(1)}G` : `${valueMb}M`}</TapeVal>
-        <TapeTrack><TapeFill style={{ height: `${Math.max(2, pct)}%`, background: LEVEL_COLOR[level] }} /></TapeTrack>
-        <TapeName>{name.replace(/\.tinyglobalvillage\.com$/, "").replace(/\.com$/, "")}</TapeName>
-        <TapeMeta $hot={restarts > 0 && status !== "online"}>{cpu.toFixed(0)}% · ↻{restarts > 999 ? `${Math.round(restarts / 1000)}k` : restarts}</TapeMeta>
+        <TapeVal>{fmt(valueMb)}</TapeVal>
+        <TapeTrack>
+          <TapeFill style={{ height: `${pct > 0 ? Math.max(2, pct) : 0}%`, background: LEVEL_COLOR[level] }} />
+          {heapMb && heapMb !== capMb && <TapeMark $faint style={{ bottom: `${pos(heapMb)}%` }} />}
+          {capMb && <TapeMark style={{ bottom: `${pos(capMb)}%` }} />}
+        </TapeTrack>
+        <TapeName>{short}</TapeName>
+        <TapeMeta $hot={restarts > 0 && status !== "online" && !resting}>{resting ? "cron · idle" : `${cpu.toFixed(0)}% · ↻${restarts > 999 ? `${Math.round(restarts / 1000)}k` : restarts}`}</TapeMeta>
       </Tape>
     </Tooltip>
   );
 }
+const TapeMark = styled.div<{ $faint?: boolean }>`position: absolute; left: -3px; right: -3px; height: 2px; background: ${colors.pink}; opacity: ${(p) => (p.$faint ? 0.45 : 1)}; transform: translateY(1px);`;
 const Tape = styled.div`display: flex; flex-direction: column; align-items: center; gap: 3px; width: 4.2rem;`;
 const TapeVal = styled.div`font-size: 0.68rem; font-weight: 700; color: var(--t-text); font-variant-numeric: tabular-nums;`;
-const TapeTrack = styled.div`height: 6.5rem; width: 1.1rem; border-radius: 4px; background: var(--t-border); display: flex; align-items: flex-end; overflow: hidden;`;
-const TapeFill = styled.div`width: 100%; transition: height 0.6s ease;`;
+const TapeTrack = styled.div`position: relative; height: 6.5rem; width: 1.1rem; border-radius: 4px; background: var(--t-border); display: flex; align-items: flex-end;`;
+const TapeFill = styled.div`width: 100%; border-radius: 4px; transition: height 0.6s ease;`;
 const TapeName = styled.div`font-size: 0.6rem; color: var(--t-textMuted); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center;`;
 const TapeMeta = styled.div<{ $hot: boolean }>`font-size: 0.55rem; color: ${(p) => (p.$hot ? colors.red : "var(--t-textGhost)")}; font-variant-numeric: tabular-nums;`;
 

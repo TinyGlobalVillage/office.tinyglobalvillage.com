@@ -37,9 +37,14 @@ export function workshopMemPsi(): Psi | null {
 }
 
 /** Workshop slice's own usage: memory, swap and cumulative CPU time. Null fields when unreadable. */
-export function workshopUsage(): { memMb: number | null; swapMb: number | null; swapMaxMb: number | null; cpuUsec: number | null } {
+export function workshopUsage(): { memMb: number | null; swapMb: number | null; swapMaxMb: number | null; cpuUsec: number | null; cpuMaxThreads: number | null } {
   const rd = (f: string) => { try { return readFileSync(`${CG}/${WORKSHOP_CGROUP}/${f}`, "utf8").trim(); } catch { return null; } };
   const mb = (v: string | null) => (v === null || v === "max" || !/^\d+$/.test(v) ? null : Number(v) / 1048576);
   const cpu = rd("cpu.stat")?.match(/^usage_usec (\d+)/m);
-  return { memMb: mb(rd("memory.current")), swapMb: mb(rd("memory.swap.current")), swapMaxMb: mb(rd("memory.swap.max")), cpuUsec: cpu ? Number(cpu[1]) : null };
+  // cpu.max = "<quota> <period>" (or "max <period>"): quota/period = how many threads' worth it may use.
+  const q = rd("cpu.max")?.match(/^(\d+) (\d+)$/);
+  return {
+    memMb: mb(rd("memory.current")), swapMb: mb(rd("memory.swap.current")), swapMaxMb: mb(rd("memory.swap.max")),
+    cpuUsec: cpu ? Number(cpu[1]) : null, cpuMaxThreads: q ? Number(q[1]) / Number(q[2]) : null,
+  };
 }
