@@ -1,4 +1,5 @@
 "use client";
+import { defaultDrawerTabY } from "../lib/drawerTabSlots";
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { usePathname } from "next/navigation";
@@ -231,12 +232,11 @@ const ActionBtn = styled.button`
 
 // ── Constants ────────────────────────────────────────────────────
 
-const TAB_STORAGE_KEY = "tgv-drawer-tab-legend-y";
+const TAB_STORAGE_KEY = "tgv-drawer-tab-legend-y.v2";
 const DRAWER_ID = "legend";
 
 function getDefaultTabY() {
-  if (typeof window === "undefined") return 400;
-  return Math.round(window.innerHeight * 0.5);
+  return defaultDrawerTabY("legend");
 }
 
 // ── Component ────────────────────────────────────────────────────
@@ -244,7 +244,7 @@ function getDefaultTabY() {
 export default function LegendDrawer() {
   const [open, setOpen] = useState(false);
   const [tabY, setTabY] = useState<number>(400);
-  const [anchor, setAnchor] = useDrawerPersistedState<"left" | "right">(DRAWER_ID, "anchor", "right");
+  const [anchor, setAnchor] = useDrawerPersistedState<"left" | "right">(DRAWER_ID, "anchor", "left");
   const pathname = usePathname();
   const legend = getLegend(pathname ?? "");
   const { hideKnob } = useKnobVisibility();
