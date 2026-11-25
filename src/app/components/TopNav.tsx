@@ -21,7 +21,8 @@ import { useNavHistory } from "./useNavHistory";
 import { clearAllDrawerState } from "../lib/drawerPersist";
 import LDM from "./LDM";
 import { colors, rgb } from "@/app/theme";
-import { MembersIcon } from "./icons";
+import { MembersIcon, SettingsIcon } from "./icons";
+import IconButton from "@tgv/module-component-library/components/ui/IconButton";
 import Tooltip from "./ui/Tooltip";
 import { OFFICE_TILES, dispatchTileAction, tileHref } from "./dashboardTiles";
 import { useIsStaff } from "../lib/useIsStaff";
@@ -35,6 +36,37 @@ const SignUpBtn = styled.button`
   box-shadow: 0 0 14px rgba(${rgb.cyan}, 0.25); transition: background 0.15s, box-shadow 0.15s;
   &:hover { background: rgba(${rgb.cyan}, 0.22); box-shadow: 0 0 20px rgba(${rgb.cyan}, 0.45); }
   &:focus-visible { outline: 2px solid ${colors.cyan}; outline-offset: 2px; }
+`;
+
+/* Balloon-menu header: the link-picker gear, and the picker itself (Gio 2026-11-25). */
+const MenuHead = styled.div`
+  display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;
+  padding: 0.55rem 0.75rem 0.45rem 1rem;
+  font-size: 0.68rem; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase;
+  color: rgba(${rgb.pink}, 0.75);
+`;
+const PickRow = styled.button<{ $on: boolean }>`
+  all: unset; box-sizing: border-box; cursor: pointer; display: flex; align-items: center; gap: 0.6rem;
+  width: 100%; padding: 0.4rem 1rem; font-size: 0.85rem;
+  color: ${(p) => (p.$on ? "var(--t-text)" : "var(--t-textMuted)")};
+  &:hover { background: rgba(${rgb.pink}, 0.08); }
+  &:focus-visible { outline: 2px solid ${colors.pink}; outline-offset: -2px; }
+`;
+const SiteLink = styled.a`
+  display: block; padding: 0.4rem 1rem; font-size: 0.85rem; text-decoration: none;
+  color: var(--t-text);
+  &:hover { background: rgba(${rgb.pink}, 0.08); color: ${colors.pink}; }
+  &:focus-visible { outline: 2px solid ${colors.pink}; outline-offset: -2px; }
+`;
+const MenuRule = styled.div`
+  height: 1px; margin: 0.35rem 0.75rem; background: rgba(${rgb.pink}, 0.18);
+`;
+const PickBox = styled.span<{ $on: boolean }>`
+  flex: none; width: 0.9rem; height: 0.9rem; border-radius: 0.25rem; display: grid; place-items: center;
+  font-size: 0.65rem; line-height: 1;
+  border: 1px solid rgba(${rgb.pink}, ${(p) => (p.$on ? 0.9 : 0.4)});
+  background: ${(p) => (p.$on ? `rgba(${rgb.pink}, 0.25)` : "transparent")};
+  color: ${colors.pink};
 `;
 
 const ProfileModal = dynamic(() => import("./ProfileModal"), { ssr: false });
@@ -324,17 +356,45 @@ function TopNavInner() {
   };
 
   const isStaff = useIsStaff();
+  // Which links this user hid from the balloon menu (server-stored per user).
+  const [hiddenLinks, setHiddenLinks] = useState<string[]>([]);
+  const [pickingLinks, setPickingLinks] = useState(false);
+  // Site switcher: TGV Dashboard + the villager sites this user is connected to.
+  const [mySites, setMySites] = useState<{ id: string; label: string; href: string }[]>([]);
+  useEffect(() => {
+    fetch("/api/users/my-sites").then((r) => (r.ok ? r.json() : null)).then((d) => {
+      if (Array.isArray(d?.sites)) setMySites(d.sites);
+    }).catch(() => {});
+  }, []);
+  useEffect(() => {
+    fetch("/api/users/nav-menu").then((r) => (r.ok ? r.json() : null)).then((d) => {
+      if (Array.isArray(d?.hidden)) setHiddenLinks(d.hidden);
+    }).catch(() => {});
+  }, []);
+  const toggleLink = (key: string) => {
+    const next = hiddenLinks.includes(key) ? hiddenLinks.filter((k) => k !== key) : [...hiddenLinks, key];
+    setHiddenLinks(next);
+    fetch("/api/users/nav-menu", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ hidden: next }),
+    }).catch(() => {});
+  };
+  const allLinks = [
+    ...navLinks.map((l) => ({ key: l.label, label: l.label })),
+    ...menuTools.filter((t) => !t.staffOnly || isStaff).map((t) => ({ key: t.key, label: t.menuLabel ?? t.title })),
+  ];
   // Menu content: the Dashboard link, then every office tool straight from
   // the tile registry — drawers/modals dispatch their window events, pages navigate.
   const sections: TgvNavSection[] = [
     {
       key: "nav",
-      items: navLinks.map((l) => ({ label: l.label, href: l.href })),
+      items: pickingLinks ? [] : navLinks.filter((l) => !hiddenLinks.includes(l.label)).map((l) => ({ label: l.label, href: l.href })),
     },
     {
       key: "tools",
       // Staff-only tools (Fundraiser) are listed for roster staff alone.
-      items: menuTools.filter((t) => !t.staffOnly || isStaff).map((t) => {
+      items: pickingLinks ? [] : menuTools.filter((t) => (!t.staffOnly || isStaff) && !hiddenLinks.includes(t.key)).map((t) => {
         const href = tileHref(t.action);
         return {
           label: t.menuLabel ?? t.title,
@@ -355,6 +415,42 @@ function TopNavInner() {
         accentRgb={rgb.pink}
         maxWidth="80rem"
         suppress={embedded || popout}
+        // Office draws its own arrows (⌘[ / ⌘]) — the bar's built-in pair made two sets.
+        historyNav={false}
+        // No Hide Menu tab on Office (Gio 2026-11-25).
+        hideToggle={false}
+        menuHeader={
+          <>
+            {mySites.length > 0 && (
+              <>
+                <MenuHead><span>Sites</span></MenuHead>
+                {mySites.map((st) => (
+                  <SiteLink key={st.id} href={st.href} role="menuitem">{st.label}</SiteLink>
+                ))}
+                <MenuRule />
+              </>
+            )}
+            <MenuHead>
+              <span>{pickingLinks ? "Pick your links" : "Office"}</span>
+              <IconButton
+                label={pickingLinks ? "Done picking" : "Pick menu links"}
+                pressed={pickingLinks}
+                onClick={() => setPickingLinks((p) => !p)}
+              >
+                <SettingsIcon size={12} />
+              </IconButton>
+            </MenuHead>
+            {pickingLinks && allLinks.map((l) => {
+              const on = !hiddenLinks.includes(l.key);
+              return (
+                <PickRow key={l.key} type="button" role="menuitemcheckbox" aria-checked={on} $on={on} onClick={() => toggleLink(l.key)}>
+                  <PickBox $on={on}>{on ? "✓" : ""}</PickBox>
+                  {l.label}
+                </PickRow>
+              );
+            })}
+          </>
+        }
         leftSlot={
           <div style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
             <ArrowBtn onClick={back} disabled={!canBack} title="Back (⌘[ / Alt+←)">‹</ArrowBtn>

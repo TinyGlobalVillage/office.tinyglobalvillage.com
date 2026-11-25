@@ -244,7 +244,7 @@ function getDefaultTabY() {
 export default function LegendDrawer() {
   const [open, setOpen] = useState(false);
   const [tabY, setTabY] = useState<number>(400);
-  const [anchor, setAnchor] = useDrawerPersistedState<"left" | "right">(DRAWER_ID, "anchor", "left");
+  const [anchor, setAnchor] = useDrawerPersistedState<"left" | "right">(DRAWER_ID, "anchor", "right");
   const pathname = usePathname();
   const legend = getLegend(pathname ?? "");
   const { hideKnob } = useKnobVisibility();
