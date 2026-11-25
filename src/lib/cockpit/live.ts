@@ -54,7 +54,7 @@ export type LiveFrame = {
   psiMemSome: number | null; // prod (system.slice) memory PSI some avg10
   psiWorkshopSome: number | null; // workshop slice memory PSI some avg10
   /** The workshop slice on its own (lanes, builds, dev servers), so the deck can show it apart from the server. */
-  workshop: { cpuPct: number | null; memMb: number | null; swapMb: number | null; swapMaxMb: number | null } | null;
+  workshop: { cpuPct: number | null; cpuCapPct: number | null; memMb: number | null; swapMb: number | null; swapMaxMb: number | null } | null;
   temps: { cpuC: number | null; disks: Array<{ name: string; c: number }> };
   net: { iface: string | null; rxMbps: number; txMbps: number };
   io: { readMBs: number; writeMBs: number };
@@ -290,7 +290,11 @@ export async function liveFrame(): Promise<LiveFrame> {
     ram, swap, disk,
     psiMemSome: psi ? psi.some10 : null,
     psiWorkshopSome: wpsi ? wpsi.some10 : null,
-    workshop: ws.memMb === null ? null : { cpuPct: wsCpuPct, memMb: ws.memMb, swapMb: ws.swapMb, swapMaxMb: ws.swapMaxMb },
+    workshop: ws.memMb === null ? null : {
+      cpuPct: wsCpuPct,
+      cpuCapPct: ws.cpuMaxThreads === null ? null : Math.min(100, (ws.cpuMaxThreads / Math.max(1, cpu.length - 1)) * 100),
+      memMb: ws.memMb, swapMb: ws.swapMb, swapMaxMb: ws.swapMaxMb,
+    },
     temps: temps(),
     net: { iface, rxMbps: Math.max(0, rxMbps), txMbps: Math.max(0, txMbps) },
     io: { readMBs: Math.max(0, readMBs), writeMBs: Math.max(0, writeMBs) },

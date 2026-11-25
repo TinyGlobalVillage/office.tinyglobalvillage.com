@@ -3,7 +3,7 @@
 // instruments"). Pure SVG + styled-components, no chart library — same stance as the analytics
 // charts. Every colour comes from the theme; amber/red bands come from the viewer's thresholds.
 //
-//   Gauge       dial with amber/red arcs, a needle and a peak tick
+//   Gauge       dial with amber/red arcs, a needle, a peak tick, pink cap lines and a share arc
 //   CoreStrip   one bar per CPU thread
 //   TapeMeter   vertical "fuel" tape (pm2 app memory) with a restart counter
 //   StripChart  live trend line over the last N frames
@@ -32,7 +32,10 @@ const arc = (cx: number, cy: number, r: number, from: number, to: number) => {
 };
 const degOf = (v: number, max: number) => -SWEEP / 2 + (Math.max(0, Math.min(max, v)) / max) * SWEEP;
 
-export function Gauge({ label, value, max = 100, unit = "%", warn, crit, peak, sub, size = 150 }: {
+/** A hard limit on the dial (a cgroup cap, the governor trigger, …), drawn as a pink line across the arc. */
+export type GaugeMark = { value: number; label: string };
+
+export function Gauge({ label, value, max = 100, unit = "%", warn, crit, peak, sub, size = 150, marks, share }: {
   label: string;
   value: number;
   max?: number;
@@ -42,6 +45,10 @@ export function Gauge({ label, value, max = 100, unit = "%", warn, crit, peak, s
   peak?: number | null;
   sub?: string;
   size?: number;
+  /** Caps, in the dial's own units. Pink, so the needle can be seen never crossing them. */
+  marks?: GaugeMark[];
+  /** Part of `value` that belongs to one consumer (the workshop), drawn as an inner cyan arc. Labels go in `sub`. */
+  share?: { value: number; label: string } | null;
 }) {
   const c = 60, r = 48;
   const level = levelFor(value, warn, crit);
@@ -54,11 +61,21 @@ export function Gauge({ label, value, max = 100, unit = "%", warn, crit, peak, s
         <path d={arc(c, c, r, degOf(warn, max), degOf(crit, max))} stroke={colors.gold} strokeOpacity={0.55} strokeWidth={7} fill="none" />
         <path d={arc(c, c, r, degOf(crit, max), SWEEP / 2)} stroke={colors.red} strokeOpacity={0.6} strokeWidth={7} fill="none" strokeLinecap="round" />
         <path d={arc(c, c, r, -SWEEP / 2, Math.max(-SWEEP / 2 + 0.5, needle))} stroke={LEVEL_COLOR[level]} strokeWidth={3} fill="none" strokeLinecap="round" />
+        {share && share.value > 0 && (
+          <path d={arc(c, c, r - 9, -SWEEP / 2, Math.max(-SWEEP / 2 + 0.5, degOf(share.value, max)))} stroke={colors.cyan} strokeOpacity={0.8} strokeWidth={3} fill="none" strokeLinecap="round" />
+        )}
         {peak != null && (() => {
-          const [px1, py1] = polar(c, c, r - 6, degOf(peak, max));
-          const [px2, py2] = polar(c, c, r + 6, degOf(peak, max));
-          return <line x1={px1} y1={py1} x2={px2} y2={py2} stroke={colors.pink} strokeWidth={2} />;
+          const [px1, py1] = polar(c, c, r - 4, degOf(peak, max));
+          const [px2, py2] = polar(c, c, r + 4, degOf(peak, max));
+          return <line x1={px1} y1={py1} x2={px2} y2={py2} stroke="var(--t-textMuted)" strokeWidth={1.5} />;
         })()}
+        {(marks ?? []).filter((m) => m.value > 0 && m.value <= max).map((m) => {
+          const [mx1, my1] = polar(c, c, r - 12, degOf(m.value, max));
+          const [mx2, my2] = polar(c, c, r + 8, degOf(m.value, max));
+          return (
+            <line key={m.label} x1={mx1} y1={my1} x2={mx2} y2={my2} stroke={colors.pink} strokeWidth={2.5} strokeLinecap="round" />
+          );
+        })}
         <line x1={c} y1={c} x2={nx} y2={ny} stroke={LEVEL_COLOR[level]} strokeWidth={2.5} strokeLinecap="round" style={{ transition: "all 0.6s ease" }} />
         <circle cx={c} cy={c} r={4} fill={LEVEL_COLOR[level]} />
         <text x={c} y={c + 26} textAnchor="middle" fontSize={15} fontWeight={700} fill="var(--t-text)">{value.toFixed(value < 10 && max <= 32 ? 1 : 0)}{unit}</text>

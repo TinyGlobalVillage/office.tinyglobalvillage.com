@@ -106,7 +106,7 @@ export default function CockpitModal({ onClose, initialPanel = "deck", onPanelCh
         rd: f.io.readMBs, wr: f.io.writeMBs, load: f.runq?.total ?? f.load[0],
       });
       for (const [k, v] of [
-        ["cpu", f.cpuPct], ["ram", f.ram.pct], ["swap", f.swap.pct], ["disk", f.disk.pct], ["load", f.runq?.total ?? f.load[0]],
+        ["cpu", f.cpuPct], ["ram", f.ram.usedMb / 1024], ["swap", f.swap.usedMb / 1024], ["disk", f.disk.pct], ["load", f.runq?.total ?? f.load[0]],
         ["prodPsi", f.psiMemSome], ["wsPsi", f.psiWorkshopSome], ["wsMem", f.slice ? f.slice.usedMb / 1024 : null],
         ["wsCpu", f.workshop?.cpuPct ?? null], ["wsSwap", f.workshop?.swapMb != null ? f.workshop.swapMb / 1024 : null],
       ] as const) {
@@ -235,16 +235,35 @@ export default function CockpitModal({ onClose, initialPanel = "deck", onPanelCh
               <Card $wide>
                 <CardTitle>Server — prod and everything on the box</CardTitle>
                 <Gauges>
-                  <Gauge label="CPU" value={frame.cpuPct} warn={t.warnPct} crit={t.criticalPct} peak={peaks.current.cpu}
-                    sub={frame.workshop?.cpuPct != null ? `workshop ${frame.workshop.cpuPct.toFixed(0)}% of it` : `${frame.cores.length} threads`} />
-                  <Gauge label="RAM" value={frame.ram.pct} warn={t.warnPct} crit={t.criticalPct} peak={peaks.current.ram}
-                    sub={frame.workshop?.memMb != null
-                      ? `${(frame.ram.usedMb / 1024).toFixed(1)} / ${(frame.ram.totalMb / 1024).toFixed(0)} GB · workshop ${(frame.workshop.memMb / 1024).toFixed(1)}`
-                      : `${(frame.ram.usedMb / 1024).toFixed(1)} / ${(frame.ram.totalMb / 1024).toFixed(0)} GB`} />
-                  <Gauge label="Swap" value={frame.swap.pct} warn={t.warnPct} crit={t.criticalPct} peak={peaks.current.swap}
-                    sub={frame.workshop?.swapMb != null
-                      ? `${(frame.swap.usedMb / 1024).toFixed(1)} / ${(frame.swap.totalMb / 1024).toFixed(0)} GB · workshop ${(frame.workshop.swapMb / 1024).toFixed(1)}`
-                      : `${(frame.swap.usedMb / 1024).toFixed(1)} / ${(frame.swap.totalMb / 1024).toFixed(0)} GB`} />
+                  {(() => {
+                    // Real units against the real box. Pink = a hard limit; cyan inner arc = the workshop's share.
+                    const ws = frame.workshop;
+                    const ramGb = frame.ram.totalMb / 1024, usedGb = frame.ram.usedMb / 1024;
+                    const wsGb = ws?.memMb != null ? ws.memMb / 1024 : null;
+                    const wsMaxGb = frame.slice?.maxMb != null ? frame.slice.maxMb / 1024 : null;
+                    // The most RAM can reach if the workshop grows to its hard cap and prod stays put.
+                    const ramCeil = wsGb != null && wsMaxGb != null ? Math.min(ramGb, usedGb - wsGb + wsMaxGb) : null;
+                    const swGb = frame.swap.totalMb / 1024, swUsed = frame.swap.usedMb / 1024;
+                    const wsSw = ws?.swapMb != null ? Math.min(swUsed, ws.swapMb / 1024) : null;
+                    const wsSwMax = ws?.swapMaxMb != null ? ws.swapMaxMb / 1024 : null;
+                    const swCeil = wsSw != null && wsSwMax != null ? Math.min(swGb, swUsed - wsSw + wsSwMax) : null;
+                    return (
+                      <>
+                        <Gauge label="CPU" value={frame.cpuPct} warn={t.warnPct} crit={t.criticalPct} peak={peaks.current.cpu}
+                          share={ws?.cpuPct != null ? { value: ws.cpuPct, label: `workshop ${ws.cpuPct.toFixed(0)}%` } : null}
+                          marks={ws?.cpuCapPct != null ? [{ value: ws.cpuCapPct, label: `workshop CPU cap ${ws.cpuCapPct.toFixed(0)}%` }] : undefined}
+                          sub={ws?.cpuPct != null ? `workshop ${ws.cpuPct.toFixed(0)}% · cap ${ws.cpuCapPct?.toFixed(0) ?? "—"}%` : `${frame.cores.length} threads`} />
+                        <Gauge label="RAM" value={usedGb} max={ramGb} unit="G" warn={(ramGb * t.warnPct) / 100} crit={(ramGb * t.criticalPct) / 100} peak={peaks.current.ram}
+                          share={wsGb != null ? { value: wsGb, label: `workshop ${wsGb.toFixed(1)} GB` } : null}
+                          marks={ramCeil != null ? [{ value: ramCeil, label: `ceiling with workshop at its cap: ${ramCeil.toFixed(1)} GB` }] : undefined}
+                          sub={wsGb != null ? `of ${ramGb.toFixed(0)} · prod ${(usedGb - wsGb).toFixed(1)} · workshop ${wsGb.toFixed(1)}` : `of ${ramGb.toFixed(0)} GB`} />
+                        <Gauge label="Swap" value={swUsed} max={swGb} unit="G" warn={(swGb * t.warnPct) / 100} crit={(swGb * t.criticalPct) / 100} peak={peaks.current.swap}
+                          share={wsSw != null ? { value: wsSw, label: `workshop ${wsSw.toFixed(1)} GB` } : null}
+                          marks={swCeil != null ? [{ value: swCeil, label: `ceiling with workshop at its cap: ${swCeil.toFixed(1)} GB` }] : undefined}
+                          sub={wsSw != null ? `of ${swGb.toFixed(0)} · workshop ${wsSw.toFixed(1)}` : `of ${swGb.toFixed(0)} GB`} />
+                      </>
+                    );
+                  })()}
                   {frame.psiMemSome !== null && (
                     <Gauge label="Prod pressure" value={frame.psiMemSome} warn={5} crit={20} peak={peaks.current.prodPsi} sub="prod tasks waiting on RAM" />
                   )}
@@ -269,28 +288,40 @@ export default function CockpitModal({ onClose, initialPanel = "deck", onPanelCh
               <Card $wide>
                 <CardTitle>Workshop — lanes, builds and dev servers (capped slice)</CardTitle>
                 <Gauges>
-                  <Gauge
-                    label="Memory"
-                    value={frame.slice.usedMb / 1024}
-                    max={(frame.slice.maxMb ?? 40960) / 1024}
-                    unit="G"
-                    warn={frame.slice.triggerMb / 1024}
-                    crit={(frame.slice.highMb ?? frame.slice.maxMb ?? 40960) / 1024}
-                    peak={peaks.current.wsMem}
-                    sub={`cap ${((frame.slice.maxMb ?? 0) / 1024).toFixed(0)} GB · governor ${frame.slice.enabled ? "on" : "off"}`}
-                  />
-                  {frame.psiWorkshopSome !== null && (
-                    <Gauge label="Pressure" value={frame.psiWorkshopSome} warn={5} crit={20} peak={peaks.current.wsPsi} sub="lane tasks waiting on RAM" />
-                  )}
-                  {frame.workshop?.cpuPct != null && (
-                    <Gauge label="CPU" value={frame.workshop.cpuPct} warn={t.warnPct} crit={t.criticalPct} peak={peaks.current.wsCpu} sub="share of all threads" />
-                  )}
-                  {frame.workshop?.swapMb != null && frame.workshop.swapMaxMb != null && (
-                    <Gauge label="Swap" value={frame.workshop.swapMb / 1024} max={frame.workshop.swapMaxMb / 1024} unit="G"
-                      warn={(frame.workshop.swapMaxMb / 1024) * 0.7} crit={(frame.workshop.swapMaxMb / 1024) * 0.9} peak={peaks.current.wsSwap}
-                      sub={`cap ${(frame.workshop.swapMaxMb / 1024).toFixed(0)} GB`} />
-                  )}
+                  {(() => {
+                    const ws = frame.workshop, sl = frame.slice;
+                    const ramGb = frame.ram.totalMb / 1024;
+                    const gb = (mb: number | null) => (mb == null ? null : mb / 1024);
+                    const trig = sl.triggerMb / 1024, high = gb(sl.highMb), hard = gb(sl.maxMb);
+                    const memMarks = [
+                      { value: trig, label: `governor trigger ${trig.toFixed(0)} GB` },
+                      ...(high != null ? [{ value: high, label: `soft cap ${high.toFixed(0)} GB (throttles)` }] : []),
+                      ...(hard != null ? [{ value: hard, label: `hard cap ${hard.toFixed(0)} GB (never crossed)` }] : []),
+                    ];
+                    const swGb = frame.swap.totalMb / 1024;
+                    return (
+                      <>
+                        <Gauge label="Memory" value={sl.usedMb / 1024} max={ramGb} unit="G" warn={trig} crit={high ?? hard ?? ramGb} peak={peaks.current.wsMem}
+                          marks={memMarks}
+                          sub={`of ${ramGb.toFixed(0)} · gov ${trig.toFixed(0)} · caps ${high?.toFixed(0) ?? "—"}/${hard?.toFixed(0) ?? "—"} · ${sl.enabled ? "on" : "off"}`} />
+                        {frame.psiWorkshopSome !== null && (
+                          <Gauge label="Pressure" value={frame.psiWorkshopSome} warn={5} crit={20} peak={peaks.current.wsPsi} sub="lane tasks waiting on RAM" />
+                        )}
+                        {ws?.cpuPct != null && (
+                          <Gauge label="CPU" value={ws.cpuPct} warn={(ws.cpuCapPct ?? 100) * 0.8} crit={ws.cpuCapPct ?? 100} peak={peaks.current.wsCpu}
+                            marks={ws.cpuCapPct != null ? [{ value: ws.cpuCapPct, label: `CPU cap ${ws.cpuCapPct.toFixed(0)}% of the box` }] : undefined}
+                            sub={`of the box · cap ${ws.cpuCapPct?.toFixed(0) ?? "—"}%`} />
+                        )}
+                        {ws?.swapMb != null && ws.swapMaxMb != null && (
+                          <Gauge label="Swap" value={ws.swapMb / 1024} max={swGb} unit="G" warn={(ws.swapMaxMb / 1024) * 0.7} crit={ws.swapMaxMb / 1024} peak={peaks.current.wsSwap}
+                            marks={[{ value: ws.swapMaxMb / 1024, label: `swap cap ${(ws.swapMaxMb / 1024).toFixed(0)} GB` }]}
+                            sub={`of ${swGb.toFixed(0)} · cap ${(ws.swapMaxMb / 1024).toFixed(0)} GB`} />
+                        )}
+                      </>
+                    );
+                  })()}
                 </Gauges>
+                <LoadNote>Dials are in real units against the whole box. Pink lines are hard limits (governor trigger, soft cap, hard cap); the cyan inner arc on the server dials is the workshop&rsquo;s share; the grey tick is the peak this session.</LoadNote>
               </Card>
             )}
             {prefs.groups.engine && (
