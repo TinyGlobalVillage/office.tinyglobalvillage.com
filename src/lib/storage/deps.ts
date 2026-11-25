@@ -21,7 +21,9 @@ import {
   createPgQuotaProvider,
   type StorageAdapterExt,
   type StorageScope,
+  createSharpTransform,
 } from "@tgv/module-storage/server";
+import sharp from "sharp";
 import { pgPool } from "@/lib/pg-pool";
 import { requireAdmin } from "@/lib/api-admin";
 
@@ -90,6 +92,9 @@ export const storage = createStorageHandlers({
   resolveScope,
   quota,
   readBasePath: "/api/storage/file",
+  // Photos at screen size, AVIF where the browser takes it, iPhone HEIC always converted (Gio 2026-11-23) —
+  // the same transform tgv.com uses. heic-decode is bundled (wasm inlined), so it needs nothing on the box.
+  transformImage: createSharpTransform({ sharp, decodeHeif: async () => (await import("heic-decode")).default }),
 });
 
 export function storageError(e: unknown): Response {
