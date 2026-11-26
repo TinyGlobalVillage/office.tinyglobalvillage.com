@@ -420,11 +420,9 @@ function TopNavInner() {
     ? [
         { label: "Home", href: "tgv://home" },
         ...(appModes.includes("village") ? [{ label: "Village", href: "tgv://mode/village" }] : []),
-        ...(appModes.includes("backend") ? [{ label: "Backend", href: "tgv://mode/backend" }] : []),
         { label: "Open in new window", href: "tgv://mode/office?new=1" },
       ]
-    : // On the web Backend is the desktop app's workspace, so it leads to the download page (as on tgv.com).
-      appModes.includes("backend") ? [{ label: "Backend", href: `${HQ}/en/download` }] : [];
+    : []; // Backend lives in the Sites list (web → the download page, the app → its Backend view).
   const sections: TgvNavSection[] = [
     ...(switchItems.length ? [{ key: "switch-app", title: inApp ? "TGV app" : "Switch to", items: switchItems }] : []),
     {
@@ -475,11 +473,16 @@ function TopNavInner() {
           <>
             {/* Sites — the same searchable switcher the TGV dashboard bar uses (SBDM). Office
                 itself isn't listed: you're already here. Gio 2026-11-25. */}
-            {mySites.length > 0 && (
+            {(mySites.some((st) => !st.hq) || appModes.includes("backend")) && (
               <SitesRow style={{ "--ddm-accent": colors.pink, "--ddm-accent-rgb": rgb.pink } as CSSProperties}>
                 <SBDM
-                  items={mySites.map((st) => ({ key: st.id, label: st.label, group: st.hq ? "TGV" : "Your sites" }))}
+                  // Gio 2026-11-25: no "TGV / TGV Dashboard" row (redundant) — Backend first, then your sites.
+                  items={[
+                    ...(appModes.includes("backend") ? [{ key: "__backend__", label: "Backend", noStar: true }] : []),
+                    ...mySites.filter((st) => !st.hq).map((st) => ({ key: st.id, label: st.label, group: "Your sites" })),
+                  ]}
                   onSelect={(key) => {
+                    if (key === "__backend__") { window.location.href = inApp ? "tgv://mode/backend" : `${HQ}/en/download`; return; }
                     const st = mySites.find((x) => x.id === key);
                     if (st) window.location.href = st.href;
                   }}
